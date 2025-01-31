@@ -19,30 +19,25 @@ class DataTablesExtension extends Extension implements PrependExtensionInterface
     {
         $container
             ->setDefinition('datatables.builder', new Definition(DataTableBuilder::class))
-            ->setPublic(false)
-        ;
+            ->setPublic(false);
 
         $container
             ->setAlias(DataTableBuilderInterface::class, 'datatables.builder')
-            ->setPublic(false)
-        ;
+            ->setPublic(false);
 
         $container
-            ->setDefinition('datatables.builder', new Definition(DataTableResponseBuilder::class))
-            ->setPublic(false)
-        ;
+            ->setDefinition('datatables.response_builder', new Definition(DataTableResponseBuilder::class))
+            ->setPublic(false);
 
         $container
             ->setAlias(DataTableResponseBuilderInterface::class, 'datatables.response_builder')
-            ->setPublic(false)
-        ;
+            ->setPublic(false);
 
         $container
             ->setDefinition('datatables.twig_extension', new Definition(\Pentiminax\UX\DataTables\Twig\DataTablesExtension::class))
             ->addArgument(new Reference('stimulus.helper'))
             ->addTag('twig.extension')
-            ->setPublic(false)
-        ;
+            ->setPublic(false);
     }
 
     public function prepend(ContainerBuilder $container): void
