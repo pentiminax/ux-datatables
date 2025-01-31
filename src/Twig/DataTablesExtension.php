@@ -5,7 +5,7 @@
 namespace Pentiminax\UX\DataTables\Twig;
 
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\StimulusBundle\Helper\StimulusHelper;
+use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 
