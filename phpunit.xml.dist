@@ -21,11 +21,5 @@
         </testsuite>
     </testsuites>
 
-    <filter>
-        <whitelist>
-            <directory>./src/</directory>
-        </whitelist>
-    </filter>
-
     <coverage/>
 </phpunit>
