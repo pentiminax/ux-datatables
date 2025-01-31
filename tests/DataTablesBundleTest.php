@@ -10,7 +10,11 @@ class DataTablesBundleTest extends TestCase
     public function testBootKernel()
     {
         $kernel = new TwigAppKernel('test', true);
+
         $kernel->boot();
+
         $this->assertArrayHasKey('DataTablesBundle', $kernel->getBundles());
+
+        $kernel->shutdown();
     }
 }
