@@ -1,9 +1,9 @@
 <?php
 
-
-
 namespace Pentiminax\UX\DataTables\DependencyInjection;
 
+use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
+use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilderInterface;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -24,6 +24,16 @@ class DataTablesExtension extends Extension implements PrependExtensionInterface
 
         $container
             ->setAlias(DataTableBuilderInterface::class, 'datatables.builder')
+            ->setPublic(false)
+        ;
+
+        $container
+            ->setDefinition('datatables.builder', new Definition(DataTableResponseBuilder::class))
+            ->setPublic(false)
+        ;
+
+        $container
+            ->setAlias(DataTableResponseBuilderInterface::class, 'datatables.response_builder')
             ->setPublic(false)
         ;
 
