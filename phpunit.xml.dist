@@ -23,4 +23,10 @@
     </testsuites>
 
     <coverage/>
+
+    <source>
+        <include>
+            <directory>./src/</directory>
+        </include>
+    </source>
 </phpunit>
