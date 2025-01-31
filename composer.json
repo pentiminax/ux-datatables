@@ -5,16 +5,12 @@
   "keywords": [
     "symfony-ux"
   ],
-  "homepage": "https://symfony.com",
+  "homepage": "https://github.com/pentiminax/ux-datatables",
   "license": "MIT",
   "authors": [
     {
       "name": "Tanguy Lemarié",
       "email": "tanguy.lemarie6@gmail.com"
-    },
-    {
-      "name": "Symfony Community",
-      "homepage": "https://symfony.com/contributors"
     }
   ],
   "autoload": {
