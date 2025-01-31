@@ -36,7 +36,7 @@ class DataTablesExtensionTest extends TestCase
         );
 
         $this->assertSame(
-            expected: '<table id="table" data-controller="mycontroller symfony--ux-datatables--datatable" data-symfony--ux-datatables--datatable-view-value="&#x7B;&quot;columns&quot;&#x3A;&#x5B;&#x7B;&quot;title&quot;&#x3A;&quot;Column&#x20;1&quot;&#x7D;,&#x7B;&quot;title&quot;&#x3A;&quot;Column&#x20;2&quot;&#x7D;&#x5D;,&quot;data&quot;&#x3A;&#x5B;&#x5B;&quot;Row&#x20;1&#x20;Column&#x20;1&quot;,&quot;Row&#x20;1&#x20;Column&#x20;2&quot;&#x5D;,&#x5B;&quot;Row&#x20;2&#x20;Column&#x20;1&quot;,&quot;Row&#x20;2&#x20;Column&#x20;2&quot;&#x5D;&#x5D;&#x7D;" class="myclass"></table>',
+            expected: '<table id="table" data-controller="mycontroller symfony--ux-datatables--datatable" data-symfony--ux-datatables--datatable-view-value="{&quot;columns&quot;:[{&quot;title&quot;:&quot;Column 1&quot;},{&quot;title&quot;:&quot;Column 2&quot;}],&quot;data&quot;:[[&quot;Row 1 Column 1&quot;,&quot;Row 1 Column 2&quot;],[&quot;Row 2 Column 1&quot;,&quot;Row 2 Column 2&quot;]]}" class="myclass"></table>',
             actual: $rendered
         );
     }
