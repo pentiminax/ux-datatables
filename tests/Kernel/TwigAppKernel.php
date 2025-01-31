@@ -8,7 +8,7 @@ use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Kernel;
 use Pentiminax\UX\DataTables\DataTablesBundle;
-use Pentiminax\UX\StimulusBundle\StimulusBundle;
+use Symfony\UX\StimulusBundle\StimulusBundle;
 
 class TwigAppKernel extends Kernel
 {
