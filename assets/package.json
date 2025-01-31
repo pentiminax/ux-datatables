@@ -1,5 +1,5 @@
 {
-    "name": "@symfony/ux-datatables",
+    "name": "@pentiminax/ux-datatables",
     "description": "DataTables integration for Symfony",
     "license": "MIT",
     "version": "1.0.0",

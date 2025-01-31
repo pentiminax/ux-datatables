@@ -28,10 +28,12 @@ class DataTablesExtension extends AbstractExtension
         $table->setAttributes(array_merge($table->getAttributes(), $attributes));
 
         $controllers = [];
+
         if ($table->getDataController()) {
             $controllers[$table->getDataController()] = [];
         }
-        $controllers['@symfony/ux-datatables/datatable'] = ['view' => $table->getOptions()];
+
+        $controllers['@pentiminax/ux-datatables/datatable'] = ['view' => $table->getOptions()];
 
         $stimulusAttributes = $this->stimulus->createStimulusAttributes();
         foreach ($controllers as $name => $controllerValues) {
