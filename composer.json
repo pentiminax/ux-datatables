@@ -38,7 +38,8 @@
     "symfony/framework-bundle": "^5.4|^6.0|^7.0",
     "symfony/phpunit-bridge": "^5.4|^6.0|^7.0",
     "symfony/twig-bundle": "^5.4|^6.0|^7.0",
-    "symfony/var-dumper": "^5.4|^6.0|^7.0"
+    "symfony/var-dumper": "^5.4|^6.0|^7.0",
+    "phpunit/phpunit": "^10.5.38|^11.4.4"
   },
   "conflict": {
     "symfony/flex": "<1.13"
