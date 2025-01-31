@@ -6,7 +6,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 class DataTableResponseBuilder implements DataTableResponseBuilderInterface
 {
-    public function buildResponse(int $draw = 1, array $data = [], int $recordsTotal = 0, int $recordsFiltered = 0): JsonResponse
+    public function buildResponse(int $draw = 1, array $data = [], ?int $recordsTotal = null, ?int $recordsFiltered = null): JsonResponse
     {
         $recordsTotal = $recordsTotal ?? count($data);
         $recordsFiltered = $recordsFiltered ?? $recordsTotal;
