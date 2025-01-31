@@ -1,15 +1,8 @@
 <?php
 
-/*
- * This file is part of the Symfony package.
- *
- * (c) Fabien Potencier <fabien@symfony.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
 
-namespace Symfony\UX\DataTables\DependencyInjection;
+
+namespace Pentiminax\UX\DataTables\DependencyInjection;
 
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -17,8 +10,8 @@ use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Reference;
-use Symfony\UX\DataTables\Builder\DataTableBuilder;
-use Symfony\UX\DataTables\Builder\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
+use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 
 class DataTablesExtension extends Extension implements PrependExtensionInterface
 {
@@ -35,7 +28,7 @@ class DataTablesExtension extends Extension implements PrependExtensionInterface
         ;
 
         $container
-            ->setDefinition('datatables.twig_extension', new Definition(\Symfony\UX\DataTables\Twig\DataTablesExtension::class))
+            ->setDefinition('datatables.twig_extension', new Definition(\Pentiminax\UX\DataTables\Twig\DataTablesExtension::class))
             ->addArgument(new Reference('stimulus.helper'))
             ->addTag('twig.extension')
             ->setPublic(false)

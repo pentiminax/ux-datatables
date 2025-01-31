@@ -1,18 +1,11 @@
 <?php
 
-/*
- * This file is part of the Symfony package.
- *
- * (c) Fabien Potencier <fabien@symfony.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
 
-namespace Symfony\UX\DataTables\Twig;
 
-use Symfony\UX\DataTables\Model\DataTable;
-use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
+namespace Pentiminax\UX\DataTables\Twig;
+
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\StimulusBundle\Helper\StimulusHelper;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 

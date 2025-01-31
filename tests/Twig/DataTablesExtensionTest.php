@@ -1,19 +1,10 @@
 <?php
 
-/*
- * This file is part of the Symfony package.
- *
- * (c) Fabien Potencier <fabien@symfony.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
-namespace Symfony\UX\DataTables\Tests\Twig;
+namespace Pentiminax\UX\DataTables\Tests\Twig;
 
 use PHPUnit\Framework\TestCase;
-use Symfony\UX\DataTables\Builder\DataTableBuilderInterface;
-use Symfony\UX\DataTables\Tests\Kernel\TwigAppKernel;
+use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
 
 class DataTablesExtensionTest extends TestCase
 {
