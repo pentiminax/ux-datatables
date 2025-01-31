@@ -1,5 +1,5 @@
 {
-  "name": "symfony/ux-datatables",
+  "name": "pentiminax/ux-datatables",
   "type": "symfony-bundle",
   "description": "DataTables.net integration for Symfony",
   "keywords": [
@@ -19,12 +19,12 @@
   ],
   "autoload": {
     "psr-4": {
-      "Symfony\\UX\\DataTables\\": "src/"
+      "Pentiminax\\UX\\DataTables\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "Symfony\\UX\\DataTables\\Tests\\": "tests/"
+      "Pentiminax\\UX\\DataTables\\Tests\\": "tests/"
     }
   },
   "require": {
