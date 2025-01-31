@@ -36,7 +36,7 @@ class DataTablesExtensionTest extends TestCase
         );
 
         $this->assertSame(
-            expected: '<table id="table" data-controller="mycontroller symfony--ux-datatables--datatable" data-symfony--ux-datatables--datatable-view-value="{&quot;columns&quot;:[{&quot;title&quot;:&quot;Column 1&quot;},{&quot;title&quot;:&quot;Column 2&quot;}],&quot;data&quot;:[[&quot;Row 1 Column 1&quot;,&quot;Row 1 Column 2&quot;],[&quot;Row 2 Column 1&quot;,&quot;Row 2 Column 2&quot;]]}" class="myclass"></table>',
+            expected: '<table id="table" data-controller="mycontroller pentiminax--ux-datatables--datatable" data-pentiminax--ux-datatables--datatable-view-value="{&quot;columns&quot;:[{&quot;title&quot;:&quot;Column 1&quot;},{&quot;title&quot;:&quot;Column 2&quot;}],&quot;data&quot;:[[&quot;Row 1 Column 1&quot;,&quot;Row 1 Column 2&quot;],[&quot;Row 2 Column 1&quot;,&quot;Row 2 Column 2&quot;]]}" class="myclass"></table>',
             actual: $rendered
         );
     }
