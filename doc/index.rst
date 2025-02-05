@@ -32,7 +32,7 @@ needed if you're using AssetMapper):
 Usage
 -----
 
-To use Symfony UX DataTables, inject the ``DataTableBuilderInterface`` service
+To use UX DataTables, inject the ``DataTableBuilderInterface`` service
 and create tables in PHP::
 
     // ...
