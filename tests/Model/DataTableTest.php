@@ -3,14 +3,15 @@
 namespace Pentiminax\UX\DataTables\Tests\Model;
 
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Model\DataTableFeaturesOptions;
 use PHPUnit\Framework\TestCase;
 
 class DataTableTest extends TestCase
 {
     public function testDataTable(): void
     {
-        $featuresOptions = (new DataTableFeaturesOptions())
+        $table = new DataTable('tableId');
+
+        $table
             ->autoWidth(true)
             ->caption('Table caption')
             ->deferRender(true)
@@ -23,12 +24,7 @@ class DataTableTest extends TestCase
             ->scrollY('200px')
             ->searching(true)
             ->serverSide(true)
-            ->stateSave(true)
-        ;
-
-        $table = new DataTable('tableId');
-
-        $table->setFeaturesOptions($featuresOptions);
+            ->stateSave(true);
 
         $this->assertEquals('tableId', $table->getId());
     }
