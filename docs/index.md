@@ -5,11 +5,6 @@ UX DataTables is a Symfony bundle integrating the
 
 ## Installation
 
-::: caution
-::: title
-Caution
-:::
-
 Before you start, make sure you have [StimulusBundle configured in your
 app](https://symfony.com/bundles/StimulusBundle/current/index.html).
 :::
@@ -37,6 +32,7 @@ $ yarn watch
 To use UX DataTables, inject the `DataTableBuilderInterface` service and
 create tables in PHP:
 
+``` php
     // ...
     use Symfony\UX\DataTables\Builder\DataTableBuilderInterface;
     use Symfony\UX\DataTables\Model\DataTable;
@@ -67,6 +63,7 @@ create tables in PHP:
             ]);
         }
     }
+```
 
 All options and data are provided as-is to DataTables. You can read
 [DataTables documentation](https://datatables.net/manual/) to discover
