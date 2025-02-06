@@ -6,15 +6,15 @@ namespace Pentiminax\UX\DataTables\Model;
 
 class DataTable
 {
-    private readonly ?string $id;
+    private DataTableFeaturesOptions $featuresOptions;
 
-    private array $options = [];
+    private DataTableDataOptions $dataOptions;
 
-    private array $attributes = [];
-
-    public function __construct(?string $id = null)
-    {
-        $this->id = $id;
+    public function __construct(
+        private readonly string $id,
+        private array $options = [],
+        private array $attributes = []
+    ){
     }
 
     public function getId(): ?string
@@ -42,6 +42,30 @@ class DataTable
     public function setAttributes(array $attributes): static
     {
         $this->attributes = $attributes;
+
+        return $this;
+    }
+
+    public function getFeaturesOptions(): DataTableFeaturesOptions
+    {
+        return $this->featuresOptions;
+    }
+
+    public function setFeaturesOptions(DataTableFeaturesOptions $featuresOptions): static
+    {
+        $this->featuresOptions = $featuresOptions;
+
+        return $this;
+    }
+
+    public function getDataOptions(): DataTableDataOptions
+    {
+        return $this->dataOptions;
+    }
+
+    public function setDataOptions(DataTableDataOptions $dataOptions): static
+    {
+        $this->dataOptions = $dataOptions;
 
         return $this;
     }
