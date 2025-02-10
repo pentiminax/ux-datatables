@@ -25,6 +25,7 @@ class ColumnTest extends TestCase
             'searchable' => false,
             'width' => '100px',
             'type' => 'string',
+            'visible' => true,
         ];
 
         $this->assertEquals($expectedArray, $column->toArray());
