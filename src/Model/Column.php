@@ -24,6 +24,8 @@ class Column
 
     private bool $searchable = true;
 
+    private bool $visible = true;
+
 
     public static function new(string $name, string $title, ColumnType $type = ColumnType::STRING): self
     {
@@ -78,9 +80,7 @@ class Column
     }
 
     /**
-     * When operating in client-side processing mode, DataTables can process the data used for the display in each cell in a manner suitable for the action being performed.
-     * For example, HTML tags will be removed from the strings used for filter matching, while sort formatting may remove currency symbols to allow currency values to be sorted numerically.
-     * The formatting action performed to normalise the data so it can be ordered and searched depends upon the column's type.
+     * Set the column type - used for filtering and sorting string processing.
      */
     public function setType(ColumnType $type): self
     {
@@ -106,6 +106,16 @@ class Column
         return $this;
     }
 
+    /**
+     * Enable or disable the display of this column.
+     */
+    public function setVisible(bool $visible): self
+    {
+        $this->visible = $visible;
+
+        return $this;
+    }
+
     public function toArray(): array
     {
         return array_filter([
@@ -117,6 +127,7 @@ class Column
             'type' => $this->type->value,
             'width' => $this->width,
             'title' => $this->title,
+            'visible' => $this->visible,
         ], fn($value) => $value !== null);
     }
 }
