@@ -10,7 +10,7 @@ You can configure data loading using the `AjaxOption` class. Here’s how to use
 
 ```php
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Model\AjaxOption;
+use Pentiminax\UX\DataTables\Model\AjaxOptions;
 
 class MyTableService
 {
@@ -18,7 +18,7 @@ class MyTableService
     {
         $dataTable = new DataTable('example_table');
         
-        $ajaxOption = new AjaxOption(
+        $ajaxOption = new AjaxOptions(
             url: '/api/data', // API endpoint to fetch data
             dataSrc: 'data',  // Key in the JSON response containing the data (optional)
             type: 'POST'      // HTTP method used (default is GET)

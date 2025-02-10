@@ -1,7 +1,5 @@
 <?php
 
-
-
 namespace Pentiminax\UX\DataTables\Model;
 
 class DataTable
@@ -64,6 +62,22 @@ class DataTable
     public function caption(string $caption): static
     {
         $this->options['caption'] = $caption;
+
+        return $this;
+    }
+
+    /**
+     * @param array|Column[] $columns
+     */
+    public function columns(array $columns): static
+    {
+        foreach ($columns as $column) {
+            if ($column instanceof Column) {
+                $this->options['columns'][] = $column->toArray();
+            } else {
+                $this->options['columns'][] = $column;
+            }
+        }
 
         return $this;
     }
@@ -181,7 +195,7 @@ class DataTable
     /**
      * Load data for the table's content from an Ajax source.
      */
-    public function ajax(AjaxOption $ajaxOption): static
+    public function ajax(AjaxOptions $ajaxOption): static
     {
         $this->options['ajax'] = $ajaxOption->toArray();
 
