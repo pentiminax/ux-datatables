@@ -55,6 +55,19 @@ class DataTable
 
         return $this;
     }
+    /**
+     * Initial order (sort) to apply to the table.
+     * @param array $order Array of order configurations. Each element can be:
+     *                     - An array with [column_index, direction]
+     *                     - An object with {idx: number, dir: 'asc'|'desc'}
+     *                     - An object with {name: string, dir: 'asc'|'desc'}
+     */
+    public function order(array $order): static
+    {
+        $this->options['order'] = $order;
+
+        return $this;
+    }
 
     /**
      * Set a caption for the table
@@ -62,14 +75,14 @@ class DataTable
     public function caption(string $caption): static
     {
         $this->options['caption'] = $caption;
-
+    
         return $this;
     }
 
     public function add(Column $column): static
     {
         $this->options['columns'][] = $column->toArray();
-
+    
         return $this;
     }
 
@@ -85,7 +98,7 @@ class DataTable
                 $this->options['columns'][] = $column;
             }
         }
-
+    
         return $this;
     }
 
@@ -95,7 +108,7 @@ class DataTable
     public function deferRender(bool $deferRender): static
     {
         $this->options['deferRender'] = $deferRender;
-
+    
         return $this;
     }
 
@@ -105,7 +118,7 @@ class DataTable
     public function info(bool $info): static
     {
         $this->options['info'] = $info;
-
+    
         return $this;
     }
 
@@ -115,7 +128,7 @@ class DataTable
     public function lengthChange(bool $lengthChange): static
     {
         $this->options['lengthChange'] = $lengthChange;
-
+    
         return $this;
     }
 
@@ -125,7 +138,7 @@ class DataTable
     public function ordering(bool $ordering): static
     {
         $this->options['ordering'] = $ordering;
-
+    
         return $this;
     }
 
@@ -135,7 +148,7 @@ class DataTable
     public function paging(bool $paging): static
     {
         $this->options['paging'] = $paging;
-
+    
         return $this;
     }
 
@@ -145,7 +158,7 @@ class DataTable
     public function processing(bool $processing): static
     {
         $this->options['processing'] = $processing;
-
+    
         return $this;
     }
 
@@ -155,7 +168,7 @@ class DataTable
     public function scrollX(bool $scrollX): static
     {
         $this->options['scrollX'] = $scrollX;
-
+    
         return $this;
     }
 
@@ -165,7 +178,7 @@ class DataTable
     public function scrollY(string $scrollY): static
     {
         $this->options['scrollY'] = $scrollY;
-
+    
         return $this;
     }
 
@@ -175,7 +188,7 @@ class DataTable
     public function searching(bool $searching): static
     {
         $this->options['searching'] = $searching;
-
+    
         return $this;
     }
 
@@ -185,7 +198,7 @@ class DataTable
     public function serverSide(bool $serverSide): static
     {
         $this->options['serverSide'] = $serverSide;
-
+    
         return $this;
     }
 
@@ -195,7 +208,7 @@ class DataTable
     public function stateSave(bool $stateSave): static
     {
         $this->options['stateSave'] = $stateSave;
-
+    
         return $this;
     }
     /**
@@ -204,7 +217,7 @@ class DataTable
     public function displayStart(int $displayStart): static
     {
         $this->options['displayStart'] = $displayStart;
-
+    
         return $this;
     }
 
@@ -214,7 +227,7 @@ class DataTable
     public function ajax(AjaxOptions $ajaxOption): static
     {
         $this->options['ajax'] = $ajaxOption->toArray();
-
+    
         return $this;
     }
 
@@ -224,7 +237,7 @@ class DataTable
     public function data(array $data): static
     {
         $this->options['data'] = $data;
-
+    
         return $this;
     }
 }
