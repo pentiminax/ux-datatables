@@ -198,6 +198,15 @@ class DataTable
 
         return $this;
     }
+    /**
+     * Define the starting point for data display when using DataTables with pagination.
+     */
+    public function displayStart(int $displayStart): static
+    {
+        $this->options['displayStart'] = $displayStart;
+
+        return $this;
+    }
 
     /**
      * Load data for the table's content from an Ajax source.
