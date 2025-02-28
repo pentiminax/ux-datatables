@@ -66,6 +66,13 @@ class DataTable
         return $this;
     }
 
+    public function add(Column $column): static
+    {
+        $this->options['columns'][] = $column->toArray();
+
+        return $this;
+    }
+
     /**
      * @param array|Column[] $columns
      */
