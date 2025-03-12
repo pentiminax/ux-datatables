@@ -5,36 +5,34 @@ To use UX DataTables, inject the `DataTableBuilderInterface` service and
 create tables in PHP:
 
 ``` php
-    // ...
-    use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
-    use Pentiminax\UX\DataTables\Model\DataTable;
+// ...
+use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Column;
 
-    class HomeController extends AbstractController
+class HomeController extends AbstractController
+{
+    #[Route('/', name: 'app_homepage')]
+    public function index(DataTableBuilderInterface $tableBuilder): Response
     {
-        #[Route('/', name: 'app_homepage')]
-        public function index(DataTableBuilderInterface $tableBuilder): Response
-        {
-            $table = $tableBuilder->createDataTable('usersTable');
-
-            $table->setData([
-                'columns' => ['First name', 'Last name'],
-                'data' => [
-                    ['John', 'Doe'],
-                    ['Jane', 'Smith'],
-                ],
+        $table = $tableBuilder->createDataTable('usersTable')
+            ->columns([
+                Column::new('firstName', 'First name'),
+                Column::new('lastName', 'Last name'),
+            ])
+            ->data([
+                ['John', 'Doe'],
+                ['Jane', 'Smith'],
+            ])
+            ->order([
+                ['idx' => 1, 'dir' => 'asc']
             ]);
 
-            $table->setOptions([
-                'order' => [
-                    ['idx' => 1, 'dir' => 'asc']
-                ],
-            ]);
-
-            return $this->render('home/index.html.twig', [
-                'table' => $table,
-            ]);
-        }
+        return $this->render('home/index.html.twig', [
+            'table' => $table,
+        ]);
     }
+}
 ```
 
 All options and data are provided as-is to DataTables. You can read
