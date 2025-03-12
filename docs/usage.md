@@ -13,9 +13,10 @@ use Pentiminax\UX\DataTables\Model\Column;
 class HomeController extends AbstractController
 {
     #[Route('/', name: 'app_homepage')]
-    public function index(DataTableBuilderInterface $tableBuilder): Response
+    public function index(DataTableBuilderInterface $builder): Response
     {
-        $table = $tableBuilder->createDataTable('usersTable')
+        $table = $builder
+            ->createDataTable('usersTable')
             ->columns([
                 Column::new('firstName', 'First name'),
                 Column::new('lastName', 'Last name'),
