@@ -6,8 +6,8 @@ create tables in PHP:
 
 ``` php
     // ...
-    use Symfony\UX\DataTables\Builder\DataTableBuilderInterface;
-    use Symfony\UX\DataTables\Model\DataTable;
+    use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
+    use Pentiminax\UX\DataTables\Model\DataTable;
 
     class HomeController extends AbstractController
     {
