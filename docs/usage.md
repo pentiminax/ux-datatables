@@ -23,9 +23,6 @@ class HomeController extends AbstractController
             ->data([
                 ['John', 'Doe'],
                 ['Jane', 'Smith'],
-            ])
-            ->order([
-                ['idx' => 1, 'dir' => 'asc']
             ]);
 
         return $this->render('home/index.html.twig', [
