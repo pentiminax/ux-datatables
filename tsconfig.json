@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "lib": ["dom", "es2015", "ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "noUnusedLocals": true,
+    "rootDir": "assets",
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "target": "ES2021",
+    "removeComments": true,
+    "outDir": "assets/dist",
+    "baseUrl": ".",
+    "noEmit": false,
+    "declaration": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "jsx": "react",
+    "skipLibCheck": true
+  },
+  "exclude": ["assets/dist"]
+}
