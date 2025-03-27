@@ -240,4 +240,24 @@ class DataTable
     
         return $this;
     }
+
+    /**
+     * Change the options in the page length select list.
+     */
+    public function lengthMenu(array $lengthMenu): static
+    {
+        $this->options['lengthMenu'] = $lengthMenu;
+
+        return $this;
+    }
+
+    /**
+     * Change the initial page length (number of rows per page).
+     */
+    public function pageLength(int $pageLength): static
+    {
+        $this->options['pageLength'] = $pageLength;
+
+        return $this;
+    }
 }
