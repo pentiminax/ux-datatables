@@ -20,18 +20,18 @@
         },
         "importmap": {
             "@hotwired/stimulus": "^3.0.0",
-            "datatables.net-dt": "^2.1.5",
-            "datatables.net-bs5": "^2.1.5"
+            "datatables.net-dt": "^2.2.2",
+            "datatables.net-bs5": "^2.2.2"
         }
     },
     "peerDependencies": {
         "@hotwired/stimulus": "^3.0.0",
-        "datatables.net-dt": "^2.1.5",
-        "datatables.net-bs5": "^2.1.5"
+        "datatables.net-dt": "^2.2.2",
+        "datatables.net-bs5": "^2.2.2"
     },
     "devDependencies": {
         "@hotwired/stimulus": "^3.0.0",
-        "datatables.net-dt": "^2.1.5",
-        "datatables.net-bs5": "^2.1.5"
+        "datatables.net-dt": "^2.2.2",
+        "datatables.net-bs5": "^2.2.2"
     }
 }
