@@ -13,21 +13,25 @@
                 "fetch": "eager",
                 "enabled": true,
                 "autoimport": {
-                    "datatables.net-dt/css/dataTables.dataTables.min.css": true
+                    "datatables.net-dt/css/dataTables.dataTables.min.css": true,
+                    "datatables.net-bs5/css/dataTables.bootstrap5.min.css": false
                 }
             }
         },
         "importmap": {
             "@hotwired/stimulus": "^3.0.0",
-            "datatables.net-dt": "^2.1.5"
+            "datatables.net-dt": "^2.1.5",
+            "datatables.net-bs5": "^2.1.5"
         }
     },
     "peerDependencies": {
         "@hotwired/stimulus": "^3.0.0",
-        "datatables.net-dt": "^2.1.5"
+        "datatables.net-dt": "^2.1.5",
+        "datatables.net-bs5": "^2.1.5"
     },
     "devDependencies": {
         "@hotwired/stimulus": "^3.0.0",
-        "datatables.net-dt": "^2.1.5"
+        "datatables.net-dt": "^2.1.5",
+        "datatables.net-bs5": "^2.1.5"
     }
 }
