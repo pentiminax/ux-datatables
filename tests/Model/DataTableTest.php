@@ -24,8 +24,12 @@ class DataTableTest extends TestCase
             ->scrollY('200px')
             ->searching(true)
             ->serverSide(true)
-            ->stateSave(true);
+            ->stateSave(true)
+            ->pageLength(10)
+            ->lengthMenu([10, 25, 50])
+        ;
 
         $this->assertEquals('tableId', $table->getId());
+
     }
 }
