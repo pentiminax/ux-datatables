@@ -142,3 +142,20 @@ $dataTable
 ```
 
 This example creates a DataTable with common options configured, including Ajax data loading, scrolling, and basic features enabled.
+
+## Styling DataTables
+
+In your ``assets/controllers.json`` file, you should see a line that automatically 
+includes a CSS file for DataTables which will give you basic styles.
+
+If you're using Bootstrap, set ``datatables.net-dt/css/dataTables.dataTables.min.css`` to false 
+and ``datatables.net-bs5/css/dataTables.bootstrap5.min.css`` to true:
+
+```json
+{
+    "autoimport": {
+        "datatables.net-dt/css/dataTables.dataTables.min.css": false,
+        "datatables.net-bs5/css/dataTables.bootstrap5.min.css": true
+    }
+}
+```

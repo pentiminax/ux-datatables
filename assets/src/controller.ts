@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import DataTable from 'datatables.net-dt';
+import {getLoadedDataTablesStyleSheet} from "./functions/getLoadedDataTablesStyleSheet";
 
 export default class extends Controller {
     declare readonly viewValue: any;
@@ -11,7 +11,7 @@ export default class extends Controller {
     private table: DataTable | null = null;
     private isDataTableInitialized = false;
 
-    connect() {
+    async connect() {
         if (this.isDataTableInitialized) {
             return;
         }
@@ -26,11 +26,23 @@ export default class extends Controller {
             config: payload,
         });
 
+        const stylesheet = getLoadedDataTablesStyleSheet();
+
+        const DataTable = await this.loadDataTableLibrary(stylesheet);
+
         this.table = new DataTable(this.element as HTMLElement, payload);
 
         this.dispatchEvent('connect', { table: this.table });
 
         this.isDataTableInitialized = true;
+    }
+
+    async loadDataTableLibrary(stylesheet?: CSSStyleSheet) {
+        if (stylesheet?.href?.includes('dataTables.bootstrap5')) {
+            return (await import('datatables.net-bs5')).default;
+        } else {
+            return (await import('datatables.net-dt')).default;
+        }
     }
 
     private dispatchEvent(name: string, payload: any) {
