@@ -27,6 +27,11 @@ class DataTablesBundle extends AbstractBundle
                         ->integerNode('pageLength')->end()
                     ->end()
                 ->end()
+                ->arrayNode('template_parameters')
+                    ->children()
+                        ->scalarNode('class')->defaultValue('table')->end()
+                    ->end()
+                ->end()
             ->end()
         ;
     }
@@ -35,8 +40,8 @@ class DataTablesBundle extends AbstractBundle
     {
         $container->services()
             ->set('datatables.builder', DataTableBuilder::class)
-            ->arg(0, $config['options']['lengthMenu'] ?? [10, 25, 50 ,100])
-            ->arg(1, $config['options']['pageLength'] ?? 25)
+            ->arg(0, $config['options'] ?? [])
+            ->arg(1, $config['template_parameters'] ?? [])
             ->private();
 
         $container->services()
