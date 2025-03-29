@@ -33,7 +33,9 @@ class DataTablesExtension extends AbstractExtension
             $controllers[$table->getDataController()] = [];
         }
 
-        $controllers['@pentiminax/ux-datatables/datatable'] = ['view' => $table->getOptions()];
+        $controllers['@pentiminax/ux-datatables/datatable'] = [
+            'view' => array_merge($table->getOptions(), $table->getExtensions())
+        ];
 
         $stimulusAttributes = $this->stimulus->createStimulusAttributes();
         foreach ($controllers as $name => $controllerValues) {

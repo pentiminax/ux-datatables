@@ -1,5 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 import {getLoadedDataTablesStyleSheet} from "./functions/getLoadedDataTablesStyleSheet";
+import {loadDataTableLibrary} from "./functions/loadDataTableLibrary";
+import {loadSelectLibrary} from "./functions/loadSelectLibrary";
 
 export default class extends Controller {
     declare readonly viewValue: any;
@@ -28,7 +30,11 @@ export default class extends Controller {
 
         const stylesheet = getLoadedDataTablesStyleSheet();
 
-        const DataTable = await this.loadDataTableLibrary(stylesheet);
+        const DataTable = await loadDataTableLibrary(stylesheet);
+
+        if (this.isSelectExtensionEnabled(payload)) {
+            await loadSelectLibrary();
+        }
 
         this.table = new DataTable(this.element as HTMLElement, payload);
 
@@ -37,15 +43,14 @@ export default class extends Controller {
         this.isDataTableInitialized = true;
     }
 
-    async loadDataTableLibrary(stylesheet?: CSSStyleSheet) {
-        if (stylesheet?.href?.includes('dataTables.bootstrap5')) {
-            return (await import('datatables.net-bs5')).default;
-        } else {
-            return (await import('datatables.net-dt')).default;
-        }
+    private dispatchEvent(name: string, payload: any) {
+        this.dispatch(name, {
+            detail: payload,
+            prefix: 'datatables'
+        });
     }
 
-    private dispatchEvent(name: string, payload: any) {
-        this.dispatch(name, { detail: payload, prefix: 'datatables' });
+    private isSelectExtensionEnabled(payload: Record<string, any>): boolean {
+        return !!payload['select'];
     }
 }
