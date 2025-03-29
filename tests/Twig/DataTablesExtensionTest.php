@@ -18,7 +18,11 @@ class DataTablesExtensionTest extends TestCase
         /** @var DataTableBuilderInterface $builder */
         $builder = $container->get('test.datatables.builder');
 
-        $table = $builder->createDataTable('table');
+        $table = $builder
+            ->createDataTable('table')
+            ->lengthMenu([10, 25, 50, 100])
+            ->pageLength(25)
+        ;
 
         $table->columns([
             Column::new(name: 'firstColumn', title: 'Column 1'),
