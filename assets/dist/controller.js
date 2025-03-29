@@ -1,5 +1,7 @@
 import { Controller } from '@hotwired/stimulus';
 import { getLoadedDataTablesStyleSheet } from "./functions/getLoadedDataTablesStyleSheet.js";
+import { loadDataTableLibrary } from "./functions/loadDataTableLibrary.js";
+import { loadSelectLibrary } from "./functions/loadSelectLibrary.js";
 class default_1 extends Controller {
     constructor() {
         super(...arguments);
@@ -18,21 +20,22 @@ class default_1 extends Controller {
             config: payload,
         });
         const stylesheet = getLoadedDataTablesStyleSheet();
-        const DataTable = await this.loadDataTableLibrary(stylesheet);
+        const DataTable = await loadDataTableLibrary(stylesheet);
+        if (this.isSelectExtensionEnabled(payload)) {
+            await loadSelectLibrary();
+        }
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
         this.isDataTableInitialized = true;
     }
-    async loadDataTableLibrary(stylesheet) {
-        if (stylesheet?.href?.includes('dataTables.bootstrap5')) {
-            return (await import('datatables.net-bs5')).default;
-        }
-        else {
-            return (await import('datatables.net-dt')).default;
-        }
-    }
     dispatchEvent(name, payload) {
-        this.dispatch(name, { detail: payload, prefix: 'datatables' });
+        this.dispatch(name, {
+            detail: payload,
+            prefix: 'datatables'
+        });
+    }
+    isSelectExtensionEnabled(payload) {
+        return !!payload['select'];
     }
 }
 default_1.values = {

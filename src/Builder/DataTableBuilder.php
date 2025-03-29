@@ -10,7 +10,8 @@ class DataTableBuilder implements DataTableBuilderInterface
 {
     public function __construct(
         public array $options = [],
-        public array $attributes = []
+        public array $attributes = [],
+        public array $extensions = [],
     ) {
     }
 
@@ -19,7 +20,8 @@ class DataTableBuilder implements DataTableBuilderInterface
         return new DataTable(
             id: $id,
             options: $this->options,
-            attributes: $this->attributes
+            attributes: $this->attributes,
+            extensions: $this->extensions
         );
     }
 }
