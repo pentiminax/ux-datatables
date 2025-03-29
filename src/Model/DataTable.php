@@ -4,7 +4,6 @@ namespace Pentiminax\UX\DataTables\Model;
 
 class DataTable
 {
-
     public function __construct(
         private readonly string $id,
         private array $options = [],
