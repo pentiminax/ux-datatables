@@ -20,6 +20,7 @@ composer require pentiminax/ux-datatables
 
 ## Advanced documentation
 - [Installation](https://github.com/pentiminax/ux-datatables/blob/main/docs/installation.md)
+- [Configuration](https://github.com/pentiminax/ux-datatables/blob/main/docs/configuration.md)
 - [Usage](https://github.com/pentiminax/ux-datatables/blob/main/docs/usage.md)
 - [Ajax](https://github.com/pentiminax/ux-datatables/blob/main/docs/ajax.md)
 - [Columns](https://github.com/pentiminax/ux-datatables/blob/main/docs/columns.md)
