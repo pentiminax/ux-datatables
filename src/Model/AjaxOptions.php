@@ -2,12 +2,12 @@
 
 namespace Pentiminax\UX\DataTables\Model;
 
-class AjaxOptions
+readonly class AjaxOptions
 {
     public function __construct(
-        private readonly string $url,
-        private readonly ?string $dataSrc = null,
-        private readonly ?string $type = null,
+        private string $url,
+        private ?string $dataSrc = null,
+        private ?string $type = null,
     ) {
     }
 
