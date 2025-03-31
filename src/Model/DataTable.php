@@ -2,13 +2,19 @@
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
+
 class DataTable
 {
+    private DataTableExtensions $extensions;
+
     public function __construct(
         private readonly string $id,
         private array $options = [],
-        private array $attributes = []
-    ){
+        private array $attributes = [],
+        array $extensions = [],
+    ) {
+        $this->extensions = new DataTableExtensions($extensions);
     }
 
     public function getId(): ?string
@@ -258,5 +264,22 @@ class DataTable
         $this->options['pageLength'] = $pageLength;
 
         return $this;
+    }
+
+    /**
+     * @param ExtensionInterface[] $extensions
+     */
+    public function extensions(array $extensions): static
+    {
+        foreach ($extensions as $extension) {
+            $this->extensions->addExtension($extension);
+        }
+
+        return $this;
+    }
+
+    public function getExtensions(): array
+    {
+        return $this->extensions->toArray();
     }
 }
