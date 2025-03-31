@@ -1,5 +1,7 @@
 # Extensions
 
+The DataTables library comes with a number of useful extensions.
+
 ## Select
 
 Select adds item selection capabilities to a DataTable. Items can be rows, columns, or cells, which can be selected independently or together.
