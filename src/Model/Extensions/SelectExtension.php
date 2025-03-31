@@ -4,7 +4,7 @@ namespace Pentiminax\UX\DataTables\Model\Extensions;
 
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 
-class SelectExtension implements ExtensionInterface
+readonly class SelectExtension implements ExtensionInterface
 {
     public function __construct(
         private SelectStyle $style = SelectStyle::SINGLE
