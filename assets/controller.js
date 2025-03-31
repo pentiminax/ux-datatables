@@ -1,8 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
-import { getLoadedDataTablesStyleSheet } from "./functions/getLoadedDataTablesStyleSheet.js";
-import { loadButtonsLibrary } from "./functions/loadButtonsLibrary.js";
-import { loadDataTableLibrary } from "./functions/loadDataTableLibrary.js";
-import { loadSelectLibrary } from "./functions/loadSelectLibrary.js";
+import { getLoadedDataTablesStyleSheet } from "./dist/functions/getLoadedDataTablesStyleSheet.js";
+import { loadButtonsLibrary } from "./dist/functions/loadButtonsLibrary.js";
+import { loadDataTableLibrary } from "./dist/functions/loadDataTableLibrary.js";
+import { loadSelectLibrary } from "./dist/functions/loadSelectLibrary.js";
 class default_1 extends Controller {
     constructor() {
         super(...arguments);
@@ -23,7 +23,7 @@ class default_1 extends Controller {
         const stylesheet = getLoadedDataTablesStyleSheet();
         const DataTable = await loadDataTableLibrary(stylesheet);
         if (this.isButtonsExtensionEnabled(payload)) {
-            await loadButtonsLibrary(DataTable, stylesheet);
+            await loadButtonsLibrary(stylesheet);
         }
         if (this.isSelectExtensionEnabled(payload)) {
             await loadSelectLibrary(stylesheet);

@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import {getLoadedDataTablesStyleSheet} from "./functions/getLoadedDataTablesStyleSheet";
+import {loadButtonsLibrary} from "./functions/loadButtonsLibrary";
 import {loadDataTableLibrary} from "./functions/loadDataTableLibrary";
 import {loadSelectLibrary} from "./functions/loadSelectLibrary";
 
@@ -32,8 +33,12 @@ export default class extends Controller {
 
         const DataTable = await loadDataTableLibrary(stylesheet);
 
+        if (this.isButtonsExtensionEnabled(payload)) {
+            await loadButtonsLibrary(DataTable, stylesheet);
+        }
+
         if (this.isSelectExtensionEnabled(payload)) {
-            await loadSelectLibrary();
+            await loadSelectLibrary(stylesheet);
         }
 
         this.table = new DataTable(this.element as HTMLElement, payload);
@@ -48,6 +53,10 @@ export default class extends Controller {
             detail: payload,
             prefix: 'datatables'
         });
+    }
+
+    private isButtonsExtensionEnabled(payload: Record<string, any>): boolean {
+        return !!payload['layout']['buttons'];
     }
 
     private isSelectExtensionEnabled(payload: Record<string, any>): boolean {
