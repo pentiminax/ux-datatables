@@ -32,6 +32,14 @@ class DataTablesBundle extends AbstractBundle
                         ->scalarNode('class')->defaultValue('table')->end()
                     ->end()
                 ->end()
+                ->arrayNode('extensions')
+                    ->children()
+                        ->arrayNode('select')
+                            ->children()
+                                ->scalarNode('style')->defaultValue('single')->end()
+                             ->end()
+                         ->end()
+                    ->end()
             ->end()
         ;
     }
@@ -42,6 +50,7 @@ class DataTablesBundle extends AbstractBundle
             ->set('datatables.builder', DataTableBuilder::class)
             ->arg(0, $config['options'] ?? [])
             ->arg(1, $config['template_parameters'] ?? [])
+            ->arg(2, $config['extensions'] ?? [])
             ->private();
 
         $container->services()
