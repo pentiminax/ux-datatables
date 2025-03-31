@@ -16,7 +16,7 @@ class DataTableExtensions
 
     public function addExtension(ExtensionInterface $extension): void
     {
-        $this->extensions['select'] = $extension->toArray();
+        $this->extensions[$extension->getKey()] = $extension->toArray();
 
     }
 
