@@ -39,10 +39,10 @@ class default_1 extends Controller {
         });
     }
     isButtonsExtensionEnabled(payload) {
-        return !!payload['layout']['topStart']['buttons'];
+        return !!(payload?.layout?.topStart?.buttons);
     }
     isSelectExtensionEnabled(payload) {
-        return !!payload['select'];
+        return !!payload?.select;
     }
 }
 default_1.values = {

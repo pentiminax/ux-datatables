@@ -4,14 +4,20 @@ namespace Pentiminax\UX\DataTables\Model\Extensions;
 
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 
-readonly class ButtonsExtension implements ExtensionInterface
+class ButtonsExtension implements ExtensionInterface
 {
+    /** @var ButtonType[]  */
+    private array $buttons;
+
     /**
-     * @param ButtonType[] $buttons
+     * @param string[] $buttons
      */
     public function __construct(
-        private array $buttons
+        array $buttons
     ) {
+        foreach ($buttons as $button) {
+            $this->buttons[] = ButtonType::from($button);
+        }
     }
 
     public function getKey(): string
