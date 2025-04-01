@@ -12,7 +12,7 @@ class ButtonsExtensionTest extends TestCase
     {
         $buttons = [];
         foreach (ButtonType::cases() as $buttonType) {
-            $buttons[] = $buttonType;
+            $buttons[] = $buttonType->value;
         }
 
         $extension = new ButtonsExtension($buttons);

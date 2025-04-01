@@ -56,10 +56,10 @@ export default class extends Controller {
     }
 
     private isButtonsExtensionEnabled(payload: Record<string, any>): boolean {
-        return !!payload['layout']['buttons'];
+        return !!(payload?.layout?.topStart?.buttons);
     }
 
     private isSelectExtensionEnabled(payload: Record<string, any>): boolean {
-        return !!payload['select'];
+        return !!payload?.select;
     }
 }
