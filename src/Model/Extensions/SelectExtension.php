@@ -11,6 +11,11 @@ readonly class SelectExtension implements ExtensionInterface
     ) {
     }
 
+    public function getKey(): string
+    {
+        return 'select';
+    }
+
     public function toArray(): array
     {
         return [

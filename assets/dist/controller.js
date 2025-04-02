@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { getLoadedDataTablesStyleSheet } from "./functions/getLoadedDataTablesStyleSheet.js";
+import { loadButtonsLibrary } from "./functions/loadButtonsLibrary.js";
 import { loadDataTableLibrary } from "./functions/loadDataTableLibrary.js";
 import { loadSelectLibrary } from "./functions/loadSelectLibrary.js";
 class default_1 extends Controller {
@@ -21,8 +22,11 @@ class default_1 extends Controller {
         });
         const stylesheet = getLoadedDataTablesStyleSheet();
         const DataTable = await loadDataTableLibrary(stylesheet);
+        if (this.isButtonsExtensionEnabled(payload)) {
+            await loadButtonsLibrary(DataTable, stylesheet);
+        }
         if (this.isSelectExtensionEnabled(payload)) {
-            await loadSelectLibrary();
+            await loadSelectLibrary(stylesheet);
         }
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
@@ -34,8 +38,11 @@ class default_1 extends Controller {
             prefix: 'datatables'
         });
     }
+    isButtonsExtensionEnabled(payload) {
+        return !!(payload?.layout?.topStart?.buttons);
+    }
     isSelectExtensionEnabled(payload) {
-        return !!payload['select'];
+        return !!payload?.select;
     }
 }
 default_1.values = {
