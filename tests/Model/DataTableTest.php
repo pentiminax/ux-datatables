@@ -25,6 +25,7 @@ class DataTableTest extends TestCase
                 ->processing(true)
                 ->scrollX(true)
                 ->scrollY('200px')
+                ->search('search')
                 ->searching(true)
                 ->serverSide(true)
                 ->stateSave(true)
