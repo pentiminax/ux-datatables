@@ -10,13 +10,17 @@ class ButtonsExtension implements ExtensionInterface
     private array $buttons;
 
     /**
-     * @param string[] $buttons
+     * @param ButtonType[]|string[] $buttons
      */
     public function __construct(
         array $buttons
     ) {
         foreach ($buttons as $button) {
-            $this->buttons[] = ButtonType::from($button);
+            if (is_string($button)) {
+                $button = ButtonType::from($button);
+            }
+
+            $this->buttons[] = $button;
         }
     }
 
