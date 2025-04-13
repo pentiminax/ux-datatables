@@ -118,6 +118,23 @@ Defines the starting point for data display when using pagination.
 $dataTable->displayStart(int $displayStart)
 ```
 
+## Initial search
+
+### search
+Sets the initial search value for the table.
+```php
+$dataTable->search(string $search)
+``` 
+
+## Internationalisation
+
+### language
+
+Sets the language options for DataTables.
+```php
+$dataTable->language(Langage $language)
+```
+
 ## Example Usage
 
 ```php
