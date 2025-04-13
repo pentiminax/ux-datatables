@@ -290,4 +290,14 @@ class DataTable
 
         return $this;
     }
+
+    /**
+     * Set an initial search in DataTables and / or search options.
+     */
+    public function search(string $search): static
+    {
+        $this->options['search']['search'] = $search;
+
+        return $this;
+    }
 }
