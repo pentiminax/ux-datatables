@@ -10,6 +10,7 @@ data_tables:
   template_parameters:
     class: 'table'
   extensions:
+    buttons: [csv, excel, pdf, print]
     select:
       style: single
 ```
