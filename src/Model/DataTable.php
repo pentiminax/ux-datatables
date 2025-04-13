@@ -2,6 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
 
 class DataTable
@@ -281,5 +282,12 @@ class DataTable
     public function getExtensions(): array
     {
         return $this->extensions->toArray();
+    }
+
+    public function language(Language $language): static
+    {
+        $this->options['language']['url'] = $language->getUrl();
+
+        return $this;
     }
 }

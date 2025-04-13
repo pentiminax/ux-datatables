@@ -2,6 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Tests\Model;
 
+use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use PHPUnit\Framework\TestCase;
@@ -28,6 +29,7 @@ class DataTableTest extends TestCase
                 ->serverSide(true)
                 ->stateSave(true)
                 ->pageLength(10)
+                ->language(Language::FR)
                 ->lengthMenu([10, 25, 50])
                 ->extensions([$selectExtension]);
 
