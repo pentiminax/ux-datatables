@@ -18,6 +18,7 @@ class DataTableTest extends TestCase
                 ->autoWidth(true)
                 ->caption('Table caption')
                 ->deferRender(true)
+                ->displayStart(10)
                 ->info(true)
                 ->lengthChange(true)
                 ->ordering(true)
