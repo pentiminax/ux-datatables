@@ -5,6 +5,7 @@ To configure the default DataTables options, you can define them in the configur
 ```yaml
 data_tables:
   options:
+    language: en-GB
     lengthMenu: [10, 25, 50]
     pageLength: 10
   template_parameters:
@@ -16,6 +17,8 @@ data_tables:
 ```
 
 # Explanation of the options:
+
+**language**: This section allows you to customize the language settings for DataTables. You can specify translations for various elements such as "processing", "lengthMenu", "zeroRecords", etc. In the example, the language is set to English.
 
 **lengthMenu**: An array of values representing the number of rows to display per page. In this example, users can choose from 10, 25, or 50 rows per page.
 
