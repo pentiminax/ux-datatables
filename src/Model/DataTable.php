@@ -7,14 +7,17 @@ use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
 
 class DataTable
 {
+    private DataTableOptions $options;
+
     private DataTableExtensions $extensions;
 
     public function __construct(
         private readonly string $id,
-        private array $options = [],
+        array $options = [],
         private array $attributes = [],
         array $extensions = [],
     ) {
+        $this->options = new DataTableOptions($options);
         $this->extensions = new DataTableExtensions($extensions);
     }
 
@@ -25,7 +28,7 @@ class DataTable
 
     public function getOptions(): array
     {
-        return $this->options;
+        return $this->options->getOptions();
     }
 
     public function setOptions(array $options): static
@@ -81,14 +84,14 @@ class DataTable
     public function caption(string $caption): static
     {
         $this->options['caption'] = $caption;
-    
+
         return $this;
     }
 
     public function add(Column $column): static
     {
         $this->options['columns'][] = $column->toArray();
-    
+
         return $this;
     }
 
@@ -98,13 +101,11 @@ class DataTable
     public function columns(array $columns): static
     {
         foreach ($columns as $column) {
-            if ($column instanceof Column) {
-                $this->options['columns'][] = $column->toArray();
-            } else {
-                $this->options['columns'][] = $column;
-            }
+            $this->options->addColumn(
+                $column instanceof Column ? $column->toArray() : $column
+            );
         }
-    
+
         return $this;
     }
 
@@ -114,7 +115,7 @@ class DataTable
     public function deferRender(bool $deferRender): static
     {
         $this->options['deferRender'] = $deferRender;
-    
+
         return $this;
     }
 
@@ -124,7 +125,7 @@ class DataTable
     public function info(bool $info): static
     {
         $this->options['info'] = $info;
-    
+
         return $this;
     }
 
@@ -134,7 +135,7 @@ class DataTable
     public function lengthChange(bool $lengthChange): static
     {
         $this->options['lengthChange'] = $lengthChange;
-    
+
         return $this;
     }
 
@@ -144,7 +145,7 @@ class DataTable
     public function ordering(bool $ordering): static
     {
         $this->options['ordering'] = $ordering;
-    
+
         return $this;
     }
 
@@ -154,7 +155,7 @@ class DataTable
     public function paging(bool $paging): static
     {
         $this->options['paging'] = $paging;
-    
+
         return $this;
     }
 
@@ -164,7 +165,7 @@ class DataTable
     public function processing(bool $processing): static
     {
         $this->options['processing'] = $processing;
-    
+
         return $this;
     }
 
@@ -174,7 +175,7 @@ class DataTable
     public function scrollX(bool $scrollX): static
     {
         $this->options['scrollX'] = $scrollX;
-    
+
         return $this;
     }
 
@@ -184,7 +185,7 @@ class DataTable
     public function scrollY(string $scrollY): static
     {
         $this->options['scrollY'] = $scrollY;
-    
+
         return $this;
     }
 
@@ -194,7 +195,7 @@ class DataTable
     public function searching(bool $searching): static
     {
         $this->options['searching'] = $searching;
-    
+
         return $this;
     }
 
@@ -204,7 +205,7 @@ class DataTable
     public function serverSide(bool $serverSide): static
     {
         $this->options['serverSide'] = $serverSide;
-    
+
         return $this;
     }
 
@@ -214,7 +215,7 @@ class DataTable
     public function stateSave(bool $stateSave): static
     {
         $this->options['stateSave'] = $stateSave;
-    
+
         return $this;
     }
     /**
@@ -223,7 +224,7 @@ class DataTable
     public function displayStart(int $displayStart): static
     {
         $this->options['displayStart'] = $displayStart;
-    
+
         return $this;
     }
 
@@ -233,7 +234,7 @@ class DataTable
     public function ajax(AjaxOptions $ajaxOption): static
     {
         $this->options['ajax'] = $ajaxOption->toArray();
-    
+
         return $this;
     }
 
@@ -243,7 +244,7 @@ class DataTable
     public function data(array $data): static
     {
         $this->options['data'] = $data;
-    
+
         return $this;
     }
 
@@ -286,7 +287,7 @@ class DataTable
 
     public function language(Language $language): static
     {
-        $this->options['language']['url'] = $language->getUrl();
+        $this->options->setLanguage($language);
 
         return $this;
     }
@@ -296,7 +297,7 @@ class DataTable
      */
     public function search(string $search): static
     {
-        $this->options['search']['search'] = $search;
+        $this->options->setSearch($search);
 
         return $this;
     }
