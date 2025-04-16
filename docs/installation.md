@@ -2,7 +2,6 @@
 
 Before you start, make sure you have [StimulusBundle configured in your
 app](https://symfony.com/bundles/StimulusBundle/current/index.html).
-:::
 
 Install the bundle using Composer and Symfony Flex:
 
