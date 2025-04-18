@@ -5,6 +5,7 @@ namespace Pentiminax\UX\DataTables\Tests\Model;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 use PHPUnit\Framework\TestCase;
 
 class DataTableTest extends TestCase
@@ -32,7 +33,9 @@ class DataTableTest extends TestCase
                 ->stateSave(true)
                 ->pageLength(10)
                 ->language(Language::FR)
+                ->layout(new LayoutOption())
                 ->lengthMenu([10, 25, 50])
+                ->responsive()
                 ->extensions([$selectExtension]);
 
         $this->assertEquals('tableId', $table->getId());
