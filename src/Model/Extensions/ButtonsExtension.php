@@ -7,7 +7,7 @@ use Pentiminax\UX\DataTables\Enum\ButtonType;
 class ButtonsExtension implements ExtensionInterface
 {
     /** @var ButtonType[]  */
-    private array $buttons;
+    private array $buttons = [];
 
     /**
      * @param ButtonType[]|string[] $buttons
@@ -26,10 +26,10 @@ class ButtonsExtension implements ExtensionInterface
 
     public function getKey(): string
     {
-        return 'layout';
+        return 'buttons';
     }
 
-    public function toArray(): array
+    public function jsonSerialize(): array
     {
         $buttons = [];
 
@@ -37,10 +37,6 @@ class ButtonsExtension implements ExtensionInterface
             $buttons[] = $button->value;
         }
 
-        return [
-            'topStart' => [
-                'buttons' => $buttons
-            ]
-        ];
+        return $buttons;
     }
 }

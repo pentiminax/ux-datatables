@@ -16,7 +16,7 @@ readonly class SelectExtension implements ExtensionInterface
         return 'select';
     }
 
-    public function toArray(): array
+    public function jsonSerialize(): array
     {
         return [
             'style' => $this->style->value
