@@ -2,11 +2,12 @@
 
 namespace Pentiminax\UX\DataTables\Model;
 
-use ArrayAccess;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 
-class DataTableOptions implements ArrayAccess
+use function is_array;
+
+class DataTableOptions implements \ArrayAccess
 {
     private array $options;
 
@@ -15,6 +16,8 @@ class DataTableOptions implements ArrayAccess
         $options = $this->handleLanguageOption($options);
 
         $this->options = $options;
+
+        $this->handleLayoutOption();
     }
 
     public function addColumn(array $column): void
@@ -51,10 +54,12 @@ class DataTableOptions implements ArrayAccess
 
     private function handleLayoutOption(): void
     {
-        /** @var ?LayoutOption $layoutOption */
+        /** @var ?LayoutOption|array $layoutOption */
         $layoutOption = $this->options['layout'] ?? null;
 
-        if ($layoutOption) {
+        if (is_array($layoutOption)) {
+            $this->options['layout'] = $layoutOption;
+        } elseif ($layoutOption instanceof LayoutOption) {
             $this->options['layout'] = $layoutOption->jsonSerialize();
         }
     }
