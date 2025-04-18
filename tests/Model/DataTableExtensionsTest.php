@@ -25,14 +25,9 @@ class DataTableExtensionsTest extends TestCase
         $dataTableExtensions = new DataTableExtensions($extensions);
 
         $expectedArray = [
-            'layout' => [
-                'topStart' => [
-                    'buttons' => $extensions['buttons']
-                ]
-            ],
             'select' => $extensions['select']
         ];
 
-        $this->assertEquals($expectedArray, $dataTableExtensions->toArray());
+        $this->assertEquals($expectedArray, $dataTableExtensions->jsonSerialize());
     }
 }

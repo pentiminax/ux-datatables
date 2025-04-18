@@ -4,6 +4,7 @@ namespace Pentiminax\UX\DataTables\Model;
 
 use ArrayAccess;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 
 class DataTableOptions implements ArrayAccess
 {
@@ -48,8 +49,20 @@ class DataTableOptions implements ArrayAccess
         return $options;
     }
 
+    private function handleLayoutOption(): void
+    {
+        /** @var ?LayoutOption $layoutOption */
+        $layoutOption = $this->options['layout'] ?? null;
+
+        if ($layoutOption) {
+            $this->options['layout'] = $layoutOption->jsonSerialize();
+        }
+    }
+
     public function getOptions(): array
     {
+        $this->handleLayoutOption();
+
         return $this->options;
     }
 
