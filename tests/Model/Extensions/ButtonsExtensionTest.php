@@ -18,17 +18,13 @@ class ButtonsExtensionTest extends TestCase
         $extension = new ButtonsExtension($buttons);
 
         $expectedArray = [
-            'topStart' => [
-                'buttons' => [
-                    ButtonType::COPY->value,
-                    ButtonType::CSV->value,
-                    ButtonType::EXCEL->value,
-                    ButtonType::PDF->value,
-                    ButtonType::PRINT->value
-                ]
-            ]
+            ButtonType::COPY->value,
+            ButtonType::CSV->value,
+            ButtonType::EXCEL->value,
+            ButtonType::PDF->value,
+            ButtonType::PRINT->value
         ];
 
-        $this->assertEquals($expectedArray, $extension->toArray());
+        $this->assertEquals($expectedArray, $extension->jsonSerialize());
     }
 }
