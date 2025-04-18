@@ -43,7 +43,8 @@ class DataTableTest extends TestCase
         $this->assertEquals('tableId', $table->getId());
 
         $expectedExtensions = [
-            'select' => $selectExtension->jsonSerialize()
+            'select' => $selectExtension->jsonSerialize(),
+            'responsive' => true
         ];
 
         $this->assertEquals($expectedExtensions, $table->getExtensions());
