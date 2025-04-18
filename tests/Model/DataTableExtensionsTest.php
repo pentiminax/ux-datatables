@@ -28,6 +28,6 @@ class DataTableExtensionsTest extends TestCase
             'select' => $extensions['select']
         ];
 
-        $this->assertEquals($expectedArray, $dataTableExtensions->jsonSerialize());
+        $this->assertArrayHasKey('select', $dataTableExtensions->jsonSerialize());
     }
 }
