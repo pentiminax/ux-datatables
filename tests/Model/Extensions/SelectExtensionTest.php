@@ -12,13 +12,25 @@ class SelectExtensionTest extends TestCase
     {
         $extension = new SelectExtension();
 
-        $this->assertEquals(['style' => 'single'], $extension->jsonSerialize());
+        $serializedExtension = $extension->jsonSerialize();
+
+        $expectedArray = [
+            'blurable' => false,
+            'className' => 'selected',
+            'info' => true,
+            'items' => 'row',
+            'keys' => false,
+            'style' => 'single',
+            'toggleable' => true
+        ];
+
+        $this->assertEquals($expectedArray, $serializedExtension);
     }
 
     public function testStyle(): void
     {
         $extension = new SelectExtension(SelectStyle::MULTI);
 
-        $this->assertEquals(['style' => 'multi'], $extension->jsonSerialize());
+        $this->assertEquals('multi', $extension->jsonSerialize()['style']);
     }
 }
