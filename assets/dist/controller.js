@@ -3,6 +3,7 @@ import { getLoadedDataTablesStyleSheet } from "./functions/getLoadedDataTablesSt
 import { loadButtonsLibrary } from "./functions/loadButtonsLibrary.js";
 import { loadDataTableLibrary } from "./functions/loadDataTableLibrary.js";
 import { loadSelectLibrary } from "./functions/loadSelectLibrary.js";
+import { loadResponsiveLibrary } from "./functions/loadResponsiveLibrary.js";
 class default_1 extends Controller {
     constructor() {
         super(...arguments);
@@ -16,7 +17,7 @@ class default_1 extends Controller {
         if (!(this.element instanceof HTMLTableElement)) {
             throw new Error('Invalid element');
         }
-        const payload = this.viewValue;
+        const payload = this.viewValue;console.log(payload)
         this.dispatchEvent('pre-connect', {
             config: payload,
         });
@@ -27,6 +28,9 @@ class default_1 extends Controller {
         }
         if (this.isSelectExtensionEnabled(payload)) {
             await loadSelectLibrary(stylesheet);
+        }
+        if (this.isResponsiveExtensionEnabled(payload)) {
+            await loadResponsiveLibrary(stylesheet);
         }
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
@@ -43,6 +47,9 @@ class default_1 extends Controller {
     }
     isSelectExtensionEnabled(payload) {
         return !!payload?.select;
+    }
+    isResponsiveExtensionEnabled(payload) {
+        return !!payload?.responsive;
     }
 }
 default_1.values = {

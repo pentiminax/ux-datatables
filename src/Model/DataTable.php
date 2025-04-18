@@ -6,6 +6,7 @@ use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
+use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
 use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 
@@ -313,6 +314,13 @@ class DataTable
     public function layout(LayoutOption $layoutOption): static
     {
         $this->options['layout'] = $layoutOption;
+
+        return $this;
+    }
+
+    public function responsive(): static
+    {
+        $this->extensions->addExtension(new ResponsiveExtension());
 
         return $this;
     }
