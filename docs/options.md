@@ -135,11 +135,25 @@ Sets the language options for DataTables.
 $dataTable->language(Langage $language)
 ```
 
+### layout
+
+Sets the layout options for DataTables.
+```php
+$dataTable->layout(
+    new LayoutOption(
+        topStart: Feature::PAGE_LENGTH,
+        topEnd: Feature::SEARCH,
+        bottomStart: Feature::INFO,
+        bottomEnd: Feature::PAGING,
+    )
+);
+```
+
 ## Example Usage
 
 ```php
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Model\AjaxOptions;
+use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
 
 $dataTable = new DataTable('example_table');
 
@@ -151,7 +165,7 @@ $dataTable
     ->searching(true)
     ->serverSide(false)
     ->scrollY('300px')
-    ->ajax(new AjaxOptions(
+    ->ajax(new AjaxOption(
         url: '/api/data',
         dataSrc: 'data',
         type: 'POST'

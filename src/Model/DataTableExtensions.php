@@ -7,7 +7,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 
-class DataTableExtensions
+class DataTableExtensions implements \JsonSerializable
 {
     /** @var ExtensionInterface[] */
     private array $extensions = [];
@@ -27,14 +27,22 @@ class DataTableExtensions
     public function addExtension(ExtensionInterface $extension): void
     {
         $this->extensions[$extension->getKey()] = $extension;
-
     }
 
-    public function toArray(): array
+    public function getButtonsExtension(): ?ButtonsExtension
+    {
+        return $this->extensions['buttons'] ?? null;
+    }
+
+    public function jsonSerialize(): array
     {
         $extensions = [];
         foreach ($this->extensions as $extension) {
-            $extensions[$extension->getKey()] = $extension->toArray();
+            if ('buttons' === $extension->getKey()) {
+                continue;
+            }
+
+            $extensions[$extension->getKey()] = $extension->jsonSerialize();
         }
 
         return $extensions;

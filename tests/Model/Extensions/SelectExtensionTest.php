@@ -12,13 +12,13 @@ class SelectExtensionTest extends TestCase
     {
         $extension = new SelectExtension();
 
-        $this->assertEquals(['style' => 'single'], $extension->toArray());
+        $this->assertEquals(['style' => 'single'], $extension->jsonSerialize());
     }
 
     public function testStyle(): void
     {
         $extension = new SelectExtension(SelectStyle::MULTI);
 
-        $this->assertEquals(['style' => 'multi'], $extension->toArray());
+        $this->assertEquals(['style' => 'multi'], $extension->jsonSerialize());
     }
 }

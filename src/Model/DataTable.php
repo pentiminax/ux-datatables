@@ -2,8 +2,12 @@
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
+use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
+use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 
 class DataTable
 {
@@ -28,14 +32,11 @@ class DataTable
 
     public function getOptions(): array
     {
-        return $this->options->getOptions();
-    }
+        $options = $this->options->getOptions();
 
-    public function setOptions(array $options): static
-    {
-        $this->options = $options;
+        $this->addButtonsToLayout($options);
 
-        return $this;
+        return $options;
     }
 
     public function getAttributes(): array
@@ -231,7 +232,7 @@ class DataTable
     /**
      * Load data for the table's content from an Ajax source.
      */
-    public function ajax(AjaxOptions $ajaxOption): static
+    public function ajax(AjaxOption $ajaxOption): static
     {
         $this->options['ajax'] = $ajaxOption->toArray();
 
@@ -268,6 +269,13 @@ class DataTable
         return $this;
     }
 
+    public function addExtension(ExtensionInterface $extension): static
+    {
+        $this->extensions->addExtension($extension);
+
+        return $this;
+    }
+
     /**
      * @param ExtensionInterface[] $extensions
      */
@@ -282,7 +290,7 @@ class DataTable
 
     public function getExtensions(): array
     {
-        return $this->extensions->toArray();
+        return $this->extensions->jsonSerialize();
     }
 
     public function language(Language $language): static
@@ -300,5 +308,36 @@ class DataTable
         $this->options->setSearch($search);
 
         return $this;
+    }
+
+    public function layout(LayoutOption $layoutOption): static
+    {
+        $this->options['layout'] = $layoutOption;
+
+        return $this;
+    }
+
+    private function addButtonsToLayout(array &$options): void
+    {
+        $layout = $options['layout'] ?? [];
+
+        if (!\is_array($layout)) {
+            return;
+        }
+
+        $buttonsExtension = $this->extensions->getButtonsExtension();
+
+        if (!$buttonsExtension) {
+            return;
+        }
+
+        foreach ($layout as $position => $feature) {
+            if ($feature === Feature::BUTTONS->value) {
+                $options['layout'][$position] = [
+                    'buttons' => $buttonsExtension->jsonSerialize(),
+                ];
+                break;
+            }
+        }
     }
 }

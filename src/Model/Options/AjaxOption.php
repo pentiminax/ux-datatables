@@ -1,8 +1,8 @@
 <?php
 
-namespace Pentiminax\UX\DataTables\Model;
+namespace Pentiminax\UX\DataTables\Model\Options;
 
-readonly class AjaxOptions
+readonly class AjaxOption
 {
     public function __construct(
         private string $url,
