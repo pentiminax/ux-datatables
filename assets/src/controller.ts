@@ -3,6 +3,7 @@ import {getLoadedDataTablesStyleSheet} from "./functions/getLoadedDataTablesStyl
 import {loadButtonsLibrary} from "./functions/loadButtonsLibrary";
 import {loadDataTableLibrary} from "./functions/loadDataTableLibrary";
 import {loadSelectLibrary} from "./functions/loadSelectLibrary";
+import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary";
 
 export default class extends Controller {
     declare readonly viewValue: any;
@@ -41,6 +42,10 @@ export default class extends Controller {
             await loadSelectLibrary(stylesheet);
         }
 
+        if (this.isResponsiveExtensionEnabled(payload)) {
+            await loadResponsiveLibrary(stylesheet);
+        }
+
         this.table = new DataTable(this.element as HTMLElement, payload);
 
         this.dispatchEvent('connect', { table: this.table });
@@ -61,5 +66,9 @@ export default class extends Controller {
 
     private isSelectExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.select;
+    }
+
+    private isResponsiveExtensionEnabled(payload: Record<string, any>): boolean {
+        return !!payload?.responsive;
     }
 }
