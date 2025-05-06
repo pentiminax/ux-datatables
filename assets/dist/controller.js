@@ -17,7 +17,7 @@ class default_1 extends Controller {
         if (!(this.element instanceof HTMLTableElement)) {
             throw new Error('Invalid element');
         }
-        const payload = this.viewValue;console.log(payload)
+        const payload = this.viewValue;
         this.dispatchEvent('pre-connect', {
             config: payload,
         });
