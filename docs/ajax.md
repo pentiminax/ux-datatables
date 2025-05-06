@@ -50,6 +50,25 @@ The server should return a JSON response containing the data under the key defin
 - `recordsTotal`: Total number of records in the database.
 - `recordsFiltered`: Total number of records after filtering.
 
+### Important: Mapping Columns to JSON Keys
+
+In order for DataTables to correctly populate columns from the JSON response, you must explicitly define the data key for each column using one of the following methods:
+
+- **`setData(string $data): self`**: Sets the data source for the column.
+
+```php
+Column::new('name', 'Name')
+    ->setData('name');
+```
+
+- Or set the fourth argument of Column::new() to true to use the column name as the data source automatically:
+
+```php
+Column::new('name', 'Name', ColumnType::STRING, useNameAsDataSource: true);
+```
+
+If neither setData() nor $useNameAsDataSource = true is used, the column will not be mapped to a value in the JSON response.
+
 ### Using the Helper to Format JSON Response
 
 To ensure the correct response format, you can use the `DataTableResponseBuilder` helper:
