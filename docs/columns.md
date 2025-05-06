@@ -12,10 +12,10 @@ To create a new column, use the static `new` method of the `Column` class:
 use Pentiminax\UX\DataTables\Model\Column;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
-$column = Column::new('column_name', 'Column Title', ColumnType::STRING);
+$column = Column::new('firstName', 'First Name', ColumnType::STRING);
 ```
 
-Here, `'column_name'` is the internal name of the column, `'Column Title'` is the title displayed in the table header, and `ColumnType::STRING` defines the data type of the column.
+Here, `'firstName'` is the internal name of the column, `'First Name'` is the title displayed in the table header, and `ColumnType::STRING` defines the data type of the column.
 
 ## Available Properties
 
@@ -23,6 +23,7 @@ The `Column` class provides several methods to configure column properties:
 
 - **`setClassName(string $className): self`**: Sets the CSS class name to be applied to the column cells.
 - **`setCellType(string $cellType): self`**: Specifies the cell type (`'td'` or `'th'`) to use for the column.
+- **`setData(string $data): self`**: Sets the data source for the column.
 - **`setOrderable(bool $orderable): self`**: Enables or disables sorting on this column.
 - **`setSearchable(bool $searchable): self`**: Enables or disables searching on this column.
 - **`setVisible(bool $visible): self`**: Determines whether the column is visible or not.
@@ -33,15 +34,20 @@ The `Column` class provides several methods to configure column properties:
 Here's how to integrate columns into a `DataTable` instance:
 
 ```php
-use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Model\Column;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class MyTableService
 {
-    public function createTable(): DataTable
+    public function __construct(
+        private DataTableBuilderInterface $builder,
+    ) {
+    }
+
+    public function createDataTable(): DataTable
     {
-        $dataTable = new DataTable('example_table');
+        $dataTable = $this->builder->createDataTable('example_table');
 
         $nameColumn = Column::new('name', 'Name', ColumnType::STRING)
             ->setClassName('col-name')

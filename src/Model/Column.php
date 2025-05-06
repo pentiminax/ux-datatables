@@ -26,13 +26,20 @@ class Column
 
     private bool $visible = true;
 
+    private ?string $data = null;
 
-    public static function new(string $name, string $title, ColumnType $type = ColumnType::STRING): self
+    public static function new(string $name, string $title, ColumnType $type = ColumnType::STRING, bool $useNameAsDataSource = false): self
     {
-        return (new self())
+        $self = (new self())
             ->setName($name)
             ->setTitle($title)
             ->setType($type);
+
+        if ($useNameAsDataSource) {
+            $self->setData($name);
+        }
+
+        return $self;
     }
 
     public function setClassName(string $className): self
@@ -116,11 +123,22 @@ class Column
         return $this;
     }
 
+    /**
+     * Set the data source for the column.
+     */
+    public function setData(string $data): self
+    {
+        $this->data = $data;
+
+        return $this;
+    }
+
     public function toArray(): array
     {
         return array_filter([
             'cellType' => $this->cellType,
             'className' => $this->className,
+            'data' => $this->data,
             'name' => $this->name,
             'orderable' => $this->orderable,
             'searchable' => $this->searchable,
