@@ -6,7 +6,7 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 use function array_filter;
 
-class Column
+class Column implements ColumnInterface
 {
     private ?string $cellType = null;
 
@@ -133,7 +133,7 @@ class Column
         return $this;
     }
 
-    public function toArray(): array
+    public function jsonSerialize(): array
     {
         return array_filter([
             'cellType' => $this->cellType,
