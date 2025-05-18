@@ -1,14 +1,15 @@
-import { Controller } from '@hotwired/stimulus';
+import {Controller} from '@hotwired/stimulus';
 import {getLoadedDataTablesStyleSheet} from "./functions/getLoadedDataTablesStyleSheet";
 import {loadButtonsLibrary} from "./functions/loadButtonsLibrary";
 import {loadDataTableLibrary} from "./functions/loadDataTableLibrary";
 import {loadSelectLibrary} from "./functions/loadSelectLibrary";
 import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary";
+import {deleteRow} from "./functions/delete";
 
 export default class extends Controller {
     declare readonly viewValue: any;
 
-    static values = {
+    static readonly values = {
         view: Object,
     };
 
@@ -46,9 +47,38 @@ export default class extends Controller {
             await loadResponsiveLibrary(stylesheet);
         }
 
+        payload.columns.forEach((column: any): void => {
+            if (column.action === 'DELETE') {
+                column.render = function (data: any, type: string, row: any) {
+                    const className = `${column.action.toLowerCase()}-action`;
+
+                    return `<button class="btn btn-danger ${className}" data-id="${row.id}" data-url="${column.actionUrl}">${column.actionLabel}</button>`;
+                };
+            }
+        });
+
         this.table = new DataTable(this.element as HTMLElement, payload);
 
-        this.dispatchEvent('connect', { table: this.table });
+        this.dispatchEvent('connect', {table: this.table});
+
+        this.element.addEventListener('click', async (e: MouseEvent): Promise<void> => {
+            const target = e.target as HTMLElement;
+
+            if (target.matches('.delete-action')) {
+                const url: string | null = target.getAttribute('data-url');
+                const id: string | null = target.getAttribute('data-id');
+
+                if (url && id) {
+                    const response = await deleteRow({url, id});
+
+                    if (response.ok) {
+                        this.table.ajax.reload();
+                    }
+                } else {
+                    console.error('Missing URL or ID for delete action');
+                }
+            }
+        });
 
         this.isDataTableInitialized = true;
     }
