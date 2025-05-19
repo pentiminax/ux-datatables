@@ -1,6 +1,13 @@
-/.idea/
-/var/
-/vendor/
+.idea/
+var/
+vendor/
+
+.phpunit.cache/
 .phpunit.result.cache
 .php_cs.cache
+
+assets/package-lock.json
+assets/node_modules/
+
 composer.lock
+

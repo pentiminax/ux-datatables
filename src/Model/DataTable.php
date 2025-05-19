@@ -90,21 +90,21 @@ class DataTable
         return $this;
     }
 
-    public function add(Column $column): static
+    public function add(ColumnInterface $column): static
     {
-        $this->options['columns'][] = $column->toArray();
+        $this->options['columns'][] = $column;
 
         return $this;
     }
 
     /**
-     * @param array|Column[] $columns
+     * @param array|ColumnInterface[] $columns
      */
     public function columns(array $columns): static
     {
         foreach ($columns as $column) {
             $this->options->addColumn(
-                $column instanceof Column ? $column->toArray() : $column
+                $column instanceof ColumnInterface ? $column->jsonSerialize() : $column
             );
         }
 
