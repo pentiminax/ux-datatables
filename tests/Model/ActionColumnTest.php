@@ -14,6 +14,7 @@ class ActionColumnTest extends TestCase
             name: 'actions',
             title: 'Actions',
             action: Action::DELETE,
+            actionLabel: 'Delete',
             actionUrl: '/delete',
         );
 
@@ -22,6 +23,7 @@ class ActionColumnTest extends TestCase
             'name' => 'actions',
             'title' => 'Actions',
             'action' => Action::DELETE->value,
+            'actionLabel' => 'Delete',
             'actionUrl' => '/delete',
         ];
 
