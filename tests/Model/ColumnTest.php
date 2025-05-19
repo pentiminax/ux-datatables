@@ -30,6 +30,6 @@ class ColumnTest extends TestCase
             'visible' => true,
         ];
 
-        $this->assertEquals($expectedArray, $column->toArray());
+        $this->assertEquals($expectedArray, $column->jsonSerialize());
     }
 }
