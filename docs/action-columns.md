@@ -1,6 +1,6 @@
 # Action columns
 
-The `ActionColumn` class allows you to define a custom action column for your DataTables instance using the Pentiminax UX DataTables library.
+The `ActionColumn` class allows you to define a custom action column for your DataTables instance using the UX DataTables library.
 
 ## Overview
 
