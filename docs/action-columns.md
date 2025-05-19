@@ -2,20 +2,12 @@
 
 The `ActionColumn` class allows you to define a custom action column for your DataTables instance using the Pentiminax UX DataTables library.
 
-## Table of Contents
-
-* [Overview](#overview)
-* [Usage](#usage)
-* [Attributes](#attributes)
-* [Example Integration with Stimulus](#example-integration-with-stimulus)
-* [Serialized JSON Output](#serialized-json-output)
-* [Requirements](#requirements)
-
----
-
 ## Overview
 
-`ActionColumn` is an implementation of the `ColumnInterface` designed for representing actions (such as delete) inside a DataTable. It provides a convenient way to add buttons or links that perform specific operations on each row.
+`ActionColumn` is an implementation of the `ColumnInterface` designed for representing actions (such as delete) inside a DataTable. 
+It provides a convenient way to add buttons or links that perform specific operations on each row.
+> **Note**: The ActionColumn relies on the presence of an id column in the dataset. 
+> This id is used to execute the action (e.g., deletion) by identifying the corresponding row and sending it to the actionUrl.
 
 ---
 
