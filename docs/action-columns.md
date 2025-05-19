@@ -30,10 +30,10 @@ $deleteColumn = ActionColumn::new(
 
 ## Attributes
 
-| Property      | Type          | Description                                    |
-| ------------- |---------------| ---------------------------------------------- |
-| `name`        | `string`      | Internal identifier for the column.            |
-| `title`       | `string`      | Displayed column header title.                 |
-| `action`      | `enum` | Type of action (`DELETE`, etc.).               |
-| `actionLabel` | `string`      | Text displayed inside the action button.       |
-| `actionUrl`   | `string`      | Endpoint to call when the action is triggered. |
+| Property      | Type     | Description                                    |
+| ------------- |----------| ---------------------------------------------- |
+| `name`        | `string` | Internal identifier for the column.            |
+| `title`       | `string` | Displayed column header title.                 |
+| `action`      | `enum`   | Type of action (`DELETE`, etc.).               |
+| `actionLabel` | `string` | Text displayed inside the action button.       |
+| `actionUrl`   | `string` | Endpoint to call when the action is triggered. |
