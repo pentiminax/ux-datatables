@@ -21,7 +21,7 @@ class DataTablesBundle extends AbstractBundle
             ->children()
                 ->arrayNode('options')
                     ->children()
-                        ->stringNode('language')->defaultValue('en-GB')->end()
+                        ->scalarNode('language')->defaultValue('en-GB')->end()
                         ->arrayNode('layout')
                             ->children()
                                 ->scalarNode('topStart')->defaultValue('pageLength')->end()
