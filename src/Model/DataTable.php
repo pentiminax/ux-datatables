@@ -5,6 +5,7 @@ namespace Pentiminax\UX\DataTables\Model;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
@@ -321,6 +322,13 @@ class DataTable
     public function responsive(): static
     {
         $this->extensions->addExtension(new ResponsiveExtension());
+
+        return $this;
+    }
+
+    public function columnControl(): static
+    {
+        $this->extensions->addExtension(new ColumnControlExtension());
 
         return $this;
     }

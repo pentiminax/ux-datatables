@@ -4,6 +4,7 @@ import {loadButtonsLibrary} from "./functions/loadButtonsLibrary";
 import {loadDataTableLibrary} from "./functions/loadDataTableLibrary";
 import {loadSelectLibrary} from "./functions/loadSelectLibrary";
 import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary";
+import {loadColumnControlLibrary} from "./functions/loadColumnControlLibrary";
 import {deleteRow} from "./functions/delete";
 
 export default class extends Controller {
@@ -45,6 +46,10 @@ export default class extends Controller {
 
         if (this.isResponsiveExtensionEnabled(payload)) {
             await loadResponsiveLibrary(stylesheet);
+        }
+
+        if (this.isColumnControlExtensionEnabled(payload)) {
+            await loadColumnControlLibrary(stylesheet);
         }
 
         payload.columns.forEach((column: any): void => {
@@ -100,5 +105,9 @@ export default class extends Controller {
 
     private isResponsiveExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.responsive;
+    }
+
+    private isColumnControlExtensionEnabled(payload: Record<string, any>): boolean {
+        return !!payload?.columnControl;
     }
 }

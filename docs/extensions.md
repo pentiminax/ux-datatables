@@ -40,6 +40,20 @@ enum ButtonType: string
 }
 ```
 
+## Column Control
+
+The ColumnControl extension for DataTables adds column-specific controls to the header and footer cells of a table. 
+It has a comprehensive set of controls built in (termed content types) that provide buttons and search options to control a column and can be expanded through plugins.
+
+### Usage
+
+To enable the ColumnControl extension, use the `columnControl` method:
+
+```php
+$datatable = new DataTable('example');
+$datatable->columnControl()
+```
+
 ## Select
 
 Select adds item selection capabilities to a DataTable. Items can be rows, columns, or cells, which can be selected independently or together.
