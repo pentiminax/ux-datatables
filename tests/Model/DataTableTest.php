@@ -4,6 +4,7 @@ namespace Pentiminax\UX\DataTables\Tests\Model;
 
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
 use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
@@ -38,11 +39,13 @@ class DataTableTest extends TestCase
                 ->layout(new LayoutOption())
                 ->lengthMenu([10, 25, 50])
                 ->responsive()
+                ->columnControl()
                 ->extensions([$selectExtension]);
 
         $this->assertEquals('tableId', $table->getId());
 
         $expectedExtensions = [
+            'columnControl' => (new ColumnControlExtension())->jsonSerialize(),
             'select' => $selectExtension->jsonSerialize(),
             'responsive' => true
         ];
