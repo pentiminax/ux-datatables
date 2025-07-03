@@ -34,6 +34,12 @@ class ButtonsExtension implements ExtensionInterface
         $buttons = [];
 
         foreach ($this->buttons as $button) {
+            if ($button === ButtonType::COLUMN_VISIBILITY) {
+                $buttons[] = $button->value;
+
+                continue;
+            }
+
             $buttons[] = [
                 'extend' => $button->value,
                 'exportOptions' => [
