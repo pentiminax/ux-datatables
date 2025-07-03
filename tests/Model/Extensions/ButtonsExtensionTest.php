@@ -18,32 +18,33 @@ class ButtonsExtensionTest extends TestCase
         $extension = new ButtonsExtension($buttons);
 
         $expectedArray = [
+            'colvis',
             [
-                'extend' => ButtonType::COPY->value,
+                'extend' => 'copy',
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
             ],
             [
-                'extend' => ButtonType::CSV->value,
+                'extend' => 'csv',
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
             ],
             [
-                'extend' => ButtonType::EXCEL->value,
+                'extend' => 'excel',
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
             ],
             [
-                'extend' => ButtonType::PDF->value,
+                'extend' => 'pdf',
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
             ],
             [
-                'extend' => ButtonType::PRINT->value,
+                'extend' => 'print',
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
