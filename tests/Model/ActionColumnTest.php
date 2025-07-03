@@ -20,6 +20,7 @@ class ActionColumnTest extends TestCase
 
         $expectedArray = [
             'data' => null,
+            'className' => 'not-exportable',
             'name' => 'actions',
             'title' => 'Actions',
             'action' => Action::DELETE->value,
