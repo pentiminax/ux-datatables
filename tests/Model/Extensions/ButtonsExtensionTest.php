@@ -18,11 +18,36 @@ class ButtonsExtensionTest extends TestCase
         $extension = new ButtonsExtension($buttons);
 
         $expectedArray = [
-            ButtonType::COPY->value,
-            ButtonType::CSV->value,
-            ButtonType::EXCEL->value,
-            ButtonType::PDF->value,
-            ButtonType::PRINT->value
+            [
+                'extend' => ButtonType::COPY->value,
+                'exportOptions' => [
+                    'columns' => ':visible:not(.not-exportable)',
+                ],
+            ],
+            [
+                'extend' => ButtonType::CSV->value,
+                'exportOptions' => [
+                    'columns' => ':visible:not(.not-exportable)',
+                ],
+            ],
+            [
+                'extend' => ButtonType::EXCEL->value,
+                'exportOptions' => [
+                    'columns' => ':visible:not(.not-exportable)',
+                ],
+            ],
+            [
+                'extend' => ButtonType::PDF->value,
+                'exportOptions' => [
+                    'columns' => ':visible:not(.not-exportable)',
+                ],
+            ],
+            [
+                'extend' => ButtonType::PRINT->value,
+                'exportOptions' => [
+                    'columns' => ':visible:not(.not-exportable)',
+                ],
+            ],
         ];
 
         $this->assertEquals($expectedArray, $extension->jsonSerialize());
