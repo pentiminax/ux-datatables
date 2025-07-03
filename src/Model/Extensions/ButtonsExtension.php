@@ -6,7 +6,7 @@ use Pentiminax\UX\DataTables\Enum\ButtonType;
 
 class ButtonsExtension implements ExtensionInterface
 {
-    /** @var ButtonType[]  */
+    /** @var ButtonType[] */
     private array $buttons = [];
 
     /**
@@ -34,7 +34,12 @@ class ButtonsExtension implements ExtensionInterface
         $buttons = [];
 
         foreach ($this->buttons as $button) {
-            $buttons[] = $button->value;
+            $buttons[] = [
+                'extend' => $button->value,
+                'exportOptions' => [
+                    'columns' => ':visible:not(.not-exportable)',
+                ],
+            ];
         }
 
         return $buttons;

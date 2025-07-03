@@ -28,6 +28,8 @@ class Column implements ColumnInterface
 
     private ?string $data = null;
 
+    private bool $exportable = true;
+
     public static function new(string $name, string $title, ColumnType $type = ColumnType::STRING, bool $useNameAsDataSource = false): self
     {
         $self = (new self())
@@ -133,11 +135,29 @@ class Column implements ColumnInterface
         return $this;
     }
 
+    public function setExportable(bool $exportable): self
+    {
+        $this->exportable = $exportable;
+
+        return $this;
+    }
+
+    public function isExportable(): bool
+    {
+        return $this->exportable;
+    }
+
     public function jsonSerialize(): array
     {
+        $className = $this->className;
+
+        if ($this->exportable === false) {
+            $className = sprintf('%s not-exportable', $className ?? '');
+        }
+
         return array_filter([
             'cellType' => $this->cellType,
-            'className' => $this->className,
+            'className' => $className,
             'data' => $this->data,
             'name' => $this->name,
             'orderable' => $this->orderable,
