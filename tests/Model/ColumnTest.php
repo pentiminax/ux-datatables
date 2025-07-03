@@ -13,6 +13,7 @@ class ColumnTest extends TestCase
         $column = Column::new('name', 'Name', ColumnType::STRING, true)
             ->setClassName('text-center')
             ->setCellType('th')
+            ->setExportable(false)
             ->setOrderable(false)
             ->setSearchable(false)
             ->setWidth('100px');
@@ -20,7 +21,7 @@ class ColumnTest extends TestCase
         $expectedArray = [
             'name' => 'name',
             'title' => 'Name',
-            'className' => 'text-center',
+            'className' => 'text-center not-exportable',
             'data' => 'name',
             'cellType' => 'th',
             'orderable' => false,

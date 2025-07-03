@@ -24,6 +24,7 @@ class ActionColumn implements ColumnInterface
     {
         return [
             'data' => null,
+            'className' => 'not-exportable',
             'name' => $this->name,
             'title' => $this->title,
             'action' => $this->action->value,
