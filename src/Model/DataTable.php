@@ -145,9 +145,19 @@ class DataTable
     /**
      * Feature control ordering (sorting) abilities in DataTables.
      */
-    public function ordering(bool $ordering): static
+    public function ordering(bool $handler = true, bool $indicators = true): static
     {
-        $this->options['ordering'] = $ordering;
+        $this->options['ordering'] = [
+            'handler' => $handler,
+            'indicators' => $indicators,
+        ];
+
+        return $this;
+    }
+
+    public function withoutOrdering(): static
+    {
+        $this->options['ordering'] = false;
 
         return $this;
     }
