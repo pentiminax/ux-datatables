@@ -25,7 +25,7 @@ class DataTableTest extends TestCase
                 ->displayStart(10)
                 ->info(true)
                 ->lengthChange(true)
-                ->ordering(true)
+                ->ordering()
                 ->paging(true)
                 ->processing(true)
                 ->scrollX(true)
