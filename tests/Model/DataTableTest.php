@@ -26,7 +26,7 @@ class DataTableTest extends TestCase
                 ->info(true)
                 ->lengthChange(true)
                 ->ordering()
-                ->paging(true)
+                ->withoutPaging(true)
                 ->processing(true)
                 ->scrollX(true)
                 ->scrollY('200px')
@@ -36,7 +36,7 @@ class DataTableTest extends TestCase
                 ->stateSave(true)
                 ->pageLength(10)
                 ->language(Language::FR)
-                ->layout(new LayoutOption())
+                ->layout()
                 ->lengthMenu([10, 25, 50])
                 ->responsive()
                 ->columnControl()
@@ -51,5 +51,28 @@ class DataTableTest extends TestCase
         ];
 
         $this->assertEquals($expectedExtensions, $table->getExtensions());
+    }
+
+    public function testPagingOption(): void
+    {
+        $table = new DataTable('testTable');
+
+        $table->paging(
+            boundaryNumbers: false,
+            buttons: 5,
+            firstLast: false,
+            numbers: false,
+            previousNext: false
+        );
+
+        $expectedPaging = [
+            'boundaryNumbers' => false,
+            'buttons' => 5,
+            'firstLast' => false,
+            'numbers' => false,
+            'previousNext' => false,
+        ];
+
+        $this->assertSame($expectedPaging, $table->getOption('paging'));
     }
 }
