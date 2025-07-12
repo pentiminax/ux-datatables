@@ -28,7 +28,7 @@ class LayoutOption implements \JsonSerializable
         foreach (['topStart', 'topEnd', 'bottomStart', 'bottomEnd'] as $position) {
             if ($array[$position] === 'paging') {
                 $array[$position] = [
-                    'paging' => $this->table->getOption('paging') ?? [],
+                    'paging' => $this->table->getOption('paging') ?? true,
                 ];
                 break;
             }
