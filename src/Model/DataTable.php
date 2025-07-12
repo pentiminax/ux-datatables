@@ -19,10 +19,11 @@ class DataTable
 
     public function __construct(
         private readonly string $id,
-        array $options = [],
-        private array $attributes = [],
-        array $extensions = [],
-    ) {
+        array                   $options = [],
+        private array           $attributes = [],
+        array                   $extensions = [],
+    )
+    {
         $this->options = new DataTableOptions($options);
         $this->extensions = new DataTableExtensions($extensions);
     }
@@ -30,6 +31,11 @@ class DataTable
     public function getId(): ?string
     {
         return $this->id;
+    }
+
+    public function getOption(string $name): mixed
+    {
+        return $this->options[$name] ?? null;
     }
 
     public function getOptions(): array
@@ -67,6 +73,7 @@ class DataTable
 
         return $this;
     }
+
     /**
      * Initial order (sort) to apply to the table.
      * @param array $order Array of order configurations. Each element can be:
@@ -162,12 +169,32 @@ class DataTable
         return $this;
     }
 
+
+    public function paging(
+        bool $boundaryNumbers = true,
+        int $buttons = 7,
+        bool $firstLast = true,
+        bool $numbers = true,
+        bool $previousNext = true
+    ): static
+    {
+        $this->options['paging'] = [
+            'boundaryNumbers' => $boundaryNumbers,
+            'buttons' => $buttons,
+            'firstLast' => $firstLast,
+            'numbers' => $numbers,
+            'previousNext' => $previousNext,
+        ];
+
+        return $this;
+    }
+
     /**
      * Enable or disable table pagination.
      */
-    public function paging(bool $paging): static
+    public function withoutPaging(): static
     {
-        $this->options['paging'] = $paging;
+        $this->options['paging'] = false;
 
         return $this;
     }
@@ -231,6 +258,7 @@ class DataTable
 
         return $this;
     }
+
     /**
      * Define the starting point for data display when using DataTables with pagination.
      */
@@ -322,9 +350,20 @@ class DataTable
         return $this;
     }
 
-    public function layout(LayoutOption $layoutOption): static
+    public function layout(
+        Feature $topStart = Feature::PAGE_LENGTH,
+        Feature $topEnd = Feature::SEARCH,
+        Feature $bottomStart = Feature::INFO,
+        Feature $bottomEnd = Feature::PAGING,
+    ): static
     {
-        $this->options['layout'] = $layoutOption;
+        $this->options['layout'] = new LayoutOption(
+            table: $this,
+            topStart: $topStart,
+            topEnd: $topEnd,
+            bottomStart: $bottomStart,
+            bottomEnd: $bottomEnd,
+        );
 
         return $this;
     }

@@ -2,6 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Tests\Model;
 
+use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
@@ -26,7 +27,7 @@ class DataTableTest extends TestCase
                 ->info(true)
                 ->lengthChange(true)
                 ->ordering()
-                ->paging(true)
+                ->withoutPaging(true)
                 ->processing(true)
                 ->scrollX(true)
                 ->scrollY('200px')
@@ -36,7 +37,6 @@ class DataTableTest extends TestCase
                 ->stateSave(true)
                 ->pageLength(10)
                 ->language(Language::FR)
-                ->layout(new LayoutOption())
                 ->lengthMenu([10, 25, 50])
                 ->responsive()
                 ->columnControl()
@@ -51,5 +51,51 @@ class DataTableTest extends TestCase
         ];
 
         $this->assertEquals($expectedExtensions, $table->getExtensions());
+    }
+
+    public function testLayoutOption(): void
+    {
+        $table = new DataTable('testTable');
+
+        $table->layout(
+            topStart: Feature::BUTTONS,
+            topEnd: Feature::PAGE_LENGTH,
+            bottomStart: Feature::PAGING,
+            bottomEnd: Feature::INFO
+        );
+
+        $expectedLayout = [
+            'topStart' => 'buttons',
+            'topEnd' => 'pageLength',
+            'bottomStart' => [
+                'paging' => true
+            ],
+            'bottomEnd' => 'info',
+        ];
+
+        $this->assertSame($expectedLayout, $table->getOption('layout')->jsonSerialize());
+    }
+
+    public function testPagingOption(): void
+    {
+        $table = new DataTable('testTable');
+
+        $table->paging(
+            boundaryNumbers: false,
+            buttons: 5,
+            firstLast: false,
+            numbers: false,
+            previousNext: false
+        );
+
+        $expectedPaging = [
+            'boundaryNumbers' => false,
+            'buttons' => 5,
+            'firstLast' => false,
+            'numbers' => false,
+            'previousNext' => false,
+        ];
+
+        $this->assertSame($expectedPaging, $table->getOption('paging'));
     }
 }

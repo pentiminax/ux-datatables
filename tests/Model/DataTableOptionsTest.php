@@ -3,6 +3,7 @@
 namespace Pentiminax\UX\DataTables\Tests\Model;
 
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableOptions;
 use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 use PHPUnit\Framework\TestCase;
@@ -25,7 +26,7 @@ class DataTableOptionsTest extends TestCase
     public function testGetOptions(): void
     {
         $options = new DataTableOptions([
-            'layout' => new LayoutOption()
+            'layout' => new LayoutOption(new DataTable('testTable'))
         ]);
 
         $this->assertLayoutOption($options->getOptions());
