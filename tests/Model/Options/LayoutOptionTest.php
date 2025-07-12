@@ -3,6 +3,7 @@
 namespace Pentiminax\UX\DataTables\Tests\Model\Options;
 
 use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 use PHPUnit\Framework\TestCase;
 
@@ -11,6 +12,7 @@ class LayoutOptionTest extends TestCase
     public function testLayoutOption(): void
     {
         $layoutOption = new LayoutOption(
+            table: new DataTable('testTable'),
             topStart: Feature::PAGE_LENGTH,
             topEnd: Feature::SEARCH,
             bottomStart: Feature::INFO,

@@ -161,7 +161,7 @@ $dataTable
     ->autoWidth(true)
     ->caption('My Table')
     ->ordering(true)
-    ->paging(true)
+    ->withoutPaging(true)
     ->searching(true)
     ->serverSide(false)
     ->scrollY('300px')
