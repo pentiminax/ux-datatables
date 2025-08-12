@@ -5,7 +5,7 @@ import {loadDataTableLibrary} from "./functions/loadDataTableLibrary";
 import {loadSelectLibrary} from "./functions/loadSelectLibrary";
 import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary";
 import {loadColumnControlLibrary} from "./functions/loadColumnControlLibrary";
-import {deleteRow} from "./functions/delete";
+import {performAction} from "./functions/performAction";
 
 export default class extends Controller {
     declare readonly viewValue: any;
@@ -53,11 +53,14 @@ export default class extends Controller {
         }
 
         payload.columns.forEach((column: any): void => {
-            if (column.action === 'DELETE') {
-                column.render = function (data: any, type: string, row: any) {
-                    const className = `${column.action.toLowerCase()}-action`;
-
-                    return `<button class="btn btn-danger ${className}" data-id="${row.id}" data-url="${column.actionUrl}">${column.actionLabel}</button>`;
+            if (column.actions) {
+                column.render = (data: any, type: string, row: any) => {
+                    let buttons = '';
+                    column.actions.forEach((action: any) => {
+                        const className = `${action.action.toLowerCase()}-action`;
+                        buttons += `<button class="btn btn-primary ${className}" data-id="${row.id}" data-url="${action.url}" data-action="${action.action}">${action.label}</button>`;
+                    });
+                    return buttons;
                 };
             }
         });
@@ -68,19 +71,20 @@ export default class extends Controller {
 
         this.element.addEventListener('click', async (e: MouseEvent): Promise<void> => {
             const target = e.target as HTMLElement;
+            const action = target.getAttribute('data-action');
 
-            if (target.matches('.delete-action')) {
+            if (action) {
                 const url: string | null = target.getAttribute('data-url');
                 const id: string | null = target.getAttribute('data-id');
 
                 if (url && id) {
-                    const response = await deleteRow({url, id});
+                    const response = await performAction({url, id, action});
 
                     if (response.ok) {
                         this.table.ajax.reload();
                     }
                 } else {
-                    console.error('Missing URL or ID for delete action');
+                    console.error(`Missing URL or ID for ${action} action`);
                 }
             }
         });

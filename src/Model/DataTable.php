@@ -152,51 +152,35 @@ class DataTable
     /**
      * Feature control ordering (sorting) abilities in DataTables.
      */
-    public function ordering(bool $handler = true, bool $indicators = true): static
+    public function ordering(bool $ordering = true): static
     {
-        $this->options['ordering'] = [
-            'handler' => $handler,
-            'indicators' => $indicators,
-        ];
+        $this->options['ordering'] = $ordering;
 
         return $this;
     }
 
     public function withoutOrdering(): static
     {
-        $this->options['ordering'] = false;
-
-        return $this;
+        return $this->ordering(false);
     }
 
 
-    public function paging(
-        bool $boundaryNumbers = true,
-        int $buttons = 7,
-        bool $firstLast = true,
-        bool $numbers = true,
-        bool $previousNext = true
-    ): static
+    /**
+     * Enable or disable table pagination.
+     */
+    public function paging(bool $paging = true): static
     {
-        $this->options['paging'] = [
-            'boundaryNumbers' => $boundaryNumbers,
-            'buttons' => $buttons,
-            'firstLast' => $firstLast,
-            'numbers' => $numbers,
-            'previousNext' => $previousNext,
-        ];
+        $this->options['paging'] = $paging;
 
         return $this;
     }
 
     /**
-     * Enable or disable table pagination.
+     * Disable table pagination.
      */
     public function withoutPaging(): static
     {
-        $this->options['paging'] = false;
-
-        return $this;
+        return $this->paging(false);
     }
 
     /**

@@ -2,22 +2,30 @@
 
 namespace Pentiminax\UX\DataTables\Model;
 
-use Pentiminax\UX\DataTables\Enum\Action;
-
 class ActionColumn implements ColumnInterface
 {
-    public static function new(string $name, string $title, Action $action, string $actionLabel, string $actionUrl): self
+    private array $actions = [];
+
+    public static function new(string $name, string $title, array $actions): self
     {
-        return new self($name, $title, $action, $actionLabel, $actionUrl);
+        return new self($name, $title, $actions);
     }
 
     private function __construct(
-        private string $name,
-        private string $title,
-        private Action $action,
-        private string $actionLabel,
-        private string $actionUrl
-    ){
+        private readonly string $name,
+        private readonly string $title,
+        array $actions
+    )
+    {
+        foreach ($actions as $action) {
+            $this->addAction($action);
+        }
+    }
+
+    public function addAction(array $action): self
+    {
+        $this->actions[] = $action;
+        return $this;
     }
 
     public function jsonSerialize(): array
@@ -27,9 +35,7 @@ class ActionColumn implements ColumnInterface
             'className' => 'not-exportable',
             'name' => $this->name,
             'title' => $this->title,
-            'action' => $this->action->value,
-            'actionLabel' => $this->actionLabel,
-            'actionUrl' => $this->actionUrl,
+            'actions' => $this->actions,
         ];
     }
 }
