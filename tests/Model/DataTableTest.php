@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
 use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
+use Pentiminax\UX\DataTables\Model\Options\SearchOption;
 use PHPUnit\Framework\TestCase;
 
 class DataTableTest extends TestCase
@@ -40,6 +41,7 @@ class DataTableTest extends TestCase
                 ->lengthMenu([10, 25, 50])
                 ->responsive()
                 ->columnControl()
+                ->withSearchOption(SearchOption::new())
                 ->extensions([$selectExtension]);
 
         $this->assertEquals('tableId', $table->getId());
