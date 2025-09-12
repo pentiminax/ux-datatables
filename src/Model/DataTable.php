@@ -4,12 +4,12 @@ namespace Pentiminax\UX\DataTables\Model;
 
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
-use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
 use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
+use Pentiminax\UX\DataTables\Model\Options\SearchOption;
 
 class DataTable
 {
@@ -378,6 +378,13 @@ class DataTable
     public function columnControl(): static
     {
         $this->extensions->addExtension(new ColumnControlExtension());
+
+        return $this;
+    }
+
+    public function withSearchOption(SearchOption $searchOption): static
+    {
+        $this->options['search'] = $searchOption->jsonSerialize();
 
         return $this;
     }
