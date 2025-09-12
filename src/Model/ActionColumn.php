@@ -17,7 +17,12 @@ class ActionColumn implements ColumnInterface
         private Action $action,
         private string $actionLabel,
         private string $actionUrl
-    ){
+    ) {
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
     }
 
     public function jsonSerialize(): array

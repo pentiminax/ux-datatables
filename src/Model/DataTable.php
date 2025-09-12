@@ -10,6 +10,9 @@ use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
 use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class DataTable
 {
@@ -17,13 +20,14 @@ class DataTable
 
     private DataTableExtensions $extensions;
 
+    private ?DataTableState $state = null;
+
     public function __construct(
         private readonly string $id,
         array                   $options = [],
         private array           $attributes = [],
         array                   $extensions = [],
-    )
-    {
+    ) {
         $this->options = new DataTableOptions($options);
         $this->extensions = new DataTableExtensions($extensions);
     }
@@ -106,14 +110,12 @@ class DataTable
     }
 
     /**
-     * @param array|ColumnInterface[] $columns
+     * @param ColumnInterface[] $columns
      */
     public function columns(array $columns): static
     {
         foreach ($columns as $column) {
-            $this->options->addColumn(
-                $column instanceof ColumnInterface ? $column->jsonSerialize() : $column
-            );
+            $this->options->addColumn($column);
         }
 
         return $this;
@@ -380,6 +382,78 @@ class DataTable
         $this->extensions->addExtension(new ColumnControlExtension());
 
         return $this;
+    }
+
+    public function getColumnByIndex(int $index): ?ColumnInterface
+    {
+        return $this->options['columns'][$index] ?? null;
+    }
+
+    public function getColumnByName(string $name): ?ColumnInterface
+    {
+        /** @var ColumnInterface $column */
+        foreach ($this->options['columns'] as $column) {
+            if ($column->getName() === $name) {
+                return $column;
+            }
+        }
+
+        return null;
+    }
+
+    public function handleRequest(Request $request): static
+    {
+        $parameters = $request->query;
+
+        if (null  !== $parameters->get('draw')) {
+            if (null === $this->state) {
+                $this->state = DataTableState::fromDefaults($this);
+            }
+            $this->state->applyParameters($parameters);
+        }
+
+        return $this;
+    }
+
+    public function isCallback(): bool
+    {
+        return null !== $this->state && $this->state->isCallback();
+    }
+
+    public function getResponse(): Response
+    {
+        /** @var array $data */
+        $data = $this->getOption('data');
+
+        $columnControlSearch = $this->state->getColumnControlSearch();
+
+        foreach ($data as $i => $row) {
+            foreach ($columnControlSearch as $columnControl) {
+                $column = $columnControl[0];
+                $search = $columnControl[1]['search'];
+
+                if (!empty($search['value'])) {
+                    if ($search['logic'] === 'contains' && isset($row[$column->getName()])) {
+                        if (false === stripos($row[$column->getName()], $search['value'])) {
+                            unset($data[$i]);
+                        }
+                    }
+                }
+            }
+        }
+
+        $data = array_values($data);
+
+        $response = [
+            'draw' => $this->state->getDraw(),
+            'recordsTotal' => \count($data),
+            'recordsFiltered' => \count($data),
+            'data' => $data
+        ];
+
+        return new JsonResponse(
+            data: $response
+        );
     }
 
     private function addButtonsToLayout(array &$options): void

@@ -20,7 +20,7 @@ class DataTableOptions implements \ArrayAccess
         $this->handleLayoutOption();
     }
 
-    public function addColumn(array $column): void
+    public function addColumn(ColumnInterface $column): void
     {
         $this->options['columns'][] = $column;
     }

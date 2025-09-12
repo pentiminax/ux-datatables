@@ -68,6 +68,11 @@ class Column implements ColumnInterface
         return $this;
     }
 
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
     /**
      * Enable or disable ordering on this column.
      */
