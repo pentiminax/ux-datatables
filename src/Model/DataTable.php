@@ -2,6 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
@@ -333,6 +334,13 @@ class DataTable
         return $this->extensions->jsonSerialize();
     }
 
+    public function setExtensions(DataTableExtensions $extensions): static
+    {
+        $this->extensions = $extensions;
+
+        return $this;
+    }
+
     public function language(Language $language): static
     {
         $this->options->setLanguage($language);
@@ -387,6 +395,14 @@ class DataTable
         $this->options['search'] = $searchOption->jsonSerialize();
 
         return $this;
+    }
+
+    /**
+     * @return ColumnInterface[]
+     */
+    public function getColumns(): array
+    {
+        return $this->options['columns'];
     }
 
     private function addButtonsToLayout(array &$options): void

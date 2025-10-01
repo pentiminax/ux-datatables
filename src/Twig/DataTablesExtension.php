@@ -4,6 +4,7 @@
 
 namespace Pentiminax\UX\DataTables\Twig;
 
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
 use Twig\Extension\AbstractExtension;
@@ -23,8 +24,12 @@ class DataTablesExtension extends AbstractExtension
         ];
     }
 
-    public function renderDataTable(DataTable $table, array $attributes = []): string
+    public function renderDataTable(AbstractDataTable|DataTable $table, array $attributes = []): string
     {
+        if ($table instanceof AbstractDataTable) {
+            $table = $table->getDataTable();
+        }
+
         $table->setAttributes(array_merge($table->getAttributes(), $attributes));
 
         $controllers = [];
