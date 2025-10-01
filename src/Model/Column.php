@@ -2,6 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 use function array_filter;
@@ -166,6 +167,6 @@ class Column implements ColumnInterface
             'width' => $this->width,
             'title' => $this->title,
             'visible' => $this->visible,
-        ], fn($value) => $value !== null);
+        ], static fn(mixed $value) => $value !== null);
     }
 }
