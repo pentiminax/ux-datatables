@@ -1,6 +1,6 @@
 <?php
 
-namespace Pentiminax\UX\DataTables\Model;
+namespace Pentiminax\UX\DataTables\Contracts;
 
 interface ColumnInterface extends \JsonSerializable
 {

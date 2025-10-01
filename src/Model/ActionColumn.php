@@ -2,6 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\Action;
 
 class ActionColumn implements ColumnInterface
