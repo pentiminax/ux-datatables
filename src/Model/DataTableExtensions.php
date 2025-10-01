@@ -5,6 +5,7 @@ namespace Pentiminax\UX\DataTables\Model;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
+use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 
 class DataTableExtensions implements \JsonSerializable
@@ -24,9 +25,25 @@ class DataTableExtensions implements \JsonSerializable
         }
     }
 
-    public function addExtension(ExtensionInterface $extension): void
+    public function addExtension(ExtensionInterface $extension): static
     {
         $this->extensions[$extension->getKey()] = $extension;
+
+        return $this;
+    }
+
+    public function addResponsiveExtension(): static
+    {
+        $this->addExtension(new ResponsiveExtension());
+
+        return $this;
+    }
+
+    public function addSelectExtension(): static
+    {
+        $this->addExtension(new SelectExtension());
+
+        return $this;
     }
 
     public function getButtonsExtension(): ?ButtonsExtension
