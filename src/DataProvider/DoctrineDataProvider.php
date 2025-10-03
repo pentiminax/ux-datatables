@@ -1,6 +1,6 @@
 <?php
 
-namespace Pentiminax\UX\DataTables\Model\DataProvider;
+namespace Pentiminax\UX\DataTables\DataProvider;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
