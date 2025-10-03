@@ -2,7 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Model\Extensions;
 
-class ColumnControlExtension implements ExtensionInterface
+class ColumnControlExtension extends AbstractExtension
 {
     public function getKey(): string
     {

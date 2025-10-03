@@ -21,7 +21,9 @@ class SelectExtensionTest extends TestCase
             'items' => 'row',
             'keys' => false,
             'style' => 'single',
-            'toggleable' => true
+            'toggleable' => true,
+            'headerCheckbox' => false,
+            'withCheckbox' => false
         ];
 
         $this->assertEquals($expectedArray, $serializedExtension);
