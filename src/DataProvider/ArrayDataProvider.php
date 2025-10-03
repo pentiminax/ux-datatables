@@ -46,7 +46,7 @@ final class ArrayDataProvider implements DataProviderInterface
         return new DataTableResult(
             recordsTotal: \count($all),
             recordsFiltered: \count($filtered),
-            rows: $rows
+            data: $rows
         );
     }
 }

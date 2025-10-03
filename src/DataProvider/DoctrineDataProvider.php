@@ -58,7 +58,7 @@ class DoctrineDataProvider implements DataProviderInterface
         return new DataTableResult(
             recordsTotal: $recordsTotal,
             recordsFiltered: $filteredCount,
-            rows: $rows
+            data: $rows
         );
     }
 }
