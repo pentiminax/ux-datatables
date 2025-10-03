@@ -86,7 +86,7 @@ abstract class AbstractDataTable implements DataTableInterface
 
     public function fetchData(): void
     {
-        $result = $this->getDataProvider()?->fetch();
+        $result = $this->getDataProvider()?->fetchData();
         if ($result) {
             $data = iterator_to_array($result->rows);
             $this->table->data($data);
