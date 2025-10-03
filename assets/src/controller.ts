@@ -46,6 +46,23 @@ export default class extends Controller {
 
         if (this.isResponsiveExtensionEnabled(payload)) {
             await loadResponsiveLibrary(stylesheet);
+            if (payload.select?.withCheckbox) {
+                payload.columns.unshift({
+                    data: null,
+                    defaultContent: '',
+                    name: null,
+                    orderable: false,
+                    searchable: false,
+                    title: '',
+                });
+                payload.columnDefs = [
+                    {
+                        orderable: false,
+                        render: DataTable.render.select(),
+                        targets: 0
+                    }
+                ]
+            }
         }
 
         if (this.isColumnControlExtensionEnabled(payload)) {
