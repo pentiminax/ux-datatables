@@ -6,6 +6,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\Model\DataTableQuery;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 
 class DoctrineDataProvider implements DataProviderInterface
@@ -19,7 +20,7 @@ class DoctrineDataProvider implements DataProviderInterface
     ) {
     }
 
-    public function fetch(): DataTableResult
+    public function fetchData(DataTableQuery $query): DataTableResult
     {
         $alias = 'e';
 
@@ -38,7 +39,6 @@ class DoctrineDataProvider implements DataProviderInterface
         if ($this->queryBuilderConfigurator) {
             $qb = ($this->queryBuilderConfigurator)($qb);
         }
-
 
         $filteredCountQb = clone $qb;
         $filteredCount = (int) $filteredCountQb
