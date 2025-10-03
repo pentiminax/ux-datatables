@@ -42,14 +42,6 @@ abstract class AbstractDataTable implements DataTableInterface
         if ($selectExtension->isEnabled()) {
             $this->table->addExtension($selectExtension);
         }
-
-        if (!$this->table->isServerSide()) {
-            $result = $this->getDataProvider()?->fetch();
-            if ($result) {
-                $data = iterator_to_array($result->rows);
-                $this->table->data($data);
-            }
-        }
     }
 
     public function getDataTable(): DataTable
@@ -90,6 +82,15 @@ abstract class AbstractDataTable implements DataTableInterface
     public function configureSelectExtension(SelectExtension $extension): SelectExtension
     {
         return $extension;
+    }
+
+    public function fetchData(): void
+    {
+        $result = $this->getDataProvider()?->fetch();
+        if ($result) {
+            $data = iterator_to_array($result->rows);
+            $this->table->data($data);
+        }
     }
 
     protected function mapRow(mixed $item): array
