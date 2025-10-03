@@ -22,5 +22,7 @@ interface DataTableInterface
 
     public function configureSelectExtension(SelectExtension $extension): SelectExtension;
 
+    public function fetchData(): void;
+
     public function getDataTable(): DataTable;
 }
