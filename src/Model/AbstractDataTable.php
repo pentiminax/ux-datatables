@@ -2,6 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -9,10 +10,14 @@ use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\RowMapper\ClosureRowMapper;
+use Symfony\Contracts\Service\Attribute\Required;
+use Symfony\Contracts\Service\ServiceSubscriberInterface;
 
 abstract class AbstractDataTable implements DataTableInterface
 {
-    private DataTable $table;
+    protected DataTable $table;
+
+    protected EntityManagerInterface $em;
 
     public function __construct()
     {
@@ -95,6 +100,12 @@ abstract class AbstractDataTable implements DataTableInterface
         $this->table->data($data);
 
         return $result;
+    }
+
+    #[Required]
+    public function setEntityManager(EntityManagerInterface $em): void
+    {
+        $this->em = $em;
     }
 
     protected function mapRow(mixed $item): array
