@@ -1,11 +1,11 @@
 <?php
 
-namespace Pentiminax\UX\DataTables\Tests\Twig;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 
-use Pentiminax\UX\DataTables\Model\Column;
-use PHPUnit\Framework\TestCase;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Model\Column;
 use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
+use PHPUnit\Framework\TestCase;
 
 class DataTablesExtensionTest extends TestCase
 {
