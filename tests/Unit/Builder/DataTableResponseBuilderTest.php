@@ -1,10 +1,10 @@
 <?php
 
-namespace Pentiminax\UX\DataTables\Tests\Builder;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Builder;
 
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class DataTableResponseBuilderTest extends TestCase
 {

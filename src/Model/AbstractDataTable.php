@@ -2,10 +2,13 @@
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
+use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Model\RowMapper\ClosureRowMapper;
 
 abstract class AbstractDataTable implements DataTableInterface
 {
@@ -56,6 +59,11 @@ abstract class AbstractDataTable implements DataTableInterface
         return $table;
     }
 
+    public function getDataProvider(): ?DataProviderInterface
+    {
+        return null;
+    }
+
     public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
     {
         return $extensions;
@@ -74,6 +82,31 @@ abstract class AbstractDataTable implements DataTableInterface
     public function configureSelectExtension(SelectExtension $extension): SelectExtension
     {
         return $extension;
+    }
+
+    public function fetchData(DataTableQuery $query): DataTableResult
+    {
+        if ($this->table->isServerSide()) {
+            return $this->getDataProvider()?->fetchData($query);
+        }
+
+        $result = $this->getDataProvider()?->fetchData($query);
+        $data = iterator_to_array($result->data);
+        $this->table->data($data);
+
+        return $result;
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return is_array($item) ? $item : get_object_vars($item);
+    }
+
+    protected function rowMapper(): RowMapperInterface
+    {
+        return new ClosureRowMapper(
+            $this->mapRow(...)
+        );
     }
 
     private function getClassName(): string

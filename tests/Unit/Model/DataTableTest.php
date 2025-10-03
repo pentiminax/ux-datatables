@@ -1,6 +1,6 @@
 <?php
 
-namespace Pentiminax\UX\DataTables\Tests\Model;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
@@ -8,7 +8,6 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
-use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
 use PHPUnit\Framework\TestCase;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Pentiminax\UX\DataTables\Tests\Model;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Model\DataTableExtensions;
 use PHPUnit\Framework\TestCase;
