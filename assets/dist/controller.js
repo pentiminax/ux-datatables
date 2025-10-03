@@ -38,6 +38,24 @@ class default_1 extends Controller {
 
         if (this.isSelectExtensionEnabled(payload)) {
             await loadSelectLibrary(stylesheet);
+
+            if (payload.select?.withCheckbox) {
+                payload.columns.unshift({
+                    data: null,
+                    defaultContent: '',
+                    name: null,
+                    orderable: false,
+                    searchable: false,
+                    title: '',
+                });
+                payload.columnDefs = [
+                    {
+                        orderable: false,
+                        render: DataTable.render.select(),
+                        targets: 0
+                    }
+                ]
+            }
         }
 
         if (this.isResponsiveExtensionEnabled(payload)) {

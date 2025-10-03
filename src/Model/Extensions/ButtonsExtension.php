@@ -4,7 +4,7 @@ namespace Pentiminax\UX\DataTables\Model\Extensions;
 
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 
-class ButtonsExtension implements ExtensionInterface
+final class ButtonsExtension extends AbstractExtension
 {
     /** @var ButtonType[] */
     private array $buttons = [];
@@ -49,5 +49,47 @@ class ButtonsExtension implements ExtensionInterface
         }
 
         return $buttons;
+    }
+
+    public function withColVisButton(): self
+    {
+        $this->buttons[] = ButtonType::COLUMN_VISIBILITY;
+
+        return $this;
+    }
+
+    public function withCopyButton(): self
+    {
+        $this->buttons[] = ButtonType::COPY;
+
+        return $this;
+    }
+
+    public function withCsvButton(): self
+    {
+        $this->buttons[] = ButtonType::CSV;
+
+        return $this;
+    }
+
+    public function withExcelButton(): self
+    {
+        $this->buttons[] = ButtonType::EXCEL;
+
+        return $this;
+    }
+
+    public function withPdfButton(): self
+    {
+        $this->buttons[] = ButtonType::PDF;
+
+        return $this;
+    }
+
+    public function withPrintButton(): self
+    {
+        $this->buttons[] = ButtonType::PRINT;
+
+        return $this;
     }
 }
