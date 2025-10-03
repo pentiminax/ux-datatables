@@ -3,6 +3,7 @@
 namespace Pentiminax\UX\DataTables\Model;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -99,6 +100,11 @@ abstract class AbstractDataTable implements DataTableInterface
         $this->table->data($data);
 
         return $result;
+    }
+
+    public function queryBuilderConfigurator(QueryBuilder $qb, DataTableQuery $query): ?QueryBuilder
+    {
+        return null;
     }
 
     #[Required]
