@@ -2,7 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model\RowMapper;
 
-use Pentiminax\UX\DataTables\Model\RowMapper\ClosureRowMapper;
+use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
 use PHPUnit\Framework\TestCase;
 
 final class ClosureRowMapperTest extends TestCase
