@@ -402,7 +402,12 @@ class DataTable
      */
     public function getColumns(): array
     {
-        return $this->options['columns'];
+        return $this->options['columns'] ?? [];
+    }
+
+    public function isServerSide(): bool
+    {
+        return $this->options['serverSide'] ?? false;
     }
 
     private function addButtonsToLayout(array &$options): void

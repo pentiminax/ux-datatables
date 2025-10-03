@@ -1,6 +1,6 @@
 <?php
 
-namespace Pentiminax\UX\DataTables\Tests\Model\Extensions;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;

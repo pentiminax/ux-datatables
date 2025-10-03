@@ -1,6 +1,6 @@
 <?php
 
-namespace Pentiminax\UX\DataTables\Tests\Model\Options;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Options;
 
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Model\DataTable;
