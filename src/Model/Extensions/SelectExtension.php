@@ -5,8 +5,12 @@ namespace Pentiminax\UX\DataTables\Model\Extensions;
 use Pentiminax\UX\DataTables\Enum\SelectItemType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 
-readonly class SelectExtension implements ExtensionInterface
+final class SelectExtension extends AbstractExtension
 {
+    private bool $headerCheckbox = false;
+
+    private bool $withCheckbox = false;
+
     public function __construct(
         private SelectStyle $style = SelectStyle::SINGLE,
         private bool $blurable = false,
@@ -15,7 +19,7 @@ readonly class SelectExtension implements ExtensionInterface
         public SelectItemType $items = SelectItemType::ROW,
         public bool $keys = false,
         public string $selector = 'td, th',
-        public bool $toggleable = true
+        public bool $toggleable = true,
     ) {
     }
 
@@ -33,7 +37,24 @@ readonly class SelectExtension implements ExtensionInterface
             'items' => $this->items->value,
             'keys' => $this->keys,
             'style' => $this->style->value,
-            'toggleable' => $this->toggleable
+            'toggleable' => $this->toggleable,
+            'headerCheckbox' => $this->headerCheckbox,
+            'withCheckbox' => $this->withCheckbox
         ];
+    }
+
+    public function headerCheckbox(bool $headerCheckbox = true): self
+    {
+        $this->headerCheckbox = $headerCheckbox;
+
+        return $this;
+    }
+
+
+    public function withCheckbox(bool $withCheckbox = true): self
+    {
+        $this->withCheckbox = $withCheckbox;
+
+        return $this;
     }
 }

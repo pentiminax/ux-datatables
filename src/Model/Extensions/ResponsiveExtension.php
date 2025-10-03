@@ -2,7 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Model\Extensions;
 
-class ResponsiveExtension implements ExtensionInterface
+class ResponsiveExtension extends AbstractExtension
 {
     public function getKey(): string
     {
