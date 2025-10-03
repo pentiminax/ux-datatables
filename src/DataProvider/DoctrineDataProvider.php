@@ -47,6 +47,10 @@ class DoctrineDataProvider implements DataProviderInterface
             ->getQuery()
             ->getSingleScalarResult();
 
+        $qb
+            ->setFirstResult($query->start)
+            ->setMaxResults($query->length);
+
         $items = $qb->getQuery()->getResult();
 
         $rows = (function () use ($items) {
