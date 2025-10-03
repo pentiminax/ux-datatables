@@ -9,9 +9,8 @@ use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
-use Pentiminax\UX\DataTables\Model\RowMapper\ClosureRowMapper;
+use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
 use Symfony\Contracts\Service\Attribute\Required;
-use Symfony\Contracts\Service\ServiceSubscriberInterface;
 
 abstract class AbstractDataTable implements DataTableInterface
 {

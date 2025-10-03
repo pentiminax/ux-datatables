@@ -1,6 +1,6 @@
 <?php
 
-namespace Pentiminax\UX\DataTables\Model\RowMapper;
+namespace Pentiminax\UX\DataTables\RowMapper;
 
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 
