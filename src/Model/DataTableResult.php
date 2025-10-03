@@ -7,6 +7,7 @@ final readonly class DataTableResult
     public function __construct(
         public int $recordsTotal,
         public int $recordsFiltered,
-        public iterable $rows
-    ) {}
+        public iterable $data
+    ) {
+    }
 }

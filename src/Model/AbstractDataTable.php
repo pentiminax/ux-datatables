@@ -84,13 +84,17 @@ abstract class AbstractDataTable implements DataTableInterface
         return $extension;
     }
 
-    public function fetchData(): void
+    public function fetchData(DataTableQuery $query): DataTableResult
     {
-        $result = $this->getDataProvider()?->fetchData(new DataTableQuery());
-        if ($result) {
-            $data = iterator_to_array($result->rows);
-            $this->table->data($data);
+        if ($this->table->isServerSide()) {
+            return $this->getDataProvider()?->fetchData($query);
         }
+
+        $result = $this->getDataProvider()?->fetchData($query);
+        $data = iterator_to_array($result->data);
+        $this->table->data($data);
+
+        return $result;
     }
 
     protected function mapRow(mixed $item): array
