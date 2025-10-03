@@ -10,7 +10,7 @@ final readonly class DataTableQuery
         public ?int $draw,
         public int $start = 0,
         public int $length = 10,
-        public ?string $globalSearch = null,
+        public ?Search $search = null
     ) {
     }
 
@@ -20,7 +20,7 @@ final readonly class DataTableQuery
             draw: $request->get('draw'),
             start: $request->get('start', 0),
             length: $request->get('length', 10),
-            globalSearch: $request->get('globalSearch')
+            search: Search::fromRequest($request)
         );
     }
 }
