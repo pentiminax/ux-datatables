@@ -12,7 +12,7 @@ final readonly class Search
     ) {
     }
 
-    public static function fromRequest(Request $request)
+    public static function fromRequest(Request $request): Search
     {
         if ($request->isMethod('GET')) {
             $search = $request->query->all('search');
