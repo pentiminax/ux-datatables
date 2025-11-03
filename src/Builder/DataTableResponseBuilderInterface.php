@@ -1,7 +1,5 @@
 <?php
 
-
-
 namespace Pentiminax\UX\DataTables\Builder;
 
 use Symfony\Component\HttpFoundation\JsonResponse;

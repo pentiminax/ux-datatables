@@ -14,8 +14,7 @@ It provides a convenient way to add buttons or links that perform specific opera
 ## Usage
 
 ```php
-use Pentiminax\UX\DataTables\Model\ActionColumn;
-use Pentiminax\UX\DataTables\Enum\Action;
+use Pentiminax\UX\DataTables\Column\ActionColumn;use Pentiminax\UX\DataTables\Enum\Action;
 
 $deleteColumn = ActionColumn::new(
     name: 'delete',

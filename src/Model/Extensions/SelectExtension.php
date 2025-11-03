@@ -31,15 +31,15 @@ final class SelectExtension extends AbstractExtension
     public function jsonSerialize(): array
     {
         return [
-            'blurable' => $this->blurable,
-            'className' => $this->className,
-            'info' => $this->info,
-            'items' => $this->items->value,
-            'keys' => $this->keys,
-            'style' => $this->style->value,
-            'toggleable' => $this->toggleable,
+            'blurable'       => $this->blurable,
+            'className'      => $this->className,
+            'info'           => $this->info,
+            'items'          => $this->items->value,
+            'keys'           => $this->keys,
+            'style'          => $this->style->value,
+            'toggleable'     => $this->toggleable,
             'headerCheckbox' => $this->headerCheckbox,
-            'withCheckbox' => $this->withCheckbox
+            'withCheckbox'   => $this->withCheckbox,
         ];
     }
 
@@ -49,7 +49,6 @@ final class SelectExtension extends AbstractExtension
 
         return $this;
     }
-
 
     public function withCheckbox(bool $withCheckbox = true): self
     {

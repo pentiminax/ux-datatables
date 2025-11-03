@@ -1,7 +1,5 @@
 <?php
 
-
-
 namespace Pentiminax\UX\DataTables\Twig;
 
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -39,7 +37,7 @@ class DataTablesExtension extends AbstractExtension
         }
 
         $controllers['@pentiminax/ux-datatables/datatable'] = [
-            'view' => array_merge($table->getOptions(), $table->getExtensions())
+            'view' => array_merge($table->getOptions(), $table->getExtensions()),
         ];
 
         $stimulusAttributes = $this->stimulus->createStimulusAttributes();
@@ -58,6 +56,8 @@ class DataTablesExtension extends AbstractExtension
                 $stimulusAttributes->addAttribute($name, $value);
             }
         }
+
+        dd($table);
 
         return \sprintf('<table id="%s" %s></table>', $table->getId(), $stimulusAttributes);
     }

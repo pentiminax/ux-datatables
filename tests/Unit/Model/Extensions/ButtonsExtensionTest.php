@@ -20,31 +20,31 @@ class ButtonsExtensionTest extends TestCase
         $expectedArray = [
             'colvis',
             [
-                'extend' => 'copy',
+                'extend'        => 'copy',
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
             ],
             [
-                'extend' => 'csv',
+                'extend'        => 'csv',
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
             ],
             [
-                'extend' => 'excel',
+                'extend'        => 'excel',
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
             ],
             [
-                'extend' => 'pdf',
+                'extend'        => 'pdf',
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
             ],
             [
-                'extend' => 'print',
+                'extend'        => 'print',
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],

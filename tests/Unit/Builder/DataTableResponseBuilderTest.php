@@ -10,7 +10,7 @@ class DataTableResponseBuilderTest extends TestCase
 {
     public function testBuildResponseWithDefaultValues(): void
     {
-        $builder = new DataTableResponseBuilder();
+        $builder  = new DataTableResponseBuilder();
         $response = $builder->buildResponse();
 
         $this->assertInstanceOf(JsonResponse::class, $response);
@@ -25,9 +25,9 @@ class DataTableResponseBuilderTest extends TestCase
     public function testBuildResponseWithData(): void
     {
         $builder = new DataTableResponseBuilder();
-        $data = [
+        $data    = [
             ['id' => 1, 'name' => 'Item 1'],
-            ['id' => 2, 'name' => 'Item 2']
+            ['id' => 2, 'name' => 'Item 2'],
         ];
         $response = $builder->buildResponse(2, $data);
 
@@ -42,8 +42,8 @@ class DataTableResponseBuilderTest extends TestCase
 
     public function testBuildResponseWithCustomRecordCounts(): void
     {
-        $builder = new DataTableResponseBuilder();
-        $data = [['id' => 1, 'name' => 'Item 1']];
+        $builder  = new DataTableResponseBuilder();
+        $data     = [['id' => 1, 'name' => 'Item 1']];
         $response = $builder->buildResponse(1, $data, 10, 5);
 
         $this->assertInstanceOf(JsonResponse::class, $response);

@@ -14,8 +14,8 @@ class DataTableOptionsTest extends TestCase
     {
         $options = new DataTableOptions([
             'language' => 'en-GB',
-            'search' => [
-                'search' => 'Alice'
+            'search'   => [
+                'search' => 'Alice',
             ],
         ]);
 
@@ -26,7 +26,7 @@ class DataTableOptionsTest extends TestCase
     public function testGetOptions(): void
     {
         $options = new DataTableOptions([
-            'layout' => new LayoutOption(new DataTable('testTable'))
+            'layout' => new LayoutOption(new DataTable('testTable')),
         ]);
 
         $this->assertLayoutOption($options->getOptions());
