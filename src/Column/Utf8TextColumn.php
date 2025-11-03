@@ -6,8 +6,8 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class Utf8TextColumn extends AbstractColumn
 {
-    public static function new(string $name): self
+    public static function new(string $name, string $title = ''): self
     {
-        return static::createWithType($name, ColumnType::STRING_UTF8);
+        return static::createWithType($name, $title, ColumnType::STRING_UTF8);
     }
 }

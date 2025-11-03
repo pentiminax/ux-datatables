@@ -18,11 +18,14 @@ abstract class AbstractColumn implements ColumnInterface
     /**
      * Convenient factory helper used by concrete columns to set their type.
      */
-    protected static function createWithType(string $name, ColumnType $type): static
+    protected static function createWithType(string $name, string $title, ColumnType $type): static
     {
+        $resolvedTitle = '' === $title ? $name : $title;
+
         return (new static())
             ->setData($name)
             ->setName($name)
+            ->setTitle($resolvedTitle)
             ->setType($type);
     }
 
