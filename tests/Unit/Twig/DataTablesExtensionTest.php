@@ -48,29 +48,29 @@ class DataTablesExtensionTest extends TestCase
         $this->assertSame('myclass', $tableEl->getAttribute('class'));
 
         $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
-        $actual = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
 
         $expected = [
-            'lengthMenu' => [10,25,50,100],
+            'lengthMenu' => [10, 25, 50, 100],
             'pageLength' => 25,
-            'columns' => [
+            'columns'    => [
                 [
-                    'data' => 'firstColumn',
-                    'name' => 'firstColumn',
-                    'orderable' => true,
+                    'data'       => 'firstColumn',
+                    'name'       => 'firstColumn',
+                    'orderable'  => true,
                     'searchable' => true,
-                    'title' => 'firstColumn',
-                    'type' => 'string',
-                    'visible' => true,
+                    'title'      => 'firstColumn',
+                    'type'       => 'string',
+                    'visible'    => true,
                 ],
                 [
-                    'data' => 'secondColumn',
-                    'name' => 'secondColumn',
-                    'orderable' => true,
+                    'data'       => 'secondColumn',
+                    'name'       => 'secondColumn',
+                    'orderable'  => true,
                     'searchable' => true,
-                    'title' => 'secondColumn',
-                    'type' => 'string',
-                    'visible' => true,
+                    'title'      => 'secondColumn',
+                    'type'       => 'string',
+                    'visible'    => true,
                 ],
             ],
             'data' => [
