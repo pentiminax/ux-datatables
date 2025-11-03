@@ -17,7 +17,7 @@ A concise, practical guide to implement data tables with configurable columns, o
 Base class you extend to declare table config and hook in optional extensions.
 
 * `configureDataTable(DataTable $table): DataTable`
-* `configureColumns(): iterable`
+* `configureColumns(): iterable` → define column list, titles, and translations
 * `configureExtensions(DataTableExtensions $extensions): DataTableExtensions`
 * `configureButtonsExtension(ButtonsExtension $ext): ButtonsExtension`
 * `configureColumnControlExtension(ColumnControlExtension $ext): ColumnControlExtension`
@@ -26,6 +26,8 @@ Base class you extend to declare table config and hook in optional extensions.
 * `fetchData(): void` → **call per request**
 * `mapRow(mixed $item): array` → default object→array mapping (override as needed)
 * `rowMapper(): RowMapperInterface` → returns a `ClosureRowMapper`
+
+The class exposes a `$translator` property populated through Symfony's autowiring (`setTranslator()` is marked with `#[Required]`). Use it to translate column titles or button labels while configuring the table so that localization stays encapsulated in the table definition.
 
 ### `DataProviderInterface`
 

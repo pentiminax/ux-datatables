@@ -2,8 +2,8 @@
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
+use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Enum\Action;
-use Pentiminax\UX\DataTables\Model\ActionColumn;
 use PHPUnit\Framework\TestCase;
 
 class ActionColumnTest extends TestCase
@@ -19,13 +19,13 @@ class ActionColumnTest extends TestCase
         );
 
         $expectedArray = [
-            'data' => null,
-            'className' => 'not-exportable',
-            'name' => 'actions',
-            'title' => 'Actions',
-            'action' => Action::DELETE->value,
+            'data'        => null,
+            'className'   => 'not-exportable',
+            'name'        => 'actions',
+            'title'       => 'Actions',
+            'action'      => Action::DELETE->value,
             'actionLabel' => 'Delete',
-            'actionUrl' => '/delete',
+            'actionUrl'   => '/delete',
         ];
 
         $this->assertEquals($expectedArray, $column->jsonSerialize());

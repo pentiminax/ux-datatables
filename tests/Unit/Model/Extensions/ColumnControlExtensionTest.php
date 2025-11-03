@@ -5,7 +5,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use PHPUnit\Framework\TestCase;
 
-class ColumnControlExtensionTest  extends TestCase
+class ColumnControlExtensionTest extends TestCase
 {
     public function testColumnControlExtensionToArray(): void
     {
@@ -13,7 +13,7 @@ class ColumnControlExtensionTest  extends TestCase
 
         $expectedArray = [
             [
-                'target' => 0,
+                'target'  => 0,
                 'content' => [
                     'order',
                     [
@@ -23,12 +23,12 @@ class ColumnControlExtensionTest  extends TestCase
                         'orderAddAsc',
                         'orderAddDesc',
                         'spacer',
-                        'orderRemove'
-                    ]
+                        'orderRemove',
+                    ],
                 ],
             ],
             [
-                'target' => 1,
+                'target'  => 1,
                 'content' => ['search'],
             ],
         ];

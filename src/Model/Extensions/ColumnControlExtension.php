@@ -13,7 +13,7 @@ class ColumnControlExtension extends AbstractExtension
     {
         return [
             [
-                'target' => 0,
+                'target'  => 0,
                 'content' => [
                     'order',
                     [
@@ -23,12 +23,12 @@ class ColumnControlExtension extends AbstractExtension
                         'orderAddAsc',
                         'orderAddDesc',
                         'spacer',
-                        'orderRemove'
-                    ]
+                        'orderRemove',
+                    ],
                 ],
             ],
             [
-                'target' => 1,
+                'target'  => 1,
                 'content' => ['search'],
             ],
         ];

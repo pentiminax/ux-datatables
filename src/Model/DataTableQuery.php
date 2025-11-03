@@ -10,7 +10,7 @@ final readonly class DataTableQuery
         public ?int $draw,
         public int $start = 0,
         public int $length = 10,
-        public ?Search $search = null
+        public ?Search $search = null,
     ) {
     }
 

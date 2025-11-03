@@ -14,8 +14,9 @@ final class ArrayDataProvider implements DataProviderInterface
      */
     public function __construct(
         private readonly iterable $items,
-        private readonly RowMapperInterface $rowMapper
-    ) {}
+        private readonly RowMapperInterface $rowMapper,
+    ) {
+    }
 
     public function fetchData(DataTableQuery $query): DataTableResult
     {
@@ -27,9 +28,10 @@ final class ArrayDataProvider implements DataProviderInterface
         $filtered = $all;
         if ($query->globalSearch) {
             $globalSearch = mb_strtolower($query->globalSearch);
-            $filtered = array_filter($all, function ($item) use ($globalSearch) {
+            $filtered     = array_filter($all, function ($item) use ($globalSearch) {
                 $row = $this->rowMapper->map(is_object($item) ? $item : (object) $item);
-                return (bool) array_filter($row, static fn (mixed $value) => str_contains(mb_strtolower((string)$value), $globalSearch));
+
+                return (bool) array_filter($row, static fn (mixed $value) => str_contains(mb_strtolower((string) $value), $globalSearch));
             });
         }
 

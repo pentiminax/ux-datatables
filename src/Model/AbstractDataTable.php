@@ -4,6 +4,7 @@ namespace Pentiminax\UX\DataTables\Model;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -12,12 +13,15 @@ use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
 use Symfony\Contracts\Service\Attribute\Required;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 abstract class AbstractDataTable implements DataTableInterface
 {
     protected DataTable $table;
 
     protected EntityManagerInterface $em;
+
+    protected TranslatorInterface $translator;
 
     public function __construct()
     {
@@ -54,6 +58,9 @@ abstract class AbstractDataTable implements DataTableInterface
         return $this->table;
     }
 
+    /**
+     * @return iterable<AbstractColumn>
+     */
     public function configureColumns(): iterable
     {
         return $this->getDataTable()->getColumns();
@@ -96,7 +103,7 @@ abstract class AbstractDataTable implements DataTableInterface
         }
 
         $result = $this->getDataProvider()?->fetchData($query);
-        $data = iterator_to_array($result->data);
+        $data   = iterator_to_array($result->data);
         $this->table->data($data);
 
         return $result;
@@ -111,6 +118,12 @@ abstract class AbstractDataTable implements DataTableInterface
     public function setEntityManager(EntityManagerInterface $em): void
     {
         $this->em = $em;
+    }
+
+    #[Required]
+    public function setTranslator(TranslatorInterface $translator): void
+    {
+        $this->translator = $translator;
     }
 
     protected function mapRow(mixed $item): array

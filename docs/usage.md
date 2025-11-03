@@ -8,7 +8,7 @@ create tables in PHP:
 // ...
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Model\Column;
+use Pentiminax\UX\DataTables\Column\TextColumn;
 
 class HomeController extends AbstractController
 {
@@ -18,8 +18,8 @@ class HomeController extends AbstractController
         $table = $builder
             ->createDataTable('usersTable')
             ->columns([
-                Column::new('firstName', 'First name'),
-                Column::new('lastName', 'Last name'),
+                TextColumn::new('firstName', 'First name'),
+                TextColumn::new('lastName', 'Last name'),
             ])
             ->data([
                 ['John', 'Doe'],
