@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\Column\NumberFormatColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\Utf8TextColumn;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class ColumnTypesTest extends TestCase
@@ -48,9 +49,7 @@ class ColumnTypesTest extends TestCase
         $this->assertSame('N/A', $data['defaultContent']);
     }
 
-    /**
-     * @dataProvider provideColumns
-     */
+    #[DataProvider('provideColumns')]
     public function testColumnTypesMatchEnum(AbstractColumn $column, ColumnType $expectedType): void
     {
         $column->setTitle('Column Title');
