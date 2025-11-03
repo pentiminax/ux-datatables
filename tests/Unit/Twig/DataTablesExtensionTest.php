@@ -81,5 +81,4 @@ class DataTablesExtensionTest extends TestCase
 
         $this->assertSame($expected, $actual);
     }
-
 }
