@@ -57,8 +57,6 @@ class DataTablesExtension extends AbstractExtension
             }
         }
 
-        dd($table);
-
         return \sprintf('<table id="%s" %s></table>', $table->getId(), $stimulusAttributes);
     }
 }
