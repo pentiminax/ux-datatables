@@ -8,7 +8,7 @@ final readonly class Search
 {
     public function __construct(
         public string $search,
-        public bool $regex
+        public bool $regex,
     ) {
     }
 
@@ -22,7 +22,7 @@ final readonly class Search
 
         return new self(
             search: $search['value'] ?? '',
-            regex:  isset($search['regex']) && $search['regex'] === 'true'
+            regex: isset($search['regex']) && 'true' === $search['regex']
         );
     }
 }

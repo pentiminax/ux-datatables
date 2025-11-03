@@ -20,12 +20,11 @@ class DataTable
 
     public function __construct(
         private readonly string $id,
-        array                   $options = [],
-        private array           $attributes = [],
-        array                   $extensions = [],
-    )
-    {
-        $this->options = new DataTableOptions($options);
+        array $options = [],
+        private array $attributes = [],
+        array $extensions = [],
+    ) {
+        $this->options    = new DataTableOptions($options);
         $this->extensions = new DataTableExtensions($extensions);
     }
 
@@ -77,6 +76,7 @@ class DataTable
 
     /**
      * Initial order (sort) to apply to the table.
+     *
      * @param array $order Array of order configurations. Each element can be:
      *                     - An array with [column_index, direction]
      *                     - An object with {idx: number, dir: 'asc'|'desc'}
@@ -90,7 +90,7 @@ class DataTable
     }
 
     /**
-     * Set a caption for the table
+     * Set a caption for the table.
      */
     public function caption(string $caption): static
     {
@@ -156,7 +156,7 @@ class DataTable
     public function ordering(bool $handler = true, bool $indicators = true): static
     {
         $this->options['ordering'] = [
-            'handler' => $handler,
+            'handler'    => $handler,
             'indicators' => $indicators,
         ];
 
@@ -170,21 +170,19 @@ class DataTable
         return $this;
     }
 
-
     public function paging(
         bool $boundaryNumbers = true,
         int $buttons = 7,
         bool $firstLast = true,
         bool $numbers = true,
-        bool $previousNext = true
-    ): static
-    {
+        bool $previousNext = true,
+    ): static {
         $this->options['paging'] = [
             'boundaryNumbers' => $boundaryNumbers,
-            'buttons' => $buttons,
-            'firstLast' => $firstLast,
-            'numbers' => $numbers,
-            'previousNext' => $previousNext,
+            'buttons'         => $buttons,
+            'firstLast'       => $firstLast,
+            'numbers'         => $numbers,
+            'previousNext'    => $previousNext,
         ];
 
         return $this;
@@ -211,7 +209,7 @@ class DataTable
     }
 
     /**
-     * Horizontal scrolling
+     * Horizontal scrolling.
      */
     public function scrollX(bool $scrollX): static
     {
@@ -221,7 +219,7 @@ class DataTable
     }
 
     /**
-     * Vertical scrolling
+     * Vertical scrolling.
      */
     public function scrollY(string $scrollY): static
     {
@@ -231,7 +229,7 @@ class DataTable
     }
 
     /**
-     * Feature control search (filtering) abilities
+     * Feature control search (filtering) abilities.
      */
     public function searching(bool $searching): static
     {
@@ -363,8 +361,7 @@ class DataTable
         Feature $topEnd = Feature::SEARCH,
         Feature $bottomStart = Feature::INFO,
         Feature $bottomEnd = Feature::PAGING,
-    ): static
-    {
+    ): static {
         $this->options['layout'] = new LayoutOption(
             table: $this,
             topStart: $topStart,

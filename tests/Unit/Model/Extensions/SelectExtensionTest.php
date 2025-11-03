@@ -15,15 +15,15 @@ class SelectExtensionTest extends TestCase
         $serializedExtension = $extension->jsonSerialize();
 
         $expectedArray = [
-            'blurable' => false,
-            'className' => 'selected',
-            'info' => true,
-            'items' => 'row',
-            'keys' => false,
-            'style' => 'single',
-            'toggleable' => true,
+            'blurable'       => false,
+            'className'      => 'selected',
+            'info'           => true,
+            'items'          => 'row',
+            'keys'           => false,
+            'style'          => 'single',
+            'toggleable'     => true,
             'headerCheckbox' => false,
-            'withCheckbox' => false
+            'withCheckbox'   => false,
         ];
 
         $this->assertEquals($expectedArray, $serializedExtension);

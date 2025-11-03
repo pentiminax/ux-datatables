@@ -17,8 +17,7 @@ class DataTableTest extends TestCase
     {
         $selectExtension = new SelectExtension();
 
-        $table =
-            (new DataTable('tableId'))
+        $table = (new DataTable('tableId'))
                 ->autoWidth(true)
                 ->ajax(new AjaxOption('/url'))
                 ->caption('Table caption')
@@ -47,8 +46,8 @@ class DataTableTest extends TestCase
 
         $expectedExtensions = [
             'columnControl' => (new ColumnControlExtension())->jsonSerialize(),
-            'select' => $selectExtension->jsonSerialize(),
-            'responsive' => true
+            'select'        => $selectExtension->jsonSerialize(),
+            'responsive'    => true,
         ];
 
         $this->assertEquals($expectedExtensions, $table->getExtensions());
@@ -66,10 +65,10 @@ class DataTableTest extends TestCase
         );
 
         $expectedLayout = [
-            'topStart' => 'buttons',
-            'topEnd' => 'pageLength',
+            'topStart'    => 'buttons',
+            'topEnd'      => 'pageLength',
             'bottomStart' => [
-                'paging' => true
+                'paging' => true,
             ],
             'bottomEnd' => 'info',
         ];
@@ -91,10 +90,10 @@ class DataTableTest extends TestCase
 
         $expectedPaging = [
             'boundaryNumbers' => false,
-            'buttons' => 5,
-            'firstLast' => false,
-            'numbers' => false,
-            'previousNext' => false,
+            'buttons'         => 5,
+            'firstLast'       => false,
+            'numbers'         => false,
+            'previousNext'    => false,
         ];
 
         $this->assertSame($expectedPaging, $table->getOption('paging'));

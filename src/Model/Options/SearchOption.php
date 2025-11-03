@@ -10,7 +10,7 @@ final readonly class SearchOption implements \JsonSerializable
         public bool $return,
         public ?string $search,
         public bool $smart,
-        public ?int $searchDelay
+        public ?int $searchDelay,
     ) {
     }
 
@@ -30,11 +30,11 @@ final readonly class SearchOption implements \JsonSerializable
     {
         return [
             'caseInsensitive' => $this->caseInsensitive,
-            'regex' => $this->regex,
-            'return' => $this->return,
-            'search' => $this->search,
-            'smart' => $this->smart,
-            'searchDelay' => $this->searchDelay,
+            'regex'           => $this->regex,
+            'return'          => $this->return,
+            'search'          => $this->search,
+            'smart'           => $this->smart,
+            'searchDelay'     => $this->searchDelay,
         ];
     }
 }

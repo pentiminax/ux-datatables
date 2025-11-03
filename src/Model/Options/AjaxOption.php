@@ -32,11 +32,11 @@ readonly class AjaxOption
             'url' => $this->url,
         ];
 
-        if ($this->dataSrc !== null) {
+        if (null !== $this->dataSrc) {
             $array['dataSrc'] = $this->dataSrc;
         }
 
-        if ($this->type !== null) {
+        if (null !== $this->type) {
             $array['type'] = $this->type;
         }
 
