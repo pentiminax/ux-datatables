@@ -10,8 +10,8 @@ final class ColumnDto implements \JsonSerializable
     private ?string $className = null;
     private ?string $name      = null;
     private ColumnType $type;
-    private ?string $width = null;
-    private ?string $title = null;
+    private ?string $width          = null;
+    private ?string $title          = null;
     private bool $orderable         = true;
     private bool $searchable        = true;
     private bool $visible           = true;

@@ -6,8 +6,8 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class NumberColumn extends AbstractColumn
 {
-    public static function new(string $name): self
+    public static function new(string $name, string $title = ''): self
     {
-        return static::createWithType($name, ColumnType::NUM);
+        return static::createWithType($name, $title, ColumnType::NUM);
     }
 }

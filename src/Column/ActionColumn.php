@@ -13,8 +13,7 @@ class ActionColumn implements ColumnInterface
         Action $action = Action::DELETE,
         string $actionLabel = '',
         string $actionUrl = '',
-    ): self
-    {
+    ): self {
         return new self(
             $name,
             '' === $title ? $name : $title,
