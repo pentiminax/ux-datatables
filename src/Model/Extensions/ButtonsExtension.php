@@ -13,7 +13,7 @@ final class ButtonsExtension extends AbstractExtension
      * @param ButtonType[]|string[] $buttons
      */
     public function __construct(
-        array $buttons
+        array $buttons,
     ) {
         foreach ($buttons as $button) {
             if (is_string($button)) {
@@ -34,14 +34,14 @@ final class ButtonsExtension extends AbstractExtension
         $buttons = [];
 
         foreach ($this->buttons as $button) {
-            if ($button === ButtonType::COLUMN_VISIBILITY) {
+            if (ButtonType::COLUMN_VISIBILITY === $button) {
                 $buttons[] = $button->value;
 
                 continue;
             }
 
             $buttons[] = [
-                'extend' => $button->value,
+                'extend'        => $button->value,
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],

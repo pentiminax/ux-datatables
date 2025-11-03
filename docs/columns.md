@@ -9,10 +9,10 @@ In the UX DataTables library, the `Column` class allows for precise definition a
 To create a new column, use the static `new` method of the `Column` class:
 
 ```php
-use Pentiminax\UX\DataTables\Model\Column;
+use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
-$column = Column::new('firstName', 'First Name', ColumnType::STRING);
+$column = TextColumn::new('firstName', 'First Name');
 ```
 
 Here, `'firstName'` is the internal name of the column, `'First Name'` is the title displayed in the table header, and `ColumnType::STRING` defines the data type of the column.
@@ -35,7 +35,8 @@ Here's how to integrate columns into a `DataTable` instance:
 
 ```php
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
-use Pentiminax\UX\DataTables\Model\Column;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class MyTableService
@@ -49,12 +50,12 @@ class MyTableService
     {
         $dataTable = $this->builder->createDataTable('example_table');
 
-        $nameColumn = Column::new('name', 'Name', ColumnType::STRING)
+        $nameColumn = TextColumn::new('name', 'Name')
             ->setClassName('col-name')
             ->setOrderable(true)
             ->setSearchable(true);
 
-        $ageColumn = Column::new('age', 'Age', ColumnType::NUM)
+        $ageColumn = NumberColumn::new('age', 'Age')
             ->setWidth('50px')
             ->setOrderable(true)
             ->setSearchable(false);
@@ -68,6 +69,25 @@ class MyTableService
 ```
 
 In this example, we create a table with two columns: one for the name and one for the age, each with specific configurations.
+
+## Translating Column Titles
+
+When your table extends `AbstractDataTable`, the Symfony translator is injected automatically through the `setTranslator()` method. You can therefore translate column titles at definition time and keep presentation logic inside the table class:
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('name')
+            ->setTitle($this->translator->trans('datatable.columns.name', domain: 'messages'));
+    }
+}
+```
+
+This keeps the raw translation keys out of your templates and guarantees that the header texts follow the current locale. Because the translation happens once during table construction, there is no runtime overhead when the table is rendered.
 
 ## Column Types
 

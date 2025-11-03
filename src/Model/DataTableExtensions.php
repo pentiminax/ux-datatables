@@ -20,7 +20,7 @@ class DataTableExtensions implements \JsonSerializable
         }
 
         if (isset($extensions['select'])) {
-            $style = isset($extensions['select']['style']) ? SelectStyle::from($extensions['select']['style']) : SelectStyle::SINGLE;
+            $style                      = isset($extensions['select']['style']) ? SelectStyle::from($extensions['select']['style']) : SelectStyle::SINGLE;
             $this->extensions['select'] = new SelectExtension($style);
         }
     }

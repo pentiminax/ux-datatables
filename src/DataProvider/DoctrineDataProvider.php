@@ -15,8 +15,8 @@ class DoctrineDataProvider implements DataProviderInterface
         private readonly EntityManagerInterface $em,
         private readonly string $entityClass,
         private readonly RowMapperInterface $rowMapper,
-        /** @var null|callable(QueryBuilder, DataTableQuery):QueryBuilder */
-        private $queryBuilderConfigurator = null
+        /** @var callable(QueryBuilder, DataTableQuery):QueryBuilder|null */
+        private $queryBuilderConfigurator = null,
     ) {
     }
 
@@ -41,7 +41,7 @@ class DoctrineDataProvider implements DataProviderInterface
         }
 
         $filteredCountQb = clone $qb;
-        $filteredCount = (int) $filteredCountQb
+        $filteredCount   = (int) $filteredCountQb
             ->select("COUNT($alias.id)")
             ->resetDQLPart('orderBy')
             ->getQuery()

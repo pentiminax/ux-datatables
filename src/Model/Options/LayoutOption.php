@@ -19,14 +19,14 @@ class LayoutOption implements \JsonSerializable
     public function jsonSerialize(): array
     {
         $array = [
-            'topStart' => $this->topStart->value,
-            'topEnd' => $this->topEnd->value,
+            'topStart'    => $this->topStart->value,
+            'topEnd'      => $this->topEnd->value,
             'bottomStart' => $this->bottomStart->value,
-            'bottomEnd' => $this->bottomEnd->value,
+            'bottomEnd'   => $this->bottomEnd->value,
         ];
 
         foreach (['topStart', 'topEnd', 'bottomStart', 'bottomEnd'] as $position) {
-            if ($array[$position] === 'paging') {
+            if ('paging' === $array[$position]) {
                 $array[$position] = [
                     'paging' => $this->table->getOption('paging') ?? true,
                 ];

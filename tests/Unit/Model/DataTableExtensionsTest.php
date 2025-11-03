@@ -15,17 +15,17 @@ class DataTableExtensionsTest extends TestCase
                 'csv',
                 'excel',
                 'pdf',
-                'print'
+                'print',
             ],
             'select' => [
-                'style' => 'single'
-            ]
+                'style' => 'single',
+            ],
         ];
 
         $dataTableExtensions = new DataTableExtensions($extensions);
 
         $expectedArray = [
-            'select' => $extensions['select']
+            'select' => $extensions['select'],
         ];
 
         $this->assertArrayHasKey('select', $dataTableExtensions->jsonSerialize());
