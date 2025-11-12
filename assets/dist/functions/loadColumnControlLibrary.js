@@ -5,6 +5,6 @@ export async function loadColumnControlLibrary(stylesheet) {
     }
     else {
         (await import('datatables.net-columncontrol-dt')).default;
-        (await import('datatables.net-columncontrol-dt/css/columnControl.bootstrap5.min.css')).default;
+        (await import('datatables.net-columncontrol-dt/css/columnControl.dataTables.min.css')).default;
     }
 }
