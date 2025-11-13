@@ -7,7 +7,7 @@ use Symfony\Component\HttpFoundation\Request;
 final readonly class Search
 {
     public function __construct(
-        public string $search,
+        public ?string $search,
         public bool $regex,
     ) {
     }
