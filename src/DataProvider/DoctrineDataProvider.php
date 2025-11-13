@@ -26,7 +26,7 @@ class DoctrineDataProvider implements DataProviderInterface
 
         $countQb = $this->em
             ->createQueryBuilder()
-            ->select("COUNT($alias.id)")
+            ->select("COUNT($alias)")
             ->from($this->entityClass, $alias);
 
         $recordsTotal = (int) $countQb->getQuery()->getSingleScalarResult();
@@ -42,7 +42,7 @@ class DoctrineDataProvider implements DataProviderInterface
 
         $filteredCountQb = clone $qb;
         $filteredCount   = (int) $filteredCountQb
-            ->select("COUNT($alias.id)")
+            ->select("COUNT($alias)")
             ->resetDQLPart('orderBy')
             ->getQuery()
             ->getSingleScalarResult();
