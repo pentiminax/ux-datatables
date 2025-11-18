@@ -158,11 +158,6 @@ abstract class AbstractDataTable implements DataTableInterface
         $this->em = $em;
     }
 
-    public function isCallback(): bool
-    {
-
-    }
-
     protected function mapRow(mixed $item): array
     {
         return is_array($item) ? $item : get_object_vars($item);
