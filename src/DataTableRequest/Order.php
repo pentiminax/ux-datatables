@@ -10,13 +10,4 @@ final readonly class Order
         public string $name,
     ) {
     }
-
-    public static function fromArray(array $order): self
-    {
-        return new self(
-            column: $order['column'] ?? 0,
-            dir: $order['dir'] ?? 'asc',
-            name: $order['name'] ?? ''
-        );
-    }
 }
