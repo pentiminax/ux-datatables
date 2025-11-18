@@ -4,11 +4,11 @@ namespace Pentiminax\UX\DataTables\Contracts;
 
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableExtensions;
-use Pentiminax\UX\DataTables\Model\DataTableQuery;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 
 interface DataTableInterface
 {
@@ -24,7 +24,7 @@ interface DataTableInterface
 
     public function configureSelectExtension(SelectExtension $extension): SelectExtension;
 
-    public function fetchData(DataTableQuery $query): DataTableResult;
+    public function fetchData(DataTableRequest $request): DataTableResult;
 
     public function getDataTable(): DataTable;
 }

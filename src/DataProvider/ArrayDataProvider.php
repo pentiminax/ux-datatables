@@ -4,8 +4,8 @@ namespace Pentiminax\UX\DataTables\DataProvider;
 
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
-use Pentiminax\UX\DataTables\Model\DataTableQuery;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 
 final class ArrayDataProvider implements DataProviderInterface
 {
@@ -18,7 +18,7 @@ final class ArrayDataProvider implements DataProviderInterface
     ) {
     }
 
-    public function fetchData(DataTableQuery $query): DataTableResult
+    public function fetchData(DataTableRequest $query): DataTableResult
     {
         $all = [];
         foreach ($this->items as $item) {

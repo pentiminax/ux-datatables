@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
 use Symfony\Contracts\Service\Attribute\Required;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -96,20 +97,20 @@ abstract class AbstractDataTable implements DataTableInterface
         return $extension;
     }
 
-    public function fetchData(DataTableQuery $query): DataTableResult
+    public function fetchData(DataTableRequest $request): DataTableResult
     {
         if ($this->table->isServerSide()) {
-            return $this->getDataProvider()?->fetchData($query);
+            return $this->getDataProvider()?->fetchData($request);
         }
 
-        $result = $this->getDataProvider()?->fetchData($query);
+        $result = $this->getDataProvider()?->fetchData($request);
         $data   = iterator_to_array($result->data);
         $this->table->data($data);
 
         return $result;
     }
 
-    public function queryBuilderConfigurator(QueryBuilder $qb, DataTableQuery $query): ?QueryBuilder
+    public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): ?QueryBuilder
     {
         return null;
     }
