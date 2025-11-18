@@ -22,6 +22,11 @@ final readonly class DataTableRequest
 
     public static function fromRequest(Request $request): self
     {
+        $columns = [];
+        foreach ($request->query->all('columns') as $column) {
+            $columns[] = Column::fromArray($column);
+        }
+
         $orders = [];
         foreach ($request->query->all('order') as $order) {
             $orders[] = Order::fromArray($order);
@@ -32,6 +37,7 @@ final readonly class DataTableRequest
             start: $request->query->get('start', 0),
             length: $request->query->get('length', 10),
             search: Search::fromRequest($request),
+            columns: $columns,
             orders: $orders
         );
     }
