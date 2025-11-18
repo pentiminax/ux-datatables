@@ -1,8 +1,6 @@
 <?php
 
-namespace Pentiminax\UX\DataTables\Model;
-
-use Symfony\Component\HttpFoundation\Request;
+namespace Pentiminax\UX\DataTables\DataTableRequest;
 
 final readonly class Order
 {
