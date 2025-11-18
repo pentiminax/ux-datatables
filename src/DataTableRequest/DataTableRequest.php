@@ -1,16 +1,19 @@
 <?php
 
-namespace Pentiminax\UX\DataTables\Model;
+namespace Pentiminax\UX\DataTables\DataTableRequest;
 
 use Symfony\Component\HttpFoundation\Request;
 
-final readonly class DataTableQuery
+final readonly class DataTableRequest
 {
     public function __construct(
         public ?int $draw,
         public int $start = 0,
         public int $length = 10,
         public ?Search $search = null,
+
+        /** @var Column[] */
+        public array $columns = [],
 
         /** @var Order[] */
         public array $orders = []
@@ -25,7 +28,7 @@ final readonly class DataTableQuery
         }
 
         return new self(
-            draw: $request->query->get('draw'),
+            draw: $request->query->getInt('draw'),
             start: $request->query->get('start', 0),
             length: $request->query->get('length', 10),
             search: Search::fromRequest($request),

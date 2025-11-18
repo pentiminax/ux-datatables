@@ -6,8 +6,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
-use Pentiminax\UX\DataTables\Model\DataTableQuery;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 
 class DoctrineDataProvider implements DataProviderInterface
 {
@@ -15,12 +15,12 @@ class DoctrineDataProvider implements DataProviderInterface
         private readonly EntityManagerInterface $em,
         private readonly string $entityClass,
         private readonly RowMapperInterface $rowMapper,
-        /** @var callable(QueryBuilder, DataTableQuery):QueryBuilder|null */
+        /** @var callable(QueryBuilder, DataTableRequest):QueryBuilder|null */
         private $queryBuilderConfigurator = null,
     ) {
     }
 
-    public function fetchData(DataTableQuery $query): DataTableResult
+    public function fetchData(DataTableRequest $query): DataTableResult
     {
         $alias = 'e';
 
