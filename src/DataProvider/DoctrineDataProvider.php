@@ -6,8 +6,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
-use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\DataTableResult;
 
 class DoctrineDataProvider implements DataProviderInterface
 {
