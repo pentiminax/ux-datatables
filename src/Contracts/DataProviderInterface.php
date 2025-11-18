@@ -2,8 +2,8 @@
 
 namespace Pentiminax\UX\DataTables\Contracts;
 
-use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\DataTableResult;
 
 interface DataProviderInterface
 {

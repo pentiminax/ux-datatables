@@ -2,8 +2,6 @@
 
 namespace Pentiminax\UX\DataTables\DataTableRequest;
 
-use Symfony\Component\HttpFoundation\Request;
-
 final readonly class DataTableRequest
 {
     public function __construct(
@@ -16,7 +14,7 @@ final readonly class DataTableRequest
         public array $columns = [],
 
         /** @var Order[] */
-        public array $order = []
+        public array $order = [],
     ) {
     }
 }
