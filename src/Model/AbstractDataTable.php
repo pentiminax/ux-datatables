@@ -22,8 +22,6 @@ abstract class AbstractDataTable implements DataTableInterface
 
     protected EntityManagerInterface $em;
 
-    protected TranslatorInterface $translator;
-
     public function __construct()
     {
         $this->table = $this->configureDataTable(
@@ -119,12 +117,6 @@ abstract class AbstractDataTable implements DataTableInterface
     public function setEntityManager(EntityManagerInterface $em): void
     {
         $this->em = $em;
-    }
-
-    #[Required]
-    public function setTranslator(TranslatorInterface $translator): void
-    {
-        $this->translator = $translator;
     }
 
     protected function mapRow(mixed $item): array
