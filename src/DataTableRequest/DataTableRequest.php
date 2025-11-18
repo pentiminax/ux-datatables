@@ -12,6 +12,7 @@ final readonly class DataTableRequest
         public int $length = 10,
         public ?Search $search = null,
 
+        /** @var Column[] */
         public array $columns = [],
 
         /** @var Order[] */
