@@ -20,7 +20,7 @@ class DoctrineDataProvider implements DataProviderInterface
     ) {
     }
 
-    public function fetchData(DataTableRequest $query): DataTableResult
+    public function fetchData(DataTableRequest $request): DataTableResult
     {
         $alias = 'e';
 
@@ -37,7 +37,7 @@ class DoctrineDataProvider implements DataProviderInterface
             ->from($this->entityClass, $alias);
 
         if ($this->queryBuilderConfigurator) {
-            $qb = ($this->queryBuilderConfigurator)($qb, $query);
+            $qb = ($this->queryBuilderConfigurator)($qb, $request);
         }
 
         $filteredCountQb = clone $qb;
@@ -48,8 +48,8 @@ class DoctrineDataProvider implements DataProviderInterface
             ->getSingleScalarResult();
 
         $qb
-            ->setFirstResult($query->start)
-            ->setMaxResults($query->length);
+            ->setFirstResult($request->start)
+            ->setMaxResults($request->length);
 
         $items = $qb->getQuery()->getResult();
 

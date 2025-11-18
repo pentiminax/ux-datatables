@@ -18,7 +18,7 @@ final class ArrayDataProvider implements DataProviderInterface
     ) {
     }
 
-    public function fetchData(DataTableRequest $query): DataTableResult
+    public function fetchData(DataTableRequest $request): DataTableResult
     {
         $all = [];
         foreach ($this->items as $item) {
@@ -26,8 +26,8 @@ final class ArrayDataProvider implements DataProviderInterface
         }
 
         $filtered = $all;
-        if ($query->globalSearch) {
-            $globalSearch = mb_strtolower($query->globalSearch);
+        if ($request->search) {
+            $globalSearch = mb_strtolower($request->search);
             $filtered     = array_filter($all, function ($item) use ($globalSearch) {
                 $row = $this->rowMapper->map(is_object($item) ? $item : (object) $item);
 
@@ -36,7 +36,7 @@ final class ArrayDataProvider implements DataProviderInterface
         }
 
         $slice = array_slice(
-            array_values($filtered), $query->start, $query->length
+            array_values($filtered), $request->start, $request->length
         );
 
         $rows = (function () use ($slice) {

@@ -7,5 +7,5 @@ use Pentiminax\UX\DataTables\Model\DataTableResult;
 
 interface DataProviderInterface
 {
-    public function fetchData(DataTableRequest $query): DataTableResult;
+    public function fetchData(DataTableRequest $request): DataTableResult;
 }

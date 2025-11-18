@@ -4,6 +4,7 @@ namespace Pentiminax\UX\DataTables\Model;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
@@ -13,12 +14,16 @@ use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Service\Attribute\Required;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 abstract class AbstractDataTable implements DataTableInterface
 {
     protected DataTable $table;
+
+    protected ?DataTableRequest $request = null;
 
     protected EntityManagerInterface $em;
 
@@ -50,6 +55,40 @@ abstract class AbstractDataTable implements DataTableInterface
         if ($selectExtension->isEnabled()) {
             $this->table->addExtension($selectExtension);
         }
+    }
+
+    public function getRequest(): ?DataTableRequest
+    {
+        return $this->request;
+    }
+
+    public function setRequest(DataTableRequest $request): static
+    {
+        $this->request = $request;
+
+        return $this;
+    }
+
+    public function getResponse(): JsonResponse
+    {
+        if (!$this->request) {
+            return new JsonResponse([
+                'draw' => 0,
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => [],
+            ]);
+        }
+
+        $data = $this->getDataProvider()?->fetchData($this->request);
+
+        return (new DataTableResponseBuilder())
+            ->buildResponse(
+                draw: $this->request->draw,
+                data: iterator_to_array($data->data),
+                recordsTotal: $data->recordsTotal,
+                recordsFiltered: $data->recordsFiltered
+            );
     }
 
     public function getDataTable(): DataTable
@@ -117,6 +156,11 @@ abstract class AbstractDataTable implements DataTableInterface
     public function setEntityManager(EntityManagerInterface $em): void
     {
         $this->em = $em;
+    }
+
+    public function isCallback(): bool
+    {
+
     }
 
     protected function mapRow(mixed $item): array
