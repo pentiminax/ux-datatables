@@ -15,7 +15,7 @@ use Pentiminax\UX\DataTables\Model\Options\SearchOption;
 class DataTable
 {
     /** @var ColumnInterface[] */
-    private array $columns;
+    private array $columns = [];
 
     private DataTableOptions $options;
 
