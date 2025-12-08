@@ -21,8 +21,8 @@ final readonly class Column
             name: $data['name'],
             searchable: $data['searchable'],
             orderable: $data['orderable'],
-            search: $data['search'] ? Search::fromArray($data['search']) : null,
-            columnControl: $data['columnControl'] ? ColumnControl::fromArray($data['columnControl']) : null,
+            search: isset($data['search']) ? Search::fromArray($data['search']) : null,
+            columnControl: isset($data['columnControl']) ? ColumnControl::fromArray($data['columnControl']) : null,
         );
     }
 }
