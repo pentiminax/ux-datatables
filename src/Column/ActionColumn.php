@@ -3,6 +3,7 @@
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Dto\ColumnDto;
 use Pentiminax\UX\DataTables\Enum\Action;
 
 class ActionColumn implements ColumnInterface
@@ -32,6 +33,11 @@ class ActionColumn implements ColumnInterface
     ) {
     }
 
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
     public function jsonSerialize(): array
     {
         return [
@@ -43,5 +49,10 @@ class ActionColumn implements ColumnInterface
             'actionLabel' => $this->actionLabel,
             'actionUrl'   => $this->actionUrl,
         ];
+    }
+
+    public function getAsDto(): ColumnDto
+    {
+        return new ColumnDto();
     }
 }
