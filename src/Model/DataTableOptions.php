@@ -2,6 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 
@@ -18,9 +19,9 @@ class DataTableOptions implements \ArrayAccess
         $this->handleLayoutOption();
     }
 
-    public function addColumn(array $column): void
+    public function addColumn(ColumnInterface $column): void
     {
-        $this->options['columns'][] = $column;
+        $this->options['columns'][] = $column->jsonSerialize();
     }
 
     public function setLanguage(Language $language): static

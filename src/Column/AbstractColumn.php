@@ -57,6 +57,11 @@ abstract class AbstractColumn implements ColumnInterface
         return $this;
     }
 
+    public function getName(): string
+    {
+        return $this->dto->getName();
+    }
+
     /**
      * Enable or disable ordering on this column.
      */
