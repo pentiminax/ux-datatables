@@ -4,7 +4,7 @@ namespace Pentiminax\UX\DataTables\DataTableRequest;
 
 use Symfony\Component\HttpFoundation\Request;
 
-class Columns
+final readonly class Columns
 {
     public function __construct(
         /** @var Column[] */
