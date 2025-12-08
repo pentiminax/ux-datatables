@@ -63,6 +63,15 @@ abstract class AbstractDataTable implements DataTableInterface
         return $this->request;
     }
 
+    public function handleRequest(Request $request): static
+    {
+        $this->request = DataTableRequest::fromRequest($request);
+
+        dd($this->request);
+
+        return $this;
+    }
+
     public function setRequest(DataTableRequest $request): static
     {
         $this->request = $request;
