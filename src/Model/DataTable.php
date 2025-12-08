@@ -14,6 +14,9 @@ use Pentiminax\UX\DataTables\Model\Options\SearchOption;
 
 class DataTable
 {
+    /** @var ColumnInterface[] */
+    private array $columns;
+
     private DataTableOptions $options;
 
     private DataTableExtensions $extensions;
@@ -107,17 +110,21 @@ class DataTable
     }
 
     /**
-     * @param array|ColumnInterface[] $columns
+     * @param ColumnInterface[] $columns
      */
-    public function columns(array $columns): static
+    public function columns(array|ColumnInterface $columns): static
     {
         foreach ($columns as $column) {
-            $this->options->addColumn(
-                $column instanceof ColumnInterface ? $column->jsonSerialize() : $column
-            );
+            $this->columns[$column->getName()] = $column;
+            $this->options->addColumn($column);
         }
 
         return $this;
+    }
+
+    public function getColumnByName(string $name): ?ColumnInterface
+    {
+        return $this->columns[$name] ?? null;
     }
 
     /**

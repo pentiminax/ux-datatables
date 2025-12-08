@@ -6,6 +6,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -156,6 +157,11 @@ abstract class AbstractDataTable implements DataTableInterface
     public function setEntityManager(EntityManagerInterface $em): void
     {
         $this->em = $em;
+    }
+
+    public function getColumnByName(string $name): ?ColumnInterface
+    {
+        return $this->table->getColumnByName($name);
     }
 
     protected function mapRow(mixed $item): array
