@@ -21,7 +21,7 @@ class TwigAppKernel extends Kernel
     {
         $loader->load(function (ContainerBuilder $container) {
             $container->loadFromExtension('framework', ['secret' => '$ecret', 'test' => true, 'http_method_override' => false]);
-            $container->loadFromExtension('twig', ['default_path' => __DIR__.'/templates', 'strict_variables' => true, 'exception_controller' => null]);
+            $container->loadFromExtension('twig', ['default_path' => __DIR__.'/templates', 'strict_variables' => true]);
 
             $container->setAlias('test.datatables.builder', 'datatables.builder')->setPublic(true);
             $container->setAlias('test.datatables.twig_extension', 'datatables.twig_extension')->setPublic(true);
