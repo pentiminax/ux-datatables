@@ -27,7 +27,7 @@ final class ArrayDataProvider implements DataProviderInterface
 
         $filtered = $all;
         if ($request->search) {
-            $globalSearch = mb_strtolower($request->search);
+            $globalSearch = mb_strtolower($request->search->value);
             $filtered     = array_filter($all, function ($item) use ($globalSearch) {
                 $row = $this->rowMapper->map(is_object($item) ? $item : (object) $item);
 
