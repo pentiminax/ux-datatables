@@ -22,9 +22,11 @@ final readonly class Search
 
     public static function fromRequest(Request $request): self
     {
+        $search = $request->query->all('search');
+
         return new self(
-            value: $request->query->get('search[value]'),
-            regex: $request->query->get('search[regex]') === 'true',
+            value: $search['value'],
+            regex: $search['regex'] === 'true',
         );
     }
 }
