@@ -22,12 +22,12 @@ final readonly class DataTableRequest
     public static function fromRequest(Request $request): self
     {
         return new self(
-            draw: $request->get('draw'),
-            start: $request->get('start'),
-            length: $request->get('length'),
+            draw: $request->query->getInt('draw'),
+            start: $request->query->getInt('start'),
+            length: $request->query->getInt('length'),
             columns: Columns::fromRequest($request),
             search: Search::fromRequest($request),
-            order: $request->get('order', []),
+            order: $request->query->all('order')
         );
     }
 }
