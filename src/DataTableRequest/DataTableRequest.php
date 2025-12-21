@@ -8,10 +8,9 @@ final readonly class DataTableRequest
 {
     public function __construct(
         public ?int $draw,
+        public Columns $columns,
         public int $start = 0,
         public int $length = 10,
-        public Columns $columns,
-
         public ?Search $search = null,
 
         /** @var Order[] */
@@ -23,9 +22,9 @@ final readonly class DataTableRequest
     {
         return new self(
             draw: $request->query->getInt('draw'),
+            columns: Columns::fromRequest($request),
             start: $request->query->getInt('start'),
             length: $request->query->getInt('length'),
-            columns: Columns::fromRequest($request),
             search: Search::fromRequest($request),
             order: $request->query->all('order')
         );
