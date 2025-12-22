@@ -92,10 +92,10 @@ export default class extends Controller {
         // For instance you can listen to additional events
         event.detail.table.on('init', (event) => {
             /* ... */
-        };
+        });
         event.detail.table.on('draw', (event) => {
             /* ... */
-        };
+        });
     }
 }
 ```
