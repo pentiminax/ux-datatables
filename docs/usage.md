@@ -22,8 +22,14 @@ class HomeController extends AbstractController
                 TextColumn::new('lastName', 'Last name'),
             ])
             ->data([
-                ['John', 'Doe'],
-                ['Jane', 'Smith'],
+                [
+                    'firstName' => 'John',
+                    'lastName' => 'Doe',
+                ],
+                [
+                    'firstName' => 'Jane',
+                    'lastName' => 'Smith',
+                ],
             ]);
 
         return $this->render('home/index.html.twig', [
@@ -86,10 +92,10 @@ export default class extends Controller {
         // For instance you can listen to additional events
         event.detail.table.on('init', (event) => {
             /* ... */
-        };
+        });
         event.detail.table.on('draw', (event) => {
             /* ... */
-        };
+        });
     }
 }
 ```
