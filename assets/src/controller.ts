@@ -5,6 +5,7 @@ import {loadDataTableLibrary} from "./functions/loadDataTableLibrary";
 import {loadSelectLibrary} from "./functions/loadSelectLibrary";
 import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary";
 import {loadColumnControlLibrary} from "./functions/loadColumnControlLibrary";
+import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary";
 import {deleteRow} from "./functions/delete";
 
 export default class extends Controller {
@@ -69,6 +70,10 @@ export default class extends Controller {
             await loadColumnControlLibrary(stylesheet);
         }
 
+        if (this.isKeyTableExtensionEnabled(payload)) {
+            await loadKeyTableLibrary(stylesheet);
+        }
+
         payload.columns.forEach((column: any): void => {
             if (column.action === 'DELETE') {
                 column.render = function (data: any, type: string, row: any) {
@@ -126,5 +131,9 @@ export default class extends Controller {
 
     private isColumnControlExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.columnControl;
+    }
+
+    private isKeyTableExtensionEnabled(payload: Record<string, any>): boolean {
+        return !!payload?.keys;
     }
 }

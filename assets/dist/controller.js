@@ -5,6 +5,7 @@ import {loadDataTableLibrary} from "./functions/loadDataTableLibrary.js";
 import {loadSelectLibrary} from "./functions/loadSelectLibrary.js";
 import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary.js";
 import {loadColumnControlLibrary} from "./functions/loadColumnControlLibrary.js";
+import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary.js";
 import {deleteRow} from "./functions/deleteRow.js";
 
 class default_1 extends Controller {
@@ -66,6 +67,10 @@ class default_1 extends Controller {
             await loadColumnControlLibrary(stylesheet);
         }
 
+        if (this.isKeyTableExtensionEnabled(payload)) {
+            await loadKeyTableLibrary(stylesheet);
+        }
+
         payload.columns.forEach((column, index) => {
             if (column.action === 'DELETE') {
                 column.render = function (data, type, row) {
@@ -120,6 +125,10 @@ class default_1 extends Controller {
 
     isColumnControlExtensionEnabled(payload) {
         return !!payload?.columnControl;
+    }
+
+    isKeyTableExtensionEnabled(payload) {
+        return !!payload?.keys;
     }
 }
 
