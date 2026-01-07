@@ -4,12 +4,14 @@ namespace Pentiminax\UX\DataTables\Model;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
@@ -46,6 +48,10 @@ abstract class AbstractDataTable implements DataTableInterface
      * @var AbstractColumn[]
      */
     private array $columns;
+
+    private ?DataProviderInterface $autoConfiguredProvider = null;
+
+    private bool $providerAutoConfigured = false;
 
     public function __construct()
     {
@@ -136,7 +142,30 @@ abstract class AbstractDataTable implements DataTableInterface
 
     public function getDataProvider(): ?DataProviderInterface
     {
-        return null;
+        if ($this->providerAutoConfigured) {
+            return $this->autoConfiguredProvider;
+        }
+
+        $this->providerAutoConfigured = true;
+
+        $classReflection = new \ReflectionClass($this);
+        $attributes = $classReflection->getAttributes(AsDataTable::class);
+
+        if (empty($attributes)) {
+            return null;
+        }
+
+        /** @var AsDataTable $asDataTable */
+        $asDataTable = $attributes[0]->newInstance();
+
+        $this->autoConfiguredProvider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: $asDataTable->entityClass,
+            rowMapper: $this->rowMapper(),
+            queryBuilderConfigurator: $this->queryBuilderConfigurator(...)
+        );
+
+        return $this->autoConfiguredProvider;
     }
 
     public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
