@@ -10,6 +10,80 @@ A concise, practical guide to implement data tables with configurable columns, o
 
 ---
 
+## Quick Start with #[AsDataTable] Attribute
+
+For simple Doctrine-based tables, use the `#[AsDataTable]` attribute to automatically configure your data provider:
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use App\Entity\User;
+
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id', 'ID');
+        yield TextColumn::new('lastName', 'Last name');
+        yield TextColumn::new('firstName', 'First name');
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        /** @var User $item */
+        return [
+            'id'        => $item->getId(),
+            'lastName'  => $item->getLastName(),
+            'firstName' => $item->getFirstName(),
+        ];
+    }
+}
+```
+
+The attribute automatically creates a `DoctrineDataProvider` with:
+- Your entity class
+- The `rowMapper()` method (which wraps `mapRow()`)
+- The `queryBuilderConfigurator()` method (for custom queries and filtering)
+
+### Using queryBuilderConfigurator with #[AsDataTable]
+
+The attribute automatically wires your `queryBuilderConfigurator()` method:
+
+```php
+#[AsDataTable(entityClass: User::class)]
+final class ActiveUsersDataTable extends AbstractDataTable
+{
+    public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    {
+        return $qb
+            ->andWhere('e.active = :active')
+            ->setParameter('active', true);
+    }
+
+    // configureColumns() and mapRow() methods...
+}
+```
+
+### Manual Override
+
+If you need custom logic, you can still override `getDataProvider()` manually—it takes precedence over the attribute:
+
+```php
+#[AsDataTable(entityClass: User::class)]  // This will be ignored
+final class CustomUsersDataTable extends AbstractDataTable
+{
+    public function getDataProvider(): ?DataProviderInterface
+    {
+        // Your custom provider logic takes precedence
+        return new ArrayDataProvider([], $this->rowMapper());
+    }
+}
+```
+
+---
+
 ## Core Concepts
 
 ### `AbstractDataTable`
