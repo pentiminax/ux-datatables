@@ -1,0 +1,125 @@
+<?php
+
+namespace Pentiminax\UX\DataTables\Tests\Unit\Attribute;
+
+use Doctrine\ORM\EntityManagerInterface;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use PHPUnit\Framework\TestCase;
+
+class AsDataTableTest extends TestCase
+{
+    public function testAttributeCanBeInstantiated(): void
+    {
+        $attribute = new AsDataTable(entityClass: \stdClass::class);
+
+        $this->assertSame(\stdClass::class, $attribute->entityClass);
+    }
+
+    public function testAttributeCanBeAppliedToClass(): void
+    {
+        $reflection = new \ReflectionClass(TestDataTableWithAttribute::class);
+        $attributes = $reflection->getAttributes(AsDataTable::class);
+
+        $this->assertCount(1, $attributes);
+
+        $instance = $attributes[0]->newInstance();
+        $this->assertInstanceOf(AsDataTable::class, $instance);
+        $this->assertSame(\stdClass::class, $instance->entityClass);
+    }
+
+    public function testDataProviderAutoConfigured(): void
+    {
+        $table = new TestDataTableWithAttribute();
+        $em    = $this->createMock(EntityManagerInterface::class);
+        $table->setEntityManager($em);
+
+        $provider = $table->getDataProvider();
+
+        $this->assertInstanceOf(DoctrineDataProvider::class, $provider);
+    }
+
+    public function testManualOverrideTakesPrecedence(): void
+    {
+        $table = new TestDataTableWithManualOverride();
+
+        $provider = $table->getDataProvider();
+
+        // Should return the manually configured provider, not auto-configured
+        $this->assertInstanceOf(ArrayDataProvider::class, $provider);
+    }
+
+    public function testNoAttributeReturnsNull(): void
+    {
+        $table = new TestDataTableWithoutAttribute();
+
+        $this->assertNull($table->getDataProvider());
+    }
+
+    public function testEntityManagerNotInjectedThrowsException(): void
+    {
+        $table = new TestDataTableWithAttribute();
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessageMatches('/EntityManager has not been injected/');
+
+        $table->getDataProvider();
+    }
+
+    public function testProviderIsCached(): void
+    {
+        $table = new TestDataTableWithAttribute();
+        $em    = $this->createMock(EntityManagerInterface::class);
+        $table->setEntityManager($em);
+
+        $provider1 = $table->getDataProvider();
+        $provider2 = $table->getDataProvider();
+
+        // Should return the same instance (cached)
+        $this->assertSame($provider1, $provider2);
+    }
+}
+
+/**
+ * Test fixture: DataTable with AsDataTable attribute.
+ */
+#[AsDataTable(entityClass: \stdClass::class)]
+class TestDataTableWithAttribute extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+}
+
+/**
+ * Test fixture: DataTable with AsDataTable attribute but manual override.
+ */
+#[AsDataTable(entityClass: \stdClass::class)]
+class TestDataTableWithManualOverride extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+
+    public function getDataProvider(): ?DataProviderInterface
+    {
+        return new ArrayDataProvider([], $this->rowMapper());
+    }
+}
+
+/**
+ * Test fixture: DataTable without AsDataTable attribute.
+ */
+class TestDataTableWithoutAttribute extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+}
