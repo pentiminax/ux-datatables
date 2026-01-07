@@ -2,42 +2,55 @@
 
 ## Introduction
 
-In the UX DataTables library, the `Column` class allows for precise definition and configuration of table columns. Each column can be customized in terms of type, visibility, sorting, searching, and more.
+In the UX DataTables library, each column is represented by a `Column` class
+that lets you configure how the table renders, sorts, searches, and exports its
+data.
 
 ## Creating a Column
 
-To create a new column, use the static `new` method of the `Column` class:
+Use the static `new()` method on the column type you need:
 
 ```php
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 $column = TextColumn::new('firstName', 'First Name');
 ```
 
-Here, `'firstName'` is the internal name of the column, `'First Name'` is the title displayed in the table header, and `ColumnType::STRING` defines the data type of the column.
+The `new()` factory sets the column name, title, data source, and type. The data
+source defaults to the column name, so you only need `setData()` when the JSON
+key differs.
 
-## Available Properties
+## Common Configuration Methods
 
-The `Column` class provides several methods to configure column properties:
+All concrete columns inherit the following methods from `AbstractColumn`:
 
-- **`setClassName(string $className): self`**: Sets the CSS class name to be applied to the column cells.
-- **`setCellType(string $cellType): self`**: Specifies the cell type (`'td'` or `'th'`) to use for the column.
-- **`setData(string $data): self`**: Sets the data source for the column.
-- **`setOrderable(bool $orderable): self`**: Enables or disables sorting on this column.
-- **`setSearchable(bool $searchable): self`**: Enables or disables searching on this column.
-- **`setVisible(bool $visible): self`**: Determines whether the column is visible or not.
-- **`setWidth(string $width): self`**: Specifies the column width (e.g., `'100px'`, `'10%'`).
+- **`setClassName(?string $className): self`**: Adds a CSS class to the column
+  cells.
+- **`setCellType(?string $cellType): self`**: Defines the HTML cell tag (`td`
+  or `th`).
+- **`setData(?string $data): self`**: Sets the JSON key used for the column.
+- **`setDefaultContent(?string $defaultContent): self`**: Fallback content when
+  the cell data is null.
+- **`setOrderable(bool $orderable = true): self`**: Enables or disables sorting
+  on this column.
+- **`setSearchable(bool $searchable = true): self`**: Enables or disables
+  searching on this column.
+- **`setRender(?string $render): self`**: Registers a JavaScript render
+  callback (stringified function name or body).
+- **`setTitle(string $title): self`**: Sets the header label.
+- **`setVisible(bool $visible = true): self`**: Controls visibility in the
+  table.
+- **`setWidth(?string $width): self`**: Defines the column width (e.g. `100px`
+  or `10%`).
+- **`setExportable(bool $exportable = true): self`**: Controls export behavior.
+  Non-exportable columns automatically receive the `not-exportable` class.
 
-## Example Usage with DataTable
-
-Here's how to integrate columns into a `DataTable` instance:
+## Example Usage with a DataTable
 
 ```php
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class MyTableService
 {
@@ -60,19 +73,18 @@ class MyTableService
             ->setOrderable(true)
             ->setSearchable(false);
 
-        $dataTable->add($nameColumn);
-        $dataTable->add($ageColumn);
+        $dataTable->columns([$nameColumn, $ageColumn]);
 
         return $dataTable;
     }
 }
 ```
 
-In this example, we create a table with two columns: one for the name and one for the age, each with specific configurations.
-
 ## Translating Column Titles
 
-When your table extends `AbstractDataTable`, the Symfony translator is injected automatically through the `setTranslator()` method. You can therefore translate column titles at definition time and keep presentation logic inside the table class:
+When your table extends `AbstractDataTable`, the Symfony translator is injected
+through `setTranslator()`. Translate titles during configuration to keep
+presentation logic within the table:
 
 ```php
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -87,30 +99,23 @@ final class UsersDataTable extends AbstractDataTable
 }
 ```
 
-This keeps the raw translation keys out of your templates and guarantees that the header texts follow the current locale. Because the translation happens once during table construction, there is no runtime overhead when the table is rendered.
-
 ## Column Types
 
-The library provides several column types through the `ColumnType` enumeration:
+The `ColumnType` enum controls how DataTables sorts and searches columns. Common
+values include:
 
-- **`ColumnType::DATE`**: For dates.
-- **`ColumnType::NUM`**: For numbers.
-- **`ColumnType::NUM_FMT`**: For formatted numbers.
-- **`ColumnType::HTML`**: For HTML content.
-- **`ColumnType::STRING`**: For string values.
+- **`ColumnType::DATE`**: Date values.
+- **`ColumnType::NUM`**: Numeric values.
+- **`ColumnType::NUM_FMT`**: Formatted numbers.
+- **`ColumnType::HTML`**: HTML content.
+- **`ColumnType::STRING`**: Text content.
 
-The choice of column type influences sorting and searching behavior for that column.
+## Converting a Column to an Array
 
-## Converting to an Array
-
-To retrieve the column configuration as an array (for example, for JSON serialization), use the `toArray` method:
+If you need the DataTables configuration array directly, call `jsonSerialize()`:
 
 ```php
-$configColumn = $nameColumn->toArray();
+$configColumn = $nameColumn->jsonSerialize();
 ```
 
-This method returns an associative array representing the column's properties, ready to be used in DataTables configuration options.
-
----
-
-By properly configuring columns using the `Column` class, you can customize the behavior and appearance of your tables to meet the specific needs of your Symfony application.
+This returns the full configuration ready to be included in DataTables options.
