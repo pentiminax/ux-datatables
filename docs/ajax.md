@@ -2,11 +2,12 @@
 
 ## Introduction
 
-The `ajax` option in the UX DataTables library allows dynamic loading of table data from an external source via an HTTP request. This feature is particularly useful for handling large datasets without overloading the browser.
+The `ajax` option lets DataTables load data from an HTTP endpoint. This is ideal
+for large datasets or server-side filtering.
 
 ## Using with Symfony
 
-You can configure data loading using the `AjaxOption` class. Here’s how to use this option with a `DataTable` instance:
+Configure Ajax loading with the `AjaxOption` class:
 
 ```php
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -17,7 +18,7 @@ class MyTableService
     public function createTable(): DataTable
     {
         $dataTable = new DataTable('example_table');
-        
+
         $ajaxOption = new AjaxOption(
             url: '/api/data', // API endpoint to fetch data
             dataSrc: 'data',  // Key in the JSON response containing the data (optional)
@@ -25,7 +26,7 @@ class MyTableService
         );
 
         $dataTable->ajax($ajaxOption);
-        
+
         return $dataTable;
     }
 }
@@ -33,74 +34,62 @@ class MyTableService
 
 ## Expected JSON Response Format
 
-The server should return a JSON response containing the data under the key defined in `dataSrc` (default is `data`). Here is an example of a correct response:
+The server should return a JSON response containing:
 
 ```json
 {
-    "data": [
-        { "id": 1, "name": "Product A", "price": 10.5 },
-        { "id": 2, "name": "Product B", "price": 20.0 }
-    ],
-    "recordsTotal": 100,
-    "recordsFiltered": 100
+  "data": [
+    { "id": 1, "name": "Product A", "price": 10.5 },
+    { "id": 2, "name": "Product B", "price": 20.0 }
+  ],
+  "recordsTotal": 100,
+  "recordsFiltered": 100,
+  "draw": 1
 }
 ```
 
-- `data`: Array containing the records to display.
-- `recordsTotal`: Total number of records in the database.
+- `data`: Array containing the rows to display.
+- `recordsTotal`: Total number of records in the dataset.
 - `recordsFiltered`: Total number of records after filtering.
+- `draw`: Draw counter from the request (DataTables uses it to protect against
+  out-of-order responses).
 
-### Important: Mapping Columns to JSON Keys
+## Mapping Columns to JSON Keys
 
-In order for DataTables to correctly populate columns from the JSON response, you must explicitly define the data key for each column using one of the following methods:
-
-- **`setData(string $data): self`**: Sets the data source for the column.
-
-```php
-TextColumn::new('name', 'Name')
-    ->setData('name');
-```
-
-- Or set the fourth argument of Column::new() to true to use the column name as the data source automatically:
+`TextColumn::new()` automatically uses the column name as the data key. Call
+`setData()` only when the JSON key differs:
 
 ```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
 TextColumn::new('name', 'Name');
+TextColumn::new('price', 'Price')->setData('price.amount');
 ```
 
-### Using the Helper to Format JSON Response
+## Building Responses in Symfony
 
-To ensure the correct response format, you can use the `DataTableResponseBuilder` helper:
+To generate the expected response format, use `DataTableResponseBuilder`:
 
 ```php
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 
 $responseBuilder = new DataTableResponseBuilder();
 
-$response = $responseBuilder->buildResponse(
+return $responseBuilder->buildResponse(
     draw: 1,
     data: $data,
     recordsTotal: $totalRecords,
     recordsFiltered: $filteredRecords
 );
-
-return $response;
 ```
 
-### Error Handling
+## Error Handling
 
-If the server returns an error, ensure that the JSON response format contains an explicit structure to handle the error on the client side.
-
-Example of an error response:
+If the server returns an error, send a JSON response with an `error` key so
+DataTables can display the message:
 
 ```json
 {
-    "error": "An error occurred while loading the data."
+  "error": "An error occurred while loading the data."
 }
 ```
-
-On the frontend, you can intercept these errors and display an appropriate message to the user.
-
----
-
-By properly configuring the `ajax` option, you can significantly improve the performance and user experience of your data tables in Symfony.
-
