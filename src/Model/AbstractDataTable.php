@@ -27,6 +27,8 @@ abstract class AbstractDataTable implements DataTableInterface
 
     protected EntityManagerInterface $em;
 
+    private array $searchableFields = [];
+
     public function __construct()
     {
         $this->table = $this->configureDataTable(
@@ -60,6 +62,13 @@ abstract class AbstractDataTable implements DataTableInterface
     public function getRequest(): ?DataTableRequest
     {
         return $this->request;
+    }
+
+    public function searchOn(array $fields): static
+    {
+        $this->searchableFields = $fields;
+
+        return $this;
     }
 
     public function handleRequest(Request $request): static
@@ -154,7 +163,32 @@ abstract class AbstractDataTable implements DataTableInterface
 
     public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): ?QueryBuilder
     {
-        return null;
+        if (1 === count($request->order)) {
+            $order = $request->order[0];
+            $qb->addOrderBy(
+                sprintf('e.%s', $request->columns->getColumnByIndex($order->column)->name),
+                $order->dir
+            );
+        }
+
+        if (!empty($this->searchableFields) && $request->search?->value) {
+            $searchValue = $request->search->value;
+            $conditions  = [];
+
+            foreach ($this->searchableFields as $index => $field) {
+                $paramName    = sprintf('search_param_%d', $index);
+                $conditions[] = sprintf('e.%s LIKE :%s', $field, $paramName);
+                $qb->setParameter($paramName, "%$searchValue%");
+            }
+
+            if (!empty($conditions)) {
+                $qb->andWhere(
+                    $qb->expr()->orX(...$conditions)
+                );
+            }
+        }
+
+        return $qb;
     }
 
     #[Required]
