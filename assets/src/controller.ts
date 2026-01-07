@@ -140,6 +140,7 @@ export default class extends Controller {
 
     private isKeyTableExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.keys;
+    }
       
     private isScrollerExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.scroller;
