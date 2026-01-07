@@ -5,9 +5,9 @@ library in Symfony applications.
 
 [1]: https://datatables.net
 
-## Requirements 
+## Requirements
 - PHP 8.2 or higher
-- StimulusBundle
+- Symfony StimulusBundle (installed through Symfony UX)
 - Composer
 
 ## Installation
@@ -18,10 +18,13 @@ Install the library via Composer:
 composer require pentiminax/ux-datatables
 ```
 
-## Advanced documentation
+## Documentation
 - [Installation](https://github.com/pentiminax/ux-datatables/blob/main/docs/installation.md)
 - [Configuration](https://github.com/pentiminax/ux-datatables/blob/main/docs/configuration.md)
-- [Extensions](https://github.com/pentiminax/ux-datatables/blob/main/docs/extensions.md)
 - [Usage](https://github.com/pentiminax/ux-datatables/blob/main/docs/usage.md)
-- [Ajax](https://github.com/pentiminax/ux-datatables/blob/main/docs/ajax.md)
+- [Options](https://github.com/pentiminax/ux-datatables/blob/main/docs/options.md)
 - [Columns](https://github.com/pentiminax/ux-datatables/blob/main/docs/columns.md)
+- [Action columns](https://github.com/pentiminax/ux-datatables/blob/main/docs/action-columns.md)
+- [Extensions](https://github.com/pentiminax/ux-datatables/blob/main/docs/extensions.md)
+- [Ajax](https://github.com/pentiminax/ux-datatables/blob/main/docs/ajax.md)
+- [AbstractDataTable](https://github.com/pentiminax/ux-datatables/blob/main/docs/abstract-data-table.md)
