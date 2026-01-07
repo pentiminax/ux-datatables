@@ -6,6 +6,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
@@ -173,10 +174,12 @@ abstract class AbstractDataTable implements DataTableInterface
             $searchValue = $request->search->value;
             $conditions  = [];
 
-            foreach ($searchableColumns as $index => $field) {
-                $paramName    = sprintf('search_param_%d', $index);
-                $conditions[] = sprintf('e.%s LIKE :%s', $field, $paramName);
-                $qb->setParameter($paramName, "%$searchValue%");
+            foreach ($searchableColumns as $index => $column)
+                if ($column instanceof TextColumn) {
+                    $paramName    = sprintf('search_param_%d', $index);
+                    $conditions[] = sprintf('e.%s LIKE :%s', $column->getName(), $paramName);
+                    $qb->setParameter($paramName, "%$searchValue%");
+                }
             }
 
             if (!empty($conditions)) {
@@ -184,7 +187,6 @@ abstract class AbstractDataTable implements DataTableInterface
                     $qb->expr()->orX(...$conditions)
                 );
             }
-        }
 
         return $qb;
     }
