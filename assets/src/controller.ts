@@ -73,6 +73,7 @@ export default class extends Controller {
 
         if (this.isKeyTableExtensionEnabled(payload)) {
             await loadKeyTableLibrary(stylesheet);
+        }
         
         if (this.isScrollerExtensionEnabled(payload)) {
             await loadScrollerLibrary(stylesheet);
