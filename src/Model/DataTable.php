@@ -208,7 +208,7 @@ class DataTable
     /**
      * Feature control the processing indicator.
      */
-    public function processing(bool $processing): static
+    public function processing(bool $processing = true): static
     {
         $this->options['processing'] = $processing;
 
@@ -238,7 +238,7 @@ class DataTable
     /**
      * Feature control search (filtering) abilities.
      */
-    public function searching(bool $searching): static
+    public function searching(bool $searching = true): static
     {
         $this->options['searching'] = $searching;
 
@@ -248,7 +248,7 @@ class DataTable
     /**
      * Feature control table information display field.
      */
-    public function serverSide(bool $serverSide): static
+    public function serverSide(bool $serverSide = true): static
     {
         $this->options['serverSide'] = $serverSide;
 
@@ -258,7 +258,7 @@ class DataTable
     /**
      * Feature control table information display field.
      */
-    public function stateSave(bool $stateSave): static
+    public function stateSave(bool $stateSave = true): static
     {
         $this->options['stateSave'] = $stateSave;
 
