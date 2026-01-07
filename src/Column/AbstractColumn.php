@@ -174,6 +174,11 @@ abstract class AbstractColumn implements ColumnInterface
         return \in_array($this->dto->getType(), [ColumnType::NUM, ColumnType::NUM_FMT, ColumnType::HTML_NUM, ColumnType::HTML_NUM_FMT]);
     }
 
+    public function isDate(): bool
+    {
+        return ColumnType::DATE === $this->dto->getType();
+    }
+
     /**
      * Convert the column to a JSON-serializable array for DataTables initialization.
      */
