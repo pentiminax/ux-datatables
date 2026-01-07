@@ -7,7 +7,7 @@ final readonly class ColumnControlSearch
     public function __construct(
         public string $value,
         public string $logic,
-        public string $type
+        public string $type,
     ) {
     }
 
