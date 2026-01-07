@@ -20,13 +20,20 @@ final readonly class DataTableRequest
 
     public static function fromRequest(Request $request): self
     {
+        $columns = Columns::fromRequest($request);
+
+        $orders = [];
+        foreach ($request->query->all('order') as $orderData) {
+            $orders[] = Order::fromArray($orderData, $columns);
+        }
+
         return new self(
             draw: $request->query->getInt('draw'),
-            columns: Columns::fromRequest($request),
+            columns: $columns,
             start: $request->query->getInt('start'),
             length: $request->query->getInt('length'),
             search: Search::fromRequest($request),
-            order: $request->query->all('order')
+            order: $orders,
         );
     }
 }
