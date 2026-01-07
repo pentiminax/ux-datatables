@@ -57,17 +57,15 @@ In order for DataTables to correctly populate columns from the JSON response, yo
 - **`setData(string $data): self`**: Sets the data source for the column.
 
 ```php
-Column::new('name', 'Name')
+TextColumn::new('name', 'Name')
     ->setData('name');
 ```
 
 - Or set the fourth argument of Column::new() to true to use the column name as the data source automatically:
 
 ```php
-Column::new('name', 'Name', ColumnType::STRING, useNameAsDataSource: true);
+TextColumn::new('name', 'Name');
 ```
-
-If neither setData() nor $useNameAsDataSource = true is used, the column will not be mapped to a value in the JSON response.
 
 ### Using the Helper to Format JSON Response
 
