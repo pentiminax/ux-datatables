@@ -1,18 +1,37 @@
 {
   "name": "pentiminax/ux-datatables",
-  "type": "symfony-bundle",
   "description": "DataTables.net integration for Symfony",
+  "license": "MIT",
+  "type": "symfony-bundle",
   "keywords": [
     "symfony-ux"
   ],
-  "homepage": "https://github.com/pentiminax/ux-datatables",
-  "license": "MIT",
   "authors": [
     {
       "name": "Tanguy Lemarié",
       "email": "tanguy.lemarie6@gmail.com"
     }
   ],
+  "homepage": "https://github.com/pentiminax/ux-datatables",
+  "require": {
+    "php": ">=8.2",
+    "symfony/config": "^7.0 || ^8.0",
+    "symfony/dependency-injection": "^7.0 || ^8.0",
+    "symfony/http-kernel": "^7.0 || ^8.0",
+    "symfony/stimulus-bundle": "^2.22"
+  },
+  "require-dev": {
+    "doctrine/orm": "^3.0",
+    "friendsofphp/php-cs-fixer": "^3.89",
+    "phpunit/phpunit": "^11.5",
+    "symfony/framework-bundle": "^7.0 || ^8.0",
+    "symfony/phpunit-bridge": "^7.0 || ^8.0",
+    "symfony/twig-bundle": "^7.0 || ^8.0",
+    "symfony/var-dumper": "^7.0 || ^8.0"
+  },
+  "conflict": {
+    "symfony/flex": "<1.13"
+  },
   "autoload": {
     "psr-4": {
       "Pentiminax\\UX\\DataTables\\": "src/"
@@ -23,34 +42,20 @@
       "Pentiminax\\UX\\DataTables\\Tests\\": "tests/"
     }
   },
-  "require": {
-    "php": ">=8.2",
-    "symfony/config": "^7.0|^8.0",
-    "symfony/dependency-injection": "^7.0|^8.0",
-    "symfony/http-kernel": "^7.0|^8.0",
-    "symfony/stimulus-bundle": "^2.22"
-  },
-  "require-dev": {
-    "doctrine/orm": "^3.0",
-    "symfony/framework-bundle": "^7.0|^8.0",
-    "symfony/phpunit-bridge": "^7.0|^8.0",
-    "symfony/twig-bundle": "^7.0|^8.0",
-    "symfony/var-dumper": "^7.0|^8.0",
-    "phpunit/phpunit": "^11.5",
-    "friendsofphp/php-cs-fixer": "^3.89"
-  },
-    "scripts": {
-        "fix": [
-            "vendor/bin/php-cs-fixer fix"
-        ]
-    },
-  "conflict": {
-    "symfony/flex": "<1.13"
+  "config": {
+    "allow-plugins": {
+      "ergebnis/composer-normalize": true
+    }
   },
   "extra": {
     "thanks": {
       "name": "symfony/ux",
       "url": "https://github.com/symfony/ux"
     }
+  },
+  "scripts": {
+    "fix": [
+      "vendor/bin/php-cs-fixer fix"
+    ]
   }
 }
