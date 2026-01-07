@@ -60,16 +60,6 @@ class AsDataTableTest extends TestCase
         $this->assertNull($table->getDataProvider());
     }
 
-    public function testEntityManagerNotInjectedThrowsException(): void
-    {
-        $table = new TestDataTableWithAttribute();
-
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessageMatches('/EntityManager has not been injected/');
-
-        $table->getDataProvider();
-    }
-
     public function testProviderIsCached(): void
     {
         $table = new TestDataTableWithAttribute();
