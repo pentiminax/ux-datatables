@@ -10,7 +10,7 @@ final readonly class Column
         public bool $searchable,
         public bool $orderable,
         public ?Search $search = null,
-        public ?ColumnControl $columnControl = null
+        public ?ColumnControl $columnControl = null,
     ) {
     }
 

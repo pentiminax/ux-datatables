@@ -51,10 +51,10 @@ class DataTableExtensions implements \JsonSerializable
     public function addKeyTableExtension(): static
     {
         $this->addExtension(new KeyTableExtension());
-      
+
         return $this;
     }
-    
+
     public function addScrollerExtension(): static
     {
         $this->addExtension(new ScrollerExtension());

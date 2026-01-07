@@ -18,7 +18,6 @@ use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Service\Attribute\Required;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 abstract class AbstractDataTable implements DataTableInterface
 {
@@ -72,17 +71,17 @@ abstract class AbstractDataTable implements DataTableInterface
 
     public function isRequestHandled(): bool
     {
-        return $this->request !== null && $this->request->draw > 0;
+        return null !== $this->request && $this->request->draw > 0;
     }
 
     public function getResponse(): JsonResponse
     {
         if (!$this->request) {
             return new JsonResponse([
-                'draw' => 0,
-                'recordsTotal' => 0,
+                'draw'            => 0,
+                'recordsTotal'    => 0,
                 'recordsFiltered' => 0,
-                'data' => [],
+                'data'            => [],
             ]);
         }
 

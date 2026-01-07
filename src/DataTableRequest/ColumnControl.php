@@ -6,7 +6,7 @@ final readonly class ColumnControl
 {
     public function __construct(
         public ?ColumnControlSearch $search = null,
-        public array $list = []
+        public array $list = [],
     ) {
     }
 

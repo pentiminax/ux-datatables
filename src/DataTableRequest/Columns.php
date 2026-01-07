@@ -8,7 +8,7 @@ final readonly class Columns
 {
     public function __construct(
         /** @var Column[] */
-        private array $columns
+        private array $columns,
     ) {
     }
 
