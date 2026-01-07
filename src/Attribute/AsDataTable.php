@@ -6,7 +6,7 @@ namespace Pentiminax\UX\DataTables\Attribute;
 final class AsDataTable
 {
     public function __construct(
-        public readonly string $entityClass
+        public readonly string $entityClass,
     ) {
     }
 }

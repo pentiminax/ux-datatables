@@ -35,7 +35,7 @@ class AsDataTableTest extends TestCase
     public function testDataProviderAutoConfigured(): void
     {
         $table = new TestDataTableWithAttribute();
-        $em = $this->createMock(EntityManagerInterface::class);
+        $em    = $this->createMock(EntityManagerInterface::class);
         $table->setEntityManager($em);
 
         $provider = $table->getDataProvider();
@@ -73,7 +73,7 @@ class AsDataTableTest extends TestCase
     public function testProviderIsCached(): void
     {
         $table = new TestDataTableWithAttribute();
-        $em = $this->createMock(EntityManagerInterface::class);
+        $em    = $this->createMock(EntityManagerInterface::class);
         $table->setEntityManager($em);
 
         $provider1 = $table->getDataProvider();

@@ -149,7 +149,7 @@ abstract class AbstractDataTable implements DataTableInterface
         $this->providerAutoConfigured = true;
 
         $classReflection = new \ReflectionClass($this);
-        $attributes = $classReflection->getAttributes(AsDataTable::class);
+        $attributes      = $classReflection->getAttributes(AsDataTable::class);
 
         if (empty($attributes)) {
             return null;
