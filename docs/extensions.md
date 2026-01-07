@@ -1,79 +1,89 @@
 # Extensions
 
-The DataTables library comes with a number of useful extensions.
+UX DataTables exposes common DataTables extensions through PHP helpers. You can
+configure them on each table, or set defaults in the bundle configuration.
 
 ## Buttons
 
-The Buttons extension provides additional export and interaction options for DataTables, such as copying data, exporting to different formats (CSV, Excel, PDF), and printing.
+The Buttons extension adds export and interaction options (copy, CSV, Excel,
+PDF, print, column visibility).
 
-You can have more information about the Buttons extension [here](https://datatables.net/extensions/buttons/).
+Learn more in the official docs: <https://datatables.net/extensions/buttons/>.
 
 ### Usage
 
-To enable the Buttons extension, instantiate `ButtonsExtension` with the desired button types and add it to your DataTable:
-
 ```php
+use Pentiminax\UX\DataTables\Enum\ButtonType;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
 $buttonsExtension = new ButtonsExtension([
     ButtonType::COPY,
     ButtonType::CSV,
     ButtonType::EXCEL,
     ButtonType::PDF,
-    ButtonType::PRINT
+    ButtonType::PRINT,
 ]);
 
 $datatable = new DataTable('example');
 $datatable->extensions([$buttonsExtension]);
 ```
 
-### Button Types
-
-The available button types are defined in the `ButtonType` enum:
-
-```php
-enum ButtonType: string
-{
-    case COPY = 'copy';
-    case CSV = 'csv';
-    case EXCEL = 'excel';
-    case PDF = 'pdf';
-    case PRINT = 'print';
-}
-```
+The Buttons extension automatically excludes columns marked as
+`not-exportable`.
 
 ## Column Control
 
-The ColumnControl extension for DataTables adds column-specific controls to the header and footer cells of a table. 
-It has a comprehensive set of controls built in (termed content types) that provide buttons and search options to control a column and can be expanded through plugins.
-
-### Usage
-
-To enable the ColumnControl extension, use the `columnControl` method:
+ColumnControl adds column-specific controls to the header and footer cells.
+It ships with sensible defaults for ordering and per-column search.
 
 ```php
 $datatable = new DataTable('example');
-$datatable->columnControl()
+$datatable->columnControl();
 ```
 
 ## Select
 
-Select adds item selection capabilities to a DataTable. Items can be rows, columns, or cells, which can be selected independently or together.
+Select adds item selection capabilities (rows, columns, or cells).
 
-You can have more information about the Select extension [here](https://datatables.net/extensions/select/).
-
-### Usage
-
-To enable the Select extension, instantiate `SelectExtension` and add it to your DataTable:
+Learn more in the official docs: <https://datatables.net/extensions/select/>.
 
 ```php
-$selectExtension = new SelectExtension();
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
+use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+
+$selectExtension = new SelectExtension(SelectStyle::MULTI);
 $datatable = new DataTable('example');
 $datatable->extensions([$selectExtension]);
 ```
 
-You can also specify a selection style:
+You can further configure selection behavior (checkboxes, styles, item types)
+via the `SelectExtension` constructor and helper methods.
+
+## Responsive
+
+Enable responsive layouts for smaller screens:
 
 ```php
-$selectExtension = new SelectExtension(SelectStyle::MULTI);
-$datatable = new DataTable('example');
-$datatable->extensions([$selectExtension]);
+$datatable->responsive();
+```
+
+## KeyTable
+
+Enable keyboard navigation in the table (DataTables KeyTable extension):
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
+
+$datatable->addExtension(new KeyTableExtension());
+```
+
+## Scroller
+
+Enable virtual scrolling for large datasets (DataTables Scroller extension):
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
+
+$datatable->addExtension(new ScrollerExtension());
 ```

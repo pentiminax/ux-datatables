@@ -1,20 +1,22 @@
 # Action columns
 
-The `ActionColumn` class allows you to define a custom action column for your DataTables instance using the UX DataTables library.
+The `ActionColumn` class lets you define a custom action column for a DataTable
+(such as delete or edit buttons).
 
 ## Overview
 
-`ActionColumn` is an implementation of the `ColumnInterface` designed for representing actions (such as delete) inside a DataTable. 
-It provides a convenient way to add buttons or links that perform specific operations on each row.
-> **Note**: The ActionColumn relies on the presence of an id column in the dataset. 
-> This id is used to execute the action (e.g., deletion) by identifying the corresponding row and sending it to the actionUrl.
+`ActionColumn` implements `ColumnInterface` and adds a structured payload for
+front-end actions. It automatically marks the column as non-exportable by
+assigning the `not-exportable` class.
 
----
+> **Note**: The action column expects your dataset to contain an identifier that
+> your front-end can use to call the provided `actionUrl`.
 
 ## Usage
 
 ```php
-use Pentiminax\UX\DataTables\Column\ActionColumn;use Pentiminax\UX\DataTables\Enum\Action;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Enum\Action;
 
 $deleteColumn = ActionColumn::new(
     name: 'delete',
@@ -24,8 +26,6 @@ $deleteColumn = ActionColumn::new(
     actionUrl: '/api/resource/delete'
 );
 ```
-
----
 
 ## Attributes
 

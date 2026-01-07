@@ -1,14 +1,15 @@
-
 # Usage
 
-To use UX DataTables, inject the `DataTableBuilderInterface` service and
-create tables in PHP:
+## Building a table in a controller
 
-``` php
+Inject the `DataTableBuilderInterface` service and build your table in PHP:
+
+```php
 // ...
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
-use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
 
 class HomeController extends AbstractController
 {
@@ -39,25 +40,27 @@ class HomeController extends AbstractController
 }
 ```
 
-All options and data are provided as-is to DataTables. You can read
-[DataTables documentation](https://datatables.net/manual/) to discover
-them all.
+All options and data are passed as-is to DataTables. Refer to the
+[DataTables documentation](https://datatables.net/manual/) for available
+client-side options.
 
-Once created in PHP, a table can be displayed using Twig:
+## Rendering in Twig
 
-``` html+twig
+Once created in PHP, render the table in Twig:
+
+```twig
 {{ render_datatable(table) }}
 
 {# You can pass HTML attributes as a second argument to add them on the <table> tag #}
 {{ render_datatable(table, {'class': 'my-table'}) }}
 ```
 
-### Extend the default behavior
+## Extending the default behavior
 
-Symfony UX DataTables allows you to extend its default behavior using a
-custom Stimulus controller:
+Symfony UX DataTables lets you extend the default behavior using a custom
+Stimulus controller:
 
-``` javascript
+```javascript
 // mytable_controller.js
 
 import { Controller } from '@hotwired/stimulus';
@@ -69,7 +72,7 @@ export default class extends Controller {
     }
 
     disconnect() {
-        // You should always remove listeners when the controller is disconnected to avoid side effects
+        // Always remove listeners when the controller is disconnected to avoid side effects
         this.element.removeEventListener('datatables:pre-connect', this._onPreConnect);
         this.element.removeEventListener('datatables:connect', this._onConnect);
     }
@@ -79,7 +82,7 @@ export default class extends Controller {
         // You can access the config that will be passed to "new DataTable()"
         console.log(event.detail.config);
 
-        // For instance you can define a render callback for a given column
+        // For instance, define a render callback for a given column
         event.detail.config.columns[0].render = function (data, type, row, meta) {
             return '<a href="' + data + '">Download</a>';
         }
@@ -102,6 +105,6 @@ export default class extends Controller {
 
 Then in your render call, add your controller as an HTML attribute:
 
-``` twig
+```twig
 {{ render_datatable(table, {'data-controller': 'mytable'}) }}
 ```
