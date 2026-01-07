@@ -6,6 +6,7 @@ use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 
 class DataTableExtensions implements \JsonSerializable
@@ -42,6 +43,13 @@ class DataTableExtensions implements \JsonSerializable
     public function addSelectExtension(): static
     {
         $this->addExtension(new SelectExtension());
+
+        return $this;
+    }
+
+    public function addScrollerExtension(): static
+    {
+        $this->addExtension(new ScrollerExtension());
 
         return $this;
     }
