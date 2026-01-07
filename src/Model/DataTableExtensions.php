@@ -7,6 +7,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
 use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 
 class DataTableExtensions implements \JsonSerializable
@@ -50,6 +51,13 @@ class DataTableExtensions implements \JsonSerializable
     public function addKeyTableExtension(): static
     {
         $this->addExtension(new KeyTableExtension());
+      
+        return $this;
+    }
+    
+    public function addScrollerExtension(): static
+    {
+        $this->addExtension(new ScrollerExtension());
 
         return $this;
     }

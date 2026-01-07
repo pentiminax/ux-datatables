@@ -6,6 +6,7 @@ import {loadSelectLibrary} from "./functions/loadSelectLibrary";
 import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary";
 import {loadColumnControlLibrary} from "./functions/loadColumnControlLibrary";
 import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary";
+import {loadScrollerLibrary} from "./functions/loadScrollerLibrary";
 import {deleteRow} from "./functions/delete";
 
 export default class extends Controller {
@@ -72,6 +73,9 @@ export default class extends Controller {
 
         if (this.isKeyTableExtensionEnabled(payload)) {
             await loadKeyTableLibrary(stylesheet);
+        
+        if (this.isScrollerExtensionEnabled(payload)) {
+            await loadScrollerLibrary(stylesheet);
         }
 
         payload.columns.forEach((column: any): void => {
@@ -135,5 +139,8 @@ export default class extends Controller {
 
     private isKeyTableExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.keys;
+      
+    private isScrollerExtensionEnabled(payload: Record<string, any>): boolean {
+        return !!payload?.scroller;
     }
 }
