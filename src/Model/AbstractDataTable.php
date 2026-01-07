@@ -6,16 +6,29 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
-use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
-use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
+use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Query\Strategy\ContainsSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\EmptySearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\EndsWithSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\EqualSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\GreaterOrEqualSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\GreaterThanSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\LessOrEqualSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\LessThanSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\NotContainsSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\NotEmptySearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\NotEqualSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
+use Pentiminax\UX\DataTables\Query\Strategy\StartsWithSearchStrategy;
 use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -159,55 +172,40 @@ abstract class AbstractDataTable implements DataTableInterface
         return $result;
     }
 
-    public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): ?QueryBuilder
+    public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
-        if (1 === count($request->order)) {
-            $order  = $request->order[0];
-            $column = $request->columns->getColumnByIndex($order->column);
-            $qb->addOrderBy(sprintf('e.%s', $column?->name), $order->dir);
-        }
+        $context = new QueryFilterContext(
+            request: $request,
+            columns: $this->columns,
+            alias: 'e'
+        );
 
-        $searchableColumns = \array_filter($this->columns, static fn (AbstractColumn $column) => $column->isSearchable());
+        $registry = $this->createSearchStrategyRegistry();
 
-        if ([] !== $searchableColumns) {
-            $searchValue = $request->search->value;
-            $conditions  = [];
+        return QueryFilterChain::createDefault($registry)->apply($qb, $context);
+    }
 
-            foreach ($searchableColumns as $index => $column) {
-                if ($column instanceof TextColumn && $searchValue) {
-                    $paramName    = sprintf('search_param_%d', $index);
-                    $conditions[] = sprintf('e.%s LIKE :%s', $column->getName(), $paramName);
-                    $qb->setParameter($paramName, "%$searchValue%");
-                    continue;
-                }
-
-                if ($column->isNumber()) {
-                    if (!is_numeric($searchValue)) {
-                        continue;
-                    }
-
-                    $paramName    = sprintf('search_param_%d', $index);
-                    $conditions[] = sprintf('e.%s = :%s', $column->getName(), $paramName);
-                    $qb->setParameter($paramName, $searchValue);
-                }
-            }
-
-            if ([] !== $conditions) {
-                $qb->andWhere(
-                    $qb->expr()->orX(...$conditions)
-                );
-            }
-        }
-
-        foreach ($searchableColumns as $index => $column) {
-            $columnControlSearch = $request->columns->getColumnByIndex($index)?->columnControl?->search;
-
-            if ($columnControlSearch) {
-                $this->applyColumnControlSearch($qb, $column, $columnControlSearch, $index);
-            }
-        }
-
-        return $qb;
+    /**
+     * Create and configure the search strategy registry.
+     *
+     * Override this method to register custom search strategies.
+     */
+    protected function createSearchStrategyRegistry(): SearchStrategyRegistry
+    {
+        return new SearchStrategyRegistry([
+            new EqualSearchStrategy(),
+            new NotEqualSearchStrategy(),
+            new ContainsSearchStrategy(),
+            new NotContainsSearchStrategy(),
+            new StartsWithSearchStrategy(),
+            new EndsWithSearchStrategy(),
+            new GreaterThanSearchStrategy(),
+            new GreaterOrEqualSearchStrategy(),
+            new LessThanSearchStrategy(),
+            new LessOrEqualSearchStrategy(),
+            new EmptySearchStrategy(),
+            new NotEmptySearchStrategy(),
+        ]);
     }
 
     #[Required]
@@ -236,95 +234,5 @@ abstract class AbstractDataTable implements DataTableInterface
     private function getClassName(): string
     {
         return (new \ReflectionClass($this))->getShortName();
-    }
-
-    private function applyColumnControlSearch(QueryBuilder $qb, AbstractColumn $column, ?ColumnControlSearch $search, int $index): void
-    {
-        if (null === $search) {
-            return;
-        }
-
-        $logic = $search->logic;
-        $type  = strtolower($search->type);
-        $value = $search->value;
-        $field = sprintf('e.%s', $column->getName());
-        $expr  = $qb->expr();
-        $isNumeric = $column->isNumber() || \in_array($type, ['number', 'numeric', 'num'], true);
-
-        if ('' === trim($value) && !\in_array($logic, ['empty', 'notEmpty'], true)) {
-            return;
-        }
-
-        if ('empty' === $logic) {
-            $qb->andWhere($isNumeric
-                ? $expr->isNull($field)
-                : $expr->orX(
-                    $expr->isNull($field),
-                    $expr->eq($field, $expr->literal(''))
-                ));
-
-            return;
-        }
-
-        if ('notEmpty' === $logic) {
-            $qb->andWhere($isNumeric
-                ? $expr->isNotNull($field)
-                : $expr->andX(
-                    $expr->isNotNull($field),
-                    $expr->neq($field, $expr->literal(''))
-                ));
-
-            return;
-        }
-
-        $paramName  = sprintf('column_control_param_%d', $index);
-        $paramValue = $value;
-
-        switch ($logic) {
-            case 'equal':
-                $qb->andWhere(sprintf('%s = :%s', $field, $paramName));
-                break;
-            case 'notEqual':
-                $qb->andWhere(sprintf('%s != :%s', $field, $paramName));
-                break;
-            case 'starts':
-                $qb->andWhere(sprintf('%s LIKE :%s', $field, $paramName));
-                $paramValue = sprintf('%s%%', $value);
-                break;
-            case 'ends':
-                $qb->andWhere(sprintf('%s LIKE :%s', $field, $paramName));
-                $paramValue = sprintf('%%%s', $value);
-                break;
-            case 'notContains':
-                $qb->andWhere(sprintf('%s NOT LIKE :%s', $field, $paramName));
-                $paramValue = sprintf('%%%s%%', $value);
-                break;
-            case 'greater':
-                $qb->andWhere(sprintf('%s > :%s', $field, $paramName));
-                break;
-            case 'greaterOrEqual':
-                $qb->andWhere(sprintf('%s >= :%s', $field, $paramName));
-                break;
-            case 'less':
-                $qb->andWhere(sprintf('%s < :%s', $field, $paramName));
-                break;
-            case 'lessOrEqual':
-                $qb->andWhere(sprintf('%s <= :%s', $field, $paramName));
-                break;
-            case 'contains':
-            default:
-                if ($isNumeric) {
-                    if (!is_numeric($value)) {
-                        return;
-                    }
-                    $qb->andWhere(sprintf('%s = :%s', $field, $paramName));
-                    break;
-                }
-                $qb->andWhere(sprintf('%s LIKE :%s', $field, $paramName));
-                $paramValue = sprintf('%%%s%%', $value);
-                break;
-        }
-
-        $qb->setParameter($paramName, $paramValue);
     }
 }
