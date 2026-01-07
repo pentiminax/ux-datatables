@@ -27,7 +27,10 @@ abstract class AbstractDataTable implements DataTableInterface
 
     protected EntityManagerInterface $em;
 
-    private array $searchableFields = [];
+    /**
+     * @var AbstractColumn[] $columns
+     */
+    private array $columns;
 
     public function __construct()
     {
@@ -35,9 +38,9 @@ abstract class AbstractDataTable implements DataTableInterface
             new DataTable($this->getClassName())
         );
 
-        $this->table->columns(
-            iterator_to_array($this->configureColumns())
-        );
+        $this->columns = iterator_to_array($this->configureColumns());
+
+        $this->table->columns($this->columns);
 
         $this->table->setExtensions(
             $this->configureExtensions(new DataTableExtensions())
@@ -62,13 +65,6 @@ abstract class AbstractDataTable implements DataTableInterface
     public function getRequest(): ?DataTableRequest
     {
         return $this->request;
-    }
-
-    public function searchOn(array $fields): static
-    {
-        $this->searchableFields = $fields;
-
-        return $this;
     }
 
     public function handleRequest(Request $request): static
@@ -171,11 +167,13 @@ abstract class AbstractDataTable implements DataTableInterface
             );
         }
 
-        if (!empty($this->searchableFields) && $request->search?->value) {
+        $searchableColumns = \array_filter($this->columns, static fn(AbstractColumn $column) => $column->isSearchable());
+
+        if ($searchableColumns !== [] && $request->search?->value) {
             $searchValue = $request->search->value;
             $conditions  = [];
 
-            foreach ($this->searchableFields as $index => $field) {
+            foreach ($searchableColumns as $index => $field) {
                 $paramName    = sprintf('search_param_%d', $index);
                 $conditions[] = sprintf('e.%s LIKE :%s', $field, $paramName);
                 $qb->setParameter($paramName, "%$searchValue%");

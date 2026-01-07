@@ -401,9 +401,6 @@ class DataTable
         return $this;
     }
 
-    /**
-     * @return ColumnInterface[]
-     */
     public function getColumns(): array
     {
         return $this->options['columns'] ?? [];
