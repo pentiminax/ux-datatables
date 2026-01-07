@@ -26,4 +26,11 @@ final readonly class Columns
     {
         return $this->columns[$name] ?? null;
     }
+
+    public function getColumnByIndex(int $index): ?Column
+    {
+        $indexed = array_values($this->columns);
+
+        return $indexed[$index] ?? null;
+    }
 }
