@@ -5,6 +5,7 @@ import {loadDataTableLibrary} from "./functions/loadDataTableLibrary";
 import {loadSelectLibrary} from "./functions/loadSelectLibrary";
 import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary";
 import {loadColumnControlLibrary} from "./functions/loadColumnControlLibrary";
+import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary";
 import {loadScrollerLibrary} from "./functions/loadScrollerLibrary";
 import {deleteRow} from "./functions/delete";
 
@@ -70,6 +71,9 @@ export default class extends Controller {
             await loadColumnControlLibrary(stylesheet);
         }
 
+        if (this.isKeyTableExtensionEnabled(payload)) {
+            await loadKeyTableLibrary(stylesheet);
+        
         if (this.isScrollerExtensionEnabled(payload)) {
             await loadScrollerLibrary(stylesheet);
         }
@@ -133,6 +137,9 @@ export default class extends Controller {
         return !!payload?.columnControl;
     }
 
+    private isKeyTableExtensionEnabled(payload: Record<string, any>): boolean {
+        return !!payload?.keys;
+      
     private isScrollerExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.scroller;
     }
