@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
@@ -174,19 +175,31 @@ abstract class AbstractDataTable implements DataTableInterface
             $searchValue = $request->search->value;
             $conditions  = [];
 
-            foreach ($searchableColumns as $index => $column)
+            foreach ($searchableColumns as $index => $column) {
                 if ($column instanceof TextColumn) {
                     $paramName    = sprintf('search_param_%d', $index);
                     $conditions[] = sprintf('e.%s LIKE :%s', $column->getName(), $paramName);
                     $qb->setParameter($paramName, "%$searchValue%");
+                    continue;
+                }
+
+                if ($column->isNumber()) {
+                    if (!is_numeric($searchValue)) {
+                        continue;
+                    }
+
+                    $paramName    = sprintf('search_param_%d', $index);
+                    $conditions[] = sprintf('e.%s = :%s', $column->getName(), $paramName);
+                    $qb->setParameter($paramName, $searchValue);
                 }
             }
 
-            if (!empty($conditions)) {
+            if ($conditions !== []) {
                 $qb->andWhere(
                     $qb->expr()->orX(...$conditions)
                 );
             }
+        }
 
         return $qb;
     }

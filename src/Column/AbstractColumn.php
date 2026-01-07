@@ -169,6 +169,11 @@ abstract class AbstractColumn implements ColumnInterface
         return $this->dto->isExportable();
     }
 
+    public function isNumber(): bool
+    {
+        return \in_array($this->dto->getType(), [ColumnType::NUM, ColumnType::NUM_FMT, ColumnType::HTML_NUM, ColumnType::HTML_NUM_FMT]);
+    }
+
     /**
      * Convert the column to a JSON-serializable array for DataTables initialization.
      */
