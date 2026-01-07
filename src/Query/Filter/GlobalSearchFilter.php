@@ -1,0 +1,76 @@
+<?php
+
+namespace Pentiminax\UX\DataTables\Query\Filter;
+
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Query\QueryFilterInterface;
+
+/**
+ * Filter that applies global search across all searchable columns.
+ *
+ * For text columns, performs LIKE %value% search.
+ * For numeric columns, performs exact match if the search value is numeric.
+ * All conditions are combined with OR logic.
+ */
+final class GlobalSearchFilter implements QueryFilterInterface
+{
+    public function apply(QueryBuilder $qb, QueryFilterContext $context): void
+    {
+        $searchableColumns = \array_filter(
+            $context->columns,
+            static fn (AbstractColumn $column) => $column->isSearchable()
+        );
+
+        if ([] === $searchableColumns) {
+            return;
+        }
+
+        $searchValue = $context->request->search->value ?? '';
+        if ('' === trim($searchValue)) {
+            return;
+        }
+
+        $conditions = [];
+
+        foreach ($searchableColumns as $index => $column) {
+            if ($column instanceof TextColumn) {
+                $conditions[] = $this->applyTextSearch($qb, $column, $searchValue, $index, $context->alias);
+            } elseif ($column->isNumber() && is_numeric($searchValue)) {
+                $conditions[] = $this->applyNumericSearch($qb, $column, $searchValue, $index, $context->alias);
+            }
+        }
+
+        if ([] !== $conditions) {
+            $qb->andWhere($qb->expr()->orX(...$conditions));
+        }
+    }
+
+    private function applyTextSearch(
+        QueryBuilder $qb,
+        AbstractColumn $column,
+        string $searchValue,
+        int $index,
+        string $alias,
+    ): string {
+        $paramName = sprintf('search_param_%d', $index);
+        $qb->setParameter($paramName, "%$searchValue%");
+
+        return sprintf('%s.%s LIKE :%s', $alias, $column->getName(), $paramName);
+    }
+
+    private function applyNumericSearch(
+        QueryBuilder $qb,
+        AbstractColumn $column,
+        string $searchValue,
+        int $index,
+        string $alias,
+    ): string {
+        $paramName = sprintf('search_param_%d', $index);
+        $qb->setParameter($paramName, $searchValue);
+
+        return sprintf('%s.%s = :%s', $alias, $column->getName(), $paramName);
+    }
+}

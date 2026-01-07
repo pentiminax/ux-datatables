@@ -14,6 +14,21 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
+use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Query\Strategy\ContainsSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\EmptySearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\EndsWithSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\EqualSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\GreaterOrEqualSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\GreaterThanSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\LessOrEqualSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\LessThanSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\NotContainsSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\NotEmptySearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\NotEqualSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
+use Pentiminax\UX\DataTables\Query\Strategy\StartsWithSearchStrategy;
 use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,15 +42,20 @@ abstract class AbstractDataTable implements DataTableInterface
 
     protected EntityManagerInterface $em;
 
+    /**
+     * @var AbstractColumn[]
+     */
+    private array $columns;
+
     public function __construct()
     {
         $this->table = $this->configureDataTable(
             new DataTable($this->getClassName())
         );
 
-        $this->table->columns(
-            iterator_to_array($this->configureColumns())
-        );
+        $this->columns = iterator_to_array($this->configureColumns());
+
+        $this->table->columns($this->columns);
 
         $this->table->setExtensions(
             $this->configureExtensions(new DataTableExtensions())
@@ -152,9 +172,40 @@ abstract class AbstractDataTable implements DataTableInterface
         return $result;
     }
 
-    public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): ?QueryBuilder
+    public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
-        return null;
+        $context = new QueryFilterContext(
+            request: $request,
+            columns: $this->columns,
+            alias: 'e'
+        );
+
+        $registry = $this->createSearchStrategyRegistry();
+
+        return QueryFilterChain::createDefault($registry)->apply($qb, $context);
+    }
+
+    /**
+     * Create and configure the search strategy registry.
+     *
+     * Override this method to register custom search strategies.
+     */
+    protected function createSearchStrategyRegistry(): SearchStrategyRegistry
+    {
+        return new SearchStrategyRegistry([
+            new EqualSearchStrategy(),
+            new NotEqualSearchStrategy(),
+            new ContainsSearchStrategy(),
+            new NotContainsSearchStrategy(),
+            new StartsWithSearchStrategy(),
+            new EndsWithSearchStrategy(),
+            new GreaterThanSearchStrategy(),
+            new GreaterOrEqualSearchStrategy(),
+            new LessThanSearchStrategy(),
+            new LessOrEqualSearchStrategy(),
+            new EmptySearchStrategy(),
+            new NotEmptySearchStrategy(),
+        ]);
     }
 
     #[Required]
