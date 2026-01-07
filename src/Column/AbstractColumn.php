@@ -65,7 +65,7 @@ abstract class AbstractColumn implements ColumnInterface
     /**
      * Enable or disable ordering on this column.
      */
-    public function setOrderable(bool $orderable): static
+    public function setOrderable(bool $orderable = true): static
     {
         $this->dto->setOrderable($orderable);
 
@@ -75,11 +75,16 @@ abstract class AbstractColumn implements ColumnInterface
     /**
      * Enable or disable searching on this column.
      */
-    public function setSearchable(bool $searchable): static
+    public function setSearchable(bool $searchable = true): static
     {
         $this->dto->setSearchable($searchable);
 
         return $this;
+    }
+
+    public function isSearchable(): bool
+    {
+        return $this->dto->isSearchable();
     }
 
     /**
