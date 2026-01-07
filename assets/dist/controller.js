@@ -133,6 +133,7 @@ class default_1 extends Controller {
 
     isKeyTableExtensionEnabled(payload) {
         return !!payload?.keys;
+    }
     
     isScrollerExtensionEnabled(payload) {
         return !!payload?.scroller;
