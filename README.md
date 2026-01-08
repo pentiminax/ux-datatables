@@ -28,3 +28,4 @@ composer require pentiminax/ux-datatables
 - [Extensions](https://github.com/pentiminax/ux-datatables/blob/main/docs/extensions.md)
 - [Ajax](https://github.com/pentiminax/ux-datatables/blob/main/docs/ajax.md)
 - [AbstractDataTable](https://github.com/pentiminax/ux-datatables/blob/main/docs/abstract-data-table.md)
+- [Maker](https://github.com/pentiminax/ux-datatables/blob/main/docs/maker.md)
