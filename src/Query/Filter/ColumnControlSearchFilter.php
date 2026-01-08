@@ -24,6 +24,7 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
 
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
+        /** @var AbstractColumn[] $searchableColumns */
         $searchableColumns = \array_filter(
             $context->columns,
             static fn (AbstractColumn $column) => $column->isSearchable()
@@ -33,10 +34,10 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
             $columnControl = $context->request->columns->getColumnByIndex($index)?->columnControl;
             $search        = $columnControl?->search;
 
-            if ($columnControl && $columnControl->list !== []) {
+            if ($columnControl && [] !== $columnControl->list) {
                 $inStrategy = $this->registry->get('in');
                 if ($inStrategy instanceof InListSearchStrategy) {
-                    $inStrategy->applyForList($qb, $column->getName(), $columnControl->list, $context->alias);
+                    $inStrategy->applyForList($qb, $column->getField(), $columnControl->list, $context->alias);
                 }
                 continue;
             }

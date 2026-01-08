@@ -20,7 +20,7 @@ final class ContainsSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $field     = sprintf('%s.%s', $alias, $column->getName());
+        $field     = sprintf('%s.%s', $alias, $column->getField());
         $paramName = sprintf('column_control_param_%d', $paramIndex);
 
         $isNumeric = $column->isNumber()

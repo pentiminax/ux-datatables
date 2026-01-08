@@ -6,10 +6,10 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 final class ColumnDto implements \JsonSerializable
 {
-    private ?string $cellType  = null;
-    private ?string $className = null;
-    private ?string $name      = null;
     private ColumnType $type;
+    private ?string $cellType       = null;
+    private ?string $className      = null;
+    private ?string $name           = null;
     private ?string $width          = null;
     private ?string $title          = null;
     private bool $orderable         = true;
@@ -19,6 +19,7 @@ final class ColumnDto implements \JsonSerializable
     private bool $exportable        = true;
     private ?string $render         = null;
     private ?string $defaultContent = null;
+    private ?string $field          = null;
 
     public function getCellType(): ?string
     {
@@ -172,6 +173,18 @@ final class ColumnDto implements \JsonSerializable
     public function setDefaultContent(?string $defaultContent): self
     {
         $this->defaultContent = $defaultContent;
+
+        return $this;
+    }
+
+    public function getField(): ?string
+    {
+        return $this->field ?? $this->name;
+    }
+
+    public function setField(?string $field): self
+    {
+        $this->field = $field;
 
         return $this;
     }
