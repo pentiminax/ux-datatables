@@ -8,7 +8,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 
 /**
  * Strategy for 'in' search logic.
- * 
+ *
  * Performs SQL IN clause for list values.
  */
 final class InListSearchStrategy implements SearchStrategyInterface
@@ -27,14 +27,14 @@ final class InListSearchStrategy implements SearchStrategyInterface
     /**
      * Apply IN clause for list values.
      */
-    public function applyForList(QueryBuilder $qb, string $columnName, array $values, string $alias): void
+    public function applyForList(QueryBuilder $qb, string $columnField, array $values, string $alias): void
     {
         if (empty($values)) {
             return;
         }
 
-        $field     = sprintf('%s.%s', $alias, $columnName);
-        $paramName = sprintf(':%s_in', $columnName);
+        $field     = sprintf('%s.%s', $alias, $columnField);
+        $paramName = sprintf(':%s_in', $columnField);
 
         $qb->andWhere(sprintf('%s IN (%s)', $field, $paramName));
         $qb->setParameter($paramName, $values);

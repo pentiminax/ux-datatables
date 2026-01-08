@@ -184,6 +184,18 @@ abstract class AbstractColumn implements ColumnInterface
         return $this->dto->getData();
     }
 
+    public function getField(): ?string
+    {
+        return $this->dto->getField();
+    }
+
+    public function setField(string $field): self
+    {
+        $this->dto->setField($field);
+
+        return $this;
+    }
+
     /**
      * Convert the column to a JSON-serializable array for DataTables initialization.
      */
