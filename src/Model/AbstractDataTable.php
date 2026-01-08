@@ -24,6 +24,7 @@ use Pentiminax\UX\DataTables\Query\Strategy\EndsWithSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\EqualSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\GreaterOrEqualSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\GreaterThanSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\InListSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\LessOrEqualSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\LessThanSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\NotContainsSearchStrategy;
