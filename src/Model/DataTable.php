@@ -8,7 +8,6 @@ use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
-use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
 use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
 
@@ -278,9 +277,18 @@ class DataTable
     /**
      * Load data for the table's content from an Ajax source.
      */
-    public function ajax(AjaxOption $ajaxOption): static
+    public function ajax(string $url, ?string $dataSrc = null, string $type = 'GET'): static
     {
-        $this->options['ajax'] = $ajaxOption->toArray();
+        $ajax = [
+            'type' => $type,
+            'url'  => $url,
+        ];
+
+        if ($dataSrc) {
+            $ajax['dataSrc'] = $dataSrc;
+        }
+
+        $this->options['ajax'] = $ajax;
 
         return $this;
     }
