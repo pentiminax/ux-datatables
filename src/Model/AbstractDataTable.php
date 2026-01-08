@@ -237,6 +237,7 @@ abstract class AbstractDataTable implements DataTableInterface
             new LessOrEqualSearchStrategy(),
             new EmptySearchStrategy(),
             new NotEmptySearchStrategy(),
+            new InListSearchStrategy(),
         ]);
     }
 
