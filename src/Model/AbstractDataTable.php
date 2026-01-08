@@ -32,7 +32,7 @@ use Pentiminax\UX\DataTables\Query\Strategy\NotEqualSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\StartsWithSearchStrategy;
 use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
-use Pentiminax\UX\DataTables\Enum\ColumnType;
+use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Service\Attribute\Required;
@@ -53,6 +53,8 @@ abstract class AbstractDataTable implements DataTableInterface
     private ?DataProviderInterface $autoConfiguredProvider = null;
 
     private bool $providerAutoConfigured = false;
+
+    private ?RowMapperInterface $rowMapper = null;
 
     public function __construct()
     {
@@ -251,30 +253,7 @@ abstract class AbstractDataTable implements DataTableInterface
 
     protected function mapRow(mixed $row): array
     {
-        if (is_array($row)) {
-            return $row;
-        }
-
-        if ($row instanceof \JsonSerializable) {
-            return $row->jsonSerialize();
-        }
-
-        $mapped = [];
-        foreach ($this->columns as $column) {
-            $data = $column->getData() ?? $column->getName();
-            if (null === $data || '' === $data) {
-                continue;
-            }
-
-            $value = $this->readValueFromRow($row, $data);
-            if ($value instanceof \DateTimeImmutable) {
-                $value = $value->format('Y-m-d');
-            }
-
-            $mapped[$data] = $value;
-        }
-
-        return $mapped ?: get_object_vars($row);
+        return $this->getDefaultRowMapper()->map($row);
     }
 
     protected function rowMapper(): RowMapperInterface
@@ -284,58 +263,21 @@ abstract class AbstractDataTable implements DataTableInterface
         );
     }
 
-    private function readValueFromRow(mixed $row, string $path): mixed
+    protected function formatDateValue(\DateTimeInterface $value): string
     {
-        $value = $row;
-        foreach (explode('.', $path) as $segment) {
-            if (is_array($value)) {
-                if (!array_key_exists($segment, $value)) {
-                    return null;
-                }
-
-                $value = $value[$segment];
-                continue;
-            }
-
-            if (is_object($value)) {
-                $value = $this->readObjectValue($value, $segment);
-                continue;
-            }
-
-            return null;
-        }
-
-        return $value;
+        return $value->format('Y-m-d');
     }
 
-    private function readObjectValue(object $object, string $property): mixed
+    private function getDefaultRowMapper(): DefaultRowMapper
     {
-        $accessor = $this->buildAccessorSuffix($property);
-        foreach (['get', 'is', 'has'] as $prefix) {
-            $method = $prefix . $accessor;
-            if (is_callable([$object, $method])) {
-                return $object->$method();
-            }
+        if (null === $this->rowMapper) {
+            $this->rowMapper = new DefaultRowMapper(
+                $this->columns,
+                $this->formatDateValue(...)
+            );
         }
 
-        if (property_exists($object, $property)) {
-            $reflection = new \ReflectionObject($object);
-            if (!$reflection->hasProperty($property) || $reflection->getProperty($property)->isPublic()) {
-                return $object->$property;
-            }
-        }
-
-        return null;
-    }
-
-    private function buildAccessorSuffix(string $property): string
-    {
-        if (str_contains($property, '_') || str_contains($property, '-')) {
-            $property = str_replace(['-', '_'], ' ', $property);
-            $property = str_replace(' ', '', ucwords($property));
-        }
-
-        return ucfirst($property);
+        return $this->rowMapper;
     }
 
     private function getClassName(): string
