@@ -20,6 +20,7 @@ final class ColumnDto implements \JsonSerializable
     private ?string $render         = null;
     private ?string $defaultContent = null;
     private ?string $field          = null;
+    private bool $globalSearchable  = true;
 
     public function getCellType(): ?string
     {
@@ -185,6 +186,18 @@ final class ColumnDto implements \JsonSerializable
     public function setField(?string $field): self
     {
         $this->field = $field;
+
+        return $this;
+    }
+
+    public function isGlobalSearchable(): bool
+    {
+        return $this->globalSearchable;
+    }
+
+    public function disableGlobalSearch(): self
+    {
+        $this->globalSearchable = false;
 
         return $this;
     }
