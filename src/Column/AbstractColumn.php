@@ -179,6 +179,11 @@ abstract class AbstractColumn implements ColumnInterface
         return ColumnType::DATE === $this->dto->getType();
     }
 
+    public function getData(): ?string
+    {
+        return $this->dto->getData();
+    }
+
     /**
      * Convert the column to a JSON-serializable array for DataTables initialization.
      */

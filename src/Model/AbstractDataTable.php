@@ -32,6 +32,7 @@ use Pentiminax\UX\DataTables\Query\Strategy\NotEqualSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\StartsWithSearchStrategy;
 use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
+use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Service\Attribute\Required;
@@ -52,6 +53,8 @@ abstract class AbstractDataTable implements DataTableInterface
     private ?DataProviderInterface $autoConfiguredProvider = null;
 
     private bool $providerAutoConfigured = false;
+
+    private ?RowMapperInterface $rowMapper = null;
 
     public function __construct()
     {
@@ -248,9 +251,9 @@ abstract class AbstractDataTable implements DataTableInterface
         return $this->table->getColumnByName($name);
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
-        return is_array($item) ? $item : get_object_vars($item);
+        return $this->getDefaultRowMapper()->map($row);
     }
 
     protected function rowMapper(): RowMapperInterface
@@ -258,6 +261,23 @@ abstract class AbstractDataTable implements DataTableInterface
         return new ClosureRowMapper(
             $this->mapRow(...)
         );
+    }
+
+    protected function formatDateValue(\DateTimeInterface $value): string
+    {
+        return $value->format('Y-m-d');
+    }
+
+    private function getDefaultRowMapper(): DefaultRowMapper
+    {
+        if (null === $this->rowMapper) {
+            $this->rowMapper = new DefaultRowMapper(
+                $this->columns,
+                $this->formatDateValue(...)
+            );
+        }
+
+        return $this->rowMapper;
     }
 
     private function getClassName(): string
