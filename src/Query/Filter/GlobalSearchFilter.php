@@ -19,12 +19,12 @@ final class GlobalSearchFilter implements QueryFilterInterface
 {
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
-        $searchableColumns = \array_filter(
+        $globalSearchableColumns = \array_filter(
             $context->columns,
-            static fn (AbstractColumn $column) => $column->isSearchable()
+            static fn (AbstractColumn $column) => $column->isGlobalSearchable()
         );
 
-        if ([] === $searchableColumns) {
+        if ([] === $globalSearchableColumns) {
             return;
         }
 
@@ -35,7 +35,7 @@ final class GlobalSearchFilter implements QueryFilterInterface
 
         $conditions = [];
 
-        foreach ($searchableColumns as $index => $column) {
+        foreach ($globalSearchableColumns as $index => $column) {
             if ($column instanceof TextColumn) {
                 $conditions[] = $this->applyTextSearch($qb, $column, $searchValue, $index, $context->alias);
             } elseif ($column->isNumber() && is_numeric($searchValue)) {
