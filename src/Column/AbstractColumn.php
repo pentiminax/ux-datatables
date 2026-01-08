@@ -90,7 +90,6 @@ abstract class AbstractColumn implements ColumnInterface
     public function isGlobalSearchable(): bool
     {
         return $this->dto->isGlobalSearchable();
-
     }
 
     public function disableGlobalSearch(): static
