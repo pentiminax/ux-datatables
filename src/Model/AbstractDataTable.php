@@ -32,6 +32,7 @@ use Pentiminax\UX\DataTables\Query\Strategy\NotEqualSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\StartsWithSearchStrategy;
 use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
+use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Service\Attribute\Required;
@@ -265,7 +266,12 @@ abstract class AbstractDataTable implements DataTableInterface
                 continue;
             }
 
-            $mapped[$data] = $this->readValueFromRow($row, $data);
+            $value = $this->readValueFromRow($row, $data);
+            if ($value instanceof \DateTimeImmutable) {
+                $value = $value->format('Y-m-d');
+            }
+
+            $mapped[$data] = $value;
         }
 
         return $mapped ?: get_object_vars($row);
