@@ -87,6 +87,19 @@ abstract class AbstractColumn implements ColumnInterface
         return $this->dto->isSearchable();
     }
 
+    public function isGlobalSearchable(): bool
+    {
+        return $this->dto->isGlobalSearchable();
+
+    }
+
+    public function disableGlobalSearch(): static
+    {
+        $this->dto->disableGlobalSearch();
+
+        return $this;
+    }
+
     /**
      * Set the column type (used for filtering and sorting string processing).
      */
