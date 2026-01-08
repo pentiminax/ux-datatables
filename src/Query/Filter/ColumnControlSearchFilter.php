@@ -6,6 +6,7 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\QueryFilterInterface;
+use Pentiminax\UX\DataTables\Query\Strategy\InListSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 
 /**
@@ -31,6 +32,14 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
         foreach ($searchableColumns as $index => $column) {
             $columnControl = $context->request->columns->getColumnByIndex($index)?->columnControl;
             $search        = $columnControl?->search;
+
+            if ($columnControl && $columnControl->list !== []) {
+                $inStrategy = $this->registry->get('in');
+                if ($inStrategy instanceof InListSearchStrategy) {
+                    $inStrategy->applyForList($qb, $column->getName(), $columnControl->list, $context->alias);
+                }
+                continue;
+            }
 
             if (!$search) {
                 continue;
