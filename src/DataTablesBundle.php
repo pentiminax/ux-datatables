@@ -84,12 +84,10 @@ class DataTablesBundle extends AbstractBundle
             ->tag('twig.extension')
             ->private();
 
-        if (class_exists(\Symfony\Bundle\MakerBundle\Maker\AbstractMaker::class)) {
-            $container->services()
-                ->set('datatables.maker.datatable', MakeDataTable::class)
-                ->tag('maker.command')
-                ->private();
-        }
+        $container->services()
+            ->set('datatables.maker.datatable', MakeDataTable::class)
+            ->tag('maker.command')
+            ->private();
     }
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
