@@ -48,29 +48,19 @@ final class GlobalSearchFilter implements QueryFilterInterface
         }
     }
 
-    private function applyTextSearch(
-        QueryBuilder $qb,
-        AbstractColumn $column,
-        string $searchValue,
-        int $index,
-        string $alias,
-    ): string {
+    private function applyTextSearch(QueryBuilder $qb, AbstractColumn $column, string $searchValue, int $index, string $alias,): string
+    {
         $paramName = sprintf('search_param_%d', $index);
         $qb->setParameter($paramName, "%$searchValue%");
 
-        return sprintf('%s.%s LIKE :%s', $alias, $column->getName(), $paramName);
+        return sprintf('%s.%s LIKE :%s', $alias, $column->getField(), $paramName);
     }
 
-    private function applyNumericSearch(
-        QueryBuilder $qb,
-        AbstractColumn $column,
-        string $searchValue,
-        int $index,
-        string $alias,
-    ): string {
+    private function applyNumericSearch(QueryBuilder $qb, AbstractColumn $column, string $searchValue, int $index, string $alias,): string
+    {
         $paramName = sprintf('search_param_%d', $index);
         $qb->setParameter($paramName, $searchValue);
 
-        return sprintf('%s.%s = :%s', $alias, $column->getName(), $paramName);
+        return sprintf('%s.%s = :%s', $alias, $column->getField(), $paramName);
     }
 }
