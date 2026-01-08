@@ -6,6 +6,7 @@ use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilderInterface;
+use Pentiminax\UX\DataTables\Maker\MakeDataTable;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -82,6 +83,13 @@ class DataTablesBundle extends AbstractBundle
             ->arg(0, new Reference('stimulus.helper'))
             ->tag('twig.extension')
             ->private();
+
+        if (class_exists(\Symfony\Bundle\MakerBundle\Maker\AbstractMaker::class)) {
+            $container->services()
+                ->set('datatables.maker.datatable', MakeDataTable::class)
+                ->tag('maker.command')
+                ->private();
+        }
     }
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void

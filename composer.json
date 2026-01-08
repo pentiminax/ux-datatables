@@ -27,7 +27,11 @@
     "symfony/framework-bundle": "^7.0 || ^8.0",
     "symfony/phpunit-bridge": "^7.0 || ^8.0",
     "symfony/twig-bundle": "^7.0 || ^8.0",
-    "symfony/var-dumper": "^7.0 || ^8.0"
+    "symfony/var-dumper": "^7.0 || ^8.0",
+    "symfony/maker-bundle": "^1.65"
+  },
+  "suggest": {
+    "symfony/maker-bundle": "To use the make:datatable command."
   },
   "conflict": {
     "symfony/flex": "<1.13"
