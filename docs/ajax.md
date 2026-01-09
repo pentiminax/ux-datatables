@@ -7,8 +7,6 @@ for large datasets or server-side filtering.
 
 ## Using with Symfony
 
-Configure Ajax loading with the `AjaxOption` class:
-
 ```php
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
@@ -19,13 +17,12 @@ class MyTableService
     {
         $dataTable = new DataTable('example_table');
 
-        $ajaxOption = new AjaxOption(
-            url: '/api/data', // API endpoint to fetch data
-            dataSrc: 'data',  // Key in the JSON response containing the data (optional)
-            type: 'POST'      // HTTP method used (default is GET)
-        );
-
-        $dataTable->ajax($ajaxOption);
+        /**
+         * url: string // API endpoint to fetch data
+         * dataSrc: string // Key in the JSON response containing the data (optional)
+         * type: string // HTTP method used (default is GET)
+         */
+        $dataTable->ajax(url: '/api/data', dataSrc: 'data', type: 'POST');
 
         return $dataTable;
     }
