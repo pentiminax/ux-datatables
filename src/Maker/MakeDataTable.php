@@ -19,7 +19,7 @@ use Symfony\Component\Console\Input\InputInterface;
 final class MakeDataTable extends AbstractMaker
 {
     public function __construct(
-        private readonly ?ManagerRegistry $managerRegistry = null
+        private readonly ?ManagerRegistry $managerRegistry = null,
     ) {
     }
 
@@ -49,7 +49,7 @@ final class MakeDataTable extends AbstractMaker
         }
 
         $argument = $command->getDefinition()->getArgument('entity');
-        $entity = $io->choice($argument->getDescription(), $this->entityChoices());
+        $entity   = $io->choice($argument->getDescription(), $this->entityChoices());
 
         $input->setArgument('entity', $entity);
     }
