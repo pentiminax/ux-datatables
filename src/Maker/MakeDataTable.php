@@ -2,11 +2,13 @@
 
 namespace Pentiminax\UX\DataTables\Maker;
 
+use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Symfony\Bundle\MakerBundle\ConsoleStyle;
 use Symfony\Bundle\MakerBundle\DependencyBuilder;
+use Symfony\Bundle\MakerBundle\Exception\RuntimeCommandException;
 use Symfony\Bundle\MakerBundle\Generator;
 use Symfony\Bundle\MakerBundle\InputConfiguration;
 use Symfony\Bundle\MakerBundle\Maker\AbstractMaker;
@@ -16,6 +18,11 @@ use Symfony\Component\Console\Input\InputInterface;
 
 final class MakeDataTable extends AbstractMaker
 {
+    public function __construct(
+        private readonly ?ManagerRegistry $managerRegistry = null
+    ) {
+    }
+
     public static function getCommandName(): string
     {
         return 'make:datatable';
@@ -23,44 +30,57 @@ final class MakeDataTable extends AbstractMaker
 
     public static function getCommandDescription(): string
     {
-        return 'Creates a DataTable class for a Doctrine entity';
+        return 'Creates a DataTable configuration for a given Doctrine entity.';
     }
 
     public function configureCommand(Command $command, InputConfiguration $inputConfig): void
     {
-        $command->addArgument(
-            name: 'entity-class',
-            mode: InputArgument::REQUIRED,
-            description: 'The entity class name (e.g. <fg=yellow>User</>)'
-        );
+        $command->addArgument('entity', InputArgument::REQUIRED, 'Entity class to create a DataTable for');
+    }
 
-        $command->setHelp('Creates a DataTable class in App\\DataTables for the given entity.');
+    public function interact(InputInterface $input, ConsoleStyle $io, Command $command)
+    {
+        if ($input->getArgument('entity')) {
+            return;
+        }
+
+        $argument = $command->getDefinition()->getArgument('entity');
+        $entity = $io->choice($argument->getDescription(), $this->entityChoices());
+
+        $input->setArgument('entity', $entity);
     }
 
     public function generate(InputInterface $input, ConsoleStyle $io, Generator $generator): void
     {
-        $entityArgument = (string) $input->getArgument('entity-class');
-        $entityClass    = $this->resolveEntityClass($entityArgument);
+        /** @var class-string $class */
+        $class = $input->getArgument('entity');
 
-        if (!class_exists($entityClass)) {
-            throw new \RuntimeException(sprintf('Entity class "%s" was not found. Pass the full class name or ensure it exists.', $entityClass));
+        if (!\class_exists($class)) {
+            $class = $generator->createClassNameDetails($class, 'Entity\\')->getFullName();
         }
 
-        $entityShortName  = $this->getShortClassName($entityClass);
+        if (!\class_exists($class)) {
+            /** @var class-string $entityArg */
+            $entityArg = $input->getArgument('entity');
+
+            throw new RuntimeCommandException(\sprintf('Entity "%s" not found.', is_string($entityArg) ? $entityArg : 'unknown'));
+        }
+
+        $entityShortName  = $this->getShortClassName($class);
         $classNameDetails = $generator->createClassNameDetails(
             $entityShortName,
             'DataTables\\',
             'DataTable'
         );
 
-        $columns    = $this->guessColumns($entityClass);
+        $columns    = $this->guessColumns($class);
         $columnUses = $this->getColumnUses($columns);
 
         $generator->generateClass(
             $classNameDetails->getFullName(),
             __DIR__.'/../Resources/skeleton/datatable/DataTable.tpl.php',
             [
-                'entity_class_name' => $entityClass,
+                'entity_class_name' => $class,
                 'entity_short_name' => $entityShortName,
                 'columns'           => $columns,
                 'column_uses'       => $columnUses,
@@ -71,6 +91,11 @@ final class MakeDataTable extends AbstractMaker
 
         $this->writeSuccessMessage($io);
         $io->text(sprintf('Next: review the columns in <info>%s</info>.', $classNameDetails->getFullName()));
+    }
+
+    public function configureDependencies(DependencyBuilder $dependencies): void
+    {
+        // No dependencies needed
     }
 
     private function resolveEntityClass(string $entityArgument): string
@@ -181,7 +206,25 @@ final class MakeDataTable extends AbstractMaker
         return str_replace(['\\', "'"], ['\\\\', "\\'"], $value);
     }
 
-    public function configureDependencies(DependencyBuilder $dependencies): void
+    /**
+     * @return string[]
+     */
+    private function entityChoices(): array
     {
+        $choices = [];
+
+        foreach ($this->managerRegistry?->getManagers() ?? [] as $manager) {
+            foreach ($manager->getMetadataFactory()->getAllMetadata() as $metadata) {
+                $choices[] = $metadata->getName();
+            }
+        }
+
+        \sort($choices);
+
+        if (empty($choices)) {
+            throw new RuntimeCommandException('No entities found.');
+        }
+
+        return $choices;
     }
 }
