@@ -36,12 +36,11 @@ Each element can be:
 ## Data loading
 
 ### ajax
-Loads data for the table's content from an Ajax source.
+Loads data for the table's content from an Ajax source. [Read more here.](https://github.com/pentiminax/ux-datatables/blob/main/docs/ajax.md)
 
 ```php
-use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
 
-$dataTable->ajax(new AjaxOption('/api/data'));
+$dataTable->ajax('/api/data');
 ```
 
 ### data
