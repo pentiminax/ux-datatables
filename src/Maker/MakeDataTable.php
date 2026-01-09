@@ -35,7 +35,11 @@ final class MakeDataTable extends AbstractMaker
 
     public function configureCommand(Command $command, InputConfiguration $inputConfig): void
     {
-        $command->addArgument('entity', InputArgument::OPTIONAL, 'Entity class to create a DataTable for');
+        $command
+            ->setDescription(self::getCommandDescription())
+            ->addArgument('entity', InputArgument::OPTIONAL, 'Entity class to create a DataTable for');
+
+        $inputConfig->setArgumentAsNonInteractive('entity');
     }
 
     public function interact(InputInterface $input, ConsoleStyle $io, Command $command)
