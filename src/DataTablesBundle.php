@@ -11,6 +11,9 @@ use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
@@ -86,6 +89,7 @@ class DataTablesBundle extends AbstractBundle
 
         $container->services()
             ->set('datatables.maker.datatable', MakeDataTable::class)
+            ->arg(0, service('doctrine')->nullOnInvalid())
             ->tag('maker.command')
             ->private();
     }
