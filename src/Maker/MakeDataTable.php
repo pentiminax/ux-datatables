@@ -42,7 +42,7 @@ final class MakeDataTable extends AbstractMaker
         $inputConfig->setArgumentAsNonInteractive('entity');
     }
 
-    public function interact(InputInterface $input, ConsoleStyle $io, Command $command)
+    public function interact(InputInterface $input, ConsoleStyle $io, Command $command): void
     {
         if ($input->getArgument('entity')) {
             return;
