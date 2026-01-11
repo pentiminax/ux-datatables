@@ -13,20 +13,16 @@ The `ajax` option enables DataTables to load data from an HTTP endpoint, ideal f
 
 ```php
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
 
 $dataTable = new DataTable('products');
 
-$ajaxOption = new AjaxOption(
-    url: '/api/products',
-    dataSrc: 'data',      // JSON key containing the rows
-    type: 'GET'           // HTTP method (default: GET)
+$dataTable->ajax(
+    url: '/api/users',
+    type: 'GET'
 );
-
-$dataTable->ajax($ajaxOption);
 ```
 
-## AjaxOption Parameters
+## Ajax Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -153,7 +149,7 @@ For large datasets, enable server-side processing:
 ```php
 $dataTable = new DataTable('products');
 $dataTable
-    ->ajax(new AjaxOption('/api/products'))
+    ->ajax('/api/products')
     ->serverSide(true)
     ->processing(true);
 ```

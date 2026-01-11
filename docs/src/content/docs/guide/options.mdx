@@ -51,16 +51,14 @@ Order format options:
 Load data from an HTTP endpoint:
 
 ```php
-use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
-
-$dataTable->ajax(new AjaxOption('/api/data'));
+$dataTable->ajax('/api/data');
 
 // With full configuration
-$dataTable->ajax(new AjaxOption(
+$dataTable->ajax(
     url: '/api/data',
     dataSrc: 'data',      // JSON key containing rows
     type: 'POST'          // HTTP method
-));
+);
 ```
 
 ### data
@@ -286,7 +284,6 @@ $dataTable->layout(
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
 
 $dataTable = new DataTable('products');
 
@@ -309,11 +306,11 @@ $dataTable
         bottomStart: Feature::INFO,
         bottomEnd: Feature::PAGING,
     )
-    ->ajax(new AjaxOption(
+    ->ajax(
         url: '/api/products',
         dataSrc: 'data',
         type: 'GET'
-    ));
+    );
 ```
 
 <Aside type="tip">
