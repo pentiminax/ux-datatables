@@ -1,0 +1,77 @@
+---
+title: UX DataTables
+description: A Symfony bundle integrating the DataTables library in Symfony applications
+template: splash
+hero:
+  tagline: Powerful DataTables integration for Symfony applications
+  image:
+    file: ../../assets/logo.svg
+  actions:
+    - text: Get Started
+      link: /getting-started/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/pentiminax/ux-datatables
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Features
+
+<CardGrid stagger>
+  <Card title="Easy Integration" icon="puzzle">
+    Seamlessly integrate DataTables with your Symfony application using the Stimulus controller provided by Symfony UX.
+  </Card>
+  <Card title="Fluent Builder API" icon="pencil">
+    Build your tables with an intuitive PHP API. Define columns, options, and extensions with method chaining.
+  </Card>
+  <Card title="Server-Side Processing" icon="server">
+    Handle large datasets efficiently with built-in server-side processing support and Doctrine integration.
+  </Card>
+  <Card title="Extensions Support" icon="add-document">
+    Use DataTables extensions like Buttons, Select, Responsive, and more with simple PHP configuration.
+  </Card>
+</CardGrid>
+
+## Quick Example
+
+```php
+use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+class HomeController extends AbstractController
+{
+    #[Route('/', name: 'app_homepage')]
+    public function index(DataTableBuilderInterface $builder): Response
+    {
+        $table = $builder
+            ->createDataTable('usersTable')
+            ->columns([
+                TextColumn::new('firstName', 'First name'),
+                TextColumn::new('lastName', 'Last name'),
+            ])
+            ->data([
+                ['firstName' => 'John', 'lastName' => 'Doe'],
+                ['firstName' => 'Jane', 'lastName' => 'Smith'],
+            ]);
+
+        return $this->render('home/index.html.twig', [
+            'table' => $table,
+        ]);
+    }
+}
+```
+
+Then render in Twig:
+
+```twig
+{{ render_datatable(table) }}
+```
+
+## Requirements
+
+- PHP 8.2 or higher
+- Symfony 6.4+ or 7.0+
+- Symfony StimulusBundle (Symfony UX)
