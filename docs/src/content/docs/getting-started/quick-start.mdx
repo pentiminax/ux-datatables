@@ -110,12 +110,11 @@ $table = $builder
 ### Load Data via Ajax
 
 ```php
-use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
 
 $table = $builder
     ->createDataTable('usersTable')
     ->columns([/* ... */])
-    ->ajax(new AjaxOption('/api/users'))
+    ->ajax('/api/users')
     ->serverSide(true)
     ->processing(true);
 ```
