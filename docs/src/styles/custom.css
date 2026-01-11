@@ -18,14 +18,14 @@
   --sl-color-accent-low: #1a365d;
   --sl-color-accent: #4299e1;
   --sl-color-accent-high: #90cdf4;
-  --sl-color-white: #17202a;
-  --sl-color-gray-1: #232d38;
-  --sl-color-gray-2: #3a4a5a;
-  --sl-color-gray-3: #5a6f84;
-  --sl-color-gray-4: #8fa2b7;
-  --sl-color-gray-5: #c3ceda;
-  --sl-color-gray-6: #eef2f6;
-  --sl-color-black: #fff;
+  --sl-color-white: #f8fafc;
+  --sl-color-gray-1: #e2e8f0;
+  --sl-color-gray-2: #cbd5e1;
+  --sl-color-gray-3: #94a3b8;
+  --sl-color-gray-4: #64748b;
+  --sl-color-gray-5: #334155;
+  --sl-color-gray-6: #0f172a;
+  --sl-color-black: #0b141d;
 }
 
 /* Hero section styling */
