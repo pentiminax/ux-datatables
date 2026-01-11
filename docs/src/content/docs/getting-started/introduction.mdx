@@ -1,0 +1,103 @@
+---
+title: Introduction
+description: Learn about UX DataTables and its features
+---
+
+import { Aside, Badge } from '@astrojs/starlight/components';
+
+# Introduction
+
+**UX DataTables** is a Symfony bundle that integrates the powerful [DataTables](https://datatables.net) JavaScript library into your Symfony applications with a clean PHP API.
+
+## What is DataTables?
+
+DataTables is a highly flexible tool for creating interactive HTML tables with features like:
+
+- Pagination
+- Instant search and filtering
+- Multi-column sorting
+- Ajax data loading
+- Server-side processing
+- Export to CSV, Excel, PDF
+
+## Why UX DataTables?
+
+This bundle provides a **Symfony-native** way to work with DataTables:
+
+### PHP-First Configuration
+
+Configure your tables entirely in PHP with a fluent builder API:
+
+```php
+$table = $builder
+    ->createDataTable('users')
+    ->columns([
+        TextColumn::new('name', 'Name'),
+        NumberColumn::new('age', 'Age'),
+    ])
+    ->pageLength(25)
+    ->searching(true);
+```
+
+### Stimulus Integration
+
+Built on Symfony UX StimulusBundle, the bundle automatically handles JavaScript initialization through Stimulus controllers.
+
+### Twig Helper
+
+Render tables with a simple Twig function:
+
+```twig
+{{ render_datatable(table) }}
+```
+
+### Doctrine Integration
+
+Use the `#[AsDataTable]` attribute to create tables backed by Doctrine entities with automatic server-side processing:
+
+```php
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id', 'ID');
+        yield TextColumn::new('email', 'Email');
+    }
+}
+```
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    Controller                        │
+│  ┌───────────────────────────────────────────────┐  │
+│  │         DataTableBuilderInterface              │  │
+│  └───────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────┐
+│                     DataTable                        │
+│  ┌─────────┐  ┌─────────┐  ┌────────────────────┐  │
+│  │ Columns │  │ Options │  │     Extensions     │  │
+│  └─────────┘  └─────────┘  └────────────────────┘  │
+└─────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────┐
+│                   Twig Template                      │
+│         {{ render_datatable(table) }}               │
+└─────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────┐
+│              Stimulus Controller                     │
+│           (Auto-initialized by Symfony UX)          │
+└─────────────────────────────────────────────────────┘
+```
+
+<Aside type="tip">
+  Ready to get started? Head to the [Installation](/getting-started/installation/) guide.
+</Aside>

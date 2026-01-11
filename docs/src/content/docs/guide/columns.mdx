@@ -1,0 +1,201 @@
+---
+title: Columns
+description: Configure table columns with types, rendering, and behavior options
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# Columns
+
+Each column in a DataTable is represented by a `Column` class that configures rendering, sorting, searching, and export behavior.
+
+## Creating Columns
+
+Use the static `new()` method on the column type:
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+
+$nameColumn = TextColumn::new('firstName', 'First Name');
+$ageColumn = NumberColumn::new('age', 'Age');
+```
+
+The first argument is the data key (maps to your JSON/array key), and the second is the display title.
+
+## Column Types
+
+### TextColumn
+
+For text content:
+
+```php
+TextColumn::new('name', 'Name');
+```
+
+### NumberColumn
+
+For numeric values with proper sorting:
+
+```php
+NumberColumn::new('price', 'Price');
+NumberColumn::new('quantity', 'Qty');
+```
+
+### DateColumn
+
+For date values:
+
+```php
+use Pentiminax\UX\DataTables\Column\DateColumn;
+
+DateColumn::new('createdAt', 'Created');
+```
+
+## Configuration Methods
+
+All columns inherit these methods from `AbstractColumn`:
+
+### Display Options
+
+```php
+$column = TextColumn::new('name', 'Name')
+    ->setTitle('Full Name')           // Change header title
+    ->setClassName('text-primary')    // CSS class for cells
+    ->setWidth('200px')               // Column width
+    ->setVisible(true)                // Show/hide column
+    ->setDefaultContent('N/A');       // Fallback for null values
+```
+
+### Data Options
+
+```php
+$column = TextColumn::new('user', 'User')
+    ->setData('user.name');  // Nested data path
+```
+
+### Sorting & Searching
+
+```php
+$column = TextColumn::new('name', 'Name')
+    ->setOrderable(true)      // Enable sorting
+    ->setSearchable(true);    // Enable searching
+```
+
+### Cell Type
+
+```php
+$column = TextColumn::new('header', 'Header')
+    ->setCellType('th');  // Use <th> instead of <td>
+```
+
+### Custom Rendering
+
+Define a JavaScript render function:
+
+```php
+$column = TextColumn::new('email', 'Email')
+    ->setRender('function(data, type, row) {
+        return "<a href=\"mailto:" + data + "\">" + data + "</a>";
+    }');
+```
+
+### Export Control
+
+```php
+$column = TextColumn::new('actions', 'Actions')
+    ->setExportable(false);  // Exclude from exports
+```
+
+Non-exportable columns automatically receive the `not-exportable` CSS class.
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+class ProductTableService
+{
+    public function __construct(
+        private DataTableBuilderInterface $builder,
+    ) {}
+
+    public function createTable(): DataTable
+    {
+        $idColumn = NumberColumn::new('id', 'ID')
+            ->setWidth('60px')
+            ->setClassName('text-center');
+
+        $nameColumn = TextColumn::new('name', 'Product Name')
+            ->setClassName('fw-bold')
+            ->setOrderable(true)
+            ->setSearchable(true);
+
+        $priceColumn = NumberColumn::new('price', 'Price')
+            ->setWidth('100px')
+            ->setOrderable(true)
+            ->setRender('function(data) {
+                return "$" + data.toFixed(2);
+            }');
+
+        $statusColumn = TextColumn::new('status', 'Status')
+            ->setWidth('100px')
+            ->setRender('function(data) {
+                var badge = data === "active" ? "success" : "secondary";
+                return "<span class=\"badge bg-" + badge + "\">" + data + "</span>";
+            }');
+
+        return $this->builder
+            ->createDataTable('products')
+            ->columns([$idColumn, $nameColumn, $priceColumn, $statusColumn]);
+    }
+}
+```
+
+## Translating Column Titles
+
+When using `AbstractDataTable`, the Symfony translator is available:
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('name')
+            ->setTitle($this->translator->trans('datatable.columns.name'));
+
+        yield TextColumn::new('email')
+            ->setTitle($this->translator->trans('datatable.columns.email'));
+    }
+}
+```
+
+## Column Type Enum
+
+The `ColumnType` enum controls DataTables' internal sorting and search algorithms:
+
+| Type | Description |
+|------|-------------|
+| `ColumnType::STRING` | Text content (default) |
+| `ColumnType::NUM` | Numeric values |
+| `ColumnType::NUM_FMT` | Formatted numbers ($1,000) |
+| `ColumnType::DATE` | Date values |
+| `ColumnType::HTML` | HTML content |
+
+## Serialization
+
+Get the DataTables configuration array:
+
+```php
+$config = $column->jsonSerialize();
+// Returns: ['data' => 'name', 'title' => 'Name', 'orderable' => true, ...]
+```
+
+<Aside type="tip">
+  For action buttons (edit, delete), see the [Action Columns](/reference/action-columns/) reference.
+</Aside>

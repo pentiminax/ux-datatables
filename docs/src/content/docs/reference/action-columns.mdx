@@ -1,0 +1,239 @@
+---
+title: Action Columns
+description: Add action buttons (edit, delete) to your DataTables
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# Action Columns
+
+The `ActionColumn` class lets you add action buttons (edit, delete, view, etc.) to your DataTable rows.
+
+## Overview
+
+`ActionColumn` implements `ColumnInterface` and provides a structured payload for frontend actions. It automatically:
+- Marks the column as **non-exportable** (adds `not-exportable` class)
+- Provides action metadata for JavaScript handling
+
+<Aside type="note">
+  Action columns expect your dataset to contain an identifier that your frontend can use with the `actionUrl`.
+</Aside>
+
+## Basic Usage
+
+```php
+use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Enum\Action;
+
+$deleteColumn = ActionColumn::new(
+    name: 'delete',
+    title: 'Delete',
+    action: Action::DELETE,
+    actionLabel: 'Delete',
+    actionUrl: '/api/users/delete'
+);
+```
+
+## Parameters
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `name` | `string` | Internal column identifier |
+| `title` | `string` | Column header text |
+| `action` | `Action` | Action type enum value |
+| `actionLabel` | `string` | Button/link text |
+| `actionUrl` | `string` | Endpoint for the action |
+
+## Action Types
+
+The `Action` enum provides common action types:
+
+```php
+use Pentiminax\UX\DataTables\Enum\Action;
+
+Action::VIEW      // View details
+Action::EDIT      // Edit record
+Action::DELETE    // Delete record
+Action::CUSTOM    // Custom action
+```
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Enum\Action;
+
+class UserTableService
+{
+    public function __construct(
+        private DataTableBuilderInterface $builder,
+    ) {}
+
+    public function createTable(): DataTable
+    {
+        return $this->builder
+            ->createDataTable('users')
+            ->columns([
+                NumberColumn::new('id', 'ID'),
+                TextColumn::new('name', 'Name'),
+                TextColumn::new('email', 'Email'),
+                ActionColumn::new(
+                    name: 'edit',
+                    title: 'Edit',
+                    action: Action::EDIT,
+                    actionLabel: 'Edit',
+                    actionUrl: '/admin/users/edit'
+                ),
+                ActionColumn::new(
+                    name: 'delete',
+                    title: '',
+                    action: Action::DELETE,
+                    actionLabel: 'Delete',
+                    actionUrl: '/api/users/delete'
+                ),
+            ])
+            ->data([
+                ['id' => 1, 'name' => 'John Doe', 'email' => 'john@example.com'],
+                ['id' => 2, 'name' => 'Jane Smith', 'email' => 'jane@example.com'],
+            ]);
+    }
+}
+```
+
+## Handling Actions in JavaScript
+
+Create a custom Stimulus controller to handle action clicks:
+
+```javascript
+// assets/controllers/datatable_actions_controller.js
+import { Controller } from '@hotwired/stimulus';
+
+export default class extends Controller {
+    connect() {
+        this.element.addEventListener('datatables:connect', this._onConnect.bind(this));
+    }
+
+    _onConnect(event) {
+        const table = event.detail.table;
+
+        // Handle clicks on action buttons
+        this.element.addEventListener('click', async (e) => {
+            const button = e.target.closest('[data-action-type]');
+            if (!button) return;
+
+            e.preventDefault();
+
+            const actionType = button.dataset.actionType;
+            const actionUrl = button.dataset.actionUrl;
+            const rowId = button.dataset.rowId;
+
+            if (actionType === 'delete') {
+                if (confirm('Are you sure you want to delete this item?')) {
+                    await this._handleDelete(actionUrl, rowId, table);
+                }
+            } else if (actionType === 'edit') {
+                window.location.href = `${actionUrl}/${rowId}`;
+            }
+        });
+    }
+
+    async _handleDelete(url, id, table) {
+        try {
+            const response = await fetch(`${url}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.ok) {
+                // Reload the table
+                table.ajax.reload();
+            } else {
+                alert('Failed to delete item');
+            }
+        } catch (error) {
+            console.error('Delete failed:', error);
+            alert('An error occurred');
+        }
+    }
+}
+```
+
+Use in Twig:
+
+```twig
+{{ render_datatable(table, {'data-controller': 'datatable-actions'}) }}
+```
+
+## Custom Rendering
+
+For more control over button appearance, use a custom render function:
+
+```php
+$actionsColumn = TextColumn::new('actions', 'Actions')
+    ->setOrderable(false)
+    ->setSearchable(false)
+    ->setExportable(false)
+    ->setRender('function(data, type, row) {
+        return `
+            <div class="btn-group btn-group-sm">
+                <a href="/users/${row.id}/edit" class="btn btn-outline-primary">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+                <button type="button"
+                        class="btn btn-outline-danger"
+                        data-action-type="delete"
+                        data-action-url="/api/users"
+                        data-row-id="${row.id}">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+            </div>
+        `;
+    }');
+```
+
+## With AbstractDataTable
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Enum\Action;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id', 'ID');
+        yield TextColumn::new('name', 'Name');
+        yield TextColumn::new('email', 'Email');
+
+        yield ActionColumn::new(
+            name: 'actions',
+            title: 'Actions',
+            action: Action::EDIT,
+            actionLabel: 'Edit',
+            actionUrl: '/admin/users/edit'
+        );
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return [
+            'id' => $item->getId(),
+            'name' => $item->getName(),
+            'email' => $item->getEmail(),
+        ];
+    }
+}
+```
+
+<Aside type="tip">
+  Action columns are excluded from exports (CSV, Excel, PDF) automatically. This ensures clean data exports without button markup.
+</Aside>

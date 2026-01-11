@@ -1,0 +1,178 @@
+---
+title: Configuration
+description: Configure DataTables defaults and bundle options
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# Configuration
+
+Configure bundle-wide defaults in `config/packages/datatables.yaml`.
+
+## Full Configuration Reference
+
+```yaml
+data_tables:
+  options:
+    language: en-GB
+    layout:
+      topStart: pageLength
+      topEnd: search
+      bottomStart: info
+      bottomEnd: paging
+    lengthMenu: [10, 25, 50]
+    pageLength: 10
+  template_parameters:
+    class: 'table'
+  extensions:
+    buttons: [csv, excel, pdf, print]
+    select:
+      style: single
+```
+
+## Options
+
+### language
+
+Sets the default language locale for DataTables UI elements. The bundle translates locale codes into the correct CDN URL for DataTables language files.
+
+```yaml
+data_tables:
+  options:
+    language: fr-FR  # French
+    # language: de-DE  # German
+    # language: es-ES  # Spanish
+```
+
+**Supported locales**: Any locale supported by [DataTables i18n](https://datatables.net/plug-ins/i18n/).
+
+### layout
+
+Controls the positioning of DataTables UI features. Each position accepts a feature name.
+
+```yaml
+data_tables:
+  options:
+    layout:
+      topStart: pageLength    # Page length selector
+      topEnd: search          # Search box
+      bottomStart: info       # "Showing X of Y entries"
+      bottomEnd: paging       # Pagination controls
+```
+
+**Available positions**: `topStart`, `topEnd`, `bottomStart`, `bottomEnd`, `top`, `bottom`
+
+**Available features**: `pageLength`, `search`, `info`, `paging`, `buttons`
+
+### lengthMenu
+
+Defines the available page length options shown in the dropdown:
+
+```yaml
+data_tables:
+  options:
+    lengthMenu: [10, 25, 50, 100]
+```
+
+You can also provide custom labels:
+
+```php
+// In PHP
+$table->lengthMenu([
+    [10, 25, 50, -1],
+    [10, 25, 50, 'All']
+]);
+```
+
+### pageLength
+
+Sets the initial number of rows displayed:
+
+```yaml
+data_tables:
+  options:
+    pageLength: 25
+```
+
+## Template Parameters
+
+Default HTML attributes for the generated `<table>` element:
+
+```yaml
+data_tables:
+  template_parameters:
+    class: 'table table-striped table-hover'
+    id: 'my-default-table'
+```
+
+These can be overridden per-table in Twig:
+
+```twig
+{{ render_datatable(table, {'class': 'custom-class'}) }}
+```
+
+## Extensions
+
+Configure default extensions enabled for all tables:
+
+```yaml
+data_tables:
+  extensions:
+    buttons: [csv, excel, pdf, print, copy, colvis]
+    select:
+      style: single  # or 'multi'
+```
+
+### Buttons Extension
+
+```yaml
+extensions:
+  buttons:
+    - csv
+    - excel
+    - pdf
+    - print
+    - copy
+    - colvis  # Column visibility toggle
+```
+
+### Select Extension
+
+```yaml
+extensions:
+  select:
+    style: single   # Single row selection
+    # style: multi  # Multiple row selection
+```
+
+## Per-Table Override
+
+Bundle defaults can be overridden for individual tables:
+
+```php
+$table = $builder
+    ->createDataTable('myTable')
+    ->pageLength(50)           // Override default 10
+    ->language(Language::DE)   // Override default en-GB
+    ->columns([/* ... */]);
+```
+
+## Environment-Specific Configuration
+
+Use Symfony's configuration system for different environments:
+
+```yaml
+# config/packages/datatables.yaml (default)
+data_tables:
+  options:
+    pageLength: 10
+
+# config/packages/dev/datatables.yaml
+data_tables:
+  options:
+    pageLength: 5  # Smaller for development
+```
+
+<Aside type="tip">
+  All configuration options map directly to [DataTables options](https://datatables.net/reference/option/). Check the official documentation for advanced use cases.
+</Aside>
