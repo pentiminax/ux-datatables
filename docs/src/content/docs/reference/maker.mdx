@@ -1,0 +1,225 @@
+---
+title: Maker Command
+description: Generate DataTable classes from Doctrine entities
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+# Maker Command
+
+Use Symfony MakerBundle to scaffold DataTable classes from your Doctrine entities.
+
+## Requirements
+
+- `symfony/maker-bundle`
+- `doctrine/orm` (DoctrineBundle)
+- A Doctrine entity class
+
+## Usage
+
+<Steps>
+
+1. **Run the maker command**
+
+   ```bash
+   php bin/console make:datatable User
+   ```
+
+   Or with a fully-qualified class name:
+
+   ```bash
+   php bin/console make:datatable App\\Entity\\User
+   ```
+
+2. **Review the generated file**
+
+   The command creates a class in `src/DataTables/`:
+
+   ```
+   src/DataTables/UserDataTable.php
+   ```
+
+3. **Customize columns and options**
+
+   Edit the generated class to adjust column types, titles, and table options.
+
+</Steps>
+
+## Generated Code
+
+The maker creates a class like this:
+
+```php
+// src/DataTables/UserDataTable.php
+namespace App\DataTables;
+
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+#[AsDataTable(User::class)]
+final class UserDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id', 'Id');
+        yield TextColumn::new('email', 'Email');
+        yield TextColumn::new('firstName', 'First Name');
+        yield TextColumn::new('lastName', 'Last Name');
+        // Add more columns as needed
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        /** @var User $item */
+        return [
+            'id' => $item->getId(),
+            'email' => $item->getEmail(),
+            'firstName' => $item->getFirstName(),
+            'lastName' => $item->getLastName(),
+        ];
+    }
+}
+```
+
+## What's Included
+
+The generated class includes:
+
+- `#[AsDataTable(Entity::class)]` attribute for automatic Doctrine integration
+- `configureColumns()` method with starter columns
+- `mapRow()` method skeleton for entity mapping
+- Type hints and PHPDoc annotations
+
+## Customization Tips
+
+After generation, you may want to:
+
+### Change Column Types
+
+```php
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\DateColumn;
+
+public function configureColumns(): iterable
+{
+    yield NumberColumn::new('id', 'ID');           // Instead of TextColumn
+    yield TextColumn::new('email', 'Email');
+    yield DateColumn::new('createdAt', 'Created'); // For dates
+}
+```
+
+### Add Column Configuration
+
+```php
+yield TextColumn::new('email', 'Email')
+    ->setOrderable(true)
+    ->setSearchable(true)
+    ->setWidth('200px');
+```
+
+### Configure the DataTable
+
+```php
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->pageLength(25)
+        ->serverSide(true)
+        ->processing(true);
+}
+```
+
+### Add Query Filters
+
+```php
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+
+public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+{
+    return $qb
+        ->andWhere('e.active = :active')
+        ->setParameter('active', true);
+}
+```
+
+### Add Extensions
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Enum\ButtonType;
+
+public function configureButtonsExtension(ButtonsExtension $ext): ButtonsExtension
+{
+    return $ext->buttons([
+        ButtonType::CSV,
+        ButtonType::EXCEL,
+        ButtonType::PDF,
+    ]);
+}
+```
+
+## Using the Generated Class
+
+In your controller:
+
+```php
+use App\DataTables\UserDataTable;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class UserController extends AbstractController
+{
+    #[Route('/users', name: 'app_users')]
+    public function index(UserDataTable $table, Request $request): Response
+    {
+        $table->handleRequest($request);
+
+        if ($table->isRequestHandled()) {
+            return $table->getResponse();
+        }
+
+        if (!$table->getDataTable()->isServerSide()) {
+            $table->fetchData(DataTableRequest::fromRequest($request));
+        }
+
+        return $this->render('user/index.html.twig', [
+            'table' => $table->getDataTable(),
+        ]);
+    }
+}
+```
+
+In Twig:
+
+```twig
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h1>Users</h1>
+    {{ render_datatable(table) }}
+{% endblock %}
+```
+
+<Aside type="tip">
+  The generated class is a starting point. Review the columns and adjust types, titles, sorting, and visibility based on your needs.
+</Aside>
+
+## Command Options
+
+```bash
+# Basic usage
+php bin/console make:datatable EntityName
+
+# With namespace
+php bin/console make:datatable App\\Entity\\User
+
+# List available entities
+php bin/console make:datatable
+# (Will prompt for entity selection)
+```

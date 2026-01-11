@@ -1,0 +1,122 @@
+---
+title: Installation
+description: How to install and configure UX DataTables
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Installation
+
+<Aside type="note">
+  Before you start, make sure [Symfony UX StimulusBundle](https://symfony.com/bundles/StimulusBundle/current/index.html) is configured in your application.
+</Aside>
+
+## Install the Bundle
+
+<Steps>
+
+1. **Install via Composer**
+
+   ```bash
+   composer require pentiminax/ux-datatables
+   ```
+
+   Symfony Flex will automatically enable the bundle.
+
+2. **Install Assets**
+
+   <Tabs>
+     <TabItem label="AssetMapper">
+       If you're using **AssetMapper** (recommended for Symfony 6.4+), no extra work is needed. The bundle ships DataTables assets automatically.
+     </TabItem>
+     <TabItem label="Webpack Encore">
+       If you're using **Webpack Encore**, install the JavaScript dependencies and rebuild your assets:
+
+       ```bash
+       npm install --force
+       npm run watch
+
+       # or with yarn
+       yarn install --force
+       yarn watch
+       ```
+     </TabItem>
+   </Tabs>
+
+3. **Verify Installation**
+
+   The `@pentiminax/ux-datatables/datatable` Stimulus controller is now available in your application.
+
+</Steps>
+
+## Bundle Configuration
+
+Create a configuration file at `config/packages/datatables.yaml`:
+
+```yaml
+data_tables:
+  options:
+    language: en-GB
+    layout:
+      topStart: pageLength
+      topEnd: search
+      bottomStart: info
+      bottomEnd: paging
+    lengthMenu: [10, 25, 50]
+    pageLength: 10
+  template_parameters:
+    class: 'table'
+  extensions:
+    buttons: [csv, excel, pdf, print]
+    select:
+      style: single
+```
+
+### Configuration Options
+
+| Option | Description |
+|--------|-------------|
+| `language` | Default language locale (e.g., `en-GB`, `fr-FR`) |
+| `layout` | UI component positions (`topStart`, `topEnd`, `bottomStart`, `bottomEnd`) |
+| `lengthMenu` | Available page length options |
+| `pageLength` | Initial rows per page |
+| `template_parameters` | Default attributes for the `<table>` element |
+| `extensions` | Default extensions to enable |
+
+## Styling
+
+### Default Styles
+
+The bundle includes default DataTables styling. Check your `assets/controllers.json`:
+
+```json
+{
+    "controllers": {
+        "@pentiminax/ux-datatables": {
+            "datatable": {
+                "enabled": true
+            }
+        }
+    },
+    "autoimport": {
+        "datatables.net-dt/css/dataTables.dataTables.min.css": true
+    }
+}
+```
+
+### Using Bootstrap
+
+To use Bootstrap 5 styling instead:
+
+```json
+{
+    "autoimport": {
+        "datatables.net-dt/css/dataTables.dataTables.min.css": false,
+        "datatables.net-bs5/css/dataTables.bootstrap5.min.css": true
+    }
+}
+```
+
+<Aside type="tip">
+  You're all set! Continue to the [Quick Start](/getting-started/quick-start/) guide to create your first table.
+</Aside>

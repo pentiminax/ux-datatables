@@ -1,0 +1,172 @@
+---
+title: Usage
+description: Learn how to build and render DataTables in your Symfony application
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Usage
+
+This guide covers the main ways to create and render DataTables in your Symfony application.
+
+## Building a Table in a Controller
+
+Inject the `DataTableBuilderInterface` service and build your table:
+
+```php
+namespace App\Controller;
+
+use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+
+class HomeController extends AbstractController
+{
+    #[Route('/', name: 'app_homepage')]
+    public function index(DataTableBuilderInterface $builder): Response
+    {
+        $table = $builder
+            ->createDataTable('usersTable')
+            ->columns([
+                TextColumn::new('firstName', 'First name'),
+                TextColumn::new('lastName', 'Last name'),
+            ])
+            ->data([
+                ['firstName' => 'John', 'lastName' => 'Doe'],
+                ['firstName' => 'Jane', 'lastName' => 'Smith'],
+            ]);
+
+        return $this->render('home/index.html.twig', [
+            'table' => $table,
+        ]);
+    }
+}
+```
+
+All options and data are passed as-is to DataTables. Refer to the [DataTables documentation](https://datatables.net/manual/) for available client-side options.
+
+## Rendering in Twig
+
+Use the `render_datatable()` function to render your table:
+
+```twig
+{{ render_datatable(table) }}
+```
+
+### Adding HTML Attributes
+
+Pass HTML attributes as a second argument:
+
+```twig
+{{ render_datatable(table, {'class': 'my-table table-striped'}) }}
+
+{{ render_datatable(table, {
+    'class': 'table table-bordered',
+    'id': 'custom-id',
+    'data-custom': 'value'
+}) }}
+```
+
+## Extending the Default Behavior
+
+Create a custom Stimulus controller to extend DataTables functionality:
+
+```javascript
+// assets/controllers/mytable_controller.js
+import { Controller } from '@hotwired/stimulus';
+
+export default class extends Controller {
+    connect() {
+        this.element.addEventListener('datatables:pre-connect', this._onPreConnect);
+        this.element.addEventListener('datatables:connect', this._onConnect);
+    }
+
+    disconnect() {
+        this.element.removeEventListener('datatables:pre-connect', this._onPreConnect);
+        this.element.removeEventListener('datatables:connect', this._onConnect);
+    }
+
+    _onPreConnect(event) {
+        // The table is not yet created
+        // Access the config that will be passed to DataTable constructor
+        console.log(event.detail.config);
+
+        // Define a custom render callback
+        event.detail.config.columns[0].render = function(data, type, row, meta) {
+            return '<a href="' + data + '">Download</a>';
+        };
+    }
+
+    _onConnect(event) {
+        // The table was just created
+        console.log(event.detail.table);
+
+        // Listen to DataTables events
+        event.detail.table.on('init', (e) => {
+            console.log('Table initialized');
+        });
+
+        event.detail.table.on('draw', (e) => {
+            console.log('Table redrawn');
+        });
+    }
+}
+```
+
+Then attach your controller in Twig:
+
+```twig
+{{ render_datatable(table, {'data-controller': 'mytable'}) }}
+```
+
+## Available Events
+
+| Event | Description | Detail Properties |
+|-------|-------------|-------------------|
+| `datatables:pre-connect` | Fired before table initialization | `config`: Configuration object |
+| `datatables:connect` | Fired after table is created | `table`: DataTable instance |
+
+## Working with Multiple Tables
+
+You can have multiple tables on the same page:
+
+```php
+public function index(DataTableBuilderInterface $builder): Response
+{
+    $usersTable = $builder
+        ->createDataTable('usersTable')
+        ->columns([/* ... */])
+        ->data([/* ... */]);
+
+    $ordersTable = $builder
+        ->createDataTable('ordersTable')
+        ->columns([/* ... */])
+        ->data([/* ... */]);
+
+    return $this->render('dashboard/index.html.twig', [
+        'usersTable' => $usersTable,
+        'ordersTable' => $ordersTable,
+    ]);
+}
+```
+
+```twig
+<h2>Users</h2>
+{{ render_datatable(usersTable) }}
+
+<h2>Orders</h2>
+{{ render_datatable(ordersTable) }}
+```
+
+<Aside type="caution">
+  Each table must have a unique ID. The `createDataTable()` method's first argument sets the table ID.
+</Aside>
+
+## Best Practices
+
+1. **Use meaningful table IDs** - They're used for state saving and DOM identification
+2. **Define columns explicitly** - Even when loading data via Ajax, define your column structure
+3. **Configure server-side processing for large datasets** - Client-side processing works well up to ~10,000 rows
+4. **Use AbstractDataTable for reusable tables** - Encapsulate table logic in dedicated classes

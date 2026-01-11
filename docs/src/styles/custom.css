@@ -1,0 +1,130 @@
+/* Custom CSS for UX DataTables Documentation */
+
+:root {
+  --sl-color-accent-low: #1a365d;
+  --sl-color-accent: #3182ce;
+  --sl-color-accent-high: #63b3ed;
+  --sl-color-white: #fff;
+  --sl-color-gray-1: #eef2f6;
+  --sl-color-gray-2: #c3ceda;
+  --sl-color-gray-3: #8fa2b7;
+  --sl-color-gray-4: #5a6f84;
+  --sl-color-gray-5: #3a4a5a;
+  --sl-color-gray-6: #232d38;
+  --sl-color-black: #17202a;
+}
+
+:root[data-theme='dark'] {
+  --sl-color-accent-low: #1a365d;
+  --sl-color-accent: #4299e1;
+  --sl-color-accent-high: #90cdf4;
+  --sl-color-white: #17202a;
+  --sl-color-gray-1: #232d38;
+  --sl-color-gray-2: #3a4a5a;
+  --sl-color-gray-3: #5a6f84;
+  --sl-color-gray-4: #8fa2b7;
+  --sl-color-gray-5: #c3ceda;
+  --sl-color-gray-6: #eef2f6;
+  --sl-color-black: #fff;
+}
+
+/* Hero section styling */
+.hero {
+  background: linear-gradient(135deg, var(--sl-color-accent-low) 0%, var(--sl-color-accent) 100%);
+  border-radius: 1rem;
+  padding: 3rem 2rem;
+  margin: 2rem 0;
+  text-align: center;
+}
+
+/* Code block improvements */
+.expressive-code {
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.expressive-code pre {
+  padding: 1.25rem;
+}
+
+/* Card styling for feature sections */
+.feature-card {
+  background: var(--sl-color-gray-6);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  border: 1px solid var(--sl-color-gray-5);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Table improvements */
+table {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+th {
+  background: var(--sl-color-accent-low);
+  color: var(--sl-color-white);
+}
+
+/* Badge styling */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-php {
+  background: #777bb3;
+  color: white;
+}
+
+.badge-symfony {
+  background: #000;
+  color: white;
+}
+
+.badge-js {
+  background: #f7df1e;
+  color: #000;
+}
+
+/* Sidebar improvements */
+.sidebar-content {
+  padding: 1rem;
+}
+
+/* Better link styling */
+a:hover {
+  text-decoration: underline;
+}
+
+/* Blockquote styling */
+blockquote {
+  border-left: 4px solid var(--sl-color-accent);
+  background: var(--sl-color-gray-6);
+  padding: 1rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+/* Callout improvements */
+.starlight-aside {
+  border-radius: 0.75rem;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .hero {
+    padding: 2rem 1rem;
+  }
+}

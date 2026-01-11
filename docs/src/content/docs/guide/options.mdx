@@ -1,0 +1,321 @@
+---
+title: Options
+description: Configure DataTable behavior with PHP helper methods
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+# Options
+
+This page documents the PHP helper methods available on the `DataTable` class to configure DataTables options.
+
+## Basic Configuration
+
+### autoWidth
+
+Controls DataTables' smart column width calculation:
+
+```php
+$dataTable->autoWidth(true);  // Enable (default)
+$dataTable->autoWidth(false); // Disable for custom widths
+```
+
+### caption
+
+Sets a caption for the table:
+
+```php
+$dataTable->caption('Monthly Sales Summary');
+```
+
+### order
+
+Sets the initial column ordering:
+
+```php
+$dataTable->order([
+    [0, 'asc'],        // First column ascending
+    [2, 'desc'],       // Third column descending
+]);
+```
+
+Order format options:
+- `[column_index, direction]` - Array with index and 'asc'/'desc'
+- `{idx: number, dir: 'asc'|'desc'}` - Object with index
+- `{name: string, dir: 'asc'|'desc'}` - Object with column name
+
+## Data Loading
+
+### ajax
+
+Load data from an HTTP endpoint:
+
+```php
+use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
+
+$dataTable->ajax(new AjaxOption('/api/data'));
+
+// With full configuration
+$dataTable->ajax(new AjaxOption(
+    url: '/api/data',
+    dataSrc: 'data',      // JSON key containing rows
+    type: 'POST'          // HTTP method
+));
+```
+
+### data
+
+Set data directly:
+
+```php
+$dataTable->data([
+    ['id' => 1, 'name' => 'Product A'],
+    ['id' => 2, 'name' => 'Product B'],
+]);
+```
+
+## Feature Control
+
+### deferRender
+
+Defer rendering of rows not immediately visible:
+
+```php
+$dataTable->deferRender(true);  // Improves initial load time
+```
+
+### info
+
+Toggle the information summary ("Showing 1 to 10 of 50 entries"):
+
+```php
+$dataTable->info(true);   // Show (default)
+$dataTable->info(false);  // Hide
+```
+
+### lengthChange
+
+Allow users to change page length:
+
+```php
+$dataTable->lengthChange(true);   // Show selector (default)
+$dataTable->lengthChange(false);  // Hide selector
+```
+
+### ordering / withoutOrdering
+
+Control sorting behavior:
+
+```php
+// Enable with options
+$dataTable->ordering(handler: true, indicators: true);
+
+// Disable completely
+$dataTable->withoutOrdering();
+```
+
+### paging / withoutPaging
+
+Configure pagination:
+
+```php
+$dataTable->paging(
+    boundaryNumbers: true,   // Show first/last page numbers
+    buttons: 7,              // Number of page buttons
+    firstLast: true,         // Show First/Last buttons
+    numbers: true,           // Show page numbers
+    previousNext: true,      // Show Previous/Next buttons
+);
+
+// Disable pagination
+$dataTable->withoutPaging();
+```
+
+### processing
+
+Show a processing indicator during Ajax requests:
+
+```php
+$dataTable->processing(true);
+```
+
+### searching
+
+Enable/disable the search box:
+
+```php
+$dataTable->searching(true);   // Enable (default)
+$dataTable->searching(false);  // Disable
+```
+
+### serverSide
+
+Enable server-side processing:
+
+```php
+$dataTable->serverSide(true);
+```
+
+<Aside type="note">
+  Server-side processing requires your Ajax endpoint to handle pagination, sorting, and filtering.
+</Aside>
+
+### stateSave
+
+Restore table state after page reload:
+
+```php
+$dataTable->stateSave(true);
+```
+
+Saves: page position, ordering, search term, page length.
+
+## Scrolling
+
+### scrollX
+
+Enable horizontal scrolling:
+
+```php
+$dataTable->scrollX(true);
+```
+
+### scrollY
+
+Enable vertical scrolling with fixed height:
+
+```php
+$dataTable->scrollY('400px');
+$dataTable->scrollY('50vh');
+```
+
+## Pagination Options
+
+### displayStart
+
+Set the starting row for display:
+
+```php
+$dataTable->displayStart(20);  // Start at row 21
+```
+
+### lengthMenu
+
+Configure page length options:
+
+```php
+$dataTable->lengthMenu([10, 25, 50, 100]);
+
+// With custom labels
+$dataTable->lengthMenu([
+    [10, 25, 50, -1],
+    ['10 rows', '25 rows', '50 rows', 'All']
+]);
+```
+
+### pageLength
+
+Set initial page length:
+
+```php
+$dataTable->pageLength(25);
+```
+
+## Search Options
+
+### search
+
+Set initial search value:
+
+```php
+$dataTable->search('active');
+```
+
+### withSearchOption
+
+Full search configuration:
+
+```php
+use Pentiminax\UX\DataTables\Model\Options\SearchOption;
+
+$dataTable->withSearchOption(SearchOption::new(
+    caseInsensitive: true,
+    regex: false,
+    return: false,
+    search: 'priority',
+    smart: true,
+    searchDelay: 300,  // Debounce in ms
+));
+```
+
+## Internationalization
+
+### language
+
+Set the UI language:
+
+```php
+use Pentiminax\UX\DataTables\Enum\Language;
+
+$dataTable->language(Language::FR);    // French
+$dataTable->language(Language::DE);    // German
+$dataTable->language(Language::ES);    // Spanish
+$dataTable->language(Language::EN_GB); // British English
+```
+
+## Layout
+
+### layout
+
+Position UI components:
+
+```php
+use Pentiminax\UX\DataTables\Enum\Feature;
+
+$dataTable->layout(
+    topStart: Feature::PAGE_LENGTH,
+    topEnd: Feature::SEARCH,
+    bottomStart: Feature::INFO,
+    bottomEnd: Feature::PAGING,
+);
+```
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
+
+$dataTable = new DataTable('products');
+
+$dataTable
+    ->autoWidth(true)
+    ->caption('Product Catalog')
+    ->language(Language::EN_GB)
+    ->ordering(handler: true, indicators: true)
+    ->paging(buttons: 5, firstLast: true)
+    ->searching(true)
+    ->serverSide(true)
+    ->processing(true)
+    ->scrollY('400px')
+    ->pageLength(25)
+    ->lengthMenu([10, 25, 50, 100])
+    ->stateSave(true)
+    ->layout(
+        topStart: Feature::PAGE_LENGTH,
+        topEnd: Feature::SEARCH,
+        bottomStart: Feature::INFO,
+        bottomEnd: Feature::PAGING,
+    )
+    ->ajax(new AjaxOption(
+        url: '/api/products',
+        dataSrc: 'data',
+        type: 'GET'
+    ));
+```
+
+<Aside type="tip">
+  All options correspond to [DataTables options](https://datatables.net/reference/option/). Check the official documentation for edge cases and advanced configurations.
+</Aside>

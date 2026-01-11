@@ -1,0 +1,244 @@
+---
+title: Ajax
+description: Load table data from HTTP endpoints
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+# Ajax
+
+The `ajax` option enables DataTables to load data from an HTTP endpoint, ideal for large datasets or server-side filtering.
+
+## Basic Usage
+
+```php
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
+
+$dataTable = new DataTable('products');
+
+$ajaxOption = new AjaxOption(
+    url: '/api/products',
+    dataSrc: 'data',      // JSON key containing the rows
+    type: 'GET'           // HTTP method (default: GET)
+);
+
+$dataTable->ajax($ajaxOption);
+```
+
+## AjaxOption Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `url` | `string` | API endpoint URL |
+| `dataSrc` | `string` | JSON key containing row data (default: `data`) |
+| `type` | `string` | HTTP method: `GET` or `POST` |
+
+## Expected JSON Response
+
+Your endpoint should return JSON in this format:
+
+### Client-Side Processing
+
+For client-side tables (all data loaded at once):
+
+```json
+{
+  "data": [
+    { "id": 1, "name": "Product A", "price": 10.50 },
+    { "id": 2, "name": "Product B", "price": 20.00 }
+  ]
+}
+```
+
+### Server-Side Processing
+
+For server-side tables (paginated/filtered on server):
+
+```json
+{
+  "draw": 1,
+  "recordsTotal": 1000,
+  "recordsFiltered": 150,
+  "data": [
+    { "id": 1, "name": "Product A", "price": 10.50 },
+    { "id": 2, "name": "Product B", "price": 20.00 }
+  ]
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `draw` | Request sequence number (prevents out-of-order responses) |
+| `recordsTotal` | Total records in the dataset |
+| `recordsFiltered` | Records after filtering |
+| `data` | Array of row objects |
+
+## Mapping Columns to JSON Keys
+
+`TextColumn::new()` automatically uses the column name as the data key:
+
+```php
+// Automatically maps to JSON key "name"
+TextColumn::new('name', 'Name');
+
+// For nested data, use setData()
+TextColumn::new('price', 'Price')
+    ->setData('pricing.amount');
+```
+
+## Symfony Controller Example
+
+<Tabs>
+  <TabItem label="Simple Endpoint">
+    ```php
+    // src/Controller/Api/ProductController.php
+    namespace App\Controller\Api;
+
+    use App\Repository\ProductRepository;
+    use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+    use Symfony\Component\HttpFoundation\JsonResponse;
+    use Symfony\Component\Routing\Annotation\Route;
+
+    class ProductController extends AbstractController
+    {
+        #[Route('/api/products', name: 'api_products', methods: ['GET'])]
+        public function list(ProductRepository $repository): JsonResponse
+        {
+            $products = $repository->findAll();
+
+            $data = array_map(fn($p) => [
+                'id' => $p->getId(),
+                'name' => $p->getName(),
+                'price' => $p->getPrice(),
+            ], $products);
+
+            return $this->json(['data' => $data]);
+        }
+    }
+    ```
+  </TabItem>
+  <TabItem label="Using ResponseBuilder">
+    ```php
+    use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
+
+    #[Route('/api/products', name: 'api_products', methods: ['GET'])]
+    public function list(
+        ProductRepository $repository,
+        DataTableResponseBuilder $responseBuilder
+    ): JsonResponse {
+        $products = $repository->findAll();
+
+        $data = array_map(fn($p) => [
+            'id' => $p->getId(),
+            'name' => $p->getName(),
+            'price' => $p->getPrice(),
+        ], $products);
+
+        return $responseBuilder->buildResponse(
+            draw: 1,
+            data: $data,
+            recordsTotal: count($products),
+            recordsFiltered: count($products)
+        );
+    }
+    ```
+  </TabItem>
+</Tabs>
+
+## Server-Side Processing
+
+For large datasets, enable server-side processing:
+
+```php
+$dataTable = new DataTable('products');
+$dataTable
+    ->ajax(new AjaxOption('/api/products'))
+    ->serverSide(true)
+    ->processing(true);
+```
+
+Your endpoint receives these query parameters:
+
+| Parameter | Description |
+|-----------|-------------|
+| `draw` | Request counter |
+| `start` | Starting row index |
+| `length` | Number of rows to return |
+| `search[value]` | Global search term |
+| `order[0][column]` | Column index to sort by |
+| `order[0][dir]` | Sort direction (`asc`/`desc`) |
+| `columns[n][data]` | Column data source |
+| `columns[n][searchable]` | Whether column is searchable |
+| `columns[n][orderable]` | Whether column is orderable |
+
+## Handling Server-Side Requests
+
+```php
+use Symfony\Component\HttpFoundation\Request;
+
+#[Route('/api/products', name: 'api_products', methods: ['GET', 'POST'])]
+public function list(Request $request, ProductRepository $repository): JsonResponse
+{
+    $draw = $request->query->getInt('draw', 1);
+    $start = $request->query->getInt('start', 0);
+    $length = $request->query->getInt('length', 10);
+    $searchValue = $request->query->all('search')['value'] ?? '';
+
+    // Get ordering
+    $orderColumn = $request->query->all('order')[0]['column'] ?? 0;
+    $orderDir = $request->query->all('order')[0]['dir'] ?? 'asc';
+    $columns = $request->query->all('columns');
+    $orderField = $columns[$orderColumn]['data'] ?? 'id';
+
+    // Query with pagination, search, and ordering
+    $qb = $repository->createQueryBuilder('p');
+
+    if ($searchValue) {
+        $qb->andWhere('p.name LIKE :search')
+           ->setParameter('search', '%' . $searchValue . '%');
+    }
+
+    $qb->orderBy('p.' . $orderField, $orderDir);
+
+    // Get total and filtered counts
+    $totalCount = $repository->count([]);
+    $filteredCount = (clone $qb)->select('COUNT(p.id)')->getQuery()->getSingleScalarResult();
+
+    // Get paginated results
+    $products = $qb
+        ->setFirstResult($start)
+        ->setMaxResults($length)
+        ->getQuery()
+        ->getResult();
+
+    $data = array_map(fn($p) => [
+        'id' => $p->getId(),
+        'name' => $p->getName(),
+        'price' => $p->getPrice(),
+    ], $products);
+
+    return $this->json([
+        'draw' => $draw,
+        'recordsTotal' => $totalCount,
+        'recordsFiltered' => $filteredCount,
+        'data' => $data,
+    ]);
+}
+```
+
+## Error Handling
+
+Return errors in JSON format:
+
+```json
+{
+  "error": "An error occurred while loading the data."
+}
+```
+
+DataTables will display this message to the user.
+
+<Aside type="tip">
+  For complex server-side tables, consider using [AbstractDataTable](/reference/abstract-datatable/) with the `#[AsDataTable]` attribute for automatic Doctrine integration.
+</Aside>

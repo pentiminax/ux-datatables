@@ -1,0 +1,195 @@
+---
+title: Quick Start
+description: Create your first DataTable in 5 minutes
+---
+
+import { Aside, Steps, Code } from '@astrojs/starlight/components';
+
+# Quick Start
+
+Let's create a simple users table in under 5 minutes.
+
+<Steps>
+
+1. **Create the Controller**
+
+   ```php
+   // src/Controller/UserController.php
+   namespace App\Controller;
+
+   use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
+   use Pentiminax\UX\DataTables\Column\TextColumn;
+   use Pentiminax\UX\DataTables\Column\NumberColumn;
+   use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+   use Symfony\Component\HttpFoundation\Response;
+   use Symfony\Component\Routing\Annotation\Route;
+
+   class UserController extends AbstractController
+   {
+       #[Route('/users', name: 'app_users')]
+       public function index(DataTableBuilderInterface $builder): Response
+       {
+           $table = $builder
+               ->createDataTable('usersTable')
+               ->columns([
+                   NumberColumn::new('id', 'ID'),
+                   TextColumn::new('firstName', 'First Name'),
+                   TextColumn::new('lastName', 'Last Name'),
+                   TextColumn::new('email', 'Email'),
+               ])
+               ->data([
+                   ['id' => 1, 'firstName' => 'John', 'lastName' => 'Doe', 'email' => 'john@example.com'],
+                   ['id' => 2, 'firstName' => 'Jane', 'lastName' => 'Smith', 'email' => 'jane@example.com'],
+                   ['id' => 3, 'firstName' => 'Bob', 'lastName' => 'Wilson', 'email' => 'bob@example.com'],
+               ])
+               ->pageLength(10)
+               ->searching(true)
+               ->ordering(handler: true, indicators: true);
+
+           return $this->render('user/index.html.twig', [
+               'table' => $table,
+           ]);
+       }
+   }
+   ```
+
+2. **Create the Twig Template**
+
+   ```twig
+   {# templates/user/index.html.twig #}
+   {% extends 'base.html.twig' %}
+
+   {% block title %}Users{% endblock %}
+
+   {% block body %}
+       <div class="container mt-4">
+           <h1>Users</h1>
+
+           {{ render_datatable(table) }}
+
+           {# Or with custom attributes #}
+           {{ render_datatable(table, {'class': 'table table-striped', 'id': 'my-users-table'}) }}
+       </div>
+   {% endblock %}
+   ```
+
+3. **Visit the Page**
+
+   Navigate to `/users` in your browser. You should see a fully functional DataTable with:
+   - Pagination
+   - Search box
+   - Column sorting
+   - Page length selector
+
+</Steps>
+
+## Adding More Features
+
+### Enable Extensions
+
+```php
+use Pentiminax\UX\DataTables\Enum\ButtonType;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
+
+$table = $builder
+    ->createDataTable('usersTable')
+    ->columns([/* ... */])
+    ->data([/* ... */])
+    ->extensions([
+        new ButtonsExtension([
+            ButtonType::COPY,
+            ButtonType::CSV,
+            ButtonType::EXCEL,
+        ]),
+        new SelectExtension(SelectStyle::SINGLE),
+    ]);
+```
+
+### Load Data via Ajax
+
+```php
+use Pentiminax\UX\DataTables\Model\Options\AjaxOption;
+
+$table = $builder
+    ->createDataTable('usersTable')
+    ->columns([/* ... */])
+    ->ajax(new AjaxOption('/api/users'))
+    ->serverSide(true)
+    ->processing(true);
+```
+
+### Customize Column Behavior
+
+```php
+$nameColumn = TextColumn::new('name', 'Name')
+    ->setClassName('fw-bold')
+    ->setOrderable(true)
+    ->setSearchable(true)
+    ->setWidth('200px');
+
+$emailColumn = TextColumn::new('email', 'Email')
+    ->setOrderable(true)
+    ->setRender('function(data) { return "<a href=\"mailto:" + data + "\">" + data + "</a>"; }');
+```
+
+## Using AbstractDataTable
+
+For more complex tables, extend `AbstractDataTable`:
+
+```php
+// src/DataTables/UsersDataTable.php
+namespace App\DataTables;
+
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('firstName', 'First Name');
+        yield TextColumn::new('lastName', 'Last Name');
+        yield TextColumn::new('email', 'Email');
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        /** @var User $item */
+        return [
+            'id' => $item->getId(),
+            'firstName' => $item->getFirstName(),
+            'lastName' => $item->getLastName(),
+            'email' => $item->getEmail(),
+        ];
+    }
+}
+```
+
+Then in your controller:
+
+```php
+#[Route('/users', name: 'app_users')]
+public function index(UsersDataTable $table, Request $request): Response
+{
+    $table->handleRequest($request);
+
+    if ($table->isRequestHandled()) {
+        return $table->getResponse();
+    }
+
+    return $this->render('user/index.html.twig', [
+        'table' => $table->getDataTable(),
+    ]);
+}
+```
+
+<Aside type="tip">
+  Learn more about all available options in the [Usage](/guide/usage/) guide.
+</Aside>
