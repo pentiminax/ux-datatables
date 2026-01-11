@@ -255,21 +255,6 @@ final class CustomUsersDataTable extends AbstractDataTable
 }
 ```
 
-## Translation Support
-
-The `$translator` property is automatically injected:
-
-```php
-public function configureColumns(): iterable
-{
-    yield TextColumn::new('name')
-        ->setTitle($this->translator->trans('users.columns.name'));
-
-    yield TextColumn::new('email')
-        ->setTitle($this->translator->trans('users.columns.email'));
-}
-```
-
 ## Core Interfaces
 
 ### DataProviderInterface
