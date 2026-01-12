@@ -3,7 +3,6 @@
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\Column;
@@ -30,8 +29,8 @@ class ColumnSearchFilterTest extends TestCase
             ->method('setParameter')
             ->with($this->equalTo('column_search_param_0'), $this->equalTo('%test%'));
 
-        $column = TextColumn::new('name', 'Name')->setField('name');
-        $search = new Search('test', false);
+        $column        = TextColumn::new('name', 'Name')->setField('name');
+        $search        = new Search('test', false);
         $requestColumn = new Column('name', 'name', true, true, $search);
 
         $columns = new Columns(['name' => $requestColumn]);
@@ -56,8 +55,8 @@ class ColumnSearchFilterTest extends TestCase
             ->method('setParameter')
             ->with($this->equalTo('column_search_param_0'), $this->equalTo('123'));
 
-        $column = NumberColumn::new('id', 'ID')->setField('id');
-        $search = new Search('123', false);
+        $column        = NumberColumn::new('id', 'ID')->setField('id');
+        $search        = new Search('123', false);
         $requestColumn = new Column('id', 'id', true, true, $search);
 
         $columns = new Columns(['id' => $requestColumn]);
@@ -81,8 +80,8 @@ class ColumnSearchFilterTest extends TestCase
         $qb->expects($this->never())
             ->method('setParameter');
 
-        $column = NumberColumn::new('id', 'ID')->setField('id');
-        $search = new Search('abc', false);
+        $column        = NumberColumn::new('id', 'ID')->setField('id');
+        $search        = new Search('abc', false);
         $requestColumn = new Column('id', 'id', true, true, $search);
 
         $columns = new Columns(['id' => $requestColumn]);
@@ -106,8 +105,8 @@ class ColumnSearchFilterTest extends TestCase
         $qb->expects($this->never())
             ->method('setParameter');
 
-        $column = TextColumn::new('name', 'Name')->setField('name')->setSearchable(false);
-        $search = new Search('test', false);
+        $column        = TextColumn::new('name', 'Name')->setField('name')->setSearchable(false);
+        $search        = new Search('test', false);
         $requestColumn = new Column('name', 'name', true, true, $search);
 
         $columns = new Columns(['name' => $requestColumn]);
@@ -131,8 +130,8 @@ class ColumnSearchFilterTest extends TestCase
         $qb->expects($this->never())
             ->method('setParameter');
 
-        $column = TextColumn::new('name', 'Name')->setField('name');
-        $search = new Search('', false);
+        $column        = TextColumn::new('name', 'Name')->setField('name');
+        $search        = new Search('', false);
         $requestColumn = new Column('name', 'name', true, true, $search);
 
         $columns = new Columns(['name' => $requestColumn]);
@@ -156,8 +155,8 @@ class ColumnSearchFilterTest extends TestCase
         $qb->expects($this->never())
             ->method('setParameter');
 
-        $column = TextColumn::new('name', 'Name')->setField('name');
-        $search = new Search(null, false);
+        $column        = TextColumn::new('name', 'Name')->setField('name');
+        $search        = new Search(null, false);
         $requestColumn = new Column('name', 'name', true, true, $search);
 
         $columns = new Columns(['name' => $requestColumn]);
@@ -181,8 +180,8 @@ class ColumnSearchFilterTest extends TestCase
         $qb->expects($this->never())
             ->method('setParameter');
 
-        $column = TextColumn::new('name', 'Name')->setField('name');
-        $search = new Search('   ', false);
+        $column        = TextColumn::new('name', 'Name')->setField('name');
+        $search        = new Search('   ', false);
         $requestColumn = new Column('name', 'name', true, true, $search);
 
         $columns = new Columns(['name' => $requestColumn]);
@@ -227,12 +226,13 @@ class ColumnSearchFilterTest extends TestCase
             ->method('andWhere')
             ->willReturnCallback(function ($condition) {
                 static $callCount = 0;
-                $callCount++;
-                if ($callCount === 1) {
+                ++$callCount;
+                if (1 === $callCount) {
                     $this->assertEquals('e.name LIKE :column_search_param_0', $condition);
-                } elseif ($callCount === 2) {
+                } elseif (2 === $callCount) {
                     $this->assertEquals('e.email LIKE :column_search_param_1', $condition);
                 }
+
                 return $this->createMock(QueryBuilder::class);
             });
 
@@ -240,28 +240,29 @@ class ColumnSearchFilterTest extends TestCase
             ->method('setParameter')
             ->willReturnCallback(function ($param, $value) {
                 static $callCount = 0;
-                $callCount++;
-                if ($callCount === 1) {
+                ++$callCount;
+                if (1 === $callCount) {
                     $this->assertEquals('column_search_param_0', $param);
                     $this->assertEquals('%alice%', $value);
-                } elseif ($callCount === 2) {
+                } elseif (2 === $callCount) {
                     $this->assertEquals('column_search_param_1', $param);
                     $this->assertEquals('%example.com%', $value);
                 }
+
                 return $this->createMock(QueryBuilder::class);
             });
 
-        $nameColumn = TextColumn::new('name', 'Name')->setField('name');
+        $nameColumn  = TextColumn::new('name', 'Name')->setField('name');
         $emailColumn = TextColumn::new('email', 'Email')->setField('email');
 
-        $nameSearch = new Search('alice', false);
+        $nameSearch  = new Search('alice', false);
         $emailSearch = new Search('example.com', false);
 
-        $nameRequestColumn = new Column('name', 'name', true, true, $nameSearch);
+        $nameRequestColumn  = new Column('name', 'name', true, true, $nameSearch);
         $emailRequestColumn = new Column('email', 'email', true, true, $emailSearch);
 
         $columns = new Columns([
-            'name' => $nameRequestColumn,
+            'name'  => $nameRequestColumn,
             'email' => $emailRequestColumn,
         ]);
 

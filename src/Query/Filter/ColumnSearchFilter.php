@@ -48,9 +48,9 @@ final class ColumnSearchFilter implements QueryFilterInterface
         AbstractColumn $column,
         string $searchValue,
         int $index,
-        string $alias
+        string $alias,
     ): void {
-        $field = sprintf('%s.%s', $alias, $column->getField());
+        $field     = sprintf('%s.%s', $alias, $column->getField());
         $paramName = sprintf('column_search_param_%d', $index);
 
         $qb->andWhere(sprintf('%s LIKE :%s', $field, $paramName));
@@ -62,13 +62,13 @@ final class ColumnSearchFilter implements QueryFilterInterface
         AbstractColumn $column,
         string $searchValue,
         int $index,
-        string $alias
+        string $alias,
     ): void {
         if (!is_numeric($searchValue)) {
             return;
         }
 
-        $field = sprintf('%s.%s', $alias, $column->getField());
+        $field     = sprintf('%s.%s', $alias, $column->getField());
         $paramName = sprintf('column_search_param_%d', $index);
 
         $qb->andWhere(sprintf('%s = :%s', $field, $paramName));
