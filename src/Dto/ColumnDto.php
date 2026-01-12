@@ -21,6 +21,7 @@ final class ColumnDto implements \JsonSerializable
     private ?string $defaultContent = null;
     private ?string $field          = null;
     private bool $globalSearchable  = true;
+    private array $customOptions    = [];
 
     public function getCellType(): ?string
     {
@@ -200,6 +201,18 @@ final class ColumnDto implements \JsonSerializable
         $this->globalSearchable = false;
 
         return $this;
+    }
+
+    public function setCustomOption(string $optionName, mixed $optionValue): self
+    {
+        $this->customOptions[$optionName] = $optionValue;
+
+        return $this;
+    }
+
+    public function getCustomOption(string $optionName): mixed
+    {
+        return $this->customOptions[$optionName] ?? null;
     }
 
     public function jsonSerialize(): array
