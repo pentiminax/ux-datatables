@@ -40,7 +40,6 @@ export default class extends Controller {
 
         // Check if DataTable is already initialized on this element
         if (DataTable.isDataTable(this.element)) {
-            this.table = new DataTable.Api(this.element);
             this.isDataTableInitialized = true;
             return;
         }
