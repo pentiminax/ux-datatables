@@ -38,6 +38,11 @@ export default class extends Controller {
 
         const DataTable = await loadDataTableLibrary(stylesheet);
 
+        if (DataTable.isDataTable(this.element)) {
+            this.isDataTableInitialized = true;
+            return;
+        }
+
         if (this.isButtonsExtensionEnabled(payload)) {
             await loadButtonsLibrary(DataTable, stylesheet);
         }
