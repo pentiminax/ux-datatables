@@ -74,6 +74,9 @@ class default_1 extends Controller {
         
         if (this.isScrollerExtensionEnabled(payload)) {
             await loadScrollerLibrary(stylesheet);
+
+            // remove data-controller attribute
+            this.element.removeAttribute('data-controller')
         }
 
         payload.columns.forEach((column, index) => {
