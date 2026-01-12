@@ -34,6 +34,11 @@ class default_1 extends Controller {
         const stylesheet = getLoadedDataTablesStyleSheet();
         const DataTable = await loadDataTableLibrary(stylesheet);
 
+        if (DataTable.isDataTable(this.element)) {
+            this.isDataTableInitialized = true;
+            return;
+        }
+
         if (this.isButtonsExtensionEnabled(payload)) {
             await loadButtonsLibrary(DataTable, stylesheet);
         }
@@ -87,7 +92,6 @@ class default_1 extends Controller {
         });
 
         this.table = new DataTable(this.element, payload);
-        this.isDataTableInitialized = true;
 
         this.element.addEventListener('click', async (e) => {
             if (e.target.matches('.delete-action')) {
