@@ -208,6 +208,18 @@ abstract class AbstractColumn implements ColumnInterface
         return $this;
     }
 
+    public function setCustomOption(string $optionName, mixed $optionValue): self
+    {
+        $this->dto->setCustomOption($optionName, $optionValue);
+
+        return $this;
+    }
+
+    public function getCustomOption(string $optionName): mixed
+    {
+        return $this->dto->getCustomOption($optionName);
+    }
+
     /**
      * Convert the column to a JSON-serializable array for DataTables initialization.
      */
