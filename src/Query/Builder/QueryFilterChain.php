@@ -4,6 +4,7 @@ namespace Pentiminax\UX\DataTables\Query\Builder;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnControlSearchFilter;
+use Pentiminax\UX\DataTables\Query\Filter\ColumnSearchFilter;
 use Pentiminax\UX\DataTables\Query\Filter\GlobalSearchFilter;
 use Pentiminax\UX\DataTables\Query\Filter\OrderFilter;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
@@ -54,13 +55,15 @@ final class QueryFilterChain
      * The default chain includes:
      * 1. OrderFilter - Applies sorting
      * 2. GlobalSearchFilter - Applies global search across all searchable columns
-     * 3. ColumnControlSearchFilter - Applies column-specific filters using strategies
+     * 3. ColumnSearchFilter - Applies standard DataTables column-specific searches
+     * 4. ColumnControlSearchFilter - Applies column-specific filters using strategies
      */
     public static function createDefault(SearchStrategyRegistry $registry): self
     {
         return (new self())
             ->addFilter(new OrderFilter())
             ->addFilter(new GlobalSearchFilter())
+            ->addFilter(new ColumnSearchFilter())
             ->addFilter(new ColumnControlSearchFilter($registry));
     }
 }
