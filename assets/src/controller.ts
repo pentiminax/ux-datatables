@@ -38,7 +38,6 @@ export default class extends Controller {
 
         const DataTable = await loadDataTableLibrary(stylesheet);
 
-        // Check if DataTable is already initialized on this element
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true;
             return;
@@ -119,14 +118,6 @@ export default class extends Controller {
         });
 
         this.isDataTableInitialized = true;
-    }
-
-    disconnect() {
-        if (this.table && this.isDataTableInitialized) {
-            this.table.destroy();
-            this.table = null;
-            this.isDataTableInitialized = false;
-        }
     }
 
     private dispatchEvent(name: string, payload: any) {
