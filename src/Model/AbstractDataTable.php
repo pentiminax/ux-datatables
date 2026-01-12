@@ -265,18 +265,10 @@ abstract class AbstractDataTable implements DataTableInterface
         );
     }
 
-    protected function formatDateValue(\DateTimeInterface $value): string
-    {
-        return $value->format('Y-m-d');
-    }
-
     private function getDefaultRowMapper(): DefaultRowMapper
     {
         if (null === $this->rowMapper) {
-            $this->rowMapper = new DefaultRowMapper(
-                $this->columns,
-                $this->formatDateValue(...)
-            );
+            $this->rowMapper = new DefaultRowMapper($this->columns);
         }
 
         return $this->rowMapper;

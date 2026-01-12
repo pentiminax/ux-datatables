@@ -3,6 +3,7 @@
 namespace Pentiminax\UX\DataTables\RowMapper;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 
 final class DefaultRowMapper implements RowMapperInterface
@@ -12,14 +13,8 @@ final class DefaultRowMapper implements RowMapperInterface
      */
     public function __construct(
         private readonly array $columns,
-        ?callable $dateFormatter = null,
     ) {
-        $this->dateFormatter = null === $dateFormatter
-            ? static fn (\DateTimeInterface $value): string => $value->format('Y-m-d')
-            : \Closure::fromCallable($dateFormatter);
     }
-
-    private \Closure $dateFormatter;
 
     public function map(mixed $row): array
     {
@@ -48,8 +43,12 @@ final class DefaultRowMapper implements RowMapperInterface
             }
 
             $value = $this->readValueFromRow($row, $key);
-            if ($column->isDate() && $value instanceof \DateTimeInterface) {
-                $value = ($this->dateFormatter)($value);
+            if ($column instanceof DateColumn && $value instanceof \DateTimeInterface) {
+                if ($column->getFormat()) {
+                    $value = $value->format($column->getFormat());
+                } else {
+                    $value = $value->format('Y-m-d');
+                }
             }
 
             $mapped[$key] = $value;
