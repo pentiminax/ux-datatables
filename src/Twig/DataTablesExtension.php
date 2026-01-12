@@ -45,18 +45,26 @@ class DataTablesExtension extends AbstractExtension
             $stimulusAttributes->addController($name, $controllerValues);
         }
 
+        $tableAttributes = [];
         foreach ($table->getAttributes() as $name => $value) {
             if ('data-controller' === $name) {
                 continue;
             }
 
             if (true === $value) {
-                $stimulusAttributes->addAttribute($name, $name);
+                $tableAttributes[] = \sprintf('%s="%s"', $name, $name);
             } elseif (false !== $value) {
-                $stimulusAttributes->addAttribute($name, $value);
+                $tableAttributes[] = \sprintf('%s="%s"', $name, $value);
             }
         }
 
-        return \sprintf('<table id="%s" %s></table>', $table->getId(), $stimulusAttributes);
+        $tableAttributesString = $tableAttributes ? ' ' . \implode(' ', $tableAttributes) : '';
+
+        return \sprintf(
+            '<div %s><table id="%s" data-datatables-target="table"%s></table></div>',
+            $stimulusAttributes,
+            $table->getId(),
+            $tableAttributesString
+        );
     }
 }

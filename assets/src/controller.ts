@@ -11,20 +11,23 @@ import {deleteRow} from "./functions/delete";
 
 export default class extends Controller {
     declare readonly viewValue: any;
+    declare readonly tableTarget: HTMLTableElement;
 
     static readonly values = {
         view: Object,
     };
 
+    static readonly targets = ['table'];
+
     private table: DataTable | null = null;
     private isDataTableInitialized = false;
 
     async connect() {
-        if (this.isDataTableInitialized) {
+        if (this.isDataTableInitialized || this.element.dataset.datatablesInitialized === 'true') {
             return;
         }
 
-        if (!(this.element instanceof HTMLTableElement)) {
+        if (!(this.tableTarget instanceof HTMLTableElement)) {
             throw new Error('Invalid element');
         }
 
@@ -89,7 +92,7 @@ export default class extends Controller {
             }
         });
 
-        this.table = new DataTable(this.element as HTMLElement, payload);
+        this.table = new DataTable(this.tableTarget as HTMLElement, payload);
 
         this.dispatchEvent('connect', {table: this.table});
 
@@ -113,6 +116,7 @@ export default class extends Controller {
         });
 
         this.isDataTableInitialized = true;
+        this.element.dataset.datatablesInitialized = 'true';
     }
 
     private dispatchEvent(name: string, payload: any) {

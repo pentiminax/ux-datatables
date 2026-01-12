@@ -166,6 +166,11 @@ $dataTable->scrollY('400px');
   Scroller is ideal for tables with thousands of rows. It only renders visible rows, dramatically improving performance.
 </Aside>
 
+<Aside type="note">
+  When using the Scroller extension, attach the DataTables Stimulus controller to a wrapper element and keep the
+  actual <table> as a target. This avoids duplicate Stimulus connections when Scroller clones the table.
+</Aside>
+
 ## Combining Extensions
 
 Use multiple extensions together:
