@@ -5,6 +5,7 @@ import {loadDataTableLibrary} from "./functions/loadDataTableLibrary";
 import {loadSelectLibrary} from "./functions/loadSelectLibrary";
 import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary";
 import {loadColumnControlLibrary} from "./functions/loadColumnControlLibrary";
+import {loadFixedColumnsLibrary} from './functions/loadFixedColumnsLibrary';
 import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary";
 import {loadScrollerLibrary} from "./functions/loadScrollerLibrary";
 import {deleteRow} from "./functions/delete";
@@ -76,6 +77,10 @@ export default class extends Controller {
             await loadColumnControlLibrary(stylesheet);
         }
 
+        if (this.isFixedColumnsExtensionEnabled(payload)) {
+            await loadFixedColumnsLibrary(stylesheet);
+        }
+
         if (this.isKeyTableExtensionEnabled(payload)) {
             await loadKeyTableLibrary(stylesheet);
         }
@@ -141,6 +146,10 @@ export default class extends Controller {
 
     private isColumnControlExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.columnControl;
+    }
+
+    private isFixedColumnsExtensionEnabled(payload: Record<string, any>): boolean {
+        return !!payload?.fixedColumns;
     }
 
     private isKeyTableExtensionEnabled(payload: Record<string, any>): boolean {
