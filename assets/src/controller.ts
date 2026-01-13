@@ -4,6 +4,7 @@ import {loadButtonsLibrary} from "./functions/loadButtonsLibrary";
 import {loadDataTableLibrary} from "./functions/loadDataTableLibrary";
 import {loadSelectLibrary} from "./functions/loadSelectLibrary";
 import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary";
+import {loadColReorderLibrary} from './functions/loadColReorderLibrary';
 import {loadColumnControlLibrary} from "./functions/loadColumnControlLibrary";
 import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary";
 import {loadScrollerLibrary} from "./functions/loadScrollerLibrary";
@@ -76,6 +77,10 @@ export default class extends Controller {
             await loadColumnControlLibrary(stylesheet);
         }
 
+        if (this.isColReorderExtensionEnabled(payload)) {
+            await loadColReorderLibrary(stylesheet);
+        }
+
         if (this.isKeyTableExtensionEnabled(payload)) {
             await loadKeyTableLibrary(stylesheet);
         }
@@ -141,6 +146,10 @@ export default class extends Controller {
 
     private isColumnControlExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.columnControl;
+    }
+
+    private isColReorderExtensionEnabled(payload: Record<string, any>): boolean {
+        return !!payload?.colReorder;
     }
 
     private isKeyTableExtensionEnabled(payload: Record<string, any>): boolean {
