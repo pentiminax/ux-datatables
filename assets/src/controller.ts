@@ -6,6 +6,7 @@ import {loadSelectLibrary} from "./functions/loadSelectLibrary";
 import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary";
 import {loadColReorderLibrary} from './functions/loadColReorderLibrary';
 import {loadColumnControlLibrary} from "./functions/loadColumnControlLibrary";
+import {loadFixedColumnsLibrary} from './functions/loadFixedColumnsLibrary';
 import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary";
 import {loadScrollerLibrary} from "./functions/loadScrollerLibrary";
 import {deleteRow} from "./functions/delete";
@@ -77,7 +78,11 @@ export default class extends Controller {
             await loadColumnControlLibrary(stylesheet);
         }
 
-        if (this.isColReorderExtensionEnabled(payload)) {
+        if (this.isFixedColumnsExtensionEnabled(payload)) {
+            await loadFixedColumnsLibrary(stylesheet);
+        }
+        
+          if (this.isColReorderExtensionEnabled(payload)) {
             await loadColReorderLibrary(stylesheet);
         }
 
@@ -148,6 +153,10 @@ export default class extends Controller {
         return !!payload?.columnControl;
     }
 
+    private isFixedColumnsExtensionEnabled(payload: Record<string, any>): boolean {
+        return !!payload?.fixedColumns;
+    }
+    
     private isColReorderExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.colReorder;
     }
