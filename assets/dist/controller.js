@@ -5,6 +5,7 @@ import {loadDataTableLibrary} from "./functions/loadDataTableLibrary.js";
 import {loadSelectLibrary} from "./functions/loadSelectLibrary.js";
 import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary.js";
 import {loadColumnControlLibrary} from "./functions/loadColumnControlLibrary.js";
+import {loadFixedColumnsLibrary} from './functions/loadFixedColumnsLibrary.js';
 import {loadColReorderLibrary} from './functions/loadColReorderLibrary.js';
 import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary.js";
 import {loadScrollerLibrary} from "./functions/loadScrollerLibrary.js";
@@ -74,6 +75,10 @@ class default_1 extends Controller {
             await loadColumnControlLibrary(stylesheet);
         }
 
+        if (this.isFixedColumnsExtensionEnabled(payload)) {
+            await loadFixedColumnsLibrary(stylesheet);
+        }
+        
         if (this.isColReorderExtensionEnabled(payload)) {
             await loadColReorderLibrary(stylesheet);
         }
@@ -141,6 +146,10 @@ class default_1 extends Controller {
         return !!payload?.columnControl;
     }
 
+    isFixedColumnsExtensionEnabled(payload) {
+        return !!payload?.fixedColumns;
+    }
+    
     isColReorderExtensionEnabled(payload) {
         return !!payload?.colReorder;
     }
