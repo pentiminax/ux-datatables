@@ -7,8 +7,7 @@ class FixedColumnsExtension extends AbstractExtension
     public function __construct(
         private readonly int $start = 1,
         private readonly int $end = 0,
-    )
-    {
+    ) {
     }
 
     public function getKey(): string
@@ -20,7 +19,7 @@ class FixedColumnsExtension extends AbstractExtension
     {
         return [
             'start' => $this->start,
-            'end' => $this->end
+            'end'   => $this->end,
         ];
     }
 }
