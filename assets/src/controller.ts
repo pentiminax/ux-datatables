@@ -4,6 +4,7 @@ import {loadButtonsLibrary} from "./functions/loadButtonsLibrary";
 import {loadDataTableLibrary} from "./functions/loadDataTableLibrary";
 import {loadSelectLibrary} from "./functions/loadSelectLibrary";
 import {loadResponsiveLibrary} from "./functions/loadResponsiveLibrary";
+import {loadColReorderLibrary} from './functions/loadColReorderLibrary';
 import {loadColumnControlLibrary} from "./functions/loadColumnControlLibrary";
 import {loadFixedColumnsLibrary} from './functions/loadFixedColumnsLibrary';
 import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary";
@@ -80,6 +81,10 @@ export default class extends Controller {
         if (this.isFixedColumnsExtensionEnabled(payload)) {
             await loadFixedColumnsLibrary(stylesheet);
         }
+        
+          if (this.isColReorderExtensionEnabled(payload)) {
+            await loadColReorderLibrary(stylesheet);
+        }
 
         if (this.isKeyTableExtensionEnabled(payload)) {
             await loadKeyTableLibrary(stylesheet);
@@ -150,6 +155,10 @@ export default class extends Controller {
 
     private isFixedColumnsExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.fixedColumns;
+    }
+    
+    private isColReorderExtensionEnabled(payload: Record<string, any>): boolean {
+        return !!payload?.colReorder;
     }
 
     private isKeyTableExtensionEnabled(payload: Record<string, any>): boolean {
