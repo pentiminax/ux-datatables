@@ -7,7 +7,7 @@ use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Symfony\Component\PropertyInfo\Type as LegacyType;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Symfony\Component\TypeInfo\Type;
 
 final class ApiPlatformPropertyTypeMapper
@@ -23,17 +23,13 @@ final class ApiPlatformPropertyTypeMapper
             return $this->mapTypeInfoType($type);
         }
 
-        if ($type instanceof LegacyType) {
-            return $this->mapLegacyType($type);
-        }
-
         return TextColumn::class;
     }
 
     /**
      * Create a column instance from a property name, label, and type.
      */
-    public function createColumn(string $name, string $label, mixed $type): AbstractColumn
+    public function createColumn(string $name, string $label, mixed $type): ColumnInterface
     {
         $columnClass = $this->mapType($type);
 
@@ -47,43 +43,26 @@ final class ApiPlatformPropertyTypeMapper
     {
         $typeString = (string) $type;
 
-        if (str_contains($typeString, 'bool')) {
-            return BooleanColumn::class;
-        }
-
-        if (str_contains($typeString, 'int') || str_contains($typeString, 'float')) {
-            return NumberColumn::class;
-        }
-
-        if (str_contains($typeString, 'DateTimeInterface') || str_contains($typeString, 'DateTime')) {
-            return DateColumn::class;
-        }
-
-        return TextColumn::class;
+        return match (true) {
+            $this->isBoolean($typeString) => BooleanColumn::class,
+            $this->isNumeric($typeString) => NumberColumn::class,
+            $this->isDate($typeString)    => DateColumn::class,
+            default                       => TextColumn::class,
+        };
     }
 
-    /**
-     * @return class-string<AbstractColumn>
-     */
-    private function mapLegacyType(LegacyType $type): string
+    private function isBoolean(string $typeString): bool
     {
-        $builtinType = $type->getBuiltinType();
+        return str_contains($typeString, 'bool');
+    }
 
-        if ('bool' === $builtinType) {
-            return BooleanColumn::class;
-        }
+    private function isNumeric(string $typeString): bool
+    {
+        return str_contains($typeString, 'int') || str_contains($typeString, 'float');
+    }
 
-        if ('int' === $builtinType || 'float' === $builtinType) {
-            return NumberColumn::class;
-        }
-
-        if ('object' === $builtinType) {
-            $className = $type->getClassName();
-            if (null !== $className && is_a($className, \DateTimeInterface::class, true)) {
-                return DateColumn::class;
-            }
-        }
-
-        return TextColumn::class;
+    private function isDate(string $typeString): bool
+    {
+        return str_contains($typeString, 'DateTimeInterface') || str_contains($typeString, 'DateTime');
     }
 }

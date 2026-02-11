@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInter
 use ApiPlatform\Metadata\Resource\ResourceMetadataCollection;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformPropertyTypeMapper;
 use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
+use Pentiminax\UX\DataTables\ApiPlatform\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -32,9 +33,9 @@ class ColumnAutoDetectorTest extends TestCase
         }
 
         $this->resourceMetadataFactory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
-        $this->propertyNameFactory = $this->createMock(PropertyNameCollectionFactoryInterface::class);
+        $this->propertyNameFactory     = $this->createMock(PropertyNameCollectionFactoryInterface::class);
         $this->propertyMetadataFactory = $this->createMock(PropertyMetadataFactoryInterface::class);
-        $this->propertyInfoExtractor = $this->createMock(PropertyInfoExtractorInterface::class);
+        $this->propertyInfoExtractor   = $this->createMock(PropertyInfoExtractorInterface::class);
     }
 
     public function testSupportsReturnsTrueForApiResource(): void
@@ -80,9 +81,9 @@ class ColumnAutoDetectorTest extends TestCase
             ->method('create')
             ->willReturnCallback(function (string $class, string $property): ApiProperty {
                 return match ($property) {
-                    'id' => (new ApiProperty())->withIdentifier(true)->withReadable(true),
-                    'name' => (new ApiProperty())->withReadable(true),
-                    'price' => (new ApiProperty())->withReadable(true),
+                    'id'     => (new ApiProperty())->withIdentifier(true)->withReadable(true),
+                    'name'   => (new ApiProperty())->withReadable(true),
+                    'price'  => (new ApiProperty())->withReadable(true),
                     'active' => (new ApiProperty())->withReadable(true),
                 };
             });
@@ -91,16 +92,16 @@ class ColumnAutoDetectorTest extends TestCase
             ->method('getTypes')
             ->willReturnCallback(function (string $class, string $property): ?array {
                 return match ($property) {
-                    'id' => [new LegacyType(LegacyType::BUILTIN_TYPE_INT)],
-                    'name' => [new LegacyType(LegacyType::BUILTIN_TYPE_STRING)],
-                    'price' => [new LegacyType(LegacyType::BUILTIN_TYPE_FLOAT)],
+                    'id'     => [new LegacyType(LegacyType::BUILTIN_TYPE_INT)],
+                    'name'   => [new LegacyType(LegacyType::BUILTIN_TYPE_STRING)],
+                    'price'  => [new LegacyType(LegacyType::BUILTIN_TYPE_FLOAT)],
                     'active' => [new LegacyType(LegacyType::BUILTIN_TYPE_BOOL)],
-                    default => null,
+                    default  => null,
                 };
             });
 
         $detector = $this->createDetector();
-        $columns = $detector->detectColumns('App\Entity\Product');
+        $columns  = $detector->detectColumns('App\Entity\Product');
 
         $this->assertCount(4, $columns);
 
@@ -130,7 +131,7 @@ class ColumnAutoDetectorTest extends TestCase
             ->method('create')
             ->willReturnCallback(function (string $class, string $property): ApiProperty {
                 return match ($property) {
-                    'name' => (new ApiProperty())->withReadable(true),
+                    'name'     => (new ApiProperty())->withReadable(true),
                     'password' => (new ApiProperty())->withReadable(false),
                 };
             });
@@ -140,7 +141,7 @@ class ColumnAutoDetectorTest extends TestCase
             ->willReturn([new LegacyType(LegacyType::BUILTIN_TYPE_STRING)]);
 
         $detector = $this->createDetector();
-        $columns = $detector->detectColumns('App\Entity\User');
+        $columns  = $detector->detectColumns('App\Entity\User');
 
         $this->assertCount(1, $columns);
         $this->assertSame('name', $columns[0]->getName());
@@ -161,7 +162,7 @@ class ColumnAutoDetectorTest extends TestCase
             ->willReturn([new LegacyType(LegacyType::BUILTIN_TYPE_STRING)]);
 
         $detector = $this->createDetector();
-        $columns = $detector->detectColumns('App\Entity\User');
+        $columns  = $detector->detectColumns('App\Entity\User');
 
         $this->assertSame('Created At', $columns[0]->jsonSerialize()['title']);
         $this->assertSame('First Name', $columns[1]->jsonSerialize()['title']);
@@ -169,8 +170,10 @@ class ColumnAutoDetectorTest extends TestCase
 
     public function testHumanizeConvertsIdToUppercase(): void
     {
-        $this->assertSame('ID', ColumnAutoDetector::humanize('id'));
-        $this->assertSame('User ID', ColumnAutoDetector::humanize('userId'));
+        $humanizer = new PropertyNameHumanizer();
+
+        $this->assertSame('ID', $humanizer->humanize('id'));
+        $this->assertSame('User ID', $humanizer->humanize('userId'));
     }
 
     public function testDetectColumnsPassesSerializationGroups(): void
@@ -195,6 +198,7 @@ class ColumnAutoDetectorTest extends TestCase
             $this->propertyMetadataFactory,
             $this->propertyInfoExtractor,
             new ApiPlatformPropertyTypeMapper(),
+            new PropertyNameHumanizer(),
         );
     }
 }

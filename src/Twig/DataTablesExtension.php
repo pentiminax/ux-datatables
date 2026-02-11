@@ -25,6 +25,7 @@ class DataTablesExtension extends AbstractExtension
     public function renderDataTable(AbstractDataTable|DataTable $table, array $attributes = []): string
     {
         if ($table instanceof AbstractDataTable) {
+            $table->prepareForRendering();
             $table = $table->getDataTable();
         }
 

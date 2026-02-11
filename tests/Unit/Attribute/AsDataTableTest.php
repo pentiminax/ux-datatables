@@ -6,10 +6,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use PHPUnit\Framework\TestCase;
 
 class AsDataTableTest extends TestCase
@@ -85,6 +87,86 @@ class AsDataTableTest extends TestCase
             $column->jsonSerialize()['booleanToggleEntityClass']
         );
     }
+
+    public function testPrepareForRenderingConfiguresAjaxForApiResource(): void
+    {
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $resolver
+            ->expects($this->once())
+            ->method('resolveCollectionUrl')
+            ->with(\stdClass::class)
+            ->willReturn('/api/books');
+
+        $table = new TestDataTableWithAttribute(apiResourceCollectionUrlResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertSame([
+            'type'    => 'GET',
+            'url'     => '/api/books',
+            'dataSrc' => 'member',
+        ], $table->getDataTable()->getOption('ajax'));
+    }
+
+    public function testPrepareForRenderingDoesNothingWhenAjaxIsAlreadyConfigured(): void
+    {
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $resolver->expects($this->never())->method('resolveCollectionUrl');
+
+        $table = new TestDataTableWithManualAjax(apiResourceCollectionUrlResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertSame([
+            'type' => 'GET',
+            'url'  => '/custom-endpoint',
+        ], $table->getDataTable()->getOption('ajax'));
+    }
+
+    public function testPrepareForRenderingDoesNothingWhenServerSideIsEnabled(): void
+    {
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $resolver->expects($this->never())->method('resolveCollectionUrl');
+
+        $table = new TestDataTableWithServerSide(apiResourceCollectionUrlResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertNull($table->getDataTable()->getOption('ajax'));
+    }
+
+    public function testPrepareForRenderingDoesNothingWhenDataIsAlreadyConfigured(): void
+    {
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $resolver->expects($this->never())->method('resolveCollectionUrl');
+
+        $table = new TestDataTableWithData(apiResourceCollectionUrlResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertNull($table->getDataTable()->getOption('ajax'));
+    }
+
+    public function testPrepareForRenderingDoesNothingWithoutAttribute(): void
+    {
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $resolver->expects($this->never())->method('resolveCollectionUrl');
+
+        $table = new TestDataTableWithoutAttribute(apiResourceCollectionUrlResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertNull($table->getDataTable()->getOption('ajax'));
+    }
+
+    public function testPrepareForRenderingDoesNothingWithoutResolver(): void
+    {
+        $table = new TestDataTableWithAttribute();
+
+        $table->prepareForRendering();
+
+        $this->assertNull($table->getDataTable()->getOption('ajax'));
+    }
 }
 
 /**
@@ -93,6 +175,48 @@ class AsDataTableTest extends TestCase
 #[AsDataTable(entityClass: \stdClass::class)]
 class TestDataTableWithAttribute extends AbstractDataTable
 {
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+}
+
+#[AsDataTable(entityClass: \stdClass::class)]
+class TestDataTableWithManualAjax extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->ajax('/custom-endpoint');
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+}
+
+#[AsDataTable(entityClass: \stdClass::class)]
+class TestDataTableWithServerSide extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->serverSide(true);
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+}
+
+#[AsDataTable(entityClass: \stdClass::class)]
+class TestDataTableWithData extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->data([['id' => 1]]);
+    }
+
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');

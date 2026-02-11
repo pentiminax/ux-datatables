@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
@@ -26,15 +27,12 @@ use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Contracts\Service\Attribute\Required;
 
 abstract class AbstractDataTable implements DataTableInterface
 {
     protected DataTable $table;
 
     protected ?DataTableRequest $request = null;
-
-    protected EntityManagerInterface $em;
 
     /**
      * @var AbstractColumn[]
@@ -45,17 +43,19 @@ abstract class AbstractDataTable implements DataTableInterface
 
     private bool $providerAutoConfigured = false;
 
-    private ?ColumnAutoDetectorInterface $columnAutoDetector = null;
-
     private ?RowMapperInterface $rowMapper = null;
 
-    public function __construct()
-    {
+    public function __construct(
+        protected ?ColumnAutoDetectorInterface $columnAutoDetector = null,
+        protected ?EntityManagerInterface $em = null,
+        protected ?ApiResourceCollectionUrlResolverInterface $apiResourceCollectionUrlResolver = null,
+    ) {
         $this->table = $this->configureDataTable(
             new DataTable($this->getClassName())
         );
 
         $this->columns = iterator_to_array($this->configureColumns());
+
         $this->configureBooleanColumns();
 
         $this->table->columns($this->columns);
@@ -119,6 +119,38 @@ abstract class AbstractDataTable implements DataTableInterface
             );
     }
 
+    public function prepareForRendering(): void
+    {
+        if (null !== $this->table->getOption('ajax')) {
+            return;
+        }
+
+        if (null !== $this->table->getOption('data')) {
+            return;
+        }
+
+        if (true === $this->table->getOption('serverSide')) {
+            return;
+        }
+
+        if (null === $this->apiResourceCollectionUrlResolver) {
+            return;
+        }
+
+        $asDataTable = $this->getAsDataTableAttribute();
+        if (null === $asDataTable) {
+            return;
+        }
+
+        $collectionUrl = $this->apiResourceCollectionUrlResolver->resolveCollectionUrl($asDataTable->entityClass);
+
+        if (null === $collectionUrl) {
+            return;
+        }
+
+        $this->table->ajax($collectionUrl, 'member');
+    }
+
     public function getDataTable(): DataTable
     {
         return $this->table;
@@ -148,6 +180,10 @@ abstract class AbstractDataTable implements DataTableInterface
         $asDataTable = $this->getAsDataTableAttribute();
         if (null === $asDataTable) {
             return null;
+        }
+
+        if (null === $this->em) {
+            throw new \LogicException('EntityManagerInterface is required to auto-configure a DoctrineDataProvider from #[AsDataTable]. Inject it via constructor or setEntityManager().');
         }
 
         $this->autoConfiguredProvider = new DoctrineDataProvider(
@@ -216,13 +252,11 @@ abstract class AbstractDataTable implements DataTableInterface
         return new DefaultSearchStrategyRegistry();
     }
 
-    #[Required]
-    public function setEntityManager(EntityManagerInterface $em): void
+    public function setEntityManager(?EntityManagerInterface $em): void
     {
         $this->em = $em;
     }
 
-    #[Required]
     public function setColumnAutoDetector(?ColumnAutoDetectorInterface $columnAutoDetector): void
     {
         $this->columnAutoDetector = $columnAutoDetector;
@@ -243,7 +277,6 @@ abstract class AbstractDataTable implements DataTableInterface
         if (null === $this->columnAutoDetector) {
             return [];
         }
-
 
         $asDataTable = $this->getAsDataTableAttribute();
         if (null === $asDataTable) {

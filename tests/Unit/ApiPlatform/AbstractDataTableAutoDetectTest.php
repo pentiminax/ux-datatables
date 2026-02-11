@@ -121,6 +121,7 @@ class AutoDetectTestDataTable extends AbstractDataTable
 
     /**
      * @param string[] $groups
+     *
      * @return AbstractColumn[]
      */
     public function callAutoDetectColumns(array $groups = []): array
@@ -155,6 +156,7 @@ class AutoDetectWithGroupsDataTable extends AbstractDataTable
 
     /**
      * @param string[] $groups
+     *
      * @return AbstractColumn[]
      */
     public function callAutoDetectColumns(array $groups = []): array
