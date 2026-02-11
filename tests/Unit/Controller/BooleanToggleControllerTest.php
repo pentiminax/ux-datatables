@@ -6,7 +6,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
-use Pentiminax\UX\DataTables\Controller\BooleanToggleController;
+use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -31,7 +31,7 @@ class BooleanToggleControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($entityManager);
 
-        $controller = new BooleanToggleController($registry);
+        $controller = new AjaxEditController($registry);
         $request    = Request::create(
             '/_ux-datatables/boolean/toggle',
             'PATCH',
@@ -72,7 +72,7 @@ class BooleanToggleControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($entityManager);
 
-        $controller = new BooleanToggleController($registry);
+        $controller = new AjaxEditController($registry);
         $request    = Request::create(
             '/_ux-datatables/boolean/toggle',
             'PATCH',
@@ -93,7 +93,7 @@ class BooleanToggleControllerTest extends TestCase
 
     public function testReturnsNotImplementedWhenDoctrineIsMissing(): void
     {
-        $controller = new BooleanToggleController(null);
+        $controller = new AjaxEditController(null);
         $request    = Request::create('/_ux-datatables/boolean/toggle', 'PATCH');
 
         $response = $controller($request);
@@ -120,7 +120,7 @@ class BooleanToggleControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($entityManager);
 
-        $controller = new BooleanToggleController($registry);
+        $controller = new AjaxEditController($registry);
         $request    = Request::create(
             '/_ux-datatables/boolean/toggle?entity='.urlencode(ToggleBooleanEntityFixture::class).'&fieldName=isEmailAuthEnabled&newValue=false',
             'PATCH'
