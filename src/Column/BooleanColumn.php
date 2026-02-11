@@ -9,7 +9,6 @@ class BooleanColumn extends AbstractColumn
     public const DEFAULT_TOGGLE_URL         = '/datatables/ajax/edit';
     public const OPTION_RENDER_AS_SWITCH    = 'booleanRenderAsSwitch';
     public const OPTION_DEFAULT_STATE       = 'booleanDefaultState';
-    public const OPTION_TOGGLE_URL          = 'booleanToggleUrl';
     public const OPTION_TOGGLE_METHOD       = 'booleanToggleMethod';
     public const OPTION_TOGGLE_ID_FIELD     = 'booleanToggleIdField';
     public const OPTION_TOGGLE_ENTITY_CLASS = 'booleanToggleEntityClass';
@@ -28,16 +27,15 @@ class BooleanColumn extends AbstractColumn
         return $this;
     }
 
-    public function setToggleAjax(string $url, string $idField = 'id', string $method = 'PATCH'): self
+    public function setToggleAjax(string $idField = 'id', string $method = 'PATCH'): self
     {
-        $this->setCustomOption(self::OPTION_TOGGLE_URL, $url);
         $this->setCustomOption(self::OPTION_TOGGLE_ID_FIELD, $idField);
         $this->setCustomOption(self::OPTION_TOGGLE_METHOD, strtoupper($method));
 
         return $this;
     }
 
-    public function setToggleEntityClass(string $entityClass): self
+    public function setEntityClass(string $entityClass): self
     {
         $this->setCustomOption(self::OPTION_TOGGLE_ENTITY_CLASS, ltrim($entityClass, '\\'));
 
@@ -61,14 +59,11 @@ class BooleanColumn extends AbstractColumn
 
     public function jsonSerialize(): array
     {
-        $toggleUrl = $this->getCustomOption(self::OPTION_TOGGLE_URL) ?? self::DEFAULT_TOGGLE_URL;
-
         return array_merge(
             parent::jsonSerialize(),
             array_filter([
                 self::OPTION_RENDER_AS_SWITCH    => $this->isRenderedAsSwitch(),
                 self::OPTION_DEFAULT_STATE       => $this->getDefaultState(),
-                self::OPTION_TOGGLE_URL          => $toggleUrl,
                 self::OPTION_TOGGLE_METHOD       => $this->getCustomOption(self::OPTION_TOGGLE_METHOD),
                 self::OPTION_TOGGLE_ID_FIELD     => $this->getCustomOption(self::OPTION_TOGGLE_ID_FIELD),
                 self::OPTION_TOGGLE_ENTITY_CLASS => $this->getToggleEntityClass(),

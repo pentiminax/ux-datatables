@@ -136,17 +136,16 @@ class default_1 extends Controller {
             const field = target.dataset.field;
             const entity = target.dataset.entity;
             const method = target.dataset.method ?? 'PATCH';
-            const isDefaultEndpoint = this.isDefaultBooleanToggleEndpoint(url);
 
-            if (!url || !id || !field) {
+            if (!id || !field) {
                 target.checked = !target.checked;
-                console.error('Missing URL, ID or field for boolean switch update');
+                console.error('Missing ID or field for boolean switch update');
                 return;
             }
 
-            if (isDefaultEndpoint && !entity) {
+            if (!entity) {
                 target.checked = !target.checked;
-                console.error('Missing entity for default boolean toggle endpoint');
+                console.error('Missing entity for boolean toggle endpoint');
 
                 return;
             }
@@ -156,10 +155,10 @@ class default_1 extends Controller {
 
             try {
                 const response = await toggleBooleanValue({
-                    url: url,
+                    url: url ?? this.getBooleanToggleUrl(),
                     id: parseInt(id),
                     field: field,
-                    entity: entity ?? '',
+                    entity: entity,
                     newValue: target.checked,
                     method: method,
                 });
@@ -224,7 +223,7 @@ class default_1 extends Controller {
 
     configureBooleanColumnRender(column) {
         const defaultState = true === column.booleanDefaultState;
-        const toggleUrl = typeof column.booleanToggleUrl === 'string' ? column.booleanToggleUrl : '';
+        const toggleUrl = this.getBooleanToggleUrl();
         const toggleMethod = typeof column.booleanToggleMethod === 'string' ? column.booleanToggleMethod : 'PATCH';
         const toggleIdField = typeof column.booleanToggleIdField === 'string' ? column.booleanToggleIdField : 'id';
         const toggleEntityClass = typeof column.booleanToggleEntityClass === 'string' ? column.booleanToggleEntityClass : '';
@@ -247,7 +246,7 @@ class default_1 extends Controller {
 
             const rowId = row?.[toggleIdField];
             const checked = boolValue ? ' checked' : '';
-            const disabled = toggleUrl === '' ? ' disabled' : '';
+            const disabled = toggleEntityClass === '' ? ' disabled' : '';
             const escapedId = this.escapeHtml(String(rowId ?? ''));
             const escapedUrl = this.escapeHtml(toggleUrl);
             const escapedField = this.escapeHtml(column.data ?? column.name ?? '');
@@ -258,13 +257,8 @@ class default_1 extends Controller {
         };
     }
 
-    isDefaultBooleanToggleEndpoint(url) {
-        if (!url) {
-            return false;
-        }
-
-        return url.endsWith('/_ux-datatables/boolean/toggle')
-            || /\/_ux-datatables\/boolean\/.+\/toggle$/.test(url);
+    getBooleanToggleUrl() {
+        return '/datatables/ajax/edit';
     }
 
     parseBooleanValue(value, defaultValue = false) {

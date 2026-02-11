@@ -63,8 +63,7 @@ use Pentiminax\UX\DataTables\Column\BooleanColumn;
 
 BooleanColumn::new('active', 'Status')
     ->renderAsSwitch(false) // état initial OFF
-    // Optionnel: URL custom, sinon /_ux-datatables/boolean/toggle
-    ->setToggleAjax('/admin/user/toggle-active', 'id', 'PATCH');
+    ->setToggleAjax('id', 'PATCH');
 ```
 
 Le switch envoie une requête AJAX avec `entity`, `id`, `field` et `value` pour mettre à jour la propriété booléenne.
@@ -76,9 +75,6 @@ Sinon, vous pouvez le définir manuellement:
 BooleanColumn::new('active')
     ->setToggleEntityClass(App\Entity\User::class);
 ```
-
-Le contrôleur fourni par le bundle écoute `POST|PATCH /_ux-datatables/boolean/toggle`.
-La gestion CSRF peut être ajoutée côté application (endpoint custom) si nécessaire.
 
 Add this route import in your Symfony project:
 
