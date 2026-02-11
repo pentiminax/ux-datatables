@@ -6,7 +6,7 @@ use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilderInterface;
-use Pentiminax\UX\DataTables\Controller\BooleanToggleController;
+use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
@@ -96,7 +96,7 @@ class DataTablesBundle extends AbstractBundle
             ->private();
 
         $container->services()
-            ->set('datatables.controller.boolean_toggle', BooleanToggleController::class)
+            ->set('datatables.controller.boolean_toggle', AjaxEditController::class)
             ->arg(0, service('doctrine')->nullOnInvalid())
             ->tag('controller.service_arguments')
             ->public();

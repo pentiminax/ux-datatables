@@ -156,12 +156,12 @@ class default_1 extends Controller {
 
             try {
                 const response = await toggleBooleanValue({
-                    url,
-                    id,
-                    field,
+                    url: url,
+                    id: parseInt(id),
+                    field: field,
                     entity: entity ?? '',
-                    value: target.checked,
-                    method,
+                    newValue: target.checked,
+                    method: method,
                 });
 
                 if (!response.ok) {
