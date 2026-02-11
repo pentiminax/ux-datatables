@@ -6,7 +6,6 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class BooleanColumn extends AbstractColumn
 {
-    public const DEFAULT_TOGGLE_URL         = '/datatables/ajax/edit';
     public const OPTION_RENDER_AS_SWITCH    = 'booleanRenderAsSwitch';
     public const OPTION_DEFAULT_STATE       = 'booleanDefaultState';
     public const OPTION_TOGGLE_METHOD       = 'booleanToggleMethod';
@@ -16,7 +15,7 @@ class BooleanColumn extends AbstractColumn
     public static function new(string $name, string $title = ''): self
     {
         return static::createWithType($name, $title, ColumnType::NUM)
-            ->renderAsSwitch(false);
+            ->renderAsSwitch();
     }
 
     public function renderAsSwitch(bool $defaultState = false): self
