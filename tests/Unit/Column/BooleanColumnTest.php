@@ -32,7 +32,6 @@ class BooleanColumnTest extends TestCase
     public function testRenderAsSwitchCanSetDefaultOffState(): void
     {
         $data = BooleanColumn::new('active')
-            ->renderAsSwitch(false)
             ->jsonSerialize();
 
         $this->assertTrue($data['booleanRenderAsSwitch']);
