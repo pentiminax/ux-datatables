@@ -266,7 +266,7 @@ abstract class AbstractDataTable implements DataTableInterface
                 continue;
             }
 
-            $column->setToggleEntityClass($asDataTable->entityClass);
+            $column->setEntityClass($asDataTable->entityClass);
         }
     }
 

@@ -13,7 +13,6 @@ class BooleanColumnTest extends TestCase
 
         $this->assertTrue($data['booleanRenderAsSwitch']);
         $this->assertFalse($data['booleanDefaultState']);
-        $this->assertSame('/datatables/ajax/edit', $data['booleanToggleUrl']);
         $this->assertSame('num', $data['type']);
     }
 
@@ -21,12 +20,11 @@ class BooleanColumnTest extends TestCase
     {
         $data = BooleanColumn::new('active')
             ->renderAsSwitch(true)
-            ->setToggleAjax('/admin/users/toggle', 'uuid', 'post')
+            ->setToggleAjax('uuid', 'post')
             ->jsonSerialize();
 
         $this->assertTrue($data['booleanRenderAsSwitch']);
         $this->assertTrue($data['booleanDefaultState']);
-        $this->assertSame('/admin/users/toggle', $data['booleanToggleUrl']);
         $this->assertSame('uuid', $data['booleanToggleIdField']);
         $this->assertSame('POST', $data['booleanToggleMethod']);
     }
@@ -44,7 +42,7 @@ class BooleanColumnTest extends TestCase
     public function testEntityClassCanBeConfigured(): void
     {
         $data = BooleanColumn::new('active')
-            ->setToggleEntityClass('App\\Entity\\User')
+            ->setEntityClass('App\\Entity\\User')
             ->jsonSerialize();
 
         $this->assertSame('App\\Entity\\User', $data['booleanToggleEntityClass']);
