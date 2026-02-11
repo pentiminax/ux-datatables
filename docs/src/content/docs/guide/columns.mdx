@@ -56,15 +56,17 @@ DateColumn::new('createdAt', 'Created');
 
 ### BooleanColumn
 
-For boolean values (`true/false`, `1/0`) with visual rendering:
+For boolean values (`true/false`, `1/0`) rendered as Bootstrap switches:
 
 ```php
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 
 BooleanColumn::new('active', 'Status')
-    ->displayAs('badge')         // or 'toggle'
-    ->setLabels('Active', 'Inactive');
+    ->renderAsSwitch(false) // état initial OFF
+    ->setToggleAjax('/admin/user/toggle-active', 'id', 'PATCH');
 ```
+
+`setToggleAjax()` envoie une requête AJAX avec `id`, `field` et `value` pour mettre à jour la propriété booléenne côté serveur.
 
 ## Configuration Methods
 
