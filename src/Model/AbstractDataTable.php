@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
@@ -43,6 +44,8 @@ abstract class AbstractDataTable implements DataTableInterface
     private ?DataProviderInterface $autoConfiguredProvider = null;
 
     private bool $providerAutoConfigured = false;
+
+    private ?ColumnAutoDetectorInterface $columnAutoDetector = null;
 
     private ?RowMapperInterface $rowMapper = null;
 
@@ -217,6 +220,43 @@ abstract class AbstractDataTable implements DataTableInterface
     public function setEntityManager(EntityManagerInterface $em): void
     {
         $this->em = $em;
+    }
+
+    #[Required]
+    public function setColumnAutoDetector(?ColumnAutoDetectorInterface $columnAutoDetector): void
+    {
+        $this->columnAutoDetector = $columnAutoDetector;
+    }
+
+    /**
+     * Auto-detect columns from API Platform metadata.
+     *
+     * Returns an empty array when auto-detection is not available (API Platform not installed,
+     * no #[AsDataTable] attribute, or entity is not an ApiResource).
+     *
+     * @param string[] $groups Serialization groups to filter properties (defaults to AsDataTable::$serializationGroups)
+     *
+     * @return AbstractColumn[]
+     */
+    protected function autoDetectColumns(array $groups = []): array
+    {
+        if (null === $this->columnAutoDetector) {
+            return [];
+        }
+
+
+        $asDataTable = $this->getAsDataTableAttribute();
+        if (null === $asDataTable) {
+            return [];
+        }
+
+        $resolvedGroups = [] !== $groups ? $groups : $asDataTable->serializationGroups;
+
+        if (!$this->columnAutoDetector->supports($asDataTable->entityClass)) {
+            return [];
+        }
+
+        return $this->columnAutoDetector->detectColumns($asDataTable->entityClass, $resolvedGroups);
     }
 
     public function getColumnByName(string $name): ?ColumnInterface
