@@ -11,29 +11,32 @@ class BooleanColumnTest extends TestCase
     {
         $data = BooleanColumn::new('active', 'Active')->jsonSerialize();
 
-        $this->assertSame('badge', $data['booleanDisplayAs']);
-        $this->assertSame('Yes', $data['booleanTrueLabel']);
-        $this->assertSame('No', $data['booleanFalseLabel']);
+        $this->assertTrue($data['booleanRenderAsSwitch']);
+        $this->assertFalse($data['booleanDefaultState']);
         $this->assertSame('num', $data['type']);
     }
 
-    public function testDisplayModeAndLabelsCanBeCustomized(): void
+    public function testSwitchStateAndAjaxCanBeConfigured(): void
     {
         $data = BooleanColumn::new('active')
-            ->displayAs(BooleanColumn::DISPLAY_AS_TOGGLE)
-            ->setLabels('Active', 'Inactive')
+            ->renderAsSwitch(true)
+            ->setToggleAjax('/admin/users/toggle', 'uuid', 'post')
             ->jsonSerialize();
 
-        $this->assertSame('toggle', $data['booleanDisplayAs']);
-        $this->assertSame('Active', $data['booleanTrueLabel']);
-        $this->assertSame('Inactive', $data['booleanFalseLabel']);
+        $this->assertTrue($data['booleanRenderAsSwitch']);
+        $this->assertTrue($data['booleanDefaultState']);
+        $this->assertSame('/admin/users/toggle', $data['booleanToggleUrl']);
+        $this->assertSame('uuid', $data['booleanToggleIdField']);
+        $this->assertSame('POST', $data['booleanToggleMethod']);
     }
 
-    public function testDisplayModeValidation(): void
+    public function testRenderAsSwitchCanSetDefaultOffState(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid display mode');
+        $data = BooleanColumn::new('active')
+            ->renderAsSwitch(false)
+            ->jsonSerialize();
 
-        BooleanColumn::new('active')->displayAs('chip');
+        $this->assertTrue($data['booleanRenderAsSwitch']);
+        $this->assertFalse($data['booleanDefaultState']);
     }
 }

@@ -6,59 +6,56 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class BooleanColumn extends AbstractColumn
 {
-    public const DISPLAY_AS_BADGE   = 'badge';
-    public const DISPLAY_AS_TOGGLE  = 'toggle';
-    public const OPTION_DISPLAY_AS  = 'booleanDisplayAs';
-    public const OPTION_TRUE_LABEL  = 'booleanTrueLabel';
-    public const OPTION_FALSE_LABEL = 'booleanFalseLabel';
+    public const OPTION_RENDER_AS_SWITCH = 'booleanRenderAsSwitch';
+    public const OPTION_DEFAULT_STATE    = 'booleanDefaultState';
+    public const OPTION_TOGGLE_URL       = 'booleanToggleUrl';
+    public const OPTION_TOGGLE_METHOD    = 'booleanToggleMethod';
+    public const OPTION_TOGGLE_ID_FIELD  = 'booleanToggleIdField';
 
     public static function new(string $name, string $title = ''): self
     {
         return static::createWithType($name, $title, ColumnType::NUM)
-            ->displayAs(self::DISPLAY_AS_BADGE)
-            ->setLabels('Yes', 'No');
+            ->renderAsSwitch(false);
     }
 
-    public function displayAs(string $displayMode): self
+    public function renderAsSwitch(bool $defaultState = false): self
     {
-        if (!\in_array($displayMode, [self::DISPLAY_AS_BADGE, self::DISPLAY_AS_TOGGLE], true)) {
-            throw new \InvalidArgumentException(sprintf('Invalid display mode "%s". Allowed values are "badge" and "toggle".', $displayMode));
-        }
-
-        $this->setCustomOption(self::OPTION_DISPLAY_AS, $displayMode);
+        $this->setCustomOption(self::OPTION_RENDER_AS_SWITCH, true);
+        $this->setCustomOption(self::OPTION_DEFAULT_STATE, $defaultState);
 
         return $this;
     }
 
-    public function setLabels(string $trueLabel, string $falseLabel): self
+    public function setToggleAjax(string $url, string $idField = 'id', string $method = 'PATCH'): self
     {
-        $this->setCustomOption(self::OPTION_TRUE_LABEL, $trueLabel);
-        $this->setCustomOption(self::OPTION_FALSE_LABEL, $falseLabel);
+        $this->setCustomOption(self::OPTION_TOGGLE_URL, $url);
+        $this->setCustomOption(self::OPTION_TOGGLE_ID_FIELD, $idField);
+        $this->setCustomOption(self::OPTION_TOGGLE_METHOD, strtoupper($method));
 
         return $this;
     }
 
-    public function getDisplayMode(): string
+    public function isRenderedAsSwitch(): bool
     {
-        return $this->getCustomOption(self::OPTION_DISPLAY_AS) ?? self::DISPLAY_AS_BADGE;
+        return $this->getCustomOption(self::OPTION_RENDER_AS_SWITCH) ?? true;
     }
 
-    public function getTrueLabel(): string
+    public function getDefaultState(): bool
     {
-        return $this->getCustomOption(self::OPTION_TRUE_LABEL) ?? 'Yes';
-    }
-
-    public function getFalseLabel(): string
-    {
-        return $this->getCustomOption(self::OPTION_FALSE_LABEL) ?? 'No';
+        return $this->getCustomOption(self::OPTION_DEFAULT_STATE) ?? false;
     }
 
     public function jsonSerialize(): array
     {
-        return array_merge(parent::jsonSerialize(), [
-            self::OPTION_DISPLAY_AS  => $this->getDisplayMode(),
-            self::OPTION_TRUE_LABEL  => $this->getTrueLabel(),
-            self::OPTION_FALSE_LABEL => $this->getFalseLabel(),
-        ]);
+        return array_merge(
+            parent::jsonSerialize(),
+            array_filter([
+                self::OPTION_RENDER_AS_SWITCH => $this->isRenderedAsSwitch(),
+                self::OPTION_DEFAULT_STATE    => $this->getDefaultState(),
+                self::OPTION_TOGGLE_URL       => $this->getCustomOption(self::OPTION_TOGGLE_URL),
+                self::OPTION_TOGGLE_METHOD    => $this->getCustomOption(self::OPTION_TOGGLE_METHOD),
+                self::OPTION_TOGGLE_ID_FIELD  => $this->getCustomOption(self::OPTION_TOGGLE_ID_FIELD),
+            ], static fn (mixed $value) => null !== $value && '' !== $value)
+        );
     }
 }

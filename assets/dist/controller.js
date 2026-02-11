@@ -10,6 +10,7 @@ import {loadColReorderLibrary} from './functions/loadColReorderLibrary.js';
 import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary.js";
 import {loadScrollerLibrary} from "./functions/loadScrollerLibrary.js";
 import {deleteRow} from "./functions/deleteRow.js";
+import {toggleBooleanValue} from "./functions/toggleBooleanValue.js";
 
 class default_1 extends Controller {
     constructor() {
@@ -124,6 +125,48 @@ class default_1 extends Controller {
             }
         });
 
+        this.element.addEventListener('change', async (e) => {
+            const target = e.target;
+            if (!(target instanceof HTMLInputElement) || !target.matches('.boolean-switch-action')) {
+                return;
+            }
+
+            const url = target.dataset.url;
+            const id = target.dataset.id;
+            const field = target.dataset.field;
+            const method = target.dataset.method ?? 'PATCH';
+
+            if (!url || !id || !field) {
+                target.checked = !target.checked;
+                console.error('Missing URL, ID or field for boolean switch update');
+
+                return;
+            }
+
+            const previousState = !target.checked;
+            target.disabled = true;
+
+            try {
+                const response = await toggleBooleanValue({
+                    url,
+                    id,
+                    field,
+                    value: target.checked,
+                    method,
+                });
+
+                if (!response.ok) {
+                    target.checked = previousState;
+                    console.error(`Boolean switch update failed with status ${response.status}`);
+                }
+            } catch (error) {
+                target.checked = previousState;
+                console.error('Boolean switch update failed', error);
+            } finally {
+                target.disabled = false;
+            }
+        });
+
         this.dispatchEvent('connect', {table: this.table});
     }
 
@@ -167,47 +210,48 @@ class default_1 extends Controller {
     }
 
     isBooleanColumn(column) {
-        return typeof column?.booleanDisplayAs === 'string';
+        return true === column?.booleanRenderAsSwitch;
     }
 
     configureBooleanColumnRender(column) {
-        const displayMode = column.booleanDisplayAs === 'toggle' ? 'toggle' : 'badge';
-        const trueLabel = typeof column.booleanTrueLabel === 'string' ? column.booleanTrueLabel : 'Yes';
-        const falseLabel = typeof column.booleanFalseLabel === 'string' ? column.booleanFalseLabel : 'No';
+        const defaultState = true === column.booleanDefaultState;
+        const toggleUrl = typeof column.booleanToggleUrl === 'string' ? column.booleanToggleUrl : '';
+        const toggleMethod = typeof column.booleanToggleMethod === 'string' ? column.booleanToggleMethod : 'PATCH';
+        const toggleIdField = typeof column.booleanToggleIdField === 'string' ? column.booleanToggleIdField : 'id';
 
         column.type ??= 'num';
-        column.render = (data, type) => {
-            const boolValue = this.parseBooleanValue(data);
-            const label = boolValue ? trueLabel : falseLabel;
+        column.render = (data, type, row) => {
+            const boolValue = this.parseBooleanValue(data, defaultState);
 
             if (type === 'sort' || type === 'type') {
                 return boolValue ? 1 : 0;
             }
 
             if (type === 'filter') {
-                return label;
+                return boolValue ? 'ON' : 'OFF';
             }
 
             if (type !== 'display') {
-                return data;
+                return boolValue ? 'ON' : 'OFF';
             }
 
-            const escapedLabel = this.escapeHtml(label);
+            const rowId = row?.[toggleIdField];
+            const checked = boolValue ? ' checked' : '';
+            const disabled = toggleUrl === '' ? ' disabled' : '';
+            const escapedId = this.escapeHtml(String(rowId ?? ''));
+            const escapedUrl = this.escapeHtml(toggleUrl);
+            const escapedField = this.escapeHtml(column.data ?? column.name ?? '');
+            const escapedMethod = this.escapeHtml(toggleMethod.toUpperCase());
 
-            if (displayMode === 'toggle') {
-                const icon = boolValue ? '&#10003;' : '&#10005;';
-                const textClass = boolValue ? 'text-success' : 'text-danger';
-
-                return `<span class="fw-semibold ${textClass}" role="img" aria-label="${escapedLabel}" title="${escapedLabel}">${icon}</span>`;
-            }
-
-            const badgeClass = boolValue ? 'bg-success' : 'bg-danger';
-
-            return `<span class="badge ${badgeClass}">${escapedLabel}</span>`;
+            return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-method="${escapedMethod}"${checked}${disabled}></div>`;
         };
     }
 
-    parseBooleanValue(value) {
+    parseBooleanValue(value, defaultValue = false) {
+        if (null === value || undefined === value || '' === value) {
+            return defaultValue;
+        }
+
         if (typeof value === 'boolean') {
             return value;
         }
