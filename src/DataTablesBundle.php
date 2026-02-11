@@ -96,7 +96,7 @@ class DataTablesBundle extends AbstractBundle
             ->private();
 
         $container->services()
-            ->set('datatables.controller.boolean_toggle', AjaxEditController::class)
+            ->set('datatables.controller.ajax_edit', AjaxEditController::class)
             ->arg(0, service('doctrine')->nullOnInvalid())
             ->arg(1, service('property_accessor'))
             ->tag('controller.service_arguments')

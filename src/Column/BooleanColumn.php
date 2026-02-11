@@ -6,7 +6,7 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class BooleanColumn extends AbstractColumn
 {
-    public const DEFAULT_TOGGLE_URL         = '/_ux-datatables/boolean/toggle';
+    public const DEFAULT_TOGGLE_URL         = '/datatables/ajax/edit';
     public const OPTION_RENDER_AS_SWITCH    = 'booleanRenderAsSwitch';
     public const OPTION_DEFAULT_STATE       = 'booleanDefaultState';
     public const OPTION_TOGGLE_URL          = 'booleanToggleUrl';

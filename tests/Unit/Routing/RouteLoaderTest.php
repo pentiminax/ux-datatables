@@ -11,16 +11,16 @@ class RouteLoaderTest extends TestCase
     {
         $routes = (new RouteLoader())->loadRoutes();
 
-        $toggleRoute = $routes->get('ux_datatables_boolean_toggle');
+        $toggleRoute = $routes->get('ux_datatables_ajax_edit');
         $this->assertNotNull($toggleRoute);
-        $this->assertSame('/_ux-datatables/boolean/toggle', $toggleRoute->getPath());
-        $this->assertSame('datatables.controller.boolean_toggle', $toggleRoute->getDefault('_controller'));
+        $this->assertSame('/datatables/ajax/edit', $toggleRoute->getPath());
+        $this->assertSame('datatables.controller.ajax_edit', $toggleRoute->getDefault('_controller'));
         $this->assertSame(['POST', 'PATCH'], $toggleRoute->getMethods());
 
-        $toggleByIdRoute = $routes->get('ux_datatables_boolean_toggle_by_id');
+        $toggleByIdRoute = $routes->get('ux_datatables_ajax_edit_by_id');
         $this->assertNotNull($toggleByIdRoute);
-        $this->assertSame('/_ux-datatables/boolean/{id}/toggle', $toggleByIdRoute->getPath());
-        $this->assertSame('datatables.controller.boolean_toggle', $toggleByIdRoute->getDefault('_controller'));
+        $this->assertSame('/datatables/boolean/{id}/toggle', $toggleByIdRoute->getPath());
+        $this->assertSame('datatables.controller.ajax_edit', $toggleByIdRoute->getDefault('_controller'));
         $this->assertSame(['POST', 'PATCH'], $toggleByIdRoute->getMethods());
     }
 }

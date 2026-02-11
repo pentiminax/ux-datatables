@@ -33,7 +33,7 @@ class BooleanToggleControllerTest extends TestCase
 
         $controller = new AjaxEditController($registry);
         $request    = Request::create(
-            '/_ux-datatables/boolean/toggle',
+            '/datatables/ajax/edit',
             'PATCH',
             server: ['CONTENT_TYPE' => 'application/json'],
             content: json_encode([
@@ -74,7 +74,7 @@ class BooleanToggleControllerTest extends TestCase
 
         $controller = new AjaxEditController($registry);
         $request    = Request::create(
-            '/_ux-datatables/boolean/toggle',
+            '/datatables/ajax/edit',
             'PATCH',
             server: ['CONTENT_TYPE' => 'application/json'],
             content: json_encode([
@@ -94,7 +94,7 @@ class BooleanToggleControllerTest extends TestCase
     public function testReturnsNotImplementedWhenDoctrineIsMissing(): void
     {
         $controller = new AjaxEditController(null);
-        $request    = Request::create('/_ux-datatables/boolean/toggle', 'PATCH');
+        $request    = Request::create('/datatables/ajax/edit', 'PATCH');
 
         $response = $controller($request);
 
@@ -122,7 +122,7 @@ class BooleanToggleControllerTest extends TestCase
 
         $controller = new AjaxEditController($registry);
         $request    = Request::create(
-            '/_ux-datatables/boolean/toggle?entity='.urlencode(ToggleBooleanEntityFixture::class).'&fieldName=isEmailAuthEnabled&newValue=false',
+            '/datatables/ajax/edit?entity='.urlencode(ToggleBooleanEntityFixture::class).'&fieldName=isEmailAuthEnabled&newValue=false',
             'PATCH'
         );
 

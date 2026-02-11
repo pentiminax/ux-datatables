@@ -12,16 +12,9 @@ final class RouteLoader implements RouteLoaderInterface
     {
         $routes = new RouteCollection();
 
-        $routes->add('ux_datatables_boolean_toggle', new Route(
-            path: '/_ux-datatables/boolean/toggle',
-            defaults: ['_controller' => 'datatables.controller.boolean_toggle'],
-            methods: ['POST', 'PATCH'],
-        ));
-
-        $routes->add('ux_datatables_boolean_toggle_by_id', new Route(
-            path: '/_ux-datatables/boolean/{id}/toggle',
-            defaults: ['_controller' => 'datatables.controller.boolean_toggle'],
-            requirements: ['id' => '.+'],
+        $routes->add('ux_datatables_ajax_edit', new Route(
+            path: '/datatables/ajax/edit',
+            defaults: ['_controller' => 'datatables.controller.ajax_edit'],
             methods: ['POST', 'PATCH'],
         ));
 
