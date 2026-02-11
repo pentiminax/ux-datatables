@@ -134,11 +134,12 @@ class default_1 extends Controller {
             const url = target.dataset.url;
             const id = target.dataset.id;
             const field = target.dataset.field;
+            const entity = target.dataset.entity;
             const method = target.dataset.method ?? 'PATCH';
 
-            if (!url || !id || !field) {
+            if (!url || !id || !field || !entity) {
                 target.checked = !target.checked;
-                console.error('Missing URL, ID or field for boolean switch update');
+                console.error('Missing URL, ID, entity or field for boolean switch update');
 
                 return;
             }
@@ -151,6 +152,7 @@ class default_1 extends Controller {
                     url,
                     id,
                     field,
+                    entity,
                     value: target.checked,
                     method,
                 });
@@ -218,6 +220,7 @@ class default_1 extends Controller {
         const toggleUrl = typeof column.booleanToggleUrl === 'string' ? column.booleanToggleUrl : '';
         const toggleMethod = typeof column.booleanToggleMethod === 'string' ? column.booleanToggleMethod : 'PATCH';
         const toggleIdField = typeof column.booleanToggleIdField === 'string' ? column.booleanToggleIdField : 'id';
+        const toggleEntityClass = typeof column.booleanToggleEntityClass === 'string' ? column.booleanToggleEntityClass : '';
 
         column.type ??= 'num';
         column.render = (data, type, row) => {
@@ -237,13 +240,14 @@ class default_1 extends Controller {
 
             const rowId = row?.[toggleIdField];
             const checked = boolValue ? ' checked' : '';
-            const disabled = toggleUrl === '' ? ' disabled' : '';
+            const disabled = toggleUrl === '' || toggleEntityClass === '' ? ' disabled' : '';
             const escapedId = this.escapeHtml(String(rowId ?? ''));
             const escapedUrl = this.escapeHtml(toggleUrl);
             const escapedField = this.escapeHtml(column.data ?? column.name ?? '');
             const escapedMethod = this.escapeHtml(toggleMethod.toUpperCase());
+            const escapedEntityClass = this.escapeHtml(toggleEntityClass);
 
-            return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-method="${escapedMethod}"${checked}${disabled}></div>`;
+            return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-entity="${escapedEntityClass}" data-method="${escapedMethod}"${checked}${disabled}></div>`;
         };
     }
 

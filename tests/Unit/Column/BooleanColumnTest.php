@@ -13,6 +13,7 @@ class BooleanColumnTest extends TestCase
 
         $this->assertTrue($data['booleanRenderAsSwitch']);
         $this->assertFalse($data['booleanDefaultState']);
+        $this->assertSame('/_ux-datatables/boolean/toggle', $data['booleanToggleUrl']);
         $this->assertSame('num', $data['type']);
     }
 
@@ -38,5 +39,14 @@ class BooleanColumnTest extends TestCase
 
         $this->assertTrue($data['booleanRenderAsSwitch']);
         $this->assertFalse($data['booleanDefaultState']);
+    }
+
+    public function testEntityClassCanBeConfigured(): void
+    {
+        $data = BooleanColumn::new('active')
+            ->setToggleEntityClass('App\\Entity\\User')
+            ->jsonSerialize();
+
+        $this->assertSame('App\\Entity\\User', $data['booleanToggleEntityClass']);
     }
 }
