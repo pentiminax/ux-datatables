@@ -2,6 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\HtmlColumn;
 use Pentiminax\UX\DataTables\Column\HtmlNumberColumn;
@@ -45,6 +46,7 @@ class ConcreteColumnFactoryTest extends TestCase
     {
         yield 'text' => [TextColumn::class, ColumnType::STRING];
         yield 'text-utf8' => [Utf8TextColumn::class, ColumnType::STRING_UTF8];
+        yield 'boolean' => [BooleanColumn::class, ColumnType::NUM];
         yield 'date' => [DateColumn::class, ColumnType::DATE];
         yield 'number' => [NumberColumn::class, ColumnType::NUM];
         yield 'number-formatted' => [NumberFormatColumn::class, ColumnType::NUM_FMT];

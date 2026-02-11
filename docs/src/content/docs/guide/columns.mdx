@@ -16,9 +16,11 @@ Use the static `new()` method on the column type:
 ```php
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 
 $nameColumn = TextColumn::new('firstName', 'First Name');
 $ageColumn = NumberColumn::new('age', 'Age');
+$activeColumn = BooleanColumn::new('active', 'Active');
 ```
 
 The first argument is the data key (maps to your JSON/array key), and the second is the display title.
@@ -50,6 +52,18 @@ For date values:
 use Pentiminax\UX\DataTables\Column\DateColumn;
 
 DateColumn::new('createdAt', 'Created');
+```
+
+### BooleanColumn
+
+For boolean values (`true/false`, `1/0`) with visual rendering:
+
+```php
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
+
+BooleanColumn::new('active', 'Status')
+    ->displayAs('badge')         // or 'toggle'
+    ->setLabels('Active', 'Inactive');
 ```
 
 ## Configuration Methods
@@ -182,7 +196,7 @@ The `ColumnType` enum controls DataTables' internal sorting and search algorithm
 | Type | Description |
 |------|-------------|
 | `ColumnType::STRING` | Text content (default) |
-| `ColumnType::NUM` | Numeric values |
+| `ColumnType::NUM` | Numeric values (also used by `BooleanColumn` for sorting) |
 | `ColumnType::NUM_FMT` | Formatted numbers ($1,000) |
 | `ColumnType::DATE` | Date values |
 | `ColumnType::HTML` | HTML content |
