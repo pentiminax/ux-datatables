@@ -62,8 +62,6 @@ For boolean values (`true/false`, `1/0`) rendered as Bootstrap switches:
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 
 BooleanColumn::new('active', 'Status')
-    ->renderAsSwitch(false) // initial OFF state
-    ->setToggleAjax('id', 'PATCH');
 ```
 
 The switch sends an AJAX request with `entity`, `id`, `field`, and `value` to update the boolean property.
