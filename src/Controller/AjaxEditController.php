@@ -56,7 +56,7 @@ final class AjaxEditController
 
         $newValue = $payload->newValue;
 
-        if (!$this->writeBooleanValue($entity, $field, $newValue)) {
+        if (!$this->updateProperty($entity, $field, $newValue)) {
             return $this->jsonError(sprintf('Unable to write "%s" on the entity.', $field), Response::HTTP_BAD_REQUEST);
         }
 
@@ -65,7 +65,7 @@ final class AjaxEditController
         return new Response($newValue ? '1' : '0');
     }
 
-    private function writeBooleanValue(object $entity, string $field, bool $value): bool
+    private function updateProperty(object $entity, string $field, bool $value): bool
     {
         if (!$this->propertyAccessor->isWritable($entity, $field)) {
             return false;
@@ -74,16 +74,6 @@ final class AjaxEditController
         $this->propertyAccessor->setValue($entity, $field, $value);
 
         return true;
-    }
-
-    private function buildAccessorSuffix(string $property): string
-    {
-        if (str_contains($property, '_') || str_contains($property, '-')) {
-            $property = str_replace(['-', '_'], ' ', $property);
-            $property = str_replace(' ', '', ucwords($property));
-        }
-
-        return ucfirst($property);
     }
 
     private function jsonError(string $message, int $status): JsonResponse
