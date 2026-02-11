@@ -18,7 +18,7 @@ final class AjaxEditController
     ) {
     }
 
-    public function __invoke(Request $request, #[MapRequestPayload] AjaxEditRequestDto $payload): JsonResponse
+    public function __invoke(#[MapRequestPayload] AjaxEditRequestDto $payload): Response
     {
         if (null === $this->doctrine) {
             return $this->jsonError('Doctrine is required to update boolean values.', Response::HTTP_NOT_IMPLEMENTED);
@@ -60,13 +60,7 @@ final class AjaxEditController
 
         $manager->flush();
 
-        return new JsonResponse([
-            'success' => true,
-            'id'      => $id,
-            'entity'  => $entityClass,
-            'field'   => $field,
-            'value'   => $newValue,
-        ]);
+        return new Response($newValue ? '1' : '0');
     }
 
     private function writeBooleanValue(object $entity, string $field, bool $value): bool
