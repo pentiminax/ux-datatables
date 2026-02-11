@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\ContainsSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\EmptySearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\EndsWithSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\EqualSearchStrategy;
@@ -225,21 +226,7 @@ abstract class AbstractDataTable implements DataTableInterface
      */
     protected function createSearchStrategyRegistry(): SearchStrategyRegistry
     {
-        return new SearchStrategyRegistry([
-            new EqualSearchStrategy(),
-            new NotEqualSearchStrategy(),
-            new ContainsSearchStrategy(),
-            new NotContainsSearchStrategy(),
-            new StartsWithSearchStrategy(),
-            new EndsWithSearchStrategy(),
-            new GreaterThanSearchStrategy(),
-            new GreaterOrEqualSearchStrategy(),
-            new LessThanSearchStrategy(),
-            new LessOrEqualSearchStrategy(),
-            new EmptySearchStrategy(),
-            new NotEmptySearchStrategy(),
-            new InListSearchStrategy(),
-        ]);
+        return new DefaultSearchStrategyRegistry();
     }
 
     #[Required]
