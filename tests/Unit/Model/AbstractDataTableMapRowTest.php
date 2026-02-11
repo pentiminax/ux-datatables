@@ -62,6 +62,19 @@ final class AbstractDataTableMapRowTest extends TestCase
             'meta.releasedAt' => '1979-05-25',
         ], $table->mapRowPublic($row));
     }
+
+    public function testMapsBooleanPropertyWithIsPrefixedGetter(): void
+    {
+        $table = new MapRowTestTable([
+            TextColumn::new('isEmailAuthEnabled'),
+        ]);
+
+        $row = new BooleanFlagRow(true);
+
+        $this->assertSame([
+            'isEmailAuthEnabled' => true,
+        ], $table->mapRowPublic($row));
+    }
 }
 
 final class MapRowTestTable extends AbstractDataTable
@@ -143,5 +156,17 @@ final class MovieWithMetaRow
     public function getMeta(): MetaRow
     {
         return $this->meta;
+    }
+}
+
+final class BooleanFlagRow
+{
+    public function __construct(private readonly bool $isEmailAuthEnabled)
+    {
+    }
+
+    public function isEmailAuthEnabled(): bool
+    {
+        return $this->isEmailAuthEnabled;
     }
 }

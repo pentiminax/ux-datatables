@@ -136,10 +136,17 @@ class default_1 extends Controller {
             const field = target.dataset.field;
             const entity = target.dataset.entity;
             const method = target.dataset.method ?? 'PATCH';
+            const isDefaultEndpoint = this.isDefaultBooleanToggleEndpoint(url);
 
-            if (!url || !id || !field || !entity) {
+            if (!url || !id || !field) {
                 target.checked = !target.checked;
-                console.error('Missing URL, ID, entity or field for boolean switch update');
+                console.error('Missing URL, ID or field for boolean switch update');
+                return;
+            }
+
+            if (isDefaultEndpoint && !entity) {
+                target.checked = !target.checked;
+                console.error('Missing entity for default boolean toggle endpoint');
 
                 return;
             }
@@ -152,7 +159,7 @@ class default_1 extends Controller {
                     url,
                     id,
                     field,
-                    entity,
+                    entity: entity ?? '',
                     value: target.checked,
                     method,
                 });
@@ -240,7 +247,7 @@ class default_1 extends Controller {
 
             const rowId = row?.[toggleIdField];
             const checked = boolValue ? ' checked' : '';
-            const disabled = toggleUrl === '' || toggleEntityClass === '' ? ' disabled' : '';
+            const disabled = toggleUrl === '' ? ' disabled' : '';
             const escapedId = this.escapeHtml(String(rowId ?? ''));
             const escapedUrl = this.escapeHtml(toggleUrl);
             const escapedField = this.escapeHtml(column.data ?? column.name ?? '');
@@ -249,6 +256,15 @@ class default_1 extends Controller {
 
             return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-entity="${escapedEntityClass}" data-method="${escapedMethod}"${checked}${disabled}></div>`;
         };
+    }
+
+    isDefaultBooleanToggleEndpoint(url) {
+        if (!url) {
+            return false;
+        }
+
+        return url.endsWith('/_ux-datatables/boolean/toggle')
+            || /\/_ux-datatables\/boolean\/.+\/toggle$/.test(url);
     }
 
     parseBooleanValue(value, defaultValue = false) {
