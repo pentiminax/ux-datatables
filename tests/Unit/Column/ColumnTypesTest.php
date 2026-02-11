@@ -3,6 +3,7 @@
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\HtmlColumn;
 use Pentiminax\UX\DataTables\Column\HtmlNumberColumn;
@@ -66,6 +67,7 @@ class ColumnTypesTest extends TestCase
     {
         yield 'text' => [TextColumn::new('col_text'), ColumnType::STRING];
         yield 'text-utf8' => [Utf8TextColumn::new('col_utf8'), ColumnType::STRING_UTF8];
+        yield 'boolean' => [BooleanColumn::new('col_bool'), ColumnType::NUM];
         yield 'date' => [DateColumn::new('col_date'), ColumnType::DATE];
         yield 'number' => [NumberColumn::new('col_number'), ColumnType::NUM];
         yield 'number-formatted' => [NumberFormatColumn::new('col_num_fmt'), ColumnType::NUM_FMT];

@@ -95,6 +95,10 @@ export default class extends Controller {
         }
 
         payload.columns.forEach((column: any): void => {
+            if (this.isBooleanColumn(column)) {
+                this.configureBooleanColumnRender(column);
+            }
+
             if (column.action === 'DELETE') {
                 column.render = function (data: any, type: string, row: any) {
                     const className = `${column.action.toLowerCase()}-action`;
@@ -167,5 +171,72 @@ export default class extends Controller {
       
     private isScrollerExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.scroller;
+    }
+
+    private isBooleanColumn(column: Record<string, any>): boolean {
+        return typeof column?.booleanDisplayAs === 'string';
+    }
+
+    private configureBooleanColumnRender(column: Record<string, any>): void {
+        const displayMode = column.booleanDisplayAs === 'toggle' ? 'toggle' : 'badge';
+        const trueLabel = typeof column.booleanTrueLabel === 'string' ? column.booleanTrueLabel : 'Yes';
+        const falseLabel = typeof column.booleanFalseLabel === 'string' ? column.booleanFalseLabel : 'No';
+
+        column.type ??= 'num';
+        column.render = (data: any, type: string): any => {
+            const boolValue = this.parseBooleanValue(data);
+            const label = boolValue ? trueLabel : falseLabel;
+
+            if (type === 'sort' || type === 'type') {
+                return boolValue ? 1 : 0;
+            }
+
+            if (type === 'filter') {
+                return label;
+            }
+
+            if (type !== 'display') {
+                return data;
+            }
+
+            const escapedLabel = this.escapeHtml(label);
+
+            if (displayMode === 'toggle') {
+                const icon = boolValue ? '&#10003;' : '&#10005;';
+                const textClass = boolValue ? 'text-success' : 'text-danger';
+
+                return `<span class="fw-semibold ${textClass}" role="img" aria-label="${escapedLabel}" title="${escapedLabel}">${icon}</span>`;
+            }
+
+            const badgeClass = boolValue ? 'bg-success' : 'bg-danger';
+
+            return `<span class="badge ${badgeClass}">${escapedLabel}</span>`;
+        };
+    }
+
+    private parseBooleanValue(value: any): boolean {
+        if (typeof value === 'boolean') {
+            return value;
+        }
+
+        if (typeof value === 'number') {
+            return value !== 0;
+        }
+
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
+        }
+
+        return false;
+    }
+
+    private escapeHtml(value: string): string {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 }
