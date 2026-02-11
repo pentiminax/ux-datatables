@@ -9,7 +9,7 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
  * corresponding strategy implementations. Unknown logic types fall back
  * to the default strategy (ContainsSearchStrategy).
  */
-final class SearchStrategyRegistry
+class SearchStrategyRegistry
 {
     /**
      * @var array<string, SearchStrategyInterface>
