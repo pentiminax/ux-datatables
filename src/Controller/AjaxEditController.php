@@ -7,7 +7,6 @@ use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectRepository;
 use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
@@ -16,7 +15,7 @@ final class AjaxEditController
 {
     public function __construct(
         private readonly ?ManagerRegistry $doctrine = null,
-        private readonly PropertyAccessorInterface $propertyAccessor
+        private readonly PropertyAccessorInterface $propertyAccessor,
     ) {
     }
 
