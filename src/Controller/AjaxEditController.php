@@ -10,11 +10,13 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 final class AjaxEditController
 {
     public function __construct(
         private readonly ?ManagerRegistry $doctrine = null,
+        private readonly PropertyAccessorInterface $propertyAccessor
     ) {
     }
 
@@ -65,29 +67,11 @@ final class AjaxEditController
 
     private function writeBooleanValue(object $entity, string $field, bool $value): bool
     {
-        $accessor = $this->buildAccessorSuffix($field);
-        $setter   = sprintf('set%s', $accessor);
-
-        if (\is_callable([$entity, $setter])) {
-            $entity->$setter($value);
-
-            return true;
-        }
-
-        if (!property_exists($entity, $field)) {
+        if (!$this->propertyAccessor->isWritable($entity, $field)) {
             return false;
         }
 
-        $reflection = new \ReflectionObject($entity);
-        if (!$reflection->hasProperty($field)) {
-            return false;
-        }
-
-        $property = $reflection->getProperty($field);
-        if (!$property->isPublic()) {
-            $property->setAccessible(true);
-        }
-        $property->setValue($entity, $value);
+        $this->propertyAccessor->setValue($entity, $field, $value);
 
         return true;
     }
