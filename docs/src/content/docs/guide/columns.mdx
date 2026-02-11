@@ -63,10 +63,33 @@ use Pentiminax\UX\DataTables\Column\BooleanColumn;
 
 BooleanColumn::new('active', 'Status')
     ->renderAsSwitch(false) // état initial OFF
+    // Optionnel: URL custom, sinon /_ux-datatables/boolean/toggle
     ->setToggleAjax('/admin/user/toggle-active', 'id', 'PATCH');
 ```
 
-`setToggleAjax()` envoie une requête AJAX avec `id`, `field` et `value` pour mettre à jour la propriété booléenne côté serveur.
+Le switch envoie une requête AJAX avec `entity`, `id`, `field` et `value` pour mettre à jour la propriété booléenne.
+
+Si votre table utilise `#[AsDataTable(Entity::class)]`, `entity` est injecté automatiquement dans le `BooleanColumn`.
+Sinon, vous pouvez le définir manuellement:
+
+```php
+BooleanColumn::new('active')
+    ->setToggleEntityClass(App\Entity\User::class);
+```
+
+Le contrôleur fourni par le bundle écoute `POST|PATCH /_ux-datatables/boolean/toggle`.
+La gestion CSRF peut être ajoutée côté application (endpoint custom) si nécessaire.
+
+Add this route import in your Symfony project:
+
+```php
+// config/routes/ux_datatables.php
+use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
+
+return static function (RoutingConfigurator $routes): void {
+    $routes->import('@DataTablesBundle/config/routes.php');
+};
+```
 
 ## Configuration Methods
 
