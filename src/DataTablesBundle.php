@@ -2,10 +2,14 @@
 
 namespace Pentiminax\UX\DataTables;
 
+use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformPropertyTypeMapper;
+use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilderInterface;
+use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
@@ -106,6 +110,25 @@ class DataTablesBundle extends AbstractBundle
             ->set('datatables.route_loader', RouteLoader::class)
             ->tag('routing.route_loader')
             ->public();
+
+        if (interface_exists(ResourceMetadataCollectionFactoryInterface::class)) {
+            $container->services()
+                ->set('datatables.api_platform.type_mapper', ApiPlatformPropertyTypeMapper::class)
+                ->private();
+
+            $container->services()
+                ->set('datatables.api_platform.column_auto_detector', ColumnAutoDetector::class)
+                ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
+                ->arg(1, service('api_platform.metadata.property.name_collection_factory'))
+                ->arg(2, service('api_platform.metadata.property.metadata_factory'))
+                ->arg(3, service('property_info'))
+                ->arg(4, service('datatables.api_platform.type_mapper'))
+                ->private();
+
+            $container->services()
+                ->alias(ColumnAutoDetectorInterface::class, 'datatables.api_platform.column_auto_detector')
+                ->private();
+        }
     }
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void

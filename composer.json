@@ -22,16 +22,19 @@
     "symfony/property-access": "^7.0 || ^8.0"
   },
   "require-dev": {
+    "api-platform/core": "^3.0 || ^4.0",
     "doctrine/orm": "^3.0",
     "friendsofphp/php-cs-fixer": "^3.89",
     "phpunit/phpunit": "^11.5",
     "symfony/framework-bundle": "^7.0 || ^8.0",
     "symfony/phpunit-bridge": "^7.0 || ^8.0",
+    "symfony/property-info": "^7.0 || ^8.0",
     "symfony/twig-bundle": "^7.0 || ^8.0",
     "symfony/var-dumper": "^7.0 || ^8.0",
     "symfony/maker-bundle": "^1.65"
   },
   "suggest": {
+    "api-platform/core": "To auto-detect columns from API Platform metadata.",
     "symfony/maker-bundle": "To use the make:datatable command."
   },
   "conflict": {
