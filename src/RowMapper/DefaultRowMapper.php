@@ -90,6 +90,10 @@ final class DefaultRowMapper implements RowMapperInterface
 
     private function readObjectValue(object $object, string $property): mixed
     {
+        if (is_callable([$object, $property])) {
+            return $object->$property();
+        }
+
         $accessor = $this->buildAccessorSuffix($property);
         foreach (['get', 'is', 'has'] as $prefix) {
             $method = $prefix.$accessor;
