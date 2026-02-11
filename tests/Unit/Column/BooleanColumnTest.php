@@ -13,7 +13,7 @@ class BooleanColumnTest extends TestCase
 
         $this->assertTrue($data['booleanRenderAsSwitch']);
         $this->assertFalse($data['booleanDefaultState']);
-        $this->assertSame('/_ux-datatables/boolean/toggle', $data['booleanToggleUrl']);
+        $this->assertSame('/datatables/ajax/edit', $data['booleanToggleUrl']);
         $this->assertSame('num', $data['type']);
     }
 
