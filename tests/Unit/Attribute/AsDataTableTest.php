@@ -4,6 +4,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Attribute;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
@@ -72,6 +73,18 @@ class AsDataTableTest extends TestCase
         // Should return the same instance (cached)
         $this->assertSame($provider1, $provider2);
     }
+
+    public function testBooleanColumnReceivesEntityClassAutomatically(): void
+    {
+        $table  = new TestDataTableWithBooleanColumn();
+        $column = $table->getColumnByName('isEmailAuthEnabled');
+
+        $this->assertNotNull($column);
+        $this->assertSame(
+            ToggleEntityFixture::class,
+            $column->jsonSerialize()['booleanToggleEntityClass']
+        );
+    }
 }
 
 /**
@@ -112,4 +125,18 @@ class TestDataTableWithoutAttribute extends AbstractDataTable
     {
         yield TextColumn::new('id');
     }
+}
+
+#[AsDataTable(entityClass: ToggleEntityFixture::class)]
+class TestDataTableWithBooleanColumn extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield BooleanColumn::new('isEmailAuthEnabled');
+    }
+}
+
+final class ToggleEntityFixture
+{
+    public bool $isEmailAuthEnabled = true;
 }

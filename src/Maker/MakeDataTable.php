@@ -3,6 +3,7 @@
 namespace Pentiminax\UX\DataTables\Maker;
 
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -163,8 +164,9 @@ final class MakeDataTable extends AbstractMaker
         if ($type->isBuiltin()) {
             return match ($typeName) {
                 'int', 'float' => NumberColumn::class,
-                'string', 'bool' => TextColumn::class,
-                default => null,
+                'string' => TextColumn::class,
+                'bool'   => BooleanColumn::class,
+                default  => null,
             };
         }
 
