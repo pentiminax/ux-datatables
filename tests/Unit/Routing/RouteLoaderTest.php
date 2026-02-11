@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class RouteLoaderTest extends TestCase
 {
-    public function testLoadsBooleanToggleRoutes(): void
+    public function testLoadsAjaxEditRoute(): void
     {
         $routes = (new RouteLoader())->loadRoutes();
 
@@ -17,10 +17,6 @@ class RouteLoaderTest extends TestCase
         $this->assertSame('datatables.controller.ajax_edit', $toggleRoute->getDefault('_controller'));
         $this->assertSame(['POST', 'PATCH'], $toggleRoute->getMethods());
 
-        $toggleByIdRoute = $routes->get('ux_datatables_ajax_edit_by_id');
-        $this->assertNotNull($toggleByIdRoute);
-        $this->assertSame('/datatables/boolean/{id}/toggle', $toggleByIdRoute->getPath());
-        $this->assertSame('datatables.controller.ajax_edit', $toggleByIdRoute->getDefault('_controller'));
-        $this->assertSame(['POST', 'PATCH'], $toggleByIdRoute->getMethods());
+        $this->assertNull($routes->get('ux_datatables_ajax_edit_by_id'));
     }
 }
