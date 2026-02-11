@@ -6,7 +6,9 @@ use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilderInterface;
+use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
+use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -92,6 +94,18 @@ class DataTablesBundle extends AbstractBundle
             ->arg(0, service('doctrine')->nullOnInvalid())
             ->tag('maker.command')
             ->private();
+
+        $container->services()
+            ->set('datatables.controller.ajax_edit', AjaxEditController::class)
+            ->arg(0, service('doctrine')->nullOnInvalid())
+            ->arg(1, service('property_accessor'))
+            ->tag('controller.service_arguments')
+            ->public();
+
+        $container->services()
+            ->set('datatables.route_loader', RouteLoader::class)
+            ->tag('routing.route_loader')
+            ->public();
     }
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void

@@ -10,6 +10,7 @@ import {loadColReorderLibrary} from './functions/loadColReorderLibrary.js';
 import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary.js";
 import {loadScrollerLibrary} from "./functions/loadScrollerLibrary.js";
 import {deleteRow} from "./functions/deleteRow.js";
+import {toggleBooleanValue} from "./functions/toggleBooleanValue.js";
 
 class default_1 extends Controller {
     constructor() {
@@ -91,7 +92,11 @@ class default_1 extends Controller {
             await loadScrollerLibrary(stylesheet);
         }
 
-        payload.columns.forEach((column, index) => {
+        payload.columns.forEach((column) => {
+            if (this.isBooleanColumn(column)) {
+                this.configureBooleanColumnRender(column);
+            }
+
             if (column.action === 'DELETE') {
                 column.render = function (data, type, row) {
                     const className = `${column.action.toLowerCase()}-action`;
@@ -117,6 +122,56 @@ class default_1 extends Controller {
                         this.table.ajax.reload();
                     }
                 }
+            }
+        });
+
+        this.element.addEventListener('change', async (e) => {
+            const target = e.target;
+            if (!(target instanceof HTMLInputElement) || !target.matches('.boolean-switch-action')) {
+                return;
+            }
+
+            const url = target.dataset.url;
+            const id = target.dataset.id;
+            const field = target.dataset.field;
+            const entity = target.dataset.entity;
+            const method = target.dataset.method ?? 'PATCH';
+
+            if (!id || !field) {
+                target.checked = !target.checked;
+                console.error('Missing ID or field for boolean switch update');
+                return;
+            }
+
+            if (!entity) {
+                target.checked = !target.checked;
+                console.error('Missing entity for boolean toggle endpoint');
+
+                return;
+            }
+
+            const previousState = !target.checked;
+            target.disabled = true;
+
+            try {
+                const response = await toggleBooleanValue({
+                    url: url ?? this.getBooleanToggleUrl(),
+                    id: parseInt(id),
+                    field: field,
+                    entity: entity,
+                    newValue: target.checked,
+                    method: method,
+                });
+
+                if (!response.ok) {
+                    target.checked = previousState;
+                    console.error(`Boolean switch update failed with status ${response.status}`);
+                }
+            } catch (error) {
+                target.checked = previousState;
+                console.error('Boolean switch update failed', error);
+            } finally {
+                target.disabled = false;
             }
         });
 
@@ -160,6 +215,80 @@ class default_1 extends Controller {
     
     isScrollerExtensionEnabled(payload) {
         return !!payload?.scroller;
+    }
+
+    isBooleanColumn(column) {
+        return true === column?.booleanRenderAsSwitch;
+    }
+
+    configureBooleanColumnRender(column) {
+        const defaultState = true === column.booleanDefaultState;
+        const toggleUrl = this.getBooleanToggleUrl();
+        const toggleMethod = typeof column.booleanToggleMethod === 'string' ? column.booleanToggleMethod : 'PATCH';
+        const toggleIdField = typeof column.booleanToggleIdField === 'string' ? column.booleanToggleIdField : 'id';
+        const toggleEntityClass = typeof column.booleanToggleEntityClass === 'string' ? column.booleanToggleEntityClass : '';
+
+        column.type ??= 'num';
+        column.render = (data, type, row) => {
+            const boolValue = this.parseBooleanValue(data, defaultState);
+
+            if (type === 'sort' || type === 'type') {
+                return boolValue ? 1 : 0;
+            }
+
+            if (type === 'filter') {
+                return boolValue ? 'ON' : 'OFF';
+            }
+
+            if (type !== 'display') {
+                return boolValue ? 'ON' : 'OFF';
+            }
+
+            const rowId = row?.[toggleIdField];
+            const checked = boolValue ? ' checked' : '';
+            const disabled = toggleEntityClass === '' ? ' disabled' : '';
+            const escapedId = this.escapeHtml(String(rowId ?? ''));
+            const escapedUrl = this.escapeHtml(toggleUrl);
+            const escapedField = this.escapeHtml(column.data ?? column.name ?? '');
+            const escapedMethod = this.escapeHtml(toggleMethod.toUpperCase());
+            const escapedEntityClass = this.escapeHtml(toggleEntityClass);
+
+            return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-entity="${escapedEntityClass}" data-method="${escapedMethod}"${checked}${disabled}></div>`;
+        };
+    }
+
+    getBooleanToggleUrl() {
+        return '/datatables/ajax/edit';
+    }
+
+    parseBooleanValue(value, defaultValue = false) {
+        if (null === value || undefined === value || '' === value) {
+            return defaultValue;
+        }
+
+        if (typeof value === 'boolean') {
+            return value;
+        }
+
+        if (typeof value === 'number') {
+            return value !== 0;
+        }
+
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
+        }
+
+        return false;
+    }
+
+    escapeHtml(value) {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 }
 

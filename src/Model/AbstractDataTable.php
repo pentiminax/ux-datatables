@@ -7,6 +7,7 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
@@ -18,20 +19,8 @@ use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
-use Pentiminax\UX\DataTables\Query\Strategy\ContainsSearchStrategy;
-use Pentiminax\UX\DataTables\Query\Strategy\EmptySearchStrategy;
-use Pentiminax\UX\DataTables\Query\Strategy\EndsWithSearchStrategy;
-use Pentiminax\UX\DataTables\Query\Strategy\EqualSearchStrategy;
-use Pentiminax\UX\DataTables\Query\Strategy\GreaterOrEqualSearchStrategy;
-use Pentiminax\UX\DataTables\Query\Strategy\GreaterThanSearchStrategy;
-use Pentiminax\UX\DataTables\Query\Strategy\InListSearchStrategy;
-use Pentiminax\UX\DataTables\Query\Strategy\LessOrEqualSearchStrategy;
-use Pentiminax\UX\DataTables\Query\Strategy\LessThanSearchStrategy;
-use Pentiminax\UX\DataTables\Query\Strategy\NotContainsSearchStrategy;
-use Pentiminax\UX\DataTables\Query\Strategy\NotEmptySearchStrategy;
-use Pentiminax\UX\DataTables\Query\Strategy\NotEqualSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
-use Pentiminax\UX\DataTables\Query\Strategy\StartsWithSearchStrategy;
 use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -64,6 +53,7 @@ abstract class AbstractDataTable implements DataTableInterface
         );
 
         $this->columns = iterator_to_array($this->configureColumns());
+        $this->configureBooleanColumns();
 
         $this->table->columns($this->columns);
 
@@ -152,15 +142,10 @@ abstract class AbstractDataTable implements DataTableInterface
 
         $this->providerAutoConfigured = true;
 
-        $classReflection = new \ReflectionClass($this);
-        $attributes      = $classReflection->getAttributes(AsDataTable::class);
-
-        if (empty($attributes)) {
+        $asDataTable = $this->getAsDataTableAttribute();
+        if (null === $asDataTable) {
             return null;
         }
-
-        /** @var AsDataTable $asDataTable */
-        $asDataTable = $attributes[0]->newInstance();
 
         $this->autoConfiguredProvider = new DoctrineDataProvider(
             em: $this->em,
@@ -225,21 +210,7 @@ abstract class AbstractDataTable implements DataTableInterface
      */
     protected function createSearchStrategyRegistry(): SearchStrategyRegistry
     {
-        return new SearchStrategyRegistry([
-            new EqualSearchStrategy(),
-            new NotEqualSearchStrategy(),
-            new ContainsSearchStrategy(),
-            new NotContainsSearchStrategy(),
-            new StartsWithSearchStrategy(),
-            new EndsWithSearchStrategy(),
-            new GreaterThanSearchStrategy(),
-            new GreaterOrEqualSearchStrategy(),
-            new LessThanSearchStrategy(),
-            new LessOrEqualSearchStrategy(),
-            new EmptySearchStrategy(),
-            new NotEmptySearchStrategy(),
-            new InListSearchStrategy(),
-        ]);
+        return new DefaultSearchStrategyRegistry();
     }
 
     #[Required]
@@ -277,5 +248,38 @@ abstract class AbstractDataTable implements DataTableInterface
     private function getClassName(): string
     {
         return (new \ReflectionClass($this))->getShortName();
+    }
+
+    private function configureBooleanColumns(): void
+    {
+        $asDataTable = $this->getAsDataTableAttribute();
+        if (null === $asDataTable) {
+            return;
+        }
+
+        foreach ($this->columns as $column) {
+            if (!$column instanceof BooleanColumn) {
+                continue;
+            }
+
+            if (null !== $column->getToggleEntityClass()) {
+                continue;
+            }
+
+            $column->setEntityClass($asDataTable->entityClass);
+        }
+    }
+
+    private function getAsDataTableAttribute(): ?AsDataTable
+    {
+        $attributes = (new \ReflectionClass($this))->getAttributes(AsDataTable::class);
+        if (empty($attributes)) {
+            return null;
+        }
+
+        /** @var AsDataTable $asDataTable */
+        $asDataTable = $attributes[0]->newInstance();
+
+        return $asDataTable;
     }
 }

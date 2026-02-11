@@ -10,6 +10,7 @@ import {loadFixedColumnsLibrary} from './functions/loadFixedColumnsLibrary';
 import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary";
 import {loadScrollerLibrary} from "./functions/loadScrollerLibrary";
 import {deleteRow} from "./functions/delete";
+import {toggleBooleanValue} from "./functions/toggleBoolean";
 
 export default class extends Controller {
     declare readonly viewValue: any;
@@ -95,6 +96,10 @@ export default class extends Controller {
         }
 
         payload.columns.forEach((column: any): void => {
+            if (this.isBooleanColumn(column)) {
+                this.configureBooleanColumnRender(column);
+            }
+
             if (column.action === 'DELETE') {
                 column.render = function (data: any, type: string, row: any) {
                     const className = `${column.action.toLowerCase()}-action`;
@@ -124,6 +129,57 @@ export default class extends Controller {
                 } else {
                     console.error('Missing URL or ID for delete action');
                 }
+            }
+        });
+
+        this.element.addEventListener('change', async (e: Event): Promise<void> => {
+            const target = e.target as EventTarget | null;
+            if (!(target instanceof HTMLInputElement) || !target.matches('.boolean-switch-action')) {
+                return;
+            }
+
+            const url = target.dataset.url;
+            const id = target.dataset.id;
+            const field = target.dataset.field;
+            const entity = target.dataset.entity;
+            const method = target.dataset.method ?? 'PATCH';
+
+            if (!id || !field) {
+                target.checked = !target.checked;
+                console.error('Missing ID or field for boolean switch update');
+                return;
+            }
+
+            if (!entity) {
+                target.checked = !target.checked;
+                console.error('Missing entity for boolean toggle endpoint');
+
+                return;
+            }
+
+            const previousState = !target.checked;
+
+            target.disabled = true;
+
+            try {
+                const response = await toggleBooleanValue({
+                    url: url ?? this.getBooleanToggleUrl(),
+                    id,
+                    field,
+                    entity,
+                    value: target.checked,
+                    method,
+                });
+
+                if (!response.ok) {
+                    target.checked = previousState;
+                    console.error(`Boolean switch update failed with status ${response.status}`);
+                }
+            } catch (error) {
+                target.checked = previousState;
+                console.error('Boolean switch update failed', error);
+            } finally {
+                target.disabled = false;
             }
         });
 
@@ -167,5 +223,79 @@ export default class extends Controller {
       
     private isScrollerExtensionEnabled(payload: Record<string, any>): boolean {
         return !!payload?.scroller;
+    }
+
+    private isBooleanColumn(column: Record<string, any>): boolean {
+        return true === column?.booleanRenderAsSwitch;
+    }
+
+    private configureBooleanColumnRender(column: Record<string, any>): void {
+        const defaultState = true === column.booleanDefaultState;
+        const toggleUrl = this.getBooleanToggleUrl();
+        const toggleMethod = typeof column.booleanToggleMethod === 'string' ? column.booleanToggleMethod : 'PATCH';
+        const toggleIdField = typeof column.booleanToggleIdField === 'string' ? column.booleanToggleIdField : 'id';
+        const toggleEntityClass = typeof column.booleanToggleEntityClass === 'string' ? column.booleanToggleEntityClass : '';
+
+        column.type ??= 'num';
+        column.render = (data: any, type: string, row: Record<string, any>): any => {
+            const boolValue = this.parseBooleanValue(data, defaultState);
+
+            if (type === 'sort' || type === 'type') {
+                return boolValue ? 1 : 0;
+            }
+
+            if (type === 'filter') {
+                return boolValue ? 'ON' : 'OFF';
+            }
+
+            if (type !== 'display') {
+                return boolValue ? 'ON' : 'OFF';
+            }
+
+            const rowId = row?.[toggleIdField];
+            const checked = boolValue ? ' checked' : '';
+            const disabled = toggleEntityClass === '' ? ' disabled' : '';
+            const escapedId = this.escapeHtml(String(rowId ?? ''));
+            const escapedUrl = this.escapeHtml(toggleUrl);
+            const escapedField = this.escapeHtml(column.data ?? column.name ?? '');
+            const escapedMethod = this.escapeHtml(toggleMethod.toUpperCase());
+            const escapedEntityClass = this.escapeHtml(toggleEntityClass);
+
+            return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-entity="${escapedEntityClass}" data-method="${escapedMethod}"${checked}${disabled}></div>`;
+        };
+    }
+
+    private getBooleanToggleUrl(): string {
+        return '/datatables/ajax/edit';
+    }
+
+    private parseBooleanValue(value: any, defaultValue: boolean = false): boolean {
+        if (null === value || undefined === value || '' === value) {
+            return defaultValue;
+        }
+
+        if (typeof value === 'boolean') {
+            return value;
+        }
+
+        if (typeof value === 'number') {
+            return value !== 0;
+        }
+
+        if (typeof value === 'string') {
+            const normalized = value.trim().toLowerCase();
+            return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
+        }
+
+        return false;
+    }
+
+    private escapeHtml(value: string): string {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 }
