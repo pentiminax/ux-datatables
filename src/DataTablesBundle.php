@@ -4,11 +4,14 @@ namespace Pentiminax\UX\DataTables;
 
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformPropertyTypeMapper;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
+use Pentiminax\UX\DataTables\ApiPlatform\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilderInterface;
+use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
@@ -117,16 +120,30 @@ class DataTablesBundle extends AbstractBundle
                 ->private();
 
             $container->services()
+                ->set('datatables.api_platform.property_name_humanizer', PropertyNameHumanizer::class)
+                ->private();
+
+            $container->services()
                 ->set('datatables.api_platform.column_auto_detector', ColumnAutoDetector::class)
                 ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
                 ->arg(1, service('api_platform.metadata.property.name_collection_factory'))
                 ->arg(2, service('api_platform.metadata.property.metadata_factory'))
                 ->arg(3, service('property_info'))
                 ->arg(4, service('datatables.api_platform.type_mapper'))
+                ->arg(5, service('datatables.api_platform.property_name_humanizer'))
                 ->private();
 
             $container->services()
                 ->alias(ColumnAutoDetectorInterface::class, 'datatables.api_platform.column_auto_detector')
+                ->private();
+
+            $container->services()
+                ->set('datatables.api_platform.collection_url_resolver', ApiResourceCollectionUrlResolver::class)
+                ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
+                ->private();
+
+            $container->services()
+                ->alias(ApiResourceCollectionUrlResolverInterface::class, 'datatables.api_platform.collection_url_resolver')
                 ->private();
         }
     }

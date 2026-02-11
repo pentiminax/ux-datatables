@@ -48,7 +48,7 @@ class ApiPlatformPropertyTypeMapperTest extends TestCase
 
     public function testCreateColumnReturnsCorrectInstance(): void
     {
-        $type = new LegacyType(LegacyType::BUILTIN_TYPE_INT);
+        $type   = new LegacyType(LegacyType::BUILTIN_TYPE_INT);
         $column = $this->mapper->createColumn('price', 'Price', $type);
 
         $this->assertInstanceOf(NumberColumn::class, $column);
@@ -60,7 +60,7 @@ class ApiPlatformPropertyTypeMapperTest extends TestCase
 
     public function testCreateColumnWithBoolType(): void
     {
-        $type = new LegacyType(LegacyType::BUILTIN_TYPE_BOOL);
+        $type   = new LegacyType(LegacyType::BUILTIN_TYPE_BOOL);
         $column = $this->mapper->createColumn('active', 'Active', $type);
 
         $this->assertInstanceOf(BooleanColumn::class, $column);
@@ -68,7 +68,7 @@ class ApiPlatformPropertyTypeMapperTest extends TestCase
 
     public function testCreateColumnWithDateTimeType(): void
     {
-        $type = new LegacyType(LegacyType::BUILTIN_TYPE_OBJECT, false, \DateTimeImmutable::class);
+        $type   = new LegacyType(LegacyType::BUILTIN_TYPE_OBJECT, false, \DateTimeImmutable::class);
         $column = $this->mapper->createColumn('createdAt', 'Created At', $type);
 
         $this->assertInstanceOf(DateColumn::class, $column);

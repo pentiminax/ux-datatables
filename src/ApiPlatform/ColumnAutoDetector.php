@@ -17,6 +17,7 @@ final class ColumnAutoDetector implements ColumnAutoDetectorInterface
         private readonly PropertyMetadataFactoryInterface $propertyMetadataFactory,
         private readonly PropertyInfoExtractorInterface $propertyInfoExtractor,
         private readonly ApiPlatformPropertyTypeMapper $typeMapper,
+        private readonly PropertyNameHumanizer $propertyNameHumanizer,
     ) {
     }
 
@@ -39,7 +40,7 @@ final class ColumnAutoDetector implements ColumnAutoDetectorInterface
 
     public function detectColumns(string $entityClass, array $groups = []): array
     {
-        $context = [] !== $groups ? ['serializer_groups' => $groups] : [];
+        $context       = [] !== $groups ? ['serializer_groups' => $groups] : [];
         $propertyNames = $this->propertyNameFactory->create($entityClass, $context);
 
         $columns = [];
@@ -51,8 +52,8 @@ final class ColumnAutoDetector implements ColumnAutoDetectorInterface
                 continue;
             }
 
-            $type = $this->resolveType($entityClass, $propertyName);
-            $label = self::humanize($propertyName);
+            $type         = $this->resolveType($entityClass, $propertyName);
+            $label        = $this->propertyNameHumanizer->humanize($propertyName);
             $isIdentifier = true === $propertyMetadata->isIdentifier();
 
             $column = $this->typeMapper->createColumn($propertyName, $label, $type);
@@ -80,19 +81,5 @@ final class ColumnAutoDetector implements ColumnAutoDetectorInterface
         $types = $this->propertyInfoExtractor->getTypes($entityClass, $propertyName);
 
         return $types[0] ?? null;
-    }
-
-    /**
-     * Convert a camelCase or snake_case property name into a human-readable label.
-     */
-    public static function humanize(string $name): string
-    {
-        $label = str_replace(['_', '-'], ' ', $name);
-        $label = preg_replace('/(?<!^)([A-Z])/', ' $1', $label);
-        $label = trim($label ?? '');
-        $label = ucwords($label);
-        $label = preg_replace('/\bId\b/', 'ID', $label);
-
-        return '' === $label ? $name : $label;
     }
 }
