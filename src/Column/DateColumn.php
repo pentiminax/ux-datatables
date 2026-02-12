@@ -8,7 +8,7 @@ class DateColumn extends AbstractColumn
 {
     public const OPTION_DATE_FORMAT = 'dateFormat';
 
-    public static function new(string $name, string $title = ''): self
+    public static function new(string $name, string $title = ''): static
     {
         return static::createWithType($name, $title, ColumnType::DATE);
     }

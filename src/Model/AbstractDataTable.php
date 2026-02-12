@@ -45,6 +45,10 @@ abstract class AbstractDataTable implements DataTableInterface
 
     private ?RowMapperInterface $rowMapper = null;
 
+    private bool $asDataTableResolved = false;
+
+    private ?AsDataTable $cachedAsDataTable = null;
+
     public function __construct(
         protected ?ColumnAutoDetectorInterface $columnAutoDetector = null,
         protected ?EntityManagerInterface $em = null,
@@ -283,7 +287,7 @@ abstract class AbstractDataTable implements DataTableInterface
             return [];
         }
 
-        $resolvedGroups = [] !== $groups ? $groups : $asDataTable->serializationGroups;
+        $resolvedGroups = $groups ?: $asDataTable->serializationGroups;
 
         if (!$this->columnAutoDetector->supports($asDataTable->entityClass)) {
             return [];
@@ -345,14 +349,19 @@ abstract class AbstractDataTable implements DataTableInterface
 
     private function getAsDataTableAttribute(): ?AsDataTable
     {
+        if ($this->asDataTableResolved) {
+            return $this->cachedAsDataTable;
+        }
+
+        $this->asDataTableResolved = true;
+
         $attributes = (new \ReflectionClass($this))->getAttributes(AsDataTable::class);
         if (empty($attributes)) {
             return null;
         }
 
-        /** @var AsDataTable $asDataTable */
-        $asDataTable = $attributes[0]->newInstance();
+        $this->cachedAsDataTable = $attributes[0]->newInstance();
 
-        return $asDataTable;
+        return $this->cachedAsDataTable;
     }
 }

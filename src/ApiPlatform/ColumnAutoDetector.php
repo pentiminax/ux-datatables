@@ -11,6 +11,8 @@ use Symfony\Component\PropertyInfo\PropertyInfoExtractorInterface;
 
 final class ColumnAutoDetector implements ColumnAutoDetectorInterface
 {
+    private const BOOLEAN_PREFIXES = ['is', 'has'];
+
     public function __construct(
         private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataFactory,
         private readonly PropertyNameCollectionFactoryInterface $propertyNameFactory,
@@ -40,7 +42,7 @@ final class ColumnAutoDetector implements ColumnAutoDetectorInterface
 
     public function detectColumns(string $entityClass, array $groups = []): array
     {
-        $context       = [] !== $groups ? ['serializer_groups' => $groups] : [];
+        $context       = $groups ? ['serializer_groups' => $groups] : [];
         $propertyNames = $this->propertyNameFactory->create($entityClass, $context);
 
         $columns = [];
@@ -84,7 +86,7 @@ final class ColumnAutoDetector implements ColumnAutoDetectorInterface
             return null;
         }
 
-        foreach (['is', 'has'] as $prefix) {
+        foreach (self::BOOLEAN_PREFIXES as $prefix) {
             $candidate = $prefix.ucfirst($serializedName);
 
             if (property_exists($entityClass, $candidate)) {

@@ -6,7 +6,7 @@ use Pentiminax\UX\DataTables\Dto\ColumnDto;
 
 interface ColumnInterface extends \JsonSerializable
 {
-    public static function new(string $name, string $title = ''): self;
+    public static function new(string $name, string $title = ''): static;
 
     public function getAsDto(): ColumnDto;
 
@@ -14,7 +14,7 @@ interface ColumnInterface extends \JsonSerializable
 
     public function getField(): ?string;
 
-    public function setField(string $field): self;
+    public function setField(string $field): static;
 
     public function setVisible(bool $visible): static;
 }
