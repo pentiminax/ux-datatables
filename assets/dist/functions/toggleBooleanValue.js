@@ -5,6 +5,6 @@ export async function toggleBooleanValue({id, entity, field, newValue, url, meth
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
         },
-        body: JSON.stringify({id, entity, field, newValue}),
+        body: JSON.stringify({id: parseInt(id), entity, field, newValue}),
     });
 }

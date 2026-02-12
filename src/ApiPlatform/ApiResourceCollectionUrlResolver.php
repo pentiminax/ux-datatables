@@ -33,8 +33,11 @@ final class ApiResourceCollectionUrlResolver implements ApiResourceCollectionUrl
                 $routePrefix = $operation->getRoutePrefix() ?? $resourceRoutePrefix;
                 $path        = $this->buildPath($routePrefix, $uriTemplate);
 
-                if (str_ends_with($path, '{._format}') || str_ends_with($path, '.{_format}')) {
-                    $path = substr($path, 0, -10);
+                foreach (['{._format}', '.{_format}'] as $suffix) {
+                    if (str_ends_with($path, $suffix)) {
+                        $path = substr($path, 0, -\strlen($suffix));
+                        break;
+                    }
                 }
 
                 if (preg_match('/\{[^}]+}/', $path)) {

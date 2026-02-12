@@ -2,8 +2,6 @@
 
 namespace Pentiminax\UX\DataTables\Contracts;
 
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
-
 interface ColumnAutoDetectorInterface
 {
     /**
@@ -17,7 +15,7 @@ interface ColumnAutoDetectorInterface
      * @param string   $entityClass The FQCN of the entity
      * @param string[] $groups      Serialization groups to filter exposed properties
      *
-     * @return AbstractColumn[]
+     * @return ColumnInterface[]
      */
     public function detectColumns(string $entityClass, array $groups = []): array;
 }

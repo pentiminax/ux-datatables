@@ -10,7 +10,7 @@ import {loadFixedColumnsLibrary} from './functions/loadFixedColumnsLibrary';
 import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary";
 import {loadScrollerLibrary} from "./functions/loadScrollerLibrary";
 import {deleteRow} from "./functions/delete";
-import {toggleBooleanValue} from "./functions/toggleBoolean";
+import {toggleBooleanValue} from "./functions/toggleBooleanValue";
 
 export default class extends Controller {
     declare readonly viewValue: any;
@@ -167,7 +167,7 @@ export default class extends Controller {
                     id,
                     field,
                     entity,
-                    value: target.checked,
+                    newValue: target.checked,
                     method,
                 });
 

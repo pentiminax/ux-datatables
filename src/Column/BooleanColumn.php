@@ -13,7 +13,7 @@ class BooleanColumn extends AbstractColumn
     public const OPTION_TOGGLE_ENTITY_CLASS = 'booleanToggleEntityClass';
     public const OPTION_TOGGLE_FIELD        = 'booleanToggleField';
 
-    public static function new(string $name, string $title = ''): self
+    public static function new(string $name, string $title = ''): static
     {
         return static::createWithType($name, $title, ColumnType::NUM)
             ->renderAsSwitch();
@@ -57,17 +57,6 @@ class BooleanColumn extends AbstractColumn
         return $this->getCustomOption(self::OPTION_DEFAULT_STATE) ?? false;
     }
 
-    /**
-     * Returns the PHP property path for the toggle, only when it differs from the column name.
-     */
-    public function getToggleField(): ?string
-    {
-        $field = $this->getField();
-        $name  = $this->getName();
-
-        return $field !== $name ? $field : null;
-    }
-
     public function jsonSerialize(): array
     {
         return array_merge(
@@ -78,7 +67,7 @@ class BooleanColumn extends AbstractColumn
                 self::OPTION_TOGGLE_METHOD       => $this->getCustomOption(self::OPTION_TOGGLE_METHOD),
                 self::OPTION_TOGGLE_ID_FIELD     => $this->getCustomOption(self::OPTION_TOGGLE_ID_FIELD),
                 self::OPTION_TOGGLE_ENTITY_CLASS => $this->getToggleEntityClass(),
-                self::OPTION_TOGGLE_FIELD        => $this->getToggleField(),
+                self::OPTION_TOGGLE_FIELD        => $this->getField(),
             ], static fn (mixed $value) => null !== $value && '' !== $value)
         );
     }
