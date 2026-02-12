@@ -257,7 +257,7 @@ export default class extends Controller {
             const disabled = toggleEntityClass === '' ? ' disabled' : '';
             const escapedId = this.escapeHtml(String(rowId ?? ''));
             const escapedUrl = this.escapeHtml(toggleUrl);
-            const escapedField = this.escapeHtml(column.data ?? column.name ?? '');
+            const escapedField = this.escapeHtml(column.booleanToggleField ?? column.data ?? column.name ?? '');
             const escapedMethod = this.escapeHtml(toggleMethod.toUpperCase());
             const escapedEntityClass = this.escapeHtml(toggleEntityClass);
 

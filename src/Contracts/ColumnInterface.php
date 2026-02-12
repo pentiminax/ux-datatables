@@ -11,4 +11,10 @@ interface ColumnInterface extends \JsonSerializable
     public function getAsDto(): ColumnDto;
 
     public function getName(): string;
+
+    public function getField(): ?string;
+
+    public function setField(string $field): self;
+
+    public function setVisible(bool $visible): static;
 }
