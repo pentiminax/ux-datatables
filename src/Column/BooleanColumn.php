@@ -11,8 +11,9 @@ class BooleanColumn extends AbstractColumn
     public const OPTION_TOGGLE_METHOD       = 'booleanToggleMethod';
     public const OPTION_TOGGLE_ID_FIELD     = 'booleanToggleIdField';
     public const OPTION_TOGGLE_ENTITY_CLASS = 'booleanToggleEntityClass';
+    public const OPTION_TOGGLE_FIELD        = 'booleanToggleField';
 
-    public static function new(string $name, string $title = ''): self
+    public static function new(string $name, string $title = ''): static
     {
         return static::createWithType($name, $title, ColumnType::NUM)
             ->renderAsSwitch();
@@ -66,6 +67,7 @@ class BooleanColumn extends AbstractColumn
                 self::OPTION_TOGGLE_METHOD       => $this->getCustomOption(self::OPTION_TOGGLE_METHOD),
                 self::OPTION_TOGGLE_ID_FIELD     => $this->getCustomOption(self::OPTION_TOGGLE_ID_FIELD),
                 self::OPTION_TOGGLE_ENTITY_CLASS => $this->getToggleEntityClass(),
+                self::OPTION_TOGGLE_FIELD        => $this->getField(),
             ], static fn (mixed $value) => null !== $value && '' !== $value)
         );
     }

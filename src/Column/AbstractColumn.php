@@ -201,14 +201,14 @@ abstract class AbstractColumn implements ColumnInterface
         return $this->dto->getField();
     }
 
-    public function setField(string $field): self
+    public function setField(string $field): static
     {
         $this->dto->setField($field);
 
         return $this;
     }
 
-    public function setCustomOption(string $optionName, mixed $optionValue): self
+    public function setCustomOption(string $optionName, mixed $optionValue): static
     {
         $this->dto->setCustomOption($optionName, $optionValue);
 
