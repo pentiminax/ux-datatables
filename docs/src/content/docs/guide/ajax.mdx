@@ -235,6 +235,37 @@ Return errors in JSON format:
 
 DataTables will display this message to the user.
 
+## API Platform JSON-LD (`ApiResource`)
+
+When using `AbstractDataTable` with `#[AsDataTable(...)]`, the bundle can auto-configure Ajax from API Platform metadata.
+
+Auto-configuration sets:
+- `ajax.url`: first detected `GET` collection `uriTemplate` (for example `/api/books`)
+- `ajax.dataSrc`: `member`
+- `ajax.type`: `GET`
+
+This behavior is enabled only when all conditions are met:
+- no explicit `ajax` option is already configured
+- `serverSide` is not enabled
+- no explicit `data` option is already configured
+- the resource has a usable collection URI template (no `{variable}` placeholders)
+
+Expected JSON-LD shape:
+
+```json
+{
+  "@context": "/api/contexts/Book",
+  "@id": "/api/books",
+  "@type": "Collection",
+  "member": [{ "id": 101, "title": "Livre 001" }],
+  "totalItems": 100
+}
+```
+
+<Aside type="caution">
+  This first version targets client-side DataTables loading. Use a collection endpoint returning the full dataset (not paginated partial pages).
+</Aside>
+
 <Aside type="tip">
   For complex server-side tables, consider using [AbstractDataTable](../reference/abstract-datatable/) with the `#[AsDataTable]` attribute for automatic Doctrine integration.
 </Aside>

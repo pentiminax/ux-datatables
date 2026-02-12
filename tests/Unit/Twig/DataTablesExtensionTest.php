@@ -4,6 +4,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
 use PHPUnit\Framework\TestCase;
 
@@ -80,5 +81,30 @@ class DataTablesExtensionTest extends TestCase
         ];
 
         $this->assertSame($expected, $actual);
+    }
+
+    public function testRenderDataTableCallsPrepareForRenderingForAbstractDataTable(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        $table = new class extends AbstractDataTable {
+            public bool $prepareForRenderingCalled = false;
+
+            public function configureColumns(): iterable
+            {
+                yield TextColumn::new('firstColumn');
+            }
+
+            public function prepareForRendering(): void
+            {
+                $this->prepareForRenderingCalled = true;
+            }
+        };
+
+        $container->get('test.datatables.twig_extension')->renderDataTable($table);
+
+        $this->assertTrue($table->prepareForRenderingCalled);
     }
 }

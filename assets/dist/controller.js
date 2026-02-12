@@ -249,11 +249,24 @@ class default_1 extends Controller {
             const disabled = toggleEntityClass === '' ? ' disabled' : '';
             const escapedId = this.escapeHtml(String(rowId ?? ''));
             const escapedUrl = this.escapeHtml(toggleUrl);
-            const escapedField = this.escapeHtml(column.data ?? column.name ?? '');
+            const escapedField = this.escapeHtml(column.booleanToggleField ?? column.data ?? column.name ?? '');
             const escapedMethod = this.escapeHtml(toggleMethod.toUpperCase());
             const escapedEntityClass = this.escapeHtml(toggleEntityClass);
 
-            return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-entity="${escapedEntityClass}" data-method="${escapedMethod}"${checked}${disabled}></div>`;
+            return `<div class="form-check form-switch m-0">
+                        <input class="form-check-input boolean-switch-action" 
+                               type="checkbox" 
+                               role="switch" 
+                               aria-label="${boolValue ? 'ON' : 'OFF'}" 
+                               data-id="${escapedId}" 
+                               data-url="${escapedUrl}" 
+                               data-field="${escapedField}" 
+                               data-entity="${escapedEntityClass}" 
+                               data-method="${escapedMethod}"
+                               ${checked}
+                               ${disabled}
+                               >
+                    </div>`;
         };
     }
 
