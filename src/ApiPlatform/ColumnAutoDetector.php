@@ -85,7 +85,7 @@ final class ColumnAutoDetector implements ColumnAutoDetectorInterface
         }
 
         foreach (['is', 'has'] as $prefix) {
-            $candidate = $prefix . ucfirst($serializedName);
+            $candidate = $prefix.ucfirst($serializedName);
 
             if (property_exists($entityClass, $candidate)) {
                 return $candidate;
