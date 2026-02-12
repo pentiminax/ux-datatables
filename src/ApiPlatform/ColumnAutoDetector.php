@@ -62,10 +62,37 @@ final class ColumnAutoDetector implements ColumnAutoDetectorInterface
                 $column->setVisible(false);
             }
 
+            $phpPropertyName = $this->resolvePhpPropertyName($entityClass, $propertyName);
+
+            if (null !== $phpPropertyName) {
+                $column->setField($phpPropertyName);
+            }
+
             $columns[] = $column;
         }
 
         return $columns;
+    }
+
+    /**
+     * Resolve the actual PHP property name when the serializer has normalized it
+     * (e.g. "isActive" → "active"). Returns null when no mapping is needed.
+     */
+    private function resolvePhpPropertyName(string $entityClass, string $serializedName): ?string
+    {
+        if (property_exists($entityClass, $serializedName)) {
+            return null;
+        }
+
+        foreach (['is', 'has'] as $prefix) {
+            $candidate = $prefix . ucfirst($serializedName);
+
+            if (property_exists($entityClass, $candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     private function resolveType(string $entityClass, string $propertyName): mixed
