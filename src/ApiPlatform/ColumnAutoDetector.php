@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Property\Factory\PropertyNameCollectionFactoryInterface
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Symfony\Component\PropertyInfo\PropertyInfoExtractorInterface;
+use Symfony\Component\TypeInfo\Type;
 
 final class ColumnAutoDetector implements ColumnAutoDetectorInterface
 {
@@ -97,18 +98,8 @@ final class ColumnAutoDetector implements ColumnAutoDetectorInterface
         return null;
     }
 
-    private function resolveType(string $entityClass, string $propertyName): mixed
+    private function resolveType(string $entityClass, string $propertyName): ?Type
     {
-        if (method_exists($this->propertyInfoExtractor, 'getType')) {
-            $type = $this->propertyInfoExtractor->getType($entityClass, $propertyName);
-            if (null !== $type) {
-                return $type;
-            }
-        }
-
-        /** @phpstan-ignore method.deprecated */
-        $types = $this->propertyInfoExtractor->getTypes($entityClass, $propertyName);
-
-        return $types[0] ?? null;
+        return $this->propertyInfoExtractor->getType($entityClass, $propertyName);
     }
 }

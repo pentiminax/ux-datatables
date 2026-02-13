@@ -9,7 +9,7 @@ use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\PropertyInfo\Type as LegacyType;
+use Symfony\Component\TypeInfo\Type;
 
 class ApiPlatformPropertyTypeMapperTest extends TestCase
 {
@@ -20,25 +20,25 @@ class ApiPlatformPropertyTypeMapperTest extends TestCase
         $this->mapper = new ApiPlatformPropertyTypeMapper();
     }
 
-    #[DataProvider('provideLegacyTypeMappings')]
-    public function testMapLegacyType(LegacyType $type, string $expectedColumnClass): void
+    #[DataProvider('provideTypeMappings')]
+    public function testMapType(Type $type, string $expectedColumnClass): void
     {
         $this->assertSame($expectedColumnClass, $this->mapper->mapType($type));
     }
 
     /**
-     * @return iterable<string, array{0: LegacyType, 1: class-string}>
+     * @return iterable<string, array{0: Type, 1: class-string}>
      */
-    public static function provideLegacyTypeMappings(): iterable
+    public static function provideTypeMappings(): iterable
     {
-        yield 'bool' => [new LegacyType(LegacyType::BUILTIN_TYPE_BOOL), BooleanColumn::class];
-        yield 'int' => [new LegacyType(LegacyType::BUILTIN_TYPE_INT), NumberColumn::class];
-        yield 'float' => [new LegacyType(LegacyType::BUILTIN_TYPE_FLOAT), NumberColumn::class];
-        yield 'string' => [new LegacyType(LegacyType::BUILTIN_TYPE_STRING), TextColumn::class];
-        yield 'DateTime' => [new LegacyType(LegacyType::BUILTIN_TYPE_OBJECT, false, \DateTime::class), DateColumn::class];
-        yield 'DateTimeImmutable' => [new LegacyType(LegacyType::BUILTIN_TYPE_OBJECT, false, \DateTimeImmutable::class), DateColumn::class];
-        yield 'object-not-date' => [new LegacyType(LegacyType::BUILTIN_TYPE_OBJECT, false, \stdClass::class), TextColumn::class];
-        yield 'array' => [new LegacyType(LegacyType::BUILTIN_TYPE_ARRAY), TextColumn::class];
+        yield 'bool' => [Type::bool(), BooleanColumn::class];
+        yield 'int' => [Type::int(), NumberColumn::class];
+        yield 'float' => [Type::float(), NumberColumn::class];
+        yield 'string' => [Type::string(), TextColumn::class];
+        yield 'DateTime' => [Type::object(\DateTime::class), DateColumn::class];
+        yield 'DateTimeImmutable' => [Type::object(\DateTimeImmutable::class), DateColumn::class];
+        yield 'object-not-date' => [Type::object(\stdClass::class), TextColumn::class];
+        yield 'array' => [Type::array(), TextColumn::class];
     }
 
     public function testNullTypeFallsBackToTextColumn(): void
@@ -48,7 +48,7 @@ class ApiPlatformPropertyTypeMapperTest extends TestCase
 
     public function testCreateColumnReturnsCorrectInstance(): void
     {
-        $type   = new LegacyType(LegacyType::BUILTIN_TYPE_INT);
+        $type   = Type::int();
         $column = $this->mapper->createColumn('price', 'Price', $type);
 
         $this->assertInstanceOf(NumberColumn::class, $column);
@@ -60,7 +60,7 @@ class ApiPlatformPropertyTypeMapperTest extends TestCase
 
     public function testCreateColumnWithBoolType(): void
     {
-        $type   = new LegacyType(LegacyType::BUILTIN_TYPE_BOOL);
+        $type   = Type::bool();
         $column = $this->mapper->createColumn('active', 'Active', $type);
 
         $this->assertInstanceOf(BooleanColumn::class, $column);
@@ -68,7 +68,7 @@ class ApiPlatformPropertyTypeMapperTest extends TestCase
 
     public function testCreateColumnWithDateTimeType(): void
     {
-        $type   = new LegacyType(LegacyType::BUILTIN_TYPE_OBJECT, false, \DateTimeImmutable::class);
+        $type   = Type::object(\DateTimeImmutable::class);
         $column = $this->mapper->createColumn('createdAt', 'Created At', $type);
 
         $this->assertInstanceOf(DateColumn::class, $column);

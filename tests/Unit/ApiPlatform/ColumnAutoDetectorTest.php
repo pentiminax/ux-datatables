@@ -17,7 +17,7 @@ use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\PropertyInfo\PropertyInfoExtractorInterface;
-use Symfony\Component\PropertyInfo\Type as LegacyType;
+use Symfony\Component\TypeInfo\Type;
 
 class ColumnAutoDetectorTest extends TestCase
 {
@@ -89,13 +89,13 @@ class ColumnAutoDetectorTest extends TestCase
             });
 
         $this->propertyInfoExtractor
-            ->method('getTypes')
-            ->willReturnCallback(function (string $class, string $property): ?array {
+            ->method('getType')
+            ->willReturnCallback(function (string $class, string $property): ?Type {
                 return match ($property) {
-                    'id'     => [new LegacyType(LegacyType::BUILTIN_TYPE_INT)],
-                    'name'   => [new LegacyType(LegacyType::BUILTIN_TYPE_STRING)],
-                    'price'  => [new LegacyType(LegacyType::BUILTIN_TYPE_FLOAT)],
-                    'active' => [new LegacyType(LegacyType::BUILTIN_TYPE_BOOL)],
+                    'id'     => Type::int(),
+                    'name'   => Type::string(),
+                    'price'  => Type::float(),
+                    'active' => Type::bool(),
                     default  => null,
                 };
             });
@@ -137,8 +137,8 @@ class ColumnAutoDetectorTest extends TestCase
             });
 
         $this->propertyInfoExtractor
-            ->method('getTypes')
-            ->willReturn([new LegacyType(LegacyType::BUILTIN_TYPE_STRING)]);
+            ->method('getType')
+            ->willReturn(Type::string());
 
         $detector = $this->createDetector();
         $columns  = $detector->detectColumns('App\Entity\User');
@@ -158,8 +158,8 @@ class ColumnAutoDetectorTest extends TestCase
             ->willReturn((new ApiProperty())->withReadable(true));
 
         $this->propertyInfoExtractor
-            ->method('getTypes')
-            ->willReturn([new LegacyType(LegacyType::BUILTIN_TYPE_STRING)]);
+            ->method('getType')
+            ->willReturn(Type::string());
 
         $detector = $this->createDetector();
         $columns  = $detector->detectColumns('App\Entity\User');
