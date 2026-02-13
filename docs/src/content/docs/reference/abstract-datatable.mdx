@@ -56,6 +56,49 @@ The attribute automatically creates a `DoctrineDataProvider` configured with:
 - The `rowMapper()` method
 - The `queryBuilderConfigurator()` method
 
+## Defining Columns with Attributes
+
+When your Doctrine entity already uses `#[ORM\Column(...)]`, alias UX DataTables attributes to avoid naming conflicts:
+
+```php
+namespace App\Entity;
+
+use Doctrine\ORM\Mapping as ORM;
+use Pentiminax\UX\DataTables\Attribute as DataTable;
+
+#[ORM\Entity]
+final class User
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    #[DataTable\Column(title: 'ID')]
+    private ?int $id = null;
+
+    #[ORM\Column(length: 180)]
+    #[DataTable\Column(title: 'Email', searchable: true, orderable: true)]
+    private string $email = '';
+
+    #[ORM\Column]
+    #[DataTable\Column(title: 'Active')]
+    private bool $active = true;
+}
+```
+
+Then your table can rely on these attributes:
+
+```php
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    // No configureColumns() needed when using #[DataTable\Column] on the entity.
+}
+```
+
 ## Using in a Controller
 
 ```php
