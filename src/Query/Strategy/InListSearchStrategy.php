@@ -33,10 +33,10 @@ final class InListSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $field     = sprintf('%s.%s', $alias, $columnField);
-        $paramName = sprintf(':%s_in', $columnField);
+        $field     = \sprintf('%s.%s', $alias, $columnField);
+        $paramName = \sprintf(':%s_in', $columnField);
 
-        $qb->andWhere(sprintf('%s IN (%s)', $field, $paramName));
+        $qb->andWhere(\sprintf('%s IN (%s)', $field, $paramName));
         $qb->setParameter($paramName, $values);
     }
 }

@@ -40,7 +40,7 @@ class DataTableOptions implements \ArrayAccess
 
     private function handleLanguageOption(array $options): array
     {
-        if (isset($options['language']) && is_string($options['language'])) {
+        if (isset($options['language']) && \is_string($options['language'])) {
             $language = $options['language'];
 
             unset($options['language']);

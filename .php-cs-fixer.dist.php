@@ -21,5 +21,6 @@ return (new Config())
         'no_unused_imports' => true,
         'ordered_imports' => true,
         'single_quote' => true,
+        'native_function_invocation' => true
     ])
     ->setFinder($finder);

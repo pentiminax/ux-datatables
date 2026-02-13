@@ -20,8 +20,8 @@ final class ContainsSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $field     = sprintf('%s.%s', $alias, $column->getField());
-        $paramName = sprintf('column_control_param_%d', $paramIndex);
+        $field     = \sprintf('%s.%s', $alias, $column->getField());
+        $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
         $isNumeric = $column->isNumber()
                      || \in_array(strtolower($search->type), ['number', 'numeric', 'num'], true);
@@ -30,11 +30,11 @@ final class ContainsSearchStrategy implements SearchStrategyInterface
             if (!is_numeric($search->value)) {
                 return;
             }
-            $qb->andWhere(sprintf('%s = :%s', $field, $paramName));
+            $qb->andWhere(\sprintf('%s = :%s', $field, $paramName));
             $qb->setParameter($paramName, $search->value);
         } else {
-            $qb->andWhere(sprintf('%s LIKE :%s', $field, $paramName));
-            $qb->setParameter($paramName, sprintf('%%%s%%', $search->value));
+            $qb->andWhere(\sprintf('%s LIKE :%s', $field, $paramName));
+            $qb->setParameter($paramName, \sprintf('%%%s%%', $search->value));
         }
     }
 

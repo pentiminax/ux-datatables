@@ -16,7 +16,7 @@ final class OrderFilter implements QueryFilterInterface
 {
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
-        if (1 !== count($context->request->order)) {
+        if (1 !== \count($context->request->order)) {
             return;
         }
 
@@ -28,7 +28,7 @@ final class OrderFilter implements QueryFilterInterface
         }
 
         $qb->addOrderBy(
-            sprintf('%s.%s', $context->alias, $column->name),
+            \sprintf('%s.%s', $context->alias, $column->name),
             $order->dir
         );
     }

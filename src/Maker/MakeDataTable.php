@@ -60,15 +60,15 @@ final class MakeDataTable extends AbstractMaker
         /** @var class-string $class */
         $class = $input->getArgument('entity');
 
-        if (!\class_exists($class)) {
+        if (!class_exists($class)) {
             $class = $generator->createClassNameDetails($class, 'Entity\\')->getFullName();
         }
 
-        if (!\class_exists($class)) {
+        if (!class_exists($class)) {
             /** @var class-string $entityArg */
             $entityArg = $input->getArgument('entity');
 
-            throw new RuntimeCommandException(\sprintf('Entity "%s" not found.', is_string($entityArg) ? $entityArg : 'unknown'));
+            throw new RuntimeCommandException(\sprintf('Entity "%s" not found.', \is_string($entityArg) ? $entityArg : 'unknown'));
         }
 
         $entityShortName  = $this->getShortClassName($class);
@@ -95,7 +95,7 @@ final class MakeDataTable extends AbstractMaker
         $generator->writeChanges();
 
         $this->writeSuccessMessage($io);
-        $io->text(sprintf('Next: review the columns in <info>%s</info>.', $classNameDetails->getFullName()));
+        $io->text(\sprintf('Next: review the columns in <info>%s</info>.', $classNameDetails->getFullName()));
     }
 
     public function configureDependencies(DependencyBuilder $dependencies): void
@@ -225,7 +225,7 @@ final class MakeDataTable extends AbstractMaker
             }
         }
 
-        \sort($choices);
+        sort($choices);
 
         if (empty($choices)) {
             throw new RuntimeCommandException('No entities found.');

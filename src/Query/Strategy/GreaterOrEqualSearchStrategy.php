@@ -19,10 +19,10 @@ final class GreaterOrEqualSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $field     = sprintf('%s.%s', $alias, $column->getField());
-        $paramName = sprintf('column_control_param_%d', $paramIndex);
+        $field     = \sprintf('%s.%s', $alias, $column->getField());
+        $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
-        $qb->andWhere(sprintf('%s >= :%s', $field, $paramName));
+        $qb->andWhere(\sprintf('%s >= :%s', $field, $paramName));
         $qb->setParameter($paramName, $search->value);
     }
 

@@ -25,7 +25,7 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
         /** @var AbstractColumn[] $searchableColumns */
-        $searchableColumns = \array_filter(
+        $searchableColumns = array_filter(
             $context->columns,
             static fn (AbstractColumn $column) => $column->isSearchable()
         );
