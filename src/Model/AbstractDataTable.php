@@ -7,6 +7,7 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
@@ -53,6 +54,7 @@ abstract class AbstractDataTable implements DataTableInterface
         protected ?ColumnAutoDetectorInterface $columnAutoDetector = null,
         protected ?EntityManagerInterface $em = null,
         protected ?ApiResourceCollectionUrlResolverInterface $apiResourceCollectionUrlResolver = null,
+        protected ?AttributeColumnReader $attributeColumnReader = null,
     ) {
         $this->table = $this->configureDataTable(
             new DataTable($this->getClassName())
@@ -165,7 +167,17 @@ abstract class AbstractDataTable implements DataTableInterface
      */
     public function configureColumns(): iterable
     {
-        return $this->getDataTable()->getColumns();
+        $columns = $this->getDataTable()->getColumns();
+        if (!empty($columns)) {
+            return $columns;
+        }
+
+        $columns = $this->columnsFromAttributes();
+        if (!empty($columns)) {
+            return $columns;
+        }
+
+        return $this->autoDetectColumns();
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -264,6 +276,23 @@ abstract class AbstractDataTable implements DataTableInterface
     public function setColumnAutoDetector(?ColumnAutoDetectorInterface $columnAutoDetector): void
     {
         $this->columnAutoDetector = $columnAutoDetector;
+    }
+
+    /**
+     * Build columns from #[Column] attributes on the entity class.
+     *
+     * @return AbstractColumn[]
+     */
+    protected function columnsFromAttributes(): array
+    {
+        $reader = $this->attributeColumnReader ?? new AttributeColumnReader();
+
+        $asDataTable = $this->getAsDataTableAttribute();
+        if (null === $asDataTable) {
+            return [];
+        }
+
+        return $reader->readColumns($asDataTable->entityClass);
     }
 
     /**

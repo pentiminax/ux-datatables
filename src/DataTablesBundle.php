@@ -11,6 +11,8 @@ use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilderInterface;
+use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
+use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
@@ -113,6 +115,19 @@ class DataTablesBundle extends AbstractBundle
             ->set('datatables.route_loader', RouteLoader::class)
             ->tag('routing.route_loader')
             ->public();
+
+        $container->services()
+            ->set('datatables.column.property_type_mapper', PropertyTypeMapper::class)
+            ->private();
+
+        $container->services()
+            ->set('datatables.column.attribute_column_reader', AttributeColumnReader::class)
+            ->arg(0, service('datatables.column.property_type_mapper'))
+            ->private();
+
+        $container->services()
+            ->alias(AttributeColumnReader::class, 'datatables.column.attribute_column_reader')
+            ->private();
 
         if (interface_exists(ResourceMetadataCollectionFactoryInterface::class)) {
             $container->services()
