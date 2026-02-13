@@ -19,12 +19,70 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\PropertyInfo\PropertyInfoExtractorInterface;
 use Symfony\Component\TypeInfo\Type;
 
+final class TestPropertyInfoExtractor implements PropertyInfoExtractorInterface
+{
+    /**
+     * @var \Closure(string, string, array): ?Type
+     */
+    private \Closure $typeResolver;
+
+    public function __construct()
+    {
+        $this->typeResolver = static fn (): ?Type => null;
+    }
+
+    /**
+     * @param \Closure(string, string, array): ?Type $typeResolver
+     */
+    public function setTypeResolver(\Closure $typeResolver): void
+    {
+        $this->typeResolver = $typeResolver;
+    }
+
+    public function getType(string $class, string $property, array $context = []): ?Type
+    {
+        return ($this->typeResolver)($class, $property, $context);
+    }
+
+    public function getTypes(string $class, string $property, array $context = []): ?array
+    {
+        $type = $this->getType($class, $property, $context);
+
+        return null === $type ? null : [$type];
+    }
+
+    public function getShortDescription(string $class, string $property, array $context = []): ?string
+    {
+        return null;
+    }
+
+    public function getLongDescription(string $class, string $property, array $context = []): ?string
+    {
+        return null;
+    }
+
+    public function isReadable(string $class, string $property, array $context = []): ?bool
+    {
+        return null;
+    }
+
+    public function isWritable(string $class, string $property, array $context = []): ?bool
+    {
+        return null;
+    }
+
+    public function getProperties(string $class, array $context = []): ?array
+    {
+        return null;
+    }
+}
+
 class ColumnAutoDetectorTest extends TestCase
 {
     private ResourceMetadataCollectionFactoryInterface $resourceMetadataFactory;
     private PropertyNameCollectionFactoryInterface $propertyNameFactory;
     private PropertyMetadataFactoryInterface $propertyMetadataFactory;
-    private PropertyInfoExtractorInterface $propertyInfoExtractor;
+    private TestPropertyInfoExtractor $propertyInfoExtractor;
 
     protected function setUp(): void
     {
@@ -35,15 +93,7 @@ class ColumnAutoDetectorTest extends TestCase
         $this->resourceMetadataFactory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
         $this->propertyNameFactory     = $this->createMock(PropertyNameCollectionFactoryInterface::class);
         $this->propertyMetadataFactory = $this->createMock(PropertyMetadataFactoryInterface::class);
-
-        $propertyInfoExtractorBuilder = $this->getMockBuilder(PropertyInfoExtractorInterface::class);
-
-        // Symfony 7.0 does not declare getType() on the interface yet.
-        if (!method_exists(PropertyInfoExtractorInterface::class, 'getType')) {
-            $propertyInfoExtractorBuilder->addMethods(['getType']);
-        }
-
-        $this->propertyInfoExtractor = $propertyInfoExtractorBuilder->getMock();
+        $this->propertyInfoExtractor   = new TestPropertyInfoExtractor();
     }
 
     public function testSupportsReturnsTrueForApiResource(): void
@@ -96,9 +146,8 @@ class ColumnAutoDetectorTest extends TestCase
                 };
             });
 
-        $this->propertyInfoExtractor
-            ->method('getType')
-            ->willReturnCallback(function (string $class, string $property): ?Type {
+        $this->propertyInfoExtractor->setTypeResolver(
+            static function (string $class, string $property): ?Type {
                 return match ($property) {
                     'id'     => Type::int(),
                     'name'   => Type::string(),
@@ -106,7 +155,8 @@ class ColumnAutoDetectorTest extends TestCase
                     'active' => Type::bool(),
                     default  => null,
                 };
-            });
+            }
+        );
 
         $detector = $this->createDetector();
         $columns  = $detector->detectColumns('App\Entity\Product');
@@ -144,9 +194,7 @@ class ColumnAutoDetectorTest extends TestCase
                 };
             });
 
-        $this->propertyInfoExtractor
-            ->method('getType')
-            ->willReturn(Type::string());
+        $this->propertyInfoExtractor->setTypeResolver(static fn (): ?Type => Type::string());
 
         $detector = $this->createDetector();
         $columns  = $detector->detectColumns('App\Entity\User');
@@ -165,9 +213,7 @@ class ColumnAutoDetectorTest extends TestCase
             ->method('create')
             ->willReturn((new ApiProperty())->withReadable(true));
 
-        $this->propertyInfoExtractor
-            ->method('getType')
-            ->willReturn(Type::string());
+        $this->propertyInfoExtractor->setTypeResolver(static fn (): ?Type => Type::string());
 
         $detector = $this->createDetector();
         $columns  = $detector->detectColumns('App\Entity\User');
