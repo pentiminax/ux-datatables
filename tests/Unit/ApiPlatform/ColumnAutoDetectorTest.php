@@ -35,7 +35,15 @@ class ColumnAutoDetectorTest extends TestCase
         $this->resourceMetadataFactory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
         $this->propertyNameFactory     = $this->createMock(PropertyNameCollectionFactoryInterface::class);
         $this->propertyMetadataFactory = $this->createMock(PropertyMetadataFactoryInterface::class);
-        $this->propertyInfoExtractor   = $this->createMock(PropertyInfoExtractorInterface::class);
+
+        $propertyInfoExtractorBuilder = $this->getMockBuilder(PropertyInfoExtractorInterface::class);
+
+        // Symfony 7.0 does not declare getType() on the interface yet.
+        if (!method_exists(PropertyInfoExtractorInterface::class, 'getType')) {
+            $propertyInfoExtractorBuilder->addMethods(['getType']);
+        }
+
+        $this->propertyInfoExtractor = $propertyInfoExtractorBuilder->getMock();
     }
 
     public function testSupportsReturnsTrueForApiResource(): void
