@@ -16,7 +16,7 @@ final class ButtonsExtension extends AbstractExtension
         array $buttons,
     ) {
         foreach ($buttons as $button) {
-            if (is_string($button)) {
+            if (\is_string($button)) {
                 $button = ButtonType::from($button);
             }
 

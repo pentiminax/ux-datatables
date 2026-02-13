@@ -17,7 +17,7 @@ final class EmptySearchStrategy implements SearchStrategyInterface
 {
     public function apply(QueryBuilder $qb, AbstractColumn $column, ColumnControlSearch $search, int $paramIndex, string $alias): void
     {
-        $field = sprintf('%s.%s', $alias, $column->getName());
+        $field = \sprintf('%s.%s', $alias, $column->getName());
         $expr  = $qb->expr();
 
         $isNumeric = $column->isNumber() || \in_array(strtolower($search->type), ['number', 'numeric', 'num'], true);

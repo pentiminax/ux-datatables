@@ -19,11 +19,11 @@ final class NotContainsSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $field     = sprintf('%s.%s', $alias, $column->getField());
-        $paramName = sprintf('column_control_param_%d', $paramIndex);
+        $field     = \sprintf('%s.%s', $alias, $column->getField());
+        $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
-        $qb->andWhere(sprintf('%s NOT LIKE :%s', $field, $paramName));
-        $qb->setParameter($paramName, sprintf('%%%s%%', $search->value));
+        $qb->andWhere(\sprintf('%s NOT LIKE :%s', $field, $paramName));
+        $qb->setParameter($paramName, \sprintf('%%%s%%', $search->value));
     }
 
     public function getLogic(): string

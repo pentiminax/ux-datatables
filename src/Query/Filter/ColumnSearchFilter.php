@@ -50,11 +50,11 @@ final class ColumnSearchFilter implements QueryFilterInterface
         int $index,
         string $alias,
     ): void {
-        $field     = sprintf('%s.%s', $alias, $column->getField());
-        $paramName = sprintf('column_search_param_%d', $index);
+        $field     = \sprintf('%s.%s', $alias, $column->getField());
+        $paramName = \sprintf('column_search_param_%d', $index);
 
-        $qb->andWhere(sprintf('%s LIKE :%s', $field, $paramName));
-        $qb->setParameter($paramName, sprintf('%%%s%%', $searchValue));
+        $qb->andWhere(\sprintf('%s LIKE :%s', $field, $paramName));
+        $qb->setParameter($paramName, \sprintf('%%%s%%', $searchValue));
     }
 
     private function applyNumericColumnSearch(
@@ -68,10 +68,10 @@ final class ColumnSearchFilter implements QueryFilterInterface
             return;
         }
 
-        $field     = sprintf('%s.%s', $alias, $column->getField());
-        $paramName = sprintf('column_search_param_%d', $index);
+        $field     = \sprintf('%s.%s', $alias, $column->getField());
+        $paramName = \sprintf('column_search_param_%d', $index);
 
-        $qb->andWhere(sprintf('%s = :%s', $field, $paramName));
+        $qb->andWhere(\sprintf('%s = :%s', $field, $paramName));
         $qb->setParameter($paramName, $searchValue);
     }
 }

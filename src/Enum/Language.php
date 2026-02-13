@@ -13,6 +13,6 @@ enum Language: string
 
     public function getUrl(): string
     {
-        return sprintf('https://cdn.datatables.net/plug-ins/%s/i18n/%s.json', self::DATATABLES_VERSION, $this->value);
+        return \sprintf('https://cdn.datatables.net/plug-ins/%s/i18n/%s.json', self::DATATABLES_VERSION, $this->value);
     }
 }

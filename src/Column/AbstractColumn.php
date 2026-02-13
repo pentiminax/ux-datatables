@@ -228,10 +228,10 @@ abstract class AbstractColumn implements ColumnInterface
         $className = $this->dto->getClassName();
 
         if (!$this->dto->isExportable()) {
-            $className = trim(sprintf('%s not-exportable', $className ?? '')) ?: null;
+            $className = trim(\sprintf('%s not-exportable', $className ?? '')) ?: null;
         }
 
-        return \array_filter([
+        return array_filter([
             'cellType'       => $this->dto->getCellType(),
             'className'      => $className,
             'data'           => $this->dto->getData(),

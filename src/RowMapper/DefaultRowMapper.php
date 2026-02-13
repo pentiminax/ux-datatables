@@ -18,7 +18,7 @@ final class DefaultRowMapper implements RowMapperInterface
 
     public function map(mixed $row): array
     {
-        if (is_array($row)) {
+        if (\is_array($row)) {
             return $row;
         }
 
@@ -26,7 +26,7 @@ final class DefaultRowMapper implements RowMapperInterface
             return $row->jsonSerialize();
         }
 
-        if (!is_object($row)) {
+        if (!\is_object($row)) {
             return (array) $row;
         }
 
@@ -68,8 +68,8 @@ final class DefaultRowMapper implements RowMapperInterface
     {
         $value = $row;
         foreach (explode('.', $path) as $segment) {
-            if (is_array($value)) {
-                if (!array_key_exists($segment, $value)) {
+            if (\is_array($value)) {
+                if (!\array_key_exists($segment, $value)) {
                     return null;
                 }
 
@@ -77,7 +77,7 @@ final class DefaultRowMapper implements RowMapperInterface
                 continue;
             }
 
-            if (is_object($value)) {
+            if (\is_object($value)) {
                 $value = $this->readObjectValue($value, $segment);
                 continue;
             }
@@ -90,14 +90,14 @@ final class DefaultRowMapper implements RowMapperInterface
 
     private function readObjectValue(object $object, string $property): mixed
     {
-        if (is_callable([$object, $property])) {
+        if (\is_callable([$object, $property])) {
             return $object->$property();
         }
 
         $accessor = $this->buildAccessorSuffix($property);
         foreach (['get', 'is', 'has'] as $prefix) {
             $method = $prefix.$accessor;
-            if (is_callable([$object, $method])) {
+            if (\is_callable([$object, $method])) {
                 return $object->$method();
             }
         }

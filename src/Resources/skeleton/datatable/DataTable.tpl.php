@@ -14,7 +14,7 @@ final class <?php echo $class_name; ?> extends AbstractDataTable
 {
     public function configureColumns(): iterable
     {
-<?php if (count($columns) > 0) { ?>
+<?php if (\count($columns) > 0) { ?>
         return [
 <?php foreach ($columns as $column) { ?>
             <?php echo $column['column_class_short']; ?>::new('<?php echo $column['name']; ?>', '<?php echo $column['label']; ?>'),
