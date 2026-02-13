@@ -1,5 +1,7 @@
 # UX DataTables
 
+[![Downloads total](https://img.shields.io/packagist/dt/pentiminax/ux-datatables.svg?style=flat-square)](https://packagist.org/packages/pentiminax/ux-datatables/stats)
+
 UX DataTables is a Symfony bundle integrating the [DataTables][1]
 library in Symfony applications.
 
