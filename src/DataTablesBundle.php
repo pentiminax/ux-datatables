@@ -126,8 +126,6 @@ class DataTablesBundle extends AbstractBundle
 
         $container->services()
             ->set('datatables.column.attribute_column_reader', AttributeColumnReader::class)
-            ->arg(0, service('datatables.column.property_name_humanizer'))
-            ->arg(0, service('datatables.column.property_type_mapper'))
             ->private();
 
         $container->services()
