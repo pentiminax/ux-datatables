@@ -32,6 +32,7 @@ class DataTableTest extends TestCase
                 ->search('search')
                 ->searching()
                 ->serverSide()
+                ->apiPlatform()
                 ->stateSave()
                 ->pageLength(10)
                 ->language(Language::FR)
@@ -50,6 +51,7 @@ class DataTableTest extends TestCase
         ];
 
         $this->assertEquals($expectedExtensions, $table->getExtensions());
+        $this->assertTrue($table->getOption('apiPlatform'));
     }
 
     public function testLayoutOption(): void
