@@ -2,18 +2,18 @@
 
 namespace Pentiminax\UX\DataTables\Column;
 
+use Pentiminax\UX\DataTables\ApiPlatform\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Attribute\Column;
 
 final class AttributeColumnReader
 {
     public function __construct(
+        private readonly PropertyNameHumanizer $propertyNameHumanizer = new PropertyNameHumanizer(),
         private readonly PropertyTypeMapper $propertyTypeMapper = new PropertyTypeMapper(),
     ) {
     }
 
     /**
-     * Read #[Column] attributes from an entity class and build column instances.
-     *
      * @return AbstractColumn[]
      */
     public function readColumns(string $entityClass): array
@@ -47,7 +47,7 @@ final class AttributeColumnReader
     private function buildColumn(\ReflectionProperty $property, Column $attr): AbstractColumn
     {
         $name  = $attr->name  ?? $property->getName();
-        $label = $attr->title ?? $this->humanize($property->getName());
+        $label = $attr->title ?? $this->propertyNameHumanizer->humanize($property->getName());
 
         $columnClass = $attr->type ?? $this->resolveColumnClass($property);
 
@@ -106,16 +106,5 @@ final class AttributeColumnReader
         }
 
         return $this->propertyTypeMapper->mapType($type);
-    }
-
-    private function humanize(string $name): string
-    {
-        $label = str_replace(['_', '-'], ' ', $name);
-        $label = preg_replace('/(?<!^)([A-Z])/', ' $1', $label);
-        $label = trim($label);
-        $label = ucwords($label);
-        $label = preg_replace('/\bId\b/', 'ID', $label);
-
-        return '' === $label ? $name : $label;
     }
 }
