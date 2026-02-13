@@ -8,13 +8,15 @@ use Pentiminax\UX\DataTables\Enum\Action;
 
 class ActionColumn implements ColumnInterface
 {
+    protected ColumnDto $dto;
+
     public static function new(
         string $name,
         string $title = '',
         Action $action = Action::DELETE,
         string $actionLabel = '',
         string $actionUrl = '',
-    ): self {
+    ): static {
         return new self(
             $name,
             '' === $title ? $name : $title,
@@ -31,6 +33,7 @@ class ActionColumn implements ColumnInterface
         private string $actionLabel,
         private string $actionUrl,
     ) {
+        $this->dto = new ColumnDto();
     }
 
     public function getName(): string
@@ -53,6 +56,25 @@ class ActionColumn implements ColumnInterface
 
     public function getAsDto(): ColumnDto
     {
-        return new ColumnDto();
+        return $this->dto;
+    }
+
+    public function getField(): ?string
+    {
+        return $this->dto->getField();
+    }
+
+    public function setField(string $field): static
+    {
+        $this->dto->setField($field);
+
+        return $this;
+    }
+
+    public function setVisible(bool $visible): static
+    {
+        $this->dto->setVisible($visible);
+
+        return $this;
     }
 }
