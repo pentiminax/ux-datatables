@@ -3,6 +3,7 @@
 namespace Pentiminax\UX\DataTables\Maker;
 
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\ApiPlatform\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
@@ -20,6 +21,7 @@ use Symfony\Component\Console\Input\InputInterface;
 final class MakeDataTable extends AbstractMaker
 {
     public function __construct(
+        private readonly PropertyNameHumanizer $propertyNameHumanizer = new PropertyNameHumanizer(),
         private readonly ?ManagerRegistry $managerRegistry = null,
     ) {
     }
@@ -103,17 +105,6 @@ final class MakeDataTable extends AbstractMaker
         // No dependencies needed
     }
 
-    private function resolveEntityClass(string $entityArgument): string
-    {
-        $entityArgument = trim($entityArgument);
-
-        if (str_contains($entityArgument, '\\')) {
-            return ltrim($entityArgument, '\\');
-        }
-
-        return 'App\\Entity\\'.$entityArgument;
-    }
-
     private function getShortClassName(string $className): string
     {
         $className = ltrim($className, '\\');
@@ -143,7 +134,7 @@ final class MakeDataTable extends AbstractMaker
             $name      = $property->getName();
             $columns[] = [
                 'name'               => $this->escapeSingleQuotes($name),
-                'label'              => $this->escapeSingleQuotes($this->humanize($name)),
+                'label'              => $this->escapeSingleQuotes($this->propertyNameHumanizer->humanize($name)),
                 'column_class'       => $columnClass,
                 'column_class_short' => $this->getShortClassName($columnClass),
             ];
@@ -194,17 +185,6 @@ final class MakeDataTable extends AbstractMaker
         }
 
         return array_values(array_unique($uses));
-    }
-
-    private function humanize(string $name): string
-    {
-        $label = str_replace(['_', '-'], ' ', $name);
-        $label = preg_replace('/(?<!^)([A-Z])/', ' $1', $label);
-        $label = trim($label ?? '');
-        $label = ucwords($label);
-        $label = preg_replace('/\\bId\\b/', 'ID', $label);
-
-        return '' === $label ? $name : $label;
     }
 
     private function escapeSingleQuotes(string $value): string
