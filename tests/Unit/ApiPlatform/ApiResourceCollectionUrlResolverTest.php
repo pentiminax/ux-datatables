@@ -38,7 +38,7 @@ class ApiResourceCollectionUrlResolverTest extends TestCase
             ->with('App\Entity\Book')
             ->willReturn(new ResourceMetadataCollection('App\Entity\Book', [
                 (new ApiResource())->withOperations(new Operations([
-                    new GetCollection(uriTemplate: '/api/books{._format}'),
+                    new GetCollection(uriTemplate: '/books{._format}'),
                 ])),
             ]));
 
@@ -127,7 +127,7 @@ class ApiResourceCollectionUrlResolverTest extends TestCase
 
         $resolver = new ApiResourceCollectionUrlResolver($factory);
 
-        $this->assertSame('/books', $resolver->resolveCollectionUrl('App\Entity\Book'));
+        $this->assertSame('/api/books', $resolver->resolveCollectionUrl('App\Entity\Book'));
     }
 
     public function testResolveCollectionUrlReturnsNullWhenMetadataFactoryThrows(): void
