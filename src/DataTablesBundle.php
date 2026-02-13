@@ -117,11 +117,16 @@ class DataTablesBundle extends AbstractBundle
             ->public();
 
         $container->services()
+            ->set('datatables.column.property_name_humanizer', PropertyNameHumanizer::class)
+            ->private();
+
+        $container->services()
             ->set('datatables.column.property_type_mapper', PropertyTypeMapper::class)
             ->private();
 
         $container->services()
             ->set('datatables.column.attribute_column_reader', AttributeColumnReader::class)
+            ->arg(0, service('datatables.column.property_name_humanizer'))
             ->arg(0, service('datatables.column.property_type_mapper'))
             ->private();
 
