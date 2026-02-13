@@ -135,10 +135,6 @@ abstract class AbstractDataTable implements DataTableInterface
             return;
         }
 
-        if (true === $this->table->getOption('serverSide')) {
-            return;
-        }
-
         if (null === $this->apiResourceCollectionUrlResolver) {
             return;
         }
@@ -154,7 +150,8 @@ abstract class AbstractDataTable implements DataTableInterface
             return;
         }
 
-        $this->table->ajax($collectionUrl, 'member');
+        $this->table->ajax($collectionUrl);
+        $this->table->apiPlatform();
     }
 
     public function getDataTable(): DataTable

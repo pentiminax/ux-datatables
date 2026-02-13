@@ -255,6 +255,16 @@ class DataTable
     }
 
     /**
+     * Enable API Platform client-side adapter mode in the Stimulus controller.
+     */
+    public function apiPlatform(bool $enabled = true): static
+    {
+        $this->options['apiPlatform'] = $enabled;
+
+        return $this;
+    }
+
+    /**
      * Feature control table information display field.
      */
     public function stateSave(bool $stateSave = true): static

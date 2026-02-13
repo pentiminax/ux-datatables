@@ -11,6 +11,7 @@ import {loadKeyTableLibrary} from "./functions/loadKeyTableLibrary.js";
 import {loadScrollerLibrary} from "./functions/loadScrollerLibrary.js";
 import {deleteRow} from "./functions/deleteRow.js";
 import {toggleBooleanValue} from "./functions/toggleBooleanValue.js";
+import {configureApiPlatformAjax} from "./functions/apiPlatformAdapter.js";
 
 class default_1 extends Controller {
     constructor() {
@@ -90,6 +91,10 @@ class default_1 extends Controller {
         
         if (this.isScrollerExtensionEnabled(payload)) {
             await loadScrollerLibrary(stylesheet);
+        }
+
+        if (this.isApiPlatformEnabled(payload)) {
+            configureApiPlatformAjax(payload);
         }
 
         payload.columns.forEach((column) => {
@@ -215,6 +220,10 @@ class default_1 extends Controller {
     
     isScrollerExtensionEnabled(payload) {
         return !!payload?.scroller;
+    }
+
+    isApiPlatformEnabled(payload) {
+        return true === payload?.apiPlatform;
     }
 
     isBooleanColumn(column) {

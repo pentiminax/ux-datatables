@@ -102,10 +102,11 @@ class AsDataTableTest extends TestCase
         $table->prepareForRendering();
 
         $this->assertSame([
-            'type'    => 'GET',
-            'url'     => '/api/books',
-            'dataSrc' => 'member',
+            'type' => 'GET',
+            'url'  => '/api/books',
         ], $table->getDataTable()->getOption('ajax'));
+
+        $this->assertTrue($table->getDataTable()->getOption('apiPlatform'));
     }
 
     public function testPrepareForRenderingDoesNothingWhenAjaxIsAlreadyConfigured(): void
@@ -121,6 +122,8 @@ class AsDataTableTest extends TestCase
             'type' => 'GET',
             'url'  => '/custom-endpoint',
         ], $table->getDataTable()->getOption('ajax'));
+
+        $this->assertFalse($table->getDataTable()->getOption('apiPlatform') ?? false);
     }
 
     public function testPrepareForRenderingDoesNothingWhenServerSideIsEnabled(): void
@@ -133,6 +136,7 @@ class AsDataTableTest extends TestCase
         $table->prepareForRendering();
 
         $this->assertNull($table->getDataTable()->getOption('ajax'));
+        $this->assertNull($table->getDataTable()->getOption('apiPlatform'));
     }
 
     public function testPrepareForRenderingDoesNothingWhenDataIsAlreadyConfigured(): void
