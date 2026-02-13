@@ -168,12 +168,12 @@ abstract class AbstractDataTable implements DataTableInterface
     public function configureColumns(): iterable
     {
         $columns = $this->getDataTable()->getColumns();
-        if (!empty($columns)) {
+        if ([] !== $columns) {
             return $columns;
         }
 
         $columns = $this->columnsFromAttributes();
-        if (!empty($columns)) {
+        if ([] !== $columns) {
             return $columns;
         }
 
