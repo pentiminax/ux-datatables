@@ -4,14 +4,17 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Attribute;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\BooleanColumn;
-use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
-use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
-use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithAttribute;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithBooleanColumn;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithData;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualAjax;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualOverride;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithoutAttribute;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithServerSide;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\ToggleEntityFixture;
 use PHPUnit\Framework\TestCase;
 
 class AsDataTableTest extends TestCase
@@ -52,7 +55,6 @@ class AsDataTableTest extends TestCase
 
         $provider = $table->getDataProvider();
 
-        // Should return the manually configured provider, not auto-configured
         $this->assertInstanceOf(ArrayDataProvider::class, $provider);
     }
 
@@ -72,7 +74,6 @@ class AsDataTableTest extends TestCase
         $provider1 = $table->getDataProvider();
         $provider2 = $table->getDataProvider();
 
-        // Should return the same instance (cached)
         $this->assertSame($provider1, $provider2);
     }
 
@@ -126,17 +127,25 @@ class AsDataTableTest extends TestCase
         $this->assertFalse($table->getDataTable()->getOption('apiPlatform') ?? false);
     }
 
-    public function testPrepareForRenderingDoesNothingWhenServerSideIsEnabled(): void
+    public function testPrepareForRenderingConfiguresAjaxWhenServerSideIsEnabled(): void
     {
         $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
-        $resolver->expects($this->never())->method('resolveCollectionUrl');
+        $resolver
+            ->expects($this->once())
+            ->method('resolveCollectionUrl')
+            ->with(\stdClass::class)
+            ->willReturn('/api/books');
 
         $table = new TestDataTableWithServerSide(apiResourceCollectionUrlResolver: $resolver);
 
         $table->prepareForRendering();
 
-        $this->assertNull($table->getDataTable()->getOption('ajax'));
-        $this->assertNull($table->getDataTable()->getOption('apiPlatform'));
+        $this->assertSame([
+            'type' => 'GET',
+            'url'  => '/api/books',
+        ], $table->getDataTable()->getOption('ajax'));
+
+        $this->assertTrue($table->getDataTable()->getOption('apiPlatform'));
     }
 
     public function testPrepareForRenderingDoesNothingWhenDataIsAlreadyConfigured(): void
@@ -171,100 +180,4 @@ class AsDataTableTest extends TestCase
 
         $this->assertNull($table->getDataTable()->getOption('ajax'));
     }
-}
-
-/**
- * Test fixture: DataTable with AsDataTable attribute.
- */
-#[AsDataTable(entityClass: \stdClass::class)]
-class TestDataTableWithAttribute extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-}
-
-#[AsDataTable(entityClass: \stdClass::class)]
-class TestDataTableWithManualAjax extends AbstractDataTable
-{
-    public function configureDataTable(DataTable $table): DataTable
-    {
-        return $table->ajax('/custom-endpoint');
-    }
-
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-}
-
-#[AsDataTable(entityClass: \stdClass::class)]
-class TestDataTableWithServerSide extends AbstractDataTable
-{
-    public function configureDataTable(DataTable $table): DataTable
-    {
-        return $table->serverSide(true);
-    }
-
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-}
-
-#[AsDataTable(entityClass: \stdClass::class)]
-class TestDataTableWithData extends AbstractDataTable
-{
-    public function configureDataTable(DataTable $table): DataTable
-    {
-        return $table->data([['id' => 1]]);
-    }
-
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-}
-
-/**
- * Test fixture: DataTable with AsDataTable attribute but manual override.
- */
-#[AsDataTable(entityClass: \stdClass::class)]
-class TestDataTableWithManualOverride extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-
-    public function getDataProvider(): ?DataProviderInterface
-    {
-        return new ArrayDataProvider([], $this->rowMapper());
-    }
-}
-
-/**
- * Test fixture: DataTable without AsDataTable attribute.
- */
-class TestDataTableWithoutAttribute extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-}
-
-#[AsDataTable(entityClass: ToggleEntityFixture::class)]
-class TestDataTableWithBooleanColumn extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield BooleanColumn::new('isEmailAuthEnabled');
-    }
-}
-
-final class ToggleEntityFixture
-{
-    public bool $isEmailAuthEnabled = true;
 }
