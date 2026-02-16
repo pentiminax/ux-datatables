@@ -5,6 +5,7 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
  * Strategy for 'in' search logic.
@@ -33,8 +34,8 @@ final class InListSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $field     = \sprintf('%s.%s', $alias, $columnField);
-        $paramName = \sprintf(':%s_in', $columnField);
+        $field     = RelationFieldResolver::resolve($qb, $alias, $columnField);
+        $paramName = \sprintf(':%s_in', str_replace('.', '_', $columnField));
 
         $qb->andWhere(\sprintf('%s IN (%s)', $field, $paramName));
         $qb->setParameter($paramName, $values);

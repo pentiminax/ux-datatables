@@ -26,6 +26,29 @@ class InListSearchStrategyTest extends TestCase
         $strategy->applyForList($qb, 'columnField', ['value1', 'value2'], 'e');
     }
 
+    public function testApplyForListWithDotNotation(): void
+    {
+        $strategy = new InListSearchStrategy();
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('leftJoin')
+            ->with('e.author', 'author')
+            ->willReturn($qb);
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with($this->equalTo('author.firstName IN (:author_firstName_in)'));
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with($this->equalTo(':author_firstName_in'), $this->equalTo(['Alice', 'Bob']));
+
+        $strategy->applyForList($qb, 'author.firstName', ['Alice', 'Bob'], 'e');
+    }
+
     public function testApplyForListWithEmptyArray(): void
     {
         $strategy = new InListSearchStrategy();

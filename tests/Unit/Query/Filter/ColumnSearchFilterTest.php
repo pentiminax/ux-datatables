@@ -15,6 +15,38 @@ use PHPUnit\Framework\TestCase;
 
 class ColumnSearchFilterTest extends TestCase
 {
+    public function testApplyTextColumnSearchWithDotNotation(): void
+    {
+        $filter = new ColumnSearchFilter();
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('leftJoin')
+            ->with('e.author', 'author')
+            ->willReturn($qb);
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with($this->equalTo('author.firstName LIKE :column_search_param_0'));
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with($this->equalTo('column_search_param_0'), $this->equalTo('%john%'));
+
+        $column        = TextColumn::new('authorName', 'Author')->setField('author.firstName');
+        $search        = new Search('john', false);
+        $requestColumn = new Column('authorName', 'authorName', true, true, $search);
+
+        $columns = new Columns(['authorName' => $requestColumn]);
+        $request = new DataTableRequest(1, $columns);
+
+        $context = new QueryFilterContext($request, [$column], 'e');
+
+        $filter->apply($qb, $context);
+    }
+
     public function testApplyTextColumnSearch(): void
     {
         $filter = new ColumnSearchFilter();

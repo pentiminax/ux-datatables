@@ -5,6 +5,7 @@ namespace Pentiminax\UX\DataTables\Query\Filter;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\QueryFilterInterface;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
  * Filter that applies ordering from DataTableRequest to QueryBuilder.
@@ -21,14 +22,14 @@ final class OrderFilter implements QueryFilterInterface
         }
 
         $order  = $context->request->order[0];
-        $column = $context->request->columns->getColumnByIndex($order->column);
+        $column = $context->columns[$order->column] ?? null;
 
         if (!$column) {
             return;
         }
 
         $qb->addOrderBy(
-            \sprintf('%s.%s', $context->alias, $column->name),
+            RelationFieldResolver::resolve($qb, $context->alias, $column->getField()),
             $order->dir
         );
     }
