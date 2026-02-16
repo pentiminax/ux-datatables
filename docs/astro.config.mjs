@@ -12,9 +12,13 @@ export default defineConfig({
         src: './src/assets/logo.svg',
         replacesTitle: false,
       },
-      social: {
-        github: 'https://github.com/pentiminax/ux-datatables',
-      },
+      social: [
+        {
+          icon: 'github',
+          label: 'GitHub',
+          href: 'https://github.com/pentiminax/ux-datatables',
+        },
+      ],
       editLink: {
         baseUrl: 'https://github.com/pentiminax/ux-datatables/edit/main/docs/',
       },
