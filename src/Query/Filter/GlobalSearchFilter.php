@@ -5,6 +5,7 @@ namespace Pentiminax\UX\DataTables\Query\Filter;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\QueryFilterInterface;
 
@@ -21,7 +22,7 @@ final class GlobalSearchFilter implements QueryFilterInterface
     {
         $globalSearchableColumns = array_filter(
             $context->columns,
-            static fn (AbstractColumn $column) => $column->isGlobalSearchable()
+            static fn (ColumnInterface $column) => $column->isGlobalSearchable()
         );
 
         if ([] === $globalSearchableColumns) {
