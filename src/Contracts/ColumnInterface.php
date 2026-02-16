@@ -17,4 +17,10 @@ interface ColumnInterface extends \JsonSerializable
     public function setField(string $field): static;
 
     public function setVisible(bool $visible): static;
+
+    public function isSearchable(): bool;
+
+    public function isGlobalSearchable(): bool;
+
+    public function getData(): ?string;
 }

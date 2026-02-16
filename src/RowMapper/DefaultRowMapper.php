@@ -4,6 +4,7 @@ namespace Pentiminax\UX\DataTables\RowMapper;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 
 final class DefaultRowMapper implements RowMapperInterface
@@ -57,7 +58,7 @@ final class DefaultRowMapper implements RowMapperInterface
         return $mapped ?: get_object_vars($row);
     }
 
-    private function resolveColumnKey(AbstractColumn $column): ?string
+    private function resolveColumnKey(ColumnInterface $column): ?string
     {
         $key = $column->getData() ?? $column->getName();
 
