@@ -51,6 +51,7 @@ class ActionColumn implements ColumnInterface
             'action'      => $this->action->value,
             'actionLabel' => $this->actionLabel,
             'actionUrl'   => $this->actionUrl,
+            'orderable'   => false,
         ];
     }
 
