@@ -6,6 +6,7 @@ use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Stringable;
 
 final class DefaultRowMapper implements RowMapperInterface
 {
@@ -37,6 +38,7 @@ final class DefaultRowMapper implements RowMapperInterface
     private function mapObjectRow(object $row): array
     {
         $mapped = [];
+
         foreach ($this->columns as $column) {
             $key = $this->resolveColumnKey($column);
             if (null === $key) {
@@ -70,7 +72,7 @@ final class DefaultRowMapper implements RowMapperInterface
         $value = $row;
         foreach (explode('.', $path) as $segment) {
             if (\is_array($value)) {
-                if (!\array_key_exists($segment, $value)) {
+                if (!isset($value[$segment])) {
                     return null;
                 }
 
@@ -99,7 +101,12 @@ final class DefaultRowMapper implements RowMapperInterface
         foreach (['get', 'is', 'has'] as $prefix) {
             $method = $prefix.$accessor;
             if (\is_callable([$object, $method])) {
-                return $object->$method();
+                $value = $object->$method();
+                if (\is_object($value) && $value instanceof \Stringable) {
+                    return (string) $value;
+                }
+
+                return $value;
             }
         }
 
