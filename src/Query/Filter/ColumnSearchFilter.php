@@ -6,6 +6,7 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\QueryFilterInterface;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
  * Filter that applies standard DataTables column-specific searches.
@@ -50,7 +51,7 @@ final class ColumnSearchFilter implements QueryFilterInterface
         int $index,
         string $alias,
     ): void {
-        $field     = \sprintf('%s.%s', $alias, $column->getField());
+        $field     = RelationFieldResolver::resolve($qb, $alias, $column->getField());
         $paramName = \sprintf('column_search_param_%d', $index);
 
         $qb->andWhere(\sprintf('%s LIKE :%s', $field, $paramName));
@@ -68,7 +69,7 @@ final class ColumnSearchFilter implements QueryFilterInterface
             return;
         }
 
-        $field     = \sprintf('%s.%s', $alias, $column->getField());
+        $field     = RelationFieldResolver::resolve($qb, $alias, $column->getField());
         $paramName = \sprintf('column_search_param_%d', $index);
 
         $qb->andWhere(\sprintf('%s = :%s', $field, $paramName));

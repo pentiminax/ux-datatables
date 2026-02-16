@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\QueryFilterInterface;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
  * Filter that applies global search across all searchable columns.
@@ -54,7 +55,7 @@ final class GlobalSearchFilter implements QueryFilterInterface
         $paramName = \sprintf('search_param_%d', $index);
         $qb->setParameter($paramName, "%$searchValue%");
 
-        return \sprintf('%s.%s LIKE :%s', $alias, $column->getField(), $paramName);
+        return \sprintf('%s LIKE :%s', RelationFieldResolver::resolve($qb, $alias, $column->getField()), $paramName);
     }
 
     private function applyNumericSearch(QueryBuilder $qb, AbstractColumn $column, string $searchValue, int $index, string $alias): string
@@ -62,6 +63,6 @@ final class GlobalSearchFilter implements QueryFilterInterface
         $paramName = \sprintf('search_param_%d', $index);
         $qb->setParameter($paramName, $searchValue);
 
-        return \sprintf('%s.%s = :%s', $alias, $column->getField(), $paramName);
+        return \sprintf('%s = :%s', RelationFieldResolver::resolve($qb, $alias, $column->getField()), $paramName);
     }
 }
