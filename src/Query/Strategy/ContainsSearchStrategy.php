@@ -5,6 +5,7 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
  * Strategy for 'contains' search logic.
@@ -20,7 +21,7 @@ final class ContainsSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $field     = \sprintf('%s.%s', $alias, $column->getField());
+        $field     = RelationFieldResolver::resolve($qb, $alias, $column->getField());
         $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
         $isNumeric = $column->isNumber()

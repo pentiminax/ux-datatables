@@ -6,7 +6,6 @@ use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
-use Stringable;
 
 final class DefaultRowMapper implements RowMapperInterface
 {

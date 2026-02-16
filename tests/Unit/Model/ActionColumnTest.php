@@ -13,8 +13,6 @@ class ActionColumnTest extends TestCase
         $column = ActionColumn::new(
             name: 'actions',
             title: 'Actions',
-            action: Action::DELETE,
-            actionLabel: 'Delete',
             actionUrl: '/delete',
         );
 
@@ -26,6 +24,8 @@ class ActionColumnTest extends TestCase
             'action'      => Action::DELETE->value,
             'actionLabel' => 'Delete',
             'actionUrl'   => '/delete',
+            'searchable'  => false,
+            'orderable'   => false,
         ];
 
         $this->assertEquals($expectedArray, $column->jsonSerialize());
