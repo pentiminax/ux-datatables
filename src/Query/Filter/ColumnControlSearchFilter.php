@@ -3,7 +3,7 @@
 namespace Pentiminax\UX\DataTables\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Query\Strategy\InListSearchStrategy;
@@ -24,10 +24,10 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
 
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
-        /** @var AbstractColumn[] $searchableColumns */
+        /** @var ColumnInterface[] $searchableColumns */
         $searchableColumns = array_filter(
             $context->columns,
-            static fn (AbstractColumn $column) => $column->isSearchable()
+            static fn (ColumnInterface $column) => $column->isSearchable()
         );
 
         foreach ($searchableColumns as $index => $column) {

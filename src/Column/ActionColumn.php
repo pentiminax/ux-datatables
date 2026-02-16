@@ -14,7 +14,7 @@ class ActionColumn implements ColumnInterface
         string $name,
         string $title = '',
         Action $action = Action::DELETE,
-        string $actionLabel = '',
+        string $actionLabel = 'Delete',
         string $actionUrl = '',
     ): static {
         return new self(
@@ -76,5 +76,20 @@ class ActionColumn implements ColumnInterface
         $this->dto->setVisible($visible);
 
         return $this;
+    }
+
+    public function isSearchable(): bool
+    {
+        return false;
+    }
+
+    public function isGlobalSearchable(): bool
+    {
+        return false;
+    }
+
+    public function getData(): ?string
+    {
+        return null;
     }
 }
