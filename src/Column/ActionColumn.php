@@ -52,6 +52,7 @@ class ActionColumn implements ColumnInterface
             'actionLabel' => $this->actionLabel,
             'actionUrl'   => $this->actionUrl,
             'orderable'   => false,
+            'searchable'  => false,
         ];
     }
 
