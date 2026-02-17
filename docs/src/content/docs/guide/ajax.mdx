@@ -3,8 +3,6 @@ title: Ajax
 description: Load table data from HTTP endpoints
 ---
 
-import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
-
 # Ajax
 
 The `ajax` option enables DataTables to load data from an HTTP endpoint, ideal for large datasets or server-side filtering.
@@ -24,11 +22,11 @@ $dataTable->ajax(
 
 ## Ajax Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `url` | `string` | API endpoint URL |
+| Parameter | Type     | Description                                    |
+| --------- | -------- | ---------------------------------------------- |
+| `url`     | `string` | API endpoint URL                               |
 | `dataSrc` | `string` | JSON key containing row data (default: `data`) |
-| `type` | `string` | HTTP method: `GET` or `POST` |
+| `type`    | `string` | HTTP method: `GET` or `POST`                   |
 
 ## Expected JSON Response
 
@@ -41,8 +39,8 @@ For client-side tables (all data loaded at once):
 ```json
 {
   "data": [
-    { "id": 1, "name": "Product A", "price": 10.50 },
-    { "id": 2, "name": "Product B", "price": 20.00 }
+    { "id": 1, "name": "Product A", "price": 10.5 },
+    { "id": 2, "name": "Product B", "price": 20.0 }
   ]
 }
 ```
@@ -57,18 +55,18 @@ For server-side tables (paginated/filtered on server):
   "recordsTotal": 1000,
   "recordsFiltered": 150,
   "data": [
-    { "id": 1, "name": "Product A", "price": 10.50 },
-    { "id": 2, "name": "Product B", "price": 20.00 }
+    { "id": 1, "name": "Product A", "price": 10.5 },
+    { "id": 2, "name": "Product B", "price": 20.0 }
   ]
 }
 ```
 
-| Field | Description |
-|-------|-------------|
-| `draw` | Request sequence number (prevents out-of-order responses) |
-| `recordsTotal` | Total records in the dataset |
-| `recordsFiltered` | Records after filtering |
-| `data` | Array of row objects |
+| Field             | Description                                               |
+| ----------------- | --------------------------------------------------------- |
+| `draw`            | Request sequence number (prevents out-of-order responses) |
+| `recordsTotal`    | Total records in the dataset                              |
+| `recordsFiltered` | Records after filtering                                   |
+| `data`            | Array of row objects                                      |
 
 ## Mapping Columns to JSON Keys
 
@@ -113,6 +111,7 @@ TextColumn::new('price', 'Price')
         }
     }
     ```
+
   </TabItem>
   <TabItem label="Using ResponseBuilder">
     ```php
@@ -139,6 +138,7 @@ TextColumn::new('price', 'Price')
         );
     }
     ```
+
   </TabItem>
 </Tabs>
 
@@ -156,17 +156,17 @@ $dataTable
 
 Your endpoint receives these query parameters:
 
-| Parameter | Description |
-|-----------|-------------|
-| `draw` | Request counter |
-| `start` | Starting row index |
-| `length` | Number of rows to return |
-| `search[value]` | Global search term |
-| `order[0][column]` | Column index to sort by |
-| `order[0][dir]` | Sort direction (`asc`/`desc`) |
-| `columns[n][data]` | Column data source |
-| `columns[n][searchable]` | Whether column is searchable |
-| `columns[n][orderable]` | Whether column is orderable |
+| Parameter                | Description                   |
+| ------------------------ | ----------------------------- |
+| `draw`                   | Request counter               |
+| `start`                  | Starting row index            |
+| `length`                 | Number of rows to return      |
+| `search[value]`          | Global search term            |
+| `order[0][column]`       | Column index to sort by       |
+| `order[0][dir]`          | Sort direction (`asc`/`desc`) |
+| `columns[n][data]`       | Column data source            |
+| `columns[n][searchable]` | Whether column is searchable  |
+| `columns[n][orderable]`  | Whether column is orderable   |
 
 ## Handling Server-Side Requests
 
@@ -240,11 +240,13 @@ DataTables will display this message to the user.
 When using `AbstractDataTable` with `#[AsDataTable(...)]`, the bundle can auto-configure Ajax from API Platform metadata.
 
 Auto-configuration sets:
+
 - `ajax.url`: first detected `GET` collection `uriTemplate` (for example `/api/books`)
 - `ajax.dataSrc`: `member`
 - `ajax.type`: `GET`
 
 This behavior is enabled only when all conditions are met:
+
 - no explicit `ajax` option is already configured
 - `serverSide` is not enabled
 - no explicit `data` option is already configured
@@ -263,9 +265,12 @@ Expected JSON-LD shape:
 ```
 
 <Aside type="caution">
-  This first version targets client-side DataTables loading. Use a collection endpoint returning the full dataset (not paginated partial pages).
+  This first version targets client-side DataTables loading. Use a collection endpoint returning the
+  full dataset (not paginated partial pages).
 </Aside>
 
 <Aside type="tip">
-  For complex server-side tables, consider using [AbstractDataTable](../reference/abstract-datatable/) with the `#[AsDataTable]` attribute for automatic Doctrine integration.
+  For complex server-side tables, consider using
+  [AbstractDataTable](../reference/abstract-datatable/) with the `#[AsDataTable]` attribute for
+  automatic Doctrine integration.
 </Aside>

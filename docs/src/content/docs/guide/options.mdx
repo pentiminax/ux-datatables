@@ -3,8 +3,6 @@ title: Options
 description: Configure DataTable behavior with PHP helper methods
 ---
 
-import { Aside } from '@astrojs/starlight/components';
-
 # Options
 
 This page documents the PHP helper methods available on the `DataTable` class to configure DataTables options.
@@ -40,6 +38,7 @@ $dataTable->order([
 ```
 
 Order format options:
+
 - `[column_index, direction]` - Array with index and 'asc'/'desc'
 - `{idx: number, dir: 'asc'|'desc'}` - Object with index
 - `{name: string, dir: 'asc'|'desc'}` - Object with column name
@@ -314,5 +313,6 @@ $dataTable
 ```
 
 <Aside type="tip">
-  All options correspond to [DataTables options](https://datatables.net/reference/option/). Check the official documentation for edge cases and advanced configurations.
+  All options correspond to [DataTables options](https://datatables.net/reference/option/). Check
+  the official documentation for edge cases and advanced configurations.
 </Aside>

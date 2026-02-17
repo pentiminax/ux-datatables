@@ -1,0 +1,266 @@
+---
+import Layout from '../layouts/Layout.astro'
+import { Code } from 'astro:components'
+---
+
+<Layout title="Home">
+  <div class="relative overflow-hidden pt-16 pb-24 lg:pt-32 lg:pb-40">
+    <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="text-center">
+        <div class="mb-8 flex justify-center gap-4">
+          <a
+            href="https://github.com/pentiminax/ux-datatables"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src="https://img.shields.io/github/stars/pentiminax/ux-datatables?style=social"
+              alt="GitHub stars"
+            />
+          </a>
+          <a
+            href="https://packagist.org/packages/pentiminax/ux-datatables"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src="https://img.shields.io/packagist/dt/pentiminax/ux-datatables"
+              alt="Total Downloads"
+            />
+          </a>
+        </div>
+
+        <h1 class="mb-6 text-5xl font-extrabold tracking-tight md:text-7xl">
+          <span class="bg-gradient-to-r from-sky-400 to-blue-500 bg-clip-text text-transparent"
+            >Stop building DataTables</span
+          >
+          <br />
+          <span class="text-white">from scratch.</span>
+        </h1>
+
+        <p class="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-slate-400 md:text-xl">
+          Give your Symfony app the grid it deserves with <strong class="text-white"
+            >zero boilerplate</strong
+          >. <br />Type-safe. Server-side. Extensible.
+        </p>
+
+        <div class="flex flex-wrap justify-center gap-4">
+          <a
+            href="/ux-datatables/getting-started/introduction/"
+            class="inline-flex items-center rounded-full bg-blue-600 px-8 py-3 font-bold text-white shadow-lg shadow-blue-500/25 transition-all hover:bg-blue-500"
+          >
+            Get Started
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="ml-2 h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"
+              ></polyline></svg
+            >
+          </a>
+          <a
+            href="https://github.com/pentiminax/ux-datatables"
+            target="_blank"
+            class="inline-flex items-center rounded-full border border-slate-700 px-8 py-3 font-bold text-slate-300 transition-all hover:bg-slate-800"
+          >
+            View Source
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="ml-2 h-5 w-5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              ><path
+                d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+              ></path></svg
+            >
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Background glow -->
+    <div
+      class="pointer-events-none absolute top-0 left-1/2 h-full w-full max-w-4xl -translate-x-1/2 opacity-20"
+    >
+      <div class="absolute top-[-10%] left-0 h-[50%] w-full rounded-full bg-blue-500 blur-[120px]">
+      </div>
+    </div>
+  </div>
+
+  <section class="border-y border-slate-800 bg-[#0b1120]/50 py-24">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-16 text-center">
+        <h2 class="mb-4 text-3xl font-bold md:text-4xl">Everything you need</h2>
+        <p class="text-slate-400">A complete toolkit for building complex data grids in seconds.</p>
+      </div>
+
+      <div class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div
+          class="rounded-2xl border border-slate-800 bg-[#0a1628] p-8 transition-colors hover:border-blue-500"
+        >
+          <div class="mb-4 text-3xl">⚡️</div>
+          <h3 class="mb-2 text-xl font-bold">Zero Config</h3>
+          <p class="text-slate-400">
+            Automatic column detection based on your Doctrine entities. Just point to a class and
+            go.
+          </p>
+        </div>
+        <div
+          class="rounded-2xl border border-slate-800 bg-[#0a1628] p-8 transition-colors hover:border-blue-500"
+        >
+          <div class="mb-4 text-3xl">🔒</div>
+          <h3 class="mb-2 text-xl font-bold">Type Safe</h3>
+          <p class="text-slate-400">
+            Built with strict typing and PHP Attributes. Catch errors at compile time, not runtime.
+          </p>
+        </div>
+        <div
+          class="rounded-2xl border border-slate-800 bg-[#0a1628] p-8 transition-colors hover:border-blue-500"
+        >
+          <div class="mb-4 text-3xl">🚀</div>
+          <h3 class="mb-2 text-xl font-bold">Server Side</h3>
+          <p class="text-slate-400">
+            Handle millions of rows with built-in server-side processing and optimized Doctrine
+            queries.
+          </p>
+        </div>
+        <div
+          class="rounded-2xl border border-slate-800 bg-[#0a1628] p-8 transition-colors hover:border-blue-500"
+        >
+          <div class="mb-4 text-3xl">🎨</div>
+          <h3 class="mb-2 text-xl font-bold">Symfony UX</h3>
+          <p class="text-slate-400">
+            Seamless integration with Symfony UX and Stimulus. No complex JavaScript required.
+          </p>
+        </div>
+        <div
+          class="rounded-2xl border border-slate-800 bg-[#0a1628] p-8 transition-colors hover:border-blue-500"
+        >
+          <div class="mb-4 text-3xl">🧩</div>
+          <h3 class="mb-2 text-xl font-bold">Extensible</h3>
+          <p class="text-slate-400">
+            Supports Buttons, Select, Responsive, FixedHeader, and more official DataTables
+            extensions.
+          </p>
+        </div>
+        <div
+          class="rounded-2xl border border-slate-800 bg-[#0a1628] p-8 transition-colors hover:border-blue-500"
+        >
+          <div class="mb-4 text-3xl">🐘</div>
+          <h3 class="mb-2 text-xl font-bold">Twig Ready</h3>
+          <p class="text-slate-400">
+            Render your tables with a single line of Twig. Customizable templates included.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-24">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+      <div class="mb-16 text-center">
+        <h2 class="mb-4 text-3xl font-bold md:text-4xl">Code less, do more</h2>
+      </div>
+
+      <div class="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1fr_auto_1fr]">
+        <div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-2xl">
+          <div
+            class="flex justify-between border-b border-slate-700 bg-slate-800 px-4 py-2 font-mono text-xs text-slate-400"
+          >
+            <span>UserTable.php</span>
+            <div class="flex gap-1.5">
+              <div class="h-3 w-3 rounded-full bg-red-500/50"></div>
+              <div class="h-3 w-3 rounded-full bg-yellow-500/50"></div>
+              <div class="h-3 w-3 rounded-full bg-green-500/50"></div>
+            </div>
+          </div>
+          <Code
+            code={`#[AsDataTable]
+class UserTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('firstName');
+        yield TextColumn::new('email');
+        yield BooleanColumn::new('active');
+    }
+}`}
+            lang="php"
+            theme="github-dark"
+            class="overflow-x-auto p-6 font-mono text-sm"
+          />
+        </div>
+
+        <div class="flex rotate-90 justify-center lg:rotate-0">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-8 w-8 text-slate-600"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            ><path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg
+          >
+        </div>
+
+        <div class="overflow-hidden rounded-xl border border-slate-800 bg-[#0b1120] shadow-2xl">
+          <div class="overflow-hidden">
+            <table class="w-full text-left text-sm">
+              <thead class="border-b border-slate-700 bg-slate-800/50 font-bold text-slate-400">
+                <tr>
+                  <th class="px-4 py-3">First Name</th>
+                  <th class="px-4 py-3">Email</th>
+                  <th class="px-4 py-3">Active</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-800">
+                <tr>
+                  <td class="px-4 py-3">John</td>
+                  <td class="px-4 py-3 text-slate-400">john@example.com</td>
+                  <td class="px-4 py-3"
+                    ><span
+                      class="rounded-full border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-xs font-bold text-green-400"
+                      >Yes</span
+                    ></td
+                  >
+                </tr>
+                <tr>
+                  <td class="px-4 py-3">Jane</td>
+                  <td class="px-4 py-3 text-slate-400">jane@test.com</td>
+                  <td class="px-4 py-3"
+                    ><span
+                      class="rounded-full border border-red-500/20 bg-red-500/10 px-2 py-0.5 text-xs font-bold text-red-400"
+                      >No</span
+                    ></td
+                  >
+                </tr>
+                <tr>
+                  <td class="px-4 py-3">Bob</td>
+                  <td class="px-4 py-3 text-slate-400">bob@demo.com</td>
+                  <td class="px-4 py-3"
+                    ><span
+                      class="rounded-full border border-green-500/20 bg-green-500/10 px-2 py-0.5 text-xs font-bold text-green-400"
+                      >Yes</span
+                    ></td
+                  >
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

@@ -3,49 +3,48 @@ title: Installation
 description: How to install and configure UX DataTables
 ---
 
-import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
-
 # Installation
 
 <Aside type="note">
-  Before you start, make sure [Symfony UX StimulusBundle](https://symfony.com/bundles/StimulusBundle/current/index.html) is configured in your application.
+  Before you start, make sure [Symfony UX
+  StimulusBundle](https://symfony.com/bundles/StimulusBundle/current/index.html) is configured in
+  your application.
 </Aside>
 
 ## Install the Bundle
 
 <Steps>
+**Install via Composer**
 
-1. **Install via Composer**
+    ```bash
+    composer require pentiminax/ux-datatables
+    ```
 
-   ```bash
-   composer require pentiminax/ux-datatables
-   ```
+    Symfony Flex will automatically enable the bundle.
 
-   Symfony Flex will automatically enable the bundle.
+**Install Assets**
 
-2. **Install Assets**
+    <Tabs>
+      <TabItem label="AssetMapper">
+        If you're using **AssetMapper** (recommended for Symfony 6.4+), no extra work is needed. The bundle ships DataTables assets automatically.
+      </TabItem>
+      <TabItem label="Webpack Encore">
+        If you're using **Webpack Encore**, install the JavaScript dependencies and rebuild your assets:
 
-   <Tabs>
-     <TabItem label="AssetMapper">
-       If you're using **AssetMapper** (recommended for Symfony 6.4+), no extra work is needed. The bundle ships DataTables assets automatically.
-     </TabItem>
-     <TabItem label="Webpack Encore">
-       If you're using **Webpack Encore**, install the JavaScript dependencies and rebuild your assets:
+        ```bash
+        npm install --force
+        npm run watch
 
-       ```bash
-       npm install --force
-       npm run watch
+        # or with yarn
+        yarn install --force
+        yarn watch
+        ```
+      </TabItem>
+    </Tabs>
 
-       # or with yarn
-       yarn install --force
-       yarn watch
-       ```
-     </TabItem>
-   </Tabs>
+**Verify Installation**
 
-3. **Verify Installation**
-
-   The `@pentiminax/ux-datatables/datatable` Stimulus controller is now available in your application.
+    The `@pentiminax/ux-datatables/datatable` Stimulus controller is now available in your application.
 
 </Steps>
 
@@ -74,14 +73,17 @@ data_tables:
 
 ### Configuration Options
 
-| Option | Description |
-|--------|-------------|
-| `language` | Default language locale (e.g., `en-GB`, `fr-FR`) |
-| `layout` | UI component positions (`topStart`, `topEnd`, `bottomStart`, `bottomEnd`) |
-| `lengthMenu` | Available page length options |
-| `pageLength` | Initial rows per page |
-| `template_parameters` | Default attributes for the `<table>` element |
-| `extensions` | Default extensions to enable |
+<Table
+  headers={['Option', 'Description']}
+  rows={[
+    ['language', 'Default language locale (e.g., en-GB, fr-FR)'],
+    ['layout', 'UI component positions (topStart, topEnd, bottomStart, bottomEnd)'],
+    ['lengthMenu', 'Available page length options'],
+    ['pageLength', 'Initial rows per page'],
+    ['template_parameters', 'Default attributes for the <table> element'],
+    ['extensions', 'Default extensions to enable'],
+  ]}
+/>
 
 ## Styling
 
@@ -91,16 +93,16 @@ The bundle includes default DataTables styling. Check your `assets/controllers.j
 
 ```json
 {
-    "controllers": {
-        "@pentiminax/ux-datatables": {
-            "datatable": {
-                "enabled": true
-            }
-        }
-    },
-    "autoimport": {
-        "datatables.net-dt/css/dataTables.dataTables.min.css": true
+  "controllers": {
+    "@pentiminax/ux-datatables": {
+      "datatable": {
+        "enabled": true
+      }
     }
+  },
+  "autoimport": {
+    "datatables.net-dt/css/dataTables.dataTables.min.css": true
+  }
 }
 ```
 
@@ -110,10 +112,10 @@ To use Bootstrap 5 styling instead:
 
 ```json
 {
-    "autoimport": {
-        "datatables.net-dt/css/dataTables.dataTables.min.css": false,
-        "datatables.net-bs5/css/dataTables.bootstrap5.min.css": true
-    }
+  "autoimport": {
+    "datatables.net-dt/css/dataTables.dataTables.min.css": false,
+    "datatables.net-bs5/css/dataTables.bootstrap5.min.css": true
+  }
 }
 ```
 
