@@ -1,0 +1,17 @@
+---
+---
+
+<div class="steps-container ml-4 border-l border-slate-800 pl-8 space-y-12 my-12">
+	<slot />
+</div>
+
+<style is:global>
+	@import "tailwindcss";
+	.steps-container > h3 {
+		@apply relative;
+	}
+	.steps-container > h3::before {
+		content: "";
+		@apply absolute -left-[41px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-indigo-500 border-4 border-[#0F0F17];
+	}
+</style>
