@@ -56,7 +56,7 @@ const sidebar = [
                     <li>
                       <a
                         href={item.href}
-                        class="block border-l-2 border-transparent pl-4 text-sm text-slate-400 transition-colors hover:border-indigo-500 hover:text-white"
+                        class="block border-l-2 border-transparent pl-4 text-sm text-slate-400 transition-colors hover:border-blue-500 hover:text-white"
                       >
                         {item.label}
                       </a>
@@ -70,7 +70,7 @@ const sidebar = [
       </aside>
 
       <!-- Content -->
-      <article class="prose prose-invert prose-indigo max-w-none flex-grow">
+      <article class="prose prose-invert prose-blue max-w-none flex-grow">
         <slot />
       </article>
     </div>
@@ -92,7 +92,7 @@ const sidebar = [
     @apply mb-4 leading-relaxed text-slate-400;
   }
   .prose code {
-    @apply rounded bg-slate-800 px-1.5 py-0.5 font-mono text-sm text-indigo-300;
+    @apply rounded bg-slate-800 px-1.5 py-0.5 font-mono text-sm text-blue-300;
   }
   .prose pre {
     @apply my-6 overflow-x-auto rounded-lg border border-slate-800 bg-slate-900 p-4;
@@ -110,6 +110,6 @@ const sidebar = [
     @apply font-semibold text-white;
   }
   .prose a {
-    @apply text-indigo-400 underline decoration-slate-700 underline-offset-4 transition-all hover:text-indigo-300 hover:decoration-indigo-400;
+    @apply text-blue-400 underline decoration-slate-700 underline-offset-4 transition-all hover:text-blue-300 hover:decoration-blue-400;
   }
 </style>

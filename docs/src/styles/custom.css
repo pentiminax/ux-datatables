@@ -1,37 +1,38 @@
 /* Custom CSS for UX DataTables Documentation */
 
 :root {
-  /* Default: Dark Theme */
-  --sl-color-accent-low: #1a365d;
-  --sl-color-accent: #4299e1;
-  --sl-color-accent-high: #90cdf4;
-  --sl-color-white: #f8fafc;
-  --sl-color-gray-1: #e2e8f0;
-  --sl-color-gray-2: #cbd5e1;
-  --sl-color-gray-3: #94a3b8;
-  --sl-color-gray-4: #64748b;
-  --sl-color-gray-5: #334155;
-  --sl-color-gray-6: #0f172a;
-  --sl-color-black: #0b141d;
+  /* Dark Theme - DataTables.net blue palette */
+  --sl-color-accent-low: #1a3a5c;
+  --sl-color-accent: #3174c7;
+  --sl-color-accent-high: #53b8db;
+  --sl-color-white: #f0f4f8;
+  --sl-color-gray-1: #d0dae5;
+  --sl-color-gray-2: #a8b8c8;
+  --sl-color-gray-3: #7a8fa3;
+  --sl-color-gray-4: #556a7e;
+  --sl-color-gray-5: #2d3d4e;
+  --sl-color-gray-6: #162230;
+  --sl-color-black: #0a1628;
 }
 
 :root[data-theme='light'] {
-  --sl-color-accent-low: #ebf8ff;
-  --sl-color-accent: #3182ce;
-  --sl-color-accent-high: #2c5282;
-  --sl-color-white: #17202a;
-  --sl-color-gray-1: #232d38;
-  --sl-color-gray-2: #3a4a5a;
-  --sl-color-gray-3: #5a6f84;
-  --sl-color-gray-4: #8fa2b7;
-  --sl-color-gray-5: #c3ceda;
-  --sl-color-gray-6: #f7fafc;
+  /* Light Theme - DataTables.net blue palette */
+  --sl-color-accent-low: #daeaf7;
+  --sl-color-accent: #3174c7;
+  --sl-color-accent-high: #1e4f8a;
+  --sl-color-white: #1a2332;
+  --sl-color-gray-1: #253040;
+  --sl-color-gray-2: #3d5068;
+  --sl-color-gray-3: #5a7290;
+  --sl-color-gray-4: #8da3ba;
+  --sl-color-gray-5: #c4d2e0;
+  --sl-color-gray-6: #f4f7fa;
   --sl-color-black: #ffffff;
 }
 
-/* Hero section styling */
+/* Hero section styling - DataTables.net gradient */
 .hero {
-  background: linear-gradient(135deg, var(--sl-color-accent-low) 0%, var(--sl-color-accent) 100%);
+  background: linear-gradient(135deg, #68b3db 0%, #6ba8e5 100%);
   border-radius: 1rem;
   padding: 3rem 2rem;
   margin: 2rem 0;
@@ -39,8 +40,8 @@
 }
 
 [data-theme='light'] .hero {
-  background: linear-gradient(135deg, #e2e8f0 0%, #edf2f7 100%);
-  border: 1px solid var(--sl-color-gray-5);
+  background: linear-gradient(135deg, #68b3db 0%, #6ba8e5 100%);
+  border: none;
 }
 
 /* Code block improvements */
