@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro'
+import { Code } from 'astro:components'
 ---
 
 <Layout title="Home">
@@ -182,17 +183,21 @@ import Layout from '../layouts/Layout.astro'
               <div class="h-3 w-3 rounded-full bg-green-500/50"></div>
             </div>
           </div>
-          <pre
-            class="overflow-x-auto p-6 font-mono text-sm text-slate-300"><code>#[AsDataTable]
+          <Code
+            code={`#[AsDataTable]
 class UserTable extends AbstractDataTable
-&#123;
+{
     public function configureColumns(): iterable
-    &#123;
+    {
         yield TextColumn::new('firstName');
         yield TextColumn::new('email');
         yield BooleanColumn::new('active');
-    &#125;
-&#125;</code></pre>
+    }
+}`}
+            lang="php"
+            theme="github-dark"
+            class="overflow-x-auto p-6 font-mono text-sm"
+          />
         </div>
 
         <div class="flex rotate-90 justify-center lg:rotate-0">
