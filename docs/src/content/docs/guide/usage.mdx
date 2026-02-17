@@ -3,7 +3,6 @@ title: Usage
 description: Learn how to build and render DataTables in your Symfony application
 ---
 
-
 # Usage
 
 This guide covers the main ways to create and render DataTables in your Symfony application.
@@ -74,43 +73,43 @@ Create a custom Stimulus controller to extend DataTables functionality:
 
 ```javascript
 // assets/controllers/mytable_controller.js
-import { Controller } from '@hotwired/stimulus';
+import { Controller } from '@hotwired/stimulus'
 
 export default class extends Controller {
-    connect() {
-        this.element.addEventListener('datatables:pre-connect', this._onPreConnect);
-        this.element.addEventListener('datatables:connect', this._onConnect);
+  connect() {
+    this.element.addEventListener('datatables:pre-connect', this._onPreConnect)
+    this.element.addEventListener('datatables:connect', this._onConnect)
+  }
+
+  disconnect() {
+    this.element.removeEventListener('datatables:pre-connect', this._onPreConnect)
+    this.element.removeEventListener('datatables:connect', this._onConnect)
+  }
+
+  _onPreConnect(event) {
+    // The table is not yet created
+    // Access the config that will be passed to DataTable constructor
+    console.log(event.detail.config)
+
+    // Define a custom render callback
+    event.detail.config.columns[0].render = function (data, type, row, meta) {
+      return '<a href="' + data + '">Download</a>'
     }
+  }
 
-    disconnect() {
-        this.element.removeEventListener('datatables:pre-connect', this._onPreConnect);
-        this.element.removeEventListener('datatables:connect', this._onConnect);
-    }
+  _onConnect(event) {
+    // The table was just created
+    console.log(event.detail.table)
 
-    _onPreConnect(event) {
-        // The table is not yet created
-        // Access the config that will be passed to DataTable constructor
-        console.log(event.detail.config);
+    // Listen to DataTables events
+    event.detail.table.on('init', (e) => {
+      console.log('Table initialized')
+    })
 
-        // Define a custom render callback
-        event.detail.config.columns[0].render = function(data, type, row, meta) {
-            return '<a href="' + data + '">Download</a>';
-        };
-    }
-
-    _onConnect(event) {
-        // The table was just created
-        console.log(event.detail.table);
-
-        // Listen to DataTables events
-        event.detail.table.on('init', (e) => {
-            console.log('Table initialized');
-        });
-
-        event.detail.table.on('draw', (e) => {
-            console.log('Table redrawn');
-        });
-    }
+    event.detail.table.on('draw', (e) => {
+      console.log('Table redrawn')
+    })
+  }
 }
 ```
 
@@ -122,10 +121,10 @@ Then attach your controller in Twig:
 
 ## Available Events
 
-| Event | Description | Detail Properties |
-|-------|-------------|-------------------|
+| Event                    | Description                       | Detail Properties              |
+| ------------------------ | --------------------------------- | ------------------------------ |
 | `datatables:pre-connect` | Fired before table initialization | `config`: Configuration object |
-| `datatables:connect` | Fired after table is created | `table`: DataTable instance |
+| `datatables:connect`     | Fired after table is created      | `table`: DataTable instance    |
 
 ## Working with Multiple Tables
 
@@ -160,7 +159,8 @@ public function index(DataTableBuilderInterface $builder): Response
 ```
 
 <Aside type="caution">
-  Each table must have a unique ID. The `createDataTable()` method's first argument sets the table ID.
+  Each table must have a unique ID. The `createDataTable()` method's first argument sets the table
+  ID.
 </Aside>
 
 ## Best Practices

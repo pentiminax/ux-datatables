@@ -3,7 +3,6 @@ title: Columns
 description: Configure table columns with types, rendering, and behavior options
 ---
 
-
 # Columns
 
 Each column in a DataTable is represented by a `Column` class that configures rendering, sorting, searching, and export behavior.
@@ -211,13 +210,13 @@ final class UsersDataTable extends AbstractDataTable
 
 The `ColumnType` enum controls DataTables' internal sorting and search algorithms:
 
-| Type | Description |
-|------|-------------|
-| `ColumnType::STRING` | Text content (default) |
-| `ColumnType::NUM` | Numeric values (also used by `BooleanColumn` for sorting) |
-| `ColumnType::NUM_FMT` | Formatted numbers ($1,000) |
-| `ColumnType::DATE` | Date values |
-| `ColumnType::HTML` | HTML content |
+| Type                  | Description                                               |
+| --------------------- | --------------------------------------------------------- |
+| `ColumnType::STRING`  | Text content (default)                                    |
+| `ColumnType::NUM`     | Numeric values (also used by `BooleanColumn` for sorting) |
+| `ColumnType::NUM_FMT` | Formatted numbers ($1,000)                                |
+| `ColumnType::DATE`    | Date values                                               |
+| `ColumnType::HTML`    | HTML content                                              |
 
 ## Serialization
 
@@ -229,5 +228,6 @@ $config = $column->jsonSerialize();
 ```
 
 <Aside type="tip">
-  For action buttons (edit, delete), see the [Action Columns](../../reference/action-columns/) reference.
+  For action buttons (edit, delete), see the [Action Columns](../../reference/action-columns/)
+  reference.
 </Aside>

@@ -3,7 +3,6 @@ title: Configuration
 description: Configure DataTables defaults and bundle options
 ---
 
-
 # Configuration
 
 Configure bundle-wide defaults in `config/packages/data_tables.yaml`.
@@ -38,7 +37,7 @@ Sets the default language locale for DataTables UI elements. The bundle translat
 ```yaml
 data_tables:
   options:
-    language: fr-FR  # French
+    language: fr-FR # French
     # language: de-DE  # German
     # language: es-ES  # Spanish
 ```
@@ -53,10 +52,10 @@ Controls the positioning of DataTables UI features. Each position accepts a feat
 data_tables:
   options:
     layout:
-      topStart: pageLength    # Page length selector
-      topEnd: search          # Search box
-      bottomStart: info       # "Showing X of Y entries"
-      bottomEnd: paging       # Pagination controls
+      topStart: pageLength # Page length selector
+      topEnd: search # Search box
+      bottomStart: info # "Showing X of Y entries"
+      bottomEnd: paging # Pagination controls
 ```
 
 **Available positions**: `topStart`, `topEnd`, `bottomStart`, `bottomEnd`, `top`, `bottom`
@@ -119,7 +118,7 @@ data_tables:
   extensions:
     buttons: [csv, excel, pdf, print, copy, colvis]
     select:
-      style: single  # or 'multi'
+      style: single # or 'multi'
 ```
 
 ### Buttons Extension
@@ -132,7 +131,7 @@ extensions:
     - pdf
     - print
     - copy
-    - colvis  # Column visibility toggle
+    - colvis # Column visibility toggle
 ```
 
 ### Select Extension
@@ -140,7 +139,7 @@ extensions:
 ```yaml
 extensions:
   select:
-    style: single   # Single row selection
+    style: single # Single row selection
     # style: multi  # Multiple row selection
 ```
 
@@ -173,5 +172,7 @@ data_tables:
 ```
 
 <Aside type="tip">
-  All configuration options map directly to [DataTables options](https://datatables.net/reference/option/). Check the official documentation for advanced use cases.
+  All configuration options map directly to [DataTables
+  options](https://datatables.net/reference/option/). Check the official documentation for advanced
+  use cases.
 </Aside>
