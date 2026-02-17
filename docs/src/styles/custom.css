@@ -1,20 +1,7 @@
 /* Custom CSS for UX DataTables Documentation */
 
 :root {
-  --sl-color-accent-low: #1a365d;
-  --sl-color-accent: #3182ce;
-  --sl-color-accent-high: #63b3ed;
-  --sl-color-white: #fff;
-  --sl-color-gray-1: #eef2f6;
-  --sl-color-gray-2: #c3ceda;
-  --sl-color-gray-3: #8fa2b7;
-  --sl-color-gray-4: #5a6f84;
-  --sl-color-gray-5: #3a4a5a;
-  --sl-color-gray-6: #232d38;
-  --sl-color-black: #17202a;
-}
-
-:root[data-theme='dark'] {
+  /* Default: Dark Theme */
   --sl-color-accent-low: #1a365d;
   --sl-color-accent: #4299e1;
   --sl-color-accent-high: #90cdf4;
@@ -28,6 +15,20 @@
   --sl-color-black: #0b141d;
 }
 
+:root[data-theme='light'] {
+  --sl-color-accent-low: #ebf8ff;
+  --sl-color-accent: #3182ce;
+  --sl-color-accent-high: #2c5282;
+  --sl-color-white: #17202a;
+  --sl-color-gray-1: #232d38;
+  --sl-color-gray-2: #3a4a5a;
+  --sl-color-gray-3: #5a6f84;
+  --sl-color-gray-4: #8fa2b7;
+  --sl-color-gray-5: #c3ceda;
+  --sl-color-gray-6: #f7fafc;
+  --sl-color-black: #ffffff;
+}
+
 /* Hero section styling */
 .hero {
   background: linear-gradient(135deg, var(--sl-color-accent-low) 0%, var(--sl-color-accent) 100%);
@@ -35,6 +36,11 @@
   padding: 3rem 2rem;
   margin: 2rem 0;
   text-align: center;
+}
+
+[data-theme='light'] .hero {
+  background: linear-gradient(135deg, #e2e8f0 0%, #edf2f7 100%);
+  border: 1px solid var(--sl-color-gray-5);
 }
 
 /* Code block improvements */
