@@ -3,8 +3,6 @@ title: Extensions
 description: Enable DataTables extensions for export, selection, and more
 ---
 
-import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
-
 # Extensions
 
 UX DataTables supports common DataTables extensions through PHP helpers. Configure them per-table or set defaults in the bundle configuration.
@@ -23,11 +21,11 @@ use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\DataTable;
 
 $buttonsExtension = new ButtonsExtension([
-    ButtonType::COPY,
-    ButtonType::CSV,
-    ButtonType::EXCEL,
-    ButtonType::PDF,
-    ButtonType::PRINT,
+    COPY,
+    CSV,
+    EXCEL,
+    PDF,
+    PRINT,
 ]);
 
 $dataTable = new DataTable('products');
@@ -36,14 +34,17 @@ $dataTable->extensions([$buttonsExtension]);
 
 ### Available Button Types
 
-| Button | Description |
-|--------|-------------|
-| `ButtonType::COPY` | Copy to clipboard |
-| `ButtonType::CSV` | Export as CSV |
-| `ButtonType::EXCEL` | Export as Excel |
-| `ButtonType::PDF` | Export as PDF |
-| `ButtonType::PRINT` | Print view |
-| `ButtonType::COLVIS` | Column visibility toggle |
+<Table
+  headers={['Button', 'Description']}
+  rows={[
+    ['COPY', 'Copy to clipboard'],
+    ['CSV', 'Export as CSV'],
+    ['EXCEL', 'Export as Excel'],
+    ['PDF', 'Export as PDF'],
+    ['PRINT', 'Print view'],
+    ['COLVIS', 'Column visibility toggle'],
+  ]}
+/>
 
 ### Export Filtering
 
@@ -67,22 +68,25 @@ use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 
 // Single row selection
-$selectExtension = new SelectExtension(SelectStyle::SINGLE);
+$selectExtension = new SelectExtension(SINGLE);
 
 // Multiple row selection
-$selectExtension = new SelectExtension(SelectStyle::MULTI);
+$selectExtension = new SelectExtension(MULTI);
 
 $dataTable->extensions([$selectExtension]);
 ```
 
 ### Selection Styles
 
-| Style | Description |
-|-------|-------------|
-| `SelectStyle::SINGLE` | Select one item at a time |
-| `SelectStyle::MULTI` | Select multiple items |
-| `SelectStyle::OS` | OS-style selection (Ctrl/Cmd+click) |
-| `SelectStyle::MULTI_SHIFT` | Multi with Shift+click for ranges |
+<Table
+  headers={['Style', 'Description']}
+  rows={[
+    ['SINGLE', 'Select one item at a time'],
+    ['MULTI', 'Select multiple items'],
+    ['OS', 'OS-style selection (Ctrl/Cmd+click)'],
+    ['MULTI_SHIFT', 'Multi with Shift+click for ranges'],
+  ]}
+/>
 
 ### Handling Selected Rows
 
@@ -130,7 +134,8 @@ $dataTable->responsive();
 ```
 
 <Aside type="note">
-  Responsive mode automatically prioritizes which columns to hide based on available space. You can control priority with the column's `responsivePriority` option.
+  Responsive mode automatically prioritizes which columns to hide based on available space. You can
+  control priority with the column's `responsivePriority` option.
 </Aside>
 
 ## KeyTable Extension
@@ -163,7 +168,8 @@ $dataTable->scrollY('400px');
 ```
 
 <Aside type="tip">
-  Scroller is ideal for tables with thousands of rows. It only renders visible rows, dramatically improving performance.
+  Scroller is ideal for tables with thousands of rows. It only renders visible rows, dramatically
+  improving performance.
 </Aside>
 
 ## Combining Extensions
@@ -179,8 +185,8 @@ use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
 
 $dataTable = new DataTable('products');
 $dataTable->extensions([
-    new ButtonsExtension([ButtonType::CSV, ButtonType::EXCEL]),
-    new SelectExtension(SelectStyle::MULTI),
+    new ButtonsExtension([CSV, EXCEL]),
+    new SelectExtension(MULTI),
     new KeyTableExtension(),
 ]);
 
