@@ -73,14 +73,17 @@ data_tables:
 
 ### Configuration Options
 
-| Option                | Description                                                               |
-| --------------------- | ------------------------------------------------------------------------- |
-| `language`            | Default language locale (e.g., `en-GB`, `fr-FR`)                          |
-| `layout`              | UI component positions (`topStart`, `topEnd`, `bottomStart`, `bottomEnd`) |
-| `lengthMenu`          | Available page length options                                             |
-| `pageLength`          | Initial rows per page                                                     |
-| `template_parameters` | Default attributes for the `<table>` element                              |
-| `extensions`          | Default extensions to enable                                              |
+<Table
+  headers={['Option', 'Description']}
+  rows={[
+    ['language', 'Default language locale (e.g., en-GB, fr-FR)'],
+    ['layout', 'UI component positions (topStart, topEnd, bottomStart, bottomEnd)'],
+    ['lengthMenu', 'Available page length options'],
+    ['pageLength', 'Initial rows per page'],
+    ['template_parameters', 'Default attributes for the <table> element'],
+    ['extensions', 'Default extensions to enable'],
+  ]}
+/>
 
 ## Styling
 
