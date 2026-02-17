@@ -30,17 +30,17 @@ const { title, description } = Astro.props
     />
   </head>
   <body
-    class="flex min-h-screen flex-col bg-[#0F0F17] font-['Inter',system-ui,sans-serif] text-white"
+    class="flex min-h-screen flex-col bg-[#0a1628] font-['Inter',system-ui,sans-serif] text-white"
   >
     <nav
-      class="sticky top-0 z-40 w-full border-b border-slate-800 bg-[#0F0F17]/80 backdrop-blur-md"
+      class="sticky top-0 z-40 w-full border-b border-slate-800 bg-[#0a1628]/80 backdrop-blur-md"
     >
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between">
           <div class="flex items-center gap-4">
             <a href="/ux-datatables/" class="flex items-center gap-2">
               <span
-                class="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-xl font-bold text-transparent"
+                class="bg-gradient-to-r from-sky-400 to-blue-500 bg-clip-text text-xl font-bold text-transparent"
                 >UX DataTables</span
               >
             </a>
@@ -74,9 +74,9 @@ const { title, description } = Astro.props
 <style is:global>
   @import 'tailwindcss';
   :root {
-    --accent: 136, 58, 234;
-    --accent-light: 224, 204, 250;
-    --accent-dark: 49, 10, 101;
+    --accent: 49, 116, 199;
+    --accent-light: 83, 184, 219;
+    --accent-dark: 26, 58, 92;
     --accent-gradient: linear-gradient(
       45deg,
       rgb(var(--accent)),
@@ -95,7 +95,7 @@ const { title, description } = Astro.props
     width: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: #0f0f17;
+    background: #0a1628;
   }
   ::-webkit-scrollbar-thumb {
     background: #1e293b;
