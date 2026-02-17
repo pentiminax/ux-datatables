@@ -6,6 +6,7 @@ import Badge from '../components/Badge.astro'
 import Steps from '../components/Steps.astro'
 import Tabs from '../components/Tabs.astro'
 import TabItem from '../components/TabItem.astro'
+import Table from '../components/Table.astro'
 
 export async function getStaticPaths() {
   const docs = await getCollection('docs')
@@ -24,6 +25,7 @@ const components = {
   Steps,
   Tabs,
   TabItem,
+  Table,
 }
 ---
 

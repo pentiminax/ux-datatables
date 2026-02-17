@@ -121,10 +121,13 @@ Then attach your controller in Twig:
 
 ## Available Events
 
-| Event                    | Description                       | Detail Properties              |
-| ------------------------ | --------------------------------- | ------------------------------ |
-| `datatables:pre-connect` | Fired before table initialization | `config`: Configuration object |
-| `datatables:connect`     | Fired after table is created      | `table`: DataTable instance    |
+<Table
+  headers={['Event', 'Description', 'Detail Properties']}
+  rows={[
+    ['datatables:pre-connect', 'Fired before table initialization', 'config: Configuration object'],
+    ['datatables:connect', 'Fired after table is created', 'table: DataTable instance'],
+  ]}
+/>
 
 ## Working with Multiple Tables
 
