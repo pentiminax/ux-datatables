@@ -1,91 +1,117 @@
 ---
-import Footer from '../components/Footer.astro';
-import '../styles/global.css';
+import Footer from '../components/Footer.astro'
+import '../styles/global.css'
 
 interface Props {
-	title: string;
-	description?: string;
+  title: string
+  description?: string
 }
 
-const { title, description } = Astro.props;
+const { title, description } = Astro.props
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" class="dark">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/ux-datatables/favicon.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<title>{title} | UX DataTables</title>
-		<meta name="description" content={description || "Symfony bundle integrating DataTables in Symfony applications"} />
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
-	</head>
-	<body class="bg-[#0F0F17] text-white font-['Inter',system-ui,sans-serif] min-h-screen flex flex-col">
-		<nav class="sticky top-0 z-40 w-full border-b border-slate-800 bg-[#0F0F17]/80 backdrop-blur-md">
-			<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-				<div class="flex h-16 items-center justify-between">
-					<div class="flex items-center gap-4">
-						<a href="/ux-datatables/" class="flex items-center gap-2">
-							<span class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">UX DataTables</span>
-						</a>
-						<div class="hidden md:block">
-							<div class="ml-10 flex items-baseline space-x-4">
-								<a href="/ux-datatables/getting-started/introduction/" class="rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">Documentation</a>
-								<a href="https://github.com/pentiminax/ux-datatables" class="rounded-md px-3 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">GitHub</a>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</nav>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/ux-datatables/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title} | UX DataTables</title>
+    <meta
+      name="description"
+      content={description || 'Symfony bundle integrating DataTables in Symfony applications'}
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body
+    class="flex min-h-screen flex-col bg-[#0F0F17] font-['Inter',system-ui,sans-serif] text-white"
+  >
+    <nav
+      class="sticky top-0 z-40 w-full border-b border-slate-800 bg-[#0F0F17]/80 backdrop-blur-md"
+    >
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center justify-between">
+          <div class="flex items-center gap-4">
+            <a href="/ux-datatables/" class="flex items-center gap-2">
+              <span
+                class="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-xl font-bold text-transparent"
+                >UX DataTables</span
+              >
+            </a>
+            <div class="hidden md:block">
+              <div class="ml-10 flex items-baseline space-x-4">
+                <a
+                  href="/ux-datatables/getting-started/introduction/"
+                  class="rounded-md px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white"
+                  >Documentation</a
+                >
+                <a
+                  href="https://github.com/pentiminax/ux-datatables"
+                  class="rounded-md px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white"
+                  >GitHub</a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
 
-		<main class="flex-grow">
-			<slot />
-		</main>
+    <main class="flex-grow">
+      <slot />
+    </main>
 
-		<Footer />
-	</body>
+    <Footer />
+  </body>
 </html>
 
 <style is:global>
-	@import "tailwindcss";
-	:root {
-		--accent: 136, 58, 234;
-		--accent-light: 224, 204, 250;
-		--accent-dark: 49, 10, 101;
-		--accent-gradient: linear-gradient(
-			45deg,
-			rgb(var(--accent)),
-			rgb(var(--accent-light)) 30%,
-			white 60%
-		);
-	}
-	
-	/* Smooth scroll */
-	html {
-		scroll-behavior: smooth;
-	}
+  @import 'tailwindcss';
+  :root {
+    --accent: 136, 58, 234;
+    --accent-light: 224, 204, 250;
+    --accent-dark: 49, 10, 101;
+    --accent-gradient: linear-gradient(
+      45deg,
+      rgb(var(--accent)),
+      rgb(var(--accent-light)) 30%,
+      white 60%
+    );
+  }
 
-	/* Custom Scrollbar */
-	::-webkit-scrollbar {
-		width: 10px;
-	}
-	::-webkit-scrollbar-track {
-		background: #0F0F17;
-	}
-	::-webkit-scrollbar-thumb {
-		background: #1e293b;
-		border-radius: 5px;
-	}
-	::-webkit-scrollbar-thumb:hover {
-		background: #334155;
-	}
+  /* Smooth scroll */
+  html {
+    scroll-behavior: smooth;
+  }
 
-	/* Typography */
-	h1, h2, h3, h4, h5, h6 {
-		@apply font-bold text-white tracking-tight;
-	}
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0f0f17;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 5px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+  }
+
+  /* Typography */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold tracking-tight text-white;
+  }
 </style>

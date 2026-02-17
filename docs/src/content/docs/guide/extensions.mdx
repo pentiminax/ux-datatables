@@ -3,7 +3,6 @@ title: Extensions
 description: Enable DataTables extensions for export, selection, and more
 ---
 
-
 # Extensions
 
 UX DataTables supports common DataTables extensions through PHP helpers. Configure them per-table or set defaults in the bundle configuration.
@@ -35,13 +34,13 @@ $dataTable->extensions([$buttonsExtension]);
 
 ### Available Button Types
 
-| Button | Description |
-|--------|-------------|
-| `ButtonType::COPY` | Copy to clipboard |
-| `ButtonType::CSV` | Export as CSV |
-| `ButtonType::EXCEL` | Export as Excel |
-| `ButtonType::PDF` | Export as PDF |
-| `ButtonType::PRINT` | Print view |
+| Button               | Description              |
+| -------------------- | ------------------------ |
+| `ButtonType::COPY`   | Copy to clipboard        |
+| `ButtonType::CSV`    | Export as CSV            |
+| `ButtonType::EXCEL`  | Export as Excel          |
+| `ButtonType::PDF`    | Export as PDF            |
+| `ButtonType::PRINT`  | Print view               |
 | `ButtonType::COLVIS` | Column visibility toggle |
 
 ### Export Filtering
@@ -76,12 +75,12 @@ $dataTable->extensions([$selectExtension]);
 
 ### Selection Styles
 
-| Style | Description |
-|-------|-------------|
-| `SelectStyle::SINGLE` | Select one item at a time |
-| `SelectStyle::MULTI` | Select multiple items |
-| `SelectStyle::OS` | OS-style selection (Ctrl/Cmd+click) |
-| `SelectStyle::MULTI_SHIFT` | Multi with Shift+click for ranges |
+| Style                      | Description                         |
+| -------------------------- | ----------------------------------- |
+| `SelectStyle::SINGLE`      | Select one item at a time           |
+| `SelectStyle::MULTI`       | Select multiple items               |
+| `SelectStyle::OS`          | OS-style selection (Ctrl/Cmd+click) |
+| `SelectStyle::MULTI_SHIFT` | Multi with Shift+click for ranges   |
 
 ### Handling Selected Rows
 
@@ -129,7 +128,8 @@ $dataTable->responsive();
 ```
 
 <Aside type="note">
-  Responsive mode automatically prioritizes which columns to hide based on available space. You can control priority with the column's `responsivePriority` option.
+  Responsive mode automatically prioritizes which columns to hide based on available space. You can
+  control priority with the column's `responsivePriority` option.
 </Aside>
 
 ## KeyTable Extension
@@ -162,7 +162,8 @@ $dataTable->scrollY('400px');
 ```
 
 <Aside type="tip">
-  Scroller is ideal for tables with thousands of rows. It only renders visible rows, dramatically improving performance.
+  Scroller is ideal for tables with thousands of rows. It only renders visible rows, dramatically
+  improving performance.
 </Aside>
 
 ## Combining Extensions

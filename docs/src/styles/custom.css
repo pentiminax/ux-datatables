@@ -60,7 +60,9 @@
   padding: 1.5rem;
   margin: 1rem 0;
   border: 1px solid var(--sl-color-gray-5);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .feature-card:hover {

@@ -3,7 +3,6 @@ title: AbstractDataTable
 description: Create reusable, configurable data tables with Doctrine integration
 ---
 
-
 # AbstractDataTable
 
 `AbstractDataTable` is the recommended way to create reusable, configurable tables with built-in support for Doctrine entities and server-side processing.
@@ -11,6 +10,7 @@ description: Create reusable, configurable data tables with Doctrine integration
 ## Overview
 
 The class wires together:
+
 - **DataTable**: ID, columns, and extensions
 - **DataProvider**: Fetches rows (Doctrine or array-based)
 - **RowMapper**: Transforms entities into frontend-compatible arrays
@@ -51,6 +51,7 @@ final class UsersDataTable extends AbstractDataTable
 ```
 
 The attribute automatically creates a `DoctrineDataProvider` configured with:
+
 - Your entity class
 - The `rowMapper()` method
 - The `queryBuilderConfigurator()` method
@@ -239,33 +240,33 @@ public function configureSelectExtension(SelectExtension $ext): SelectExtension
 
 ### Configuration Methods
 
-| Method | Description |
-|--------|-------------|
-| `configureDataTable(DataTable $table)` | Configure table options |
-| `configureColumns()` | Define columns (required) |
-| `configureExtensions(DataTableExtensions $ext)` | Add extensions |
-| `configureButtonsExtension(ButtonsExtension $ext)` | Configure Buttons extension |
-| `configureSelectExtension(SelectExtension $ext)` | Configure Select extension |
-| `configureColumnControlExtension(...)` | Configure ColumnControl extension |
+| Method                                             | Description                       |
+| -------------------------------------------------- | --------------------------------- |
+| `configureDataTable(DataTable $table)`             | Configure table options           |
+| `configureColumns()`                               | Define columns (required)         |
+| `configureExtensions(DataTableExtensions $ext)`    | Add extensions                    |
+| `configureButtonsExtension(ButtonsExtension $ext)` | Configure Buttons extension       |
+| `configureSelectExtension(SelectExtension $ext)`   | Configure Select extension        |
+| `configureColumnControlExtension(...)`             | Configure ColumnControl extension |
 
 ### Data Methods
 
-| Method | Description |
-|--------|-------------|
-| `getDataProvider()` | Return custom DataProvider |
-| `fetchData(DataTableRequest $request)` | Fetch data using the provider |
-| `mapRow(mixed $item)` | Map a single entity to array |
-| `rowMapper()` | Get RowMapperInterface instance |
-| `queryBuilderConfigurator(QueryBuilder $qb, ...)` | Modify Doctrine query |
+| Method                                            | Description                     |
+| ------------------------------------------------- | ------------------------------- |
+| `getDataProvider()`                               | Return custom DataProvider      |
+| `fetchData(DataTableRequest $request)`            | Fetch data using the provider   |
+| `mapRow(mixed $item)`                             | Map a single entity to array    |
+| `rowMapper()`                                     | Get RowMapperInterface instance |
+| `queryBuilderConfigurator(QueryBuilder $qb, ...)` | Modify Doctrine query           |
 
 ### Request Handling
 
-| Method | Description |
-|--------|-------------|
-| `handleRequest(Request $request)` | Handle Ajax requests |
-| `isRequestHandled()` | Check if request was handled |
-| `getResponse()` | Get JsonResponse for Ajax |
-| `getDataTable()` | Get the configured DataTable |
+| Method                            | Description                  |
+| --------------------------------- | ---------------------------- |
+| `handleRequest(Request $request)` | Handle Ajax requests         |
+| `isRequestHandled()`              | Check if request was handled |
+| `getResponse()`                   | Get JsonResponse for Ajax    |
+| `getDataTable()`                  | Get the configured DataTable |
 
 ## Manual Data Provider
 
@@ -342,6 +343,7 @@ If your `#[AsDataTable(...)]` entity is also an API Platform `ApiResource`, `ren
 - `type`: `GET`
 
 This is done through `prepareForRendering()` and applies only when:
+
 - `ajax` is not already configured
 - `serverSide` is disabled
 - `data` is not already configured

@@ -1,12 +1,12 @@
 ---
-import Layout from './Layout.astro';
+import Layout from './Layout.astro'
 
 interface Props {
-	title: string;
-	description?: string;
+  title: string
+  description?: string
 }
 
-const { title, description } = Astro.props;
+const { title, description } = Astro.props
 
 const sidebar = [
   {
@@ -36,56 +36,80 @@ const sidebar = [
       { label: 'Maker Command', href: '/ux-datatables/reference/maker/' },
     ],
   },
-];
+]
 ---
 
 <Layout title={title} description={description}>
-	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-		<div class="flex flex-col md:flex-row gap-8 py-8">
-			<!-- Sidebar -->
-			<aside class="w-full md:w-64 shrink-0">
-				<nav class="sticky top-24 space-y-8">
-					{sidebar.map((section) => (
-						<div>
-							<h3 class="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">
-								{section.label}
-							</h3>
-							<ul class="space-y-2">
-								{section.items.map((item) => (
-									<li>
-										<a
-											href={item.href}
-											class="block text-sm text-slate-400 hover:text-white transition-colors border-l-2 border-transparent hover:border-indigo-500 pl-4"
-										>
-											{item.label}
-										</a>
-									</li>
-								))}
-							</ul>
-						</div>
-					))}
-				</nav>
-			</aside>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col gap-8 py-8 md:flex-row">
+      <!-- Sidebar -->
+      <aside class="w-full shrink-0 md:w-64">
+        <nav class="sticky top-24 space-y-8">
+          {
+            sidebar.map((section) => (
+              <div>
+                <h3 class="mb-3 text-sm font-semibold tracking-wider text-slate-500 uppercase">
+                  {section.label}
+                </h3>
+                <ul class="space-y-2">
+                  {section.items.map((item) => (
+                    <li>
+                      <a
+                        href={item.href}
+                        class="block border-l-2 border-transparent pl-4 text-sm text-slate-400 transition-colors hover:border-indigo-500 hover:text-white"
+                      >
+                        {item.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          }
+        </nav>
+      </aside>
 
-			<!-- Content -->
-			<article class="prose prose-invert prose-indigo max-w-none flex-grow">
-				<slot />
-			</article>
-		</div>
-	</div>
+      <!-- Content -->
+      <article class="prose prose-invert prose-indigo max-w-none flex-grow">
+        <slot />
+      </article>
+    </div>
+  </div>
 </Layout>
 
 <style is:global>
-	@import "tailwindcss";
-	.prose h1 { @apply text-4xl mb-8; }
-	.prose h2 { @apply text-2xl mt-12 mb-6 pb-2 border-b border-slate-800; }
-	.prose h3 { @apply text-xl mt-8 mb-4; }
-	.prose p { @apply text-slate-400 leading-relaxed mb-4; }
-	.prose code { @apply bg-slate-800 px-1.5 py-0.5 rounded text-indigo-300 font-mono text-sm; }
-	.prose pre { @apply bg-slate-900 border border-slate-800 rounded-lg p-4 my-6 overflow-x-auto; }
-	.prose pre code { @apply bg-transparent p-0 text-slate-300; }
-	.prose ul { @apply list-disc list-inside space-y-2 mb-4 text-slate-400; }
-	.prose ol { @apply list-decimal list-inside space-y-2 mb-4 text-slate-400; }
-	.prose strong { @apply text-white font-semibold; }
-	.prose a { @apply text-indigo-400 hover:text-indigo-300 underline underline-offset-4 decoration-slate-700 hover:decoration-indigo-400 transition-all; }
+  @import 'tailwindcss';
+  .prose h1 {
+    @apply mb-8 text-4xl;
+  }
+  .prose h2 {
+    @apply mt-12 mb-6 border-b border-slate-800 pb-2 text-2xl;
+  }
+  .prose h3 {
+    @apply mt-8 mb-4 text-xl;
+  }
+  .prose p {
+    @apply mb-4 leading-relaxed text-slate-400;
+  }
+  .prose code {
+    @apply rounded bg-slate-800 px-1.5 py-0.5 font-mono text-sm text-indigo-300;
+  }
+  .prose pre {
+    @apply my-6 overflow-x-auto rounded-lg border border-slate-800 bg-slate-900 p-4;
+  }
+  .prose pre code {
+    @apply bg-transparent p-0 text-slate-300;
+  }
+  .prose ul {
+    @apply mb-4 list-inside list-disc space-y-2 text-slate-400;
+  }
+  .prose ol {
+    @apply mb-4 list-inside list-decimal space-y-2 text-slate-400;
+  }
+  .prose strong {
+    @apply font-semibold text-white;
+  }
+  .prose a {
+    @apply text-indigo-400 underline decoration-slate-700 underline-offset-4 transition-all hover:text-indigo-300 hover:decoration-indigo-400;
+  }
 </style>

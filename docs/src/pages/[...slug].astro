@@ -1,21 +1,22 @@
 ---
-import { getCollection, render } from 'astro:content';
-import DocsLayout from '../layouts/DocsLayout.astro';
-import Aside from '../components/Aside.astro';
-import Badge from '../components/Badge.astro';
-import Steps from '../components/Steps.astro';
-import Tabs from '../components/Tabs.astro';
-import TabItem from '../components/TabItem.astro';
+import { getCollection, render } from 'astro:content'
+import DocsLayout from '../layouts/DocsLayout.astro'
+import Aside from '../components/Aside.astro'
+import Badge from '../components/Badge.astro'
+import Steps from '../components/Steps.astro'
+import Tabs from '../components/Tabs.astro'
+import TabItem from '../components/TabItem.astro'
 
 export async function getStaticPaths() {
-  const docs = await getCollection('docs');
-  return docs.map(entry => ({
-    params: { slug: entry.id }, props: { entry },
-  }));
+  const docs = await getCollection('docs')
+  return docs.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }))
 }
 
-const { entry } = Astro.props;
-const { Content } = await render(entry);
+const { entry } = Astro.props
+const { Content } = await render(entry)
 
 const components = {
   Aside,
@@ -23,7 +24,7 @@ const components = {
   Steps,
   Tabs,
   TabItem,
-};
+}
 ---
 
 <DocsLayout title={entry.data.title} description={entry.data.description}>
