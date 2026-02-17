@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Symfony UX bundle (`pentiminax/ux-datatables`) integrating DataTables.net with server-side and client-side rendering. PHP 8.2+, Symfony 7.0/8.0. Frontend uses a Stimulus controller (TypeScript).
+Symfony UX bundle (`pentiminax/ux-datatables`) integrating DataTables.net with server-side and client-side rendering. PHP 8.3+, Symfony 7.0/8.0. Frontend uses a Stimulus controller (TypeScript).
 
 ## Commands
 
@@ -61,7 +61,7 @@ Twig template (render_datatable) → Stimulus controller (assets/src/controller.
 
 ## Code Style
 
-Enforced by PHP-CS-Fixer (`.php-cs-fixer.dist.php`): PSR-12, Symfony rules, single quotes, ordered imports, aligned binary operators. CI runs on PHP 8.2–8.5.
+Enforced by PHP-CS-Fixer (`.php-cs-fixer.dist.php`): PSR-12, Symfony rules, single quotes, ordered imports, aligned binary operators. CI runs on PHP 8.3–8.5.
 
 ## Frontend
 
