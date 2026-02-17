@@ -186,13 +186,11 @@ import Layout from '../layouts/Layout.astro'
             class="overflow-x-auto p-6 font-mono text-sm text-slate-300"><code>#[AsDataTable]
 class UserTable extends AbstractDataTable
 &#123;
-    public function configure(DataTableBuilder $builder): void
+    public function configureColumns(): iterable
     &#123;
-        $builder
-            -&gt;createDataTable('users')
-            -&gt;add('firstName', TextColumn::class)
-            -&gt;add('email', TextColumn::class)
-            -&gt;add('active', BooleanColumn::class);
+        yield TextColumn::new('firstName');
+        yield TextColumn::new('email');
+        yield BooleanColumn::new('active');
     &#125;
 &#125;</code></pre>
         </div>
