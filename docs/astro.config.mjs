@@ -1,75 +1,13 @@
 import { defineConfig } from 'astro/config';
-import starlight from '@astrojs/starlight';
+import sitemap from '@astrojs/sitemap';
+import mdx from '@astrojs/mdx';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   site: 'https://pentiminax.github.io',
   base: '/ux-datatables',
-  integrations: [
-    starlight({
-      title: 'UX DataTables',
-      description: 'Symfony bundle integrating DataTables in Symfony applications',
-      logo: {
-        src: './src/assets/logo.svg',
-        replacesTitle: false,
-      },
-      social: [
-        {
-          icon: 'github',
-          label: 'GitHub',
-          href: 'https://github.com/pentiminax/ux-datatables',
-        },
-      ],
-      editLink: {
-        baseUrl: 'https://github.com/pentiminax/ux-datatables/edit/main/docs/',
-      },
-      customCss: [
-        './src/styles/custom.css',
-      ],
-      head: [
-        {
-          tag: 'meta',
-          attrs: {
-            property: 'og:image',
-            content: '/og-image.png',
-          },
-        },
-      ],
-      sidebar: [
-        {
-          label: 'Getting Started',
-          items: [
-            { label: 'Introduction', slug: 'getting-started/introduction' },
-            { label: 'Installation', slug: 'getting-started/installation' },
-            { label: 'Quick Start', slug: 'getting-started/quick-start' },
-          ],
-        },
-        {
-          label: 'Guide',
-          items: [
-            { label: 'Usage', slug: 'guide/usage' },
-            { label: 'Configuration', slug: 'guide/configuration' },
-            { label: 'Columns', slug: 'guide/columns' },
-            { label: 'Options', slug: 'guide/options' },
-            { label: 'Extensions', slug: 'guide/extensions' },
-            { label: 'Ajax', slug: 'guide/ajax' },
-          ],
-        },
-        {
-          label: 'Reference',
-          items: [
-            { label: 'AbstractDataTable', slug: 'reference/abstract-datatable' },
-            { label: 'Action Columns', slug: 'reference/action-columns' },
-            { label: 'Maker Command', slug: 'reference/maker' },
-          ],
-        },
-      ],
-      defaultLocale: 'root',
-      locales: {
-        root: {
-          label: 'English',
-          lang: 'en',
-        },
-      },
-    }),
-  ],
+  integrations: [sitemap(), mdx()],
+  vite: {
+    plugins: [tailwindcss()],
+  },
 });
