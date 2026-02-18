@@ -37,6 +37,24 @@ function isRecord(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function toNonEmptyString(value) {
+    if (typeof value !== 'string') {
+        return null;
+    }
+
+    const trimmed = value.trim();
+
+    return '' === trimmed ? null : trimmed;
+}
+
+function resolveFilterFieldName(requestColumn, columnConfig) {
+    return toNonEmptyString(columnConfig?.field)
+        ?? toNonEmptyString(columnConfig?.name)
+        ?? toNonEmptyString(columnConfig?.data)
+        ?? toNonEmptyString(requestColumn?.name)
+        ?? toNonEmptyString(requestColumn?.data);
+}
+
 function convertDataTableToApiPlatform(params, columns) {
     const result = {};
     const length = toPositiveLength(params.length);
@@ -46,18 +64,32 @@ function convertDataTableToApiPlatform(params, columns) {
     result.itemsPerPage = String(length);
 
     for (const order of params.order ?? []) {
-        const fieldName = columns[order.column].name;
+        const requestColumn = params.columns?.[order.column];
+        const columnConfig = columns[order.column];
+        const fieldName = resolveFilterFieldName(requestColumn, columnConfig);
+
+        if (null === fieldName) {
+            continue;
+        }
+
         result[`order[${fieldName}]`] = order.dir === 'desc' ? 'desc' : 'asc';
     }
 
-    for (const column of params.columns ?? []) {
+    for (const [index, column] of (params.columns ?? []).entries()) {
         const searchValue = column.search?.value;
 
         if (typeof searchValue !== 'string' || searchValue.trim() === '') {
             continue;
         }
 
-        result[column.name] = searchValue;
+        const columnConfig = columns[index];
+        const fieldName = resolveFilterFieldName(column, columnConfig);
+
+        if (null === fieldName) {
+            continue;
+        }
+
+        result[fieldName] = searchValue;
     }
 
     return result;
@@ -145,6 +177,9 @@ export function configureApiPlatformAjax(payload) {
     const ajaxConfig = normalizeAjaxConfig(payload);
     const originalData = ajaxConfig.data;
     const originalDataFilter = ajaxConfig.dataFilter;
+
+    payload.serverSide = true;
+
     let draw = 0;
 
     ajaxConfig.data = (params) => {
@@ -165,3 +200,5 @@ export function configureApiPlatformAjax(payload) {
         return JSON.stringify(convertApiPlatformToDataTable(parsedPayload, draw));
     };
 }
+
+export {convertDataTableToApiPlatform};
