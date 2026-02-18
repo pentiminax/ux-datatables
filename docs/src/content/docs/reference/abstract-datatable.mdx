@@ -334,21 +334,17 @@ new DataTableResult(
 );
 ```
 
-## API Platform Auto Ajax (JSON-LD)
+## API Platform Integration
 
-If your `#[AsDataTable(...)]` entity is also an API Platform `ApiResource`, `render_datatable()` can auto-configure Ajax before rendering:
+API Platform specific behavior is documented in:
 
-- `url`: resource collection endpoint (example: `/api/books`)
-- `dataSrc`: `member`
-- `type`: `GET`
+- [/ux-datatables/integrations/api-platform/](/ux-datatables/integrations/api-platform/)
 
-This is done through `prepareForRendering()` and applies only when:
+This includes:
 
-- `ajax` is not already configured
-- `serverSide` is disabled
-- `data` is not already configured
-
-The endpoint must return a complete JSON-LD collection for client-side DataTables usage.
+- Ajax adapter mode (`apiPlatform(true)`)
+- auto Ajax wiring from `prepareForRendering()`
+- column auto-detection from API Platform metadata
 
 <Aside type="tip">
   Use the [Maker Command](../maker/) to generate `AbstractDataTable` classes from Doctrine entities.

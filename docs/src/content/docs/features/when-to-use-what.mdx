@@ -1,0 +1,33 @@
+---
+title: When To Use What
+description: Decision guide for selecting the right UX DataTables setup
+---
+
+# When To Use What
+
+Use this guide as a fast decision tree.
+
+## Scenario Matrix
+
+| Scenario | Recommended setup | Why |
+| --- | --- | --- |
+| Small dataset (< 5k rows) | `DataTable` + `data()` or simple `ajax()` | Minimal backend logic |
+| Large dataset | `serverSide(true)` + backend filtering | Avoid loading all rows in browser |
+| Reusable table across screens | `AbstractDataTable` | Encapsulates behavior and data access |
+| Hydra API backend | `ajax()` + `apiPlatform(true)` | Converts DataTables params to API Platform |
+| Export actions | `ButtonsExtension` | CSV/Excel/PDF/Print support |
+| Row selection workflows | `SelectExtension` | Built-in selection modes |
+| Horizontal-heavy table | `ResponsiveExtension` or `FixedColumnsExtension` | Better readability on small viewports |
+
+## Recommended Defaults
+
+- Start with `/guide/usage/`.
+- Move to `/reference/abstract-datatable/` once table logic grows.
+- Enable server-side mode early for high-cardinality entities.
+- Add extensions incrementally and test interactions.
+
+## Related Pages
+
+- [/ux-datatables/guide/usage/](/ux-datatables/guide/usage/)
+- [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)
+- [/ux-datatables/extensions/](/ux-datatables/extensions/)

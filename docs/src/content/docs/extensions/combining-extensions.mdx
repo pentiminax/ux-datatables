@@ -1,0 +1,39 @@
+---
+title: Combining Extensions
+description: Recommended extension combinations and integration notes
+---
+
+# Combining Extensions
+
+## Recommended Combination
+
+```php
+use Pentiminax\UX\DataTables\Enum\ButtonType;
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+
+$dataTable
+    ->addExtension(new ButtonsExtension([ButtonType::CSV, ButtonType::EXCEL]))
+    ->addExtension(new SelectExtension(SelectStyle::MULTI))
+    ->addExtension(new ResponsiveExtension());
+```
+
+## Test Checklist
+
+- Verify extension load order in browser.
+- Verify row selection + responsive view + export compatibility.
+- Verify behavior on mobile and desktop breakpoints.
+
+## Known Hotspots
+
+- `SelectExtension` with checkbox mode plus responsive hidden columns.
+- `FixedColumnsExtension` plus `ColReorderExtension` on narrow screens.
+- `ScrollerExtension` with custom row rendering.
+
+## Cross Links
+
+- [/ux-datatables/extensions/](/ux-datatables/extensions/)
+- [/ux-datatables/extensions/select/](/ux-datatables/extensions/select/)
+- [/ux-datatables/extensions/buttons/](/ux-datatables/extensions/buttons/)

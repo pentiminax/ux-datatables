@@ -1,0 +1,34 @@
+---
+title: Responsive Extension
+description: Make wide tables usable on smaller viewports
+---
+
+# Responsive Extension
+
+## When To Use
+
+Use Responsive for mobile-heavy usage and columns that cannot all fit on one line.
+
+## Minimal Example
+
+```php
+$dataTable->responsive();
+```
+
+## Advanced Example
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
+
+$dataTable->addExtension(new ResponsiveExtension());
+```
+
+## Frequent Pitfalls
+
+- Not setting column priorities when too many columns compete for visibility.
+- Combining with checkbox selection without validating first-column rendering.
+
+## Cross Links
+
+- [/ux-datatables/extensions/select/](/ux-datatables/extensions/select/)
+- [/ux-datatables/extensions/fixed-columns/](/ux-datatables/extensions/fixed-columns/)

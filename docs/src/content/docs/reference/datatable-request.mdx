@@ -1,0 +1,69 @@
+---
+title: DataTableRequest
+description: Request DTOs used for server-side processing
+---
+
+# DataTableRequest
+
+`DataTableRequest` and related value objects wrap DataTables request payloads in typed PHP objects.
+
+## Main DTO
+
+```php
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+
+$requestDto = DataTableRequest::fromRequest($request);
+```
+
+Fields:
+
+- `draw: ?int`
+- `columns: Columns`
+- `start: int`
+- `length: int`
+- `search: ?Search`
+- `order: Order[]`
+
+## Nested DTOs
+
+### Columns
+
+Methods:
+
+- `getColumnByName(string $name): ?Column`
+- `getColumnByIndex(int $index): ?Column`
+
+### Column
+
+Fields:
+
+- `data`, `name`, `searchable`, `orderable`
+- `search: ?Search`
+- `columnControl: ?ColumnControl`
+
+### Order
+
+Fields:
+
+- `column: int`
+- `dir: string`
+- `name: string`
+
+### Search
+
+Fields:
+
+- `value: ?string`
+- `regex: bool`
+
+### ColumnControl / ColumnControlSearch
+
+Used when Column Control extension sends advanced column filters:
+
+- `ColumnControl(search: ?ColumnControlSearch, list: array)`
+- `ColumnControlSearch(value: string, logic: string, type: string)`
+
+## Cross Links
+
+- [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)
+- [/ux-datatables/extensions/column-control/](/ux-datatables/extensions/column-control/)

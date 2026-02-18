@@ -1,0 +1,58 @@
+---
+title: Data Providers & Row Mappers
+description: Contracts and built-in implementations for data retrieval and row mapping
+---
+
+# Data Providers & Row Mappers
+
+## DataProviderInterface
+
+```php
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\DataTableResult;
+
+interface DataProviderInterface
+{
+    public function fetchData(DataTableRequest $request): DataTableResult;
+}
+```
+
+Built-in providers:
+
+- `DoctrineDataProvider`
+- `ArrayDataProvider`
+
+## RowMapperInterface
+
+```php
+interface RowMapperInterface
+{
+    public function map(mixed $row): array;
+}
+```
+
+Built-in mappers:
+
+- `DefaultRowMapper`
+- `ClosureRowMapper`
+
+## DataTableResult
+
+```php
+new DataTableResult(
+    recordsTotal: 1000,
+    recordsFiltered: 150,
+    data: $rows,
+);
+```
+
+## When To Implement Custom Types
+
+- custom domain filters with non-Doctrine backends
+- APIs requiring specific output shape
+- performance tuning with pre-mapped row payloads
+
+## Cross Links
+
+- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)
+- [/ux-datatables/reference/datatable-request/](/ux-datatables/reference/datatable-request/)

@@ -1,0 +1,30 @@
+---
+title: Scroller Extension
+description: Virtualized rendering for large datasets
+---
+
+# Scroller Extension
+
+## When To Use
+
+Use Scroller when table size is large enough to impact browser rendering performance.
+
+## Minimal Example
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
+
+$dataTable
+    ->addExtension(new ScrollerExtension())
+    ->scrollY('480px');
+```
+
+## Frequent Pitfalls
+
+- Using Scroller without vertical scroll (`scrollY`).
+- Expecting server-side mode behavior without enabling `serverSide(true)`.
+
+## Cross Links
+
+- [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)
+- [/ux-datatables/extensions/combining-extensions/](/ux-datatables/extensions/combining-extensions/)

@@ -1,0 +1,33 @@
+---
+title: Column Control Extension
+description: Add per-column sorting and searching controls
+---
+
+# Column Control Extension
+
+## When To Use
+
+Use Column Control when users need direct per-column order and filter controls in the table UI.
+
+## Minimal Example
+
+```php
+$dataTable->columnControl();
+```
+
+## Behavior
+
+The bundled `ColumnControlExtension` serializes default controls for:
+
+- ordering actions (asc, desc, add/remove order)
+- per-column search input
+
+## Frequent Pitfalls
+
+- Expecting custom control layouts from the default extension payload.
+- Enabling it without ensuring the target columns are searchable/orderable.
+
+## Cross Links
+
+- [/ux-datatables/guide/columns/](/ux-datatables/guide/columns/)
+- [/ux-datatables/reference/datatable-request/](/ux-datatables/reference/datatable-request/)

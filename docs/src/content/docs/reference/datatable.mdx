@@ -1,0 +1,99 @@
+---
+title: DataTable
+description: Reference for the DataTable fluent configuration API
+---
+
+# DataTable
+
+`DataTable` is the fluent API used to configure table options, columns, extensions, and loading mode.
+
+## Constructor
+
+```php
+new DataTable(
+    id: 'users',
+    options: [],
+    attributes: [],
+    extensions: [],
+)
+```
+
+## Core Methods
+
+### Columns
+
+- `add(ColumnInterface $column)`
+- `columns(array|ColumnInterface $columns)`
+- `getColumns(): array`
+- `getColumnByName(string $name): ?ColumnInterface`
+
+### Data Loading
+
+- `ajax(string $url, ?string $dataSrc = null, string $type = 'GET')`
+- `data(array $data)`
+- `serverSide(bool $serverSide = true)`
+- `apiPlatform(bool $enabled = true)`
+
+### Feature Control
+
+- `autoWidth(bool $autoWidth)`
+- `deferRender(bool $deferRender)`
+- `info(bool $info)`
+- `lengthChange(bool $lengthChange)`
+- `ordering(bool $handler = true, bool $indicators = true)`
+- `withoutOrdering()`
+- `paging(...)`
+- `withoutPaging()`
+- `processing(bool $processing = true)`
+- `searching(bool $searching = true)`
+- `stateSave(bool $stateSave = true)`
+
+### Layout And Paging
+
+- `layout(Feature $topStart, Feature $topEnd, Feature $bottomStart, Feature $bottomEnd)`
+- `displayStart(int $displayStart)`
+- `lengthMenu(array $lengthMenu)`
+- `pageLength(int $pageLength)`
+
+### Scrolling
+
+- `scrollX(bool $scrollX)`
+- `scrollY(string $scrollY)`
+
+### Internationalization
+
+- `language(Language $language)`
+- `search(string $search)`
+- `withSearchOption(SearchOption $searchOption)`
+
+### Extensions
+
+- `addExtension(ExtensionInterface $extension)`
+- `extensions(array $extensions)`
+- `getExtensions(): array`
+- `setExtensions(DataTableExtensions $extensions)`
+- helpers: `responsive()`, `columnControl()`
+
+## Example
+
+```php
+use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+$table = (new DataTable('users'))
+    ->serverSide(true)
+    ->processing(true)
+    ->language(Language::EN)
+    ->layout(
+        topStart: Feature::PAGE_LENGTH,
+        topEnd: Feature::SEARCH,
+        bottomStart: Feature::INFO,
+        bottomEnd: Feature::PAGING,
+    );
+```
+
+## Cross Links
+
+- [/ux-datatables/guide/options/](/ux-datatables/guide/options/)
+- [/ux-datatables/reference/enums/](/ux-datatables/reference/enums/)

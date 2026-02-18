@@ -1,0 +1,28 @@
+---
+title: ColReorder Extension
+description: Allow users to reorder columns interactively
+---
+
+# ColReorder Extension
+
+## When To Use
+
+Use ColReorder when users need personalized table views and ad-hoc exploration.
+
+## Minimal Example
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\ColReorderExtension;
+
+$dataTable->addExtension(new ColReorderExtension());
+```
+
+## Frequent Pitfalls
+
+- Not validating interactions with fixed columns and saved states.
+- Assuming reordered columns automatically change backend field mappings.
+
+## Cross Links
+
+- [/ux-datatables/extensions/fixed-columns/](/ux-datatables/extensions/fixed-columns/)
+- [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)
