@@ -24,7 +24,7 @@ export interface DataTableServerSideParams {
 export interface ColumnConfig {
   data?: string | null
   field?: string | null
-  name?: string | null
+  name: string
 }
 
 export interface HydraCollectionResponse {
@@ -55,19 +55,6 @@ function toNonNegativeInt(value: number | undefined): number {
   return Math.max(0, Math.floor(value))
 }
 
-function toDraw(value: number | string | undefined): number {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return Math.max(0, Math.floor(value))
-  }
-
-  if (typeof value === 'string' && value.trim() !== '') {
-    const parsed = Number.parseInt(value, 10)
-    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0
-  }
-
-  return 0
-}
-
 function toCount(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return Math.max(0, Math.floor(value))
@@ -78,99 +65,6 @@ function toCount(value: unknown): number {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function toNonEmptyString(value: unknown): string | null {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const trimmed = value.trim()
-
-  return '' === trimmed ? null : trimmed
-}
-
-function resolveFilterFieldName(
-  requestColumn: DataTableServerSideColumn | undefined,
-  columnConfig: ColumnConfig | undefined
-): string | null {
-  return (
-    toNonEmptyString(columnConfig?.field) ??
-    toNonEmptyString(columnConfig?.name) ??
-    toNonEmptyString(columnConfig?.data) ??
-    toNonEmptyString(requestColumn?.name) ??
-    toNonEmptyString(requestColumn?.data)
-  )
-}
-
-function normalizeAjaxConfig(payload: Record<string, unknown>): Record<string, unknown> {
-  if (typeof payload.ajax === 'string') {
-    payload.ajax = {
-      type: 'GET',
-      url: payload.ajax,
-    }
-  }
-
-  if (isRecord(payload.ajax)) {
-    return payload.ajax
-  }
-
-  payload.ajax = { type: 'GET' }
-
-  return payload.ajax as Record<string, unknown>
-}
-
-function resolveDataTableParams(
-  params: DataTableServerSideParams,
-  originalData: unknown
-): DataTableServerSideParams {
-  if (typeof originalData === 'function') {
-    const transformed = (originalData as (value: DataTableServerSideParams) => unknown)(params)
-    if (isRecord(transformed)) {
-      return transformed as DataTableServerSideParams
-    }
-
-    return params
-  }
-
-  if (isRecord(originalData)) {
-    return {
-      ...params,
-      ...originalData,
-    } as DataTableServerSideParams
-  }
-
-  return params
-}
-
-function resolveRawResponse(
-  rawData: string,
-  type: string | undefined,
-  originalDataFilter: unknown
-): unknown {
-  if (typeof originalDataFilter === 'function') {
-    return (originalDataFilter as (data: string, type: string) => unknown)(rawData, type ?? '')
-  }
-
-  return rawData
-}
-
-function parseResponsePayload(rawData: unknown): HydraCollectionResponse | null {
-  if (isRecord(rawData)) {
-    return rawData as HydraCollectionResponse
-  }
-
-  if (typeof rawData !== 'string') {
-    return null
-  }
-
-  try {
-    const parsed = JSON.parse(rawData)
-
-    return isRecord(parsed) ? (parsed as HydraCollectionResponse) : null
-  } catch {
-    return null
-  }
 }
 
 export class ApiPlatformAdapter {
@@ -189,9 +83,8 @@ export class ApiPlatformAdapter {
     result.itemsPerPage = String(length)
 
     for (const order of params.order ?? []) {
-      const requestColumn = params.columns?.[order.column]
       const columnConfig = this.columns[order.column]
-      const fieldName = resolveFilterFieldName(requestColumn, columnConfig)
+      const fieldName = columnConfig.name;
 
       if (null === fieldName) {
         continue
@@ -208,7 +101,7 @@ export class ApiPlatformAdapter {
       }
 
       const columnConfig = this.columns[index]
-      const fieldName = resolveFilterFieldName(column, columnConfig)
+      const fieldName: string = columnConfig.name;
 
       if (null === fieldName) {
         continue
@@ -237,7 +130,7 @@ export class ApiPlatformAdapter {
   }
 
   configure(payload: Record<string, unknown>): void {
-    const ajaxConfig = normalizeAjaxConfig(payload)
+    const ajaxConfig = payload.ajax as Record<string, unknown>;
     const originalData = ajaxConfig.data
     const originalDataFilter = ajaxConfig.dataFilter
 
@@ -246,21 +139,90 @@ export class ApiPlatformAdapter {
     let draw = 0
 
     ajaxConfig.data = (params: DataTableServerSideParams): Record<string, string> => {
-      const resolvedParams = resolveDataTableParams(params, originalData)
-      draw = toDraw(resolvedParams.draw)
+      const resolvedParams = this.resolveDataTableParams(params, originalData)
+      draw = this.toDraw(resolvedParams.draw)
 
       return this.buildRequestParams(resolvedParams)
     }
 
     ajaxConfig.dataFilter = (rawData: string, type: string): string => {
-      const filteredRawData = resolveRawResponse(rawData, type, originalDataFilter)
-      const parsedPayload = parseResponsePayload(filteredRawData)
+      const filteredRawData = this.resolveRawResponse(rawData, type, originalDataFilter)
+      const parsedPayload: HydraCollectionResponse | null =
+        this.parseResponsePayload(filteredRawData)
 
       if (null === parsedPayload) {
         return typeof filteredRawData === 'string' ? filteredRawData : rawData
       }
 
-      return JSON.stringify(this.buildResponse(parsedPayload, draw))
+      const response = this.buildResponse(parsedPayload, draw)
+
+      return JSON.stringify(response)
     }
+  }
+
+  parseResponsePayload(rawData: unknown): HydraCollectionResponse | null {
+    if (isRecord(rawData)) {
+      return rawData as HydraCollectionResponse
+    }
+
+    if (typeof rawData !== 'string') {
+      return null
+    }
+
+    try {
+      const parsed = JSON.parse(rawData)
+
+      return isRecord(parsed) ? (parsed as HydraCollectionResponse) : null
+    } catch {
+      return null
+    }
+  }
+
+  resolveRawResponse(
+    rawData: string,
+    type: string | undefined,
+    originalDataFilter: unknown
+  ): unknown {
+    if (typeof originalDataFilter === 'function') {
+      return (originalDataFilter as (data: string, type: string) => unknown)(rawData, type ?? '')
+    }
+
+    return rawData
+  }
+
+  resolveDataTableParams(
+    params: DataTableServerSideParams,
+    originalData: unknown
+  ): DataTableServerSideParams {
+    if (typeof originalData === 'function') {
+      const transformed = (originalData as (value: DataTableServerSideParams) => unknown)(params)
+      if (isRecord(transformed)) {
+        return transformed as DataTableServerSideParams
+      }
+
+      return params
+    }
+
+    if (isRecord(originalData)) {
+      return {
+        ...params,
+        ...originalData,
+      } as DataTableServerSideParams
+    }
+
+    return params
+  }
+
+  toDraw(value: number | string | undefined): number {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return Math.max(0, Math.floor(value))
+    }
+
+    if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number.parseInt(value, 10)
+      return Number.isFinite(parsed) ? Math.max(0, parsed) : 0
+    }
+
+    return 0
   }
 }

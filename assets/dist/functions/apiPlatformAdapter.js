@@ -9,16 +9,6 @@ function toNonNegativeInt(value) {
     }
     return Math.max(0, Math.floor(value));
 }
-function toDraw(value) {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-        return Math.max(0, Math.floor(value));
-    }
-    if (typeof value === 'string' && value.trim() !== '') {
-        const parsed = Number.parseInt(value, 10);
-        return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
-    }
-    return 0;
-}
 function toCount(value) {
     if (typeof value === 'number' && Number.isFinite(value)) {
         return Math.max(0, Math.floor(value));
@@ -27,70 +17,6 @@ function toCount(value) {
 }
 function isRecord(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-function toNonEmptyString(value) {
-    if (typeof value !== 'string') {
-        return null;
-    }
-    const trimmed = value.trim();
-    return '' === trimmed ? null : trimmed;
-}
-function resolveFilterFieldName(requestColumn, columnConfig) {
-    return (toNonEmptyString(columnConfig?.field) ??
-        toNonEmptyString(columnConfig?.name) ??
-        toNonEmptyString(columnConfig?.data) ??
-        toNonEmptyString(requestColumn?.name) ??
-        toNonEmptyString(requestColumn?.data));
-}
-function normalizeAjaxConfig(payload) {
-    if (typeof payload.ajax === 'string') {
-        payload.ajax = {
-            type: 'GET',
-            url: payload.ajax,
-        };
-    }
-    if (isRecord(payload.ajax)) {
-        return payload.ajax;
-    }
-    payload.ajax = { type: 'GET' };
-    return payload.ajax;
-}
-function resolveDataTableParams(params, originalData) {
-    if (typeof originalData === 'function') {
-        const transformed = originalData(params);
-        if (isRecord(transformed)) {
-            return transformed;
-        }
-        return params;
-    }
-    if (isRecord(originalData)) {
-        return {
-            ...params,
-            ...originalData,
-        };
-    }
-    return params;
-}
-function resolveRawResponse(rawData, type, originalDataFilter) {
-    if (typeof originalDataFilter === 'function') {
-        return originalDataFilter(rawData, type ?? '');
-    }
-    return rawData;
-}
-function parseResponsePayload(rawData) {
-    if (isRecord(rawData)) {
-        return rawData;
-    }
-    if (typeof rawData !== 'string') {
-        return null;
-    }
-    try {
-        const parsed = JSON.parse(rawData);
-        return isRecord(parsed) ? parsed : null;
-    }
-    catch {
-        return null;
-    }
 }
 export class ApiPlatformAdapter {
     constructor(columns) {
@@ -103,9 +29,8 @@ export class ApiPlatformAdapter {
         result.page = String(Math.floor(start / length) + 1);
         result.itemsPerPage = String(length);
         for (const order of params.order ?? []) {
-            const requestColumn = params.columns?.[order.column];
             const columnConfig = this.columns[order.column];
-            const fieldName = resolveFilterFieldName(requestColumn, columnConfig);
+            const fieldName = columnConfig.name;
             if (null === fieldName) {
                 continue;
             }
@@ -117,7 +42,7 @@ export class ApiPlatformAdapter {
                 continue;
             }
             const columnConfig = this.columns[index];
-            const fieldName = resolveFilterFieldName(column, columnConfig);
+            const fieldName = columnConfig.name;
             if (null === fieldName) {
                 continue;
             }
@@ -140,24 +65,72 @@ export class ApiPlatformAdapter {
         };
     }
     configure(payload) {
-        const ajaxConfig = normalizeAjaxConfig(payload);
+        const ajaxConfig = payload.ajax;
         const originalData = ajaxConfig.data;
         const originalDataFilter = ajaxConfig.dataFilter;
         payload.serverSide = true;
         let draw = 0;
         ajaxConfig.data = (params) => {
-            const resolvedParams = resolveDataTableParams(params, originalData);
-            draw = toDraw(resolvedParams.draw);
+            const resolvedParams = this.resolveDataTableParams(params, originalData);
+            draw = this.toDraw(resolvedParams.draw);
             return this.buildRequestParams(resolvedParams);
         };
         ajaxConfig.dataFilter = (rawData, type) => {
-            const filteredRawData = resolveRawResponse(rawData, type, originalDataFilter);
-            const parsedPayload = parseResponsePayload(filteredRawData);
+            const filteredRawData = this.resolveRawResponse(rawData, type, originalDataFilter);
+            const parsedPayload = this.parseResponsePayload(filteredRawData);
             if (null === parsedPayload) {
                 return typeof filteredRawData === 'string' ? filteredRawData : rawData;
             }
-            return JSON.stringify(this.buildResponse(parsedPayload, draw));
+            const response = this.buildResponse(parsedPayload, draw);
+            return JSON.stringify(response);
         };
+    }
+    parseResponsePayload(rawData) {
+        if (isRecord(rawData)) {
+            return rawData;
+        }
+        if (typeof rawData !== 'string') {
+            return null;
+        }
+        try {
+            const parsed = JSON.parse(rawData);
+            return isRecord(parsed) ? parsed : null;
+        }
+        catch {
+            return null;
+        }
+    }
+    resolveRawResponse(rawData, type, originalDataFilter) {
+        if (typeof originalDataFilter === 'function') {
+            return originalDataFilter(rawData, type ?? '');
+        }
+        return rawData;
+    }
+    resolveDataTableParams(params, originalData) {
+        if (typeof originalData === 'function') {
+            const transformed = originalData(params);
+            if (isRecord(transformed)) {
+                return transformed;
+            }
+            return params;
+        }
+        if (isRecord(originalData)) {
+            return {
+                ...params,
+                ...originalData,
+            };
+        }
+        return params;
+    }
+    toDraw(value) {
+        if (typeof value === 'number' && Number.isFinite(value)) {
+            return Math.max(0, Math.floor(value));
+        }
+        if (typeof value === 'string' && value.trim() !== '') {
+            const parsed = Number.parseInt(value, 10);
+            return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+        }
+        return 0;
     }
 }
 //# sourceMappingURL=apiPlatformAdapter.js.map
