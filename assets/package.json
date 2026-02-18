@@ -71,8 +71,18 @@
     "jszip": "^3.10.0",
     "pdfmake": "^0.3.0"
   },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint src/",
+    "format": "biome format --write src/",
+    "check": "biome check --write src/"
+  },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
     "@hotwired/stimulus": "^3.0.0",
+    "@testing-library/dom": "^10.4.1",
+    "@types/pdfmake": "^0.3.1",
     "datatables.net-bs5": "^2.3.0",
     "datatables.net-buttons": "^3.2.0",
     "datatables.net-buttons-bs5": "^3.2.0",
@@ -93,6 +103,7 @@
     "datatables.net-select-bs5": "^3.1.0",
     "datatables.net-select-dt": "^3.1.0",
     "jszip": "^3.10.0",
-    "pdfmake": "^0.3.0"
+    "pdfmake": "^0.3.0",
+    "vitest": "^4.0.18"
   }
 }

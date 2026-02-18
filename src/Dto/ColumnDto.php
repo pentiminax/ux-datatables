@@ -100,7 +100,7 @@ final class ColumnDto implements \JsonSerializable
         return $this->orderable;
     }
 
-    public function setOrderable(bool $orderable): self
+    public function setOrderable(bool $orderable = true): self
     {
         $this->orderable = $orderable;
 
@@ -112,7 +112,7 @@ final class ColumnDto implements \JsonSerializable
         return $this->searchable;
     }
 
-    public function setSearchable(bool $searchable): self
+    public function setSearchable(bool $searchable = true): self
     {
         $this->searchable = $searchable;
 
@@ -124,7 +124,7 @@ final class ColumnDto implements \JsonSerializable
         return $this->visible;
     }
 
-    public function setVisible(bool $visible): self
+    public function setVisible(bool $visible = true): self
     {
         $this->visible = $visible;
 

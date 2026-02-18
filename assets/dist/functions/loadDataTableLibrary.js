@@ -6,3 +6,4 @@ export async function loadDataTableLibrary(stylesheet) {
         return (await import('datatables.net-dt')).default;
     }
 }
+//# sourceMappingURL=loadDataTableLibrary.js.map

@@ -1,4 +1,4 @@
-export async function deleteRow({ id, url }: { id: string; url: string }): Promise<Response> {
+export async function deleteRow({ id, url }) {
     return await fetch(url, {
         method: 'DELETE',
         headers: {
@@ -8,3 +8,4 @@ export async function deleteRow({ id, url }: { id: string; url: string }): Promi
         body: JSON.stringify({ id }),
     });
 }
+//# sourceMappingURL=delete.js.map
