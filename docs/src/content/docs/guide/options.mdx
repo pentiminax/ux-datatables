@@ -40,9 +40,14 @@ $dataTable->order([
 
 Order format options:
 
-- `[column_index, direction]` - Array with index and 'asc'/'desc'
-- `{idx: number, dir: 'asc'|'desc'}` - Object with index
-- `{name: string, dir: 'asc'|'desc'}` - Object with column name
+<Table
+  headers={['Format', 'Description']}
+  rows={[
+    ['`[column_index, direction]`', 'Array with index and `\'asc\'`/`\'desc\'`'],
+    ['`{idx: number, dir: \'asc\'|\'desc\'}`', 'Object with index'],
+    ['`{name: string, dir: \'asc\'|\'desc\'}`', 'Object with column name'],
+  ]}
+/>
 
 ## Data Loading
 

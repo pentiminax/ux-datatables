@@ -9,15 +9,18 @@ Use this guide as a fast decision tree.
 
 ## Scenario Matrix
 
-| Scenario | Recommended setup | Why |
-| --- | --- | --- |
-| Small dataset (< 5k rows) | `DataTable` + `data()` or simple `ajax()` | Minimal backend logic |
-| Large dataset | `serverSide(true)` + backend filtering | Avoid loading all rows in browser |
-| Reusable table across screens | `AbstractDataTable` | Encapsulates behavior and data access |
-| Hydra API backend | `ajax()` + `apiPlatform(true)` | Converts DataTables params to API Platform |
-| Export actions | `ButtonsExtension` | CSV/Excel/PDF/Print support |
-| Row selection workflows | `SelectExtension` | Built-in selection modes |
-| Horizontal-heavy table | `ResponsiveExtension` or `FixedColumnsExtension` | Better readability on small viewports |
+<Table
+  headers={['Scenario', 'Recommended setup', 'Why']}
+  rows={[
+    ['Small dataset (< 5k rows)', '`DataTable` + `data()` or simple `ajax()`', 'Minimal backend logic'],
+    ['Large dataset', '`serverSide(true)` + backend filtering', 'Avoid loading all rows in browser'],
+    ['Reusable table across screens', '`AbstractDataTable`', 'Encapsulates behavior and data access'],
+    ['Hydra API backend', '`ajax()` + `apiPlatform(true)`', 'Converts DataTables params to API Platform'],
+    ['Export actions', '`ButtonsExtension`', 'CSV/Excel/PDF/Print support'],
+    ['Row selection workflows', '`SelectExtension`', 'Built-in selection modes'],
+    ['Horizontal-heavy table', '`ResponsiveExtension` or `FixedColumnsExtension`', 'Better readability on small viewports'],
+  ]}
+/>
 
 ## Recommended Defaults
 

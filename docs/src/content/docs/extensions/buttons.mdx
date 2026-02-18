@@ -24,12 +24,17 @@ $dataTable->addExtension(new ButtonsExtension([
 
 ## Available Button Types
 
-- `ButtonType::COPY`
-- `ButtonType::CSV`
-- `ButtonType::EXCEL`
-- `ButtonType::PDF`
-- `ButtonType::PRINT`
-- `ButtonType::COLUMN_VISIBILITY`
+<Table
+  headers={['Button type', 'Purpose']}
+  rows={[
+    ['`ButtonType::COPY`', 'Copy table data to clipboard'],
+    ['`ButtonType::CSV`', 'Export CSV file'],
+    ['`ButtonType::EXCEL`', 'Export Excel file'],
+    ['`ButtonType::PDF`', 'Export PDF file'],
+    ['`ButtonType::PRINT`', 'Open print view'],
+    ['`ButtonType::COLUMN_VISIBILITY`', 'Toggle column visibility'],
+  ]}
+/>
 
 ## Advanced Example
 

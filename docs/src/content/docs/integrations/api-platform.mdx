@@ -23,25 +23,49 @@ $dataTable
 
 The frontend adapter converts:
 
-- DataTables query params -> API Platform params (`page`, `itemsPerPage`, `order[field]`, filters)
-- Hydra response (`hydra:member`, `hydra:totalItems`) -> DataTables response shape
+<Table
+  headers={['Input', 'Output']}
+  rows={[
+    ['DataTables query params', 'API Platform params (`page`, `itemsPerPage`, `order[field]`, filters)'],
+    ['Hydra response (`hydra:member`, `hydra:totalItems`)', 'DataTables response shape'],
+  ]}
+/>
 
 ## 2) AbstractDataTable Auto Ajax Wiring
 
 When rendering an `AbstractDataTable`, `prepareForRendering()` can auto-configure Ajax for API resources.
 
+<Table
+  headers={['Aspect', 'Value']}
+  rows={[
+    ['Trigger', '`prepareForRendering()` on `AbstractDataTable`'],
+    ['Purpose', 'Auto-configure Ajax options for API Platform resources'],
+    ['Applied to', 'Tables with resolvable API Platform collection metadata'],
+  ]}
+/>
+
 Conditions:
 
-- no explicit `ajax` option
-- no explicit `data` option
-- `#[AsDataTable(...)]` exists
-- a collection URL can be resolved from API Platform metadata
+<Table
+  headers={['Condition', 'Required']}
+  rows={[
+    ['No explicit `ajax` option', 'Yes'],
+    ['No explicit `data` option', 'Yes'],
+    ['`#[AsDataTable(...)]` exists', 'Yes'],
+    ['A collection URL can be resolved from API Platform metadata', 'Yes'],
+  ]}
+/>
 
 Example resolved output:
 
-- `ajax.url`: `/api/books`
-- `ajax.type`: `GET`
-- `apiPlatform`: `true`
+<Table
+  headers={['Option', 'Value']}
+  rows={[
+    ['`ajax.url`', '`/api/books`'],
+    ['`ajax.type`', '`GET`'],
+    ['`apiPlatform`', '`true`'],
+  ]}
+/>
 
 ## Column Auto Detection
 

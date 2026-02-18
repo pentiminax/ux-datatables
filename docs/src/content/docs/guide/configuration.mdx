@@ -58,9 +58,32 @@ data_tables:
       bottomEnd: paging # Pagination controls
 ```
 
-**Available positions**: `topStart`, `topEnd`, `bottomStart`, `bottomEnd`, `top`, `bottom`
+Available positions:
 
-**Available features**: `pageLength`, `search`, `info`, `paging`, `buttons`
+<Table
+  headers={['Position', 'Description']}
+  rows={[
+    ['`topStart`', 'Top-left area'],
+    ['`topEnd`', 'Top-right area'],
+    ['`bottomStart`', 'Bottom-left area'],
+    ['`bottomEnd`', 'Bottom-right area'],
+    ['`top`', 'Full top row'],
+    ['`bottom`', 'Full bottom row'],
+  ]}
+/>
+
+Available features:
+
+<Table
+  headers={['Feature', 'Description']}
+  rows={[
+    ['`pageLength`', 'Page length selector'],
+    ['`search`', 'Global search input'],
+    ['`info`', 'Table info summary'],
+    ['`paging`', 'Pagination controls'],
+    ['`buttons`', 'Buttons extension slot'],
+  ]}
+/>
 
 ### lengthMenu
 

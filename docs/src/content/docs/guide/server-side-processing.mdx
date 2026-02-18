@@ -21,16 +21,19 @@ $dataTable
 
 ## Request Parameters Sent By DataTables
 
-| Parameter | Purpose |
-| --- | --- |
-| `draw` | Request sequence number |
-| `start` | Offset |
-| `length` | Page size |
-| `search[value]` | Global search term |
-| `order[n][column]` | Sorted column index |
-| `order[n][dir]` | Sort direction |
-| `columns[n][name]` | Column name |
-| `columns[n][search][value]` | Per-column filter |
+<Table
+  headers={['Parameter', 'Purpose']}
+  rows={[
+    ['`draw`', 'Request sequence number'],
+    ['`start`', 'Offset'],
+    ['`length`', 'Page size'],
+    ['`search[value]`', 'Global search term'],
+    ['`order[n][column]`', 'Sorted column index'],
+    ['`order[n][dir]`', 'Sort direction'],
+    ['`columns[n][name]`', 'Column name'],
+    ['`columns[n][search][value]`', 'Per-column filter'],
+  ]}
+/>
 
 ## Parse Request With DataTableRequest
 

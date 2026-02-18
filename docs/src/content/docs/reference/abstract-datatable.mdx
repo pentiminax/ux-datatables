@@ -240,33 +240,42 @@ public function configureSelectExtension(SelectExtension $ext): SelectExtension
 
 ### Configuration Methods
 
-| Method                                             | Description                       |
-| -------------------------------------------------- | --------------------------------- |
-| `configureDataTable(DataTable $table)`             | Configure table options           |
-| `configureColumns()`                               | Define columns (required)         |
-| `configureExtensions(DataTableExtensions $ext)`    | Add extensions                    |
-| `configureButtonsExtension(ButtonsExtension $ext)` | Configure Buttons extension       |
-| `configureSelectExtension(SelectExtension $ext)`   | Configure Select extension        |
-| `configureColumnControlExtension(...)`             | Configure ColumnControl extension |
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`configureDataTable(DataTable $table)`', 'Configure table options'],
+    ['`configureColumns()`', 'Define columns (required)'],
+    ['`configureExtensions(DataTableExtensions $ext)`', 'Add extensions'],
+    ['`configureButtonsExtension(ButtonsExtension $ext)`', 'Configure Buttons extension'],
+    ['`configureSelectExtension(SelectExtension $ext)`', 'Configure Select extension'],
+    ['`configureColumnControlExtension(...)`', 'Configure ColumnControl extension'],
+  ]}
+/>
 
 ### Data Methods
 
-| Method                                            | Description                     |
-| ------------------------------------------------- | ------------------------------- |
-| `getDataProvider()`                               | Return custom DataProvider      |
-| `fetchData(DataTableRequest $request)`            | Fetch data using the provider   |
-| `mapRow(mixed $item)`                             | Map a single entity to array    |
-| `rowMapper()`                                     | Get RowMapperInterface instance |
-| `queryBuilderConfigurator(QueryBuilder $qb, ...)` | Modify Doctrine query           |
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`getDataProvider()`', 'Return custom DataProvider'],
+    ['`fetchData(DataTableRequest $request)`', 'Fetch data using the provider'],
+    ['`mapRow(mixed $item)`', 'Map a single entity to array'],
+    ['`rowMapper()`', 'Get RowMapperInterface instance'],
+    ['`queryBuilderConfigurator(QueryBuilder $qb, ...)`', 'Modify Doctrine query'],
+  ]}
+/>
 
 ### Request Handling
 
-| Method                            | Description                  |
-| --------------------------------- | ---------------------------- |
-| `handleRequest(Request $request)` | Handle Ajax requests         |
-| `isRequestHandled()`              | Check if request was handled |
-| `getResponse()`                   | Get JsonResponse for Ajax    |
-| `getDataTable()`                  | Get the configured DataTable |
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`handleRequest(Request $request)`', 'Handle Ajax requests'],
+    ['`isRequestHandled()`', 'Check if request was handled'],
+    ['`getResponse()`', 'Get JsonResponse for Ajax'],
+    ['`getDataTable()`', 'Get the configured DataTable'],
+  ]}
+/>
 
 ## Manual Data Provider
 
@@ -342,9 +351,14 @@ API Platform specific behavior is documented in:
 
 This includes:
 
-- Ajax adapter mode (`apiPlatform(true)`)
-- auto Ajax wiring from `prepareForRendering()`
-- column auto-detection from API Platform metadata
+<Table
+  headers={['Capability', 'Description']}
+  rows={[
+    ['Ajax adapter mode (`apiPlatform(true)`)', 'Maps DataTables requests/responses to API Platform and Hydra shapes'],
+    ['Auto Ajax wiring (`prepareForRendering()`)', 'Auto-populates Ajax settings when resource metadata is available'],
+    ['Column auto-detection', 'Builds columns from readable API Platform resource properties'],
+  ]}
+/>
 
 <Aside type="tip">
   Use the [Maker Command](../maker/) to generate `AbstractDataTable` classes from Doctrine entities.

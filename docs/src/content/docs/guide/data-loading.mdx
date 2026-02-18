@@ -24,11 +24,14 @@ $dataTable->ajax('/api/products', type: 'GET');
 
 ## Ajax Parameters
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `url` | `string` | Endpoint URL |
-| `dataSrc` | `string|null` | JSON key containing rows (`data` by default) |
-| `type` | `string` | HTTP verb (`GET`, `POST`, etc.) |
+<Table
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    ['`url`', '`string`', 'Endpoint URL'],
+    ['`dataSrc`', '`string|null`', 'JSON key containing rows (`data` by default)'],
+    ['`type`', '`string`', 'HTTP verb (`GET`, `POST`, etc.)'],
+  ]}
+/>
 
 ## Expected JSON
 

@@ -22,57 +22,92 @@ new DataTable(
 
 ### Columns
 
-- `add(ColumnInterface $column)`
-- `columns(array|ColumnInterface $columns)`
-- `getColumns(): array`
-- `getColumnByName(string $name): ?ColumnInterface`
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`add(ColumnInterface $column)`', 'Add a single column'],
+    ['`columns(array|ColumnInterface $columns)`', 'Set multiple columns'],
+    ['`getColumns(): array`', 'Return all configured columns'],
+    ['`getColumnByName(string $name): ?ColumnInterface`', 'Find a column by its name'],
+  ]}
+/>
 
 ### Data Loading
 
-- `ajax(string $url, ?string $dataSrc = null, string $type = 'GET')`
-- `data(array $data)`
-- `serverSide(bool $serverSide = true)`
-- `apiPlatform(bool $enabled = true)`
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`ajax(string $url, ?string $dataSrc = null, string $type = \'GET\')`', 'Configure Ajax endpoint and request mode'],
+    ['`data(array $data)`', 'Provide inline client-side data'],
+    ['`serverSide(bool $serverSide = true)`', 'Enable server-side processing mode'],
+    ['`apiPlatform(bool $enabled = true)`', 'Enable API Platform adapter behavior'],
+  ]}
+/>
 
 ### Feature Control
 
-- `autoWidth(bool $autoWidth)`
-- `deferRender(bool $deferRender)`
-- `info(bool $info)`
-- `lengthChange(bool $lengthChange)`
-- `ordering(bool $handler = true, bool $indicators = true)`
-- `withoutOrdering()`
-- `paging(...)`
-- `withoutPaging()`
-- `processing(bool $processing = true)`
-- `searching(bool $searching = true)`
-- `stateSave(bool $stateSave = true)`
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`autoWidth(bool $autoWidth)`', 'Toggle automatic width calculation'],
+    ['`deferRender(bool $deferRender)`', 'Delay rendering of non-visible rows'],
+    ['`info(bool $info)`', 'Show/hide table info summary'],
+    ['`lengthChange(bool $lengthChange)`', 'Enable/disable page-size selector'],
+    ['`ordering(bool $handler = true, bool $indicators = true)`', 'Configure column ordering behavior'],
+    ['`withoutOrdering()`', 'Disable ordering'],
+    ['`paging(...)`', 'Configure pagination behavior'],
+    ['`withoutPaging()`', 'Disable pagination'],
+    ['`processing(bool $processing = true)`', 'Toggle processing indicator'],
+    ['`searching(bool $searching = true)`', 'Toggle global search'],
+    ['`stateSave(bool $stateSave = true)`', 'Persist table state in browser'],
+  ]}
+/>
 
 ### Layout And Paging
 
-- `layout(Feature $topStart, Feature $topEnd, Feature $bottomStart, Feature $bottomEnd)`
-- `displayStart(int $displayStart)`
-- `lengthMenu(array $lengthMenu)`
-- `pageLength(int $pageLength)`
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`layout(Feature $topStart, Feature $topEnd, Feature $bottomStart, Feature $bottomEnd)`', 'Position DataTables UI blocks'],
+    ['`displayStart(int $displayStart)`', 'Set initial row offset'],
+    ['`lengthMenu(array $lengthMenu)`', 'Configure available page sizes'],
+    ['`pageLength(int $pageLength)`', 'Set default page size'],
+  ]}
+/>
 
 ### Scrolling
 
-- `scrollX(bool $scrollX)`
-- `scrollY(string $scrollY)`
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`scrollX(bool $scrollX)`', 'Enable horizontal scrolling'],
+    ['`scrollY(string $scrollY)`', 'Set vertical scroll height'],
+  ]}
+/>
 
 ### Internationalization
 
-- `language(Language $language)`
-- `search(string $search)`
-- `withSearchOption(SearchOption $searchOption)`
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`language(Language $language)`', 'Set UI language'],
+    ['`search(string $search)`', 'Set initial search value'],
+    ['`withSearchOption(SearchOption $searchOption)`', 'Set full search option object'],
+  ]}
+/>
 
 ### Extensions
 
-- `addExtension(ExtensionInterface $extension)`
-- `extensions(array $extensions)`
-- `getExtensions(): array`
-- `setExtensions(DataTableExtensions $extensions)`
-- helpers: `responsive()`, `columnControl()`
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`addExtension(ExtensionInterface $extension)`', 'Add one extension'],
+    ['`extensions(array $extensions)`', 'Set multiple extensions'],
+    ['`getExtensions(): array`', 'Return configured extensions'],
+    ['`setExtensions(DataTableExtensions $extensions)`', 'Replace extension collection'],
+    ['`responsive()`, `columnControl()`', 'Convenience helpers for common extensions'],
+  ]}
+/>
 
 ## Example
 
