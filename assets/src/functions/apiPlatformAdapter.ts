@@ -8,7 +8,7 @@ export interface DataTableServerSideSearch {
 }
 
 export interface DataTableServerSideColumn {
-    name?: string | null;
+    name: string;
     search?: DataTableServerSideSearch;
 }
 
@@ -21,7 +21,7 @@ export interface DataTableServerSideParams {
 }
 
 export interface ColumnConfig {
-    name?: string | null;
+    name: string;
 }
 
 export interface HydraCollectionResponse {
@@ -89,28 +89,18 @@ export function convertDataTableToApiPlatform(
     result.itemsPerPage = String(length);
 
     for (const order of params.order ?? []) {
-        const column = columns[order.column];
-        const fieldName = typeof column?.name === 'string' ? column.name : null;
-
-        if (fieldName && fieldName.trim() !== '') {
-            result[`order[${fieldName}]`] = order.dir === 'desc' ? 'desc' : 'asc';
-        }
+        const fieldName = columns[order.column].name;
+        result[`order[${fieldName}]`] = order.dir === 'desc' ? 'desc' : 'asc';
     }
 
-    for (const [index, column] of (params.columns ?? []).entries()) {
+    for (const column of params.columns ?? []) {
         const searchValue = column.search?.value;
 
         if (typeof searchValue !== 'string' || searchValue.trim() === '') {
             continue;
         }
 
-        const fieldName = typeof column.name === 'string' && column.name.trim() !== ''
-            ? column.name
-            : columns[index]?.name;
-
-        if (typeof fieldName === 'string' && fieldName.trim() !== '') {
-            result[fieldName] = searchValue;
-        }
+        result[column.name] = searchValue;
     }
 
     return result;
