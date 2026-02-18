@@ -78,13 +78,6 @@ class UserTableService
                 TextColumn::new('name', 'Name'),
                 TextColumn::new('email', 'Email'),
                 ActionColumn::new(
-                    name: 'edit',
-                    title: 'Edit',
-                    action: Action::EDIT,
-                    actionLabel: 'Edit',
-                    actionUrl: '/admin/users/edit'
-                ),
-                ActionColumn::new(
                     name: 'delete',
                     title: '',
                     action: Action::DELETE,
