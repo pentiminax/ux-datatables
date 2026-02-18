@@ -3,6 +3,31 @@ import {describe, expect, it} from 'vitest';
 
 describe('ApiPlatformAdapter', () => {
     describe('buildRequestParams', () => {
+        it('uses field with dot-notation over name for nested relations', () => {
+            const adapter = new ApiPlatformAdapter([
+                {name: 'id'},
+                {name: 'author', field: 'author.firstName'},
+            ]);
+
+            const converted = adapter.buildRequestParams({
+                draw: 1,
+                start: 0,
+                length: 10,
+                order: [{column: 1, dir: 'asc'}],
+                columns: [
+                    {name: 'id', search: {value: ''}},
+                    {name: 'author', search: {value: 'John'}},
+                ],
+            });
+
+            expect(converted).toEqual({
+                page: '1',
+                itemsPerPage: '10',
+                'order[author.firstName]': 'asc',
+                'author.firstName': 'John',
+            });
+        });
+
         it('converts DataTables parameters to API Platform parameters using field mapping', () => {
             const adapter = new ApiPlatformAdapter([
                 {name: 'id'},
