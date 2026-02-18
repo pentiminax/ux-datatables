@@ -17,12 +17,17 @@ $requestDto = DataTableRequest::fromRequest($request);
 
 Fields:
 
-- `draw: ?int`
-- `columns: Columns`
-- `start: int`
-- `length: int`
-- `search: ?Search`
-- `order: Order[]`
+<Table
+  headers={['Field', 'Type', 'Description']}
+  rows={[
+    ['`draw`', '`?int`', 'Request counter used to sync responses'],
+    ['`columns`', '`Columns`', 'Column metadata collection'],
+    ['`start`', '`int`', 'Paging offset'],
+    ['`length`', '`int`', 'Requested page size'],
+    ['`search`', '`?Search`', 'Global search payload'],
+    ['`order`', '`Order[]`', 'Sort instructions'],
+  ]}
+/>
 
 ## Nested DTOs
 
@@ -30,38 +35,66 @@ Fields:
 
 Methods:
 
-- `getColumnByName(string $name): ?Column`
-- `getColumnByIndex(int $index): ?Column`
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`getColumnByName(string $name): ?Column`', 'Resolve a column by configured name'],
+    ['`getColumnByIndex(int $index): ?Column`', 'Resolve a column by DataTables index'],
+  ]}
+/>
 
 ### Column
 
 Fields:
 
-- `data`, `name`, `searchable`, `orderable`
-- `search: ?Search`
-- `columnControl: ?ColumnControl`
+<Table
+  headers={['Field', 'Type', 'Description']}
+  rows={[
+    ['`data`', '`mixed`', 'Data key/path used by DataTables'],
+    ['`name`', '`string`', 'Logical column name'],
+    ['`searchable`', '`bool`', 'Whether the column can be searched'],
+    ['`orderable`', '`bool`', 'Whether the column can be ordered'],
+    ['`search`', '`?Search`', 'Per-column search payload'],
+    ['`columnControl`', '`?ColumnControl`', 'Advanced filter payload from Column Control'],
+  ]}
+/>
 
 ### Order
 
 Fields:
 
-- `column: int`
-- `dir: string`
-- `name: string`
+<Table
+  headers={['Field', 'Type', 'Description']}
+  rows={[
+    ['`column`', '`int`', 'Column index to sort'],
+    ['`dir`', '`string`', 'Sort direction (`asc` or `desc`)'],
+    ['`name`', '`string`', 'Column name used for sorting'],
+  ]}
+/>
 
 ### Search
 
 Fields:
 
-- `value: ?string`
-- `regex: bool`
+<Table
+  headers={['Field', 'Type', 'Description']}
+  rows={[
+    ['`value`', '`?string`', 'Search input value'],
+    ['`regex`', '`bool`', 'Whether regex mode is requested'],
+  ]}
+/>
 
 ### ColumnControl / ColumnControlSearch
 
 Used when Column Control extension sends advanced column filters:
 
-- `ColumnControl(search: ?ColumnControlSearch, list: array)`
-- `ColumnControlSearch(value: string, logic: string, type: string)`
+<Table
+  headers={['DTO', 'Shape', 'Description']}
+  rows={[
+    ['`ColumnControl`', '`search: ?ColumnControlSearch, list: array`', 'Column-level filter payload'],
+    ['`ColumnControlSearch`', '`value: string, logic: string, type: string`', 'Search constraint details'],
+  ]}
+/>
 
 ## Cross Links
 

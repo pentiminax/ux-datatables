@@ -19,8 +19,13 @@ interface DataProviderInterface
 
 Built-in providers:
 
-- `DoctrineDataProvider`
-- `ArrayDataProvider`
+<Table
+  headers={['Provider', 'Use case']}
+  rows={[
+    ['`DoctrineDataProvider`', 'Doctrine ORM-backed datasets'],
+    ['`ArrayDataProvider`', 'In-memory or preloaded arrays'],
+  ]}
+/>
 
 ## RowMapperInterface
 
@@ -33,8 +38,13 @@ interface RowMapperInterface
 
 Built-in mappers:
 
-- `DefaultRowMapper`
-- `ClosureRowMapper`
+<Table
+  headers={['Mapper', 'Use case']}
+  rows={[
+    ['`DefaultRowMapper`', 'Default row-to-array mapping behavior'],
+    ['`ClosureRowMapper`', 'Custom mapping logic via closure'],
+  ]}
+/>
 
 ## DataTableResult
 

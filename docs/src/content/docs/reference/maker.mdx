@@ -85,11 +85,16 @@ final class UserDataTable extends AbstractDataTable
 
 The generated class includes:
 
-- `#[AsDataTable(Entity::class)]` attribute for automatic Doctrine integration
-- `configureColumns()` method with starter columns
-- `mapRow()` method skeleton for entity mapping
-- Type hints and PHPDoc annotations
-- Auto-detected column types (`int/float` → `NumberColumn`, `bool` → `BooleanColumn`, `DateTimeInterface` → `DateColumn`)
+<Table
+  headers={['Element', 'Purpose']}
+  rows={[
+    ['`#[AsDataTable(Entity::class)]`', 'Automatic Doctrine integration'],
+    ['`configureColumns()`', 'Starter column definitions'],
+    ['`mapRow()`', 'Row mapping skeleton for entity payload'],
+    ['Type hints and PHPDoc', 'Better IDE support and static analysis'],
+    ['Auto-detected column types', 'Maps `int/float` to `NumberColumn`, `bool` to `BooleanColumn`, and `DateTimeInterface` to `DateColumn`'],
+  ]}
+/>
 
 ## Customization Tips
 

@@ -15,8 +15,13 @@ Target: class
 
 Arguments:
 
-- `entityClass: string`
-- `serializationGroups: string[] = []`
+<Table
+  headers={['Argument', 'Type', 'Default', 'Description']}
+  rows={[
+    ['`entityClass`', '`string`', 'required', 'Doctrine entity class linked to the table'],
+    ['`serializationGroups`', '`string[]`', '`[]`', 'API Platform serialization groups for auto-detection'],
+  ]}
+/>
 
 Use this attribute to:
 
@@ -35,10 +40,15 @@ private string $email;
 
 Arguments:
 
-- `type`, `name`, `title`
-- `orderable`, `searchable`, `visible`, `exportable`, `globalSearchable`
-- `width`, `className`, `cellType`, `render`, `defaultContent`
-- `field`, `format`, `priority`
+<Table
+  headers={['Group', 'Arguments']}
+  rows={[
+    ['Identity', '`type`, `name`, `title`'],
+    ['Visibility and behavior', '`orderable`, `searchable`, `visible`, `exportable`, `globalSearchable`'],
+    ['Rendering', '`width`, `className`, `cellType`, `render`, `defaultContent`'],
+    ['Data mapping', '`field`, `format`, `priority`'],
+  ]}
+/>
 
 Use this attribute when you want column metadata close to your entity model.
 
