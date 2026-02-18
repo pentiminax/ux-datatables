@@ -37,7 +37,7 @@ function isRecord(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-export function convertDataTableToApiPlatform(params, columns) {
+function convertDataTableToApiPlatform(params, columns) {
     const result = {};
     const length = toPositiveLength(params.length);
     const start = toNonNegativeInt(params.start);
@@ -46,28 +46,18 @@ export function convertDataTableToApiPlatform(params, columns) {
     result.itemsPerPage = String(length);
 
     for (const order of params.order ?? []) {
-        const column = columns[order.column];
-        const fieldName = typeof column?.name === 'string' ? column.name : null;
-
-        if (fieldName && fieldName.trim() !== '') {
-            result[`order[${fieldName}]`] = order.dir === 'desc' ? 'desc' : 'asc';
-        }
+        const fieldName = columns[order.column].name;
+        result[`order[${fieldName}]`] = order.dir === 'desc' ? 'desc' : 'asc';
     }
 
-    for (const [index, column] of (params.columns ?? []).entries()) {
+    for (const column of params.columns ?? []) {
         const searchValue = column.search?.value;
 
         if (typeof searchValue !== 'string' || searchValue.trim() === '') {
             continue;
         }
 
-        const fieldName = typeof column.name === 'string' && column.name.trim() !== ''
-            ? column.name
-            : columns[index]?.name;
-
-        if (typeof fieldName === 'string' && fieldName.trim() !== '') {
-            result[fieldName] = searchValue;
-        }
+        result[column.name] = searchValue;
     }
 
     return result;

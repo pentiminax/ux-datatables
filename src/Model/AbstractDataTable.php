@@ -36,7 +36,7 @@ abstract class AbstractDataTable implements DataTableInterface
     protected ?DataTableRequest $request = null;
 
     /**
-     * @var AbstractColumn[]
+     * @var ColumnInterface[]
      */
     private array $columns;
 
@@ -237,6 +237,7 @@ abstract class AbstractDataTable implements DataTableInterface
 
         $result = $this->getDataProvider()?->fetchData($request);
         $data   = iterator_to_array($result->data);
+
         $this->table->data($data);
 
         return $result;
