@@ -8,7 +8,8 @@ export interface DataTableServerSideSearch {
 }
 
 export interface DataTableServerSideColumn {
-    name: string;
+    data?: string | null;
+    name?: string | null;
     search?: DataTableServerSideSearch;
 }
 
@@ -21,7 +22,9 @@ export interface DataTableServerSideParams {
 }
 
 export interface ColumnConfig {
-    name: string;
+    data?: string | null;
+    field?: string | null;
+    name?: string | null;
 }
 
 export interface HydraCollectionResponse {
@@ -77,6 +80,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function toNonEmptyString(value: unknown): string | null {
+    if (typeof value !== 'string') {
+        return null;
+    }
+
+    const trimmed = value.trim();
+
+    return '' === trimmed ? null : trimmed;
+}
+
+function resolveFilterFieldName(
+    requestColumn: DataTableServerSideColumn | undefined,
+    columnConfig: ColumnConfig | undefined
+): string | null {
+    return toNonEmptyString(columnConfig?.field)
+        ?? toNonEmptyString(columnConfig?.name)
+        ?? toNonEmptyString(columnConfig?.data)
+        ?? toNonEmptyString(requestColumn?.name)
+        ?? toNonEmptyString(requestColumn?.data);
+}
+
 export function convertDataTableToApiPlatform(
     params: DataTableServerSideParams,
     columns: ColumnConfig[]
@@ -89,18 +113,32 @@ export function convertDataTableToApiPlatform(
     result.itemsPerPage = String(length);
 
     for (const order of params.order ?? []) {
-        const fieldName = columns[order.column].name;
+        const requestColumn = params.columns?.[order.column];
+        const columnConfig = columns[order.column];
+        const fieldName = resolveFilterFieldName(requestColumn, columnConfig);
+
+        if (null === fieldName) {
+            continue;
+        }
+
         result[`order[${fieldName}]`] = order.dir === 'desc' ? 'desc' : 'asc';
     }
 
-    for (const column of params.columns ?? []) {
+    for (const [index, column] of (params.columns ?? []).entries()) {
         const searchValue = column.search?.value;
 
         if (typeof searchValue !== 'string' || searchValue.trim() === '') {
             continue;
         }
 
-        result[column.name] = searchValue;
+        const columnConfig = columns[index];
+        const fieldName = resolveFilterFieldName(column, columnConfig);
+
+        if (null === fieldName) {
+            continue;
+        }
+
+        result[fieldName] = searchValue;
     }
 
     return result;
@@ -198,6 +236,9 @@ export function configureApiPlatformAjax(payload: Record<string, unknown>): void
     const ajaxConfig = normalizeAjaxConfig(payload);
     const originalData = ajaxConfig.data;
     const originalDataFilter = ajaxConfig.dataFilter;
+
+    payload.serverSide = true;
+
     let draw = 0;
 
     ajaxConfig.data = (params: DataTableServerSideParams): Record<string, string> => {

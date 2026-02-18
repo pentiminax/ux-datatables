@@ -31,6 +31,11 @@ The frontend adapter converts:
   ]}
 />
 
+Notes:
+
+- Date formatting is handled by the backend payload. The adapter does not reformat date values on the client.
+- When API Platform adapter mode is enabled, `serverSide` is enforced so sorting and filtering stay consistent with API queries.
+
 ## 2) AbstractDataTable Auto Ajax Wiring
 
 When rendering an `AbstractDataTable`, `prepareForRendering()` can auto-configure Ajax for API resources.

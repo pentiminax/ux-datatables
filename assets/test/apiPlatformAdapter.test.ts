@@ -5,7 +5,7 @@ import {
 } from '../src/functions/apiPlatformAdapter';
 
 describe('apiPlatformAdapter', () => {
-    it('converts DataTables parameters to API Platform parameters', () => {
+    it('converts DataTables parameters to API Platform parameters using field mapping', () => {
         const converted = convertDataTableToApiPlatform(
             {
                 draw: 3,
@@ -14,27 +14,27 @@ describe('apiPlatformAdapter', () => {
                 order: [{column: 1, dir: 'asc'}],
                 columns: [
                     {name: 'id', search: {value: ''}},
-                    {name: 'title', search: {value: 'harry'}},
+                    {name: 'publishedAt', search: {value: '31/01/2025'}},
                 ],
             },
             [
                 {name: 'id'},
-                {name: 'title'},
+                {name: 'publishedAt', field: 'createdAt'},
             ]
         );
 
         expect(converted).toEqual({
             page: '3',
             itemsPerPage: '10',
-            'order[title]': 'asc',
-            title: 'harry',
+            'order[createdAt]': 'asc',
+            createdAt: '31/01/2025',
         });
     });
 
-    it('converts API Platform collection responses to DataTables format', () => {
+    it('converts API Platform collection responses to DataTables format without value transformation', () => {
         const converted = convertApiPlatformToDataTable(
             {
-                'hydra:member': [{id: 1}],
+                'hydra:member': [{id: 1, createdAt: '2025-01-31'}],
                 'hydra:totalItems': 42,
             },
             5
@@ -44,7 +44,7 @@ describe('apiPlatformAdapter', () => {
             draw: 5,
             recordsTotal: 42,
             recordsFiltered: 42,
-            data: [{id: 1}],
+            data: [{id: 1, createdAt: '2025-01-31'}],
         });
     });
 
@@ -52,8 +52,9 @@ describe('apiPlatformAdapter', () => {
         const payload: Record<string, any> = {
             columns: [
                 {name: 'id'},
-                {name: 'title'},
+                {name: 'publishedAt', field: 'createdAt'},
             ],
+            serverSide: false,
             ajax: {
                 type: 'GET',
                 url: '/api/books',
@@ -64,6 +65,7 @@ describe('apiPlatformAdapter', () => {
 
         expect(typeof payload.ajax.data).toBe('function');
         expect(typeof payload.ajax.dataFilter).toBe('function');
+        expect(payload.serverSide).toBe(true);
 
         const query = payload.ajax.data({
             draw: 4,
@@ -72,19 +74,19 @@ describe('apiPlatformAdapter', () => {
             order: [{column: 1, dir: 'desc'}],
             columns: [
                 {name: 'id', search: {value: ''}},
-                {name: 'title', search: {value: 'tolkien'}},
+                {name: 'publishedAt', search: {value: '31/01/2025'}},
             ],
         });
 
         expect(query).toEqual({
             page: '2',
             itemsPerPage: '10',
-            'order[title]': 'desc',
-            title: 'tolkien',
+            'order[createdAt]': 'desc',
+            createdAt: '31/01/2025',
         });
 
         const response = JSON.parse(payload.ajax.dataFilter(JSON.stringify({
-            'hydra:member': [{id: 1, title: 'Book'}],
+            'hydra:member': [{id: 1, createdAt: '2025-01-31'}],
             'hydra:totalItems': 1,
         }), 'json'));
 
@@ -92,7 +94,7 @@ describe('apiPlatformAdapter', () => {
             draw: 4,
             recordsTotal: 1,
             recordsFiltered: 1,
-            data: [{id: 1, title: 'Book'}],
+            data: [{id: 1, createdAt: '2025-01-31'}],
         });
     });
 });
