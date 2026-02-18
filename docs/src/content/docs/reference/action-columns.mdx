@@ -207,9 +207,9 @@ final class UsersDataTable extends AbstractDataTable
         yield ActionColumn::new(
             name: 'actions',
             title: 'Actions',
-            action: Action::EDIT,
-            actionLabel: 'Edit',
-            actionUrl: '/admin/users/edit'
+            action: Action::DELETE,
+            actionLabel: 'Delete',
+            actionUrl: '/admin/users/delete'
         );
     }
 
