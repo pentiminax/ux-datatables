@@ -63,6 +63,7 @@ class DataTablesExtensionTest extends TestCase
                     'title'      => 'firstColumn',
                     'type'       => 'string',
                     'visible'    => true,
+                    'field'      => 'firstColumn',
                 ],
                 [
                     'data'       => 'secondColumn',
@@ -72,6 +73,7 @@ class DataTablesExtensionTest extends TestCase
                     'title'      => 'secondColumn',
                     'type'       => 'string',
                     'visible'    => true,
+                    'field'      => 'secondColumn',
                 ],
             ],
             'data' => [
