@@ -1,0 +1,48 @@
+---
+title: Attributes
+description: Reference for AsDataTable and Column PHP attributes
+---
+
+# Attributes
+
+## `#[AsDataTable]`
+
+Target: class
+
+```php
+#[AsDataTable(User::class, serializationGroups: ['user:list'])]
+```
+
+Arguments:
+
+- `entityClass: string`
+- `serializationGroups: string[] = []`
+
+Use this attribute to:
+
+- auto-configure Doctrine data provider in `AbstractDataTable`
+- enable API Platform-driven column auto-detection
+- resolve API collection URL for auto Ajax wiring
+
+## `#[Column]`
+
+Target: property
+
+```php
+#[Column(title: 'Email', searchable: true, orderable: true)]
+private string $email;
+```
+
+Arguments:
+
+- `type`, `name`, `title`
+- `orderable`, `searchable`, `visible`, `exportable`, `globalSearchable`
+- `width`, `className`, `cellType`, `render`, `defaultContent`
+- `field`, `format`, `priority`
+
+Use this attribute when you want column metadata close to your entity model.
+
+## Cross Links
+
+- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)
+- [/ux-datatables/guide/columns/](/ux-datatables/guide/columns/)

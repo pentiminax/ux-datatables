@@ -1,0 +1,53 @@
+---
+title: Select Extension
+description: Enable row, column, or cell selection workflows
+---
+
+# Select Extension
+
+## When To Use
+
+Use Select for batch actions, row detail workflows, or keyboard-assisted data review.
+
+## Minimal Example
+
+```php
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
+use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+
+$dataTable->addExtension(new SelectExtension(SelectStyle::SINGLE));
+```
+
+## Advanced Example
+
+```php
+use Pentiminax\UX\DataTables\Enum\SelectItemType;
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
+
+$select = new SelectExtension(
+    style: SelectStyle::MULTI,
+    blurable: true,
+    className: 'selected',
+    info: true,
+    items: SelectItemType::ROW,
+    keys: true,
+    selector: 'td, th',
+    toggleable: true,
+);
+
+$select
+    ->headerCheckbox(true)
+    ->withCheckbox(true);
+
+$dataTable->addExtension($select);
+```
+
+## Frequent Pitfalls
+
+- Enabling checkbox mode without confirming responsive column behavior.
+- Not handling `select`/`deselect` events in custom controllers when needed.
+
+## Cross Links
+
+- [/ux-datatables/reference/enums/](/ux-datatables/reference/enums/)
+- [/ux-datatables/extensions/responsive/](/ux-datatables/extensions/responsive/)

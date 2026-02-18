@@ -1,0 +1,52 @@
+---
+title: Buttons Extension
+description: Add export and utility buttons to your tables
+---
+
+# Buttons Extension
+
+## When To Use
+
+Use Buttons when users need export actions (CSV, Excel, PDF, Print) or column visibility controls.
+
+## Minimal Example
+
+```php
+use Pentiminax\UX\DataTables\Enum\ButtonType;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+
+$dataTable->addExtension(new ButtonsExtension([
+    ButtonType::COPY,
+    ButtonType::CSV,
+    ButtonType::EXCEL,
+]));
+```
+
+## Available Button Types
+
+- `ButtonType::COPY`
+- `ButtonType::CSV`
+- `ButtonType::EXCEL`
+- `ButtonType::PDF`
+- `ButtonType::PRINT`
+- `ButtonType::COLUMN_VISIBILITY`
+
+## Advanced Example
+
+```php
+$buttons = (new ButtonsExtension([ButtonType::CSV]))
+    ->withExcelButton()
+    ->withPrintButton();
+
+$dataTable->addExtension($buttons);
+```
+
+## Frequent Pitfalls
+
+- Mixing button values as invalid strings.
+- Forgetting that non-column-visibility buttons apply export filtering by default.
+
+## Cross Links
+
+- [/ux-datatables/reference/enums/](/ux-datatables/reference/enums/)
+- [/ux-datatables/extensions/combining-extensions/](/ux-datatables/extensions/combining-extensions/)

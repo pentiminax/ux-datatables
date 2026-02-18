@@ -1,0 +1,66 @@
+---
+title: API Platform Integration
+description: Use UX DataTables with API Platform collections and Hydra responses
+---
+
+# API Platform Integration
+
+UX DataTables supports two integration paths with API Platform.
+
+## 1) Ajax Adapter Mode (`DataTable::apiPlatform()`)
+
+Use this mode when DataTables runs in server-side mode and your endpoint is an API Platform collection.
+
+```php
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+$dataTable = new DataTable('books');
+$dataTable
+    ->ajax('/api/books')
+    ->serverSide(true)
+    ->apiPlatform(true);
+```
+
+The frontend adapter converts:
+
+- DataTables query params -> API Platform params (`page`, `itemsPerPage`, `order[field]`, filters)
+- Hydra response (`hydra:member`, `hydra:totalItems`) -> DataTables response shape
+
+## 2) AbstractDataTable Auto Ajax Wiring
+
+When rendering an `AbstractDataTable`, `prepareForRendering()` can auto-configure Ajax for API resources.
+
+Conditions:
+
+- no explicit `ajax` option
+- no explicit `data` option
+- `#[AsDataTable(...)]` exists
+- a collection URL can be resolved from API Platform metadata
+
+Example resolved output:
+
+- `ajax.url`: `/api/books`
+- `ajax.type`: `GET`
+- `apiPlatform`: `true`
+
+## Column Auto Detection
+
+If API Platform metadata is available, columns can be auto-detected from readable properties.
+
+`#[AsDataTable]` supports serialization groups:
+
+```php
+#[AsDataTable(Book::class, serializationGroups: ['book:list'])]
+```
+
+## Frequent Pitfalls
+
+- Enabling adapter mode without an Ajax endpoint.
+- Expecting auto Ajax wiring when `ajax` or `data` is already set.
+- Forgetting that non-readable resource properties are skipped in auto-detection.
+
+## Cross Links
+
+- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)
+- [/ux-datatables/guide/data-loading/](/ux-datatables/guide/data-loading/)
+- [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)

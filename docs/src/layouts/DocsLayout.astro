@@ -1,5 +1,6 @@
 ---
 import Layout from './Layout.astro'
+import { docsSidebarSections } from '../config/navigation'
 
 interface Props {
   title: string
@@ -7,36 +8,7 @@ interface Props {
 }
 
 const { title, description } = Astro.props
-
-const sidebar = [
-  {
-    label: 'Getting Started',
-    items: [
-      { label: 'Introduction', href: '/ux-datatables/getting-started/introduction/' },
-      { label: 'Installation', href: '/ux-datatables/getting-started/installation/' },
-      { label: 'Quick Start', href: '/ux-datatables/getting-started/quick-start/' },
-    ],
-  },
-  {
-    label: 'Guide',
-    items: [
-      { label: 'Usage', href: '/ux-datatables/guide/usage/' },
-      { label: 'Configuration', href: '/ux-datatables/guide/configuration/' },
-      { label: 'Columns', href: '/ux-datatables/guide/columns/' },
-      { label: 'Options', href: '/ux-datatables/guide/options/' },
-      { label: 'Extensions', href: '/ux-datatables/guide/extensions/' },
-      { label: 'Ajax', href: '/ux-datatables/guide/ajax/' },
-    ],
-  },
-  {
-    label: 'Reference',
-    items: [
-      { label: 'AbstractDataTable', href: '/ux-datatables/reference/abstract-datatable/' },
-      { label: 'Action Columns', href: '/ux-datatables/reference/action-columns/' },
-      { label: 'Maker Command', href: '/ux-datatables/reference/maker/' },
-    ],
-  },
-]
+const pathname = Astro.url.pathname
 ---
 
 <Layout title={title} description={description}>
@@ -46,7 +18,7 @@ const sidebar = [
       <aside class="w-full shrink-0 md:w-64">
         <nav class="sticky top-24 space-y-8">
           {
-            sidebar.map((section) => (
+            docsSidebarSections.map((section) => (
               <div>
                 <h3 class="mb-3 text-sm font-semibold tracking-wider text-slate-500 uppercase">
                   {section.label}
@@ -56,7 +28,12 @@ const sidebar = [
                     <li>
                       <a
                         href={item.href}
-                        class="block border-l-2 border-transparent pl-4 text-sm text-slate-400 transition-colors hover:border-blue-500 hover:text-white"
+                        class:list={[
+                          'block border-l-2 pl-4 text-sm transition-colors',
+                          pathname === item.href
+                            ? 'border-blue-500 text-white'
+                            : 'border-transparent text-slate-400 hover:border-blue-500 hover:text-white',
+                        ]}
                       >
                         {item.label}
                       </a>

@@ -1,0 +1,69 @@
+---
+title: Server-Side Processing
+description: Handle pagination, search, and ordering in your Symfony backend
+---
+
+# Server-Side Processing
+
+Move filtering, ordering, and paging to the backend for large datasets.
+
+## Minimal Setup
+
+```php
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+$dataTable = new DataTable('products');
+$dataTable
+    ->ajax('/api/products')
+    ->serverSide(true)
+    ->processing(true);
+```
+
+## Request Parameters Sent By DataTables
+
+| Parameter | Purpose |
+| --- | --- |
+| `draw` | Request sequence number |
+| `start` | Offset |
+| `length` | Page size |
+| `search[value]` | Global search term |
+| `order[n][column]` | Sorted column index |
+| `order[n][dir]` | Sort direction |
+| `columns[n][name]` | Column name |
+| `columns[n][search][value]` | Per-column filter |
+
+## Parse Request With DataTableRequest
+
+```php
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+
+$requestDto = DataTableRequest::fromRequest($request);
+```
+
+## Typical Controller With AbstractDataTable
+
+```php
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+
+if ($request->isXmlHttpRequest()) {
+    $table->handleRequest($request);
+
+    return $table->getResponse();
+}
+
+if (!$table->getDataTable()->isServerSide()) {
+    $table->fetchData(DataTableRequest::fromRequest($request));
+}
+```
+
+## Best Practices
+
+- Always whitelist sortable/searchable fields in your query layer.
+- Keep backend response time predictable (indexes, query limits).
+- Prefer `AbstractDataTable` for reusable query behavior.
+
+## Cross Links
+
+- [/ux-datatables/guide/data-loading/](/ux-datatables/guide/data-loading/)
+- [/ux-datatables/reference/datatable-request/](/ux-datatables/reference/datatable-request/)
+- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)

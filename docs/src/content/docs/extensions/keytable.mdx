@@ -1,0 +1,28 @@
+---
+title: KeyTable Extension
+description: Keyboard navigation for DataTables cells and rows
+---
+
+# KeyTable Extension
+
+## When To Use
+
+Use KeyTable for keyboard-first workflows, data entry, and power-user grids.
+
+## Minimal Example
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
+
+$dataTable->addExtension(new KeyTableExtension());
+```
+
+## Frequent Pitfalls
+
+- Not testing keyboard interactions with Select/Scroller combinations.
+- Missing focus styling in custom CSS themes.
+
+## Cross Links
+
+- [/ux-datatables/extensions/select/](/ux-datatables/extensions/select/)
+- [/ux-datatables/extensions/combining-extensions/](/ux-datatables/extensions/combining-extensions/)

@@ -1,0 +1,84 @@
+---
+title: Data Loading
+description: Load DataTables rows from HTTP endpoints or direct data arrays
+---
+
+# Data Loading
+
+Use this page for transport and payload format. For backend query logic, see Server-Side Processing.
+
+## When To Use
+
+- You want to load rows from an API endpoint.
+- You want full client-side mode with JSON arrays.
+- You want to control `ajax` URL/method/data source.
+
+## Minimal Ajax Setup
+
+```php
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+$dataTable = new DataTable('products');
+$dataTable->ajax('/api/products', type: 'GET');
+```
+
+## Ajax Parameters
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `url` | `string` | Endpoint URL |
+| `dataSrc` | `string|null` | JSON key containing rows (`data` by default) |
+| `type` | `string` | HTTP verb (`GET`, `POST`, etc.) |
+
+## Expected JSON
+
+### Client-side response
+
+```json
+{
+  "data": [
+    { "id": 1, "name": "Product A" },
+    { "id": 2, "name": "Product B" }
+  ]
+}
+```
+
+### Server-side response
+
+```json
+{
+  "draw": 1,
+  "recordsTotal": 1000,
+  "recordsFiltered": 150,
+  "data": [{ "id": 1, "name": "Product A" }]
+}
+```
+
+## Inline Data (No Ajax)
+
+```php
+$dataTable->data([
+    ['id' => 1, 'name' => 'Product A'],
+    ['id' => 2, 'name' => 'Product B'],
+]);
+```
+
+## Mapping Columns To Nested Keys
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+TextColumn::new('amount', 'Amount')
+    ->setData('pricing.amount');
+```
+
+## Frequent Pitfalls
+
+- Returning server-side fields without enabling `serverSide(true)`.
+- Missing `recordsTotal` or `recordsFiltered` in server-side responses.
+- Forgetting `dataSrc` when your API does not return `data`.
+
+## Cross Links
+
+- [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)
+- [/ux-datatables/integrations/api-platform/](/ux-datatables/integrations/api-platform/)
