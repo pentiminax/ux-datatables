@@ -91,6 +91,12 @@ class default_1 extends Controller {
                 };
             }
         });
+        if (this.isApiPlatformEnabled(payload) && Array.isArray(payload.columns)) {
+            payload.columns = payload.columns.map((column) => ({
+                ...column,
+                data: column.field ?? column.data,
+            }));
+        }
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
         this.element.addEventListener('click', async (e) => {
@@ -101,7 +107,7 @@ class default_1 extends Controller {
                 if (url && id) {
                     const response = await deleteRow({ url, id });
                     if (response.ok) {
-                        this.table.ajax.reload();
+                        this.table?.ajax.reload();
                     }
                 }
                 else {
