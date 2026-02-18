@@ -84,7 +84,7 @@ export class ApiPlatformAdapter {
 
     for (const order of params.order ?? []) {
       const columnConfig = this.columns[order.column]
-      const fieldName = columnConfig.name;
+      const fieldName = columnConfig.field ?? columnConfig.data ?? columnConfig.name
 
       if (null === fieldName) {
         continue
@@ -101,7 +101,7 @@ export class ApiPlatformAdapter {
       }
 
       const columnConfig = this.columns[index]
-      const fieldName: string = columnConfig.name;
+      const fieldName = columnConfig.field ?? columnConfig.data ?? columnConfig.name
 
       if (null === fieldName) {
         continue
@@ -130,7 +130,7 @@ export class ApiPlatformAdapter {
   }
 
   configure(payload: Record<string, unknown>): void {
-    const ajaxConfig = payload.ajax as Record<string, unknown>;
+    const ajaxConfig = payload.ajax as Record<string, unknown>
     const originalData = ajaxConfig.data
     const originalDataFilter = ajaxConfig.dataFilter
 
