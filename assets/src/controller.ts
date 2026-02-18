@@ -116,6 +116,13 @@ export default class extends Controller {
       }
     })
 
+    if (this.isApiPlatformEnabled(payload) && Array.isArray(payload.columns)) {
+      payload.columns = (payload.columns as ColumnConfig[]).map((column) => ({
+        ...column,
+        data: column.field ?? column.data,
+      }))
+    }
+
     this.table = new DataTable(this.element as HTMLElement, payload)
 
     this.dispatchEvent('connect', { table: this.table })
@@ -131,7 +138,7 @@ export default class extends Controller {
           const response = await deleteRow({ url, id })
 
           if (response.ok) {
-            this.table.ajax.reload()
+            this.table?.ajax.reload()
           }
         } else {
           console.error('Missing URL or ID for delete action')

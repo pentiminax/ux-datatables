@@ -30,7 +30,7 @@ export class ApiPlatformAdapter {
         result.itemsPerPage = String(length);
         for (const order of params.order ?? []) {
             const columnConfig = this.columns[order.column];
-            const fieldName = columnConfig.name;
+            const fieldName = columnConfig.field ?? columnConfig.data ?? columnConfig.name;
             if (null === fieldName) {
                 continue;
             }
@@ -42,7 +42,7 @@ export class ApiPlatformAdapter {
                 continue;
             }
             const columnConfig = this.columns[index];
-            const fieldName = columnConfig.name;
+            const fieldName = columnConfig.field ?? columnConfig.data ?? columnConfig.name;
             if (null === fieldName) {
                 continue;
             }
