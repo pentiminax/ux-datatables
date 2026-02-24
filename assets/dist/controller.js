@@ -255,8 +255,8 @@ class default_1 extends Controller {
             true === column?.urlShowExternalIcon);
     }
     configureUrlColumnRender(column) {
-        const urlTemplate = typeof column.urlTemplate === 'string' ? column.urlTemplate : null;
-        const routeParams = column.urlRouteParams && typeof column.urlRouteParams === 'object' ? column.urlRouteParams : null;
+        const urlTemplate = column.urlTemplate;
+        const routeParams = typeof column.urlRouteParams === 'object' ? column.urlRouteParams : null;
         const target = typeof column.urlTarget === 'string' ? column.urlTarget : null;
         const displayValue = typeof column.urlDisplayValue === 'string' ? column.urlDisplayValue : null;
         const showExternalIcon = true === column.urlShowExternalIcon;
