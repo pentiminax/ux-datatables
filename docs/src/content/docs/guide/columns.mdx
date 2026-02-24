@@ -131,6 +131,36 @@ $column = TextColumn::new('email', 'Email')
     }');
 ```
 
+### TemplateColumn (Twig)
+
+Use `TemplateColumn` when you want to render server-side HTML with Twig:
+
+```php
+use Pentiminax\UX\DataTables\Column\TemplateColumn;
+
+TemplateColumn::new('status_display', 'Status')
+    ->setField('status')
+    ->setTemplate('datatable/columns/user_status.html.twig');
+```
+
+Template context:
+
+- `entity`: original row object/array
+- `value`: value resolved from `field`
+- `column`: serialized column configuration
+- `row`: mapped row before template substitution
+
+Example template:
+
+```twig
+{# templates/datatable/columns/user_status.html.twig #}
+<span class="badge bg-{{ value == 'active' ? 'success' : 'danger' }}">
+    {{ value|capitalize }}
+</span>
+```
+
+`TemplateColumn` works with both server-side responses and client-side inline data (`->data([...])`).
+
 ### Export Control
 
 ```php

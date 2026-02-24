@@ -20,6 +20,8 @@ class DataTable
 
     private DataTableExtensions $extensions;
 
+    private bool $templateColumnsRendered = false;
+
     public function __construct(
         private readonly string $id,
         array $options = [],
@@ -422,6 +424,18 @@ class DataTable
     public function getColumns(): array
     {
         return $this->options['columns'] ?? [];
+    }
+
+    public function markTemplateColumnsRendered(bool $rendered = true): static
+    {
+        $this->templateColumnsRendered = $rendered;
+
+        return $this;
+    }
+
+    public function areTemplateColumnsRendered(): bool
+    {
+        return $this->templateColumnsRendered;
     }
 
     public function isServerSide(): bool
