@@ -84,6 +84,9 @@ class default_1 extends Controller {
             if (this.isBooleanColumn(column)) {
                 this.configureBooleanColumnRender(column);
             }
+            if (this.isUrlColumn(column)) {
+                this.configureUrlColumnRender(column);
+            }
             if (column.action === 'DELETE') {
                 column.render = function (data, type, row) {
                     const className = `${column.action.toLowerCase()}-action`;
@@ -244,6 +247,56 @@ class default_1 extends Controller {
             return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
         }
         return false;
+    }
+    isUrlColumn(column) {
+        return (typeof column?.urlTemplate === 'string' ||
+            typeof column?.urlTarget === 'string' ||
+            typeof column?.urlDisplayValue === 'string' ||
+            true === column?.urlShowExternalIcon);
+    }
+    configureUrlColumnRender(column) {
+        const urlTemplate = column.urlTemplate;
+        const routeParams = typeof column.urlRouteParams === 'object' ? column.urlRouteParams : null;
+        const target = typeof column.urlTarget === 'string' ? column.urlTarget : null;
+        const displayValue = typeof column.urlDisplayValue === 'string' ? column.urlDisplayValue : null;
+        const showExternalIcon = true === column.urlShowExternalIcon;
+        column.render = (data, type, row) => {
+            if (type !== 'display') {
+                return data;
+            }
+            let href;
+            if (urlTemplate && routeParams) {
+                href = urlTemplate;
+                for (const [paramName, fieldName] of Object.entries(routeParams)) {
+                    const value = row[fieldName] ?? '';
+                    href = href.replace(`{${paramName}}`, encodeURIComponent(String(value)));
+                }
+            }
+            else {
+                href = typeof data === 'string' ? data : '';
+            }
+            if (this.isUnsafeUrl(href)) {
+                return this.escapeHtml(String(data ?? ''));
+            }
+            const escapedHref = this.escapeHtml(href);
+            const text = this.escapeHtml(displayValue ?? data ?? href);
+            const attrs = [`href="${escapedHref}"`];
+            if (target) {
+                attrs.push(`target="${this.escapeHtml(target)}"`);
+            }
+            if (target === '_blank') {
+                attrs.push('rel="noopener noreferrer"');
+            }
+            let html = `<a ${attrs.join(' ')}>${text}</a>`;
+            if (showExternalIcon) {
+                html += ' <span aria-label="external link">&#x2197;</span>';
+            }
+            return html;
+        };
+    }
+    isUnsafeUrl(url) {
+        const trimmed = url.trim().toLowerCase();
+        return trimmed.startsWith('javascript:') || trimmed.startsWith('data:');
     }
     escapeHtml(value) {
         return value

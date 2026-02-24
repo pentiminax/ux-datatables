@@ -107,6 +107,10 @@ export default class extends Controller {
         this.configureBooleanColumnRender(column)
       }
 
+      if (this.isUrlColumn(column)) {
+        this.configureUrlColumnRender(column)
+      }
+
       if (column.action === 'DELETE') {
         column.render = function (data: any, type: string, row: any) {
           const className = `${column.action.toLowerCase()}-action`
@@ -311,6 +315,70 @@ export default class extends Controller {
     }
 
     return false
+  }
+
+  private isUrlColumn(column: Record<string, any>): boolean {
+    return (
+      typeof column?.urlTemplate === 'string' ||
+      typeof column?.urlTarget === 'string' ||
+      typeof column?.urlDisplayValue === 'string' ||
+      true === column?.urlShowExternalIcon
+    )
+  }
+
+  private configureUrlColumnRender(column: Record<string, any>): void {
+    const urlTemplate = column.urlTemplate
+      const routeParams = typeof column.urlRouteParams === 'object' ? column.urlRouteParams : null
+    const target = typeof column.urlTarget === 'string' ? column.urlTarget : null
+    const displayValue = typeof column.urlDisplayValue === 'string' ? column.urlDisplayValue : null
+    const showExternalIcon = true === column.urlShowExternalIcon
+
+    column.render = (data: any, type: string, row: Record<string, any>): any => {
+      if (type !== 'display') {
+        return data
+      }
+
+      let href: string
+      if (urlTemplate && routeParams) {
+        href = urlTemplate
+        for (const [paramName, fieldName] of Object.entries(routeParams)) {
+          const value = row[fieldName as string] ?? ''
+          href = href.replace(`{${paramName}}`, encodeURIComponent(String(value)))
+        }
+      } else {
+        href = typeof data === 'string' ? data : ''
+      }
+
+      if (this.isUnsafeUrl(href)) {
+        return this.escapeHtml(String(data ?? ''))
+      }
+
+      const escapedHref = this.escapeHtml(href)
+      const text = this.escapeHtml(displayValue ?? data ?? href)
+
+      const attrs: string[] = [`href="${escapedHref}"`]
+
+      if (target) {
+        attrs.push(`target="${this.escapeHtml(target)}"`)
+      }
+
+      if (target === '_blank') {
+        attrs.push('rel="noopener noreferrer"')
+      }
+
+      let html = `<a ${attrs.join(' ')}>${text}</a>`
+
+      if (showExternalIcon) {
+        html += ' <span aria-label="external link">&#x2197;</span>'
+      }
+
+      return html
+    }
+  }
+
+  private isUnsafeUrl(url: string): boolean {
+    const trimmed = url.trim().toLowerCase()
+    return trimmed.startsWith('javascript:') || trimmed.startsWith('data:')
   }
 
   private escapeHtml(value: string): string {
