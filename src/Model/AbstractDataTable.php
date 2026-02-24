@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\UrlColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -55,6 +56,7 @@ abstract class AbstractDataTable implements DataTableInterface
         protected ?EntityManagerInterface $em = null,
         protected ?ApiResourceCollectionUrlResolverInterface $apiResourceCollectionUrlResolver = null,
         protected ?AttributeColumnReader $attributeColumnReader = null,
+        protected ?UrlColumnResolver $urlColumnResolver = null,
     ) {
         $this->table = $this->configureDataTable(
             new DataTable($this->getClassName())
@@ -63,6 +65,7 @@ abstract class AbstractDataTable implements DataTableInterface
         $this->columns = iterator_to_array($this->configureColumns());
 
         $this->configureBooleanColumns();
+        $this->configureUrlColumns();
 
         $this->table->columns($this->columns);
 
@@ -372,6 +375,11 @@ abstract class AbstractDataTable implements DataTableInterface
 
             $column->setEntityClass($asDataTable->entityClass);
         }
+    }
+
+    private function configureUrlColumns(): void
+    {
+        $this->urlColumnResolver?->resolveRoutes($this->columns);
     }
 
     private function getAsDataTableAttribute(): ?AsDataTable
