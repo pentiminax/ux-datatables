@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilderInterface;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
+use Pentiminax\UX\DataTables\Column\UrlColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
@@ -131,6 +132,17 @@ class DataTablesBundle extends AbstractBundle
         $container->services()
             ->alias(AttributeColumnReader::class, 'datatables.column.attribute_column_reader')
             ->private();
+
+        if (interface_exists(\Symfony\Component\Routing\RouterInterface::class)) {
+            $container->services()
+                ->set('datatables.column.url_column_resolver', UrlColumnResolver::class)
+                ->arg(0, service('router'))
+                ->private();
+
+            $container->services()
+                ->alias(UrlColumnResolver::class, 'datatables.column.url_column_resolver')
+                ->private();
+        }
 
         if (interface_exists(ResourceMetadataCollectionFactoryInterface::class)) {
             $container->services()

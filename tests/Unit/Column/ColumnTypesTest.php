@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Column\HtmlUtf8Column;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\NumberFormatColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Column\Utf8TextColumn;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -75,5 +76,6 @@ class ColumnTypesTest extends TestCase
         yield 'html-number-formatted' => [HtmlNumberFormatColumn::new('col_html_num_fmt'), ColumnType::HTML_NUM_FMT];
         yield 'html' => [HtmlColumn::new('col_html'), ColumnType::HTML];
         yield 'html-utf8' => [HtmlUtf8Column::new('col_html_utf8'), ColumnType::HTML_UTF8];
+        yield 'url' => [UrlColumn::new('col_url'), ColumnType::HTML];
     }
 }
