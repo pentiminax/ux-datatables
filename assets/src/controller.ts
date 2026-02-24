@@ -327,9 +327,8 @@ export default class extends Controller {
   }
 
   private configureUrlColumnRender(column: Record<string, any>): void {
-    const urlTemplate = typeof column.urlTemplate === 'string' ? column.urlTemplate : null
-    const routeParams =
-      column.urlRouteParams && typeof column.urlRouteParams === 'object' ? column.urlRouteParams : null
+    const urlTemplate = column.urlTemplate
+      const routeParams = typeof column.urlRouteParams === 'object' ? column.urlRouteParams : null
     const target = typeof column.urlTarget === 'string' ? column.urlTarget : null
     const displayValue = typeof column.urlDisplayValue === 'string' ? column.urlDisplayValue : null
     const showExternalIcon = true === column.urlShowExternalIcon
