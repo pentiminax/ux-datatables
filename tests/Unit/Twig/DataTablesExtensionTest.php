@@ -3,6 +3,7 @@
 namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
@@ -108,5 +109,37 @@ class DataTablesExtensionTest extends TestCase
         $container->get('test.datatables.twig_extension')->renderDataTable($table);
 
         $this->assertTrue($table->prepareForRenderingCalled);
+    }
+
+    public function testRenderDataTablePreRendersTemplateColumnsInInlineData(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        /** @var DataTableBuilderInterface $builder */
+        $builder = $container->get('test.datatables.builder');
+
+        $table = $builder->createDataTable('template_table');
+        $table->columns([
+            TextColumn::new('id'),
+            TemplateColumn::new('status_display')
+                ->setField('status')
+                ->setTemplate('datatable/columns/status_badge.html.twig'),
+        ]);
+        $table->data([
+            ['id' => 5, 'status' => 'active'],
+        ]);
+
+        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+
+        $dom = new \DOMDocument();
+        $dom->loadHTML($rendered);
+        $tableEl = $dom->getElementsByTagName('table')->item(0);
+
+        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
+        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status_display']));
     }
 }
