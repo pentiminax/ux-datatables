@@ -18,19 +18,19 @@ class UrlColumn extends AbstractColumn
         return static::createWithType($name, $title, ColumnType::HTML);
     }
 
-    public function openInNewTab(): self
+    public function openInNewTab(): static
     {
         return $this->setTarget('_blank');
     }
 
-    public function setTarget(string $target): self
+    public function setTarget(string $target): static
     {
         $this->setCustomOption(self::OPTION_TARGET, $target);
 
         return $this;
     }
 
-    public function setDisplayValue(string $displayValue): self
+    public function setDisplayValue(string $displayValue): static
     {
         $this->setCustomOption(self::OPTION_DISPLAY_VALUE, $displayValue);
 
@@ -40,7 +40,7 @@ class UrlColumn extends AbstractColumn
     /**
      * @param array<string, string> $params Maps route parameter names to entity field names (e.g. ['id' => 'id'])
      */
-    public function route(string $routeName, array $params = []): self
+    public function route(string $routeName, array $params = []): static
     {
         $this->setCustomOption(self::OPTION_ROUTE_NAME, $routeName);
         $this->setCustomOption(self::OPTION_ROUTE_PARAMS, $params);
@@ -48,7 +48,7 @@ class UrlColumn extends AbstractColumn
         return $this;
     }
 
-    public function showExternalIcon(bool $show = true): self
+    public function showExternalIcon(bool $show = true): static
     {
         $this->setCustomOption(self::OPTION_SHOW_EXTERNAL_ICON, $show);
 
@@ -68,7 +68,7 @@ class UrlColumn extends AbstractColumn
         return $this->getCustomOption(self::OPTION_ROUTE_PARAMS);
     }
 
-    public function setUrlTemplate(string $template): self
+    public function setUrlTemplate(string $template): static
     {
         $this->setCustomOption(self::OPTION_URL_TEMPLATE, $template);
 
