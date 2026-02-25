@@ -15,7 +15,7 @@ final class AbstractDataTableTemplateColumnTest extends TestCase
     public function testRowMapperPipelineRendersTemplateColumnWhenMapRowIsOverridden(): void
     {
         $renderer = new TemplateColumnRenderer(new Environment(new ArrayLoader([
-            'datatable/columns/status_badge.html.twig' => '<span>{{ row.id }}-{{ value }}</span>',
+            'datatable/columns/status_badge.html.twig' => '<span>{{ row.id }}-{{ data }}</span>',
         ])));
 
         $table = new TemplatePipelineTable($renderer);
@@ -33,7 +33,9 @@ final class TemplatePipelineTable extends AbstractDataTable
 {
     public function __construct(TemplateColumnRenderer $renderer)
     {
-        parent::__construct(templateColumnRenderer: $renderer);
+        parent::__construct(
+            templateColumnRenderer: $renderer
+        );
     }
 
     public function configureColumns(): iterable
