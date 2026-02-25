@@ -350,7 +350,7 @@ abstract class AbstractDataTable implements DataTableInterface
 
                 return $this->templateColumnRenderer->renderRow(
                     row: $mappedRow,
-                    entity: $row,
+                    mappedRow: $row,
                     columns: $this->columns
                 );
             }
