@@ -25,10 +25,10 @@ final class TemplateColumnRenderer
                 continue;
             }
 
-            $outputKey = $column->getField();
-            $value     = $this->resolveValue(mappedRow: $mappedRow, row: $contextRow, outputKey: $outputKey);
+            $field = $column->getField();
+            $value = $this->resolveValue(mappedRow: $mappedRow, row: $contextRow, field: $field);
 
-            $renderedRow[$outputKey] = $this->renderTemplate($column->getTemplate(), [
+            $renderedRow[$field] = $this->renderTemplate($column->getTemplate(), [
                 'entity' => $mappedRow,
                 'data'   => $value,
                 'column' => $column->jsonSerialize(),
@@ -48,14 +48,14 @@ final class TemplateColumnRenderer
         return $this->twig->render($template, $context);
     }
 
-    private function resolveValue(mixed $mappedRow, array $row, string $outputKey): mixed
+    private function resolveValue(mixed $mappedRow, array $row, string $field): mixed
     {
-        $value = $this->readPath($row, $outputKey);
+        $value = $this->readPath($row, $field);
         if (null !== $value) {
             return $value;
         }
 
-        return $this->readPath($mappedRow, $outputKey);
+        return $this->readPath($mappedRow, $field);
     }
 
     private function readPath(mixed $value, string $path): mixed
