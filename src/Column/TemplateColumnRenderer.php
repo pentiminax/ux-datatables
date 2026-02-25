@@ -26,11 +26,11 @@ final class TemplateColumnRenderer
             }
 
             $field = $column->getField();
-            $value = $this->resolveValue(mappedRow: $mappedRow, row: $contextRow, field: $field);
+            $data  = $this->resolveData(mappedRow: $mappedRow, row: $contextRow, field: $field);
 
             $renderedRow[$field] = $this->renderTemplate($column->getTemplate(), [
                 'entity' => $mappedRow,
-                'data'   => $value,
+                'data'   => $data,
                 'column' => $column->jsonSerialize(),
                 'row'    => $contextRow,
             ]);
@@ -48,7 +48,7 @@ final class TemplateColumnRenderer
         return $this->twig->render($template, $context);
     }
 
-    private function resolveValue(mixed $mappedRow, array $row, string $field): mixed
+    private function resolveData(mixed $mappedRow, array $row, string $field): mixed
     {
         $value = $this->readPath($row, $field);
         if (null !== $value) {
@@ -66,7 +66,7 @@ final class TemplateColumnRenderer
 
         foreach (explode('.', $path) as $segment) {
             if (\is_array($value)) {
-                if (!\array_key_exists($segment, $value)) {
+                if (!isset($value[$segment])) {
                     return null;
                 }
 
