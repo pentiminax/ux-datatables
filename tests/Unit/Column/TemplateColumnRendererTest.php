@@ -26,7 +26,7 @@ final class TemplateColumnRendererTest extends TestCase
 
         $row = $renderer->renderRow(
             row: ['id' => 7],
-            entity: new TemplateEntity(id: 7, status: 'active'),
+            mappedRow: new TemplateEntity(id: 7, status: 'active'),
             columns: $columns
         );
 
@@ -71,7 +71,7 @@ final class TemplateColumnRendererTest extends TestCase
 
         $renderer->renderRow(
             row: ['status_display' => 'active'],
-            entity: ['status_display' => 'active'],
+            mappedRow: ['status_display' => 'active'],
             columns: $columns
         );
     }
@@ -87,7 +87,7 @@ final class TemplateColumnRendererTest extends TestCase
 
         $renderer->renderRow(
             row: ['status_display' => 'active'],
-            entity: ['status_display' => 'active'],
+            mappedRow: ['status_display' => 'active'],
             columns: $columns
         );
     }

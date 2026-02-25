@@ -15,7 +15,7 @@ final class TemplateColumnRenderer
     /**
      * @param iterable<ColumnInterface> $columns
      */
-    public function renderRow(array $row, mixed $entity, iterable $columns): array
+    public function renderRow(array $row, mixed $mappedRow, iterable $columns): array
     {
         $renderedRow = $row;
         $contextRow  = $row;
@@ -25,17 +25,12 @@ final class TemplateColumnRenderer
                 continue;
             }
 
-            $outputKey = $this->resolveOutputKey($column->getData(), $column->getName());
-            if (null === $outputKey) {
-                continue;
-            }
-
-            $field = $this->resolveOutputKey($column->getField(), $outputKey) ?? $outputKey;
-            $value = $this->resolveValue(entity: $entity, row: $contextRow, field: $field, outputKey: $outputKey);
+            $outputKey = $column->getField();
+            $value     = $this->resolveValue(mappedRow: $mappedRow, row: $contextRow, outputKey: $outputKey);
 
             $renderedRow[$outputKey] = $this->renderTemplate($column->getTemplate(), [
-                'entity' => $entity,
-                'value'  => $value,
+                'entity' => $mappedRow,
+                'data'  => $value,
                 'column' => $column->jsonSerialize(),
                 'row'    => $contextRow,
             ]);
@@ -79,9 +74,8 @@ final class TemplateColumnRenderer
 
         foreach ($templateColumns as $templateColumn) {
             $value = $this->resolveValue(
-                entity: $entity,
+                mappedRow: $entity,
                 row: $contextRow,
-                field: $templateColumn['field'],
                 outputKey: $templateColumn['outputKey']
             );
 
@@ -153,24 +147,14 @@ final class TemplateColumnRenderer
         return $this->twig->render($template, $context);
     }
 
-    private function resolveValue(mixed $entity, array $row, string $field, string $outputKey): mixed
+    private function resolveValue(mixed $mappedRow, array $row, string $outputKey): mixed
     {
-        $value = $this->readPath($entity, $field);
-        if (null !== $value) {
-            return $value;
-        }
-
-        $value = $this->readPath($row, $field);
-        if (null !== $value) {
-            return $value;
-        }
-
         $value = $this->readPath($row, $outputKey);
         if (null !== $value) {
             return $value;
         }
 
-        return $this->readPath($entity, $outputKey);
+        return $this->readPath($mappedRow, $outputKey);
     }
 
     private function resolveOutputKey(?string $preferred, ?string $fallback): ?string
