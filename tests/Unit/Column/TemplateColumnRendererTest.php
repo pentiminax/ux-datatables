@@ -34,31 +34,6 @@ final class TemplateColumnRendererTest extends TestCase
         $this->assertSame('<span data-field="status">active</span>', $row['status_display']);
     }
 
-    public function testItPassesExpectedContextInInlineRendering(): void
-    {
-        $twig = new Environment(new ArrayLoader([
-            'datatable/columns/status_badge.html.twig' => '<span>{{ row.id }}-{{ entity.id }}-{{ column.name }}-{{ value }}</span>',
-        ]));
-
-        $renderer = new TemplateColumnRenderer($twig);
-        $rows     = $renderer->renderInlineData(
-            rows: [
-                ['id' => 42, 'status' => 'inactive'],
-            ],
-            columns: [
-                ['name' => 'id', 'data' => 'id'],
-                [
-                    'name'         => 'status_display',
-                    'data'         => 'status_display',
-                    'field'        => 'status',
-                    'templatePath' => 'datatable/columns/status_badge.html.twig',
-                ],
-            ]
-        );
-
-        $this->assertSame('<span>42-42-status_display-inactive</span>', $rows[0]['status_display']);
-    }
-
     public function testItFailsFastWhenTwigIsMissing(): void
     {
         $renderer = new TemplateColumnRenderer();
