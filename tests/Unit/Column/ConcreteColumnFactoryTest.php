@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Column\HtmlNumberFormatColumn;
 use Pentiminax\UX\DataTables\Column\HtmlUtf8Column;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\NumberFormatColumn;
+use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Column\Utf8TextColumn;
@@ -23,7 +24,11 @@ class ConcreteColumnFactoryTest extends TestCase
     public function testFactorySetsNameDataTitleAndType(string $columnClass, ColumnType $expectedType): void
     {
         $column = $columnClass::new('field_name', 'Field label');
-        $data   = $column->jsonSerialize();
+        if ($column instanceof TemplateColumn) {
+            $column->setTemplate('datatable/columns/cell.html.twig');
+        }
+
+        $data = $column->jsonSerialize();
 
         $this->assertSame('field_name', $data['data']);
         $this->assertSame('field_name', $data['name']);
@@ -35,7 +40,11 @@ class ConcreteColumnFactoryTest extends TestCase
     public function testFactoryDefaultsTitleToName(string $columnClass): void
     {
         $column = $columnClass::new('field_name');
-        $data   = $column->jsonSerialize();
+        if ($column instanceof TemplateColumn) {
+            $column->setTemplate('datatable/columns/cell.html.twig');
+        }
+
+        $data = $column->jsonSerialize();
 
         $this->assertSame('field_name', $data['title']);
     }
@@ -55,6 +64,7 @@ class ConcreteColumnFactoryTest extends TestCase
         yield 'html-number-formatted' => [HtmlNumberFormatColumn::class, ColumnType::HTML_NUM_FMT];
         yield 'html' => [HtmlColumn::class, ColumnType::HTML];
         yield 'html-utf8' => [HtmlUtf8Column::class, ColumnType::HTML_UTF8];
+        yield 'template' => [TemplateColumn::class, ColumnType::HTML];
         yield 'url' => [UrlColumn::class, ColumnType::HTML];
     }
 }

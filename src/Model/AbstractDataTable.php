@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\UrlColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
@@ -57,6 +58,7 @@ abstract class AbstractDataTable implements DataTableInterface
         protected ?ApiResourceCollectionUrlResolverInterface $apiResourceCollectionUrlResolver = null,
         protected ?AttributeColumnReader $attributeColumnReader = null,
         protected ?UrlColumnResolver $urlColumnResolver = null,
+        protected ?TemplateColumnRenderer $templateColumnRenderer = null,
     ) {
         $this->table = $this->configureDataTable(
             new DataTable($this->getClassName())
@@ -242,6 +244,7 @@ abstract class AbstractDataTable implements DataTableInterface
         $data   = iterator_to_array($result->data);
 
         $this->table->data($data);
+        $this->table->markTemplateColumnsRendered();
 
         return $result;
     }
@@ -339,7 +342,18 @@ abstract class AbstractDataTable implements DataTableInterface
     protected function rowMapper(): RowMapperInterface
     {
         return new ClosureRowMapper(
-            $this->mapRow(...)
+            function (mixed $row): array {
+                $mappedRow = $this->mapRow($row);
+                if (null === $this->templateColumnRenderer) {
+                    return $mappedRow;
+                }
+
+                return $this->templateColumnRenderer->renderRow(
+                    row: $mappedRow,
+                    mappedRow: $row,
+                    columns: $this->columns
+                );
+            }
         );
     }
 
