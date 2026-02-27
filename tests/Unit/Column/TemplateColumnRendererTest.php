@@ -15,7 +15,7 @@ final class TemplateColumnRendererTest extends TestCase
     public function testItRendersTemplateColumnFromEntityField(): void
     {
         $twig = new Environment(new ArrayLoader([
-            'datatable/columns/status_badge.html.twig' => '<span data-field="{{ column.field }}">{{ value }}</span>',
+            'datatable/columns/status_badge.html.twig' => '<span data-field="{{ column.field }}">{{ data }}</span>',
         ]));
 
         $renderer = new TemplateColumnRenderer($twig);
@@ -31,7 +31,7 @@ final class TemplateColumnRendererTest extends TestCase
         );
 
         $this->assertSame(7, $row['id']);
-        $this->assertSame('<span data-field="status">active</span>', $row['status_display']);
+        $this->assertSame('<span data-field="status">active</span>', $row['status']);
     }
 
     public function testItFailsFastWhenTwigIsMissing(): void
