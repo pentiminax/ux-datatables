@@ -3,7 +3,7 @@
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\PropertyReader;
+use Pentiminax\UX\DataTables\Util\PropertyReader;
 use Twig\Environment;
 
 final class TemplateColumnRenderer

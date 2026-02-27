@@ -2,7 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Tests\Unit;
 
-use Pentiminax\UX\DataTables\PropertyReader;
+use Pentiminax\UX\DataTables\Util\PropertyReader;
 use PHPUnit\Framework\TestCase;
 
 final class PropertyReaderTest extends TestCase

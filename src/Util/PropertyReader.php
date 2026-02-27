@@ -1,6 +1,6 @@
 <?php
 
-namespace Pentiminax\UX\DataTables;
+namespace Pentiminax\UX\DataTables\Util;
 
 final class PropertyReader
 {
