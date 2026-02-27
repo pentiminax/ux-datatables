@@ -426,6 +426,14 @@ class DataTable
         return $this->options['columns'] ?? [];
     }
 
+    /**
+     * @return ColumnInterface[]
+     */
+    public function getColumnObjects(): array
+    {
+        return $this->columns;
+    }
+
     public function markTemplateColumnsRendered(bool $rendered = true): static
     {
         $this->templateColumnsRendered = $rendered;

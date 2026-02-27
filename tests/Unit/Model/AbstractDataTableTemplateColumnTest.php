@@ -23,8 +23,8 @@ final class AbstractDataTableTemplateColumnTest extends TestCase
         $row = $table->mapViaPipeline(new TemplatePipelineEntity(id: 9, status: 'active'));
 
         $this->assertSame([
-            'id'             => 9,
-            'status_display' => '<span>9-active</span>',
+            'id'     => 9,
+            'status' => '<span>9-active</span>',
         ], $row);
     }
 }

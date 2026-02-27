@@ -140,6 +140,6 @@ class DataTablesExtensionTest extends TestCase
         $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
         $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
 
-        $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status_display']));
+        $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status']));
     }
 }
