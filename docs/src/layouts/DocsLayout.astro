@@ -16,7 +16,7 @@ const pathname = Astro.url.pathname
     <div class="flex flex-col gap-8 py-8 md:flex-row">
       <!-- Sidebar -->
       <aside class="w-full shrink-0 md:w-64">
-        <nav class="sticky top-24 space-y-8">
+        <nav class="sticky top-24 max-h-[calc(100vh-7rem)] space-y-8 overflow-y-auto pb-8">
           {
             docsSidebarSections.map((section) => (
               <div>
@@ -88,5 +88,24 @@ const pathname = Astro.url.pathname
   }
   .prose a {
     @apply text-blue-400 underline decoration-slate-700 underline-offset-4 transition-all hover:text-blue-300 hover:decoration-blue-400;
+  }
+
+  /* Sidebar scrollbar */
+  aside nav::-webkit-scrollbar {
+    width: 4px;
+  }
+  aside nav::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  aside nav::-webkit-scrollbar-thumb {
+    background: #1e293b;
+    border-radius: 2px;
+  }
+  aside nav::-webkit-scrollbar-thumb:hover {
+    background: #334155;
+  }
+  aside nav {
+    scrollbar-width: thin;
+    scrollbar-color: #1e293b transparent;
   }
 </style>
