@@ -3,6 +3,7 @@
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\PropertyReader;
 use Twig\Environment;
 
 final class TemplateColumnRenderer
@@ -50,77 +51,8 @@ final class TemplateColumnRenderer
 
     private function resolveData(mixed $mappedRow, array $row, string $field): mixed
     {
-        $value = $this->readPath($row, $field);
-        if (null !== $value) {
-            return $value;
-        }
+        $value = PropertyReader::readPath($row, $field);
 
-        return $this->readPath($mappedRow, $field);
-    }
-
-    private function readPath(mixed $value, string $path): mixed
-    {
-        if ('' === $path) {
-            return null;
-        }
-
-        foreach (explode('.', $path) as $segment) {
-            if (\is_array($value)) {
-                if (!isset($value[$segment])) {
-                    return null;
-                }
-
-                $value = $value[$segment];
-                continue;
-            }
-
-            if (\is_object($value)) {
-                $value = $this->readObjectValue($value, $segment);
-                continue;
-            }
-
-            return null;
-        }
-
-        return $value;
-    }
-
-    private function readObjectValue(object $object, string $property): mixed
-    {
-        if (\is_callable([$object, $property])) {
-            return $object->$property();
-        }
-
-        $accessor = $this->buildAccessorSuffix($property);
-        foreach (['get', 'is', 'has'] as $prefix) {
-            $method = $prefix.$accessor;
-            if (\is_callable([$object, $method])) {
-                $value = $object->$method();
-                if (\is_object($value) && $value instanceof \Stringable) {
-                    return (string) $value;
-                }
-
-                return $value;
-            }
-        }
-
-        if (property_exists($object, $property)) {
-            $reflection = new \ReflectionObject($object);
-            if (!$reflection->hasProperty($property) || $reflection->getProperty($property)->isPublic()) {
-                return $object->$property;
-            }
-        }
-
-        return null;
-    }
-
-    private function buildAccessorSuffix(string $property): string
-    {
-        if (str_contains($property, '_') || str_contains($property, '-')) {
-            $property = str_replace(['-', '_'], ' ', $property);
-            $property = str_replace(' ', '', ucwords($property));
-        }
-
-        return ucfirst($property);
+        return $value ?? PropertyReader::readPath($mappedRow, $field);
     }
 }
