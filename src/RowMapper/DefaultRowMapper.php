@@ -6,6 +6,7 @@ use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\Util\PropertyReader;
 
 final class DefaultRowMapper implements RowMapperInterface
 {
@@ -44,7 +45,7 @@ final class DefaultRowMapper implements RowMapperInterface
                 continue;
             }
 
-            $value = $this->readValueFromRow($row, $key);
+            $value = PropertyReader::readPath($row, $key);
             if ($column instanceof DateColumn && $value instanceof \DateTimeInterface) {
                 if ($column->getFormat()) {
                     $value = $value->format($column->getFormat());
@@ -64,68 +65,5 @@ final class DefaultRowMapper implements RowMapperInterface
         $key = $column->getData() ?? $column->getName();
 
         return null === $key || '' === $key ? null : $key;
-    }
-
-    private function readValueFromRow(mixed $row, string $path): mixed
-    {
-        $value = $row;
-        foreach (explode('.', $path) as $segment) {
-            if (\is_array($value)) {
-                if (!isset($value[$segment])) {
-                    return null;
-                }
-
-                $value = $value[$segment];
-                continue;
-            }
-
-            if (\is_object($value)) {
-                $value = $this->readObjectValue($value, $segment);
-                continue;
-            }
-
-            return null;
-        }
-
-        return $value;
-    }
-
-    private function readObjectValue(object $object, string $property): mixed
-    {
-        if (\is_callable([$object, $property])) {
-            return $object->$property();
-        }
-
-        $accessor = $this->buildAccessorSuffix($property);
-        foreach (['get', 'is', 'has'] as $prefix) {
-            $method = $prefix.$accessor;
-            if (\is_callable([$object, $method])) {
-                $value = $object->$method();
-                if (\is_object($value) && $value instanceof \Stringable) {
-                    return (string) $value;
-                }
-
-                return $value;
-            }
-        }
-
-        if (property_exists($object, $property)) {
-            $reflection = new \ReflectionObject($object);
-            if (!$reflection->hasProperty($property) || $reflection->getProperty($property)->isPublic()) {
-                return $object->$property;
-            }
-        }
-
-        return null;
-    }
-
-    private function buildAccessorSuffix(string $property): string
-    {
-        if (str_contains($property, '_') || str_contains($property, '-')) {
-            $property = str_replace(['-', '_'], ' ', $property);
-            $property = str_replace(' ', '', ucwords($property));
-        }
-
-        return ucfirst($property);
     }
 }

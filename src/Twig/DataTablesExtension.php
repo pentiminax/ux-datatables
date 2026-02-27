@@ -2,6 +2,7 @@
 
 namespace Pentiminax\UX\DataTables\Twig;
 
+use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
@@ -12,6 +13,7 @@ class DataTablesExtension extends AbstractExtension
 {
     public function __construct(
         private StimulusHelper $stimulus,
+        private TemplateColumnRenderer $templateColumnRenderer,
     ) {
     }
 
@@ -37,8 +39,19 @@ class DataTablesExtension extends AbstractExtension
             $controllers[$table->getDataController()] = [];
         }
 
+        $options = $table->getOptions();
+
+        if (!empty($options['data']) && !$table->areTemplateColumnsRendered()) {
+            $columns = $table->getColumnObjects();
+            $options['data'] = array_map(
+                fn (array $row) => $this->templateColumnRenderer->renderRow($row, $row, $columns),
+                $options['data']
+            );
+            $table->markTemplateColumnsRendered();
+        }
+
         $controllers['@pentiminax/ux-datatables/datatable'] = [
-            'view' => array_merge($table->getOptions(), $table->getExtensions()),
+            'view' => array_merge($options, $table->getExtensions()),
         ];
 
         $stimulusAttributes = $this->stimulus->createStimulusAttributes();
