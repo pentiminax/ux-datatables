@@ -33,7 +33,7 @@ enum Status: string
 }
 
 ChoiceColumn::new('status', 'Status')
-    ->setChoices(Status::class);
+    ->setChoices(Status::cases());
 // Generates: ['active' => 'Active', 'inactive' => 'Inactive', 'pending' => 'Pending']
 
 ChoiceColumn::new('status', 'Status')
