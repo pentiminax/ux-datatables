@@ -1,0 +1,126 @@
+---
+title: Choice Column
+description: Map finite value sets (enums, statuses) to human-readable labels with optional Bootstrap badge rendering
+---
+
+# Choice Column
+
+The `ChoiceColumn` maps a field's raw value to a human-readable label. It optionally renders the label as a Bootstrap badge with a per-value color variant. PHP 8.1 `BackedEnum` classes are supported natively.
+
+## Basic Usage
+
+```php
+use Pentiminax\UX\DataTables\Column\ChoiceColumn;
+
+ChoiceColumn::new('status', 'Status')
+    ->setChoices([
+        'active'   => 'Active',
+        'inactive' => 'Inactive',
+        'pending'  => 'Pending',
+    ]);
+```
+
+## Using a BackedEnum Class
+
+Pass a `BackedEnum` class directly. The mapping is auto-generated from `case->value => case->name`.
+
+```php
+enum Status: string
+{
+    case Active   = 'active';
+    case Inactive = 'inactive';
+    case Pending  = 'pending';
+}
+
+ChoiceColumn::new('status', 'Status')
+    ->setChoices(Status::class);
+// Generates: ['active' => 'Active', 'inactive' => 'Inactive', 'pending' => 'Pending']
+```
+
+## Rendering as Bootstrap Badges
+
+Use `renderAsBadge()` to wrap each label in a `<span class="badge text-bg-{variant}">` element. Map individual values to Bootstrap color variants, and provide a fallback for unmapped values.
+
+```php
+ChoiceColumn::new('status', 'Status')
+    ->setChoices(Status::class)
+    ->renderAsBadge(
+        badges: [
+            'active'   => 'success',
+            'inactive' => 'danger',
+            'pending'  => 'warning',
+        ],
+        defaultVariant: 'secondary',
+    );
+```
+
+## Default Badge Variant
+
+When `renderAsBadge()` is called without a `badges` map (or for values not present in the map), the `defaultVariant` is used. It defaults to `'secondary'`.
+
+```php
+ChoiceColumn::new('category', 'Category')
+    ->setChoices(['foo' => 'Foo', 'bar' => 'Bar'])
+    ->renderAsBadge(); // all values use 'secondary' variant
+```
+
+## API Reference
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`ChoiceColumn::new(string $name, string $title = \'\')`', 'Creates a new ChoiceColumn (type: `html`)'],
+    ['`setChoices(array|string $choices)`', 'Accepts a `value => label` array or a `BackedEnum` class-string'],
+    ['`renderAsBadge(array $badges = [], string $defaultVariant = \'secondary\')`', 'Enables badge rendering with per-value Bootstrap color variants'],
+  ]}
+/>
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ChoiceColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+enum OrderStatus: string
+{
+    case Draft     = 'draft';
+    case Confirmed = 'confirmed';
+    case Shipped   = 'shipped';
+    case Cancelled = 'cancelled';
+}
+
+#[AsDataTable(Order::class)]
+final class OrdersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('reference', 'Reference');
+        yield ChoiceColumn::new('status', 'Status')
+            ->setChoices(OrderStatus::class)
+            ->renderAsBadges([
+                'draft'     => 'secondary',
+                'confirmed' => 'primary',
+                'shipped'   => 'success',
+                'cancelled' => 'danger',
+            ]);
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return [
+            'id'        => $item->getId(),
+            'reference' => $item->getReference(),
+            'status'    => $item->getStatus()->value,
+        ];
+    }
+}
+```
+
+<Aside type="note">
+  `ChoiceColumn` uses the `html` DataTables type, which strips HTML tags for sorting and filtering —
+  so searching works on the plain label text, not the badge markup.
+</Aside>

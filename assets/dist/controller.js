@@ -87,6 +87,9 @@ class default_1 extends Controller {
             if (this.isUrlColumn(column)) {
                 this.configureUrlColumnRender(column);
             }
+            if (this.isChoiceColumn(column)) {
+                this.configureChoiceColumnRender(column);
+            }
             if (column.action === 'DELETE') {
                 column.render = function (data, type, row) {
                     const className = `${column.action.toLowerCase()}-action`;
@@ -247,6 +250,30 @@ class default_1 extends Controller {
             return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
         }
         return false;
+    }
+    isChoiceColumn(column) {
+        return typeof column?.choices === 'object' && column.choices !== null;
+    }
+    configureChoiceColumnRender(column) {
+        const choices = (column.choices ?? {});
+        const badges = column.renderAsBadges;
+
+        column.render = (data, type) => {
+            const key = String(data ?? '');
+            const label = choices[key] ?? key;
+            if (type !== 'display') {
+                return label;
+            }
+
+            if (badges === null) {
+                return this.escapeHtml(label);
+            }
+
+            const variant = badges[key] ?? 'secondary';
+            const escapedLabel = this.escapeHtml(label);
+            const escapedVariant = this.escapeHtml(variant);
+            return `<span class="badge text-bg-${escapedVariant}">${escapedLabel}</span>`;
+        };
     }
     isUrlColumn(column) {
         return (typeof column?.urlTemplate === 'string' ||

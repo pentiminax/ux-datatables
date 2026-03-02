@@ -111,6 +111,10 @@ export default class extends Controller {
         this.configureUrlColumnRender(column)
       }
 
+      if (this.isChoiceColumn(column)) {
+        this.configureChoiceColumnRender(column)
+      }
+
       if (column.action === 'DELETE') {
         column.render = function (data: any, type: string, row: any) {
           const className = `${column.action.toLowerCase()}-action`
@@ -317,6 +321,37 @@ export default class extends Controller {
     return false
   }
 
+  private isChoiceColumn(column: Record<string, any>): boolean {
+    return typeof column?.choices === 'object' && column.choices !== null
+  }
+
+  private configureChoiceColumnRender(column: Record<string, any>): void {
+    const choices = (column.choices ?? {}) as Record<string, string>
+
+      const badges =
+      typeof column.choiceBadges === 'object' && column.choiceBadges !== null
+        ? (column.choiceBadges as Record<string, string>)
+        : null
+
+    column.render = (data: any, type: string): any => {
+      const key = String(data ?? '')
+      const label = choices[key] ?? key
+
+      if (type !== 'display') {
+        return label
+      }
+
+      if (badges === null) {
+        return this.escapeHtml(label)
+      }
+
+      const variant = badges[key] ?? 'secondary'
+      const escapedLabel = this.escapeHtml(label)
+      const escapedVariant = this.escapeHtml(variant)
+      return `<span class="badge text-bg-${escapedVariant}">${escapedLabel}</span>`
+    }
+  }
+
   private isUrlColumn(column: Record<string, any>): boolean {
     return (
       typeof column?.urlTemplate === 'string' ||
@@ -328,7 +363,7 @@ export default class extends Controller {
 
   private configureUrlColumnRender(column: Record<string, any>): void {
     const urlTemplate = column.urlTemplate
-      const routeParams = typeof column.urlRouteParams === 'object' ? column.urlRouteParams : null
+    const routeParams = typeof column.urlRouteParams === 'object' ? column.urlRouteParams : null
     const target = typeof column.urlTarget === 'string' ? column.urlTarget : null
     const displayValue = typeof column.urlDisplayValue === 'string' ? column.urlDisplayValue : null
     const showExternalIcon = true === column.urlShowExternalIcon
