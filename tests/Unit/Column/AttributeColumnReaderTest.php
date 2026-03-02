@@ -5,6 +5,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 use Pentiminax\UX\DataTables\Attribute\Column;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -130,6 +131,19 @@ class AttributeColumnReaderTest extends TestCase
         $this->assertSame('author.name', $columns[0]->getField());
     }
 
+    public function testChoiceColumnBadgeOptions(): void
+    {
+        $columns = $this->reader->readColumns(ChoiceOptionsFixture::class);
+
+        $this->assertCount(1, $columns);
+        $this->assertInstanceOf(ChoiceColumn::class, $columns[0]);
+        $this->assertSame(
+            ['active' => 'success', 'inactive' => 'danger'],
+            $columns[0]->jsonSerialize()['renderAsBadges']
+        );
+        $this->assertSame('secondary', $columns[0]->jsonSerialize()['defaultBadgeVariant']);
+    }
+
     public function testEntityWithNoAttributesReturnsEmpty(): void
     {
         $columns = $this->reader->readColumns(NoAttributeFixture::class);
@@ -212,6 +226,12 @@ final class FieldFixture
 {
     #[Column(field: 'author.name')]
     public string $authorName = '';
+}
+
+final class ChoiceOptionsFixture
+{
+    #[Column(type: ChoiceColumn::class, renderAsBadges: ['active' => 'success', 'inactive' => 'danger'])]
+    public string $status = '';
 }
 
 final class NoAttributeFixture
