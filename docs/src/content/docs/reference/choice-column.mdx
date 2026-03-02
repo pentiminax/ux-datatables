@@ -47,7 +47,7 @@ Use `renderAsBadges()` to wrap each label in a `<span class="badge text-bg-{vari
 
 ```php
 ChoiceColumn::new('status', 'Status')
-    ->setChoices(Status::class)
+    ->setChoices(Status::cases())
     ->renderAsBadges(
         badgeSelector: [
             'active'   => 'success',
