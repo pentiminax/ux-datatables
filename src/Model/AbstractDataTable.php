@@ -110,18 +110,15 @@ abstract class AbstractDataTable implements DataTableInterface
 
     public function getResponse(): JsonResponse
     {
+        $builder = new DataTableResponseBuilder();
+
         if (!$this->request) {
-            return new JsonResponse([
-                'draw'            => 0,
-                'recordsTotal'    => 0,
-                'recordsFiltered' => 0,
-                'data'            => [],
-            ]);
+            return $builder->buildEmptyResponse();
         }
 
         $data = $this->getDataProvider()?->fetchData($this->request);
 
-        return (new DataTableResponseBuilder())
+        return $builder
             ->buildResponse(
                 draw: $this->request->draw,
                 data: iterator_to_array($data->data),
