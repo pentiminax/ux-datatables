@@ -18,9 +18,9 @@ class ChoiceColumnTest extends TestCase
     {
         $data = ChoiceColumn::new('status')->jsonSerialize();
 
-        $this->assertArrayNotHasKey('choiceChoices', $data);
-        $this->assertArrayNotHasKey('choiceBadges', $data);
-        $this->assertArrayNotHasKey('choiceDefaultBadge', $data);
+        $this->assertArrayNotHasKey('choices', $data);
+        $this->assertArrayNotHasKey('renderAsBadges', $data);
+        $this->assertArrayNotHasKey('defaultBadgeVariant', $data);
     }
 
     public function testColumnTypeIsHtml(): void
@@ -36,8 +36,8 @@ class ChoiceColumnTest extends TestCase
             ->setChoices(['active' => 'Active', 'inactive' => 'Inactive'])
             ->jsonSerialize();
 
-        $this->assertArrayHasKey('choiceChoices', $data);
-        $this->assertSame(['active' => 'Active', 'inactive' => 'Inactive'], $data['choiceChoices']);
+        $this->assertArrayHasKey('choices', $data);
+        $this->assertSame(['active' => 'Active', 'inactive' => 'Inactive'], $data['choices']);
     }
 
     public function testSetChoicesWithBackedEnumClass(): void
@@ -46,12 +46,26 @@ class ChoiceColumnTest extends TestCase
             ->setChoices(TestStatus::class)
             ->jsonSerialize();
 
-        $this->assertArrayHasKey('choiceChoices', $data);
+        $this->assertArrayHasKey('choices', $data);
         $this->assertSame([
             'active'   => 'Active',
             'inactive' => 'Inactive',
             'pending'  => 'Pending',
-        ], $data['choiceChoices']);
+        ], $data['choices']);
+    }
+
+    public function testSetChoicesWithBackedEnumCases(): void
+    {
+        $data = ChoiceColumn::new('status')
+            ->setChoices(TestStatus::cases())
+            ->jsonSerialize();
+
+        $this->assertArrayHasKey('choices', $data);
+        $this->assertSame([
+            'active'   => 'Active',
+            'inactive' => 'Inactive',
+            'pending'  => 'Pending',
+        ], $data['choices']);
     }
 
     public function testSetChoicesWithInvalidClassThrowsException(): void
@@ -68,10 +82,10 @@ class ChoiceColumnTest extends TestCase
             ->renderAsBadges(['active' => 'success', 'inactive' => 'danger'], 'secondary')
             ->jsonSerialize();
 
-        $this->assertArrayHasKey('choiceBadges', $data);
-        $this->assertArrayHasKey('choiceDefaultBadge', $data);
-        $this->assertSame(['active' => 'success', 'inactive' => 'danger'], $data['choiceBadges']);
-        $this->assertSame('secondary', $data['choiceDefaultBadge']);
+        $this->assertArrayHasKey('renderAsBadges', $data);
+        $this->assertArrayHasKey('defaultBadgeVariant', $data);
+        $this->assertSame(['active' => 'success', 'inactive' => 'danger'], $data['renderAsBadges']);
+        $this->assertSame('secondary', $data['defaultBadgeVariant']);
     }
 
     public function testRenderAsBadgeDefaultVariantFallback(): void
@@ -81,7 +95,22 @@ class ChoiceColumnTest extends TestCase
             ->renderAsBadges()
             ->jsonSerialize();
 
-        $this->assertSame('secondary', $data['choiceDefaultBadge']);
+        $this->assertSame([], $data['renderAsBadges']);
+        $this->assertSame('secondary', $data['defaultBadgeVariant']);
+    }
+
+    public function testInvalidMappedBadgeVariantThrowsException(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        ChoiceColumn::new('status')->renderAsBadges(['active' => 'invalid']);
+    }
+
+    public function testInvalidDefaultBadgeVariantThrowsException(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        ChoiceColumn::new('status')->renderAsBadges([], 'invalid');
     }
 
     public function testDefaultTitleFallsBackToName(): void

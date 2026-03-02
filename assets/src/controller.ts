@@ -327,11 +327,15 @@ export default class extends Controller {
 
   private configureChoiceColumnRender(column: Record<string, any>): void {
     const choices = (column.choices ?? {}) as Record<string, string>
-
-      const badges =
-      typeof column.choiceBadges === 'object' && column.choiceBadges !== null
-        ? (column.choiceBadges as Record<string, string>)
-        : null
+    const badgesEnabled =
+      true === column.renderAsBadges ||
+      (typeof column.renderAsBadges === 'object' && column.renderAsBadges !== null)
+    const badges =
+      typeof column.renderAsBadges === 'object' && column.renderAsBadges !== null
+        ? (column.renderAsBadges as Record<string, string>)
+        : {}
+    const defaultBadgeVariant =
+      typeof column.defaultBadgeVariant === 'string' ? column.defaultBadgeVariant : 'secondary'
 
     column.render = (data: any, type: string): any => {
       const key = String(data ?? '')
@@ -341,11 +345,11 @@ export default class extends Controller {
         return label
       }
 
-      if (badges === null) {
+      if (!badgesEnabled) {
         return this.escapeHtml(label)
       }
 
-      const variant = badges[key] ?? 'secondary'
+      const variant = badges[key] ?? defaultBadgeVariant
       const escapedLabel = this.escapeHtml(label)
       const escapedVariant = this.escapeHtml(variant)
       return `<span class="badge text-bg-${escapedVariant}">${escapedLabel}</span>`

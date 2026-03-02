@@ -20,9 +20,9 @@ ChoiceColumn::new('status', 'Status')
     ]);
 ```
 
-## Using a BackedEnum Class
+## Using a BackedEnum
 
-Pass a `BackedEnum` class directly. The mapping is auto-generated from `case->value => case->name`.
+Pass a `BackedEnum` class directly, or pass `::cases()`. The mapping is auto-generated from `case->value => case->name`.
 
 ```php
 enum Status: string
@@ -35,17 +35,21 @@ enum Status: string
 ChoiceColumn::new('status', 'Status')
     ->setChoices(Status::class);
 // Generates: ['active' => 'Active', 'inactive' => 'Inactive', 'pending' => 'Pending']
+
+ChoiceColumn::new('status', 'Status')
+    ->setChoices(Status::cases());
+// Generates the same mapping
 ```
 
 ## Rendering as Bootstrap Badges
 
-Use `renderAsBadge()` to wrap each label in a `<span class="badge text-bg-{variant}">` element. Map individual values to Bootstrap color variants, and provide a fallback for unmapped values.
+Use `renderAsBadges()` to wrap each label in a `<span class="badge text-bg-{variant}">` element. Map individual values to Bootstrap color variants, and provide a fallback for unmapped values.
 
 ```php
 ChoiceColumn::new('status', 'Status')
     ->setChoices(Status::class)
-    ->renderAsBadge(
-        badges: [
+    ->renderAsBadges(
+        badgeSelector: [
             'active'   => 'success',
             'inactive' => 'danger',
             'pending'  => 'warning',
@@ -56,12 +60,12 @@ ChoiceColumn::new('status', 'Status')
 
 ## Default Badge Variant
 
-When `renderAsBadge()` is called without a `badges` map (or for values not present in the map), the `defaultVariant` is used. It defaults to `'secondary'`.
+When `renderAsBadges()` is called without a `badgeSelector` map (or for values not present in the map), the `defaultVariant` is used. It defaults to `'secondary'`.
 
 ```php
 ChoiceColumn::new('category', 'Category')
     ->setChoices(['foo' => 'Foo', 'bar' => 'Bar'])
-    ->renderAsBadge(); // all values use 'secondary' variant
+    ->renderAsBadges(); // all values use 'secondary' variant
 ```
 
 ## API Reference
@@ -70,8 +74,8 @@ ChoiceColumn::new('category', 'Category')
   headers={['Method', 'Description']}
   rows={[
     ['`ChoiceColumn::new(string $name, string $title = \'\')`', 'Creates a new ChoiceColumn (type: `html`)'],
-    ['`setChoices(array|string $choices)`', 'Accepts a `value => label` array or a `BackedEnum` class-string'],
-    ['`renderAsBadge(array $badges = [], string $defaultVariant = \'secondary\')`', 'Enables badge rendering with per-value Bootstrap color variants'],
+    ['`setChoices(array|string $choices)`', 'Accepts a `value => label` array, a `BackedEnum` class-string, or a `BackedEnum::cases()` list'],
+    ['`renderAsBadges(array|bool $badgeSelector = [], string $defaultVariant = \'secondary\')`', 'Enables badge rendering with per-value Bootstrap color variants'],
   ]}
 />
 

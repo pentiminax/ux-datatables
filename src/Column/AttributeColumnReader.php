@@ -91,8 +91,12 @@ final class AttributeColumnReader
             $column->setFormat($attr->format);
         }
 
-        if ($column instanceof ChoiceColumn && $attr->renderAsBadges) {
-            $column->renderAsBadges();
+        if ($column instanceof ChoiceColumn && false !== $attr->renderAsBadges) {
+            if (true === $attr->renderAsBadges) {
+                $column->renderAsBadges();
+            } else {
+                $column->renderAsBadges($attr->renderAsBadges);
+            }
         }
 
         return $column;

@@ -256,20 +256,22 @@ class default_1 extends Controller {
     }
     configureChoiceColumnRender(column) {
         const choices = (column.choices ?? {});
-        const badges = column.renderAsBadges;
-
+        const badgesEnabled = true === column.renderAsBadges ||
+            (typeof column.renderAsBadges === 'object' && column.renderAsBadges !== null);
+        const badges = typeof column.renderAsBadges === 'object' && column.renderAsBadges !== null
+            ? column.renderAsBadges
+            : {};
+        const defaultBadgeVariant = typeof column.defaultBadgeVariant === 'string' ? column.defaultBadgeVariant : 'secondary';
         column.render = (data, type) => {
             const key = String(data ?? '');
             const label = choices[key] ?? key;
             if (type !== 'display') {
                 return label;
             }
-
-            if (badges === null) {
+            if (!badgesEnabled) {
                 return this.escapeHtml(label);
             }
-
-            const variant = badges[key] ?? 'secondary';
+            const variant = badges[key] ?? defaultBadgeVariant;
             const escapedLabel = this.escapeHtml(label);
             const escapedVariant = this.escapeHtml(variant);
             return `<span class="badge text-bg-${escapedVariant}">${escapedLabel}</span>`;
