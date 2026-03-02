@@ -42,7 +42,7 @@ class DataTablesExtension extends AbstractExtension
         $options = $table->getOptions();
 
         if (!empty($options['data']) && !$table->areTemplateColumnsRendered()) {
-            $columns = $table->getColumnObjects();
+            $columns         = $table->getColumnObjects();
             $options['data'] = array_map(
                 fn (array $row) => $this->templateColumnRenderer->renderRow($row, $row, $columns),
                 $options['data']

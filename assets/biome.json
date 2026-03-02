@@ -1,6 +1,5 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.9/schema.json",
-  "organizeImports": { "enabled": true },
   "linter": {
     "enabled": true,
     "rules": { "recommended": true }
@@ -17,8 +16,5 @@
       "semicolons": "asNeeded",
       "trailingCommas": "es5"
     }
-  },
-  "files": {
-    "ignore": ["dist/**", "node_modules/**"]
   }
 }
