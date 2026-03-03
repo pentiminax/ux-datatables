@@ -8,6 +8,8 @@ use Twig\Environment;
 
 final class TemplateColumnRenderer
 {
+    public const RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row'];
+
     public function __construct(
         private readonly ?Environment $twig = null,
     ) {
@@ -37,7 +39,9 @@ final class TemplateColumnRenderer
             ];
 
             foreach ($column->getTemplateParameters() as $key => $value) {
-                $context[$key] = $value;
+                if (!\in_array($key, self::RESERVED_CONTEXT_KEYS, true)) {
+                    $context[$key] = $value;
+                }
             }
 
             $renderedRow[$field] = $this->renderTemplate($column->getTemplate(), $context);
