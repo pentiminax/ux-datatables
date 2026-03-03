@@ -20,8 +20,8 @@ final class BooleanColumnTest extends TestCase
     {
         $data = BooleanColumn::new('active', 'Active')->jsonSerialize();
 
-        $this->assertTrue($data['booleanRenderAsSwitch']);
-        $this->assertFalse($data['booleanDefaultState']);
+        $this->assertTrue($data['customOptions']['renderAsSwitch']);
+        $this->assertFalse($data['customOptions']['defaultState']);
         $this->assertSame('num', $data['type']);
     }
 
@@ -33,10 +33,10 @@ final class BooleanColumnTest extends TestCase
             ->setToggleAjax('uuid', 'post')
             ->jsonSerialize();
 
-        $this->assertTrue($data['booleanRenderAsSwitch']);
-        $this->assertTrue($data['booleanDefaultState']);
-        $this->assertSame('uuid', $data['booleanToggleIdField']);
-        $this->assertSame('POST', $data['booleanToggleMethod']);
+        $this->assertTrue($data['customOptions']['renderAsSwitch']);
+        $this->assertTrue($data['customOptions']['defaultState']);
+        $this->assertSame('uuid', $data['customOptions']['toggleIdField']);
+        $this->assertSame('POST', $data['customOptions']['toggleMethod']);
     }
 
     #[Test]
@@ -45,8 +45,8 @@ final class BooleanColumnTest extends TestCase
         $data = BooleanColumn::new('active')
             ->jsonSerialize();
 
-        $this->assertTrue($data['booleanRenderAsSwitch']);
-        $this->assertFalse($data['booleanDefaultState']);
+        $this->assertTrue($data['customOptions']['renderAsSwitch']);
+        $this->assertFalse($data['customOptions']['defaultState']);
     }
 
     #[Test]
@@ -56,6 +56,6 @@ final class BooleanColumnTest extends TestCase
             ->setEntityClass('App\\Entity\\User')
             ->jsonSerialize();
 
-        $this->assertSame('App\\Entity\\User', $data['booleanToggleEntityClass']);
+        $this->assertSame('App\\Entity\\User', $data['customOptions']['entityClass']);
     }
 }

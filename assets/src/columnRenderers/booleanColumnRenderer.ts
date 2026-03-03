@@ -4,19 +4,19 @@ import { ColumnRenderer } from './types.js'
 export function createBooleanColumnRenderer(toggleUrl: string): ColumnRenderer {
   return {
     matches(column: Record<string, any>): boolean {
-      return true === column?.booleanRenderAsSwitch
+      return true === column?.customOptions?.renderAsSwitch
     },
 
     configure(column: Record<string, any>): void {
-      const defaultState = true === column.booleanDefaultState
-      const toggleMethod =
-        typeof column.booleanToggleMethod === 'string' ? column.booleanToggleMethod : 'PATCH'
-      const toggleIdField =
-        typeof column.booleanToggleIdField === 'string' ? column.booleanToggleIdField : 'id'
-      const toggleEntityClass =
-        typeof column.booleanToggleEntityClass === 'string' ? column.booleanToggleEntityClass : ''
+      const customOptions = column.customOptions ?? {}
+      const defaultState = true === customOptions.defaultState
+      const toggleMethod = customOptions.toggleMethod ?? 'PATCH'
+      const toggleIdField = customOptions.toggleIdField ?? 'id'
+      const entityClass =
+        typeof customOptions.entityClass === 'string' ? customOptions.entityClass : ''
 
       column.type ??= 'num'
+
       column.render = (data: any, type: string, row: Record<string, any>): any => {
         const boolValue = parseBooleanValue(data, defaultState)
 
@@ -34,14 +34,14 @@ export function createBooleanColumnRenderer(toggleUrl: string): ColumnRenderer {
 
         const rowId = row?.[toggleIdField]
         const checked = boolValue ? ' checked' : ''
-        const disabled = toggleEntityClass === '' ? ' disabled' : ''
+        const disabled = entityClass === '' ? ' disabled' : ''
         const escapedId = escapeHtml(String(rowId ?? ''))
         const escapedUrl = escapeHtml(toggleUrl)
         const escapedField = escapeHtml(
-          column.booleanToggleField ?? column.data ?? column.name ?? ''
+          customOptions.booleanToggleField ?? column.field ?? column.data ?? column.name ?? ''
         )
         const escapedMethod = escapeHtml(toggleMethod.toUpperCase())
-        const escapedEntityClass = escapeHtml(toggleEntityClass)
+        const escapedEntityClass = escapeHtml(entityClass)
 
         return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-entity="${escapedEntityClass}" data-method="${escapedMethod}"${checked}${disabled}></div>`
       }

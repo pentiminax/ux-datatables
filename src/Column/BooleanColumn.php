@@ -8,12 +8,12 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class BooleanColumn extends AbstractColumn
 {
-    public const OPTION_RENDER_AS_SWITCH    = 'booleanRenderAsSwitch';
-    public const OPTION_DEFAULT_STATE       = 'booleanDefaultState';
-    public const OPTION_TOGGLE_METHOD       = 'booleanToggleMethod';
-    public const OPTION_TOGGLE_ID_FIELD     = 'booleanToggleIdField';
-    public const OPTION_TOGGLE_ENTITY_CLASS = 'booleanToggleEntityClass';
-    public const OPTION_TOGGLE_FIELD        = 'booleanToggleField';
+    public const string OPTION_RENDER_AS_SWITCH = 'renderAsSwitch';
+    public const string OPTION_DEFAULT_STATE    = 'defaultState';
+    public const string OPTION_TOGGLE_METHOD    = 'toggleMethod';
+    public const string OPTION_TOGGLE_ID_FIELD  = 'toggleIdField';
+    public const string OPTION_ENTITY_CLASS     = 'entityClass';
+    public const string OPTION_TOGGLE_FIELD     = 'booleanToggleField';
 
     public static function new(string $name, string $title = ''): static
     {
@@ -39,14 +39,14 @@ class BooleanColumn extends AbstractColumn
 
     public function setEntityClass(string $entityClass): self
     {
-        $this->setCustomOption(self::OPTION_TOGGLE_ENTITY_CLASS, ltrim($entityClass, '\\'));
+        $this->setCustomOption(self::OPTION_ENTITY_CLASS, ltrim($entityClass, '\\'));
 
         return $this;
     }
 
-    public function getToggleEntityClass(): ?string
+    public function getEntityClass(): ?string
     {
-        return $this->getCustomOption(self::OPTION_TOGGLE_ENTITY_CLASS);
+        return $this->getCustomOption(self::OPTION_ENTITY_CLASS);
     }
 
     public function isRenderedAsSwitch(): bool
@@ -57,20 +57,5 @@ class BooleanColumn extends AbstractColumn
     public function getDefaultState(): bool
     {
         return $this->getCustomOption(self::OPTION_DEFAULT_STATE) ?? false;
-    }
-
-    public function jsonSerialize(): array
-    {
-        return array_merge(
-            parent::jsonSerialize(),
-            array_filter([
-                self::OPTION_RENDER_AS_SWITCH    => $this->isRenderedAsSwitch(),
-                self::OPTION_DEFAULT_STATE       => $this->getDefaultState(),
-                self::OPTION_TOGGLE_METHOD       => $this->getCustomOption(self::OPTION_TOGGLE_METHOD),
-                self::OPTION_TOGGLE_ID_FIELD     => $this->getCustomOption(self::OPTION_TOGGLE_ID_FIELD),
-                self::OPTION_TOGGLE_ENTITY_CLASS => $this->getToggleEntityClass(),
-                self::OPTION_TOGGLE_FIELD        => $this->getField(),
-            ], static fn (mixed $value) => null !== $value && '' !== $value)
-        );
     }
 }
