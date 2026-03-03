@@ -37,4 +37,37 @@ final class TemplateColumnTest extends TestCase
 
         TemplateColumn::new('status_display')->getTemplate();
     }
+
+    public function testGetTemplateParametersDefaultsToEmptyArray(): void
+    {
+        $column = TemplateColumn::new('status_display');
+
+        $this->assertSame([], $column->getTemplateParameters());
+    }
+
+    public function testSetTemplateStoresParameters(): void
+    {
+        $column = TemplateColumn::new('status_display')
+            ->setTemplate('some/template.html.twig', ['badge_class' => 'badge-success', 'show_icon' => true]);
+
+        $this->assertSame(['badge_class' => 'badge-success', 'show_icon' => true], $column->getTemplateParameters());
+    }
+
+    public function testJsonSerializeDoesNotIncludeTemplateParameters(): void
+    {
+        $column = TemplateColumn::new('status_display')
+            ->setTemplate('some/template.html.twig', ['secret' => 'server-side-only']);
+
+        $data = $column->jsonSerialize();
+
+        $this->assertArrayNotHasKey('templateParameters', $data);
+        $this->assertArrayNotHasKey(TemplateColumn::OPTION_TEMPLATE_PARAMETERS, $data);
+    }
+
+    public function testSetTemplateIsFluent(): void
+    {
+        $column = TemplateColumn::new('status_display');
+
+        $this->assertSame($column, $column->setTemplate('some/template.html.twig'));
+    }
 }

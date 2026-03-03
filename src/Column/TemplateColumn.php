@@ -6,14 +6,15 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class TemplateColumn extends AbstractColumn
 {
-    public const OPTION_TEMPLATE_PATH = 'templatePath';
+    public const string OPTION_TEMPLATE_PATH       = 'templatePath';
+    public const string OPTION_TEMPLATE_PARAMETERS = 'templateParameters';
 
     public static function new(string $name, string $title = ''): static
     {
         return static::createWithType($name, $title, ColumnType::HTML);
     }
 
-    public function setTemplate(string $template): static
+    public function setTemplate(string $template, array $parameters = []): static
     {
         $template = trim($template);
         if ('' === $template) {
@@ -21,6 +22,7 @@ class TemplateColumn extends AbstractColumn
         }
 
         $this->setCustomOption(self::OPTION_TEMPLATE_PATH, $template);
+        $this->setCustomOption(self::OPTION_TEMPLATE_PARAMETERS, $parameters);
 
         return $this;
     }
@@ -33,6 +35,11 @@ class TemplateColumn extends AbstractColumn
         }
 
         return $template;
+    }
+
+    public function getTemplateParameters(): array
+    {
+        return $this->getCustomOption(self::OPTION_TEMPLATE_PARAMETERS) ?? [];
     }
 
     public function jsonSerialize(): array
