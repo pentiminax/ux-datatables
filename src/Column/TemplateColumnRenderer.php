@@ -29,12 +29,18 @@ final class TemplateColumnRenderer
             $field = $column->getField();
             $data  = $this->resolveData(mappedRow: $mappedRow, row: $contextRow, field: $field);
 
-            $renderedRow[$field] = $this->renderTemplate($column->getTemplate(), [
+            $context = [
                 'entity' => $mappedRow,
                 'data'   => $data,
                 'column' => $column->jsonSerialize(),
                 'row'    => $contextRow,
-            ]);
+            ];
+
+            foreach ($column->getTemplateParameters() as $key => $value) {
+                $context[$key] = $value;
+            }
+
+            $renderedRow[$field] = $this->renderTemplate($column->getTemplate(), $context);
         }
 
         return $renderedRow;
