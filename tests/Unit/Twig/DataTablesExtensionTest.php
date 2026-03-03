@@ -142,4 +142,69 @@ class DataTablesExtensionTest extends TestCase
 
         $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status']));
     }
+
+    public function testRenderDataTableSkipsTemplateRenderingWhenAlreadyMarked(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        /** @var DataTableBuilderInterface $builder */
+        $builder = $container->get('test.datatables.builder');
+
+        $table = $builder->createDataTable('template_table');
+        $table->columns([
+            TextColumn::new('id'),
+            TemplateColumn::new('status_display')
+                ->setField('status')
+                ->setTemplate('datatable/columns/status_badge.html.twig'),
+        ]);
+        $table->data([
+            ['id' => 5, 'status' => 'active'],
+        ]);
+
+        $table->markTemplateColumnsRendered();
+
+        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+
+        $dom = new \DOMDocument();
+        $dom->loadHTML($rendered);
+        $tableEl = $dom->getElementsByTagName('table')->item(0);
+
+        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
+        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('active', $actual['data'][0]['status']);
+    }
+
+    public function testRenderDataTableSkipsTemplateRenderingWhenNoInlineData(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        /** @var DataTableBuilderInterface $builder */
+        $builder = $container->get('test.datatables.builder');
+
+        $table = $builder->createDataTable('ajax_table');
+        $table->columns([
+            TextColumn::new('id'),
+            TemplateColumn::new('status_display')
+                ->setField('status')
+                ->setTemplate('datatable/columns/status_badge.html.twig'),
+        ]);
+        $table->ajax('/api/items');
+
+        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+
+        $dom = new \DOMDocument();
+        $dom->loadHTML($rendered);
+        $tableEl = $dom->getElementsByTagName('table')->item(0);
+
+        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
+        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertArrayNotHasKey('data', $actual);
+        $this->assertFalse($table->areTemplateColumnsRendered());
+    }
 }
