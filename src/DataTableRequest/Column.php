@@ -21,8 +21,8 @@ final readonly class Column
         return new self(
             data: $data['data'],
             name: $data['name'],
-            searchable: $data['searchable'],
-            orderable: $data['orderable'],
+            searchable: 'true' === $data['searchable'],
+            orderable: 'true'  === $data['orderable'],
             search: isset($data['search']) ? Search::fromArray($data['search']) : null,
             columnControl: isset($data['columnControl']) ? ColumnControl::fromArray($data['columnControl']) : null,
         );
