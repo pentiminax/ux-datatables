@@ -100,7 +100,7 @@ final class AsDataTableTest extends TestCase
         $this->assertNotNull($column);
         $this->assertSame(
             ToggleEntityFixture::class,
-            $column->jsonSerialize()['booleanToggleEntityClass']
+            $column->jsonSerialize()['customOptions']['entityClass']
         );
     }
 

@@ -382,7 +382,7 @@ abstract class AbstractDataTable implements DataTableInterface
                 continue;
             }
 
-            if (null !== $column->getToggleEntityClass()) {
+            if (null !== $column->getEntityClass()) {
                 continue;
             }
 

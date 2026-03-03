@@ -217,6 +217,11 @@ final class ColumnDto implements \JsonSerializable
         return $this->customOptions[$optionName] ?? null;
     }
 
+    public function getCustomOptions(): array
+    {
+        return $this->customOptions;
+    }
+
     public function jsonSerialize(): array
     {
         return [
