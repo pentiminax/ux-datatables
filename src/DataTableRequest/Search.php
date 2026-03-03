@@ -18,7 +18,7 @@ final readonly class Search
     {
         return new self(
             value: $data['value'],
-            regex: $data['regex'],
+            regex: 'true' === $data['regex'],
         );
     }
 
