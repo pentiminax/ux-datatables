@@ -12,6 +12,9 @@ import { loadScrollerLibrary } from './functions/loadScrollerLibrary.js';
 import { deleteRow } from './functions/deleteRow.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
 import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
+import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
+import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
+import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 class default_1 extends Controller {
     constructor() {
         super(...arguments);
@@ -80,18 +83,19 @@ class default_1 extends Controller {
             const columns = Array.isArray(payload.columns) ? payload.columns : [];
             new ApiPlatformAdapter(columns).configure(payload);
         }
+        const columnRenderers = [
+            createBooleanColumnRenderer(this.getBooleanToggleUrl()),
+            choiceColumnRenderer,
+            urlColumnRenderer,
+        ];
         payload.columns.forEach((column) => {
-            if (this.isBooleanColumn(column)) {
-                this.configureBooleanColumnRender(column);
-            }
-            if (this.isUrlColumn(column)) {
-                this.configureUrlColumnRender(column);
-            }
-            if (this.isChoiceColumn(column)) {
-                this.configureChoiceColumnRender(column);
+            for (const renderer of columnRenderers) {
+                if (renderer.matches(column)) {
+                    renderer.configure(column);
+                }
             }
             if (column.action === 'DELETE') {
-                column.render = function (data, type, row) {
+                column.render = (data, type, row) => {
                     const className = `${column.action.toLowerCase()}-action`;
                     return `<button class="btn btn-danger ${className}" data-id="${row.id}" data-url="${column.actionUrl}">${column.actionLabel}</button>`;
                 };
@@ -173,6 +177,9 @@ class default_1 extends Controller {
             prefix: 'datatables',
         });
     }
+    getBooleanToggleUrl() {
+        return '/datatables/ajax/edit';
+    }
     isButtonsExtensionEnabled(payload) {
         return !!payload?.layout?.topStart?.buttons;
     }
@@ -199,141 +206,6 @@ class default_1 extends Controller {
     }
     isApiPlatformEnabled(payload) {
         return true === payload?.apiPlatform;
-    }
-    isBooleanColumn(column) {
-        return true === column?.booleanRenderAsSwitch;
-    }
-    configureBooleanColumnRender(column) {
-        const defaultState = true === column.booleanDefaultState;
-        const toggleUrl = this.getBooleanToggleUrl();
-        const toggleMethod = typeof column.booleanToggleMethod === 'string' ? column.booleanToggleMethod : 'PATCH';
-        const toggleIdField = typeof column.booleanToggleIdField === 'string' ? column.booleanToggleIdField : 'id';
-        const toggleEntityClass = typeof column.booleanToggleEntityClass === 'string' ? column.booleanToggleEntityClass : '';
-        column.type ??= 'num';
-        column.render = (data, type, row) => {
-            const boolValue = this.parseBooleanValue(data, defaultState);
-            if (type === 'sort' || type === 'type') {
-                return boolValue ? 1 : 0;
-            }
-            if (type === 'filter') {
-                return boolValue ? 'ON' : 'OFF';
-            }
-            if (type !== 'display') {
-                return boolValue ? 'ON' : 'OFF';
-            }
-            const rowId = row?.[toggleIdField];
-            const checked = boolValue ? ' checked' : '';
-            const disabled = toggleEntityClass === '' ? ' disabled' : '';
-            const escapedId = this.escapeHtml(String(rowId ?? ''));
-            const escapedUrl = this.escapeHtml(toggleUrl);
-            const escapedField = this.escapeHtml(column.booleanToggleField ?? column.data ?? column.name ?? '');
-            const escapedMethod = this.escapeHtml(toggleMethod.toUpperCase());
-            const escapedEntityClass = this.escapeHtml(toggleEntityClass);
-            return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-entity="${escapedEntityClass}" data-method="${escapedMethod}"${checked}${disabled}></div>`;
-        };
-    }
-    getBooleanToggleUrl() {
-        return '/datatables/ajax/edit';
-    }
-    parseBooleanValue(value, defaultValue = false) {
-        if (null === value || undefined === value || '' === value) {
-            return defaultValue;
-        }
-        if (typeof value === 'boolean') {
-            return value;
-        }
-        if (typeof value === 'number') {
-            return value !== 0;
-        }
-        if (typeof value === 'string') {
-            const normalized = value.trim().toLowerCase();
-            return ['1', 'true', 'yes', 'y', 'on'].includes(normalized);
-        }
-        return false;
-    }
-    isChoiceColumn(column) {
-        return typeof column?.choices === 'object' && column.choices !== null;
-    }
-    configureChoiceColumnRender(column) {
-        const choices = (column.choices ?? {});
-        const badgesEnabled = true === column.renderAsBadges ||
-            (typeof column.renderAsBadges === 'object' && column.renderAsBadges !== null);
-        const badges = typeof column.renderAsBadges === 'object' && column.renderAsBadges !== null
-            ? column.renderAsBadges
-            : {};
-        const defaultBadgeVariant = typeof column.defaultBadgeVariant === 'string' ? column.defaultBadgeVariant : 'secondary';
-        column.render = (data, type) => {
-            const key = String(data ?? '');
-            const label = choices[key] ?? key;
-            if (type !== 'display') {
-                return label;
-            }
-            if (!badgesEnabled) {
-                return this.escapeHtml(label);
-            }
-            const variant = badges[key] ?? defaultBadgeVariant;
-            const escapedLabel = this.escapeHtml(label);
-            const escapedVariant = this.escapeHtml(variant);
-            return `<span class="badge text-bg-${escapedVariant}">${escapedLabel}</span>`;
-        };
-    }
-    isUrlColumn(column) {
-        return (typeof column?.urlTemplate === 'string' ||
-            typeof column?.urlTarget === 'string' ||
-            typeof column?.urlDisplayValue === 'string' ||
-            true === column?.urlShowExternalIcon);
-    }
-    configureUrlColumnRender(column) {
-        const urlTemplate = column.urlTemplate;
-        const routeParams = typeof column.urlRouteParams === 'object' ? column.urlRouteParams : null;
-        const target = typeof column.urlTarget === 'string' ? column.urlTarget : null;
-        const displayValue = typeof column.urlDisplayValue === 'string' ? column.urlDisplayValue : null;
-        const showExternalIcon = true === column.urlShowExternalIcon;
-        column.render = (data, type, row) => {
-            if (type !== 'display') {
-                return data;
-            }
-            let href;
-            if (urlTemplate && routeParams) {
-                href = urlTemplate;
-                for (const [paramName, fieldName] of Object.entries(routeParams)) {
-                    const value = row[fieldName] ?? '';
-                    href = href.replace(`{${paramName}}`, encodeURIComponent(String(value)));
-                }
-            }
-            else {
-                href = typeof data === 'string' ? data : '';
-            }
-            if (this.isUnsafeUrl(href)) {
-                return this.escapeHtml(String(data ?? ''));
-            }
-            const escapedHref = this.escapeHtml(href);
-            const text = this.escapeHtml(displayValue ?? data ?? href);
-            const attrs = [`href="${escapedHref}"`];
-            if (target) {
-                attrs.push(`target="${this.escapeHtml(target)}"`);
-            }
-            if (target === '_blank') {
-                attrs.push('rel="noopener noreferrer"');
-            }
-            let html = `<a ${attrs.join(' ')}>${text}</a>`;
-            if (showExternalIcon) {
-                html += ' <span aria-label="external link">&#x2197;</span>';
-            }
-            return html;
-        };
-    }
-    isUnsafeUrl(url) {
-        const trimmed = url.trim().toLowerCase();
-        return trimmed.startsWith('javascript:') || trimmed.startsWith('data:');
-    }
-    escapeHtml(value) {
-        return value
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
     }
 }
 default_1.values = {
