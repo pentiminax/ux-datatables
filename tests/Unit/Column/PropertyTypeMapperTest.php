@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
@@ -7,10 +9,16 @@ use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class PropertyTypeMapperTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(PropertyTypeMapper::class)]
+final class PropertyTypeMapperTest extends TestCase
 {
     private PropertyTypeMapper $mapper;
 
@@ -19,8 +27,9 @@ class PropertyTypeMapperTest extends TestCase
         $this->mapper = new PropertyTypeMapper();
     }
 
+    #[Test]
     #[DataProvider('provideTypeMappings')]
-    public function testMapType(string $propertyName, string $expectedColumnClass): void
+    public function it_maps_type(string $propertyName, string $expectedColumnClass): void
     {
         $reflection = new \ReflectionProperty(TypeMapperFixture::class, $propertyName);
         $type       = $reflection->getType();
@@ -43,12 +52,14 @@ class PropertyTypeMapperTest extends TestCase
         yield 'object' => ['metadata', TextColumn::class];
     }
 
-    public function testNullTypeReturnsTextColumn(): void
+    #[Test]
+    public function it_returns_text_column_for_null_type(): void
     {
         $this->assertSame(TextColumn::class, $this->mapper->mapType(null));
     }
 
-    public function testUntypedPropertyReturnsTextColumn(): void
+    #[Test]
+    public function it_returns_text_column_for_untyped_property(): void
     {
         $reflection = new \ReflectionProperty(TypeMapperFixture::class, 'untyped');
         $type       = $reflection->getType();

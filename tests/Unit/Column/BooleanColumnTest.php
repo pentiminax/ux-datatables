@@ -1,13 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class BooleanColumnTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(BooleanColumn::class)]
+final class BooleanColumnTest extends TestCase
 {
-    public function testDefaultBooleanColumnSerialization(): void
+    #[Test]
+    public function it_has_default_serialization(): void
     {
         $data = BooleanColumn::new('active', 'Active')->jsonSerialize();
 
@@ -16,7 +25,8 @@ class BooleanColumnTest extends TestCase
         $this->assertSame('num', $data['type']);
     }
 
-    public function testSwitchStateAndAjaxCanBeConfigured(): void
+    #[Test]
+    public function it_can_configure_switch_state_and_ajax(): void
     {
         $data = BooleanColumn::new('active')
             ->renderAsSwitch(true)
@@ -29,7 +39,8 @@ class BooleanColumnTest extends TestCase
         $this->assertSame('POST', $data['booleanToggleMethod']);
     }
 
-    public function testRenderAsSwitchCanSetDefaultOffState(): void
+    #[Test]
+    public function it_can_set_default_off_state(): void
     {
         $data = BooleanColumn::new('active')
             ->jsonSerialize();
@@ -38,7 +49,8 @@ class BooleanColumnTest extends TestCase
         $this->assertFalse($data['booleanDefaultState']);
     }
 
-    public function testEntityClassCanBeConfigured(): void
+    #[Test]
+    public function it_can_configure_entity_class(): void
     {
         $data = BooleanColumn::new('active')
             ->setEntityClass('App\\Entity\\User')

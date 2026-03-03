@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Filter;
 
 use Doctrine\ORM\Query\Expr;
@@ -10,11 +12,18 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Query\Filter\GlobalSearchFilter;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class GlobalSearchFilterTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(GlobalSearchFilter::class)]
+final class GlobalSearchFilterTest extends TestCase
 {
-    public function testApplyWithDotNotationField(): void
+    #[Test]
+    public function it_applies_with_dot_notation_field(): void
     {
         $filter = new GlobalSearchFilter();
 
@@ -48,7 +57,8 @@ class GlobalSearchFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testApplyWithSimpleField(): void
+    #[Test]
+    public function it_applies_with_simple_field(): void
     {
         $filter = new GlobalSearchFilter();
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
@@ -7,11 +9,19 @@ use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
+use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class DataTablesExtensionTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(DataTablesExtension::class)]
+final class DataTablesExtensionTest extends TestCase
 {
-    public function testRenderDataTable(): void
+    #[Test]
+    public function it_renders_datatable(): void
     {
         $kernel = new TwigAppKernel('test', true);
         $kernel->boot();
@@ -86,7 +96,8 @@ class DataTablesExtensionTest extends TestCase
         $this->assertSame($expected, $actual);
     }
 
-    public function testRenderDataTableCallsPrepareForRenderingForAbstractDataTable(): void
+    #[Test]
+    public function it_calls_prepare_for_rendering_for_abstract_datatable(): void
     {
         $kernel = new TwigAppKernel('test', true);
         $kernel->boot();
@@ -111,7 +122,8 @@ class DataTablesExtensionTest extends TestCase
         $this->assertTrue($table->prepareForRenderingCalled);
     }
 
-    public function testRenderDataTablePreRendersTemplateColumnsInInlineData(): void
+    #[Test]
+    public function it_pre_renders_template_columns_in_inline_data(): void
     {
         $kernel = new TwigAppKernel('test', true);
         $kernel->boot();
@@ -143,7 +155,8 @@ class DataTablesExtensionTest extends TestCase
         $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status']));
     }
 
-    public function testRenderDataTableSkipsTemplateRenderingWhenAlreadyMarked(): void
+    #[Test]
+    public function it_skips_template_rendering_when_already_marked(): void
     {
         $kernel = new TwigAppKernel('test', true);
         $kernel->boot();
@@ -177,7 +190,8 @@ class DataTablesExtensionTest extends TestCase
         $this->assertSame('active', $actual['data'][0]['status']);
     }
 
-    public function testRenderDataTableSkipsTemplateRenderingWhenNoInlineData(): void
+    #[Test]
+    public function it_skips_template_rendering_when_no_inline_data(): void
     {
         $kernel = new TwigAppKernel('test', true);
         $kernel->boot();

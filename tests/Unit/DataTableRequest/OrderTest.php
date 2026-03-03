@@ -1,15 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\DataTableRequest;
 
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 
-class OrderTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(Order::class)]
+final class OrderTest extends TestCase
 {
-    public function testFromArrayWithValidColumn(): void
+    #[Test]
+    public function it_parses_from_array_with_valid_column(): void
     {
         $request = new Request(
             query: [
@@ -30,7 +39,8 @@ class OrderTest extends TestCase
         $this->assertEquals('email', $order->name);
     }
 
-    public function testFromArrayWithInvalidColumnIndex(): void
+    #[Test]
+    public function it_handles_invalid_column_index(): void
     {
         $request = new Request(
             query: [
@@ -50,7 +60,8 @@ class OrderTest extends TestCase
         $this->assertEquals('column_5', $order->name);
     }
 
-    public function testFromArrayWithMissingDirection(): void
+    #[Test]
+    public function it_defaults_direction_when_missing(): void
     {
         $request = new Request(
             query: [
@@ -70,7 +81,8 @@ class OrderTest extends TestCase
         $this->assertEquals('id', $order->name);
     }
 
-    public function testFromArrayWithMultipleColumns(): void
+    #[Test]
+    public function it_parses_from_array_with_multiple_columns(): void
     {
         $request = new Request(
             query: [

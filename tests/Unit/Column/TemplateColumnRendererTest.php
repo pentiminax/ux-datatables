@@ -1,18 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Twig\Environment;
 use Twig\Error\LoaderError;
 use Twig\Loader\ArrayLoader;
 
+/**
+ * @internal
+ */
+#[CoversClass(TemplateColumnRenderer::class)]
 final class TemplateColumnRendererTest extends TestCase
 {
-    public function testItRendersTemplateColumnFromEntityField(): void
+    #[Test]
+    public function it_renders_column_from_entity_field(): void
     {
         $twig = new Environment(new ArrayLoader([
             'datatable/columns/status_badge.html.twig' => '<span data-field="{{ column.field }}">{{ data }}</span>',
@@ -34,7 +43,8 @@ final class TemplateColumnRendererTest extends TestCase
         $this->assertSame('<span data-field="status">active</span>', $row['status']);
     }
 
-    public function testItFailsFastWhenTwigIsMissing(): void
+    #[Test]
+    public function it_fails_fast_when_twig_is_missing(): void
     {
         $renderer = new TemplateColumnRenderer();
         $columns  = [
@@ -51,7 +61,8 @@ final class TemplateColumnRendererTest extends TestCase
         );
     }
 
-    public function testItFailsFastWhenTemplateDoesNotExist(): void
+    #[Test]
+    public function it_fails_fast_when_template_does_not_exist(): void
     {
         $renderer = new TemplateColumnRenderer(new Environment(new ArrayLoader([])));
         $columns  = [
@@ -67,7 +78,8 @@ final class TemplateColumnRendererTest extends TestCase
         );
     }
 
-    public function testItPrefersRowArrayValueOverMappedRow(): void
+    #[Test]
+    public function it_prefers_row_array_value_over_mapped_row(): void
     {
         $twig = new Environment(new ArrayLoader([
             'column.html.twig' => '{{ data }}',
@@ -87,7 +99,8 @@ final class TemplateColumnRendererTest extends TestCase
         $this->assertSame('from_row', $row['status']);
     }
 
-    public function testItPassesCustomTemplateParametersToTwig(): void
+    #[Test]
+    public function it_passes_custom_template_parameters_to_twig(): void
     {
         $twig = new Environment(new ArrayLoader([
             'column.html.twig' => '{{ badge_class }}: {{ data }}',
@@ -109,7 +122,8 @@ final class TemplateColumnRendererTest extends TestCase
         $this->assertSame('badge-success: active', $row['status']);
     }
 
-    public function testItRendersMultipleTemplateColumnsInSameRow(): void
+    #[Test]
+    public function it_renders_multiple_template_columns_in_same_row(): void
     {
         $twig = new Environment(new ArrayLoader([
             'status.html.twig' => 'Status: {{ data }}',
@@ -132,7 +146,8 @@ final class TemplateColumnRendererTest extends TestCase
         $this->assertSame('Type: admin', $row['type']);
     }
 
-    public function testItExposesEntityRowAndColumnInTwigContext(): void
+    #[Test]
+    public function it_exposes_entity_row_and_column_in_twig_context(): void
     {
         $twig = new Environment(new ArrayLoader([
             'column.html.twig' => '{{ entity.getStatus() }}-{{ row.id }}-{{ column.name }}',

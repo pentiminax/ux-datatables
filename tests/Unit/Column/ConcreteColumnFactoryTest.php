@@ -1,7 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\HtmlColumn;
@@ -15,13 +18,20 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Column\Utf8TextColumn;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class ConcreteColumnFactoryTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(AbstractColumn::class)]
+final class ConcreteColumnFactoryTest extends TestCase
 {
+    #[Test]
     #[DataProvider('provideColumns')]
-    public function testFactorySetsNameDataTitleAndType(string $columnClass, ColumnType $expectedType): void
+    public function it_sets_name_data_title_and_type(string $columnClass, ColumnType $expectedType): void
     {
         $column = $columnClass::new('field_name', 'Field label');
         if ($column instanceof TemplateColumn) {
@@ -36,8 +46,9 @@ class ConcreteColumnFactoryTest extends TestCase
         $this->assertSame($expectedType->value, $data['type']);
     }
 
+    #[Test]
     #[DataProvider('provideColumns')]
-    public function testFactoryDefaultsTitleToName(string $columnClass): void
+    public function it_defaults_title_to_name(string $columnClass): void
     {
         $column = $columnClass::new('field_name');
         if ($column instanceof TemplateColumn) {

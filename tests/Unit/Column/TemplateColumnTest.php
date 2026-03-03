@@ -1,13 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
+#[CoversClass(TemplateColumn::class)]
 final class TemplateColumnTest extends TestCase
 {
-    public function testItSerializesTemplatePath(): void
+    #[Test]
+    public function it_serializes_template_path(): void
     {
         $column = TemplateColumn::new('status_display')
             ->setField('status')
@@ -22,7 +31,8 @@ final class TemplateColumnTest extends TestCase
         $this->assertSame('datatable/columns/status_badge.html.twig', $data['templatePath']);
     }
 
-    public function testSetTemplateRejectsEmptyPath(): void
+    #[Test]
+    public function it_rejects_empty_template_path(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Template path cannot be empty.');
@@ -30,7 +40,8 @@ final class TemplateColumnTest extends TestCase
         TemplateColumn::new('status_display')->setTemplate('   ');
     }
 
-    public function testGetTemplateFailsWhenMissing(): void
+    #[Test]
+    public function it_fails_when_template_is_missing(): void
     {
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('Template path is not configured for column');
@@ -38,14 +49,16 @@ final class TemplateColumnTest extends TestCase
         TemplateColumn::new('status_display')->getTemplate();
     }
 
-    public function testGetTemplateParametersDefaultsToEmptyArray(): void
+    #[Test]
+    public function it_returns_empty_array_as_default_parameters(): void
     {
         $column = TemplateColumn::new('status_display');
 
         $this->assertSame([], $column->getTemplateParameters());
     }
 
-    public function testSetTemplateStoresParameters(): void
+    #[Test]
+    public function it_stores_template_parameters(): void
     {
         $column = TemplateColumn::new('status_display')
             ->setTemplate('some/template.html.twig', ['badge_class' => 'badge-success', 'show_icon' => true]);
@@ -53,7 +66,8 @@ final class TemplateColumnTest extends TestCase
         $this->assertSame(['badge_class' => 'badge-success', 'show_icon' => true], $column->getTemplateParameters());
     }
 
-    public function testJsonSerializeDoesNotIncludeTemplateParameters(): void
+    #[Test]
+    public function it_does_not_serialize_template_parameters(): void
     {
         $column = TemplateColumn::new('status_display')
             ->setTemplate('some/template.html.twig', ['secret' => 'server-side-only']);
@@ -64,7 +78,8 @@ final class TemplateColumnTest extends TestCase
         $this->assertArrayNotHasKey(TemplateColumn::OPTION_TEMPLATE_PARAMETERS, $data);
     }
 
-    public function testSetTemplateIsFluent(): void
+    #[Test]
+    public function it_is_fluent(): void
     {
         $column = TemplateColumn::new('status_display');
 

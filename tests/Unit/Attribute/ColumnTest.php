@@ -1,14 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Attribute;
 
 use Pentiminax\UX\DataTables\Attribute\Column;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class ColumnTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(Column::class)]
+final class ColumnTest extends TestCase
 {
-    public function testDefaultValues(): void
+    #[Test]
+    public function it_has_default_values(): void
     {
         $attr = new Column();
 
@@ -30,7 +39,8 @@ class ColumnTest extends TestCase
         $this->assertSame(0, $attr->priority);
     }
 
-    public function testExplicitValues(): void
+    #[Test]
+    public function it_accepts_explicit_values(): void
     {
         $attr = new Column(
             type: NumberColumn::class,
@@ -69,7 +79,8 @@ class ColumnTest extends TestCase
         $this->assertSame(10, $attr->priority);
     }
 
-    public function testReadViaReflection(): void
+    #[Test]
+    public function it_can_be_read_via_reflection(): void
     {
         $reflection = new \ReflectionClass(ColumnAttributeFixture::class);
         $property   = $reflection->getProperty('title');
