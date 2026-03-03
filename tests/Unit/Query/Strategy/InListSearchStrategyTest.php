@@ -1,14 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Query\Strategy\InListSearchStrategy;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class InListSearchStrategyTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(InListSearchStrategy::class)]
+final class InListSearchStrategyTest extends TestCase
 {
-    public function testApplyForList(): void
+    #[Test]
+    public function it_applies_for_list(): void
     {
         $strategy = new InListSearchStrategy();
 
@@ -26,7 +35,8 @@ class InListSearchStrategyTest extends TestCase
         $strategy->applyForList($qb, 'columnField', ['value1', 'value2'], 'e');
     }
 
-    public function testApplyForListWithDotNotation(): void
+    #[Test]
+    public function it_applies_for_list_with_dot_notation(): void
     {
         $strategy = new InListSearchStrategy();
 
@@ -49,7 +59,8 @@ class InListSearchStrategyTest extends TestCase
         $strategy->applyForList($qb, 'author.firstName', ['Alice', 'Bob'], 'e');
     }
 
-    public function testApplyForListWithEmptyArray(): void
+    #[Test]
+    public function it_skips_empty_array(): void
     {
         $strategy = new InListSearchStrategy();
 
@@ -65,7 +76,8 @@ class InListSearchStrategyTest extends TestCase
         $strategy->applyForList($qb, 'columnField', [], 'e');
     }
 
-    public function testGetLogic(): void
+    #[Test]
+    public function it_returns_in_logic(): void
     {
         $strategy = new InListSearchStrategy();
         $this->assertEquals('in', $strategy->getLogic());

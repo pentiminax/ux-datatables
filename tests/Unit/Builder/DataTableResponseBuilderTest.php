@@ -1,14 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Builder;
 
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-class DataTableResponseBuilderTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(DataTableResponseBuilder::class)]
+final class DataTableResponseBuilderTest extends TestCase
 {
-    public function testBuildResponseWithDefaultValues(): void
+    #[Test]
+    public function it_builds_response_with_default_values(): void
     {
         $builder  = new DataTableResponseBuilder();
         $response = $builder->buildResponse();
@@ -22,7 +31,8 @@ class DataTableResponseBuilderTest extends TestCase
         $this->assertEquals([], $data['data']);
     }
 
-    public function testBuildResponseWithData(): void
+    #[Test]
+    public function it_builds_response_with_data(): void
     {
         $builder = new DataTableResponseBuilder();
         $data    = [
@@ -40,7 +50,8 @@ class DataTableResponseBuilderTest extends TestCase
         $this->assertEquals($data, $jsonData['data']);
     }
 
-    public function testBuildResponseWithCustomRecordCounts(): void
+    #[Test]
+    public function it_builds_response_with_custom_record_counts(): void
     {
         $builder  = new DataTableResponseBuilder();
         $data     = [['id' => 1, 'name' => 'Item 1']];

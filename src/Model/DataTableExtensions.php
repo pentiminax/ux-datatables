@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Model;
 
 use Pentiminax\UX\DataTables\Enum\ButtonType;

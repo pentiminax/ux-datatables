@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
 use Pentiminax\UX\DataTables\DataTablesBundle;

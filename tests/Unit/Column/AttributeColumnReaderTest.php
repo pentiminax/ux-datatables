@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Attribute\Column;
@@ -9,9 +11,15 @@ use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class AttributeColumnReaderTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(AttributeColumnReader::class)]
+final class AttributeColumnReaderTest extends TestCase
 {
     private AttributeColumnReader $reader;
 
@@ -20,14 +28,16 @@ class AttributeColumnReaderTest extends TestCase
         $this->reader = new AttributeColumnReader();
     }
 
-    public function testReadsAnnotatedProperties(): void
+    #[Test]
+    public function it_reads_annotated_properties(): void
     {
         $columns = $this->reader->readColumns(ReaderEntityFixture::class);
 
         $this->assertCount(4, $columns);
     }
 
-    public function testInfersCorrectColumnTypes(): void
+    #[Test]
+    public function it_infers_correct_column_types(): void
     {
         $columns = $this->reader->readColumns(ReaderEntityFixture::class);
 
@@ -37,7 +47,8 @@ class AttributeColumnReaderTest extends TestCase
         $this->assertInstanceOf(DateColumn::class, $columns[3]);
     }
 
-    public function testExplicitTypeOverridesInference(): void
+    #[Test]
+    public function it_overrides_inferred_type_with_explicit_type(): void
     {
         $columns = $this->reader->readColumns(ExplicitTypeFixture::class);
 
@@ -45,7 +56,8 @@ class AttributeColumnReaderTest extends TestCase
         $this->assertInstanceOf(TextColumn::class, $columns[0]);
     }
 
-    public function testDefaultNameIsPropertyName(): void
+    #[Test]
+    public function it_uses_property_name_as_default_name(): void
     {
         $columns = $this->reader->readColumns(ReaderEntityFixture::class);
 
@@ -53,14 +65,16 @@ class AttributeColumnReaderTest extends TestCase
         $this->assertSame('firstName', $columns[1]->getName());
     }
 
-    public function testExplicitNameOverridesDefault(): void
+    #[Test]
+    public function it_overrides_default_name_with_explicit_name(): void
     {
         $columns = $this->reader->readColumns(CustomNameFixture::class);
 
         $this->assertSame('full_name', $columns[0]->getName());
     }
 
-    public function testHumanizedLabels(): void
+    #[Test]
+    public function it_humanizes_labels(): void
     {
         $columns = $this->reader->readColumns(ReaderEntityFixture::class);
 
@@ -71,7 +85,8 @@ class AttributeColumnReaderTest extends TestCase
         $this->assertSame('First Name', $data['title']);
     }
 
-    public function testExplicitLabel(): void
+    #[Test]
+    public function it_uses_explicit_label(): void
     {
         $columns = $this->reader->readColumns(ExplicitLabelFixture::class);
 
@@ -79,7 +94,8 @@ class AttributeColumnReaderTest extends TestCase
         $this->assertSame('Full Name', $data['title']);
     }
 
-    public function testFormatAppliedToDateColumn(): void
+    #[Test]
+    public function it_applies_format_to_date_column(): void
     {
         $columns = $this->reader->readColumns(ReaderEntityFixture::class);
 
@@ -88,7 +104,8 @@ class AttributeColumnReaderTest extends TestCase
         $this->assertSame('Y-m-d', $dateColumn->getFormat());
     }
 
-    public function testUnannotatedPropertiesIgnored(): void
+    #[Test]
+    public function it_ignores_unannotated_properties(): void
     {
         $columns = $this->reader->readColumns(MixedAnnotationFixture::class);
 
@@ -96,7 +113,8 @@ class AttributeColumnReaderTest extends TestCase
         $this->assertSame('name', $columns[0]->getName());
     }
 
-    public function testSortedByPriority(): void
+    #[Test]
+    public function it_sorts_by_priority(): void
     {
         $columns = $this->reader->readColumns(PriorityFixture::class);
 
@@ -105,7 +123,8 @@ class AttributeColumnReaderTest extends TestCase
         $this->assertSame('third', $columns[2]->getName());
     }
 
-    public function testColumnOptions(): void
+    #[Test]
+    public function it_reads_column_options(): void
     {
         $columns = $this->reader->readColumns(OptionsFixture::class);
 
@@ -124,14 +143,16 @@ class AttributeColumnReaderTest extends TestCase
         $this->assertFalse($column->isGlobalSearchable());
     }
 
-    public function testFieldOption(): void
+    #[Test]
+    public function it_reads_field_option(): void
     {
         $columns = $this->reader->readColumns(FieldFixture::class);
 
         $this->assertSame('author.name', $columns[0]->getField());
     }
 
-    public function testChoiceColumnBadgeOptions(): void
+    #[Test]
+    public function it_reads_choice_column_badge_options(): void
     {
         $columns = $this->reader->readColumns(ChoiceOptionsFixture::class);
 
@@ -144,7 +165,8 @@ class AttributeColumnReaderTest extends TestCase
         $this->assertSame('secondary', $columns[0]->jsonSerialize()['defaultBadgeVariant']);
     }
 
-    public function testEntityWithNoAttributesReturnsEmpty(): void
+    #[Test]
+    public function it_returns_empty_for_entity_with_no_attributes(): void
     {
         $columns = $this->reader->readColumns(NoAttributeFixture::class);
 
