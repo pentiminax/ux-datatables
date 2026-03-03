@@ -1,14 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Enum\Action;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class ActionColumnTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(ActionColumn::class)]
+final class ActionColumnTest extends TestCase
 {
-    public function testCreateActionColumn(): void
+    #[Test]
+    public function it_creates_action_column(): void
     {
         $column = ActionColumn::new(
             name: 'actions',

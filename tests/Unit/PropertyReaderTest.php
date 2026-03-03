@@ -1,93 +1,114 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit;
 
 use Pentiminax\UX\DataTables\Util\PropertyReader;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
+#[CoversClass(PropertyReader::class)]
 final class PropertyReaderTest extends TestCase
 {
-    public function testReadPathReturnsNullForEmptyPath(): void
+    #[Test]
+    public function it_returns_null_for_empty_path(): void
     {
         $this->assertNull(PropertyReader::readPath(['foo' => 'bar'], ''));
     }
 
-    public function testReadPathFromArray(): void
+    #[Test]
+    public function it_reads_path_from_array(): void
     {
         $data = ['user' => ['name' => 'Alice']];
 
         $this->assertSame('Alice', PropertyReader::readPath($data, 'user.name'));
     }
 
-    public function testReadPathFromArrayReturnsNullForMissingKey(): void
+    #[Test]
+    public function it_returns_null_for_missing_array_key(): void
     {
         $this->assertNull(PropertyReader::readPath(['a' => 1], 'b'));
     }
 
-    public function testReadPathFromObjectViaGetter(): void
+    #[Test]
+    public function it_reads_from_object_via_getter(): void
     {
         $object = new PropertyReaderStub(name: 'Bob', active: true, role: 'admin');
 
         $this->assertSame('Bob', PropertyReader::readPath($object, 'name'));
     }
 
-    public function testReadPathFromObjectViaIsPrefix(): void
+    #[Test]
+    public function it_reads_from_object_via_is_prefix(): void
     {
         $object = new PropertyReaderStub(name: 'Bob', active: true, role: 'admin');
 
         $this->assertTrue(PropertyReader::readPath($object, 'active'));
     }
 
-    public function testReadPathFromObjectViaHasPrefix(): void
+    #[Test]
+    public function it_reads_from_object_via_has_prefix(): void
     {
         $object = new PropertyReaderStub(name: 'Bob', active: true, role: 'admin');
 
         $this->assertTrue(PropertyReader::readPath($object, 'role'));
     }
 
-    public function testReadPathFromObjectViaDirectCallable(): void
+    #[Test]
+    public function it_reads_from_object_via_direct_callable(): void
     {
         $object = new PropertyReaderStub(name: 'Bob', active: true, role: 'admin');
 
         $this->assertSame(42, PropertyReader::readPath($object, 'score'));
     }
 
-    public function testReadPathFromPublicProperty(): void
+    #[Test]
+    public function it_reads_from_public_property(): void
     {
         $object = new PropertyReaderPublicFieldStub();
 
         $this->assertSame('public_value', PropertyReader::readPath($object, 'field'));
     }
 
-    public function testReadPathReturnsNullForUnknownProperty(): void
+    #[Test]
+    public function it_returns_null_for_unknown_property(): void
     {
         $object = new PropertyReaderStub(name: 'Bob', active: true, role: 'admin');
 
         $this->assertNull(PropertyReader::readPath($object, 'nonexistent'));
     }
 
-    public function testReadPathHandlesSnakeCaseAccessor(): void
+    #[Test]
+    public function it_handles_snake_case_accessor(): void
     {
         $object = new PropertyReaderSnakeCaseStub();
 
         $this->assertSame('snake_value', PropertyReader::readPath($object, 'first_name'));
     }
 
-    public function testReadPathHandlesKebabCaseAccessor(): void
+    #[Test]
+    public function it_handles_kebab_case_accessor(): void
     {
         $object = new PropertyReaderKebabCaseStub();
 
         $this->assertSame('kebab_value', PropertyReader::readPath($object, 'last-name'));
     }
 
-    public function testReadPathHandlesStringableReturnValue(): void
+    #[Test]
+    public function it_handles_stringable_return_value(): void
     {
         $object = new PropertyReaderStringableStub();
 
         $this->assertSame('stringified', PropertyReader::readPath($object, 'label'));
     }
 
-    public function testReadPathTraversesDotNotationOnNestedObjects(): void
+    #[Test]
+    public function it_traverses_dot_notation_on_nested_objects(): void
     {
         $address = new PropertyReaderAddressStub('Paris');
         $user    = new PropertyReaderUserStub($address);
@@ -95,12 +116,14 @@ final class PropertyReaderTest extends TestCase
         $this->assertSame('Paris', PropertyReader::readPath($user, 'address.city'));
     }
 
-    public function testReadPathReturnsNullForScalarSegment(): void
+    #[Test]
+    public function it_returns_null_for_scalar_segment(): void
     {
         $this->assertNull(PropertyReader::readPath('scalar', 'foo'));
     }
 
-    public function testReadObjectValueReturnsNullForPrivateProperty(): void
+    #[Test]
+    public function it_returns_null_for_private_property(): void
     {
         $object = new PropertyReaderPrivateFieldStub();
 

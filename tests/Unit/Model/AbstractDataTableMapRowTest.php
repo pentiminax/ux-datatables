@@ -1,15 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
+#[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableMapRowTest extends TestCase
 {
-    public function testMapsArrayRowAsIs(): void
+    #[Test]
+    public function it_maps_array_row_as_is(): void
     {
         $table = new MapRowTestTable([TextColumn::new('id')]);
         $row   = ['id' => 10, 'title' => 'Heat'];
@@ -17,7 +26,8 @@ final class AbstractDataTableMapRowTest extends TestCase
         $this->assertSame($row, $table->mapRowPublic($row));
     }
 
-    public function testMapsJsonSerializableRow(): void
+    #[Test]
+    public function it_maps_json_serializable_row(): void
     {
         $table = new MapRowTestTable([TextColumn::new('id')]);
         $row   = new SerializableRow();
@@ -25,7 +35,8 @@ final class AbstractDataTableMapRowTest extends TestCase
         $this->assertSame(['id' => 5], $table->mapRowPublic($row));
     }
 
-    public function testMapsObjectRowAndFormatsDate(): void
+    #[Test]
+    public function it_maps_object_row_and_formats_date(): void
     {
         $table = new MapRowTestTable([
             TextColumn::new('id'),
@@ -46,7 +57,8 @@ final class AbstractDataTableMapRowTest extends TestCase
         ], $table->mapRowPublic($row));
     }
 
-    public function testMapsNestedObjectPath(): void
+    #[Test]
+    public function it_maps_nested_object_path(): void
     {
         $table = new MapRowTestTable([
             TextColumn::new('title')->setData('meta.title'),
@@ -63,7 +75,8 @@ final class AbstractDataTableMapRowTest extends TestCase
         ], $table->mapRowPublic($row));
     }
 
-    public function testMapsBooleanPropertyWithIsPrefixedGetter(): void
+    #[Test]
+    public function it_maps_boolean_property_with_is_prefixed_getter(): void
     {
         $table = new MapRowTestTable([
             TextColumn::new('isEmailAuthEnabled'),

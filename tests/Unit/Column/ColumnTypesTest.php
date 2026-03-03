@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
@@ -17,12 +19,19 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Column\Utf8TextColumn;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class ColumnTypesTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(ColumnType::class)]
+final class ColumnTypesTest extends TestCase
 {
-    public function testDefaultTitleFallsBackToName(): void
+    #[Test]
+    public function it_falls_back_to_name_as_title(): void
     {
         $data = TextColumn::new('username')->jsonSerialize();
 
@@ -30,7 +39,8 @@ class ColumnTypesTest extends TestCase
         $this->assertSame('username', $data['title']);
     }
 
-    public function testExportableFlagTweaksCssClass(): void
+    #[Test]
+    public function it_adds_not_exportable_css_class(): void
     {
         $data = TextColumn::new('username')
             ->setClassName('text-bold')
@@ -41,7 +51,8 @@ class ColumnTypesTest extends TestCase
         $this->assertSame('text-bold not-exportable', $data['className']);
     }
 
-    public function testRenderAndDefaultContentAreExposed(): void
+    #[Test]
+    public function it_exposes_render_and_default_content(): void
     {
         $data = TextColumn::new('username')
             ->setTitle('Username')
@@ -53,8 +64,9 @@ class ColumnTypesTest extends TestCase
         $this->assertSame('N/A', $data['defaultContent']);
     }
 
+    #[Test]
     #[DataProvider('provideColumns')]
-    public function testColumnTypesMatchEnum(AbstractColumn $column, ColumnType $expectedType): void
+    public function it_matches_column_types_to_enum(AbstractColumn $column, ColumnType $expectedType): void
     {
         $column->setTitle('Column Title');
 

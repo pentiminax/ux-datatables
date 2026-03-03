@@ -1,19 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumnResolver;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RouterInterface;
 
-class UrlColumnResolverTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(UrlColumnResolver::class)]
+final class UrlColumnResolverTest extends TestCase
 {
-    public function testResolvesUrlTemplateForRouteBasedColumn(): void
+    #[Test]
+    public function it_resolves_url_template_for_route_based_column(): void
     {
         $column = UrlColumn::new('website')
             ->route('app_user_show', ['id' => 'id']);
@@ -25,7 +34,8 @@ class UrlColumnResolverTest extends TestCase
         $this->assertSame('/users/{id}', $data['urlTemplate']);
     }
 
-    public function testSkipsUrlColumnsWithoutRoute(): void
+    #[Test]
+    public function it_skips_url_columns_without_route(): void
     {
         $column = UrlColumn::new('website');
 
@@ -36,7 +46,8 @@ class UrlColumnResolverTest extends TestCase
         $this->assertArrayNotHasKey('urlTemplate', $data);
     }
 
-    public function testSkipsNonUrlColumns(): void
+    #[Test]
+    public function it_skips_non_url_columns(): void
     {
         $column = TextColumn::new('name');
 
@@ -47,7 +58,8 @@ class UrlColumnResolverTest extends TestCase
         $this->assertArrayNotHasKey('urlTemplate', $data);
     }
 
-    public function testThrowsOnUnknownRouteName(): void
+    #[Test]
+    public function it_throws_on_unknown_route_name(): void
     {
         $column = UrlColumn::new('website')
             ->route('nonexistent_route', ['id' => 'id']);
@@ -65,7 +77,8 @@ class UrlColumnResolverTest extends TestCase
         $resolver->resolveRoutes([$column]);
     }
 
-    public function testHandlesBaseUrlFromRequestContext(): void
+    #[Test]
+    public function it_handles_base_url_from_request_context(): void
     {
         $column = UrlColumn::new('website')
             ->route('app_user_show', ['id' => 'id']);

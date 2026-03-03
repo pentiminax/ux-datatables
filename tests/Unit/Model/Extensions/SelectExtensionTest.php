@@ -1,14 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class SelectExtensionTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(SelectExtension::class)]
+final class SelectExtensionTest extends TestCase
 {
-    public function testToArray(): void
+    #[Test]
+    public function it_serializes_to_array(): void
     {
         $extension = new SelectExtension();
 
@@ -29,7 +38,8 @@ class SelectExtensionTest extends TestCase
         $this->assertEquals($expectedArray, $serializedExtension);
     }
 
-    public function testStyle(): void
+    #[Test]
+    public function it_configures_style(): void
     {
         $extension = new SelectExtension(SelectStyle::MULTI);
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Enum\Feature;
@@ -8,11 +10,18 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class DataTableTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(DataTable::class)]
+final class DataTableTest extends TestCase
 {
-    public function testDataTable(): void
+    #[Test]
+    public function it_configures_datatable_options(): void
     {
         $selectExtension = new SelectExtension();
 
@@ -54,7 +63,8 @@ class DataTableTest extends TestCase
         $this->assertTrue($table->getOption('apiPlatform'));
     }
 
-    public function testLayoutOption(): void
+    #[Test]
+    public function it_configures_layout_option(): void
     {
         $table = new DataTable('testTable');
 
@@ -77,7 +87,8 @@ class DataTableTest extends TestCase
         $this->assertSame($expectedLayout, $table->getOption('layout')->jsonSerialize());
     }
 
-    public function testPagingOption(): void
+    #[Test]
+    public function it_configures_paging_option(): void
     {
         $table = new DataTable('testTable');
 

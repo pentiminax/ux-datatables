@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Attribute;
 
 use Doctrine\ORM\EntityManagerInterface;
@@ -15,18 +17,26 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualOve
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithoutAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithServerSide;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\ToggleEntityFixture;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class AsDataTableTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(AsDataTable::class)]
+final class AsDataTableTest extends TestCase
 {
-    public function testAttributeCanBeInstantiated(): void
+    #[Test]
+    public function it_can_be_instantiated(): void
     {
         $attribute = new AsDataTable(entityClass: \stdClass::class);
 
         $this->assertSame(\stdClass::class, $attribute->entityClass);
     }
 
-    public function testAttributeCanBeAppliedToClass(): void
+    #[Test]
+    public function it_can_be_applied_to_class(): void
     {
         $reflection = new \ReflectionClass(TestDataTableWithAttribute::class);
         $attributes = $reflection->getAttributes(AsDataTable::class);
@@ -38,7 +48,8 @@ class AsDataTableTest extends TestCase
         $this->assertSame(\stdClass::class, $instance->entityClass);
     }
 
-    public function testDataProviderAutoConfigured(): void
+    #[Test]
+    public function it_auto_configures_data_provider(): void
     {
         $table = new TestDataTableWithAttribute();
         $em    = $this->createMock(EntityManagerInterface::class);
@@ -49,7 +60,8 @@ class AsDataTableTest extends TestCase
         $this->assertInstanceOf(DoctrineDataProvider::class, $provider);
     }
 
-    public function testManualOverrideTakesPrecedence(): void
+    #[Test]
+    public function it_manual_override_takes_precedence(): void
     {
         $table = new TestDataTableWithManualOverride();
 
@@ -58,14 +70,16 @@ class AsDataTableTest extends TestCase
         $this->assertInstanceOf(ArrayDataProvider::class, $provider);
     }
 
-    public function testNoAttributeReturnsNull(): void
+    #[Test]
+    public function it_returns_null_without_attribute(): void
     {
         $table = new TestDataTableWithoutAttribute();
 
         $this->assertNull($table->getDataProvider());
     }
 
-    public function testProviderIsCached(): void
+    #[Test]
+    public function it_caches_provider(): void
     {
         $table = new TestDataTableWithAttribute();
         $em    = $this->createMock(EntityManagerInterface::class);
@@ -77,7 +91,8 @@ class AsDataTableTest extends TestCase
         $this->assertSame($provider1, $provider2);
     }
 
-    public function testBooleanColumnReceivesEntityClassAutomatically(): void
+    #[Test]
+    public function it_automatically_sets_entity_class_on_boolean_column(): void
     {
         $table  = new TestDataTableWithBooleanColumn();
         $column = $table->getColumnByName('isEmailAuthEnabled');
@@ -89,7 +104,8 @@ class AsDataTableTest extends TestCase
         );
     }
 
-    public function testPrepareForRenderingConfiguresAjaxForApiResource(): void
+    #[Test]
+    public function it_configures_ajax_for_api_resource(): void
     {
         $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
         $resolver
@@ -110,7 +126,8 @@ class AsDataTableTest extends TestCase
         $this->assertTrue($table->getDataTable()->getOption('apiPlatform'));
     }
 
-    public function testPrepareForRenderingDoesNothingWhenAjaxIsAlreadyConfigured(): void
+    #[Test]
+    public function it_does_nothing_when_ajax_already_configured(): void
     {
         $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
         $resolver->expects($this->never())->method('resolveCollectionUrl');
@@ -127,7 +144,8 @@ class AsDataTableTest extends TestCase
         $this->assertFalse($table->getDataTable()->getOption('apiPlatform') ?? false);
     }
 
-    public function testPrepareForRenderingConfiguresAjaxWhenServerSideIsEnabled(): void
+    #[Test]
+    public function it_configures_ajax_when_server_side_is_enabled(): void
     {
         $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
         $resolver
@@ -148,7 +166,8 @@ class AsDataTableTest extends TestCase
         $this->assertTrue($table->getDataTable()->getOption('apiPlatform'));
     }
 
-    public function testPrepareForRenderingDoesNothingWhenDataIsAlreadyConfigured(): void
+    #[Test]
+    public function it_does_nothing_when_data_already_configured(): void
     {
         $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
         $resolver->expects($this->never())->method('resolveCollectionUrl');
@@ -160,7 +179,8 @@ class AsDataTableTest extends TestCase
         $this->assertNull($table->getDataTable()->getOption('ajax'));
     }
 
-    public function testPrepareForRenderingDoesNothingWithoutAttribute(): void
+    #[Test]
+    public function it_does_nothing_without_attribute(): void
     {
         $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
         $resolver->expects($this->never())->method('resolveCollectionUrl');
@@ -172,7 +192,8 @@ class AsDataTableTest extends TestCase
         $this->assertNull($table->getDataTable()->getOption('ajax'));
     }
 
-    public function testPrepareForRenderingDoesNothingWithoutResolver(): void
+    #[Test]
+    public function it_does_nothing_without_resolver(): void
     {
         $table = new TestDataTableWithAttribute();
 

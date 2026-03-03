@@ -22,6 +22,8 @@ return (new Config())
         'ordered_imports'              => true,
         'single_quote'                 => true,
         'native_function_invocation'   => true,
+        'declare_strict_types'         => true,
+        'php_unit_internal_class'      => true,
         'php_unit_method_casing'       => ['case' => 'snake_case'],
     ])
     ->setFinder($finder);

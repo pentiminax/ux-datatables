@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\ApiPlatform;
 
 use ApiPlatform\Metadata\ApiProperty;
@@ -16,10 +18,16 @@ use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Tests\Fixtures\ApiPlatform\TestPropertyInfoExtractor;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\TypeInfo\Type;
 
-class ColumnAutoDetectorTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(ColumnAutoDetector::class)]
+final class ColumnAutoDetectorTest extends TestCase
 {
     private ResourceMetadataCollectionFactoryInterface $resourceMetadataFactory;
     private PropertyNameCollectionFactoryInterface $propertyNameFactory;
@@ -38,7 +46,8 @@ class ColumnAutoDetectorTest extends TestCase
         $this->propertyInfoExtractor   = new TestPropertyInfoExtractor();
     }
 
-    public function testSupportsReturnsTrueForApiResource(): void
+    #[Test]
+    public function it_supports_api_resource(): void
     {
         $this->resourceMetadataFactory
             ->method('create')
@@ -49,7 +58,8 @@ class ColumnAutoDetectorTest extends TestCase
         $this->assertTrue($detector->supports('App\Entity\Foo'));
     }
 
-    public function testSupportsReturnsFalseForNonApiResource(): void
+    #[Test]
+    public function it_does_not_support_non_api_resource(): void
     {
         $this->resourceMetadataFactory
             ->method('create')
@@ -60,7 +70,8 @@ class ColumnAutoDetectorTest extends TestCase
         $this->assertFalse($detector->supports('App\Entity\Foo'));
     }
 
-    public function testSupportsReturnsFalseOnException(): void
+    #[Test]
+    public function it_does_not_support_on_exception(): void
     {
         $this->resourceMetadataFactory
             ->method('create')
@@ -71,7 +82,8 @@ class ColumnAutoDetectorTest extends TestCase
         $this->assertFalse($detector->supports('App\Entity\Unknown'));
     }
 
-    public function testDetectColumnsGeneratesCorrectTypes(): void
+    #[Test]
+    public function it_generates_correct_column_types(): void
     {
         $this->propertyNameFactory
             ->method('create')
@@ -121,7 +133,8 @@ class ColumnAutoDetectorTest extends TestCase
         $this->assertInstanceOf(BooleanColumn::class, $columns[3]);
     }
 
-    public function testWriteOnlyPropertiesAreExcluded(): void
+    #[Test]
+    public function it_excludes_write_only_properties(): void
     {
         $this->propertyNameFactory
             ->method('create')
@@ -145,7 +158,8 @@ class ColumnAutoDetectorTest extends TestCase
         $this->assertSame('name', $columns[0]->getName());
     }
 
-    public function testLabelsAreHumanized(): void
+    #[Test]
+    public function it_humanizes_labels(): void
     {
         $this->propertyNameFactory
             ->method('create')
@@ -164,7 +178,8 @@ class ColumnAutoDetectorTest extends TestCase
         $this->assertSame('First Name', $columns[1]->jsonSerialize()['title']);
     }
 
-    public function testHumanizeConvertsIdToUppercase(): void
+    #[Test]
+    public function it_converts_id_to_uppercase(): void
     {
         $humanizer = new PropertyNameHumanizer();
 
@@ -172,7 +187,8 @@ class ColumnAutoDetectorTest extends TestCase
         $this->assertSame('User ID', $humanizer->humanize('userId'));
     }
 
-    public function testDetectColumnsPassesSerializationGroups(): void
+    #[Test]
+    public function it_passes_serialization_groups(): void
     {
         $groups = ['product:list'];
 

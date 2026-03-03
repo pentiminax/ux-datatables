@@ -1,18 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
+/**
+ * @internal
+ */
+#[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableTemplateColumnTest extends TestCase
 {
-    public function testRowMapperPipelineRendersTemplateColumnWhenMapRowIsOverridden(): void
+    #[Test]
+    public function it_renders_template_column_when_map_row_is_overridden(): void
     {
         $renderer = new TemplateColumnRenderer(new Environment(new ArrayLoader([
             'datatable/columns/status_badge.html.twig' => '<span>{{ row.id }}-{{ data }}</span>',

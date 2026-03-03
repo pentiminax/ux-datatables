@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
@@ -7,12 +9,19 @@ use Doctrine\ORM\EntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
-class AjaxEditControllerTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(AjaxEditController::class)]
+final class AjaxEditControllerTest extends TestCase
 {
-    public function testUpdatesBooleanFieldFromJsonPayload(): void
+    #[Test]
+    public function it_updates_boolean_field_from_json_payload(): void
     {
         $entity = new ToggleBooleanEntityFixture();
 
@@ -42,7 +51,8 @@ class AjaxEditControllerTest extends TestCase
         $this->assertSame('0', (string) $response->getContent());
     }
 
-    public function testRejectsNonWritableField(): void
+    #[Test]
+    public function it_rejects_non_writable_field(): void
     {
         $entity = new ToggleBooleanEntityFixture();
 
@@ -76,7 +86,8 @@ class AjaxEditControllerTest extends TestCase
         $this->assertTrue($entity->isEmailAuthEnabled());
     }
 
-    public function testReturnsOneWhenUpdatingBooleanFieldToTrue(): void
+    #[Test]
+    public function it_returns_one_when_updating_boolean_field_to_true(): void
     {
         $entity = new ToggleBooleanEntityFixture();
 
@@ -106,7 +117,8 @@ class AjaxEditControllerTest extends TestCase
         $this->assertSame('1', (string) $response->getContent());
     }
 
-    public function testReturnsNotFoundWhenEntityDoesNotExist(): void
+    #[Test]
+    public function it_returns_not_found_when_entity_does_not_exist(): void
     {
         $repository = $this->createMock(EntityRepository::class);
         $repository->method('find')->with(799)->willReturn(null);
