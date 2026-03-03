@@ -66,6 +66,93 @@ final class TemplateColumnRendererTest extends TestCase
             columns: $columns
         );
     }
+
+    public function testItPrefersRowArrayValueOverMappedRow(): void
+    {
+        $twig = new Environment(new ArrayLoader([
+            'column.html.twig' => '{{ data }}',
+        ]));
+
+        $renderer = new TemplateColumnRenderer($twig);
+        $columns  = [
+            TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig'),
+        ];
+
+        $row = $renderer->renderRow(
+            row: ['status' => 'from_row'],
+            mappedRow: new TemplateEntity(id: 1, status: 'from_entity'),
+            columns: $columns
+        );
+
+        $this->assertSame('from_row', $row['status']);
+    }
+
+    public function testItPassesCustomTemplateParametersToTwig(): void
+    {
+        $twig = new Environment(new ArrayLoader([
+            'column.html.twig' => '{{ badge_class }}: {{ data }}',
+        ]));
+
+        $renderer = new TemplateColumnRenderer($twig);
+        $columns  = [
+            TemplateColumn::new('status_display')
+                ->setField('status')
+                ->setTemplate('column.html.twig', ['badge_class' => 'badge-success']),
+        ];
+
+        $row = $renderer->renderRow(
+            row: ['status' => 'active'],
+            mappedRow: [],
+            columns: $columns
+        );
+
+        $this->assertSame('badge-success: active', $row['status']);
+    }
+
+    public function testItRendersMultipleTemplateColumnsInSameRow(): void
+    {
+        $twig = new Environment(new ArrayLoader([
+            'status.html.twig' => 'Status: {{ data }}',
+            'type.html.twig'   => 'Type: {{ data }}',
+        ]));
+
+        $renderer = new TemplateColumnRenderer($twig);
+        $columns  = [
+            TemplateColumn::new('status_display')->setField('status')->setTemplate('status.html.twig'),
+            TemplateColumn::new('type_display')->setField('type')->setTemplate('type.html.twig'),
+        ];
+
+        $row = $renderer->renderRow(
+            row: ['status' => 'active', 'type' => 'admin'],
+            mappedRow: [],
+            columns: $columns
+        );
+
+        $this->assertSame('Status: active', $row['status']);
+        $this->assertSame('Type: admin', $row['type']);
+    }
+
+    public function testItExposesEntityRowAndColumnInTwigContext(): void
+    {
+        $twig = new Environment(new ArrayLoader([
+            'column.html.twig' => '{{ entity.getStatus() }}-{{ row.id }}-{{ column.name }}',
+        ]));
+
+        $renderer = new TemplateColumnRenderer($twig);
+        $columns  = [
+            TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig'),
+        ];
+
+        $entity = new TemplateEntity(id: 42, status: 'verified');
+
+        $row = $renderer->renderRow(
+            row: ['id' => 42],
+            mappedRow: $entity,
+            columns: $columns
+        );
+
+        $this->assertSame('verified-42-status_display', $row['status']);
+    }
 }
 
 final readonly class TemplateEntity
