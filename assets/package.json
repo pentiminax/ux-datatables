@@ -74,6 +74,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "lint": "biome lint src/",
     "format": "biome format --write src/",
     "check": "biome check --write src/"

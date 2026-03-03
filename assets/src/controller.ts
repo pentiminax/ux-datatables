@@ -13,6 +13,10 @@ import { loadScrollerLibrary } from './functions/loadScrollerLibrary.js'
 import { deleteRow } from './functions/deleteRow.js'
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js'
 import { ApiPlatformAdapter, ColumnConfig } from './functions/apiPlatformAdapter.js'
+import { ColumnRenderer } from './columnRenderers/types.js'
+import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
+import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
+import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 
 export default class extends Controller {
   declare readonly viewValue: any
@@ -102,23 +106,22 @@ export default class extends Controller {
       new ApiPlatformAdapter(columns).configure(payload)
     }
 
+    const columnRenderers: ColumnRenderer[] = [
+      createBooleanColumnRenderer(this.getBooleanToggleUrl()),
+      choiceColumnRenderer,
+      urlColumnRenderer,
+    ]
+
     payload.columns.forEach((column: any): void => {
-      if (this.isBooleanColumn(column)) {
-        this.configureBooleanColumnRender(column)
-      }
-
-      if (this.isUrlColumn(column)) {
-        this.configureUrlColumnRender(column)
-      }
-
-      if (this.isChoiceColumn(column)) {
-        this.configureChoiceColumnRender(column)
+      for (const renderer of columnRenderers) {
+        if (renderer.matches(column)) {
+          renderer.configure(column)
+        }
       }
 
       if (column.action === 'DELETE') {
-        column.render = function (data: any, type: string, row: any) {
+        column.render = (data: any, type: string, row: any) => {
           const className = `${column.action.toLowerCase()}-action`
-
           return `<button class="btn btn-danger ${className}" data-id="${row.id}" data-url="${column.actionUrl}">${column.actionLabel}</button>`
         }
       }
@@ -215,6 +218,10 @@ export default class extends Controller {
     })
   }
 
+  private getBooleanToggleUrl(): string {
+    return '/datatables/ajax/edit'
+  }
+
   private isButtonsExtensionEnabled(payload: Record<string, any>): boolean {
     return !!payload?.layout?.topStart?.buttons
   }
@@ -249,183 +256,5 @@ export default class extends Controller {
 
   private isApiPlatformEnabled(payload: Record<string, any>): boolean {
     return true === payload?.apiPlatform
-  }
-
-  private isBooleanColumn(column: Record<string, any>): boolean {
-    return true === column?.booleanRenderAsSwitch
-  }
-
-  private configureBooleanColumnRender(column: Record<string, any>): void {
-    const defaultState = true === column.booleanDefaultState
-    const toggleUrl = this.getBooleanToggleUrl()
-    const toggleMethod =
-      typeof column.booleanToggleMethod === 'string' ? column.booleanToggleMethod : 'PATCH'
-    const toggleIdField =
-      typeof column.booleanToggleIdField === 'string' ? column.booleanToggleIdField : 'id'
-    const toggleEntityClass =
-      typeof column.booleanToggleEntityClass === 'string' ? column.booleanToggleEntityClass : ''
-
-    column.type ??= 'num'
-    column.render = (data: any, type: string, row: Record<string, any>): any => {
-      const boolValue = this.parseBooleanValue(data, defaultState)
-
-      if (type === 'sort' || type === 'type') {
-        return boolValue ? 1 : 0
-      }
-
-      if (type === 'filter') {
-        return boolValue ? 'ON' : 'OFF'
-      }
-
-      if (type !== 'display') {
-        return boolValue ? 'ON' : 'OFF'
-      }
-
-      const rowId = row?.[toggleIdField]
-      const checked = boolValue ? ' checked' : ''
-      const disabled = toggleEntityClass === '' ? ' disabled' : ''
-      const escapedId = this.escapeHtml(String(rowId ?? ''))
-      const escapedUrl = this.escapeHtml(toggleUrl)
-      const escapedField = this.escapeHtml(
-        column.booleanToggleField ?? column.data ?? column.name ?? ''
-      )
-      const escapedMethod = this.escapeHtml(toggleMethod.toUpperCase())
-      const escapedEntityClass = this.escapeHtml(toggleEntityClass)
-
-      return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-entity="${escapedEntityClass}" data-method="${escapedMethod}"${checked}${disabled}></div>`
-    }
-  }
-
-  private getBooleanToggleUrl(): string {
-    return '/datatables/ajax/edit'
-  }
-
-  private parseBooleanValue(value: any, defaultValue: boolean = false): boolean {
-    if (null === value || undefined === value || '' === value) {
-      return defaultValue
-    }
-
-    if (typeof value === 'boolean') {
-      return value
-    }
-
-    if (typeof value === 'number') {
-      return value !== 0
-    }
-
-    if (typeof value === 'string') {
-      const normalized = value.trim().toLowerCase()
-      return ['1', 'true', 'yes', 'y', 'on'].includes(normalized)
-    }
-
-    return false
-  }
-
-  private isChoiceColumn(column: Record<string, any>): boolean {
-    return typeof column?.choices === 'object' && column.choices !== null
-  }
-
-  private configureChoiceColumnRender(column: Record<string, any>): void {
-    const choices = (column.choices ?? {}) as Record<string, string>
-    const badgesEnabled =
-      true === column.renderAsBadges ||
-      (typeof column.renderAsBadges === 'object' && column.renderAsBadges !== null)
-    const badges =
-      typeof column.renderAsBadges === 'object' && column.renderAsBadges !== null
-        ? (column.renderAsBadges as Record<string, string>)
-        : {}
-    const defaultBadgeVariant =
-      typeof column.defaultBadgeVariant === 'string' ? column.defaultBadgeVariant : 'secondary'
-
-    column.render = (data: any, type: string): any => {
-      const key = String(data ?? '')
-      const label = choices[key] ?? key
-
-      if (type !== 'display') {
-        return label
-      }
-
-      if (!badgesEnabled) {
-        return this.escapeHtml(label)
-      }
-
-      const variant = badges[key] ?? defaultBadgeVariant
-      const escapedLabel = this.escapeHtml(label)
-      const escapedVariant = this.escapeHtml(variant)
-      return `<span class="badge text-bg-${escapedVariant}">${escapedLabel}</span>`
-    }
-  }
-
-  private isUrlColumn(column: Record<string, any>): boolean {
-    return (
-      typeof column?.urlTemplate === 'string' ||
-      typeof column?.urlTarget === 'string' ||
-      typeof column?.urlDisplayValue === 'string' ||
-      true === column?.urlShowExternalIcon
-    )
-  }
-
-  private configureUrlColumnRender(column: Record<string, any>): void {
-    const urlTemplate = column.urlTemplate
-    const routeParams = typeof column.urlRouteParams === 'object' ? column.urlRouteParams : null
-    const target = typeof column.urlTarget === 'string' ? column.urlTarget : null
-    const displayValue = typeof column.urlDisplayValue === 'string' ? column.urlDisplayValue : null
-    const showExternalIcon = true === column.urlShowExternalIcon
-
-    column.render = (data: any, type: string, row: Record<string, any>): any => {
-      if (type !== 'display') {
-        return data
-      }
-
-      let href: string
-      if (urlTemplate && routeParams) {
-        href = urlTemplate
-        for (const [paramName, fieldName] of Object.entries(routeParams)) {
-          const value = row[fieldName as string] ?? ''
-          href = href.replace(`{${paramName}}`, encodeURIComponent(String(value)))
-        }
-      } else {
-        href = typeof data === 'string' ? data : ''
-      }
-
-      if (this.isUnsafeUrl(href)) {
-        return this.escapeHtml(String(data ?? ''))
-      }
-
-      const escapedHref = this.escapeHtml(href)
-      const text = this.escapeHtml(displayValue ?? data ?? href)
-
-      const attrs: string[] = [`href="${escapedHref}"`]
-
-      if (target) {
-        attrs.push(`target="${this.escapeHtml(target)}"`)
-      }
-
-      if (target === '_blank') {
-        attrs.push('rel="noopener noreferrer"')
-      }
-
-      let html = `<a ${attrs.join(' ')}>${text}</a>`
-
-      if (showExternalIcon) {
-        html += ' <span aria-label="external link">&#x2197;</span>'
-      }
-
-      return html
-    }
-  }
-
-  private isUnsafeUrl(url: string): boolean {
-    const trimmed = url.trim().toLowerCase()
-    return trimmed.startsWith('javascript:') || trimmed.startsWith('data:')
-  }
-
-  private escapeHtml(value: string): string {
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;')
   }
 }
