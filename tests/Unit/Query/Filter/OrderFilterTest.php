@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
@@ -10,11 +12,18 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\Query\Filter\OrderFilter;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class OrderFilterTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(OrderFilter::class)]
+final class OrderFilterTest extends TestCase
 {
-    public function testApplyOrderOnSimpleField(): void
+    #[Test]
+    public function it_applies_order_on_simple_field(): void
     {
         $filter = new OrderFilter();
 
@@ -36,7 +45,8 @@ class OrderFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testApplyOrderUsesAbstractColumnFieldNotRequestColumnName(): void
+    #[Test]
+    public function it_uses_abstract_column_field_not_request_column_name(): void
     {
         $filter = new OrderFilter();
 
@@ -58,7 +68,8 @@ class OrderFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testApplyOrderWithDotNotationField(): void
+    #[Test]
+    public function it_applies_order_with_dot_notation_field(): void
     {
         $filter = new OrderFilter();
 
@@ -85,7 +96,8 @@ class OrderFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testSkipWhenNoOrder(): void
+    #[Test]
+    public function it_skips_when_no_order(): void
     {
         $filter = new OrderFilter();
 
@@ -100,7 +112,8 @@ class OrderFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testSkipWhenColumnIndexOutOfBounds(): void
+    #[Test]
+    public function it_skips_when_column_index_out_of_bounds(): void
     {
         $filter = new OrderFilter();
 

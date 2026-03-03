@@ -1,15 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\DataTableRequest;
 
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 
-class DataTableRequestTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(DataTableRequest::class)]
+final class DataTableRequestTest extends TestCase
 {
-    public function testFromRequestWithOrdering(): void
+    #[Test]
+    public function it_parses_ordering_from_request(): void
     {
         $request = new Request(
             query: [
@@ -51,7 +60,8 @@ class DataTableRequestTest extends TestCase
         $this->assertEquals('id', $dataTableRequest->order[1]->name);
     }
 
-    public function testFromRequestWithEmptyOrdering(): void
+    #[Test]
+    public function it_parses_empty_ordering_from_request(): void
     {
         $request = new Request(
             query: [
@@ -75,7 +85,8 @@ class DataTableRequestTest extends TestCase
         $this->assertCount(0, $dataTableRequest->order);
     }
 
-    public function testFromRequestWithAllProperties(): void
+    #[Test]
+    public function it_parses_all_properties_from_request(): void
     {
         $request = new Request(
             query: [

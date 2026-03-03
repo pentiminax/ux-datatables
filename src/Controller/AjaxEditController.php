@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Controller;
 
 use Doctrine\Persistence\ManagerRegistry;

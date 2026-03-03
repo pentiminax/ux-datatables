@@ -1,13 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Model\DataTableExtensions;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class DataTableExtensionsTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(DataTableExtensions::class)]
+final class DataTableExtensionsTest extends TestCase
 {
-    public function testDataTableExtensionsConstructor(): void
+    #[Test]
+    public function it_constructs_with_valid_extensions(): void
     {
         $extensions = [
             'buttons' => [
@@ -23,10 +32,6 @@ class DataTableExtensionsTest extends TestCase
         ];
 
         $dataTableExtensions = new DataTableExtensions($extensions);
-
-        $expectedArray = [
-            'select' => $extensions['select'],
-        ];
 
         $this->assertArrayHasKey('select', $dataTableExtensions->jsonSerialize());
     }

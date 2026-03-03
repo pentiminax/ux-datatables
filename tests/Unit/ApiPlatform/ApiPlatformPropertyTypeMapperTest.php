@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\ApiPlatform;
 
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformPropertyTypeMapper;
@@ -7,11 +9,17 @@ use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\TypeInfo\Type;
 
-class ApiPlatformPropertyTypeMapperTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(ApiPlatformPropertyTypeMapper::class)]
+final class ApiPlatformPropertyTypeMapperTest extends TestCase
 {
     private ApiPlatformPropertyTypeMapper $mapper;
 
@@ -20,8 +28,9 @@ class ApiPlatformPropertyTypeMapperTest extends TestCase
         $this->mapper = new ApiPlatformPropertyTypeMapper();
     }
 
+    #[Test]
     #[DataProvider('provideTypeMappings')]
-    public function testMapType(Type $type, string $expectedColumnClass): void
+    public function it_maps_type(Type $type, string $expectedColumnClass): void
     {
         $this->assertSame($expectedColumnClass, $this->mapper->mapType($type));
     }
@@ -41,12 +50,14 @@ class ApiPlatformPropertyTypeMapperTest extends TestCase
         yield 'array' => [Type::array(), TextColumn::class];
     }
 
-    public function testNullTypeFallsBackToTextColumn(): void
+    #[Test]
+    public function it_falls_back_to_text_column_for_null_type(): void
     {
         $this->assertSame(TextColumn::class, $this->mapper->mapType(null));
     }
 
-    public function testCreateColumnReturnsCorrectInstance(): void
+    #[Test]
+    public function it_creates_correct_column_instance(): void
     {
         $type   = Type::int();
         $column = $this->mapper->createColumn('price', 'Price', $type);
@@ -58,7 +69,8 @@ class ApiPlatformPropertyTypeMapperTest extends TestCase
         $this->assertSame('Price', $data['title']);
     }
 
-    public function testCreateColumnWithBoolType(): void
+    #[Test]
+    public function it_creates_boolean_column_for_bool_type(): void
     {
         $type   = Type::bool();
         $column = $this->mapper->createColumn('active', 'Active', $type);
@@ -66,7 +78,8 @@ class ApiPlatformPropertyTypeMapperTest extends TestCase
         $this->assertInstanceOf(BooleanColumn::class, $column);
     }
 
-    public function testCreateColumnWithDateTimeType(): void
+    #[Test]
+    public function it_creates_date_column_for_datetime_type(): void
     {
         $type   = Type::object(\DateTimeImmutable::class);
         $column = $this->mapper->createColumn('createdAt', 'Created At', $type);

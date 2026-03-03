@@ -1,18 +1,28 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\ApiPlatform;
 
-use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectNoAttributeDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectTestDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectWithGroupsDataTable;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class AbstractDataTableAutoDetectTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(AbstractDataTable::class)]
+final class AbstractDataTableAutoDetectTest extends TestCase
 {
-    public function testAutoDetectColumnsReturnsEmptyWithoutDetector(): void
+    #[Test]
+    public function it_returns_empty_columns_without_detector(): void
     {
         $table = new AutoDetectTestDataTable();
         // No setColumnAutoDetector called — should degrade gracefully
@@ -21,7 +31,8 @@ class AbstractDataTableAutoDetectTest extends TestCase
         $this->assertSame([], $columns);
     }
 
-    public function testAutoDetectColumnsReturnsEmptyWithNullDetector(): void
+    #[Test]
+    public function it_returns_empty_columns_with_null_detector(): void
     {
         $table = new AutoDetectTestDataTable();
         $table->setColumnAutoDetector(null);
@@ -31,7 +42,8 @@ class AbstractDataTableAutoDetectTest extends TestCase
         $this->assertSame([], $columns);
     }
 
-    public function testAutoDetectColumnsReturnsEmptyWithoutAttribute(): void
+    #[Test]
+    public function it_returns_empty_columns_without_attribute(): void
     {
         $detector = $this->createMock(ColumnAutoDetectorInterface::class);
         $detector->expects($this->never())->method('supports');
@@ -45,7 +57,8 @@ class AbstractDataTableAutoDetectTest extends TestCase
         $this->assertSame([], $columns);
     }
 
-    public function testAutoDetectColumnsReturnsEmptyWhenNotSupported(): void
+    #[Test]
+    public function it_returns_empty_columns_when_not_supported(): void
     {
         $detector = $this->createMock(ColumnAutoDetectorInterface::class);
         $detector->method('supports')->willReturn(false);
@@ -59,7 +72,8 @@ class AbstractDataTableAutoDetectTest extends TestCase
         $this->assertSame([], $columns);
     }
 
-    public function testAutoDetectColumnsReturnsDetectedColumns(): void
+    #[Test]
+    public function it_returns_detected_columns(): void
     {
         $expected = [
             NumberColumn::new('id', 'ID'),
@@ -78,7 +92,8 @@ class AbstractDataTableAutoDetectTest extends TestCase
         $this->assertSame($expected, $columns);
     }
 
-    public function testAutoDetectColumnsUsesAttributeSerializationGroups(): void
+    #[Test]
+    public function it_uses_attribute_serialization_groups(): void
     {
         $detector = $this->createMock(ColumnAutoDetectorInterface::class);
         $detector->method('supports')->willReturn(true);
@@ -94,7 +109,8 @@ class AbstractDataTableAutoDetectTest extends TestCase
         $table->callAutoDetectColumns();
     }
 
-    public function testAutoDetectColumnsExplicitGroupsOverrideAttribute(): void
+    #[Test]
+    public function it_overrides_attribute_groups_with_explicit_groups(): void
     {
         $detector = $this->createMock(ColumnAutoDetectorInterface::class);
         $detector->method('supports')->willReturn(true);
@@ -108,59 +124,5 @@ class AbstractDataTableAutoDetectTest extends TestCase
         $table->setColumnAutoDetector($detector);
 
         $table->callAutoDetectColumns(['custom:group']);
-    }
-}
-
-#[AsDataTable(entityClass: \stdClass::class)]
-class AutoDetectTestDataTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        return $this->autoDetectColumns();
-    }
-
-    /**
-     * @param string[] $groups
-     *
-     * @return AbstractColumn[]
-     */
-    public function callAutoDetectColumns(array $groups = []): array
-    {
-        return $this->autoDetectColumns($groups);
-    }
-}
-
-class AutoDetectNoAttributeDataTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-
-    /**
-     * @return AbstractColumn[]
-     */
-    public function callAutoDetectColumns(): array
-    {
-        return $this->autoDetectColumns();
-    }
-}
-
-#[AsDataTable(entityClass: \stdClass::class, serializationGroups: ['product:list'])]
-class AutoDetectWithGroupsDataTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        return $this->autoDetectColumns();
-    }
-
-    /**
-     * @param string[] $groups
-     *
-     * @return AbstractColumn[]
-     */
-    public function callAutoDetectColumns(array $groups = []): array
-    {
-        return $this->autoDetectColumns($groups);
     }
 }

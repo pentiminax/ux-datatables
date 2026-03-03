@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
@@ -11,11 +13,18 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnSearchFilter;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class ColumnSearchFilterTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(ColumnSearchFilter::class)]
+final class ColumnSearchFilterTest extends TestCase
 {
-    public function testApplyTextColumnSearchWithDotNotation(): void
+    #[Test]
+    public function it_applies_text_column_search_with_dot_notation(): void
     {
         $filter = new ColumnSearchFilter();
 
@@ -47,7 +56,8 @@ class ColumnSearchFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testApplyTextColumnSearch(): void
+    #[Test]
+    public function it_applies_text_column_search(): void
     {
         $filter = new ColumnSearchFilter();
 
@@ -73,7 +83,8 @@ class ColumnSearchFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testApplyNumericColumnSearchWithNumericValue(): void
+    #[Test]
+    public function it_applies_numeric_column_search_with_numeric_value(): void
     {
         $filter = new ColumnSearchFilter();
 
@@ -100,7 +111,8 @@ class ColumnSearchFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testSkipNumericColumnWithNonNumericValue(): void
+    #[Test]
+    public function it_skips_numeric_column_with_non_numeric_value(): void
     {
         $filter = new ColumnSearchFilter();
 
@@ -125,7 +137,8 @@ class ColumnSearchFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testSkipNonSearchableColumn(): void
+    #[Test]
+    public function it_skips_non_searchable_column(): void
     {
         $filter = new ColumnSearchFilter();
 
@@ -150,7 +163,8 @@ class ColumnSearchFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testSkipEmptySearchValue(): void
+    #[Test]
+    public function it_skips_empty_search_value(): void
     {
         $filter = new ColumnSearchFilter();
 
@@ -175,7 +189,8 @@ class ColumnSearchFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testSkipNullSearchValue(): void
+    #[Test]
+    public function it_skips_null_search_value(): void
     {
         $filter = new ColumnSearchFilter();
 
@@ -200,7 +215,8 @@ class ColumnSearchFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testSkipWhitespaceOnlySearchValue(): void
+    #[Test]
+    public function it_skips_whitespace_only_search_value(): void
     {
         $filter = new ColumnSearchFilter();
 
@@ -225,7 +241,8 @@ class ColumnSearchFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testSkipWhenColumnNotInRequest(): void
+    #[Test]
+    public function it_skips_when_column_not_in_request(): void
     {
         $filter = new ColumnSearchFilter();
 
@@ -248,7 +265,8 @@ class ColumnSearchFilterTest extends TestCase
         $filter->apply($qb, $context);
     }
 
-    public function testMultipleColumnSearchesWithAndLogic(): void
+    #[Test]
+    public function it_applies_multiple_column_searches_with_and_logic(): void
     {
         $filter = new ColumnSearchFilter();
 

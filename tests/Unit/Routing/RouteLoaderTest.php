@@ -1,13 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Routing;
 
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class RouteLoaderTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(RouteLoader::class)]
+final class RouteLoaderTest extends TestCase
 {
-    public function testLoadsAjaxEditRoute(): void
+    #[Test]
+    public function it_loads_ajax_edit_route(): void
     {
         $routes = (new RouteLoader())->loadRoutes();
 

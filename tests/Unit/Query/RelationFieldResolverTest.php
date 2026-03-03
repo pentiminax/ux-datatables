@@ -1,15 +1,24 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class RelationFieldResolverTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(RelationFieldResolver::class)]
+final class RelationFieldResolverTest extends TestCase
 {
-    public function testSimpleFieldReturnsAliasAndField(): void
+    #[Test]
+    public function it_returns_alias_and_field_for_simple_field(): void
     {
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->with('join')->willReturn([]);
@@ -20,7 +29,8 @@ class RelationFieldResolverTest extends TestCase
         $this->assertSame('e.name', $result);
     }
 
-    public function testSingleLevelRelationAddsJoin(): void
+    #[Test]
+    public function it_adds_join_for_single_level_relation(): void
     {
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->with('join')->willReturn([]);
@@ -35,7 +45,8 @@ class RelationFieldResolverTest extends TestCase
         $this->assertSame('author.firstName', $result);
     }
 
-    public function testMultiLevelRelationAddsMultipleJoins(): void
+    #[Test]
+    public function it_adds_multiple_joins_for_multi_level_relation(): void
     {
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->with('join')->willReturn([]);
@@ -58,7 +69,8 @@ class RelationFieldResolverTest extends TestCase
         ], $joinCalls);
     }
 
-    public function testDuplicateJoinIsNotAdded(): void
+    #[Test]
+    public function it_does_not_add_duplicate_join(): void
     {
         $existingJoin = $this->createMock(Join::class);
         $existingJoin->method('getAlias')->willReturn('author');
@@ -75,7 +87,8 @@ class RelationFieldResolverTest extends TestCase
         $this->assertSame('author.firstName', $result);
     }
 
-    public function testPartialDuplicateJoinOnlyAddsNew(): void
+    #[Test]
+    public function it_only_adds_new_join_when_partial_duplicate(): void
     {
         $existingJoin = $this->createMock(Join::class);
         $existingJoin->method('getAlias')->willReturn('author');

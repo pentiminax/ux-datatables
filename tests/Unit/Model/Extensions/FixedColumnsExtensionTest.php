@@ -1,13 +1,22 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 
 use Pentiminax\UX\DataTables\Model\Extensions\FixedColumnsExtension;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class FixedColumnsExtensionTest extends TestCase
+/**
+ * @internal
+ */
+#[CoversClass(FixedColumnsExtension::class)]
+final class FixedColumnsExtensionTest extends TestCase
 {
-    public function testFixedColumnsExtension(): void
+    #[Test]
+    public function it_serializes_with_default_values(): void
     {
         $extension = new FixedColumnsExtension();
 
@@ -19,7 +28,8 @@ class FixedColumnsExtensionTest extends TestCase
         $this->assertEquals($expectedArray, $extension->jsonSerialize());
     }
 
-    public function testFixedColumnsExtensionWithCustomValues(): void
+    #[Test]
+    public function it_serializes_with_custom_values(): void
     {
         $extension = new FixedColumnsExtension(start: 2, end: 1);
 
