@@ -247,6 +247,7 @@ abstract class AbstractColumn implements ColumnInterface
             'visible'        => $this->dto->isVisible(),
             'width'          => $this->dto->getWidth(),
             'field'          => $this->dto->getField(),
+            'customOptions'  => $this->dto->getCustomOptions(),
         ], static fn (mixed $value) => null !== $value && '' !== $value);
     }
 
