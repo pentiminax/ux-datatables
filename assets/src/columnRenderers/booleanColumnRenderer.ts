@@ -1,5 +1,5 @@
 import { escapeHtml, parseBooleanValue } from '../functions/htmlUtils.js'
-import { ColumnRenderer } from './types.js'
+import { BooleanCustomOptions, ColumnRenderer } from './types.js'
 
 export function createBooleanColumnRenderer(toggleUrl: string): ColumnRenderer {
   return {
@@ -8,7 +8,7 @@ export function createBooleanColumnRenderer(toggleUrl: string): ColumnRenderer {
     },
 
     configure(column: Record<string, any>): void {
-      const customOptions = column.customOptions ?? {}
+      const customOptions = (column.customOptions ?? {}) as BooleanCustomOptions
       const defaultState = true === customOptions.defaultState
       const toggleMethod = customOptions.toggleMethod ?? 'PATCH'
       const toggleIdField = customOptions.toggleIdField ?? 'id'
@@ -38,7 +38,7 @@ export function createBooleanColumnRenderer(toggleUrl: string): ColumnRenderer {
         const escapedId = escapeHtml(String(rowId ?? ''))
         const escapedUrl = escapeHtml(toggleUrl)
         const escapedField = escapeHtml(
-          customOptions.booleanToggleField ?? column.field ?? column.data ?? column.name ?? ''
+          customOptions.toggleField ?? column.field ?? column.data ?? column.name ?? ''
         )
         const escapedMethod = escapeHtml(toggleMethod.toUpperCase())
         const escapedEntityClass = escapeHtml(entityClass)
