@@ -31,7 +31,7 @@ final class UrlColumnResolverTest extends TestCase
         $resolver->resolveRoutes([$column]);
 
         $data = $column->jsonSerialize();
-        $this->assertSame('/users/{id}', $data['urlTemplate']);
+        $this->assertSame('/users/{id}', $data['customOptions']['template']);
     }
 
     #[Test]
@@ -87,7 +87,7 @@ final class UrlColumnResolverTest extends TestCase
         $resolver->resolveRoutes([$column]);
 
         $data = $column->jsonSerialize();
-        $this->assertSame('/app/users/{id}', $data['urlTemplate']);
+        $this->assertSame('/app/users/{id}', $data['customOptions']['template']);
     }
 
     private function createRouter(string $path, string $baseUrl = ''): RouterInterface

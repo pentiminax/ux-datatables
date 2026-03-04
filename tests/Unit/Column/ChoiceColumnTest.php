@@ -22,9 +22,7 @@ final class ChoiceColumnTest extends TestCase
     {
         $data = ChoiceColumn::new('status')->jsonSerialize();
 
-        $this->assertArrayNotHasKey('choices', $data);
-        $this->assertArrayNotHasKey('renderAsBadges', $data);
-        $this->assertArrayNotHasKey('defaultBadgeVariant', $data);
+        $this->assertArrayNotHasKey('customOptions', $data);
     }
 
     #[Test]
@@ -42,8 +40,8 @@ final class ChoiceColumnTest extends TestCase
             ->setChoices(['active' => 'Active', 'inactive' => 'Inactive'])
             ->jsonSerialize();
 
-        $this->assertArrayHasKey('choices', $data);
-        $this->assertSame(['active' => 'Active', 'inactive' => 'Inactive'], $data['choices']);
+        $this->assertArrayHasKey('choices', $data['customOptions']);
+        $this->assertSame(['active' => 'Active', 'inactive' => 'Inactive'], $data['customOptions']['choices']);
     }
 
     #[Test]
@@ -54,12 +52,12 @@ final class ChoiceColumnTest extends TestCase
             ->setChoices($input)
             ->jsonSerialize();
 
-        $this->assertArrayHasKey('choices', $data);
+        $this->assertArrayHasKey('choices', $data['customOptions']);
         $this->assertSame([
             'active'   => 'Active',
             'inactive' => 'Inactive',
             'pending'  => 'Pending',
-        ], $data['choices']);
+        ], $data['customOptions']['choices']);
     }
 
     public static function provideBackedEnumChoices(): iterable
@@ -84,10 +82,10 @@ final class ChoiceColumnTest extends TestCase
             ->renderAsBadges(['active' => 'success', 'inactive' => 'danger'], 'secondary')
             ->jsonSerialize();
 
-        $this->assertArrayHasKey('renderAsBadges', $data);
-        $this->assertArrayHasKey('defaultBadgeVariant', $data);
-        $this->assertSame(['active' => 'success', 'inactive' => 'danger'], $data['renderAsBadges']);
-        $this->assertSame('secondary', $data['defaultBadgeVariant']);
+        $this->assertArrayHasKey('renderAsBadges', $data['customOptions']);
+        $this->assertArrayHasKey('defaultBadgeVariant', $data['customOptions']);
+        $this->assertSame(['active' => 'success', 'inactive' => 'danger'], $data['customOptions']['renderAsBadges']);
+        $this->assertSame('secondary', $data['customOptions']['defaultBadgeVariant']);
     }
 
     #[Test]
@@ -98,8 +96,8 @@ final class ChoiceColumnTest extends TestCase
             ->renderAsBadges()
             ->jsonSerialize();
 
-        $this->assertSame([], $data['renderAsBadges']);
-        $this->assertSame('secondary', $data['defaultBadgeVariant']);
+        $this->assertSame([], $data['customOptions']['renderAsBadges']);
+        $this->assertSame('secondary', $data['customOptions']['defaultBadgeVariant']);
     }
 
     #[Test]

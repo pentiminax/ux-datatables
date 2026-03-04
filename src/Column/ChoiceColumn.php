@@ -70,18 +70,6 @@ class ChoiceColumn extends AbstractColumn
         return $this;
     }
 
-    public function jsonSerialize(): array
-    {
-        return array_merge(
-            parent::jsonSerialize(),
-            array_filter([
-                self::OPTION_CHOICES               => $this->getCustomOption(self::OPTION_CHOICES),
-                self::OPTION_RENDER_AS_BADGES      => $this->getCustomOption(self::OPTION_RENDER_AS_BADGES),
-                self::OPTION_DEFAULT_BADGE_VARIANT => $this->getCustomOption(self::OPTION_DEFAULT_BADGE_VARIANT),
-            ], static fn (mixed $value) => null !== $value && '' !== $value)
-        );
-    }
-
     /**
      * @param list<\BackedEnum> $choices
      *

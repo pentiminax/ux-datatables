@@ -5,12 +5,11 @@ export function createBooleanColumnRenderer(toggleUrl) {
             return true === column?.customOptions?.renderAsSwitch;
         },
         configure(column) {
-            const customOptions = column.customOptions ?? {};
+            const customOptions = (column.customOptions ?? {});
             const defaultState = true === customOptions.defaultState;
             const toggleMethod = customOptions.toggleMethod ?? 'PATCH';
             const toggleIdField = customOptions.toggleIdField ?? 'id';
             const entityClass = typeof customOptions.entityClass === 'string' ? customOptions.entityClass : '';
-
             column.type ??= 'num';
             column.render = (data, type, row) => {
                 const boolValue = parseBooleanValue(data, defaultState);
@@ -28,7 +27,7 @@ export function createBooleanColumnRenderer(toggleUrl) {
                 const disabled = entityClass === '' ? ' disabled' : '';
                 const escapedId = escapeHtml(String(rowId ?? ''));
                 const escapedUrl = escapeHtml(toggleUrl);
-                const escapedField = escapeHtml(customOptions.booleanToggleField ?? column.field ?? column.data ?? column.name ?? '');
+                const escapedField = escapeHtml(customOptions.toggleField ?? column.field ?? column.data ?? column.name ?? '');
                 const escapedMethod = escapeHtml(toggleMethod.toUpperCase());
                 const escapedEntityClass = escapeHtml(entityClass);
                 return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-entity="${escapedEntityClass}" data-method="${escapedMethod}"${checked}${disabled}></div>`;

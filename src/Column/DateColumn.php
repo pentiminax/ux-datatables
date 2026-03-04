@@ -13,7 +13,8 @@ class DateColumn extends AbstractColumn
 
     public static function new(string $name, string $title = ''): static
     {
-        return static::createWithType($name, $title, ColumnType::DATE);
+        return static::createWithType($name, $title, ColumnType::DATE)
+            ->setFormat(self::DEFAULT_DATE_FORMAT);
     }
 
     public function setFormat(?string $format): self
@@ -26,12 +27,5 @@ class DateColumn extends AbstractColumn
     public function getFormat(): ?string
     {
         return $this->getCustomOption(self::OPTION_DATE_FORMAT) ?? self::DEFAULT_DATE_FORMAT;
-    }
-
-    public function jsonSerialize(): array
-    {
-        return array_merge(parent::jsonSerialize(), [
-            self::OPTION_DATE_FORMAT => $this->getFormat(),
-        ]);
     }
 }

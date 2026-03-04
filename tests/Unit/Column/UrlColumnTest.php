@@ -41,7 +41,7 @@ final class UrlColumnTest extends TestCase
             ->openInNewTab()
             ->jsonSerialize();
 
-        $this->assertSame('_blank', $data['urlTarget']);
+        $this->assertSame('_blank', $data['customOptions']['target']);
     }
 
     #[Test]
@@ -51,7 +51,7 @@ final class UrlColumnTest extends TestCase
             ->setTarget('_self')
             ->jsonSerialize();
 
-        $this->assertSame('_self', $data['urlTarget']);
+        $this->assertSame('_self', $data['customOptions']['target']);
     }
 
     #[Test]
@@ -61,7 +61,7 @@ final class UrlColumnTest extends TestCase
             ->setDisplayValue('Visit')
             ->jsonSerialize();
 
-        $this->assertSame('Visit', $data['urlDisplayValue']);
+        $this->assertSame('Visit', $data['customOptions']['displayValue']);
     }
 
     #[Test]
@@ -71,8 +71,7 @@ final class UrlColumnTest extends TestCase
             ->route('app_user_show', ['id' => 'id'])
             ->jsonSerialize();
 
-        $this->assertArrayNotHasKey('urlRouteName', $data);
-        $this->assertSame(['id' => 'id'], $data['urlRouteParams']);
+        $this->assertSame(['id' => 'id'], $data['customOptions']['routeParams']);
     }
 
     #[Test]
@@ -82,7 +81,7 @@ final class UrlColumnTest extends TestCase
             ->showExternalIcon()
             ->jsonSerialize();
 
-        $this->assertTrue($data['urlShowExternalIcon']);
+        $this->assertTrue($data['customOptions']['showExternalIcon']);
     }
 
     #[Test]
@@ -92,7 +91,7 @@ final class UrlColumnTest extends TestCase
             ->showExternalIcon(false)
             ->jsonSerialize();
 
-        $this->assertFalse($data['urlShowExternalIcon']);
+        $this->assertFalse($data['customOptions']['showExternalIcon']);
     }
 
     #[Test]
@@ -102,7 +101,7 @@ final class UrlColumnTest extends TestCase
             ->setUrlTemplate('/users/{id}')
             ->jsonSerialize();
 
-        $this->assertSame('/users/{id}', $data['urlTemplate']);
+        $this->assertSame('/users/{id}', $data['customOptions']['template']);
     }
 
     #[Test]
@@ -110,12 +109,7 @@ final class UrlColumnTest extends TestCase
     {
         $data = UrlColumn::new('website')->jsonSerialize();
 
-        $this->assertArrayNotHasKey('urlTarget', $data);
-        $this->assertArrayNotHasKey('urlDisplayValue', $data);
-        $this->assertArrayNotHasKey('urlRouteName', $data);
-        $this->assertArrayNotHasKey('urlRouteParams', $data);
-        $this->assertArrayNotHasKey('urlTemplate', $data);
-        $this->assertArrayNotHasKey('urlShowExternalIcon', $data);
+        $this->assertArrayNotHasKey('customOptions', $data);
     }
 
     #[Test]
@@ -130,11 +124,11 @@ final class UrlColumnTest extends TestCase
             ->jsonSerialize();
 
         $this->assertSame('html', $data['type']);
-        $this->assertSame('_blank', $data['urlTarget']);
-        $this->assertSame('View', $data['urlDisplayValue']);
-        $this->assertSame(['id' => 'id'], $data['urlRouteParams']);
-        $this->assertSame('/users/{id}', $data['urlTemplate']);
-        $this->assertTrue($data['urlShowExternalIcon']);
+        $this->assertSame('_blank', $data['customOptions']['target']);
+        $this->assertSame('View', $data['customOptions']['displayValue']);
+        $this->assertSame(['id' => 'id'], $data['customOptions']['routeParams']);
+        $this->assertSame('/users/{id}', $data['customOptions']['template']);
+        $this->assertTrue($data['customOptions']['showExternalIcon']);
     }
 
     #[Test]

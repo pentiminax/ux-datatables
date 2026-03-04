@@ -58,4 +58,25 @@ final class BooleanColumnTest extends TestCase
 
         $this->assertSame('App\\Entity\\User', $data['customOptions']['entityClass']);
     }
+
+    #[Test]
+    public function it_serializes_toggle_field_in_custom_options(): void
+    {
+        $column = BooleanColumn::new('active');
+        $column->setCustomOption(BooleanColumn::OPTION_TOGGLE_FIELD, 'isActive');
+
+        $data = $column->jsonSerialize();
+
+        $this->assertSame('isActive', $data['customOptions']['toggleField']);
+    }
+
+    #[Test]
+    public function it_returns_toggle_field_via_getter(): void
+    {
+        $column = BooleanColumn::new('active');
+        $this->assertNull($column->getToggleField());
+
+        $column->setCustomOption(BooleanColumn::OPTION_TOGGLE_FIELD, 'isActive');
+        $this->assertSame('isActive', $column->getToggleField());
+    }
 }
