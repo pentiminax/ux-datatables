@@ -11,6 +11,8 @@ class TemplateColumn extends AbstractColumn
     public const string OPTION_TEMPLATE_PATH       = 'templatePath';
     public const string OPTION_TEMPLATE_PARAMETERS = 'templateParameters';
 
+    private array $templateParameters = [];
+
     public static function new(string $name, string $title = ''): static
     {
         return static::createWithType($name, $title, ColumnType::HTML);
@@ -24,7 +26,7 @@ class TemplateColumn extends AbstractColumn
         }
 
         $this->setCustomOption(self::OPTION_TEMPLATE_PATH, $template);
-        $this->setCustomOption(self::OPTION_TEMPLATE_PARAMETERS, $parameters);
+        $this->templateParameters = $parameters;
 
         return $this;
     }
@@ -41,14 +43,6 @@ class TemplateColumn extends AbstractColumn
 
     public function getTemplateParameters(): array
     {
-        return $this->getCustomOption(self::OPTION_TEMPLATE_PARAMETERS) ?? [];
-    }
-
-    public function jsonSerialize(): array
-    {
-        return array_merge(
-            parent::jsonSerialize(),
-            [self::OPTION_TEMPLATE_PATH => $this->getTemplate()]
-        );
+        return $this->templateParameters;
     }
 }

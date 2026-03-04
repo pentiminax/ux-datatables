@@ -8,12 +8,12 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class UrlColumn extends AbstractColumn
 {
-    public const string OPTION_TARGET             = 'urlTarget';
-    public const string OPTION_DISPLAY_VALUE      = 'urlDisplayValue';
-    public const string OPTION_ROUTE_NAME         = 'urlRouteName';
-    public const string OPTION_ROUTE_PARAMS       = 'urlRouteParams';
-    public const string OPTION_URL_TEMPLATE       = 'urlTemplate';
-    public const string OPTION_SHOW_EXTERNAL_ICON = 'urlShowExternalIcon';
+    public const string OPTION_TARGET             = 'target';
+    public const string OPTION_DISPLAY_VALUE      = 'displayValue';
+    public const string OPTION_ROUTE_NAME         = 'routeName';
+    public const string OPTION_ROUTE_PARAMS       = 'routeParams';
+    public const string OPTION_URL_TEMPLATE       = 'template';
+    public const string OPTION_SHOW_EXTERNAL_ICON = 'showExternalIcon';
 
     public static function new(string $name, string $title = ''): static
     {
@@ -75,19 +75,5 @@ class UrlColumn extends AbstractColumn
         $this->setCustomOption(self::OPTION_URL_TEMPLATE, $template);
 
         return $this;
-    }
-
-    public function jsonSerialize(): array
-    {
-        return array_merge(
-            parent::jsonSerialize(),
-            array_filter([
-                self::OPTION_TARGET             => $this->getCustomOption(self::OPTION_TARGET),
-                self::OPTION_DISPLAY_VALUE      => $this->getCustomOption(self::OPTION_DISPLAY_VALUE),
-                self::OPTION_ROUTE_PARAMS       => $this->getCustomOption(self::OPTION_ROUTE_PARAMS),
-                self::OPTION_URL_TEMPLATE       => $this->getCustomOption(self::OPTION_URL_TEMPLATE),
-                self::OPTION_SHOW_EXTERNAL_ICON => $this->getCustomOption(self::OPTION_SHOW_EXTERNAL_ICON),
-            ], static fn (mixed $value) => null !== $value && '' !== $value)
-        );
     }
 }

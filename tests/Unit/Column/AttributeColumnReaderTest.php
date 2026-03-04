@@ -160,9 +160,9 @@ final class AttributeColumnReaderTest extends TestCase
         $this->assertInstanceOf(ChoiceColumn::class, $columns[0]);
         $this->assertSame(
             ['active' => 'success', 'inactive' => 'danger'],
-            $columns[0]->jsonSerialize()['renderAsBadges']
+            $columns[0]->jsonSerialize()['customOptions']['renderAsBadges']
         );
-        $this->assertSame('secondary', $columns[0]->jsonSerialize()['defaultBadgeVariant']);
+        $this->assertSame('secondary', $columns[0]->jsonSerialize()['customOptions']['defaultBadgeVariant']);
     }
 
     #[Test]
