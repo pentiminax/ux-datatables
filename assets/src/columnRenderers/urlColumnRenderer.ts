@@ -1,22 +1,26 @@
 import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js'
-import { ColumnRenderer } from './types.js'
+import { ColumnRenderer, UrlCustomOptions } from './types.js'
 
 export const urlColumnRenderer: ColumnRenderer = {
   matches(column: Record<string, any>): boolean {
+    const opts = column?.customOptions
     return (
-      typeof column?.urlTemplate === 'string' ||
-      typeof column?.urlTarget === 'string' ||
-      typeof column?.urlDisplayValue === 'string' ||
-      true === column?.urlShowExternalIcon
+      typeof opts?.template === 'string' ||
+      typeof opts?.target === 'string' ||
+      typeof opts?.displayValue === 'string' ||
+      true === opts?.showExternalIcon
     )
   },
 
   configure(column: Record<string, any>): void {
-    const urlTemplate = column.urlTemplate
-    const routeParams = typeof column.urlRouteParams === 'object' ? column.urlRouteParams : null
-    const target = typeof column.urlTarget === 'string' ? column.urlTarget : null
-    const displayValue = typeof column.urlDisplayValue === 'string' ? column.urlDisplayValue : null
-    const showExternalIcon = true === column.urlShowExternalIcon
+    const customOptions = (column.customOptions ?? {}) as UrlCustomOptions
+    const urlTemplate = customOptions.template
+    const routeParams =
+      typeof customOptions.routeParams === 'object' ? customOptions.routeParams : null
+    const target = typeof customOptions.target === 'string' ? customOptions.target : null
+    const displayValue =
+      typeof customOptions.displayValue === 'string' ? customOptions.displayValue : null
+    const showExternalIcon = true === customOptions.showExternalIcon
 
     column.render = (data: any, type: string, row: Record<string, any>): any => {
       if (type !== 'display') {

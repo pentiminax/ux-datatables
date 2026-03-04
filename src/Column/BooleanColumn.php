@@ -13,7 +13,7 @@ class BooleanColumn extends AbstractColumn
     public const string OPTION_TOGGLE_METHOD    = 'toggleMethod';
     public const string OPTION_TOGGLE_ID_FIELD  = 'toggleIdField';
     public const string OPTION_ENTITY_CLASS     = 'entityClass';
-    public const string OPTION_TOGGLE_FIELD     = 'booleanToggleField';
+    public const string OPTION_TOGGLE_FIELD     = 'toggleField';
 
     public static function new(string $name, string $title = ''): static
     {
@@ -57,5 +57,10 @@ class BooleanColumn extends AbstractColumn
     public function getDefaultState(): bool
     {
         return $this->getCustomOption(self::OPTION_DEFAULT_STATE) ?? false;
+    }
+
+    public function getToggleField(): ?string
+    {
+        return $this->getCustomOption(self::OPTION_TOGGLE_FIELD);
     }
 }

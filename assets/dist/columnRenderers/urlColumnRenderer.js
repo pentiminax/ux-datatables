@@ -1,17 +1,19 @@
 import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js';
 export const urlColumnRenderer = {
     matches(column) {
-        return (typeof column?.urlTemplate === 'string' ||
-            typeof column?.urlTarget === 'string' ||
-            typeof column?.urlDisplayValue === 'string' ||
-            true === column?.urlShowExternalIcon);
+        const opts = column?.customOptions;
+        return (typeof opts?.template === 'string' ||
+            typeof opts?.target === 'string' ||
+            typeof opts?.displayValue === 'string' ||
+            true === opts?.showExternalIcon);
     },
     configure(column) {
-        const urlTemplate = column.urlTemplate;
-        const routeParams = typeof column.urlRouteParams === 'object' ? column.urlRouteParams : null;
-        const target = typeof column.urlTarget === 'string' ? column.urlTarget : null;
-        const displayValue = typeof column.urlDisplayValue === 'string' ? column.urlDisplayValue : null;
-        const showExternalIcon = true === column.urlShowExternalIcon;
+        const customOptions = (column.customOptions ?? {});
+        const urlTemplate = customOptions.template;
+        const routeParams = typeof customOptions.routeParams === 'object' ? customOptions.routeParams : null;
+        const target = typeof customOptions.target === 'string' ? customOptions.target : null;
+        const displayValue = typeof customOptions.displayValue === 'string' ? customOptions.displayValue : null;
+        const showExternalIcon = true === customOptions.showExternalIcon;
         column.render = (data, type, row) => {
             if (type !== 'display') {
                 return data;

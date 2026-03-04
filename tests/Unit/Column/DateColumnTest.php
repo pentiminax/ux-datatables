@@ -28,6 +28,16 @@ final class DateColumnTest extends TestCase
     {
         $column = DateColumn::new('createdAt')->setFormat('d/m/Y');
 
-        $this->assertSame('d/m/Y', $column->jsonSerialize()[DateColumn::OPTION_DATE_FORMAT]);
+        $data = $column->jsonSerialize();
+
+        $this->assertSame('d/m/Y', $data['customOptions']['dateFormat']);
+    }
+
+    #[Test]
+    public function it_serializes_default_format_in_custom_options(): void
+    {
+        $data = DateColumn::new('createdAt')->jsonSerialize();
+
+        $this->assertSame('Y-m-d', $data['customOptions']['dateFormat']);
     }
 }

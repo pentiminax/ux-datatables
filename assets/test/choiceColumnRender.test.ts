@@ -4,8 +4,10 @@ import { choiceColumnRenderer } from '../src/columnRenderers/choiceColumnRendere
 describe('ChoiceColumn render', () => {
   it('renders the escaped label when badges are disabled', () => {
     const column: Record<string, any> = {
-      choices: {
-        active: 'Active <b>',
+      customOptions: {
+        choices: {
+          active: 'Active <b>',
+        },
       },
     }
 
@@ -16,13 +18,15 @@ describe('ChoiceColumn render', () => {
 
   it('renders a badge with the mapped variant for display mode', () => {
     const column: Record<string, any> = {
-      choices: {
-        active: 'Active',
+      customOptions: {
+        choices: {
+          active: 'Active',
+        },
+        renderAsBadges: {
+          active: 'success',
+        },
+        defaultBadgeVariant: 'warning',
       },
-      renderAsBadges: {
-        active: 'success',
-      },
-      defaultBadgeVariant: 'warning',
     }
 
     choiceColumnRenderer.configure(column)
@@ -34,11 +38,13 @@ describe('ChoiceColumn render', () => {
 
   it('falls back to the default badge variant for unmapped values', () => {
     const column: Record<string, any> = {
-      choices: {
-        pending: 'Pending',
+      customOptions: {
+        choices: {
+          pending: 'Pending',
+        },
+        renderAsBadges: {},
+        defaultBadgeVariant: 'warning',
       },
-      renderAsBadges: {},
-      defaultBadgeVariant: 'warning',
     }
 
     choiceColumnRenderer.configure(column)
@@ -50,16 +56,27 @@ describe('ChoiceColumn render', () => {
 
   it('returns the plain label outside display mode', () => {
     const column: Record<string, any> = {
-      choices: {
-        active: 'Active',
-      },
-      renderAsBadges: {
-        active: 'success',
+      customOptions: {
+        choices: {
+          active: 'Active',
+        },
+        renderAsBadges: {
+          active: 'success',
+        },
       },
     }
 
     choiceColumnRenderer.configure(column)
 
     expect(column.render('active', 'filter')).toBe('Active')
+  })
+
+  it('matches columns with choices in customOptions', () => {
+    expect(choiceColumnRenderer.matches({ customOptions: { choices: { a: 'A' } } })).toBe(true)
+  })
+
+  it('does not match columns without customOptions choices', () => {
+    expect(choiceColumnRenderer.matches({ data: 'name' })).toBe(false)
+    expect(choiceColumnRenderer.matches({})).toBe(false)
   })
 })

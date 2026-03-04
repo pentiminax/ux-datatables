@@ -28,7 +28,7 @@ final class TemplateColumnTest extends TestCase
         $this->assertSame('status_display', $data['data']);
         $this->assertSame('status', $data['field']);
         $this->assertSame('html', $data['type']);
-        $this->assertSame('datatable/columns/status_badge.html.twig', $data['templatePath']);
+        $this->assertSame('datatable/columns/status_badge.html.twig', $data['customOptions']['templatePath']);
     }
 
     #[Test]
@@ -76,6 +76,7 @@ final class TemplateColumnTest extends TestCase
 
         $this->assertArrayNotHasKey('templateParameters', $data);
         $this->assertArrayNotHasKey(TemplateColumn::OPTION_TEMPLATE_PARAMETERS, $data);
+        $this->assertArrayNotHasKey('templateParameters', $data['customOptions'] ?? []);
     }
 
     #[Test]

@@ -1,22 +1,22 @@
 import { escapeHtml } from '../functions/htmlUtils.js'
-import { ColumnRenderer } from './types.js'
+import { ChoiceCustomOptions, ColumnRenderer } from './types.js'
 
 export const choiceColumnRenderer: ColumnRenderer = {
   matches(column: Record<string, any>): boolean {
-    return typeof column?.choices === 'object' && column.choices !== null
+    return typeof column?.customOptions?.choices === 'object' && column.customOptions.choices !== null
   },
 
   configure(column: Record<string, any>): void {
-    const choices = (column.choices ?? {}) as Record<string, string>
+    const customOptions = (column.customOptions ?? {}) as ChoiceCustomOptions
+    const choices = (customOptions.choices ?? {}) as Record<string, string>
     const badgesEnabled =
-      true === column.renderAsBadges ||
-      (typeof column.renderAsBadges === 'object' && column.renderAsBadges !== null)
+      true === customOptions.renderAsBadges ||
+      (typeof customOptions.renderAsBadges === 'object' && customOptions.renderAsBadges !== null)
     const badges =
-      typeof column.renderAsBadges === 'object' && column.renderAsBadges !== null
-        ? (column.renderAsBadges as Record<string, string>)
+      typeof customOptions.renderAsBadges === 'object' && customOptions.renderAsBadges !== null
+        ? (customOptions.renderAsBadges as Record<string, string>)
         : {}
-    const defaultBadgeVariant =
-      typeof column.defaultBadgeVariant === 'string' ? column.defaultBadgeVariant : 'secondary'
+    const defaultBadgeVariant = customOptions.defaultBadgeVariant || 'secondary'
 
     column.render = (data: any, type: string): any => {
       const key = String(data ?? '')
