@@ -85,8 +85,7 @@ const docsPages = (await getCollection('docs'))
               />
               <span
                 class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded border border-slate-600 px-1.5 py-0.5 text-[11px] text-slate-300"
-                data-doc-search-shortcut
-                >Ctrl+K</span
+                data-doc-search-shortcut>Ctrl+K</span
               >
               <div
                 class="absolute top-[calc(100%+0.5rem)] left-0 hidden w-full overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-xl"
@@ -125,7 +124,7 @@ const docsPages = (await getCollection('docs'))
     <Footer />
 
     <script is:inline define:vars={{ docsPages }}>
-      (() => {
+      ;(() => {
         const search = document.querySelector('[data-doc-search]')
         if (!search) return
 

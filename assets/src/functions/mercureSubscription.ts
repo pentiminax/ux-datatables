@@ -7,7 +7,7 @@ export interface MercureConfig {
 
 export function createMercureSubscription(
   config: MercureConfig,
-  onMessage: (event: MessageEvent) => void,
+  onMessage: (event: MessageEvent) => void
 ): EventSource {
   const url = new URL(config.hubUrl, window.location.href)
   url.searchParams.append('topic', config.topic)

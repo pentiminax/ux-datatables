@@ -37,7 +37,10 @@ new DataTable(
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ['`ajax(string $url, ?string $dataSrc = null, string $type = \'GET\')`', 'Configure Ajax endpoint and request mode'],
+    [
+      "`ajax(string $url, ?string $dataSrc = null, string $type = 'GET')`",
+      'Configure Ajax endpoint and request mode',
+    ],
     ['`data(array $data)`', 'Provide inline client-side data'],
     ['`serverSide(bool $serverSide = true)`', 'Enable server-side processing mode'],
     ['`apiPlatform(bool $enabled = true)`', 'Enable API Platform adapter behavior'],
@@ -53,7 +56,10 @@ new DataTable(
     ['`deferRender(bool $deferRender)`', 'Delay rendering of non-visible rows'],
     ['`info(bool $info)`', 'Show/hide table info summary'],
     ['`lengthChange(bool $lengthChange)`', 'Enable/disable page-size selector'],
-    ['`ordering(bool $handler = true, bool $indicators = true)`', 'Configure column ordering behavior'],
+    [
+      '`ordering(bool $handler = true, bool $indicators = true)`',
+      'Configure column ordering behavior',
+    ],
     ['`withoutOrdering()`', 'Disable ordering'],
     ['`paging(...)`', 'Configure pagination behavior'],
     ['`withoutPaging()`', 'Disable pagination'],
@@ -68,7 +74,10 @@ new DataTable(
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ['`layout(Feature $topStart, Feature $topEnd, Feature $bottomStart, Feature $bottomEnd)`', 'Position DataTables UI blocks'],
+    [
+      '`layout(Feature $topStart, Feature $topEnd, Feature $bottomStart, Feature $bottomEnd)`',
+      'Position DataTables UI blocks',
+    ],
     ['`displayStart(int $displayStart)`', 'Set initial row offset'],
     ['`lengthMenu(array $lengthMenu)`', 'Configure available page sizes'],
     ['`pageLength(int $pageLength)`', 'Set default page size'],

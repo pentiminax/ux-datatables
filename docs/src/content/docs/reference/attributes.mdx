@@ -19,7 +19,12 @@ Arguments:
   headers={['Argument', 'Type', 'Default', 'Description']}
   rows={[
     ['`entityClass`', '`string`', 'required', 'Doctrine entity class linked to the table'],
-    ['`serializationGroups`', '`string[]`', '`[]`', 'API Platform serialization groups for auto-detection'],
+    [
+      '`serializationGroups`',
+      '`string[]`',
+      '`[]`',
+      'API Platform serialization groups for auto-detection',
+    ],
   ]}
 />
 
@@ -44,7 +49,10 @@ Arguments:
   headers={['Group', 'Arguments']}
   rows={[
     ['Identity', '`type`, `name`, `title`'],
-    ['Visibility and behavior', '`orderable`, `searchable`, `visible`, `exportable`, `globalSearchable`'],
+    [
+      'Visibility and behavior',
+      '`orderable`, `searchable`, `visible`, `exportable`, `globalSearchable`',
+    ],
     ['Rendering', '`width`, `className`, `cellType`, `render`, `defaultContent`'],
     ['Data mapping', '`field`, `format`, `priority`'],
   ]}
