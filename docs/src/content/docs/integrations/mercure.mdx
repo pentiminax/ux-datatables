@@ -1,0 +1,80 @@
+---
+title: Mercure Integration
+description: Real-time DataTables refresh with Mercure SSE
+---
+
+# Mercure Integration
+
+Use Mercure when table data can change outside the current browser session and you want automatic refresh.
+
+## What The Integration Does
+
+When `mercure` is configured on a table:
+
+1. Backend options include a `mercure` object (`hubUrl`, `topic`, optional `withCredentials`, optional `debounceMs`).
+2. The Stimulus controller opens an `EventSource` to the hub with `?topic=...`.
+3. On each message, the controller emits a `datatables:mercure:message` event and triggers `table.ajax.reload(null, false)`.
+4. The SSE connection is closed automatically on controller `disconnect()`.
+
+## Minimal Setup
+
+```php
+#[AsDataTable(Book::class)]
+final class BookDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->mercure(
+                hubUrl: 'http://localhost/.well-known/mercure',
+                topic: 'https://example.com/books',
+            );
+    }
+}
+```
+
+Default topic is `datatables/{id}`. For the example above: `datatables/orders`.
+
+## Advanced Setup
+
+```php
+$dataTable->mercure(
+    hubUrl: '/.well-known/mercure',
+    topic: 'admin/books',
+    withCredentials: true,
+    debounceMs: 300,
+);
+```
+
+Notes:
+
+- `withCredentials` enables cookie/auth forwarding in the SSE request.
+- `debounceMs` is applied client-side before reload (`500ms` by default).
+
+## Publishing Updates
+
+If `symfony/mercure` is available, the bundle registers `MercureUpdatePublisher` and injects it into the Ajax edit controller.
+
+When boolean inline edit is called with a `topic`, the controller publishes:
+
+```json
+{
+  "type": "edit",
+  "id": "...",
+  "field": "..."
+}
+```
+
+You can also publish manually with `MercureUpdatePublisher::publish()` or `publishForDataTable()`.
+
+## Operational Notes
+
+- Mercure refresh uses `ajax.reload(...)`: tables configured only with static `data` will not auto-refresh from SSE.
+- No Mercure config means no SSE subscription (dynamic import is skipped).
+- If the table receives many events, tune `debounceMs` to protect backend load.
+
+## Cross Links
+
+- [/ux-datatables/integrations/api-platform/](/ux-datatables/integrations/api-platform/)
+- [/ux-datatables/reference/datatable/](/ux-datatables/reference/datatable/)
+- [/ux-datatables/guide/data-loading/](/ux-datatables/guide/data-loading/)
