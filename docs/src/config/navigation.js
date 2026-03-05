@@ -48,7 +48,10 @@ export const docsSidebarSections = [
     },
     {
         label: 'Integrations',
-        items: [{ label: 'API Platform', href: '/ux-datatables/integrations/api-platform/' }],
+        items: [
+            { label: 'API Platform', href: '/ux-datatables/integrations/api-platform/' },
+            { label: 'Mercure', href: '/ux-datatables/integrations/mercure/' },
+        ],
     },
     {
         label: 'Reference',
