@@ -3,7 +3,9 @@ import { ChoiceCustomOptions, ColumnRenderer } from './types.js'
 
 export const choiceColumnRenderer: ColumnRenderer = {
   matches(column: Record<string, any>): boolean {
-    return typeof column?.customOptions?.choices === 'object' && column.customOptions.choices !== null
+    return (
+      typeof column?.customOptions?.choices === 'object' && column.customOptions.choices !== null
+    )
   },
 
   configure(column: Record<string, any>): void {

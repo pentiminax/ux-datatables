@@ -73,9 +73,18 @@ ChoiceColumn::new('category', 'Category')
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ['`ChoiceColumn::new(string $name, string $title = \'\')`', 'Creates a new ChoiceColumn (type: `html`)'],
-    ['`setChoices(array|string $choices)`', 'Accepts a `value => label` array, a `BackedEnum` class-string, or a `BackedEnum::cases()` list'],
-    ['`renderAsBadges(array|bool $badgeSelector = [], string $defaultVariant = \'secondary\')`', 'Enables badge rendering with per-value Bootstrap color variants'],
+    [
+      "`ChoiceColumn::new(string $name, string $title = '')`",
+      'Creates a new ChoiceColumn (type: `html`)',
+    ],
+    [
+      '`setChoices(array|string $choices)`',
+      'Accepts a `value => label` array, a `BackedEnum` class-string, or a `BackedEnum::cases()` list',
+    ],
+    [
+      "`renderAsBadges(array|bool $badgeSelector = [], string $defaultVariant = 'secondary')`",
+      'Enables badge rendering with per-value Bootstrap color variants',
+    ],
   ]}
 />
 
