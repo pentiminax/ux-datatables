@@ -11,6 +11,7 @@ final readonly class AjaxEditRequestDto
         public string $field,
         public int $id,
         public bool $newValue,
+        public ?string $topic = null,
     ) {
     }
 }

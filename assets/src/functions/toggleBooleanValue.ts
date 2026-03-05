@@ -5,6 +5,7 @@ type ToggleBooleanPayload = {
   newValue: boolean
   url: string
   method?: string
+  topic?: string
 }
 
 export async function toggleBooleanValue({
@@ -14,13 +15,20 @@ export async function toggleBooleanValue({
   newValue,
   url,
   method = 'PATCH',
+  topic,
 }: ToggleBooleanPayload): Promise<Response> {
+  const body: Record<string, unknown> = { id: parseInt(id), entity, field, newValue }
+
+  if (topic !== undefined) {
+    body.topic = topic
+  }
+
   return await fetch(url, {
     method,
     headers: {
       'Content-Type': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
     },
-    body: JSON.stringify({ id: parseInt(id), entity, field, newValue }),
+    body: JSON.stringify(body),
   })
 }

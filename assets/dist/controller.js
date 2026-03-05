@@ -20,6 +20,7 @@ class default_1 extends Controller {
         super(...arguments);
         this.table = null;
         this.isDataTableInitialized = false;
+        this.eventSource = null;
     }
     async connect() {
         if (this.isDataTableInitialized) {
@@ -109,6 +110,13 @@ class default_1 extends Controller {
         }
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
+        if (this.isMercureEnabled(payload)) {
+            const { createMercureSubscription } = await import('./functions/mercureSubscription.js');
+            this.eventSource = createMercureSubscription(payload.mercure, (event) => {
+                this.dispatchEvent('mercure:message', { data: event.data, event });
+                this.table?.ajax?.reload(null, false);
+            });
+        }
         this.element.addEventListener('click', async (e) => {
             const target = e.target;
             if (target.matches('.delete-action')) {
@@ -155,6 +163,7 @@ class default_1 extends Controller {
                     entity,
                     newValue: target.checked,
                     method,
+                    topic: payload.mercure?.topic,
                 });
                 if (!response.ok) {
                     target.checked = previousState;
@@ -170,6 +179,10 @@ class default_1 extends Controller {
             }
         });
         this.isDataTableInitialized = true;
+    }
+    disconnect() {
+        this.eventSource?.close();
+        this.eventSource = null;
     }
     dispatchEvent(name, payload) {
         this.dispatch(name, {
@@ -206,6 +219,9 @@ class default_1 extends Controller {
     }
     isApiPlatformEnabled(payload) {
         return true === payload?.apiPlatform;
+    }
+    isMercureEnabled(payload) {
+        return !!payload?.mercure?.hubUrl && !!payload?.mercure?.topic;
     }
 }
 default_1.values = {

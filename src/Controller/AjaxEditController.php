@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Controller;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectRepository;
 use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
+use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
@@ -17,6 +18,7 @@ final class AjaxEditController
     public function __construct(
         private readonly ManagerRegistry $doctrine,
         private readonly PropertyAccessorInterface $propertyAccessor,
+        private readonly ?MercureUpdatePublisher $mercurePublisher = null,
     ) {
     }
 
@@ -44,6 +46,14 @@ final class AjaxEditController
         }
 
         $manager?->flush();
+
+        if (null !== $this->mercurePublisher && null !== $payload->topic) {
+            $this->mercurePublisher->publish($payload->topic, [
+                'type'  => 'edit',
+                'id'    => $payload->id,
+                'field' => $payload->field,
+            ]);
+        }
 
         return new Response($newValue ? '1' : '0');
     }

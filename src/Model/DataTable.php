@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Model;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
@@ -23,6 +24,8 @@ class DataTable
     private DataTableExtensions $extensions;
 
     private bool $templateColumnsRendered = false;
+
+    private ?MercureConfig $mercureConfig = null;
 
     public function __construct(
         private readonly string $id,
@@ -49,6 +52,10 @@ class DataTable
         $options = $this->options->getOptions();
 
         $this->addButtonsToLayout($options);
+
+        if (null !== $this->mercureConfig) {
+            $options['mercure'] = $this->mercureConfig->jsonSerialize();
+        }
 
         return $options;
     }
@@ -266,6 +273,36 @@ class DataTable
         $this->options['apiPlatform'] = $enabled;
 
         return $this;
+    }
+
+    /**
+     * Enable Mercure SSE real-time updates for this DataTable.
+     * Requires symfony/mercure-bundle to be installed.
+     *
+     * @param string      $hubUrl          The Mercure hub URL (e.g. "/.well-known/mercure")
+     * @param string|null $topic           The Mercure topic. Defaults to "datatables/{id}"
+     * @param bool        $withCredentials Whether to send credentials with the SSE request
+     * @param int|null    $debounceMs      Debounce delay in ms (default: 500)
+     */
+    public function mercure(
+        string $hubUrl,
+        ?string $topic = null,
+        bool $withCredentials = false,
+        ?int $debounceMs = null,
+    ): static {
+        $this->mercureConfig = new MercureConfig(
+            hubUrl: $hubUrl,
+            topic: $topic ?? \sprintf('datatables/%s', $this->id),
+            withCredentials: $withCredentials,
+            debounceMs: $debounceMs,
+        );
+
+        return $this;
+    }
+
+    public function getMercureConfig(): ?MercureConfig
+    {
+        return $this->mercureConfig;
     }
 
     /**
