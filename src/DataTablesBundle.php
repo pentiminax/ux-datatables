@@ -21,6 +21,7 @@ use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
+use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -188,6 +189,16 @@ class DataTablesBundle extends AbstractBundle
             $container->services()
                 ->alias(ApiResourceCollectionUrlResolverInterface::class, 'datatables.api_platform.collection_url_resolver')
                 ->private();
+        }
+
+        if (interface_exists(\Symfony\Component\Mercure\HubInterface::class)) {
+            $container->services()
+                ->set('datatables.mercure.publisher', MercureUpdatePublisher::class)
+                ->arg(0, service('mercure.hub.default'))
+                ->private();
+
+            $builder->getDefinition('datatables.controller.ajax_edit')
+                ->addArgument(new Reference('datatables.mercure.publisher'));
         }
     }
 
