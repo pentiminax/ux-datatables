@@ -31,11 +31,13 @@
     "symfony/property-info": "^7.0 || ^8.0",
     "symfony/twig-bundle": "^7.0 || ^8.0",
     "symfony/var-dumper": "^7.0 || ^8.0",
-    "symfony/maker-bundle": "^1.65"
+    "symfony/maker-bundle": "^1.65",
+    "symfony/mercure": "^0.7.2"
   },
   "suggest": {
     "api-platform/core": "To auto-detect columns from API Platform metadata.",
-    "symfony/maker-bundle": "To use the make:datatable command."
+    "symfony/maker-bundle": "To use the make:datatable command.",
+    "symfony/mercure-bundle": "To enable real-time DataTable updates via Mercure SSE."
   },
   "conflict": {
     "symfony/flex": "<1.13"
