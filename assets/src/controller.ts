@@ -27,6 +27,7 @@ export default class extends Controller {
 
   private table: DataTable<any> | null = null
   private isDataTableInitialized = false
+  private eventSource: EventSource | null = null
 
   async connect() {
     if (this.isDataTableInitialized) {
@@ -138,6 +139,14 @@ export default class extends Controller {
 
     this.dispatchEvent('connect', { table: this.table })
 
+    if (this.isMercureEnabled(payload)) {
+      const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
+      this.eventSource = createMercureSubscription(payload.mercure, (event) => {
+        this.dispatchEvent('mercure:message', { data: event.data, event })
+        this.table?.ajax?.reload(null, false)
+      })
+    }
+
     this.element.addEventListener('click', async (e: MouseEvent): Promise<void> => {
       const target = e.target as HTMLElement
 
@@ -194,6 +203,7 @@ export default class extends Controller {
           entity,
           newValue: target.checked,
           method,
+          topic: payload.mercure?.topic,
         })
 
         if (!response.ok) {
@@ -209,6 +219,11 @@ export default class extends Controller {
     })
 
     this.isDataTableInitialized = true
+  }
+
+  disconnect() {
+    this.eventSource?.close()
+    this.eventSource = null
   }
 
   private dispatchEvent(name: string, payload: any) {
@@ -256,5 +271,9 @@ export default class extends Controller {
 
   private isApiPlatformEnabled(payload: Record<string, any>): boolean {
     return true === payload?.apiPlatform
+  }
+
+  private isMercureEnabled(payload: Record<string, any>): boolean {
+    return !!payload?.mercure?.hubUrl && !!payload?.mercure?.topic
   }
 }

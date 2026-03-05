@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
@@ -109,5 +110,64 @@ final class DataTableTest extends TestCase
         ];
 
         $this->assertSame($expectedPaging, $table->getOption('paging'));
+    }
+
+    #[Test]
+    public function it_configures_mercure_with_default_topic(): void
+    {
+        $table = (new DataTable('ProductDataTable'))
+            ->mercure(hubUrl: '/.well-known/mercure');
+
+        $config = $table->getMercureConfig();
+
+        $this->assertInstanceOf(MercureConfig::class, $config);
+        $this->assertSame('/.well-known/mercure', $config->hubUrl);
+        $this->assertSame('datatables/ProductDataTable', $config->topic);
+        $this->assertFalse($config->withCredentials);
+        $this->assertNull($config->debounceMs);
+    }
+
+    #[Test]
+    public function it_configures_mercure_with_custom_topic(): void
+    {
+        $table = (new DataTable('ProductDataTable'))
+            ->mercure(hubUrl: '/.well-known/mercure', topic: 'my/custom/topic');
+
+        $config = $table->getMercureConfig();
+
+        $this->assertSame('my/custom/topic', $config?->topic);
+    }
+
+    #[Test]
+    public function it_includes_mercure_in_get_options(): void
+    {
+        $table = (new DataTable('ProductDataTable'))
+            ->mercure(hubUrl: '/.well-known/mercure', debounceMs: 300);
+
+        $options = $table->getOptions();
+
+        $this->assertArrayHasKey('mercure', $options);
+        $this->assertSame([
+            'hubUrl'     => '/.well-known/mercure',
+            'topic'      => 'datatables/ProductDataTable',
+            'debounceMs' => 300,
+        ], $options['mercure']);
+    }
+
+    #[Test]
+    public function it_does_not_include_mercure_in_get_options_when_not_configured(): void
+    {
+        $table   = new DataTable('ProductDataTable');
+        $options = $table->getOptions();
+
+        $this->assertArrayNotHasKey('mercure', $options);
+    }
+
+    #[Test]
+    public function mercure_method_is_fluent(): void
+    {
+        $table = new DataTable('test');
+
+        $this->assertSame($table, $table->mercure('/.well-known/mercure'));
     }
 }
