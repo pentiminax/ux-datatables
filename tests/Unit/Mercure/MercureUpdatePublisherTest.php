@@ -61,7 +61,7 @@ final class MercureUpdatePublisherTest extends TestCase
         $hub->expects($this->once())
             ->method('publish')
             ->with($this->callback(function (Update $update) {
-                return 'datatables/ProductDataTable' === $update->getTopics()[0];
+                return '/datatables/product-data-tables/{id}' === $update->getTopics()[0];
             }))
             ->willReturn('urn:uuid:abcd');
 
