@@ -279,20 +279,20 @@ class DataTable
      * Enable Mercure SSE real-time updates for this DataTable.
      * Requires symfony/mercure-bundle to be installed.
      *
-     * @param string      $hubUrl          The Mercure hub URL (e.g. "/.well-known/mercure")
-     * @param string|null $topic           The Mercure topic. Defaults to "datatables/{id}"
-     * @param bool        $withCredentials Whether to send credentials with the SSE request
-     * @param int|null    $debounceMs      Debounce delay in ms (default: 500)
+     * @param string   $hubUrl          The Mercure hub URL (e.g. "/.well-known/mercure")
+     * @param string[] $topics          Mercure topics. Defaults to ["datatables/{id}"]
+     * @param bool     $withCredentials Whether to send credentials with the SSE request
+     * @param int|null $debounceMs      Debounce delay in ms (default: 500)
      */
     public function mercure(
         string $hubUrl,
-        ?string $topic = null,
+        array $topics = [],
         bool $withCredentials = false,
         ?int $debounceMs = null,
     ): static {
         $this->mercureConfig = new MercureConfig(
             hubUrl: $hubUrl,
-            topic: $topic ?? \sprintf('datatables/%s', $this->id),
+            topics: [] !== $topics ? $topics : [\sprintf('datatables/%s', $this->id)],
             withCredentials: $withCredentials,
             debounceMs: $debounceMs,
         );

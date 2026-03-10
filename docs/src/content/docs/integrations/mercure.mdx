@@ -7,11 +7,13 @@ description: Real-time DataTables refresh with Mercure SSE
 
 Use Mercure when table data can change outside the current browser session and you want automatic refresh.
 
+`MercureConfig` can now be configured manually through `DataTable::mercure(...)` or auto-resolved from `#[AsDataTable(..., mercure: true)]`.
+
 ## What The Integration Does
 
 When `mercure` is configured on a table:
 
-1. Backend options include a `mercure` object (`hubUrl`, `topic`, optional `withCredentials`, optional `debounceMs`).
+1. Backend options include a `mercure` object (`hubUrl`, `topics`, optional `withCredentials`, optional `debounceMs`).
 2. The Stimulus controller opens an `EventSource` to the hub with `?topic=...`.
 3. On each message, the controller emits a `datatables:mercure:message` event and triggers `table.ajax.reload(null, false)`.
 4. The SSE connection is closed automatically on controller `disconnect()`.
@@ -19,28 +21,25 @@ When `mercure` is configured on a table:
 ## Minimal Setup
 
 ```php
-#[AsDataTable(Book::class)]
+#[AsDataTable(Book::class, mercure: true)]
 final class BookDataTable extends AbstractDataTable
 {
-    public function configureDataTable(DataTable $table): DataTable
-    {
-        return $table
-            ->mercure(
-                hubUrl: 'http://localhost/.well-known/mercure',
-                topic: 'https://example.com/books',
-            );
-    }
 }
 ```
 
-Default topic is `datatables/{id}`. For the example above: `datatables/orders`.
+When auto-resolution is enabled:
+
+- the bundle reads the default Symfony Mercure hub URL
+- explicit API Platform `mercure.topics` are reused when available
+- otherwise the bundle falls back to an item IRI template (for example `/api/books/{id}`)
+- if no API Platform item metadata is available, it falls back to `/datatables/books/{id}`
 
 ## Advanced Setup
 
 ```php
 $dataTable->mercure(
     hubUrl: '/.well-known/mercure',
-    topic: 'admin/books',
+    topics: ['admin/books', 'admin/authors'],
     withCredentials: true,
     debounceMs: 300,
 );
@@ -50,12 +49,13 @@ Notes:
 
 - `withCredentials` enables cookie/auth forwarding in the SSE request.
 - `debounceMs` is applied client-side before reload (`500ms` by default).
+- `topics` accepts one or many topics.
 
 ## Publishing Updates
 
 If `symfony/mercure` is available, the bundle registers `MercureUpdatePublisher` and injects it into the Ajax edit controller.
 
-When boolean inline edit is called with a `topic`, the controller publishes:
+When boolean inline edit is called with `topics`, the controller publishes:
 
 ```json
 {
@@ -72,6 +72,7 @@ You can also publish manually with `MercureUpdatePublisher::publish()` or `publi
 - Mercure refresh uses `ajax.reload(...)`: tables configured only with static `data` will not auto-refresh from SSE.
 - No Mercure config means no SSE subscription (dynamic import is skipped).
 - If the table receives many events, tune `debounceMs` to protect backend load.
+- `private: true` from API Platform metadata is not mapped automatically to `withCredentials`.
 
 ## Cross Links
 

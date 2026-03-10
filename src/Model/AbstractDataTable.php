@@ -18,6 +18,7 @@ use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
+use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
@@ -58,6 +59,7 @@ abstract class AbstractDataTable implements DataTableInterface
         protected ?ColumnAutoDetectorInterface $columnAutoDetector = null,
         protected ?EntityManagerInterface $em = null,
         protected ?ApiResourceCollectionUrlResolverInterface $apiResourceCollectionUrlResolver = null,
+        protected ?MercureConfigResolverInterface $mercureConfigResolver = null,
         protected ?AttributeColumnReader $attributeColumnReader = null,
         protected ?UrlColumnResolver $urlColumnResolver = null,
         protected ?TemplateColumnRenderer $templateColumnRenderer = null,
@@ -131,31 +133,8 @@ abstract class AbstractDataTable implements DataTableInterface
 
     public function prepareForRendering(): void
     {
-        if (null !== $this->table->getOption('ajax')) {
-            return;
-        }
-
-        if (null !== $this->table->getOption('data')) {
-            return;
-        }
-
-        if (null === $this->apiResourceCollectionUrlResolver) {
-            return;
-        }
-
-        $asDataTable = $this->getAsDataTableAttribute();
-        if (null === $asDataTable) {
-            return;
-        }
-
-        $collectionUrl = $this->apiResourceCollectionUrlResolver->resolveCollectionUrl($asDataTable->entityClass);
-
-        if (null === $collectionUrl) {
-            return;
-        }
-
-        $this->table->ajax($collectionUrl);
-        $this->table->apiPlatform();
+        $this->configureApiPlatformAjax();
+        $this->configureMercure();
     }
 
     public function getDataTable(): DataTable
@@ -393,6 +372,67 @@ abstract class AbstractDataTable implements DataTableInterface
     private function configureUrlColumns(): void
     {
         $this->urlColumnResolver?->resolveRoutes($this->columns);
+    }
+
+    private function configureApiPlatformAjax(): void
+    {
+        if (null !== $this->table->getOption('ajax')) {
+            return;
+        }
+
+        if (null !== $this->table->getOption('data')) {
+            return;
+        }
+
+        if (null === $this->apiResourceCollectionUrlResolver) {
+            return;
+        }
+
+        $asDataTable = $this->getAsDataTableAttribute();
+        if (null === $asDataTable) {
+            return;
+        }
+
+        $collectionUrl = $this->apiResourceCollectionUrlResolver->resolveCollectionUrl($asDataTable->entityClass);
+
+        if (null === $collectionUrl) {
+            return;
+        }
+
+        $this->table->ajax($collectionUrl);
+        $this->table->apiPlatform();
+    }
+
+    private function configureMercure(): void
+    {
+        if (null !== $this->table->getMercureConfig()) {
+            return;
+        }
+
+        $asDataTable = $this->getAsDataTableAttribute();
+        if (null === $asDataTable || !$asDataTable->mercure) {
+            return;
+        }
+
+        if (null !== $this->table->getOption('data') && null === $this->table->getOption('ajax')) {
+            return;
+        }
+
+        if (null === $this->mercureConfigResolver) {
+            return;
+        }
+
+        $mercureConfig = $this->mercureConfigResolver->resolveMercureConfig($asDataTable->entityClass);
+        if (null === $mercureConfig) {
+            return;
+        }
+
+        $this->table->mercure(
+            hubUrl: $mercureConfig->hubUrl,
+            topics: $mercureConfig->topics,
+            withCredentials: $mercureConfig->withCredentials,
+            debounceMs: $mercureConfig->debounceMs,
+        );
     }
 
     private function getAsDataTableAttribute(): ?AsDataTable

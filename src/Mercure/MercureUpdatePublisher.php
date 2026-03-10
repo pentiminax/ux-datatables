@@ -15,10 +15,10 @@ final class MercureUpdatePublisher
     ) {
     }
 
-    public function publish(string $topic, array $data = []): string
+    public function publish(string|array $topics, array $data = []): string
     {
         $update = new Update(
-            topics: $topic,
+            topics: $topics,
             data: json_encode($data)
         );
 
@@ -33,6 +33,6 @@ final class MercureUpdatePublisher
             throw new \LogicException('The DataTable does not have Mercure configured.');
         }
 
-        return $this->publish($config->topic, $data);
+        return $this->publish($config->topics, $data);
     }
 }
