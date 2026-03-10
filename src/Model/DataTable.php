@@ -280,7 +280,7 @@ class DataTable
      * Requires symfony/mercure-bundle to be installed.
      *
      * @param string   $hubUrl          The Mercure hub URL (e.g. "/.well-known/mercure")
-     * @param string[] $topics          Mercure topics. Defaults to ["datatables/{id}"]
+     * @param string[] $topics          Mercure topics. Defaults to ["/datatables/{pluralized-id}/{id}"]
      * @param bool     $withCredentials Whether to send credentials with the SSE request
      * @param int|null $debounceMs      Debounce delay in ms (default: 500)
      */
@@ -292,7 +292,7 @@ class DataTable
     ): static {
         $this->mercureConfig = new MercureConfig(
             hubUrl: $hubUrl,
-            topics: [] !== $topics ? $topics : [\sprintf('datatables/%s', $this->id)],
+            topics: [] !== $topics ? $topics : [$this->buildFallbackMercureTopic()],
             withCredentials: $withCredentials,
             debounceMs: $debounceMs,
         );
@@ -512,5 +512,25 @@ class DataTable
                 break;
             }
         }
+    }
+
+    private function buildFallbackMercureTopic(): string
+    {
+        $slug = strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $this->id));
+
+        return '/datatables/'.$this->pluralize($slug).'/{id}';
+    }
+
+    private function pluralize(string $value): string
+    {
+        if (preg_match('/[^aeiou]y$/', $value)) {
+            return substr($value, 0, -1).'ies';
+        }
+
+        if (preg_match('/(s|x|z|ch|sh)$/', $value)) {
+            return $value.'es';
+        }
+
+        return $value.'s';
     }
 }
