@@ -25,7 +25,7 @@ export default class extends Controller {
     view: Object,
   }
 
-  private table: DataTable<any> | null = null
+  private table: DataTableWithAjax | null = null
   private isDataTableInitialized = false
   private eventSource: EventSource | null = null
 
@@ -135,7 +135,7 @@ export default class extends Controller {
       }))
     }
 
-    this.table = new DataTable(this.element as HTMLElement, payload)
+    this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
 
     this.dispatchEvent('connect', { table: this.table })
 
@@ -158,7 +158,7 @@ export default class extends Controller {
           const response = await deleteRow({ url, id })
 
           if (response.ok) {
-            this.table?.ajax.reload()
+            this.table?.ajax?.reload()
           }
         } else {
           console.error('Missing URL or ID for delete action')
@@ -203,7 +203,7 @@ export default class extends Controller {
           entity,
           newValue: target.checked,
           method,
-          topic: payload.mercure?.topic,
+          topics: this.getMercureTopics(payload),
         })
 
         if (!response.ok) {
@@ -274,6 +274,22 @@ export default class extends Controller {
   }
 
   private isMercureEnabled(payload: Record<string, any>): boolean {
-    return !!payload?.mercure?.hubUrl && !!payload?.mercure?.topic
+    return !!payload?.mercure?.hubUrl && this.getMercureTopics(payload).length > 0
+  }
+
+  private getMercureTopics(payload: Record<string, any>): string[] {
+    const topics = payload?.mercure?.topics
+
+    if (Array.isArray(topics) && topics.length > 0) {
+      return topics.filter((topic: unknown): topic is string => typeof topic === 'string' && topic.length > 0)
+    }
+
+    return []
+  }
+}
+
+type DataTableWithAjax = DataTable<any> & {
+  ajax?: {
+    reload: (callback?: null, resetPaging?: boolean) => void
   }
 }

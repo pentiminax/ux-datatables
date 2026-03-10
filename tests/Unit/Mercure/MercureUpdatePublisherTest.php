@@ -70,6 +70,24 @@ final class MercureUpdatePublisherTest extends TestCase
     }
 
     #[Test]
+    public function it_publishes_all_datatable_topics(): void
+    {
+        $table = (new DataTable('ProductDataTable'))
+            ->mercure(hubUrl: '/.well-known/mercure', topics: ['/api/products/{id}', '/api/categories/{id}']);
+
+        $hub = $this->createMock(HubInterface::class);
+        $hub->expects($this->once())
+            ->method('publish')
+            ->with($this->callback(function (Update $update) {
+                return ['/api/products/{id}', '/api/categories/{id}'] === $update->getTopics();
+            }))
+            ->willReturn('urn:uuid:topics');
+
+        $publisher = new MercureUpdatePublisher($hub);
+        $publisher->publishForDataTable($table, ['action' => 'updated']);
+    }
+
+    #[Test]
     public function it_throws_when_datatable_has_no_mercure_config(): void
     {
         $hub       = $this->createMock(HubInterface::class);

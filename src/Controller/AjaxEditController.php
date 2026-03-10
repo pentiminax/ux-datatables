@@ -47,8 +47,8 @@ final class AjaxEditController
 
         $manager?->flush();
 
-        if (null !== $this->mercurePublisher && null !== $payload->topic) {
-            $this->mercurePublisher->publish($payload->topic, [
+        if (null !== $this->mercurePublisher && [] !== $payload->topics) {
+            $this->mercurePublisher->publish($payload->topics, [
                 'type'  => 'edit',
                 'id'    => $payload->id,
                 'field' => $payload->field,

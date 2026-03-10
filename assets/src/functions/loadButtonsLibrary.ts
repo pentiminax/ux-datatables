@@ -6,7 +6,7 @@ import pdfMake from 'pdfmake'
 import 'pdfmake/build/vfs_fonts'
 
 export async function loadButtonsLibrary(
-  DataTable: DataTable,
+  DataTable: typeof import('datatables.net/types/types').default,
   stylesheet: CSSStyleSheet | null
 ): Promise<void> {
   ;(await import('datatables.net-buttons')).default
