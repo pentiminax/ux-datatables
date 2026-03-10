@@ -13,6 +13,7 @@ final class AsDataTable
     public function __construct(
         public readonly string $entityClass,
         public readonly array $serializationGroups = [],
+        public readonly bool $mercure = false,
     ) {
     }
 }

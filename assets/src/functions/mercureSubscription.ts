@@ -1,6 +1,6 @@
 export interface MercureConfig {
   hubUrl: string
-  topic: string
+  topics: string[]
   withCredentials?: boolean
   debounceMs?: number
 }
@@ -10,7 +10,10 @@ export function createMercureSubscription(
   onMessage: (event: MessageEvent) => void
 ): EventSource {
   const url = new URL(config.hubUrl, window.location.href)
-  url.searchParams.append('topic', config.topic)
+
+  for (const topic of config.topics) {
+    url.searchParams.append('topic', topic)
+  }
 
   const eventSource = new EventSource(url.toString(), {
     withCredentials: config.withCredentials ?? false,

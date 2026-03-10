@@ -20,12 +20,12 @@ final class MercureConfigTest extends TestCase
     {
         $config = new MercureConfig(
             hubUrl: '/.well-known/mercure',
-            topic: 'datatables/MyTable',
+            topics: ['datatables/MyTable'],
         );
 
         $this->assertSame([
             'hubUrl' => '/.well-known/mercure',
-            'topic'  => 'datatables/MyTable',
+            'topics' => ['datatables/MyTable'],
         ], $config->jsonSerialize());
     }
 
@@ -34,7 +34,7 @@ final class MercureConfigTest extends TestCase
     {
         $config = new MercureConfig(
             hubUrl: '/.well-known/mercure',
-            topic: 'datatables/MyTable',
+            topics: ['datatables/MyTable'],
             withCredentials: false,
         );
 
@@ -48,7 +48,7 @@ final class MercureConfigTest extends TestCase
     {
         $config = new MercureConfig(
             hubUrl: '/.well-known/mercure',
-            topic: 'datatables/MyTable',
+            topics: ['datatables/MyTable'],
             withCredentials: true,
         );
 
@@ -62,7 +62,7 @@ final class MercureConfigTest extends TestCase
     {
         $config = new MercureConfig(
             hubUrl: '/.well-known/mercure',
-            topic: 'datatables/MyTable',
+            topics: ['datatables/MyTable'],
         );
 
         $this->assertArrayNotHasKey('debounceMs', $config->jsonSerialize());
@@ -73,7 +73,7 @@ final class MercureConfigTest extends TestCase
     {
         $config = new MercureConfig(
             hubUrl: '/.well-known/mercure',
-            topic: 'datatables/MyTable',
+            topics: ['datatables/MyTable'],
             debounceMs: 1000,
         );
 
@@ -85,16 +85,27 @@ final class MercureConfigTest extends TestCase
     {
         $config = new MercureConfig(
             hubUrl: '/.well-known/mercure',
-            topic: 'datatables/MyTable',
+            topics: ['datatables/MyTable'],
             withCredentials: true,
             debounceMs: 300,
         );
 
         $this->assertSame([
             'hubUrl'          => '/.well-known/mercure',
-            'topic'           => 'datatables/MyTable',
+            'topics'          => ['datatables/MyTable'],
             'withCredentials' => true,
             'debounceMs'      => 300,
         ], $config->jsonSerialize());
+    }
+
+    #[Test]
+    public function it_normalizes_multiple_topics(): void
+    {
+        $config = new MercureConfig(
+            hubUrl: '/.well-known/mercure',
+            topics: ['/api/books/{id}', '/api/authors/{id}'],
+        );
+
+        $this->assertSame(['/api/books/{id}', '/api/authors/{id}'], $config->topics);
     }
 }

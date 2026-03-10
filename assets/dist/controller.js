@@ -125,7 +125,7 @@ class default_1 extends Controller {
                 if (url && id) {
                     const response = await deleteRow({ url, id });
                     if (response.ok) {
-                        this.table?.ajax.reload();
+                        this.table?.ajax?.reload();
                     }
                 }
                 else {
@@ -163,7 +163,7 @@ class default_1 extends Controller {
                     entity,
                     newValue: target.checked,
                     method,
-                    topic: payload.mercure?.topic,
+                    topics: this.getMercureTopics(payload),
                 });
                 if (!response.ok) {
                     target.checked = previousState;
@@ -221,7 +221,14 @@ class default_1 extends Controller {
         return true === payload?.apiPlatform;
     }
     isMercureEnabled(payload) {
-        return !!payload?.mercure?.hubUrl && !!payload?.mercure?.topic;
+        return !!payload?.mercure?.hubUrl && this.getMercureTopics(payload).length > 0;
+    }
+    getMercureTopics(payload) {
+        const topics = payload?.mercure?.topics;
+        if (Array.isArray(topics) && topics.length > 0) {
+            return topics.filter((topic) => typeof topic === 'string' && topic.length > 0);
+        }
+        return [];
     }
 }
 default_1.values = {

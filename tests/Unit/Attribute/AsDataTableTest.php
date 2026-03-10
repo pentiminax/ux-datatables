@@ -7,13 +7,19 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Attribute;
 use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
+use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithBooleanColumn;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithData;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualAjax;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualMercure;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualOverride;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureAndData;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureAndManualAjax;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithoutAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithServerSide;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\ToggleEntityFixture;
@@ -33,6 +39,7 @@ final class AsDataTableTest extends TestCase
         $attribute = new AsDataTable(entityClass: \stdClass::class);
 
         $this->assertSame(\stdClass::class, $attribute->entityClass);
+        $this->assertFalse($attribute->mercure);
     }
 
     #[Test]
@@ -46,6 +53,7 @@ final class AsDataTableTest extends TestCase
         $instance = $attributes[0]->newInstance();
         $this->assertInstanceOf(AsDataTable::class, $instance);
         $this->assertSame(\stdClass::class, $instance->entityClass);
+        $this->assertFalse($instance->mercure);
     }
 
     #[Test]
@@ -200,5 +208,85 @@ final class AsDataTableTest extends TestCase
         $table->prepareForRendering();
 
         $this->assertNull($table->getDataTable()->getOption('ajax'));
+    }
+
+    #[Test]
+    public function it_auto_configures_mercure_for_attribute(): void
+    {
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver
+            ->expects($this->once())
+            ->method('resolveMercureConfig')
+            ->with(\stdClass::class)
+            ->willReturn(new MercureConfig(
+                hubUrl: 'http://localhost/.well-known/mercure',
+                topics: ['/api/books/{id}'],
+            ));
+
+        $table = new TestDataTableWithMercureAttribute(mercureConfigResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertSame([
+            'hubUrl' => 'http://localhost/.well-known/mercure',
+            'topics' => ['/api/books/{id}'],
+        ], $table->getDataTable()->getOptions()['mercure']);
+    }
+
+    #[Test]
+    public function it_auto_configures_mercure_with_manual_ajax(): void
+    {
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver
+            ->expects($this->once())
+            ->method('resolveMercureConfig')
+            ->with(\stdClass::class)
+            ->willReturn(new MercureConfig(
+                hubUrl: 'http://localhost/.well-known/mercure',
+                topics: ['/api/books/{id}', '/api/authors/{id}'],
+            ));
+
+        $table = new TestDataTableWithMercureAndManualAjax(mercureConfigResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertSame([
+            'type' => 'GET',
+            'url'  => '/custom-endpoint',
+        ], $table->getDataTable()->getOption('ajax'));
+
+        $this->assertSame([
+            'hubUrl' => 'http://localhost/.well-known/mercure',
+            'topics' => ['/api/books/{id}', '/api/authors/{id}'],
+        ], $table->getDataTable()->getOptions()['mercure']);
+    }
+
+    #[Test]
+    public function it_does_not_auto_configure_mercure_for_static_data(): void
+    {
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver->expects($this->never())->method('resolveMercureConfig');
+
+        $table = new TestDataTableWithMercureAndData(mercureConfigResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertArrayNotHasKey('mercure', $table->getDataTable()->getOptions());
+    }
+
+    #[Test]
+    public function it_keeps_manual_mercure_configuration(): void
+    {
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver->expects($this->never())->method('resolveMercureConfig');
+
+        $table = new TestDataTableWithManualMercure(mercureConfigResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertSame([
+            'hubUrl' => '/.well-known/mercure',
+            'topics' => ['manual/topic'],
+        ], $table->getDataTable()->getOptions()['mercure']);
     }
 }

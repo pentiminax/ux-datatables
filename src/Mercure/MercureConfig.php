@@ -6,19 +6,32 @@ namespace Pentiminax\UX\DataTables\Mercure;
 
 final class MercureConfig implements \JsonSerializable
 {
+    /**
+     * @var string[]
+     */
+    public readonly array $topics;
+
     public function __construct(
         public readonly string $hubUrl,
-        public readonly string $topic,
+        array $topics,
         public readonly bool $withCredentials = false,
         public readonly ?int $debounceMs = null,
     ) {
+        $this->topics = array_values(array_filter(
+            $topics,
+            static fn (mixed $value): bool => \is_string($value) && '' !== $value
+        ));
+
+        if ([] === $this->topics) {
+            throw new \InvalidArgumentException('Mercure topics cannot be empty.');
+        }
     }
 
     public function jsonSerialize(): array
     {
         $data = [
             'hubUrl' => $this->hubUrl,
-            'topic'  => $this->topic,
+            'topics' => $this->topics,
         ];
 
         if ($this->withCredentials) {

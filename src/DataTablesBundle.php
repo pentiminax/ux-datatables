@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformPropertyTypeMapper;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\ApiPlatform\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
@@ -18,9 +19,14 @@ use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
 use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\UrlColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
+use Pentiminax\UX\DataTables\Contracts\ApiResourceMercureMetadataResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
+use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
@@ -189,9 +195,37 @@ class DataTablesBundle extends AbstractBundle
             $container->services()
                 ->alias(ApiResourceCollectionUrlResolverInterface::class, 'datatables.api_platform.collection_url_resolver')
                 ->private();
+
+            $container->services()
+                ->set('datatables.api_platform.mercure_metadata_resolver', ApiResourceMercureMetadataResolver::class)
+                ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
+                ->private();
+
+            $container->services()
+                ->alias(ApiResourceMercureMetadataResolverInterface::class, 'datatables.api_platform.mercure_metadata_resolver')
+                ->private();
         }
 
         if (interface_exists(\Symfony\Component\Mercure\HubInterface::class)) {
+            $container->services()
+                ->set('datatables.mercure.hub_url_resolver', MercureHubUrlResolver::class)
+                ->arg(0, service('mercure.hub.default'))
+                ->private();
+
+            $container->services()
+                ->alias(MercureHubUrlResolverInterface::class, 'datatables.mercure.hub_url_resolver')
+                ->private();
+
+            $container->services()
+                ->set('datatables.mercure.config_resolver', MercureConfigResolver::class)
+                ->arg(0, service('datatables.mercure.hub_url_resolver'))
+                ->arg(1, service('datatables.api_platform.mercure_metadata_resolver')->nullOnInvalid())
+                ->private();
+
+            $container->services()
+                ->alias(MercureConfigResolverInterface::class, 'datatables.mercure.config_resolver')
+                ->private();
+
             $container->services()
                 ->set('datatables.mercure.publisher', MercureUpdatePublisher::class)
                 ->arg(0, service('mercure.hub.default'))
