@@ -38,7 +38,7 @@ final class MercureConfigResolver implements MercureConfigResolverInterface
     private function buildFallbackTopic(string $entityClass): string
     {
         $resourceName = $this->extractShortName($entityClass);
-        $slug         = strtolower((string) preg_replace('/(?<!^)[A-Z]/', '-$0', $resourceName));
+        $slug         = strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $resourceName));
 
         return '/datatables/'.$this->pluralize($slug).'/{id}';
     }

@@ -122,7 +122,7 @@ final class DataTableTest extends TestCase
 
         $this->assertInstanceOf(MercureConfig::class, $config);
         $this->assertSame('/.well-known/mercure', $config->hubUrl);
-        $this->assertSame(['datatables/ProductDataTable'], $config->topics);
+        $this->assertSame(['/datatables/product-data-tables/{id}'], $config->topics);
         $this->assertFalse($config->withCredentials);
         $this->assertNull($config->debounceMs);
     }
@@ -160,7 +160,7 @@ final class DataTableTest extends TestCase
         $this->assertArrayHasKey('mercure', $options);
         $this->assertSame([
             'hubUrl'     => '/.well-known/mercure',
-            'topics'     => ['datatables/ProductDataTable'],
+            'topics'     => ['/datatables/product-data-tables/{id}'],
             'debounceMs' => 300,
         ], $options['mercure']);
     }
