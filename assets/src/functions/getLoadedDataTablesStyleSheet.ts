@@ -1,9 +1,11 @@
 export function getLoadedDataTablesStyleSheet(): CSSStyleSheet | null {
   const cssFiles = ['dataTables.dataTables', 'dataTables.bootstrap5']
 
-  const loadedCSS = [...document.styleSheets].find(
-    (sheet) => sheet.href && cssFiles.some((cssFile) => sheet.href.includes(cssFile))
-  )
+  const loadedCSS = [...document.styleSheets].find((sheet) => {
+    const href = sheet.href
+
+    return href !== null && cssFiles.some((cssFile) => href.includes(cssFile))
+  })
 
   if (!loadedCSS) {
     console.warn('Warning: Required DataTables CSS file is not loaded.')

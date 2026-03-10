@@ -1,7 +1,7 @@
 import { escapeHtml } from '../functions/htmlUtils.js';
 export const choiceColumnRenderer = {
     matches(column) {
-        return typeof column?.customOptions?.choices === 'object' && column.customOptions.choices !== null;
+        return (typeof column?.customOptions?.choices === 'object' && column.customOptions.choices !== null);
     },
     configure(column) {
         const customOptions = (column.customOptions ?? {});

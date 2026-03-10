@@ -1,7 +1,7 @@
-export async function toggleBooleanValue({ id, entity, field, newValue, url, method = 'PATCH', topic, }) {
+export async function toggleBooleanValue({ id, entity, field, newValue, url, method = 'PATCH', topics, }) {
     const body = { id: parseInt(id), entity, field, newValue };
-    if (topic !== undefined) {
-        body.topic = topic;
+    if (Array.isArray(topics) && topics.length > 0) {
+        body.topics = topics;
     }
     return await fetch(url, {
         method,
