@@ -107,7 +107,7 @@ final class Action implements \JsonSerializable
         }
 
         $this->url         = null;
-        $this->urlResolver = $url instanceof \Closure ? $url : \Closure::fromCallable($url);
+        $this->urlResolver = $url instanceof \Closure ? $url : $url(...);
 
         return $this;
     }
@@ -124,7 +124,7 @@ final class Action implements \JsonSerializable
             return null;
         }
 
-        $url = trim((string) $url);
+        $url = trim($url);
 
         return '' === $url ? null : $url;
     }
