@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Enum;
 
-enum Action: string
+enum ActionType: string
 {
-    case DELETE = 'DELETE';
+    case Delete = 'DELETE';
 }

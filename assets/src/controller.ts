@@ -17,6 +17,8 @@ import { ColumnRenderer } from './columnRenderers/types.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
+import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
+import { deleteEntity } from './functions/deleteEntity.js'
 
 export default class extends Controller {
   declare readonly viewValue: any
@@ -111,19 +113,13 @@ export default class extends Controller {
       createBooleanColumnRenderer(this.getBooleanToggleUrl()),
       choiceColumnRenderer,
       urlColumnRenderer,
+      actionColumnRenderer,
     ]
 
     payload.columns.forEach((column: any): void => {
       for (const renderer of columnRenderers) {
         if (renderer.matches(column)) {
           renderer.configure(column)
-        }
-      }
-
-      if (column.action === 'DELETE') {
-        column.render = (data: any, type: string, row: any) => {
-          const className = `${column.action.toLowerCase()}-action`
-          return `<button class="btn btn-danger ${className}" data-id="${row.id}" data-url="${column.actionUrl}">${column.actionLabel}</button>`
         }
       }
     })
@@ -149,8 +145,36 @@ export default class extends Controller {
 
     this.element.addEventListener('click', async (e: MouseEvent): Promise<void> => {
       const target = e.target as HTMLElement
+      const actionButton = target.closest('[data-action-type]') as HTMLElement | null
 
+      if (actionButton) {
+        const actionType = actionButton.getAttribute('data-action-type')
+        const entity = actionButton.getAttribute('data-entity')
+        const id = actionButton.getAttribute('data-id')
+        const confirmMessage = actionButton.getAttribute('data-confirm')
+
+        if (confirmMessage && !confirm(confirmMessage)) {
+          return
+        }
+
+        if (actionType === 'DELETE' && entity && id) {
+          const response = await deleteEntity({
+            entity,
+            id,
+            topics: this.getMercureTopics(payload),
+          })
+
+          if (response.ok) {
+            this.table?.ajax?.reload()
+          }
+        }
+
+        return
+      }
+
+      // Deprecated: legacy .delete-action handler for backward compatibility
       if (target.matches('.delete-action')) {
+        console.warn('UX DataTables: .delete-action is deprecated. Use configureActions() instead.')
         const url: string | null = target.getAttribute('data-url')
         const id: string | null = target.getAttribute('data-id')
 
@@ -281,7 +305,9 @@ export default class extends Controller {
     const topics = payload?.mercure?.topics
 
     if (Array.isArray(topics) && topics.length > 0) {
-      return topics.filter((topic: unknown): topic is string => typeof topic === 'string' && topic.length > 0)
+      return topics.filter(
+        (topic: unknown): topic is string => typeof topic === 'string' && topic.length > 0
+      )
     }
 
     return []

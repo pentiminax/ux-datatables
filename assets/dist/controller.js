@@ -15,6 +15,8 @@ import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
+import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js';
+import { deleteEntity } from './functions/deleteEntity.js';
 class default_1 extends Controller {
     constructor() {
         super(...arguments);
@@ -88,18 +90,13 @@ class default_1 extends Controller {
             createBooleanColumnRenderer(this.getBooleanToggleUrl()),
             choiceColumnRenderer,
             urlColumnRenderer,
+            actionColumnRenderer,
         ];
         payload.columns.forEach((column) => {
             for (const renderer of columnRenderers) {
                 if (renderer.matches(column)) {
                     renderer.configure(column);
                 }
-            }
-            if (column.action === 'DELETE') {
-                column.render = (data, type, row) => {
-                    const className = `${column.action.toLowerCase()}-action`;
-                    return `<button class="btn btn-danger ${className}" data-id="${row.id}" data-url="${column.actionUrl}">${column.actionLabel}</button>`;
-                };
             }
         });
         if (this.isApiPlatformEnabled(payload) && Array.isArray(payload.columns)) {
@@ -119,7 +116,29 @@ class default_1 extends Controller {
         }
         this.element.addEventListener('click', async (e) => {
             const target = e.target;
+            const actionButton = target.closest('[data-action-type]');
+            if (actionButton) {
+                const actionType = actionButton.getAttribute('data-action-type');
+                const entity = actionButton.getAttribute('data-entity');
+                const id = actionButton.getAttribute('data-id');
+                const confirmMessage = actionButton.getAttribute('data-confirm');
+                if (confirmMessage && !confirm(confirmMessage)) {
+                    return;
+                }
+                if (actionType === 'DELETE' && entity && id) {
+                    const response = await deleteEntity({
+                        entity,
+                        id,
+                        topics: this.getMercureTopics(payload),
+                    });
+                    if (response.ok) {
+                        this.table?.ajax?.reload();
+                    }
+                }
+                return;
+            }
             if (target.matches('.delete-action')) {
+                console.warn('UX DataTables: .delete-action is deprecated. Use configureActions() instead.');
                 const url = target.getAttribute('data-url');
                 const id = target.getAttribute('data-id');
                 if (url && id) {

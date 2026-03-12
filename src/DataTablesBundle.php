@@ -23,6 +23,7 @@ use Pentiminax\UX\DataTables\Contracts\ApiResourceMercureMetadataResolverInterfa
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
@@ -133,6 +134,12 @@ class DataTablesBundle extends AbstractBundle
             ->public();
 
         $container->services()
+            ->set('datatables.controller.ajax_delete', AjaxDeleteController::class)
+            ->arg(0, service('doctrine')->nullOnInvalid())
+            ->tag('controller.service_arguments')
+            ->public();
+
+        $container->services()
             ->set('datatables.route_loader', RouteLoader::class)
             ->tag('routing.route_loader')
             ->public();
@@ -232,6 +239,9 @@ class DataTablesBundle extends AbstractBundle
                 ->private();
 
             $builder->getDefinition('datatables.controller.ajax_edit')
+                ->addArgument(new Reference('datatables.mercure.publisher'));
+
+            $builder->getDefinition('datatables.controller.ajax_delete')
                 ->addArgument(new Reference('datatables.mercure.publisher'));
         }
     }
