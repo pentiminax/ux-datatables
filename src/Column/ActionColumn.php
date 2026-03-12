@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Column;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Dto\ColumnDto;
 use Pentiminax\UX\DataTables\Enum\ActionType;
+use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Model\Actions;
 
 class ActionColumn implements ColumnInterface
@@ -37,7 +38,13 @@ class ActionColumn implements ColumnInterface
         private string $actionLabel,
         private string $actionUrl,
     ) {
-        $this->dto = new ColumnDto();
+        $this->dto = (new ColumnDto())
+            ->setName($this->name)
+            ->setTitle($this->title)
+            ->setOrderable(false)
+            ->setSearchable(false)
+            ->setType(ColumnType::STRING)
+            ->setExportable(false);
     }
 
     public function getName(): string
@@ -91,23 +98,8 @@ class ActionColumn implements ColumnInterface
 
     public function jsonSerialize(): array
     {
-        $base = [
-            'data'       => null,
-            'className'  => 'not-exportable',
-            'name'       => $this->name,
-            'title'      => $this->title,
-            'orderable'  => false,
-            'searchable' => false,
-        ];
+        $this->dto->setActions($this->actions?->jsonSerialize());
 
-        if (null !== $this->actions) {
-            $base['actions'] = $this->actions->jsonSerialize();
-        } else {
-            $base['action']      = $this->action->value;
-            $base['actionLabel'] = $this->actionLabel;
-            $base['actionUrl']   = $this->actionUrl;
-        }
-
-        return $base;
+        return $this->dto->jsonSerialize();
     }
 }
