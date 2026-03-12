@@ -8,8 +8,6 @@ use Pentiminax\UX\DataTables\Dto\ColumnDto;
 
 interface ColumnInterface extends \JsonSerializable
 {
-    public static function new(string $name, string $title = ''): static;
-
     public function getAsDto(): ColumnDto;
 
     public function getName(): string;

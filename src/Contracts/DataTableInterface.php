@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Contracts;
 
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableExtensions;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
@@ -14,6 +15,8 @@ use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 
 interface DataTableInterface
 {
+    public function configureActions(Actions $actions): Actions;
+
     public function configureDataTable(DataTable $table): DataTable;
 
     public function configureColumns(): iterable;

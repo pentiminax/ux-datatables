@@ -1,5 +1,6 @@
 export interface ColumnRenderer {
   matches(column: Record<string, any>): boolean
+
   configure(column: Record<string, any>): void
 }
 
@@ -41,4 +42,15 @@ export interface UrlCustomOptions {
   routeParams?: Record<string, string>
   template?: string
   showExternalIcon?: boolean
+}
+
+export interface ActionConfig {
+  type: string
+  label: string
+  cssClass: string
+  icon?: string
+  confirmationButtonLabel?: string
+  displayCondition?: { field: string; value: unknown }
+  entityClass?: string
+  idField: string
 }
