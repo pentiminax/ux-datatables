@@ -1,5 +1,6 @@
 export interface ColumnRenderer {
   matches(column: Record<string, any>): boolean
+
   configure(column: Record<string, any>): void
 }
 
@@ -41,4 +42,25 @@ export interface UrlCustomOptions {
   routeParams?: Record<string, string>
   template?: string
   showExternalIcon?: boolean
+}
+
+export interface ActionConfig {
+  type: string
+  label: string
+  className: string
+  icon?: string
+  confirm?: string
+  displayCondition?: { field: string; value: unknown }
+  entityClass?: string
+  htmlAttributes?: Record<string, string | number | boolean | null>
+  idField: string
+  url?: string
+}
+
+export interface ActionRowConfig {
+  url?: string
+}
+
+export interface ActionRowData {
+  __ux_datatables_actions?: Record<string, ActionRowConfig>
 }
