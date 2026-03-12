@@ -9,12 +9,13 @@ import { loadColumnControlLibrary } from './functions/loadColumnControlLibrary.j
 import { loadFixedColumnsLibrary } from './functions/loadFixedColumnsLibrary.js';
 import { loadKeyTableLibrary } from './functions/loadKeyTableLibrary.js';
 import { loadScrollerLibrary } from './functions/loadScrollerLibrary.js';
-import { deleteRow } from './functions/deleteRow.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
 import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
+import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js';
+import { deleteEntity } from './functions/deleteEntity.js';
 class default_1 extends Controller {
     constructor() {
         super(...arguments);
@@ -88,18 +89,13 @@ class default_1 extends Controller {
             createBooleanColumnRenderer(this.getBooleanToggleUrl()),
             choiceColumnRenderer,
             urlColumnRenderer,
+            actionColumnRenderer,
         ];
         payload.columns.forEach((column) => {
             for (const renderer of columnRenderers) {
                 if (renderer.matches(column)) {
                     renderer.configure(column);
                 }
-            }
-            if (column.action === 'DELETE') {
-                column.render = (data, type, row) => {
-                    const className = `${column.action.toLowerCase()}-action`;
-                    return `<button class="btn btn-danger ${className}" data-id="${row.id}" data-url="${column.actionUrl}">${column.actionLabel}</button>`;
-                };
             }
         });
         if (this.isApiPlatformEnabled(payload) && Array.isArray(payload.columns)) {
@@ -119,18 +115,28 @@ class default_1 extends Controller {
         }
         this.element.addEventListener('click', async (e) => {
             const target = e.target;
-            if (target.matches('.delete-action')) {
-                const url = target.getAttribute('data-url');
-                const id = target.getAttribute('data-id');
-                if (url && id) {
-                    const response = await deleteRow({ url, id });
+            const actionButton = target.closest('[data-action-type]');
+            if (actionButton) {
+                const actionType = actionButton.getAttribute('data-action-type');
+                const entity = actionButton.getAttribute('data-entity');
+                const id = actionButton.getAttribute('data-id');
+                const confirmMessage = actionButton.getAttribute('data-confirm');
+                if (confirmMessage && !confirm(confirmMessage)) {
+                    e.preventDefault();
+                    return;
+                }
+                if (actionType === 'DELETE' && entity && id) {
+                    e.preventDefault();
+                    const response = await deleteEntity({
+                        entity,
+                        id,
+                        topics: this.getMercureTopics(payload),
+                    });
                     if (response.ok) {
-                        this.table?.ajax?.reload();
+                        this.table?.ajax?.reload(null, false);
                     }
                 }
-                else {
-                    console.error('Missing URL or ID for delete action');
-                }
+                return;
             }
         });
         this.element.addEventListener('change', async (e) => {

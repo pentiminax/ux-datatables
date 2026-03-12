@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilderInterface;
+use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
 use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
@@ -23,6 +24,7 @@ use Pentiminax\UX\DataTables\Contracts\ApiResourceMercureMetadataResolverInterfa
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
@@ -109,13 +111,22 @@ class DataTablesBundle extends AbstractBundle
             ->private();
 
         $container->services()
+            ->set('datatables.column.action_row_data_resolver', ActionRowDataResolver::class)
+            ->private();
+
+        $container->services()
             ->alias(TemplateColumnRenderer::class, 'datatables.column.template_column_renderer')
+            ->private();
+
+        $container->services()
+            ->alias(ActionRowDataResolver::class, 'datatables.column.action_row_data_resolver')
             ->private();
 
         $container->services()
             ->set('datatables.twig_extension', Twig\DataTablesExtension::class)
             ->arg(0, new Reference('stimulus.helper'))
             ->arg(1, service('datatables.column.template_column_renderer'))
+            ->arg(2, service('datatables.column.action_row_data_resolver'))
             ->tag('twig.extension')
             ->private();
 
@@ -129,6 +140,12 @@ class DataTablesBundle extends AbstractBundle
             ->set('datatables.controller.ajax_edit', AjaxEditController::class)
             ->arg(0, service('doctrine')->nullOnInvalid())
             ->arg(1, service('property_accessor'))
+            ->tag('controller.service_arguments')
+            ->public();
+
+        $container->services()
+            ->set('datatables.controller.ajax_delete', AjaxDeleteController::class)
+            ->arg(0, service('doctrine')->nullOnInvalid())
             ->tag('controller.service_arguments')
             ->public();
 
@@ -232,6 +249,9 @@ class DataTablesBundle extends AbstractBundle
                 ->private();
 
             $builder->getDefinition('datatables.controller.ajax_edit')
+                ->addArgument(new Reference('datatables.mercure.publisher'));
+
+            $builder->getDefinition('datatables.controller.ajax_delete')
                 ->addArgument(new Reference('datatables.mercure.publisher'));
         }
     }

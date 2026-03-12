@@ -20,6 +20,12 @@ final class RouteLoader implements RouteLoaderInterface
             methods: ['POST', 'PATCH'],
         ));
 
+        $routes->add('ux_datatables_ajax_delete', new Route(
+            path: '/datatables/ajax/delete',
+            defaults: ['_controller' => 'datatables.controller.ajax_delete'],
+            methods: ['DELETE'],
+        ));
+
         return $routes;
     }
 }

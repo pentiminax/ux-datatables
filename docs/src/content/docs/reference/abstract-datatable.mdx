@@ -14,6 +14,7 @@ The class wires together:
 - **DataTable**: ID, columns, and extensions
 - **DataProvider**: Fetches rows (Doctrine or array-based)
 - **RowMapper**: Transforms entities into frontend-compatible arrays
+- **Actions**: Optional row-level actions appended automatically when configured
 
 ## Quick Start with #[AsDataTable]
 
@@ -236,6 +237,28 @@ public function configureSelectExtension(SelectExtension $ext): SelectExtension
 }
 ```
 
+## Row Actions
+
+Override `configureActions()` to append a built-in action column without manually creating an
+`ActionColumn`:
+
+```php
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
+
+public function configureActions(Actions $actions): Actions
+{
+    return $actions->add(
+        Action::delete()
+            ->askConfirmation('Delete this user?')
+            ->displayIf('isDeletable', true)
+    );
+}
+```
+
+When the table uses `#[AsDataTable(Entity::class)]`, the entity class is injected automatically
+into each action. See the [Action Columns](../action-columns/) reference for the full API.
+
 ## Available Methods
 
 ### Configuration Methods
@@ -243,6 +266,7 @@ public function configureSelectExtension(SelectExtension $ext): SelectExtension
 <Table
   headers={['Method', 'Description']}
   rows={[
+    ['`configureActions(Actions $actions)`', 'Configure built-in row actions'],
     ['`configureDataTable(DataTable $table)`', 'Configure table options'],
     ['`configureColumns()`', 'Define columns (required)'],
     ['`configureExtensions(DataTableExtensions $ext)`', 'Add extensions'],

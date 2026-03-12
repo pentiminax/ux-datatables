@@ -48,4 +48,14 @@ class TwigAppKernel extends Kernel
             $container->setAlias('test.datatables.twig_extension', 'datatables.twig_extension')->setPublic(true);
         });
     }
+
+    public function getCacheDir(): string
+    {
+        return sys_get_temp_dir().'/ux_datatables/cache/'.$this->environment;
+    }
+
+    public function getLogDir(): string
+    {
+        return sys_get_temp_dir().'/ux_datatables/log';
+    }
 }

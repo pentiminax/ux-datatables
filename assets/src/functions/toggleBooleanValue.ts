@@ -17,7 +17,13 @@ export async function toggleBooleanValue({
   method = 'PATCH',
   topics,
 }: ToggleBooleanPayload): Promise<Response> {
-  const body: Record<string, unknown> = { id: parseInt(id), entity, field, newValue }
+  const numericId = Number(id)
+  const body: Record<string, unknown> = {
+    id: id.trim() !== '' && Number.isFinite(numericId) ? numericId : id,
+    entity,
+    field,
+    newValue,
+  }
 
   if (Array.isArray(topics) && topics.length > 0) {
     body.topics = topics

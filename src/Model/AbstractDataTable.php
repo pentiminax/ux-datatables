@@ -9,6 +9,8 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
@@ -63,6 +65,7 @@ abstract class AbstractDataTable implements DataTableInterface
         protected ?AttributeColumnReader $attributeColumnReader = null,
         protected ?UrlColumnResolver $urlColumnResolver = null,
         protected ?TemplateColumnRenderer $templateColumnRenderer = null,
+        protected ?ActionRowDataResolver $actionRowDataResolver = null,
     ) {
         $this->table = $this->configureDataTable(
             new DataTable($this->getClassName())
@@ -72,6 +75,18 @@ abstract class AbstractDataTable implements DataTableInterface
 
         $this->configureBooleanColumns();
         $this->configureUrlColumns();
+
+        $actions = $this->configureActions(new Actions());
+
+        $this->configureActionEntityClass($actions);
+
+        if (!$actions->isEmpty()) {
+            $this->columns[] = ActionColumn::fromActions(
+                name: 'actions',
+                title: $actions->getColumnLabel(),
+                actions: $actions,
+            );
+        }
 
         $this->table->columns($this->columns);
 
@@ -190,6 +205,11 @@ abstract class AbstractDataTable implements DataTableInterface
         );
 
         return $this->autoConfiguredProvider;
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions;
     }
 
     public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
@@ -322,15 +342,14 @@ abstract class AbstractDataTable implements DataTableInterface
         return new ClosureRowMapper(
             function (mixed $row): array {
                 $mappedRow = $this->mapRow($row);
-                if (null === $this->templateColumnRenderer) {
-                    return $mappedRow;
-                }
 
-                return $this->templateColumnRenderer->renderRow(
+                $mappedRow = $this->templateColumnRenderer?->renderRow(
                     row: $mappedRow,
                     mappedRow: $row,
                     columns: $this->columns
-                );
+                ) ?? $mappedRow;
+
+                return $this->actionRowDataResolver?->resolveRow($mappedRow, $row, $this->columns) ?? $mappedRow;
             }
         );
     }
@@ -366,6 +385,18 @@ abstract class AbstractDataTable implements DataTableInterface
             }
 
             $column->setEntityClass($asDataTable->entityClass);
+        }
+    }
+
+    private function configureActionEntityClass(Actions $actions): void
+    {
+        $asDataTable = $this->getAsDataTableAttribute();
+        if (null === $asDataTable) {
+            return;
+        }
+
+        foreach ($actions->getActions() as $action) {
+            $action->setEntityClass($asDataTable->entityClass);
         }
     }
 
