@@ -102,7 +102,7 @@ final class Action implements \JsonSerializable
         }
 
         if (null !== $this->confirmationButtonLabel) {
-            $data['confirm'] = $this->confirmationButtonLabel;
+            $data['confirmationButtonLabel'] = $this->confirmationButtonLabel;
         }
 
         if (null !== $this->displayCondition) {
