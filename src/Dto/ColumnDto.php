@@ -23,6 +23,7 @@ final class ColumnDto implements \JsonSerializable
     private ?string $defaultContent = null;
     private ?string $field          = null;
     private bool $globalSearchable  = true;
+    private ?array $actions         = null;
     private array $customOptions    = [];
 
     public function getCellType(): ?string
@@ -205,6 +206,24 @@ final class ColumnDto implements \JsonSerializable
         return $this;
     }
 
+    /**
+     * @param list<array<string, mixed>>|null $actions
+     */
+    public function setActions(?array $actions): self
+    {
+        $this->actions = $actions;
+
+        return $this;
+    }
+
+    /**
+     * @return list<array<string, mixed>>|null
+     */
+    public function getActions(): ?array
+    {
+        return $this->actions;
+    }
+
     public function setCustomOption(string $optionName, mixed $optionValue): self
     {
         $this->customOptions[$optionName] = $optionValue;
@@ -224,20 +243,28 @@ final class ColumnDto implements \JsonSerializable
 
     public function jsonSerialize(): array
     {
-        return [
-            'title'          => $this->title,
-            'name'           => $this->name,
-            'type'           => $this->type->value,
-            'data'           => $this->data,
+        $className = $this->className;
+
+        if (!$this->exportable) {
+            $className = trim(\sprintf('%s not-exportable', $className ?? '')) ?: null;
+        }
+
+        return array_filter([
             'cellType'       => $this->cellType,
-            'className'      => $this->className,
-            'width'          => $this->width,
-            'orderable'      => $this->orderable,
-            'searchable'     => $this->searchable,
-            'visible'        => $this->visible,
-            'exportable'     => $this->exportable,
-            'render'         => $this->render,
+            'className'      => $className,
+            'data'           => $this->data,
             'defaultContent' => $this->defaultContent,
-        ];
+            'name'           => $this->name,
+            'orderable'      => $this->orderable,
+            'render'         => $this->render,
+            'searchable'     => $this->searchable,
+            'title'          => $this->title,
+            'type'           => $this->type->value,
+            'visible'        => $this->visible,
+            'width'          => $this->width,
+            'field'          => $this->getField(),
+            'customOptions'  => $this->customOptions,
+            'actions'        => $this->actions,
+        ], static fn (mixed $value) => null !== $value && '' !== $value && [] !== $value);
     }
 }
