@@ -25,6 +25,7 @@ class ActionTest extends TestCase
         $this->assertSame('Delete', $json['label']);
         $this->assertSame('btn btn-danger', $json['className']);
         $this->assertSame('id', $json['idField']);
+        $this->assertSame([], $json['htmlAttributes']);
         $this->assertArrayNotHasKey('icon', $json);
         $this->assertArrayNotHasKey('confirm', $json);
         $this->assertArrayNotHasKey('displayCondition', $json);
@@ -43,6 +44,7 @@ class ActionTest extends TestCase
         $this->assertSame('Detail', $json['label']);
         $this->assertSame('btn btn-primary', $json['className']);
         $this->assertSame('id', $json['idField']);
+        $this->assertSame([], $json['htmlAttributes']);
         $this->assertArrayNotHasKey('url', $json);
     }
 
@@ -53,6 +55,7 @@ class ActionTest extends TestCase
             ->setClassName('btn btn-sm btn-danger')
             ->setIcon('bi bi-trash')
             ->askConfirmation('Are you sure?')
+            ->setHtmlAttributes(['target' => '_blank'])
             ->setIdField('uuid');
 
         $json = $action->jsonSerialize();
@@ -61,6 +64,7 @@ class ActionTest extends TestCase
         $this->assertSame('btn btn-sm btn-danger', $json['className']);
         $this->assertSame('bi bi-trash', $json['icon']);
         $this->assertSame('Are you sure?', $json['confirm']);
+        $this->assertSame(['target' => '_blank'], $json['htmlAttributes']);
         $this->assertSame('uuid', $json['idField']);
     }
 
@@ -102,6 +106,7 @@ class ActionTest extends TestCase
         $this->assertArrayHasKey('label', $json);
         $this->assertArrayHasKey('className', $json);
         $this->assertArrayHasKey('idField', $json);
+        $this->assertSame([], $json['htmlAttributes']);
         $this->assertArrayNotHasKey('icon', $json);
         $this->assertArrayNotHasKey('confirm', $json);
         $this->assertArrayNotHasKey('displayCondition', $json);
