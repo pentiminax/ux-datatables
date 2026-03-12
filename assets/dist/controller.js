@@ -131,7 +131,7 @@ class default_1 extends Controller {
                         topics: this.getMercureTopics(payload),
                     });
                     if (response.ok) {
-                        this.table?.ajax?.reload();
+                        this.table?.ajax?.reload(null, false);
                     }
                 }
                 return;

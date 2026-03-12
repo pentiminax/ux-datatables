@@ -164,7 +164,7 @@ export default class extends Controller {
           })
 
           if (response.ok) {
-            this.table?.ajax?.reload()
+            this.table?.ajax?.reload(null, false)
           }
         }
 
