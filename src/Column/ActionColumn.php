@@ -84,6 +84,11 @@ class ActionColumn implements ColumnInterface
         return null;
     }
 
+    public function getActions(): ?Actions
+    {
+        return $this->actions;
+    }
+
     public function jsonSerialize(): array
     {
         $base = [

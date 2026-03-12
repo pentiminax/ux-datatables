@@ -49,8 +49,17 @@ export interface ActionConfig {
   label: string
   cssClass: string
   icon?: string
-  confirmationButtonLabel?: string
+  confirm?: string
   displayCondition?: { field: string; value: unknown }
   entityClass?: string
   idField: string
+  url?: string
+}
+
+export interface ActionRowConfig {
+  url?: string
+}
+
+export interface ActionRowData {
+  __ux_datatables_actions?: Record<string, ActionRowConfig>
 }

@@ -31,6 +31,21 @@ class ActionTest extends TestCase
         $this->assertArrayNotHasKey('entityClass', $json);
     }
 
+    public function test_detail_factory_creates_action_with_default_values(): void
+    {
+        $action = Action::detail();
+
+        $this->assertSame(ActionType::Detail, $action->getType());
+
+        $json = $action->jsonSerialize();
+
+        $this->assertSame('DETAIL', $json['type']);
+        $this->assertSame('Detail', $json['label']);
+        $this->assertSame('btn btn-primary', $json['cssClass']);
+        $this->assertSame('id', $json['idField']);
+        $this->assertArrayNotHasKey('url', $json);
+    }
+
     public function test_fluent_setters(): void
     {
         $action = Action::delete()
@@ -91,5 +106,29 @@ class ActionTest extends TestCase
         $this->assertArrayNotHasKey('confirm', $json);
         $this->assertArrayNotHasKey('displayCondition', $json);
         $this->assertArrayNotHasKey('entityClass', $json);
+    }
+
+    public function test_link_to_static_url_serializes_url(): void
+    {
+        $json = Action::detail()
+            ->linkToUrl('/books/42')
+            ->jsonSerialize();
+
+        $this->assertSame('/books/42', $json['url']);
+    }
+
+    public function test_link_to_url_resolves_callable_result(): void
+    {
+        $action = Action::detail()->linkToUrl(static fn (object $row): string => '/books/'.$row->id);
+
+        $this->assertSame('/books/42', $action->resolveUrl((object) ['id' => 42]));
+        $this->assertArrayNotHasKey('url', $action->jsonSerialize());
+    }
+
+    public function test_link_to_url_returns_null_for_blank_result(): void
+    {
+        $action = Action::detail()->linkToUrl(static fn (): string => '   ');
+
+        $this->assertNull($action->resolveUrl(['id' => 42]));
     }
 }

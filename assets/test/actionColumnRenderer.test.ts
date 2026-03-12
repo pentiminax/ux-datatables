@@ -98,6 +98,71 @@ describe('actionColumnRenderer', () => {
       expect(html).toContain('data-confirm="Are you sure?"')
     })
 
+    it('renders detail action as a link with static url', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DETAIL',
+            label: 'View',
+            cssClass: 'btn btn-primary',
+            idField: 'id',
+            url: '/books/42',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 42 })
+      expect(html).toContain('<a ')
+      expect(html).toContain('href="/books/42"')
+      expect(html).toContain('data-action-type="DETAIL"')
+      expect(html).toContain('View')
+    })
+
+    it('renders detail action from row-resolved metadata', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DETAIL',
+            label: 'View',
+            cssClass: 'btn btn-primary',
+            idField: 'id',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', {
+        id: 42,
+        __ux_datatables_actions: {
+          DETAIL: {
+            url: '/books/42',
+          },
+        },
+      })
+
+      expect(html).toContain('href="/books/42"')
+    })
+
+    it('hides detail action when url is missing', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DETAIL',
+            label: 'View',
+            cssClass: 'btn btn-primary',
+            idField: 'id',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      expect(column.render(null, 'display', { id: 42 })).toBe('')
+    })
+
     it('renders icon when set', () => {
       const column: Record<string, any> = {
         actions: [
