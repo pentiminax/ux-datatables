@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Column;
+
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+
+final class ActionRowDataResolver
+{
+    public const string ROW_ACTIONS_KEY = '__ux_datatables_actions';
+
+    /**
+     * @param iterable<ColumnInterface> $columns
+     */
+    public function resolveRow(array $row, mixed $sourceRow, iterable $columns): array
+    {
+        $actions = [];
+
+        foreach ($columns as $column) {
+            if (!$column instanceof ActionColumn) {
+                continue;
+            }
+
+            foreach ($column->getActions()?->getActions() ?? [] as $action) {
+                $url = $action->resolveUrl($sourceRow);
+
+                if (null === $url) {
+                    continue;
+                }
+
+                $actions[$action->getType()->value] = [
+                    'url' => $url,
+                ];
+            }
+        }
+
+        if ([] === $actions) {
+            return $row;
+        }
+
+        $row[self::ROW_ACTIONS_KEY] = $actions;
+
+        return $row;
+    }
+}

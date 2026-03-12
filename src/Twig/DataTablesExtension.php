@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Twig;
 
+use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -16,6 +17,7 @@ class DataTablesExtension extends AbstractExtension
     public function __construct(
         private StimulusHelper $stimulus,
         private TemplateColumnRenderer $templateColumnRenderer,
+        private ActionRowDataResolver $actionRowDataResolver,
     ) {
     }
 
@@ -43,13 +45,20 @@ class DataTablesExtension extends AbstractExtension
 
         $options = $table->getOptions();
 
-        if (!empty($options['data']) && !$table->areTemplateColumnsRendered()) {
-            $columns         = $table->getColumnObjects();
-            $options['data'] = array_map(
-                fn (array $row) => $this->templateColumnRenderer->renderRow($row, $row, $columns),
-                $options['data']
-            );
-            $table->markTemplateColumnsRendered();
+        if (!empty($options['data'])) {
+            $columns            = $table->getColumnObjects();
+            $renderTemplates    = !$table->areTemplateColumnsRendered();
+            $options['data']    = array_map(function (array $row) use ($columns, $renderTemplates): array {
+                $resolvedRow = $renderTemplates
+                    ? $this->templateColumnRenderer->renderRow($row, $row, $columns)
+                    : $row;
+
+                return $this->actionRowDataResolver->resolveRow($resolvedRow, $row, $columns);
+            }, $options['data']);
+
+            if ($renderTemplates) {
+                $table->markTemplateColumnsRendered();
+            }
         }
 
         $controllers['@pentiminax/ux-datatables/datatable'] = [

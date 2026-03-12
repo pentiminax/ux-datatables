@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
@@ -64,6 +65,7 @@ abstract class AbstractDataTable implements DataTableInterface
         protected ?AttributeColumnReader $attributeColumnReader = null,
         protected ?UrlColumnResolver $urlColumnResolver = null,
         protected ?TemplateColumnRenderer $templateColumnRenderer = null,
+        protected ?ActionRowDataResolver $actionRowDataResolver = null,
     ) {
         $this->table = $this->configureDataTable(
             new DataTable($this->getClassName())
@@ -340,15 +342,14 @@ abstract class AbstractDataTable implements DataTableInterface
         return new ClosureRowMapper(
             function (mixed $row): array {
                 $mappedRow = $this->mapRow($row);
-                if (null === $this->templateColumnRenderer) {
-                    return $mappedRow;
-                }
 
-                return $this->templateColumnRenderer->renderRow(
+                $mappedRow = $this->templateColumnRenderer->renderRow(
                     row: $mappedRow,
                     mappedRow: $row,
                     columns: $this->columns
                 );
+
+                return $this->actionRowDataResolver?->resolveRow($mappedRow, $row, $this->columns) ?? $mappedRow;
             }
         );
     }

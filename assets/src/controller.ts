@@ -153,10 +153,12 @@ export default class extends Controller {
         const confirmMessage = actionButton.getAttribute('data-confirm')
 
         if (confirmMessage && !confirm(confirmMessage)) {
+          e.preventDefault()
           return
         }
 
         if (actionType === 'DELETE' && entity && id) {
+          e.preventDefault()
           const response = await deleteEntity({
             entity,
             id,

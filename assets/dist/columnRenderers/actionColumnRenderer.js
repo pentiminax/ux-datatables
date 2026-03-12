@@ -24,15 +24,37 @@ export const actionColumnRenderer = {
                 const escapedLabel = escapeHtml(action.label);
                 const escapedCssClass = escapeHtml(action.cssClass);
                 const escapedType = escapeHtml(action.type);
-                let attrs = `class="${escapedCssClass}" data-action-type="${escapedType}" data-entity="${escapedEntity}" data-id="${escapedId}"`;
-                if (action.confirmationButtonLabel) {
-                    attrs += ` data-confirm="${escapeHtml(action.confirmationButtonLabel)}"`;
-                }
                 const iconHtml = action.icon ? `<i class="${escapeHtml(action.icon)}"></i> ` : '';
+                if (action.type === 'DETAIL') {
+                    const href = resolveActionUrl(action, row);
+                    if (!href) {
+                        return '';
+                    }
+                    const attrs = [`class="${escapedCssClass}"`, `href="${escapeHtml(href)}"`, `data-action-type="${escapedType}"`];
+                    if (action.confirm) {
+                        attrs.push(`data-confirm="${escapeHtml(action.confirm)}"`);
+                    }
+                    return `<a ${attrs.join(' ')}>${iconHtml}${escapedLabel}</a>`;
+                }
+                let attrs = `class="${escapedCssClass}" data-action-type="${escapedType}" data-entity="${escapedEntity}" data-id="${escapedId}"`;
+                if (action.confirm) {
+                    attrs += ` data-confirm="${escapeHtml(action.confirm)}"`;
+                }
                 return `<button ${attrs}>${iconHtml}${escapedLabel}</button>`;
             })
+                .filter(Boolean)
                 .join(' ');
         };
     },
 };
+function resolveActionUrl(action, row) {
+    const resolvedUrl = row.__ux_datatables_actions?.[action.type]?.url;
+    if (typeof resolvedUrl === 'string' && resolvedUrl.length > 0) {
+        return resolvedUrl;
+    }
+    if (typeof action.url === 'string' && action.url.length > 0) {
+        return action.url;
+    }
+    return null;
+}
 //# sourceMappingURL=actionColumnRenderer.js.map

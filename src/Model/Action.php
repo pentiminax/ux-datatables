@@ -16,6 +16,8 @@ final class Action implements \JsonSerializable
     private ?array $displayCondition;
     private ?string $entityClass;
     private string $idField;
+    private ?string $url;
+    private ?\Closure $urlResolver;
 
     private function __construct(ActionType $type, string $label, string $cssClass)
     {
@@ -27,11 +29,18 @@ final class Action implements \JsonSerializable
         $this->displayCondition        = null;
         $this->entityClass             = null;
         $this->idField                 = 'id';
+        $this->url                     = null;
+        $this->urlResolver             = null;
     }
 
     public static function delete(string $label = 'Delete', string $className = 'btn btn-danger'): self
     {
         return new self(ActionType::Delete, $label, $className);
+    }
+
+    public static function detail(string $label = 'Detail', string $className = 'btn btn-primary'): self
+    {
+        return new self(ActionType::Detail, $label, $className);
     }
 
     public function getType(): ActionType
@@ -88,6 +97,38 @@ final class Action implements \JsonSerializable
         return $this;
     }
 
+    public function linkToUrl(string|callable $url): self
+    {
+        if (\is_string($url)) {
+            $this->url         = $url;
+            $this->urlResolver = null;
+
+            return $this;
+        }
+
+        $this->url         = null;
+        $this->urlResolver = $url instanceof \Closure ? $url : \Closure::fromCallable($url);
+
+        return $this;
+    }
+
+    public function resolveUrl(mixed $row): ?string
+    {
+        $url = $this->url;
+
+        if (null !== $this->urlResolver) {
+            $url = ($this->urlResolver)($row);
+        }
+
+        if (null === $url) {
+            return null;
+        }
+
+        $url = trim((string) $url);
+
+        return '' === $url ? null : $url;
+    }
+
     public function jsonSerialize(): array
     {
         $data = [
@@ -102,7 +143,7 @@ final class Action implements \JsonSerializable
         }
 
         if (null !== $this->confirmationButtonLabel) {
-            $data['confirmationButtonLabel'] = $this->confirmationButtonLabel;
+            $data['confirm'] = $this->confirmationButtonLabel;
         }
 
         if (null !== $this->displayCondition) {
@@ -111,6 +152,10 @@ final class Action implements \JsonSerializable
 
         if (null !== $this->entityClass) {
             $data['entityClass'] = $this->entityClass;
+        }
+
+        if (null !== $this->url) {
+            $data['url'] = $this->url;
         }
 
         return $data;

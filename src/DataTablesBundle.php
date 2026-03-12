@@ -16,6 +16,7 @@ use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilderInterface;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
+use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\UrlColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
@@ -110,13 +111,22 @@ class DataTablesBundle extends AbstractBundle
             ->private();
 
         $container->services()
+            ->set('datatables.column.action_row_data_resolver', ActionRowDataResolver::class)
+            ->private();
+
+        $container->services()
             ->alias(TemplateColumnRenderer::class, 'datatables.column.template_column_renderer')
+            ->private();
+
+        $container->services()
+            ->alias(ActionRowDataResolver::class, 'datatables.column.action_row_data_resolver')
             ->private();
 
         $container->services()
             ->set('datatables.twig_extension', Twig\DataTablesExtension::class)
             ->arg(0, new Reference('stimulus.helper'))
             ->arg(1, service('datatables.column.template_column_renderer'))
+            ->arg(2, service('datatables.column.action_row_data_resolver'))
             ->tag('twig.extension')
             ->private();
 

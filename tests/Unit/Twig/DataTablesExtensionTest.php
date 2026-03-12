@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
@@ -220,5 +223,42 @@ final class DataTablesExtensionTest extends TestCase
 
         $this->assertArrayNotHasKey('data', $actual);
         $this->assertFalse($table->areTemplateColumnsRendered());
+    }
+
+    #[Test]
+    public function it_resolves_detail_action_urls_for_inline_data(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        /** @var DataTableBuilderInterface $builder */
+        $builder = $container->get('test.datatables.builder');
+
+        $actions = (new Actions())->add(
+            Action::detail()
+                ->setCssClass('btn btn-info')
+                ->linkToUrl(static fn (array $row): string => '/books/'.$row['id'])
+        );
+
+        $table = $builder->createDataTable('actions_table');
+        $table->columns([
+            TextColumn::new('id'),
+            ActionColumn::fromActions('actions', 'Actions', $actions),
+        ]);
+        $table->data([
+            ['id' => 5],
+        ]);
+
+        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+
+        $dom = new \DOMDocument();
+        $dom->loadHTML($rendered);
+        $tableEl = $dom->getElementsByTagName('table')->item(0);
+
+        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
+        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
     }
 }
