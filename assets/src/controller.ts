@@ -10,7 +10,6 @@ import { loadColumnControlLibrary } from './functions/loadColumnControlLibrary.j
 import { loadFixedColumnsLibrary } from './functions/loadFixedColumnsLibrary.js'
 import { loadKeyTableLibrary } from './functions/loadKeyTableLibrary.js'
 import { loadScrollerLibrary } from './functions/loadScrollerLibrary.js'
-import { deleteRow } from './functions/deleteRow.js'
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js'
 import { ApiPlatformAdapter, ColumnConfig } from './functions/apiPlatformAdapter.js'
 import { ColumnRenderer } from './columnRenderers/types.js'
@@ -170,23 +169,6 @@ export default class extends Controller {
         }
 
         return
-      }
-
-      // Deprecated: legacy .delete-action handler for backward compatibility
-      if (target.matches('.delete-action')) {
-        console.warn('UX DataTables: .delete-action is deprecated. Use configureActions() instead.')
-        const url: string | null = target.getAttribute('data-url')
-        const id: string | null = target.getAttribute('data-id')
-
-        if (url && id) {
-          const response = await deleteRow({ url, id })
-
-          if (response.ok) {
-            this.table?.ajax?.reload()
-          }
-        } else {
-          console.error('Missing URL or ID for delete action')
-        }
       }
     })
 
