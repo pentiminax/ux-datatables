@@ -8,9 +8,9 @@ use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
-use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -237,7 +237,7 @@ final class DataTablesExtensionTest extends TestCase
 
         $actions = (new Actions())->add(
             Action::detail()
-                ->setCssClass('btn btn-info')
+                ->setClassName('btn btn-info')
                 ->linkToUrl(static fn (array $row): string => '/books/'.$row['id'])
         );
 

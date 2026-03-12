@@ -10,27 +10,20 @@ final class Action implements \JsonSerializable
 {
     private ActionType $type;
     private string $label;
-    private string $cssClass;
-    private ?string $icon;
-    private ?string $confirmationButtonLabel;
-    private ?array $displayCondition;
-    private ?string $entityClass;
-    private string $idField;
-    private ?string $url;
-    private ?\Closure $urlResolver;
+    private string $className;
+    private ?string $icon                    = null;
+    private ?string $confirmationButtonLabel = null;
+    private ?array $displayCondition         = null;
+    private ?string $entityClass             = null;
+    private string $idField                  = 'id';
+    private ?string $url                     = null;
+    private ?\Closure $urlResolver           = null;
 
-    private function __construct(ActionType $type, string $label, string $cssClass)
+    private function __construct(ActionType $type, string $label, string $className)
     {
-        $this->type                    = $type;
-        $this->label                   = $label;
-        $this->cssClass                = $cssClass;
-        $this->icon                    = null;
-        $this->confirmationButtonLabel = null;
-        $this->displayCondition        = null;
-        $this->entityClass             = null;
-        $this->idField                 = 'id';
-        $this->url                     = null;
-        $this->urlResolver             = null;
+        $this->type     = $type;
+        $this->label    = $label;
+        $this->className = $className;
     }
 
     public static function delete(string $label = 'Delete', string $className = 'btn btn-danger'): self
@@ -55,9 +48,9 @@ final class Action implements \JsonSerializable
         return $this;
     }
 
-    public function setCssClass(string $cssClass): self
+    public function setClassName(string $className): self
     {
-        $this->cssClass = $cssClass;
+        $this->className = $className;
 
         return $this;
     }
@@ -134,7 +127,7 @@ final class Action implements \JsonSerializable
         $data = [
             'type'     => $this->type->value,
             'label'    => $this->label,
-            'cssClass' => $this->cssClass,
+            'className' => $this->className,
             'idField'  => $this->idField,
         ];
 

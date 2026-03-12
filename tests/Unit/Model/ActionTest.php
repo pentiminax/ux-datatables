@@ -23,7 +23,7 @@ class ActionTest extends TestCase
 
         $this->assertSame('DELETE', $json['type']);
         $this->assertSame('Delete', $json['label']);
-        $this->assertSame('btn btn-danger', $json['cssClass']);
+        $this->assertSame('btn btn-danger', $json['className']);
         $this->assertSame('id', $json['idField']);
         $this->assertArrayNotHasKey('icon', $json);
         $this->assertArrayNotHasKey('confirm', $json);
@@ -41,7 +41,7 @@ class ActionTest extends TestCase
 
         $this->assertSame('DETAIL', $json['type']);
         $this->assertSame('Detail', $json['label']);
-        $this->assertSame('btn btn-primary', $json['cssClass']);
+        $this->assertSame('btn btn-primary', $json['className']);
         $this->assertSame('id', $json['idField']);
         $this->assertArrayNotHasKey('url', $json);
     }
@@ -50,7 +50,7 @@ class ActionTest extends TestCase
     {
         $action = Action::delete()
             ->setLabel('Supprimer')
-            ->setCssClass('btn btn-sm btn-danger')
+            ->setClassName('btn btn-sm btn-danger')
             ->setIcon('bi bi-trash')
             ->askConfirmation('Are you sure?')
             ->setIdField('uuid');
@@ -58,7 +58,7 @@ class ActionTest extends TestCase
         $json = $action->jsonSerialize();
 
         $this->assertSame('Supprimer', $json['label']);
-        $this->assertSame('btn btn-sm btn-danger', $json['cssClass']);
+        $this->assertSame('btn btn-sm btn-danger', $json['className']);
         $this->assertSame('bi bi-trash', $json['icon']);
         $this->assertSame('Are you sure?', $json['confirm']);
         $this->assertSame('uuid', $json['idField']);
@@ -100,7 +100,7 @@ class ActionTest extends TestCase
 
         $this->assertArrayHasKey('type', $json);
         $this->assertArrayHasKey('label', $json);
-        $this->assertArrayHasKey('cssClass', $json);
+        $this->assertArrayHasKey('className', $json);
         $this->assertArrayHasKey('idField', $json);
         $this->assertArrayNotHasKey('icon', $json);
         $this->assertArrayNotHasKey('confirm', $json);
