@@ -35,7 +35,7 @@ final class UsersDataTable extends AbstractDataTable
             ->setColumnLabel('Actions')
             ->add(
                 Action::delete('Delete')
-                    ->setCssClass('btn btn-sm btn-danger')
+                    ->setClassName('btn btn-sm btn-danger')
                     ->setIcon('bi bi-trash')
                     ->askConfirmation('Delete this user?')
                     ->displayIf('status', 'draft')
@@ -69,7 +69,7 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
   rows={[
     ['`Action::delete($label = \'Delete\', $className = \'btn btn-danger\')`', 'Create the built-in delete action'],
     ['`setLabel(string $label)`', 'Override the button label'],
-    ['`setCssClass(string $cssClass)`', 'Customize button classes'],
+    ['`setClassName(string $className)`', 'Customize button classes'],
     ['`setIcon(string $icon)`', 'Render an icon before the label'],
     ['`askConfirmation(string $message)`', 'Display a browser confirmation prompt before deletion'],
     ['`displayIf(string $field, mixed $value)`', 'Show the action only when `row[field] === value`'],

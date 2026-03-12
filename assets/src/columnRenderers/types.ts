@@ -47,7 +47,7 @@ export interface UrlCustomOptions {
 export interface ActionConfig {
   type: string
   label: string
-  cssClass: string
+  className: string
   icon?: string
   confirm?: string
   displayCondition?: { field: string; value: unknown }

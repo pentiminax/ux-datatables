@@ -20,7 +20,7 @@ describe('actionColumnRenderer', () => {
           {
             type: 'DELETE',
             label: 'Delete',
-            cssClass: 'btn btn-danger',
+            className: 'btn btn-danger',
             entityClass: 'App\\Entity\\User',
             idField: 'id',
           },
@@ -43,7 +43,7 @@ describe('actionColumnRenderer', () => {
           {
             type: 'DELETE',
             label: 'Delete',
-            cssClass: 'btn btn-danger',
+            className: 'btn btn-danger',
             idField: 'id',
           },
         ],
@@ -62,7 +62,7 @@ describe('actionColumnRenderer', () => {
           {
             type: 'DELETE',
             label: 'Delete',
-            cssClass: 'btn btn-danger',
+            className: 'btn btn-danger',
             entityClass: 'App\\Entity\\User',
             idField: 'id',
             displayCondition: { field: 'isDeletable', value: true },
@@ -85,7 +85,7 @@ describe('actionColumnRenderer', () => {
           {
             type: 'DELETE',
             label: 'Delete',
-            cssClass: 'btn btn-danger',
+            className: 'btn btn-danger',
             idField: 'id',
             confirm: 'Are you sure?',
           },
@@ -104,7 +104,7 @@ describe('actionColumnRenderer', () => {
           {
             type: 'DETAIL',
             label: 'View',
-            cssClass: 'btn btn-primary',
+            className: 'btn btn-primary',
             idField: 'id',
             url: '/books/42',
           },
@@ -126,7 +126,7 @@ describe('actionColumnRenderer', () => {
           {
             type: 'DETAIL',
             label: 'View',
-            cssClass: 'btn btn-primary',
+            className: 'btn btn-primary',
             idField: 'id',
           },
         ],
@@ -152,7 +152,7 @@ describe('actionColumnRenderer', () => {
           {
             type: 'DETAIL',
             label: 'View',
-            cssClass: 'btn btn-primary',
+            className: 'btn btn-primary',
             idField: 'id',
           },
         ],
@@ -163,13 +163,39 @@ describe('actionColumnRenderer', () => {
       expect(column.render(null, 'display', { id: 42 })).toBe('')
     })
 
+    it('hides detail action when the resolved url is unsafe', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DETAIL',
+            label: 'View',
+            className: 'btn btn-primary',
+            idField: 'id',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', {
+        id: 42,
+        __ux_datatables_actions: {
+          DETAIL: {
+            url: 'javascript:alert(1)',
+          },
+        },
+      })
+
+      expect(html).toBe('')
+    })
+
     it('renders icon when set', () => {
       const column: Record<string, any> = {
         actions: [
           {
             type: 'DELETE',
             label: 'Delete',
-            cssClass: 'btn btn-danger',
+            className: 'btn btn-danger',
             idField: 'id',
             icon: 'bi bi-trash',
           },
@@ -188,7 +214,7 @@ describe('actionColumnRenderer', () => {
           {
             type: 'DELETE',
             label: '<script>alert("xss")</script>',
-            cssClass: 'btn',
+            className: 'btn',
             idField: 'id',
           },
         ],
@@ -207,7 +233,7 @@ describe('actionColumnRenderer', () => {
           {
             type: 'DELETE',
             label: 'Delete',
-            cssClass: 'btn btn-danger',
+            className: 'btn btn-danger',
             entityClass: 'App\\Entity\\User',
             idField: 'uuid',
           },
@@ -226,13 +252,13 @@ describe('actionColumnRenderer', () => {
           {
             type: 'DELETE',
             label: 'Delete',
-            cssClass: 'btn btn-danger',
+            className: 'btn btn-danger',
             idField: 'id',
           },
           {
             type: 'DELETE',
             label: 'Force Delete',
-            cssClass: 'btn btn-warning',
+            className: 'btn btn-warning',
             idField: 'id',
           },
         ],
@@ -251,7 +277,7 @@ describe('actionColumnRenderer', () => {
           {
             type: 'DELETE',
             label: 'Delete',
-            cssClass: 'btn btn-danger',
+            className: 'btn btn-danger',
             idField: 'id',
           },
         ],

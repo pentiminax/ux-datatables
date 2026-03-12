@@ -343,11 +343,11 @@ abstract class AbstractDataTable implements DataTableInterface
             function (mixed $row): array {
                 $mappedRow = $this->mapRow($row);
 
-                $mappedRow = $this->templateColumnRenderer->renderRow(
+                $mappedRow = $this->templateColumnRenderer?->renderRow(
                     row: $mappedRow,
                     mappedRow: $row,
                     columns: $this->columns
-                );
+                ) ?? $mappedRow;
 
                 return $this->actionRowDataResolver?->resolveRow($mappedRow, $row, $this->columns) ?? $mappedRow;
             }
