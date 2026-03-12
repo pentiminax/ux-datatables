@@ -120,6 +120,34 @@ describe('actionColumnRenderer', () => {
       expect(html).toContain('View')
     })
 
+    it('renders custom html attributes for detail actions', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DETAIL',
+            label: 'View',
+            className: 'btn btn-primary',
+            idField: 'id',
+            url: '/books/42',
+            htmlAttributes: {
+              target: '_blank',
+              rel: 'noopener noreferrer',
+              disabled: true,
+              hidden: false,
+            },
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 42 })
+      expect(html).toContain('target="_blank"')
+      expect(html).toContain('rel="noopener noreferrer"')
+      expect(html).toContain(' disabled')
+      expect(html).not.toContain(' hidden')
+    })
+
     it('renders detail action from row-resolved metadata', () => {
       const column: Record<string, any> = {
         actions: [
@@ -208,6 +236,36 @@ describe('actionColumnRenderer', () => {
       expect(html).toContain('<i class="bi bi-trash"></i>')
     })
 
+    it('renders custom html attributes for button actions and ignores reserved ones', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DELETE',
+            label: 'Delete',
+            className: 'btn btn-danger',
+            entityClass: 'App\\Entity\\User',
+            idField: 'id',
+            htmlAttributes: {
+              target: '_blank',
+              class: 'ignored-class',
+              'data-id': '999',
+              'aria-label': 'Delete row',
+            },
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 42 })
+      expect(html).toContain('target="_blank"')
+      expect(html).toContain('aria-label="Delete row"')
+      expect(html).toContain('class="btn btn-danger"')
+      expect(html).toContain('data-id="42"')
+      expect(html).not.toContain('ignored-class')
+      expect(html).not.toContain('data-id="999"')
+    })
+
     it('escapes HTML in rendered output', () => {
       const column: Record<string, any> = {
         actions: [
@@ -225,6 +283,30 @@ describe('actionColumnRenderer', () => {
       const html = column.render(null, 'display', { id: 1 })
       expect(html).not.toContain('<script>')
       expect(html).toContain('&lt;script&gt;')
+    })
+
+    it('escapes HTML in custom html attributes and ignores invalid attribute names', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DETAIL',
+            label: 'View',
+            className: 'btn btn-primary',
+            idField: 'id',
+            url: '/books/42',
+            htmlAttributes: {
+              title: '"quoted"',
+              'onclick bad': 'alert(1)',
+            },
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 42 })
+      expect(html).toContain('title="&quot;quoted&quot;"')
+      expect(html).not.toContain('onclick bad')
     })
 
     it('uses custom idField', () => {

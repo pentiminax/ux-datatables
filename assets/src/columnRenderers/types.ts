@@ -52,6 +52,7 @@ export interface ActionConfig {
   confirm?: string
   displayCondition?: { field: string; value: unknown }
   entityClass?: string
+  htmlAttributes?: Record<string, string | number | boolean | null>
   idField: string
   url?: string
 }

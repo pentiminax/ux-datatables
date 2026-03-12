@@ -15,14 +15,15 @@ final class Action implements \JsonSerializable
     private ?string $confirmationButtonLabel = null;
     private ?array $displayCondition         = null;
     private ?string $entityClass             = null;
+    private array $htmlAttributes            = [];
     private string $idField                  = 'id';
     private ?string $url                     = null;
     private ?\Closure $urlResolver           = null;
 
     private function __construct(ActionType $type, string $label, string $className)
     {
-        $this->type     = $type;
-        $this->label    = $label;
+        $this->type      = $type;
+        $this->label     = $label;
         $this->className = $className;
     }
 
@@ -83,6 +84,16 @@ final class Action implements \JsonSerializable
         return $this;
     }
 
+    /**
+     * @param array<string, scalar|null> $htmlAttributes
+     */
+    public function setHtmlAttributes(array $htmlAttributes): self
+    {
+        $this->htmlAttributes = $htmlAttributes;
+
+        return $this;
+    }
+
     public function setIdField(string $idField): self
     {
         $this->idField = $idField;
@@ -125,10 +136,10 @@ final class Action implements \JsonSerializable
     public function jsonSerialize(): array
     {
         $data = [
-            'type'     => $this->type->value,
-            'label'    => $this->label,
+            'type'      => $this->type->value,
+            'label'     => $this->label,
             'className' => $this->className,
-            'idField'  => $this->idField,
+            'idField'   => $this->idField,
         ];
 
         if (null !== $this->icon) {
@@ -146,6 +157,8 @@ final class Action implements \JsonSerializable
         if (null !== $this->entityClass) {
             $data['entityClass'] = $this->entityClass;
         }
+
+        $data['htmlAttributes'] = $this->htmlAttributes;
 
         if (null !== $this->url) {
             $data['url'] = $this->url;

@@ -1,4 +1,5 @@
 import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js';
+const SAFE_ATTRIBUTE_NAME_PATTERN = /^[a-zA-Z_:][a-zA-Z0-9:._-]*$/;
 export const actionColumnRenderer = {
     matches(column) {
         return Array.isArray(column?.actions);
@@ -30,17 +31,28 @@ export const actionColumnRenderer = {
                     if (!href || isUnsafeUrl(href)) {
                         return '';
                     }
-                    const attrs = [`class="${escapedClassName}"`, `href="${escapeHtml(href)}"`, `data-action-type="${escapedType}"`];
+                    const attrs = [
+                        `class="${escapedClassName}"`,
+                        `href="${escapeHtml(href)}"`,
+                        `data-action-type="${escapedType}"`,
+                        ...serializeHtmlAttributes(action.htmlAttributes, new Set(['class', 'href', 'data-action-type', 'data-confirm'])),
+                    ];
                     if (action.confirm) {
                         attrs.push(`data-confirm="${escapeHtml(action.confirm)}"`);
                     }
                     return `<a ${attrs.join(' ')}>${iconHtml}${escapedLabel}</a>`;
                 }
-                let attrs = `class="${escapedClassName}" data-action-type="${escapedType}" data-entity="${escapedEntity}" data-id="${escapedId}"`;
+                const attrs = [
+                    `class="${escapedClassName}"`,
+                    `data-action-type="${escapedType}"`,
+                    `data-entity="${escapedEntity}"`,
+                    `data-id="${escapedId}"`,
+                    ...serializeHtmlAttributes(action.htmlAttributes, new Set(['class', 'data-action-type', 'data-entity', 'data-id', 'data-confirm'])),
+                ];
                 if (action.confirm) {
-                    attrs += ` data-confirm="${escapeHtml(action.confirm)}"`;
+                    attrs.push(`data-confirm="${escapeHtml(action.confirm)}"`);
                 }
-                return `<button ${attrs}>${iconHtml}${escapedLabel}</button>`;
+                return `<button ${attrs.join(' ')}>${iconHtml}${escapedLabel}</button>`;
             })
                 .filter(Boolean)
                 .join(' ');
@@ -56,5 +68,23 @@ function resolveActionUrl(action, row) {
         return action.url;
     }
     return null;
+}
+function serializeHtmlAttributes(htmlAttributes, reservedAttributes) {
+    if (!htmlAttributes) {
+        return [];
+    }
+    return Object.entries(htmlAttributes).flatMap(([name, value]) => {
+        const normalizedName = name.toLowerCase();
+        if (!SAFE_ATTRIBUTE_NAME_PATTERN.test(name) || reservedAttributes.has(normalizedName)) {
+            return [];
+        }
+        if (typeof value === 'boolean') {
+            return value ? [name] : [];
+        }
+        if (null === value || undefined === value) {
+            return [];
+        }
+        return [`${name}="${escapeHtml(String(value))}"`];
+    });
 }
 //# sourceMappingURL=actionColumnRenderer.js.map
