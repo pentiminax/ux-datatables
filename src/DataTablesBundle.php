@@ -12,8 +12,6 @@ use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\ApiPlatform\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
-use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
-use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilderInterface;
 use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
@@ -95,14 +93,6 @@ class DataTablesBundle extends AbstractBundle
 
         $container->services()
             ->alias(DataTableBuilderInterface::class, 'datatables.builder')
-            ->private();
-
-        $container->services()
-            ->set('datatables.response_builder', DataTableResponseBuilder::class)
-            ->private();
-
-        $container->services()
-            ->alias(DataTableResponseBuilderInterface::class, 'datatables.response_builder')
             ->private();
 
         $container->services()
