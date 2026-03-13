@@ -1,19 +1,19 @@
-export interface DataTableServerSideOrder {
+interface DataTableServerSideOrder {
     column: number
     dir: 'asc' | 'desc' | string
 }
 
-export interface DataTableServerSideSearch {
+interface DataTableServerSideSearch {
     value?: string | null
 }
 
-export interface DataTableServerSideColumn {
+interface DataTableServerSideColumn {
     data?: string | null
     name?: string | null
     search?: DataTableServerSideSearch
 }
 
-export interface DataTableServerSideParams {
+interface DataTableServerSideParams {
     draw?: number | string
     start?: number
     length?: number
@@ -27,14 +27,14 @@ export interface ColumnConfig {
     name: string
 }
 
-export interface HydraCollectionResponse {
+interface HydraCollectionResponse {
     'hydra:member'?: unknown[]
     member?: unknown[]
     'hydra:totalItems'?: number
     totalItems?: number
 }
 
-export interface DataTableServerSideResponse {
+interface DataTableServerSideResponse {
     draw: number
     recordsTotal: number
     recordsFiltered: number
