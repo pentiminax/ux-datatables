@@ -6,7 +6,6 @@ namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Dto\ColumnDto;
-use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Model\Actions;
 
@@ -21,9 +20,6 @@ class ActionColumn implements ColumnInterface
         $instance = new self(
             name: $name,
             title: '' === $title ? $name : $title,
-            action: ActionType::Delete,
-            actionLabel: '',
-            actionUrl: '',
         );
 
         $instance->actions = $actions;
@@ -34,9 +30,6 @@ class ActionColumn implements ColumnInterface
     private function __construct(
         private string $name,
         private string $title,
-        private ActionType $action,
-        private string $actionLabel,
-        private string $actionUrl,
     ) {
         $this->dto = (new ColumnDto())
             ->setName($this->name)
