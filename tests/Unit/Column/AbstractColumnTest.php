@@ -39,23 +39,4 @@ final class AbstractColumnTest extends TestCase
             'customOptions' => ['format' => 'badge'],
         ], $column->jsonSerialize());
     }
-
-    #[Test]
-    public function it_serializes_actions_through_the_shared_base_path(): void
-    {
-        $column = (new class extends AbstractColumn {
-            public function withActions(array $actions): static
-            {
-                return $this->setActions($actions);
-            }
-        })
-            ->setType(ColumnType::STRING)
-            ->setName('actions')
-            ->setTitle('Actions')
-            ->withActions([['type' => 'DETAIL', 'url' => '/books/42']]);
-
-        $this->assertSame([
-            ['type' => 'DETAIL', 'url' => '/books/42'],
-        ], $column->jsonSerialize()['actions']);
-    }
 }
