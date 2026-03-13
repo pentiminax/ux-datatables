@@ -7,7 +7,7 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
-use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
+use Pentiminax\UX\DataTables\Query\SearchConditionBuilder;
 
 /**
  * Strategy for 'contains' search logic.
@@ -23,7 +23,6 @@ final class ContainsSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $field     = RelationFieldResolver::resolve($qb, $alias, $column->getField());
         $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
         $isNumeric = $column->isNumber()
@@ -33,11 +32,9 @@ final class ContainsSearchStrategy implements SearchStrategyInterface
             if (!is_numeric($search->value)) {
                 return;
             }
-            $qb->andWhere(\sprintf('%s = :%s', $field, $paramName));
-            $qb->setParameter($paramName, $search->value);
+            $qb->andWhere(SearchConditionBuilder::numeric($qb, $alias, $column->getField(), $search->value, $paramName));
         } else {
-            $qb->andWhere(\sprintf('%s LIKE :%s', $field, $paramName));
-            $qb->setParameter($paramName, \sprintf('%%%s%%', $search->value));
+            $qb->andWhere(SearchConditionBuilder::text($qb, $alias, $column->getField(), $search->value, $paramName));
         }
     }
 
