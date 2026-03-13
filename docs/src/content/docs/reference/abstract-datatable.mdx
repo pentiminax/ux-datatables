@@ -296,7 +296,7 @@ into each action. See the [Action Columns](../action-columns/) reference for the
   rows={[
     ['`handleRequest(Request $request)`', 'Handle Ajax requests'],
     ['`isRequestHandled()`', 'Check if request was handled'],
-    ['`getResponse()`', 'Get JsonResponse for Ajax'],
+    ['`getResponse()`', 'Get JsonResponse for Ajax; returns an empty dataset when no provider is available'],
     ['`getDataTable()`', 'Get the configured DataTable'],
   ]}
 />
@@ -330,6 +330,20 @@ final class CustomUsersDataTable extends AbstractDataTable
     }
 }
 ```
+
+If an Ajax request is handled and `getDataProvider()` returns `null`, `getResponse()` now returns an
+empty DataTables payload using the current `draw` value:
+
+```json
+{
+  "draw": 3,
+  "recordsTotal": 0,
+  "recordsFiltered": 0,
+  "data": []
+}
+```
+
+This avoids runtime errors, but in practice a server-side table should still expose a provider.
 
 ## Core Interfaces
 
