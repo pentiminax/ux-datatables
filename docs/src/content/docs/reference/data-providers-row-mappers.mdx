@@ -5,6 +5,13 @@ description: Contracts and built-in implementations for data retrieval and row m
 
 # Data Providers & Row Mappers
 
+With `AbstractDataTable`, providers are resolved internally and row mapping is applied through a
+pipeline. The usual extension points are:
+
+- `createDataProvider()` for custom providers
+- `mapRow()` for domain-to-array mapping
+- `createRowMapper()` when you need the built-in mapping/template/action pipeline instance
+
 ## DataProviderInterface
 
 ```php
@@ -36,13 +43,14 @@ interface RowMapperInterface
 }
 ```
 
-Built-in mappers:
+Built-in mappers and processors:
 
 <Table
   headers={['Mapper', 'Use case']}
   rows={[
     ['`DefaultRowMapper`', 'Default row-to-array mapping behavior'],
     ['`ClosureRowMapper`', 'Custom mapping logic via closure'],
+    ['`RowProcessingPipeline`', 'Internal pipeline used by `AbstractDataTable`'],
   ]}
 />
 
@@ -61,6 +69,18 @@ new DataTableResult(
 - custom domain filters with non-Doctrine backends
 - APIs requiring specific output shape
 - performance tuning with pre-mapped row payloads
+
+## Manual Provider Example
+
+```php
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+
+protected function createDataProvider(): ?DataProviderInterface
+{
+    return new ArrayDataProvider($this->rows, $this->createRowMapper());
+}
+```
 
 ## Cross Links
 

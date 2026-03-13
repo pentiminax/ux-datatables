@@ -1,5 +1,28 @@
 # Upgrade Guide
 
+## `AbstractDataTable` provider hook renamed
+
+`AbstractDataTable` no longer uses `getDataProvider()` as the extension hook for manual providers.
+
+Use `createDataProvider()` instead:
+
+```php
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+
+protected function createDataProvider(): ?DataProviderInterface
+{
+    return new ArrayDataProvider($rows, $this->createRowMapper());
+}
+```
+
+What changed:
+
+- override `createDataProvider()` instead of `getDataProvider()`
+- use `createRowMapper()` instead of `rowMapper()`
+- `getDataProvider()` is now a public façade that returns the resolved provider
+- `getDataTable()` is now the canonical rendering entrypoint; manual calls to `prepareForRendering()` are no longer required for normal rendering
+
 ## Unify extension configuration on `configureExtensions()`
 
 `AbstractDataTable` no longer supports overriding `configureButtonsExtension()`,
