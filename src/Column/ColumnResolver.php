@@ -13,14 +13,9 @@ final class ColumnResolver
 {
     public function __construct(
         private readonly ?AttributeColumnReader $attributeColumnReader = null,
-        private ?ColumnAutoDetectorInterface $columnAutoDetector = null,
+        private readonly ?ColumnAutoDetectorInterface $columnAutoDetector = null,
         private readonly ?UrlColumnResolver $urlColumnResolver = null,
     ) {
-    }
-
-    public function setColumnAutoDetector(?ColumnAutoDetectorInterface $columnAutoDetector): void
-    {
-        $this->columnAutoDetector = $columnAutoDetector;
     }
 
     /**

@@ -19,17 +19,13 @@ final class RenderingPreparer
 
     public function prepare(DataTable $table, ?AsDataTable $asDataTable): void
     {
-        $this->configureApiPlatformAjax($table, $asDataTable);
+        $this->configureApiPlatform($table, $asDataTable);
         $this->configureMercure($table, $asDataTable);
     }
 
-    private function configureApiPlatformAjax(DataTable $table, ?AsDataTable $asDataTable): void
+    private function configureApiPlatform(DataTable $table, ?AsDataTable $asDataTable): void
     {
-        if (null !== $table->getOption('ajax')) {
-            return;
-        }
-
-        if (null !== $table->getOption('data')) {
+        if (null !== $table->getOption('ajax') || null !== $table->getOption('data')) {
             return;
         }
 

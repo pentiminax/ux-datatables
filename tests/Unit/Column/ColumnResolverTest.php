@@ -115,23 +115,6 @@ final class ColumnResolverTest extends TestCase
     }
 
     #[Test]
-    public function set_column_auto_detector_updates_detector(): void
-    {
-        $resolver = new ColumnResolver();
-
-        // Initially no detector — returns empty
-        $this->assertSame([], $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class)));
-
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
-        $detector->method('supports')->willReturn(true);
-        $detector->method('detectColumns')->willReturn([TextColumn::new('name', 'Name')]);
-
-        $resolver->setColumnAutoDetector($detector);
-
-        $this->assertCount(1, $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class)));
-    }
-
-    #[Test]
     public function configure_boolean_columns_sets_entity_class(): void
     {
         $resolver = new ColumnResolver();

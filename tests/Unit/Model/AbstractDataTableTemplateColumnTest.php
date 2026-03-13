@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -43,7 +44,9 @@ final class TemplatePipelineTable extends AbstractDataTable
     public function __construct(TemplateColumnRenderer $renderer)
     {
         parent::__construct(
-            templateColumnRenderer: $renderer
+            runtimeFactory: new DataTableRuntimeFactory(
+                templateColumnRenderer: $renderer,
+            ),
         );
     }
 
@@ -62,7 +65,7 @@ final class TemplatePipelineTable extends AbstractDataTable
 
     public function mapViaPipeline(mixed $row): array
     {
-        return $this->rowMapper()->map($row);
+        return $this->createRowMapper()->map($row);
     }
 }
 
