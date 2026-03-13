@@ -235,11 +235,16 @@ use Pentiminax\UX\DataTables\Model\Actions;
 
 public function configureActions(Actions $actions): Actions
 {
-    return $actions->add(
-        Action::delete()
-            ->askConfirmation('Delete this user?')
-            ->displayIf('isDeletable', true)
-    );
+    return $actions
+        ->add(
+            Action::edit()
+                ->setIcon('bi bi-pencil')
+        )
+        ->add(
+            Action::delete()
+                ->askConfirmation('Delete this user?')
+                ->displayIf('isDeletable', true)
+        );
 }
 ```
 

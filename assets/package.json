@@ -2,7 +2,7 @@
   "name": "@pentiminax/ux-datatables",
   "description": "DataTables integration for Symfony",
   "license": "MIT",
-  "version": "0.13.5",
+  "version": "0.28.0",
   "type": "module",
   "main": "dist/controller.js",
   "symfony": {
@@ -84,6 +84,7 @@
     "@hotwired/stimulus": "^3.0.0",
     "@testing-library/dom": "^10.4.1",
     "@types/pdfmake": "^0.3.1",
+    "bootstrap": "^5.3.8",
     "datatables.net-bs5": "^2.3.0",
     "datatables.net-buttons": "^3.2.0",
     "datatables.net-buttons-bs5": "^3.2.0",

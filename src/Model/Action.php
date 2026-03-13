@@ -37,6 +37,11 @@ final class Action implements \JsonSerializable
         return new self(ActionType::Detail, $label, $className);
     }
 
+    public static function edit(string $label = 'Edit', string $className = 'btn btn-warning'): self
+    {
+        return new self(ActionType::Edit, $label, $className);
+    }
+
     public function getType(): ActionType
     {
         return $this->type;

@@ -8,4 +8,5 @@ enum ActionType: string
 {
     case Delete = 'DELETE';
     case Detail = 'DETAIL';
+    case Edit   = 'EDIT';
 }
