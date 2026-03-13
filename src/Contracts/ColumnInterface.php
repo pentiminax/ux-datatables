@@ -4,12 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Contracts;
 
-use Pentiminax\UX\DataTables\Dto\ColumnDto;
-
 interface ColumnInterface extends \JsonSerializable
 {
-    public function getAsDto(): ColumnDto;
-
     public function getName(): string;
 
     public function getField(): ?string;
