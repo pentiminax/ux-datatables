@@ -64,6 +64,7 @@ if (!$table->getDataTable()->isServerSide()) {
 - Always whitelist sortable/searchable fields in your query layer.
 - Keep backend response time predictable (indexes, query limits).
 - Prefer `AbstractDataTable` for reusable query behavior.
+- Ensure `getDataProvider()` returns a provider in server-side mode; otherwise `getResponse()` falls back to an empty payload.
 
 ## Cross Links
 
