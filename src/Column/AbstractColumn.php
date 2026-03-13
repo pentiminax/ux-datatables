@@ -219,6 +219,13 @@ abstract class AbstractColumn implements ColumnInterface
         return $this;
     }
 
+    public function hideWhenUpdating(bool $hidden = true): static
+    {
+        $this->customOptions['hideWhenUpdating'] = $hidden;
+
+        return $this;
+    }
+
     public function setCustomOption(string $optionName, mixed $optionValue): static
     {
         $this->customOptions[$optionName] = $optionValue;

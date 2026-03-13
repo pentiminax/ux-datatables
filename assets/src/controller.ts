@@ -12,6 +12,9 @@ import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { deleteEntity } from './functions/deleteEntity.js'
+import { fetchEditForm } from './functions/fetchEditForm.js'
+import { submitEditForm } from './functions/submitEditForm.js'
+import { createEditModal } from './functions/editModal.js'
 
 export default class extends Controller {
     declare readonly viewValue: any
@@ -64,7 +67,7 @@ export default class extends Controller {
         this.dispatchEvent('connect', { table: this.table })
 
         await this.initMercure(payload)
-        this.bindDeleteHandler(payload)
+        this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
 
         this.isDataTableInitialized = true
@@ -164,41 +167,100 @@ export default class extends Controller {
         }
     }
 
-    private bindDeleteHandler(payload: Record<string, any>): void {
+    private bindActionHandler(payload: Record<string, any>): void {
         ;(this.element as HTMLElement).addEventListener(
             'click',
             async (e: MouseEvent): Promise<void> => {
                 const target = e.target as HTMLElement
                 const actionButton = target.closest('[data-action-type]') as HTMLElement | null
 
-                if (actionButton) {
-                    const actionType = actionButton.getAttribute('data-action-type')
-                    const entity = actionButton.getAttribute('data-entity')
-                    const id = actionButton.getAttribute('data-id')
-                    const confirmMessage = actionButton.getAttribute('data-confirm')
-
-                    if (confirmMessage && !confirm(confirmMessage)) {
-                        e.preventDefault()
-                        return
-                    }
-
-                    if (actionType === 'DELETE' && entity && id) {
-                        e.preventDefault()
-                        const response = await deleteEntity({
-                            entity,
-                            id,
-                            topics: this.getMercureTopics(payload),
-                        })
-
-                        if (response.ok) {
-                            this.table?.ajax?.reload(null, false)
-                        }
-                    }
-
+                if (!actionButton) {
                     return
+                }
+
+                const actionType = actionButton.getAttribute('data-action-type')
+                const entity = actionButton.getAttribute('data-entity')
+                const id = actionButton.getAttribute('data-id')
+                const confirmMessage = actionButton.getAttribute('data-confirm')
+
+                if (confirmMessage && !confirm(confirmMessage)) {
+                    e.preventDefault()
+                    return
+                }
+
+                if (actionType === 'DELETE' && entity && id) {
+                    e.preventDefault()
+                    const response = await deleteEntity({
+                        entity,
+                        id,
+                        topics: this.getMercureTopics(payload),
+                    })
+
+                    if (response.ok) {
+                        this.table?.ajax?.reload(null, false)
+                    }
+                }
+
+                if (actionType === 'EDIT' && entity && id) {
+                    e.preventDefault()
+                    const columns = this.getEditableColumns(payload)
+                    const modal = createEditModal()
+
+                    const result = await fetchEditForm({ entity, id, columns })
+
+                    if (result.success) {
+                        modal.show(result.html, async (formData) => {
+                            const submitResult = await submitEditForm({
+                                entity,
+                                id,
+                                columns,
+                                formData,
+                                topics: this.getMercureTopics(payload),
+                            })
+
+                            if (submitResult.success) {
+                                modal.hide()
+                                this.table?.ajax?.reload(null, false)
+                            } else if (submitResult.html) {
+                                modal.showErrors(submitResult.html)
+                            }
+                        })
+                    }
                 }
             }
         )
+    }
+
+    private getEditableColumns(payload: Record<string, any>): Record<string, any>[] {
+        if (!Array.isArray(payload.columns)) {
+            return []
+        }
+
+        return payload.columns
+            .filter((column: any) => {
+                if (Array.isArray(column.actions)) {
+                    return false
+                }
+
+                const custom = column.customOptions ?? {}
+
+                if (custom.hideWhenUpdating) {
+                    return false
+                }
+
+                if (custom.templatePath || custom.routeName || custom.template) {
+                    return false
+                }
+
+                return true
+            })
+            .map((column: any) => ({
+                name: column.name,
+                title: column.title,
+                type: column.type,
+                field: column.field,
+                customOptions: column.customOptions,
+            }))
     }
 
     private bindBooleanToggleHandler(payload: Record<string, any>): void {

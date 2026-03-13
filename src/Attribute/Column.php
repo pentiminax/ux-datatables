@@ -25,6 +25,7 @@ final class Column
         public readonly ?string $format = null,
         public readonly int $priority = 0,
         public readonly array|bool $renderAsBadges = false,
+        public readonly bool $hideWhenUpdating = false,
     ) {
     }
 }

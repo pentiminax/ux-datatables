@@ -60,6 +60,7 @@ final class AttributeColumnReader
         $column->setSearchable($attr->searchable);
         $column->setVisible($attr->visible);
         $column->setExportable($attr->exportable);
+        $column->hideWhenUpdating($attr->hideWhenUpdating);
 
         if (!$attr->globalSearchable) {
             $column->disableGlobalSearch();
