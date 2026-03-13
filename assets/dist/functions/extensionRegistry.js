@@ -26,6 +26,8 @@ const registry = {
     responsive: {
         bs5: () => import('datatables.net-responsive-bs5'),
         dt: () => import('datatables.net-responsive-dt'),
+        cssBs5: () => import('datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css'),
+        cssDt: () => import('datatables.net-responsive-dt/css/responsive.dataTables.min.css'),
     },
     scroller: {
         bs5: () => import('datatables.net-scroller-bs5'),
