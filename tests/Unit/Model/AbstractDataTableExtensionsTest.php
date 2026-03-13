@@ -57,9 +57,9 @@ final class AbstractDataTableExtensionsTest extends TestCase
                     ],
                 ],
             ],
-            'topEnd' => 'search',
+            'topEnd'      => 'search',
             'bottomStart' => 'info',
-            'bottomEnd' => [
+            'bottomEnd'   => [
                 'paging' => true,
             ],
         ], $table->getDataTable()->getOptions()['layout']);
