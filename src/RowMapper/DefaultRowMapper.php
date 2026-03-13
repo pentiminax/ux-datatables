@@ -49,11 +49,7 @@ final class DefaultRowMapper implements RowMapperInterface
 
             $value = PropertyReader::readPath($row, $key);
             if ($column instanceof DateColumn && $value instanceof \DateTimeInterface) {
-                if ($column->getFormat()) {
-                    $value = $value->format($column->getFormat());
-                } else {
-                    $value = $value->format('Y-m-d');
-                }
+                $value = $value->format($column->getFormat());
             }
 
             $mapped[$key] = $value;
