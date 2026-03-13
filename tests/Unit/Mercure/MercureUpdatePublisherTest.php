@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Mercure;
 
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Psr\Log\LoggerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -49,6 +50,32 @@ final class MercureUpdatePublisherTest extends TestCase
 
         $publisher = new MercureUpdatePublisher($hub);
         $publisher->publish('datatables/MyTable');
+    }
+
+    #[Test]
+    public function it_logs_and_swallows_publish_failures(): void
+    {
+        $exception = new \RuntimeException('Mercure hub unavailable.');
+        $hub       = $this->createMock(HubInterface::class);
+        $hub->expects($this->once())
+            ->method('publish')
+            ->willThrowException($exception);
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('error')
+            ->with(
+                'Failed to publish Mercure update.',
+                $this->callback(static function (array $context) use ($exception): bool {
+                    return ['/topic/42'] === $context['topics']
+                        && ['type' => 'edit', 'id' => 42] === $context['data']
+                        && $exception === $context['exception'];
+                })
+            );
+
+        $publisher = new MercureUpdatePublisher($hub, $logger);
+
+        $this->assertSame('', $publisher->publish(['/topic/42'], ['type' => 'edit', 'id' => 42]));
     }
 
     #[Test]

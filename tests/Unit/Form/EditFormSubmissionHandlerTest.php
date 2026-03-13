@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Form\EditFormEntityResolver;
 use Pentiminax\UX\DataTables\Form\EditFormRenderer;
 use Pentiminax\UX\DataTables\Form\EditFormSubmissionHandler;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
+use Psr\Log\LoggerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -131,6 +132,50 @@ final class EditFormSubmissionHandlerTest extends TestCase
             new EditFormEntityResolver($registry),
             $this->createRenderer($form),
             new MercureUpdatePublisher($hub),
+        );
+
+        $result = $handler->handle(new AjaxEditFormRequestDto(
+            entity: EditFormSubmissionHandlerFixture::class,
+            id: 42,
+            columns: [['name' => 'name', 'title' => 'Name', 'type' => 'string']],
+            formData: ['name' => 'Alice'],
+            topics: ['/topic/42'],
+        ));
+
+        $this->assertTrue($result->success);
+        $this->assertNull($result->html);
+        $this->assertSame('', $result->message);
+    }
+
+    #[Test]
+    public function it_returns_success_when_mercure_publish_fails_after_flush(): void
+    {
+        $entityManager = $this->createEntityManagerWithEntity(new EditFormSubmissionHandlerFixture());
+        $entityManager->expects($this->once())->method('flush');
+
+        $registry = $this->createRegistry($entityManager);
+        $form     = $this->createMock(FormInterface::class);
+        $form->expects($this->once())
+            ->method('submit')
+            ->with(['name' => 'Alice']);
+        $form->expects($this->once())
+            ->method('isValid')
+            ->willReturn(true);
+        $form->expects($this->never())->method('createView');
+
+        $exception = new \RuntimeException('Mercure hub unavailable.');
+        $hub       = $this->createMock(HubInterface::class);
+        $hub->expects($this->once())
+            ->method('publish')
+            ->willThrowException($exception);
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('error');
+
+        $handler = new EditFormSubmissionHandler(
+            new EditFormEntityResolver($registry),
+            $this->createRenderer($form),
+            new MercureUpdatePublisher($hub, $logger),
         );
 
         $result = $handler->handle(new AjaxEditFormRequestDto(

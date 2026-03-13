@@ -386,6 +386,7 @@ class DataTablesBundle extends AbstractBundle
         $container->services()
             ->set('datatables.mercure.publisher', MercureUpdatePublisher::class)
             ->arg(0, service('mercure.hub.default'))
+            ->arg(1, service('logger')->nullOnInvalid())
             ->private();
 
         $builder->getDefinition('datatables.controller.ajax_edit')
