@@ -25,8 +25,16 @@ use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
+use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
+use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
+use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
+use Pentiminax\UX\DataTables\Form\EditFormBuilder;
+use Pentiminax\UX\DataTables\Form\EditFormEntityResolver;
+use Pentiminax\UX\DataTables\Form\EditFormRenderer;
+use Pentiminax\UX\DataTables\Form\EditFormSubmissionHandler;
+use Pentiminax\UX\DataTables\Form\EditFormViewHandler;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
@@ -95,6 +103,10 @@ class DataTablesBundle extends AbstractBundle
             $this->registerApiPlatformServices($container);
         }
 
+        if (interface_exists(\Symfony\Component\Form\FormFactoryInterface::class)) {
+            $this->registerFormServices($container);
+        }
+
         if (interface_exists(\Symfony\Component\Mercure\HubInterface::class)) {
             $this->registerMercureServices($container, $builder);
         }
@@ -102,17 +114,15 @@ class DataTablesBundle extends AbstractBundle
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        if (!$this->isAssetMapperAvailable($builder)) {
-            return;
-        }
-
-        $builder->prependExtensionConfig('framework', [
-            'asset_mapper' => [
-                'paths' => [
-                    __DIR__.'/../assets/dist' => '@pentiminax/ux-datatables',
+        if ($this->isAssetMapperAvailable($builder)) {
+            $builder->prependExtensionConfig('framework', [
+                'asset_mapper' => [
+                    'paths' => [
+                        __DIR__.'/../assets/dist' => '@pentiminax/ux-datatables',
+                    ],
                 ],
-            ],
-        ]);
+            ]);
+        }
     }
 
     private function isAssetMapperAvailable(ContainerBuilder $builder): bool
@@ -304,6 +314,54 @@ class DataTablesBundle extends AbstractBundle
             ->private();
     }
 
+    private function registerFormServices(ContainerConfigurator $container): void
+    {
+        $container->services()
+            ->set('datatables.form.column_to_form_type_mapper', ColumnToFormTypeMapper::class)
+            ->private();
+
+        $container->services()
+            ->set('datatables.form.edit_form_builder', EditFormBuilder::class)
+            ->arg(0, service('form.factory'))
+            ->arg(1, service('datatables.form.column_to_form_type_mapper'))
+            ->private();
+
+        $container->services()
+            ->set('datatables.form.edit_form_entity_resolver', EditFormEntityResolver::class)
+            ->arg(0, service('doctrine')->nullOnInvalid())
+            ->private();
+
+        $container->services()
+            ->set('datatables.form.edit_form_renderer', EditFormRenderer::class)
+            ->arg(0, service('datatables.form.edit_form_builder'))
+            ->arg(1, service('twig'))
+            ->private();
+
+        $container->services()
+            ->set('datatables.form.edit_form_view_handler', EditFormViewHandler::class)
+            ->arg(0, service('datatables.form.edit_form_entity_resolver'))
+            ->arg(1, service('datatables.form.edit_form_renderer'))
+            ->private();
+
+        $container->services()
+            ->set('datatables.form.edit_form_submission_handler', EditFormSubmissionHandler::class)
+            ->arg(0, service('datatables.form.edit_form_entity_resolver'))
+            ->arg(1, service('datatables.form.edit_form_renderer'))
+            ->private();
+
+        $container->services()
+            ->set('datatables.controller.ajax_edit_form', AjaxEditFormController::class)
+            ->arg(0, service('datatables.form.edit_form_view_handler'))
+            ->tag('controller.service_arguments')
+            ->public();
+
+        $container->services()
+            ->set('datatables.controller.ajax_edit_form_submit', AjaxEditFormSubmitController::class)
+            ->arg(0, service('datatables.form.edit_form_submission_handler'))
+            ->tag('controller.service_arguments')
+            ->public();
+    }
+
     private function registerMercureServices(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
         $container->services()
@@ -328,6 +386,7 @@ class DataTablesBundle extends AbstractBundle
         $container->services()
             ->set('datatables.mercure.publisher', MercureUpdatePublisher::class)
             ->arg(0, service('mercure.hub.default'))
+            ->arg(1, service('logger')->nullOnInvalid())
             ->private();
 
         $builder->getDefinition('datatables.controller.ajax_edit')
@@ -335,5 +394,10 @@ class DataTablesBundle extends AbstractBundle
 
         $builder->getDefinition('datatables.controller.ajax_delete')
             ->addArgument(new Reference('datatables.mercure.publisher'));
+
+        if ($builder->hasDefinition('datatables.form.edit_form_submission_handler')) {
+            $builder->getDefinition('datatables.form.edit_form_submission_handler')
+                ->addArgument(new Reference('datatables.mercure.publisher'));
+        }
     }
 }

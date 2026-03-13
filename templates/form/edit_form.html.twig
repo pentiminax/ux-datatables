@@ -1,0 +1,6 @@
+{% form_theme form 'bootstrap_5_layout.html.twig' %}
+{{ form_start(form, {attr: {id: 'ux-datatables-edit-form'}}) }}
+    {% for field in form %}
+        {{ form_row(field) }}
+    {% endfor %}
+{{ form_end(form) }}

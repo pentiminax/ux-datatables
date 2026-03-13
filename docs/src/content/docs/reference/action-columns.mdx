@@ -34,6 +34,11 @@ final class UsersDataTable extends AbstractDataTable
         return $actions
             ->setColumnLabel('Actions')
             ->add(
+                Action::edit('Edit')
+                    ->setClassName('btn btn-sm btn-warning')
+                    ->setIcon('bi bi-pencil')
+            )
+            ->add(
                 Action::delete('Delete')
                     ->setClassName('btn btn-sm btn-danger')
                     ->setIcon('bi bi-trash')
@@ -64,17 +69,30 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
 
 ## `Action` API
 
+### Factory Methods
+
 <Table
   headers={['Method', 'Description']}
   rows={[
     ['`Action::delete($label = \'Delete\', $className = \'btn btn-danger\')`', 'Create the built-in delete action'],
+    ['`Action::detail($label = \'Detail\', $className = \'btn btn-primary\')`', 'Create a link action to a detail page'],
+    ['`Action::edit($label = \'Edit\', $className = \'btn btn-warning\')`', 'Create an inline edit action (opens a Bootstrap 5 modal)'],
+  ]}
+/>
+
+### Fluent Configuration
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
     ['`setLabel(string $label)`', 'Override the button label'],
     ['`setClassName(string $className)`', 'Customize button classes'],
     ['`setIcon(string $icon)`', 'Render an icon before the label'],
-    ['`askConfirmation(string $message)`', 'Display a browser confirmation prompt before deletion'],
+    ['`askConfirmation(string $message)`', 'Display a browser confirmation prompt before the action'],
     ['`displayIf(string $field, mixed $value)`', 'Show the action only when `row[field] === value`'],
     ['`setIdField(string $idField)`', 'Use another row key instead of `id`'],
     ['`setEntityClass(string $entityClass)`', 'Set the Doctrine entity class explicitly'],
+    ['`linkToUrl(string\\|callable $url)`', 'Set the URL for detail actions (static string or per-row callable)'],
   ]}
 />
 
@@ -89,12 +107,14 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
   ]}
 />
 
-`Actions` stores one action per `ActionType`. In the current branch, the public enum is:
+`Actions` stores one action per `ActionType`. The public enum values are:
 
 ```php
 use Pentiminax\UX\DataTables\Enum\ActionType;
 
 ActionType::Delete; // value: DELETE
+ActionType::Detail; // value: DETAIL
+ActionType::Edit;   // value: EDIT
 ```
 
 ## Manual Usage with `DataTableBuilderInterface`
@@ -133,16 +153,107 @@ $table = $builder
 Manual tables must provide the entity class themselves because there is no `#[AsDataTable]`
 attribute to infer it from.
 
-## Ajax Delete Endpoint
+## Inline Edit (Modal)
 
-Delete actions are handled by the built-in Stimulus controller. On click, UX DataTables sends a
-`DELETE` request to `/datatables/ajax/delete` with:
+`Action::edit()` opens a Bootstrap 5 modal containing an auto-generated Symfony Form. The form
+fields are built from the table's column configuration.
 
-- `entity`: Doctrine entity class
-- `id`: the row identifier
-- `topics`: optional Mercure topics when the table is Mercure-enabled
+### Requirements
 
-Import the bundle routes in your Symfony application:
+- `symfony/form` must be installed (`composer require symfony/form`)
+- Bootstrap 5 must be loaded on the page (the modal uses `bootstrap.Modal`)
+
+### How It Works
+
+1. User clicks the Edit button on a row
+2. The Stimulus controller fetches a pre-filled form from `GET /datatables/ajax/edit-form`
+3. A Bootstrap 5 modal opens with the rendered form
+4. On submit, a `POST /datatables/ajax/edit-form` validates and persists the changes
+5. The table reloads automatically (with Mercure broadcast if enabled)
+
+### Column-to-Form Mapping
+
+The form builder maps each column to a Symfony Form type:
+
+<Table
+  headers={['Column Pattern', 'Form Type']}
+  rows={[
+    ['`BooleanColumn` (`renderAsSwitch`)', '`CheckboxType`'],
+    ['`ChoiceColumn` (has `choices`)', '`ChoiceType`'],
+    ['`DateColumn` (has `dateFormat`)', '`DateType` (single_text widget)'],
+    ['`NumberColumn` (`num`, `num-fmt`, …)', '`NumberType`'],
+    ['`TextColumn` (`string`, `string-utf8`)', '`TextType`'],
+    ['`html` type', '`TextareaType`'],
+    ['`ActionColumn`, `TemplateColumn`, `UrlColumn`', 'Skipped automatically'],
+  ]}
+/>
+
+### Primary Key Fields
+
+Columns matching the entity's Doctrine identifier are rendered as **disabled** fields in the form.
+They are visible for reference but cannot be modified.
+
+### Excluding Columns from the Form
+
+Use `hideWhenUpdating()` on any column to exclude it from the edit modal entirely:
+
+```php
+public function configureColumns(): iterable
+{
+    yield NumberColumn::new('id', 'ID');
+    yield TextColumn::new('name', 'Name');
+    yield DateColumn::new('createdAt', 'Created')
+        ->hideWhenUpdating();  // Excluded from the edit form
+}
+```
+
+### Full Example
+
+```php
+use App\Entity\Product;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
+
+#[AsDataTable(Product::class)]
+final class ProductsDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('name', 'Name');
+        yield NumberColumn::new('price', 'Price');
+        yield BooleanColumn::new('active', 'Active');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(
+            Action::edit('Edit')
+                ->setIcon('bi bi-pencil')
+        );
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        /** @var Product $item */
+        return [
+            'id' => $item->getId(),
+            'name' => $item->getName(),
+            'price' => $item->getPrice(),
+            'active' => $item->isActive(),
+        ];
+    }
+}
+```
+
+## Ajax Endpoints
+
+All action endpoints are handled by built-in Stimulus controllers. Import the bundle routes:
 
 ```php
 // config/routes/ux_datatables.php
@@ -154,9 +265,19 @@ return static function (RoutingConfigurator $routes): void {
 ```
 
 <Aside type="note">
-  This route import is also required for inline boolean updates because both features rely on the
-  bundle Ajax controllers.
+  This route import is required for delete actions, inline boolean updates, and edit modals.
 </Aside>
+
+### Delete Endpoint
+
+`DELETE /datatables/ajax/delete` — payload: `entity`, `id`, `topics` (optional Mercure topics).
+
+### Edit Form Endpoints
+
+- `GET /datatables/ajax/edit-form` — returns the rendered form HTML
+- `POST /datatables/ajax/edit-form` — validates and persists the form data
+
+These endpoints are only available when `symfony/form` is installed.
 
 ## Cross Links
 
