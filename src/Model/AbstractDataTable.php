@@ -137,7 +137,17 @@ abstract class AbstractDataTable implements DataTableInterface
             ]);
         }
 
-        $data = $this->getDataProvider()?->fetchData($this->request);
+        $provider = $this->getDataProvider();
+        if (null === $provider) {
+            return new JsonResponse([
+                'draw'            => $this->request->draw,
+                'recordsTotal'    => 0,
+                'recordsFiltered' => 0,
+                'data'            => [],
+            ]);
+        }
+
+        $data = $provider->fetchData($this->request);
 
         return new JsonResponse([
             'draw'            => $this->request->draw,

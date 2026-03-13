@@ -69,6 +69,23 @@ final class AbstractDataTableResponseTest extends TestCase
             ],
         ], json_decode((string) $response->getContent(), true));
     }
+
+    #[Test]
+    public function it_returns_an_empty_response_when_a_request_is_handled_without_a_provider(): void
+    {
+        $table = new ResponseTestTable();
+        $table->handleRequest(new Request(query: ['draw' => 7]));
+
+        $response = $table->getResponse();
+
+        $this->assertInstanceOf(JsonResponse::class, $response);
+        $this->assertSame([
+            'draw'            => 7,
+            'recordsTotal'    => 0,
+            'recordsFiltered' => 0,
+            'data'            => [],
+        ], json_decode((string) $response->getContent(), true));
+    }
 }
 
 final class ResponseTestTable extends AbstractDataTable
