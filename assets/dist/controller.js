@@ -2,13 +2,7 @@ import { Controller } from '@hotwired/stimulus';
 import { getLoadedDataTablesStyleSheet } from './functions/getLoadedDataTablesStyleSheet.js';
 import { loadButtonsLibrary } from './functions/loadButtonsLibrary.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
-import { loadSelectLibrary } from './functions/loadSelectLibrary.js';
-import { loadResponsiveLibrary } from './functions/loadResponsiveLibrary.js';
-import { loadColReorderLibrary } from './functions/loadColReorderLibrary.js';
-import { loadColumnControlLibrary } from './functions/loadColumnControlLibrary.js';
-import { loadFixedColumnsLibrary } from './functions/loadFixedColumnsLibrary.js';
-import { loadKeyTableLibrary } from './functions/loadKeyTableLibrary.js';
-import { loadScrollerLibrary } from './functions/loadScrollerLibrary.js';
+import { ExtensionRegistry } from './functions/extensionRegistry.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
 import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
@@ -44,10 +38,10 @@ class default_1 extends Controller {
             await loadButtonsLibrary(DataTable, stylesheet);
         }
         if (this.isSelectExtensionEnabled(payload)) {
-            await loadSelectLibrary(stylesheet);
+            await ExtensionRegistry.load('select', stylesheet);
         }
         if (this.isResponsiveExtensionEnabled(payload)) {
-            await loadResponsiveLibrary(stylesheet);
+            await ExtensionRegistry.load('responsive', stylesheet);
             if (payload.select?.withCheckbox) {
                 payload.columns.unshift({
                     data: null,
@@ -67,19 +61,19 @@ class default_1 extends Controller {
             }
         }
         if (this.isColumnControlExtensionEnabled(payload)) {
-            await loadColumnControlLibrary(stylesheet);
+            await ExtensionRegistry.load('columnControl', stylesheet);
         }
         if (this.isFixedColumnsExtensionEnabled(payload)) {
-            await loadFixedColumnsLibrary(stylesheet);
+            await ExtensionRegistry.load('fixedColumns', stylesheet);
         }
         if (this.isColReorderExtensionEnabled(payload)) {
-            await loadColReorderLibrary(stylesheet);
+            await ExtensionRegistry.load('colReorder', stylesheet);
         }
         if (this.isKeyTableExtensionEnabled(payload)) {
-            await loadKeyTableLibrary(stylesheet);
+            await ExtensionRegistry.load('keyTable', stylesheet);
         }
         if (this.isScrollerExtensionEnabled(payload)) {
-            await loadScrollerLibrary(stylesheet);
+            await ExtensionRegistry.load('scroller', stylesheet);
         }
         if (this.isApiPlatformEnabled(payload)) {
             const columns = Array.isArray(payload.columns) ? payload.columns : [];
