@@ -34,6 +34,26 @@ class default_1 extends Controller {
             this.isDataTableInitialized = true;
             return;
         }
+        await this.loadExtensions(payload, stylesheet, DataTable);
+        if (this.isApiPlatformEnabled(payload)) {
+            const columns = Array.isArray(payload.columns)
+                ? payload.columns
+                : [];
+            new ApiPlatformAdapter(columns).configure(payload);
+        }
+        this.configureColumns(payload);
+        this.table = new DataTable(this.element, payload);
+        this.dispatchEvent('connect', { table: this.table });
+        await this.initMercure(payload);
+        this.bindDeleteHandler(payload);
+        this.bindBooleanToggleHandler(payload);
+        this.isDataTableInitialized = true;
+    }
+    disconnect() {
+        this.eventSource?.close();
+        this.eventSource = null;
+    }
+    async loadExtensions(payload, stylesheet, DataTable) {
         if (this.isButtonsExtensionEnabled(payload)) {
             await loadButtonsLibrary(DataTable, stylesheet);
         }
@@ -75,10 +95,8 @@ class default_1 extends Controller {
         if (this.isScrollerExtensionEnabled(payload)) {
             await ExtensionRegistry.load('scroller', stylesheet);
         }
-        if (this.isApiPlatformEnabled(payload)) {
-            const columns = Array.isArray(payload.columns) ? payload.columns : [];
-            new ApiPlatformAdapter(columns).configure(payload);
-        }
+    }
+    configureColumns(payload) {
         const columnRenderers = [
             createBooleanColumnRenderer(this.getBooleanToggleUrl()),
             choiceColumnRenderer,
@@ -98,8 +116,8 @@ class default_1 extends Controller {
                 data: column.field ?? column.data,
             }));
         }
-        this.table = new DataTable(this.element, payload);
-        this.dispatchEvent('connect', { table: this.table });
+    }
+    async initMercure(payload) {
         if (this.isMercureEnabled(payload)) {
             const { createMercureSubscription } = await import('./functions/mercureSubscription.js');
             this.eventSource = createMercureSubscription(payload.mercure, (event) => {
@@ -107,6 +125,9 @@ class default_1 extends Controller {
                 this.table?.ajax?.reload(null, false);
             });
         }
+    }
+    bindDeleteHandler(payload) {
+        ;
         this.element.addEventListener('click', async (e) => {
             const target = e.target;
             const actionButton = target.closest('[data-action-type]');
@@ -133,9 +154,12 @@ class default_1 extends Controller {
                 return;
             }
         });
+    }
+    bindBooleanToggleHandler(payload) {
         this.element.addEventListener('change', async (e) => {
             const target = e.target;
-            if (!(target instanceof HTMLInputElement) || !target.matches('.boolean-switch-action')) {
+            if (!(target instanceof HTMLInputElement) ||
+                !target.matches('.boolean-switch-action')) {
                 return;
             }
             const url = target.dataset.url;
@@ -178,11 +202,6 @@ class default_1 extends Controller {
                 target.disabled = false;
             }
         });
-        this.isDataTableInitialized = true;
-    }
-    disconnect() {
-        this.eventSource?.close();
-        this.eventSource = null;
     }
     dispatchEvent(name, payload) {
         this.dispatch(name, {
