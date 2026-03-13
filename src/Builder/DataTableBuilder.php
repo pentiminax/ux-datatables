@@ -15,7 +15,7 @@ class DataTableBuilder implements DataTableBuilderInterface
     ) {
     }
 
-    public function createDataTable(?string $id = null): DataTable
+    public function createDataTable(string $id): DataTable
     {
         return new DataTable(
             id: $id,
