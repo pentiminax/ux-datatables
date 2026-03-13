@@ -62,10 +62,12 @@ Pass HTML attributes as a second argument:
 
 {{ render_datatable(table, {
     'class': 'table table-bordered',
-    'id': 'custom-id',
     'data-custom': 'value'
 }) }}
 ```
+
+The table `id` attribute always comes from `createDataTable('...')`. Do not pass a separate `id`
+through `render_datatable()`.
 
 ## Extending the Default Behavior
 
