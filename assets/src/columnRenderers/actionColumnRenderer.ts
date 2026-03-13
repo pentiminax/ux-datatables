@@ -45,7 +45,10 @@ export const actionColumnRenderer: ColumnRenderer = {
               `class="${escapedClassName}"`,
               `href="${escapeHtml(href)}"`,
               `data-action-type="${escapedType}"`,
-              ...serializeHtmlAttributes(action.htmlAttributes, new Set(['class', 'href', 'data-action-type', 'data-confirm'])),
+              ...serializeHtmlAttributes(
+                action.htmlAttributes,
+                new Set(['class', 'href', 'data-action-type', 'data-confirm'])
+              ),
             ]
 
             if (action.confirm) {
@@ -62,7 +65,7 @@ export const actionColumnRenderer: ColumnRenderer = {
             `data-id="${escapedId}"`,
             ...serializeHtmlAttributes(
               action.htmlAttributes,
-              new Set(['class', 'data-action-type', 'data-entity', 'data-id', 'data-confirm']),
+              new Set(['class', 'data-action-type', 'data-entity', 'data-id', 'data-confirm'])
             ),
           ]
 
@@ -94,7 +97,7 @@ function resolveActionUrl(action: ActionConfig, row: ActionRowData): string | nu
 
 function serializeHtmlAttributes(
   htmlAttributes: ActionConfig['htmlAttributes'],
-  reservedAttributes: Set<string>,
+  reservedAttributes: Set<string>
 ): string[] {
   if (!htmlAttributes) {
     return []
