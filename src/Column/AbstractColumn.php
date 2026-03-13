@@ -5,17 +5,26 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\Dto\ColumnDto;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 abstract class AbstractColumn implements ColumnInterface
 {
-    protected ColumnDto $dto;
-
-    public function __construct(?ColumnDto $dto = null)
-    {
-        $this->dto = $dto ?? new ColumnDto();
-    }
+    protected ColumnType $type;
+    protected ?string $cellType       = null;
+    protected ?string $className      = null;
+    protected ?string $name           = null;
+    protected ?string $width          = null;
+    protected ?string $title          = null;
+    protected bool $orderable         = true;
+    protected bool $searchable        = true;
+    protected bool $visible           = true;
+    protected ?string $data           = null;
+    protected bool $exportable        = true;
+    protected ?string $render         = null;
+    protected ?string $defaultContent = null;
+    protected ?string $field          = null;
+    protected bool $globalSearchable  = true;
+    protected array $customOptions    = [];
 
     /**
      * Convenient factory helper used by concrete columns to set their type.
@@ -33,7 +42,7 @@ abstract class AbstractColumn implements ColumnInterface
 
     public function setClassName(?string $className): static
     {
-        $this->dto->setClassName($className);
+        $this->className = $className;
 
         return $this;
     }
@@ -43,17 +52,17 @@ abstract class AbstractColumn implements ColumnInterface
      */
     public function setCellType(?string $cellType): static
     {
-        $this->dto->setCellType($cellType);
+        $this->cellType = $cellType;
 
         return $this;
     }
 
     public function setName(string $name): static
     {
-        $this->dto->setName($name);
+        $this->name = $name;
 
-        if (null === $this->dto->getTitle()) {
-            $this->dto->setTitle($name);
+        if (null === $this->title) {
+            $this->title = $name;
         }
 
         return $this;
@@ -61,7 +70,7 @@ abstract class AbstractColumn implements ColumnInterface
 
     public function getName(): string
     {
-        return $this->dto->getName();
+        return $this->name ?? '';
     }
 
     /**
@@ -69,7 +78,7 @@ abstract class AbstractColumn implements ColumnInterface
      */
     public function setOrderable(bool $orderable = true): static
     {
-        $this->dto->setOrderable($orderable);
+        $this->orderable = $orderable;
 
         return $this;
     }
@@ -79,24 +88,24 @@ abstract class AbstractColumn implements ColumnInterface
      */
     public function setSearchable(bool $searchable = true): static
     {
-        $this->dto->setSearchable($searchable);
+        $this->searchable = $searchable;
 
         return $this;
     }
 
     public function isSearchable(): bool
     {
-        return $this->dto->isSearchable();
+        return $this->searchable;
     }
 
     public function isGlobalSearchable(): bool
     {
-        return $this->dto->isGlobalSearchable();
+        return $this->globalSearchable;
     }
 
     public function disableGlobalSearch(): static
     {
-        $this->dto->disableGlobalSearch();
+        $this->globalSearchable = false;
 
         return $this;
     }
@@ -106,7 +115,7 @@ abstract class AbstractColumn implements ColumnInterface
      */
     public function setType(ColumnType $type): static
     {
-        $this->dto->setType($type);
+        $this->type = $type;
 
         return $this;
     }
@@ -116,14 +125,14 @@ abstract class AbstractColumn implements ColumnInterface
      */
     public function setWidth(?string $width): static
     {
-        $this->dto->setWidth($width);
+        $this->width = $width;
 
         return $this;
     }
 
     public function setTitle(string $title): static
     {
-        $this->dto->setTitle($title);
+        $this->title = $title;
 
         return $this;
     }
@@ -133,7 +142,7 @@ abstract class AbstractColumn implements ColumnInterface
      */
     public function setVisible(bool $visible): static
     {
-        $this->dto->setVisible($visible);
+        $this->visible = $visible;
 
         return $this;
     }
@@ -143,7 +152,7 @@ abstract class AbstractColumn implements ColumnInterface
      */
     public function setData(?string $data): static
     {
-        $this->dto->setData($data);
+        $this->data = $data;
 
         return $this;
     }
@@ -153,7 +162,7 @@ abstract class AbstractColumn implements ColumnInterface
      */
     public function setRender(?string $render): static
     {
-        $this->dto->setRender($render);
+        $this->render = $render;
 
         return $this;
     }
@@ -163,7 +172,7 @@ abstract class AbstractColumn implements ColumnInterface
      */
     public function setDefaultContent(?string $defaultContent): static
     {
-        $this->dto->setDefaultContent($defaultContent);
+        $this->defaultContent = $defaultContent;
 
         return $this;
     }
@@ -173,65 +182,78 @@ abstract class AbstractColumn implements ColumnInterface
      */
     public function setExportable(bool $exportable): static
     {
-        $this->dto->setExportable($exportable);
+        $this->exportable = $exportable;
 
         return $this;
     }
 
     public function isExportable(): bool
     {
-        return $this->dto->isExportable();
+        return $this->exportable;
     }
 
     public function isNumber(): bool
     {
-        return \in_array($this->dto->getType(), [ColumnType::NUM, ColumnType::NUM_FMT, ColumnType::HTML_NUM, ColumnType::HTML_NUM_FMT]);
+        return \in_array($this->type, [ColumnType::NUM, ColumnType::NUM_FMT, ColumnType::HTML_NUM, ColumnType::HTML_NUM_FMT], true);
     }
 
     public function isDate(): bool
     {
-        return ColumnType::DATE === $this->dto->getType();
+        return ColumnType::DATE === $this->type;
     }
 
     public function getData(): ?string
     {
-        return $this->dto->getData();
+        return $this->data;
     }
 
     public function getField(): ?string
     {
-        return $this->dto->getField();
+        return $this->field ?? $this->name;
     }
 
     public function setField(string $field): static
     {
-        $this->dto->setField($field);
+        $this->field = $field;
 
         return $this;
     }
 
     public function setCustomOption(string $optionName, mixed $optionValue): static
     {
-        $this->dto->setCustomOption($optionName, $optionValue);
+        $this->customOptions[$optionName] = $optionValue;
 
         return $this;
     }
 
     public function getCustomOption(string $optionName): mixed
     {
-        return $this->dto->getCustomOption($optionName);
+        return $this->customOptions[$optionName] ?? null;
     }
 
     public function jsonSerialize(): array
     {
-        return $this->dto->jsonSerialize();
-    }
+        $className = $this->className;
 
-    /**
-     * Get the internal DTO representation of this column.
-     */
-    public function getAsDto(): ColumnDto
-    {
-        return $this->dto;
+        if (!$this->exportable) {
+            $className = trim(\sprintf('%s not-exportable', $className ?? '')) ?: null;
+        }
+
+        return array_filter([
+            'cellType'       => $this->cellType,
+            'className'      => $className,
+            'data'           => $this->data,
+            'defaultContent' => $this->defaultContent,
+            'name'           => $this->name,
+            'orderable'      => $this->orderable,
+            'render'         => $this->render,
+            'searchable'     => $this->searchable,
+            'title'          => $this->title,
+            'type'           => $this->type->value,
+            'visible'        => $this->visible,
+            'width'          => $this->width,
+            'field'          => $this->getField(),
+            'customOptions'  => $this->customOptions,
+        ], static fn (mixed $value) => null !== $value && '' !== $value && [] !== $value);
     }
 }
