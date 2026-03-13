@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Model;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Builder\DataTableResponseBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
@@ -129,21 +128,23 @@ abstract class AbstractDataTable implements DataTableInterface
 
     public function getResponse(): JsonResponse
     {
-        $builder = new DataTableResponseBuilder();
-
         if (!$this->request) {
-            return $builder->buildEmptyResponse();
+            return new JsonResponse([
+                'draw'            => 1,
+                'recordsTotal'    => 0,
+                'recordsFiltered' => 0,
+                'data'            => [],
+            ]);
         }
 
         $data = $this->getDataProvider()?->fetchData($this->request);
 
-        return $builder
-            ->buildResponse(
-                draw: $this->request->draw,
-                data: iterator_to_array($data->data),
-                recordsTotal: $data->recordsTotal,
-                recordsFiltered: $data->recordsFiltered
-            );
+        return new JsonResponse([
+            'draw'            => $this->request->draw,
+            'recordsTotal'    => $data->recordsTotal,
+            'recordsFiltered' => $data->recordsFiltered,
+            'data'            => iterator_to_array($data->data),
+        ]);
     }
 
     public function prepareForRendering(): void
