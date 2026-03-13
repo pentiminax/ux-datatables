@@ -84,6 +84,48 @@ class DataTablesBundle extends AbstractBundle
 
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
+        $this->registerCoreServices($container, $config);
+
+        if (interface_exists(ResourceMetadataCollectionFactoryInterface::class)) {
+            $this->registerApiPlatformServices($container);
+        }
+
+        if (interface_exists(\Symfony\Component\Mercure\HubInterface::class)) {
+            $this->registerMercureServices($container, $builder);
+        }
+    }
+
+    public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
+    {
+        if (!$this->isAssetMapperAvailable($builder)) {
+            return;
+        }
+
+        $builder->prependExtensionConfig('framework', [
+            'asset_mapper' => [
+                'paths' => [
+                    __DIR__.'/../assets/dist' => '@pentiminax/ux-datatables',
+                ],
+            ],
+        ]);
+    }
+
+    private function isAssetMapperAvailable(ContainerBuilder $builder): bool
+    {
+        if (!interface_exists(AssetMapperInterface::class)) {
+            return false;
+        }
+
+        $bundlesMetadata = $builder->getParameter('kernel.bundles_metadata');
+        if (!isset($bundlesMetadata['FrameworkBundle'])) {
+            return false;
+        }
+
+        return is_file($bundlesMetadata['FrameworkBundle']['path'].'/Resources/config/asset_mapper.php');
+    }
+
+    private function registerCoreServices(ContainerConfigurator $container, array $config): void
+    {
         $container->services()
             ->set('datatables.builder', DataTableBuilder::class)
             ->arg(0, $config['options'] ?? [])
@@ -170,108 +212,81 @@ class DataTablesBundle extends AbstractBundle
                 ->alias(UrlColumnResolver::class, 'datatables.column.url_column_resolver')
                 ->private();
         }
-
-        if (interface_exists(ResourceMetadataCollectionFactoryInterface::class)) {
-            $container->services()
-                ->set('datatables.api_platform.type_mapper', ApiPlatformPropertyTypeMapper::class)
-                ->private();
-
-            $container->services()
-                ->set('datatables.api_platform.property_name_humanizer', PropertyNameHumanizer::class)
-                ->private();
-
-            $container->services()
-                ->set('datatables.api_platform.column_auto_detector', ColumnAutoDetector::class)
-                ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
-                ->arg(1, service('api_platform.metadata.property.name_collection_factory'))
-                ->arg(2, service('api_platform.metadata.property.metadata_factory'))
-                ->arg(3, service('property_info'))
-                ->arg(4, service('datatables.api_platform.type_mapper'))
-                ->arg(5, service('datatables.api_platform.property_name_humanizer'))
-                ->private();
-
-            $container->services()
-                ->alias(ColumnAutoDetectorInterface::class, 'datatables.api_platform.column_auto_detector')
-                ->private();
-
-            $container->services()
-                ->set('datatables.api_platform.collection_url_resolver', ApiResourceCollectionUrlResolver::class)
-                ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
-                ->private();
-
-            $container->services()
-                ->alias(ApiResourceCollectionUrlResolverInterface::class, 'datatables.api_platform.collection_url_resolver')
-                ->private();
-
-            $container->services()
-                ->set('datatables.api_platform.mercure_metadata_resolver', ApiResourceMercureMetadataResolver::class)
-                ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
-                ->private();
-
-            $container->services()
-                ->alias(ApiResourceMercureMetadataResolverInterface::class, 'datatables.api_platform.mercure_metadata_resolver')
-                ->private();
-        }
-
-        if (interface_exists(\Symfony\Component\Mercure\HubInterface::class)) {
-            $container->services()
-                ->set('datatables.mercure.hub_url_resolver', MercureHubUrlResolver::class)
-                ->arg(0, service('mercure.hub.default'))
-                ->private();
-
-            $container->services()
-                ->alias(MercureHubUrlResolverInterface::class, 'datatables.mercure.hub_url_resolver')
-                ->private();
-
-            $container->services()
-                ->set('datatables.mercure.config_resolver', MercureConfigResolver::class)
-                ->arg(0, service('datatables.mercure.hub_url_resolver'))
-                ->arg(1, service('datatables.api_platform.mercure_metadata_resolver')->nullOnInvalid())
-                ->private();
-
-            $container->services()
-                ->alias(MercureConfigResolverInterface::class, 'datatables.mercure.config_resolver')
-                ->private();
-
-            $container->services()
-                ->set('datatables.mercure.publisher', MercureUpdatePublisher::class)
-                ->arg(0, service('mercure.hub.default'))
-                ->private();
-
-            $builder->getDefinition('datatables.controller.ajax_edit')
-                ->addArgument(new Reference('datatables.mercure.publisher'));
-
-            $builder->getDefinition('datatables.controller.ajax_delete')
-                ->addArgument(new Reference('datatables.mercure.publisher'));
-        }
     }
 
-    public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
+    private function registerApiPlatformServices(ContainerConfigurator $container): void
     {
-        if (!$this->isAssetMapperAvailable($builder)) {
-            return;
-        }
+        $container->services()
+            ->set('datatables.api_platform.type_mapper', ApiPlatformPropertyTypeMapper::class)
+            ->private();
 
-        $builder->prependExtensionConfig('framework', [
-            'asset_mapper' => [
-                'paths' => [
-                    __DIR__.'/../assets/dist' => '@pentiminax/ux-datatables',
-                ],
-            ],
-        ]);
+        $container->services()
+            ->set('datatables.api_platform.property_name_humanizer', PropertyNameHumanizer::class)
+            ->private();
+
+        $container->services()
+            ->set('datatables.api_platform.column_auto_detector', ColumnAutoDetector::class)
+            ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
+            ->arg(1, service('api_platform.metadata.property.name_collection_factory'))
+            ->arg(2, service('api_platform.metadata.property.metadata_factory'))
+            ->arg(3, service('property_info'))
+            ->arg(4, service('datatables.api_platform.type_mapper'))
+            ->arg(5, service('datatables.api_platform.property_name_humanizer'))
+            ->private();
+
+        $container->services()
+            ->alias(ColumnAutoDetectorInterface::class, 'datatables.api_platform.column_auto_detector')
+            ->private();
+
+        $container->services()
+            ->set('datatables.api_platform.collection_url_resolver', ApiResourceCollectionUrlResolver::class)
+            ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
+            ->private();
+
+        $container->services()
+            ->alias(ApiResourceCollectionUrlResolverInterface::class, 'datatables.api_platform.collection_url_resolver')
+            ->private();
+
+        $container->services()
+            ->set('datatables.api_platform.mercure_metadata_resolver', ApiResourceMercureMetadataResolver::class)
+            ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
+            ->private();
+
+        $container->services()
+            ->alias(ApiResourceMercureMetadataResolverInterface::class, 'datatables.api_platform.mercure_metadata_resolver')
+            ->private();
     }
 
-    private function isAssetMapperAvailable(ContainerBuilder $builder): bool
+    private function registerMercureServices(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        if (!interface_exists(AssetMapperInterface::class)) {
-            return false;
-        }
+        $container->services()
+            ->set('datatables.mercure.hub_url_resolver', MercureHubUrlResolver::class)
+            ->arg(0, service('mercure.hub.default'))
+            ->private();
 
-        $bundlesMetadata = $builder->getParameter('kernel.bundles_metadata');
-        if (!isset($bundlesMetadata['FrameworkBundle'])) {
-            return false;
-        }
+        $container->services()
+            ->alias(MercureHubUrlResolverInterface::class, 'datatables.mercure.hub_url_resolver')
+            ->private();
 
-        return is_file($bundlesMetadata['FrameworkBundle']['path'].'/Resources/config/asset_mapper.php');
+        $container->services()
+            ->set('datatables.mercure.config_resolver', MercureConfigResolver::class)
+            ->arg(0, service('datatables.mercure.hub_url_resolver'))
+            ->arg(1, service('datatables.api_platform.mercure_metadata_resolver')->nullOnInvalid())
+            ->private();
+
+        $container->services()
+            ->alias(MercureConfigResolverInterface::class, 'datatables.mercure.config_resolver')
+            ->private();
+
+        $container->services()
+            ->set('datatables.mercure.publisher', MercureUpdatePublisher::class)
+            ->arg(0, service('mercure.hub.default'))
+            ->private();
+
+        $builder->getDefinition('datatables.controller.ajax_edit')
+            ->addArgument(new Reference('datatables.mercure.publisher'));
+
+        $builder->getDefinition('datatables.controller.ajax_delete')
+            ->addArgument(new Reference('datatables.mercure.publisher'));
     }
 }
