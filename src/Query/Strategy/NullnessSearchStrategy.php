@@ -10,14 +10,18 @@ use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
- * Strategy for 'notEmpty' search logic.
+ * Strategy for null/empty search logic.
  *
- * Checks for non-NULL values (and non-empty strings for text columns).
- * For numeric columns, only checks IS NOT NULL.
- * For text columns, checks IS NOT NULL AND != ''.
+ * For numeric columns, only checks NULL / NOT NULL.
+ * For text columns, also includes empty-string checks.
  */
-final class NotEmptySearchStrategy implements SearchStrategyInterface
+final class NullnessSearchStrategy implements SearchStrategyInterface
 {
+    public function __construct(
+        private readonly bool $negated = false,
+    ) {
+    }
+
     public function apply(QueryBuilder $qb, AbstractColumn $column, ColumnControlSearch $search, int $paramIndex, string $alias): void
     {
         $field     = RelationFieldResolver::resolve($qb, $alias, $column->getField());
@@ -25,17 +29,24 @@ final class NotEmptySearchStrategy implements SearchStrategyInterface
         $isNumeric = $column->isNumber() || \in_array(strtolower($search->type), ['number', 'numeric', 'num'], true);
 
         if ($isNumeric) {
-            $qb->andWhere($expr->isNotNull($field));
-        } else {
-            $qb->andWhere($expr->andX(
+            $qb->andWhere($this->negated ? $expr->isNotNull($field) : $expr->isNull($field));
+
+            return;
+        }
+
+        $qb->andWhere($this->negated
+            ? $expr->andX(
                 $expr->isNotNull($field),
                 $expr->neq($field, $expr->literal(''))
+            )
+            : $expr->orX(
+                $expr->isNull($field),
+                $expr->eq($field, $expr->literal(''))
             ));
-        }
     }
 
     public function getLogic(): string
     {
-        return 'notEmpty';
+        return $this->negated ? 'notEmpty' : 'empty';
     }
 }

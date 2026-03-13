@@ -19,8 +19,8 @@ class DefaultSearchStrategyRegistry extends SearchStrategyRegistry
             new ComparisonSearchStrategy('greaterOrEqual', '>=', '%s'),
             new ComparisonSearchStrategy('less', '<', '%s'),
             new ComparisonSearchStrategy('lessOrEqual', '<=', '%s'),
-            new EmptySearchStrategy(),
-            new NotEmptySearchStrategy(),
+            new NullnessSearchStrategy(),
+            new NullnessSearchStrategy(true),
             new InListSearchStrategy(),
         ]);
     }
