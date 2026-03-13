@@ -62,17 +62,26 @@ abstract class AbstractDataTable
         protected ?TemplateColumnRenderer $templateColumnRenderer = null,
         protected ?ActionRowDataResolver $actionRowDataResolver = null,
     ) {
+        $this->initializeTable();
+        $this->initializeColumns();
+        $this->initializeExtensions();
+    }
+
+    private function initializeTable(): void
+    {
         $this->table = $this->configureDataTable(
             new DataTable($this->getClassName())
         );
+    }
 
+    private function initializeColumns(): void
+    {
         $this->columns = iterator_to_array($this->configureColumns());
 
         $this->configureBooleanColumns();
         $this->configureUrlColumns();
 
         $actions = $this->configureActions(new Actions());
-
         $this->configureActionEntityClass($actions);
 
         if (!$actions->isEmpty()) {
@@ -84,7 +93,10 @@ abstract class AbstractDataTable
         }
 
         $this->table->columns($this->columns);
+    }
 
+    private function initializeExtensions(): void
+    {
         $this->table->setExtensions(
             $this->configureExtensions(new DataTableExtensions())
         );
