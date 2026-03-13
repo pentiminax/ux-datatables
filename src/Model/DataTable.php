@@ -37,7 +37,7 @@ class DataTable
         $this->extensions = new DataTableExtensions($extensions);
     }
 
-    public function getId(): ?string
+    public function getId(): string
     {
         return $this->id;
     }
