@@ -18,7 +18,6 @@ use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\DataTableInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
@@ -35,7 +34,7 @@ use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
-abstract class AbstractDataTable implements DataTableInterface
+abstract class AbstractDataTable
 {
     protected DataTable $table;
 
