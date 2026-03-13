@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -150,7 +151,11 @@ final class DetailActionMapRowTestTable extends AbstractDataTable
 {
     public function __construct(private readonly array $columnsConfig)
     {
-        parent::__construct(actionRowDataResolver: new ActionRowDataResolver());
+        parent::__construct(
+            runtimeFactory: new DataTableRuntimeFactory(
+                actionRowDataResolver: new ActionRowDataResolver(),
+            ),
+        );
     }
 
     public function configureColumns(): iterable
@@ -171,7 +176,7 @@ final class DetailActionMapRowTestTable extends AbstractDataTable
 
     public function renderRowPublic(mixed $row): array
     {
-        return $this->rowMapper()->map($row);
+        return $this->createRowMapper()->map($row);
     }
 }
 

@@ -9,26 +9,19 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
-use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
-use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
-use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
-use Pentiminax\UX\DataTables\Column\UrlColumnResolver;
-use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
-use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
-use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
-use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -36,18 +29,12 @@ abstract class AbstractDataTable
 {
     protected DataTable $table;
 
-    protected ?DataTableRequest $request = null;
-
     /**
      * @var ColumnInterface[]
      */
     private array $columns;
 
-    private ?DataProviderInterface $autoConfiguredProvider = null;
-
-    private bool $providerAutoConfigured = false;
-
-    private ?RowMapperInterface $rowMapper = null;
+    private ?RowMapperInterface $defaultRowMapper = null;
 
     private ?AsDataTable $asDataTable;
 
@@ -55,21 +42,21 @@ abstract class AbstractDataTable
 
     private RenderingPreparer $renderingPreparer;
 
+    private DataTableRuntimeFactory $runtimeFactory;
+
+    private ?DataTableRuntime $runtime = null;
+
     private bool $renderingPrepared = false;
 
     public function __construct(
-        protected ?ColumnAutoDetectorInterface $columnAutoDetector = null,
-        protected ?EntityManagerInterface $em = null,
-        protected ?ApiResourceCollectionUrlResolverInterface $apiResourceCollectionUrlResolver = null,
-        protected ?MercureConfigResolverInterface $mercureConfigResolver = null,
-        protected ?AttributeColumnReader $attributeColumnReader = null,
-        protected ?UrlColumnResolver $urlColumnResolver = null,
-        protected ?TemplateColumnRenderer $templateColumnRenderer = null,
-        protected ?ActionRowDataResolver $actionRowDataResolver = null,
+        ?ColumnResolver $columnResolver = null,
+        ?RenderingPreparer $renderingPreparer = null,
+        ?DataTableRuntimeFactory $runtimeFactory = null,
     ) {
         $this->asDataTable       = $this->resolveAsDataTable();
-        $this->columnResolver    = new ColumnResolver($attributeColumnReader, $columnAutoDetector, $urlColumnResolver);
-        $this->renderingPreparer = new RenderingPreparer($apiResourceCollectionUrlResolver, $mercureConfigResolver);
+        $this->columnResolver    = $columnResolver    ?? new ColumnResolver();
+        $this->renderingPreparer = $renderingPreparer ?? new RenderingPreparer();
+        $this->runtimeFactory    = $runtimeFactory    ?? new DataTableRuntimeFactory();
 
         $this->initializeTable();
         $this->initializeColumns();
@@ -113,50 +100,24 @@ abstract class AbstractDataTable
 
     public function getRequest(): ?DataTableRequest
     {
-        return $this->request;
+        return $this->runtime()->getRequest();
     }
 
     public function handleRequest(Request $request): static
     {
-        $this->request = DataTableRequest::fromRequest($request);
+        $this->runtime()->handleRequest($request);
 
         return $this;
     }
 
     public function isRequestHandled(): bool
     {
-        return null !== $this->request && $this->request->draw > 0;
+        return $this->runtime()->isRequestHandled();
     }
 
     public function getResponse(): JsonResponse
     {
-        if (!$this->request) {
-            return new JsonResponse([
-                'draw'            => 1,
-                'recordsTotal'    => 0,
-                'recordsFiltered' => 0,
-                'data'            => [],
-            ]);
-        }
-
-        $provider = $this->getDataProvider();
-        if (null === $provider) {
-            return new JsonResponse([
-                'draw'            => $this->request->draw,
-                'recordsTotal'    => 0,
-                'recordsFiltered' => 0,
-                'data'            => [],
-            ]);
-        }
-
-        $data = $provider->fetchData($this->request);
-
-        return new JsonResponse([
-            'draw'            => $this->request->draw,
-            'recordsTotal'    => $data->recordsTotal,
-            'recordsFiltered' => $data->recordsFiltered,
-            'data'            => iterator_to_array($data->data),
-        ]);
+        return $this->runtime()->getResponse();
     }
 
     public function prepareForRendering(): void
@@ -194,31 +155,9 @@ abstract class AbstractDataTable
         return $table;
     }
 
-    public function getDataProvider(): ?DataProviderInterface
+    final public function getDataProvider(): ?DataProviderInterface
     {
-        if ($this->providerAutoConfigured) {
-            return $this->autoConfiguredProvider;
-        }
-
-        $this->providerAutoConfigured = true;
-
-        $asDataTable = $this->asDataTable;
-        if (null === $asDataTable) {
-            return null;
-        }
-
-        if (null === $this->em) {
-            throw new \LogicException('EntityManagerInterface is required to auto-configure a DoctrineDataProvider from #[AsDataTable]. Inject it via constructor or setEntityManager().');
-        }
-
-        $this->autoConfiguredProvider = new DoctrineDataProvider(
-            em: $this->em,
-            entityClass: $asDataTable->entityClass,
-            rowMapper: $this->rowMapper(),
-            queryBuilderConfigurator: $this->queryBuilderConfigurator(...)
-        );
-
-        return $this->autoConfiguredProvider;
+        return $this->runtime()->getDataProvider();
     }
 
     public function configureActions(Actions $actions): Actions
@@ -233,17 +172,7 @@ abstract class AbstractDataTable
 
     public function fetchData(DataTableRequest $request): DataTableResult
     {
-        if ($this->table->isServerSide()) {
-            return $this->getDataProvider()?->fetchData($request);
-        }
-
-        $result = $this->getDataProvider()?->fetchData($request);
-        $data   = iterator_to_array($result->data);
-
-        $this->table->data($data);
-        $this->table->markTemplateColumnsRendered();
-
-        return $result;
+        return $this->runtime()->fetchData($request);
     }
 
     public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
@@ -271,13 +200,7 @@ abstract class AbstractDataTable
 
     public function setEntityManager(?EntityManagerInterface $em): void
     {
-        $this->em = $em;
-    }
-
-    public function setColumnAutoDetector(?ColumnAutoDetectorInterface $columnAutoDetector): void
-    {
-        $this->columnAutoDetector = $columnAutoDetector;
-        $this->columnResolver->setColumnAutoDetector($columnAutoDetector);
+        $this->runtimeFactory->setEntityManager($em);
     }
 
     public function getColumnByName(string $name): ?ColumnInterface
@@ -290,30 +213,26 @@ abstract class AbstractDataTable
         return $this->getDefaultRowMapper()->map($row);
     }
 
-    protected function rowMapper(): RowMapperInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
-        return new ClosureRowMapper(
-            function (mixed $row): array {
-                $mappedRow = $this->mapRow($row);
+        return null;
+    }
 
-                $mappedRow = $this->templateColumnRenderer?->renderRow(
-                    row: $mappedRow,
-                    mappedRow: $row,
-                    columns: $this->columns
-                ) ?? $mappedRow;
-
-                return $this->actionRowDataResolver?->resolveRow($mappedRow, $row, $this->columns) ?? $mappedRow;
-            }
+    final protected function createRowMapper(): RowMapperInterface
+    {
+        return $this->runtimeFactory->createRowMapper(
+            baseMapper: $this->mapRow(...),
+            columns: $this->columns,
         );
     }
 
     private function getDefaultRowMapper(): DefaultRowMapper
     {
-        if (null === $this->rowMapper) {
-            $this->rowMapper = new DefaultRowMapper($this->columns);
+        if (null === $this->defaultRowMapper) {
+            $this->defaultRowMapper = new DefaultRowMapper($this->columns);
         }
 
-        return $this->rowMapper;
+        return $this->defaultRowMapper;
     }
 
     private function getClassName(): string
@@ -330,5 +249,17 @@ abstract class AbstractDataTable
         }
 
         return $attributes[0]->newInstance();
+    }
+
+    private function runtime(): DataTableRuntime
+    {
+        return $this->runtime ??= $this->runtimeFactory->createRuntime(
+            table: $this->table,
+            columns: $this->columns,
+            asDataTable: $this->asDataTable,
+            baseMapper: $this->mapRow(...),
+            manualDataProviderFactory: $this->createDataProvider(...),
+            queryBuilderConfigurator: $this->queryBuilderConfigurator(...),
+        );
     }
 }

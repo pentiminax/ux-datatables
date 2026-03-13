@@ -100,7 +100,7 @@ final class ResponseTestTable extends AbstractDataTable
         yield TextColumn::new('id');
     }
 
-    public function getDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         return $this->provider;
     }

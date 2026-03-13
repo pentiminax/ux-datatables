@@ -18,8 +18,8 @@ class TestDataTableWithManualOverride extends AbstractDataTable
         yield TextColumn::new('id');
     }
 
-    public function getDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
-        return new ArrayDataProvider([], $this->rowMapper());
+        return new ArrayDataProvider([], $this->createRowMapper());
     }
 }

@@ -65,7 +65,7 @@ final class AbstractDataTableAutoDetectTest extends TestCase
         $detector->method('supports')->with(\stdClass::class)->willReturn(true);
         $detector->method('detectColumns')->with(\stdClass::class, [])->willReturn($detected);
 
-        $table = new AutoDetectTestDataTable(columnAutoDetector: $detector);
+        $table   = new AutoDetectTestDataTable(columnAutoDetector: $detector);
         $columns = $table->getDataTable()->getColumns();
 
         $this->assertCount(2, $columns);

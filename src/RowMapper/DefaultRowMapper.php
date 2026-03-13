@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\RowMapper;
 
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;

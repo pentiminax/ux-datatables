@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
 use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\UrlColumnResolver;
@@ -24,11 +25,15 @@ use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
+use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
+use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
+use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -202,6 +207,17 @@ class DataTablesBundle extends AbstractBundle
             ->alias(AttributeColumnReader::class, 'datatables.column.attribute_column_reader')
             ->private();
 
+        $container->services()
+            ->set('datatables.column.resolver', ColumnResolver::class)
+            ->arg(0, service('datatables.column.attribute_column_reader'))
+            ->arg(1, service(ColumnAutoDetectorInterface::class)->nullOnInvalid())
+            ->arg(2, service(UrlColumnResolver::class)->nullOnInvalid())
+            ->private();
+
+        $container->services()
+            ->alias(ColumnResolver::class, 'datatables.column.resolver')
+            ->private();
+
         if (interface_exists(\Symfony\Component\Routing\RouterInterface::class)) {
             $container->services()
                 ->set('datatables.column.url_column_resolver', UrlColumnResolver::class)
@@ -212,6 +228,37 @@ class DataTablesBundle extends AbstractBundle
                 ->alias(UrlColumnResolver::class, 'datatables.column.url_column_resolver')
                 ->private();
         }
+
+        $container->services()
+            ->set('datatables.rendering.preparer', RenderingPreparer::class)
+            ->arg(0, service(ApiResourceCollectionUrlResolverInterface::class)->nullOnInvalid())
+            ->arg(1, service(MercureConfigResolverInterface::class)->nullOnInvalid())
+            ->private();
+
+        $container->services()
+            ->alias(RenderingPreparer::class, 'datatables.rendering.preparer')
+            ->private();
+
+        $container->services()
+            ->set('datatables.data_provider.auto_factory', AutoDataProviderFactory::class)
+            ->arg(0, service('doctrine.orm.entity_manager')->nullOnInvalid())
+            ->private();
+
+        $container->services()
+            ->set('datatables.data_provider.resolver', DataProviderResolver::class)
+            ->arg(0, service('datatables.data_provider.auto_factory'))
+            ->private();
+
+        $container->services()
+            ->set('datatables.runtime.factory', DataTableRuntimeFactory::class)
+            ->arg(0, service('datatables.data_provider.resolver'))
+            ->arg(1, service('datatables.column.template_column_renderer'))
+            ->arg(2, service('datatables.column.action_row_data_resolver'))
+            ->private();
+
+        $container->services()
+            ->alias(DataTableRuntimeFactory::class, 'datatables.runtime.factory')
+            ->private();
     }
 
     private function registerApiPlatformServices(ContainerConfigurator $container): void

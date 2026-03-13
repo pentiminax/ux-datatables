@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -100,13 +101,14 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
-    public function it_calls_prepare_for_rendering_for_abstract_datatable(): void
+    public function it_uses_get_data_table_for_abstract_datatable(): void
     {
         $kernel = new TwigAppKernel('test', true);
         $kernel->boot();
         $container = $kernel->getContainer()->get('test.service_container');
 
         $table = new class extends AbstractDataTable {
+            public bool $getDataTableCalled        = false;
             public bool $prepareForRenderingCalled = false;
 
             public function configureColumns(): iterable
@@ -114,14 +116,24 @@ final class DataTablesExtensionTest extends TestCase
                 yield TextColumn::new('firstColumn');
             }
 
+            public function getDataTable(): DataTable
+            {
+                $this->getDataTableCalled = true;
+
+                return parent::getDataTable();
+            }
+
             public function prepareForRendering(): void
             {
                 $this->prepareForRenderingCalled = true;
+
+                parent::prepareForRendering();
             }
         };
 
         $container->get('test.datatables.twig_extension')->renderDataTable($table);
 
+        $this->assertTrue($table->getDataTableCalled);
         $this->assertTrue($table->prepareForRenderingCalled);
     }
 
