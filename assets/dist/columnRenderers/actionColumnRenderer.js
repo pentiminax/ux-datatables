@@ -25,7 +25,9 @@ export const actionColumnRenderer = {
                 const escapedLabel = escapeHtml(action.label);
                 const escapedClassName = escapeHtml(action.className);
                 const escapedType = escapeHtml(action.type);
-                const iconHtml = action.icon ? `<i class="${escapeHtml(action.icon)}"></i> ` : '';
+                const iconHtml = action.icon
+                    ? `<i class="${escapeHtml(action.icon)}"></i> `
+                    : '';
                 if (action.type === 'DETAIL') {
                     const href = resolveActionUrl(action, row);
                     if (!href || isUnsafeUrl(href)) {
@@ -47,7 +49,13 @@ export const actionColumnRenderer = {
                     `data-action-type="${escapedType}"`,
                     `data-entity="${escapedEntity}"`,
                     `data-id="${escapedId}"`,
-                    ...serializeHtmlAttributes(action.htmlAttributes, new Set(['class', 'data-action-type', 'data-entity', 'data-id', 'data-confirm'])),
+                    ...serializeHtmlAttributes(action.htmlAttributes, new Set([
+                        'class',
+                        'data-action-type',
+                        'data-entity',
+                        'data-id',
+                        'data-confirm',
+                    ])),
                 ];
                 if (action.confirm) {
                     attrs.push(`data-confirm="${escapeHtml(action.confirm)}"`);
