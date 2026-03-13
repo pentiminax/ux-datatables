@@ -280,32 +280,6 @@ abstract class AbstractDataTable
         $this->columnResolver->setColumnAutoDetector($columnAutoDetector);
     }
 
-    /**
-     * Build columns from #[Column] attributes on the entity class.
-     *
-     * @deprecated Override configureColumns() or use ColumnResolver directly
-     *
-     * @return AbstractColumn[]
-     */
-    protected function columnsFromAttributes(): array
-    {
-        return $this->columnResolver->columnsFromAttributes($this->asDataTable);
-    }
-
-    /**
-     * Auto-detect columns from API Platform metadata.
-     *
-     * @deprecated Override configureColumns() or use ColumnResolver directly
-     *
-     * @param string[] $groups Serialization groups to filter properties (defaults to AsDataTable::$serializationGroups)
-     *
-     * @return AbstractColumn[]
-     */
-    protected function autoDetectColumns(array $groups = []): array
-    {
-        return $this->columnResolver->autoDetectColumns($this->asDataTable, $groups);
-    }
-
     public function getColumnByName(string $name): ?ColumnInterface
     {
         return $this->table->getColumnByName($name);
