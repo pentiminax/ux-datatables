@@ -170,6 +170,15 @@ $column = TextColumn::new('actions', 'Actions')
 
 Non-exportable columns automatically receive the `not-exportable` CSS class.
 
+### Edit Form Control
+
+Exclude a column from the [inline edit modal](/ux-datatables/reference/action-columns/#inline-edit-modal):
+
+```php
+$column = TextColumn::new('createdAt', 'Created')
+    ->hideWhenUpdating();  // Not shown in edit form
+```
+
 ## Complete Example
 
 ```php

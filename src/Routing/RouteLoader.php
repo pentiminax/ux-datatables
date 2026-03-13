@@ -26,6 +26,18 @@ final class RouteLoader implements RouteLoaderInterface
             methods: ['DELETE'],
         ));
 
+        $routes->add('ux_datatables_ajax_edit_form', new Route(
+            path: '/datatables/ajax/edit-form',
+            defaults: ['_controller' => 'datatables.controller.ajax_edit_form'],
+            methods: ['GET'],
+        ));
+
+        $routes->add('ux_datatables_ajax_edit_form_submit', new Route(
+            path: '/datatables/ajax/edit-form',
+            defaults: ['_controller' => 'datatables.controller.ajax_edit_form_submit'],
+            methods: ['POST'],
+        ));
+
         return $routes;
     }
 }

@@ -32,12 +32,15 @@
     "symfony/twig-bundle": "^7.0 || ^8.0",
     "symfony/var-dumper": "^7.0 || ^8.0",
     "symfony/maker-bundle": "^1.66",
-    "symfony/mercure-bundle": "^0.4.2"
+    "symfony/mercure-bundle": "^0.4.2",
+    "symfony/form": "^7.0 || ^8.0"
   },
   "suggest": {
     "api-platform/core": "To auto-detect columns from API Platform metadata.",
     "symfony/maker-bundle": "To use the make:datatable command.",
-    "symfony/mercure-bundle": "To enable real-time DataTable updates via Mercure SSE."
+    "symfony/form": "To enable inline edit modal with auto-generated forms.",
+    "symfony/mercure-bundle": "To enable real-time DataTable updates via Mercure SSE.",
+    "symfony/twig-bundle": "Required for rendering edit forms and DataTable templates."
   },
   "conflict": {
     "symfony/flex": "<1.13"
