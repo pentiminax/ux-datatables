@@ -13,7 +13,7 @@ use Pentiminax\UX\DataTables\Util\PropertyReader;
 final class DefaultRowMapper implements RowMapperInterface
 {
     /**
-     * @param AbstractColumn[] $columns
+     * @param ColumnInterface[] $columns
      */
     public function __construct(
         private readonly array $columns,

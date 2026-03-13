@@ -11,7 +11,7 @@ use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
-use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\UrlColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
@@ -26,6 +26,7 @@ use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
+use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -48,9 +49,13 @@ abstract class AbstractDataTable
 
     private ?RowMapperInterface $rowMapper = null;
 
-    private bool $asDataTableResolved = false;
+    private ?AsDataTable $asDataTable;
 
-    private ?AsDataTable $cachedAsDataTable = null;
+    private ColumnResolver $columnResolver;
+
+    private RenderingPreparer $renderingPreparer;
+
+    private bool $renderingPrepared = false;
 
     public function __construct(
         protected ?ColumnAutoDetectorInterface $columnAutoDetector = null,
@@ -62,6 +67,10 @@ abstract class AbstractDataTable
         protected ?TemplateColumnRenderer $templateColumnRenderer = null,
         protected ?ActionRowDataResolver $actionRowDataResolver = null,
     ) {
+        $this->asDataTable       = $this->resolveAsDataTable();
+        $this->columnResolver    = new ColumnResolver($attributeColumnReader, $columnAutoDetector, $urlColumnResolver);
+        $this->renderingPreparer = new RenderingPreparer($apiResourceCollectionUrlResolver, $mercureConfigResolver);
+
         $this->initializeTable();
         $this->initializeColumns();
         $this->initializeExtensions();
@@ -78,11 +87,11 @@ abstract class AbstractDataTable
     {
         $this->columns = iterator_to_array($this->configureColumns());
 
-        $this->configureBooleanColumns();
-        $this->configureUrlColumns();
+        $this->columnResolver->configureBooleanColumns($this->columns, $this->asDataTable);
+        $this->columnResolver->configureUrlColumns($this->columns);
 
         $actions = $this->configureActions(new Actions());
-        $this->configureActionEntityClass($actions);
+        $this->columnResolver->configureActionEntityClass($actions, $this->asDataTable);
 
         if (!$actions->isEmpty()) {
             $this->columns[] = ActionColumn::fromActions(
@@ -152,12 +161,18 @@ abstract class AbstractDataTable
 
     public function prepareForRendering(): void
     {
-        $this->configureApiPlatformAjax();
-        $this->configureMercure();
+        if ($this->renderingPrepared) {
+            return;
+        }
+
+        $this->renderingPrepared = true;
+        $this->renderingPreparer->prepare($this->table, $this->asDataTable);
     }
 
     public function getDataTable(): DataTable
     {
+        $this->prepareForRendering();
+
         return $this->table;
     }
 
@@ -166,17 +181,12 @@ abstract class AbstractDataTable
      */
     public function configureColumns(): iterable
     {
-        $columns = $this->getDataTable()->getColumns();
+        $columns = $this->table->getColumns();
         if ([] !== $columns) {
             return $columns;
         }
 
-        $columns = $this->columnsFromAttributes();
-        if ([] !== $columns) {
-            return $columns;
-        }
-
-        return $this->autoDetectColumns();
+        return $this->columnResolver->resolveColumns($this->asDataTable);
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -192,7 +202,7 @@ abstract class AbstractDataTable
 
         $this->providerAutoConfigured = true;
 
-        $asDataTable = $this->getAsDataTableAttribute();
+        $asDataTable = $this->asDataTable;
         if (null === $asDataTable) {
             return null;
         }
@@ -267,30 +277,25 @@ abstract class AbstractDataTable
     public function setColumnAutoDetector(?ColumnAutoDetectorInterface $columnAutoDetector): void
     {
         $this->columnAutoDetector = $columnAutoDetector;
+        $this->columnResolver->setColumnAutoDetector($columnAutoDetector);
     }
 
     /**
      * Build columns from #[Column] attributes on the entity class.
      *
+     * @deprecated Override configureColumns() or use ColumnResolver directly
+     *
      * @return AbstractColumn[]
      */
     protected function columnsFromAttributes(): array
     {
-        $reader = $this->attributeColumnReader ?? new AttributeColumnReader();
-
-        $asDataTable = $this->getAsDataTableAttribute();
-        if (null === $asDataTable) {
-            return [];
-        }
-
-        return $reader->readColumns($asDataTable->entityClass);
+        return $this->columnResolver->columnsFromAttributes($this->asDataTable);
     }
 
     /**
      * Auto-detect columns from API Platform metadata.
      *
-     * Returns an empty array when auto-detection is not available (API Platform not installed,
-     * no #[AsDataTable] attribute, or entity is not an ApiResource).
+     * @deprecated Override configureColumns() or use ColumnResolver directly
      *
      * @param string[] $groups Serialization groups to filter properties (defaults to AsDataTable::$serializationGroups)
      *
@@ -298,22 +303,7 @@ abstract class AbstractDataTable
      */
     protected function autoDetectColumns(array $groups = []): array
     {
-        if (null === $this->columnAutoDetector) {
-            return [];
-        }
-
-        $asDataTable = $this->getAsDataTableAttribute();
-        if (null === $asDataTable) {
-            return [];
-        }
-
-        $resolvedGroups = $groups ?: $asDataTable->serializationGroups;
-
-        if (!$this->columnAutoDetector->supports($asDataTable->entityClass)) {
-            return [];
-        }
-
-        return $this->columnAutoDetector->detectColumns($asDataTable->entityClass, $resolvedGroups);
+        return $this->columnResolver->autoDetectColumns($this->asDataTable, $groups);
     }
 
     public function getColumnByName(string $name): ?ColumnInterface
@@ -357,119 +347,14 @@ abstract class AbstractDataTable
         return (new \ReflectionClass($this))->getShortName();
     }
 
-    private function configureBooleanColumns(): void
+    private function resolveAsDataTable(): ?AsDataTable
     {
-        $asDataTable = $this->getAsDataTableAttribute();
-        if (null === $asDataTable) {
-            return;
-        }
-
-        foreach ($this->columns as $column) {
-            if (!$column instanceof BooleanColumn) {
-                continue;
-            }
-
-            if (null !== $column->getEntityClass()) {
-                continue;
-            }
-
-            $column->setEntityClass($asDataTable->entityClass);
-        }
-    }
-
-    private function configureActionEntityClass(Actions $actions): void
-    {
-        $asDataTable = $this->getAsDataTableAttribute();
-        if (null === $asDataTable) {
-            return;
-        }
-
-        foreach ($actions->getActions() as $action) {
-            $action->setEntityClass($asDataTable->entityClass);
-        }
-    }
-
-    private function configureUrlColumns(): void
-    {
-        $this->urlColumnResolver?->resolveRoutes($this->columns);
-    }
-
-    private function configureApiPlatformAjax(): void
-    {
-        if (null !== $this->table->getOption('ajax')) {
-            return;
-        }
-
-        if (null !== $this->table->getOption('data')) {
-            return;
-        }
-
-        if (null === $this->apiResourceCollectionUrlResolver) {
-            return;
-        }
-
-        $asDataTable = $this->getAsDataTableAttribute();
-        if (null === $asDataTable) {
-            return;
-        }
-
-        $collectionUrl = $this->apiResourceCollectionUrlResolver->resolveCollectionUrl($asDataTable->entityClass);
-
-        if (null === $collectionUrl) {
-            return;
-        }
-
-        $this->table->ajax($collectionUrl);
-        $this->table->apiPlatform();
-    }
-
-    private function configureMercure(): void
-    {
-        if (null !== $this->table->getMercureConfig()) {
-            return;
-        }
-
-        $asDataTable = $this->getAsDataTableAttribute();
-        if (null === $asDataTable || !$asDataTable->mercure) {
-            return;
-        }
-
-        if (null !== $this->table->getOption('data') && null === $this->table->getOption('ajax')) {
-            return;
-        }
-
-        if (null === $this->mercureConfigResolver) {
-            return;
-        }
-
-        $mercureConfig = $this->mercureConfigResolver->resolveMercureConfig($asDataTable->entityClass);
-        if (null === $mercureConfig) {
-            return;
-        }
-
-        $this->table->mercure(
-            hubUrl: $mercureConfig->hubUrl,
-            topics: $mercureConfig->topics,
-            withCredentials: $mercureConfig->withCredentials,
-            debounceMs: $mercureConfig->debounceMs,
-        );
-    }
-
-    private function getAsDataTableAttribute(): ?AsDataTable
-    {
-        if ($this->asDataTableResolved) {
-            return $this->cachedAsDataTable;
-        }
-
-        $this->asDataTableResolved = true;
-
         $attributes = (new \ReflectionClass($this))->getAttributes(AsDataTable::class);
-        if (empty($attributes)) {
+
+        if ([] === $attributes) {
             return null;
         }
 
-        $this->cachedAsDataTable = $attributes[0]->newInstance();
-
-        return $this->cachedAsDataTable;
+        return $attributes[0]->newInstance();
     }
 }
