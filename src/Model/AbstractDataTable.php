@@ -22,9 +22,6 @@ use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
-use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
-use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
-use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
@@ -91,21 +88,6 @@ abstract class AbstractDataTable
         $this->table->setExtensions(
             $this->configureExtensions(new DataTableExtensions())
         );
-
-        $buttonsExtension = $this->configureButtonsExtension(new ButtonsExtension([]));
-        if ($buttonsExtension->isEnabled()) {
-            $this->table->addExtension($buttonsExtension);
-        }
-
-        $columnControlExtension = $this->configureColumnControlExtension(new ColumnControlExtension());
-        if ($columnControlExtension->isEnabled()) {
-            $this->table->addExtension($columnControlExtension);
-        }
-
-        $selectExtension = $this->configureSelectExtension(new SelectExtension());
-        if ($selectExtension->isEnabled()) {
-            $this->table->addExtension($selectExtension);
-        }
     }
 
     public function getRequest(): ?DataTableRequest
@@ -225,21 +207,6 @@ abstract class AbstractDataTable
     public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
     {
         return $extensions;
-    }
-
-    public function configureButtonsExtension(ButtonsExtension $extension): ButtonsExtension
-    {
-        return $extension;
-    }
-
-    public function configureColumnControlExtension(ColumnControlExtension $extension): ColumnControlExtension
-    {
-        return $extension;
-    }
-
-    public function configureSelectExtension(SelectExtension $extension): SelectExtension
-    {
-        return $extension;
     }
 
     public function fetchData(DataTableRequest $request): DataTableResult
