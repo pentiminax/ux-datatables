@@ -222,33 +222,9 @@ abstract class AbstractColumn implements ColumnInterface
         return $this->dto->getCustomOption($optionName);
     }
 
-    /**
-     * Convert the column to a JSON-serializable array for DataTables initialization.
-     */
     public function jsonSerialize(): array
     {
-        $className = $this->dto->getClassName();
-
-        if (!$this->dto->isExportable()) {
-            $className = trim(\sprintf('%s not-exportable', $className ?? '')) ?: null;
-        }
-
-        return array_filter([
-            'cellType'       => $this->dto->getCellType(),
-            'className'      => $className,
-            'data'           => $this->dto->getData(),
-            'defaultContent' => $this->dto->getDefaultContent(),
-            'name'           => $this->dto->getName(),
-            'orderable'      => $this->dto->isOrderable(),
-            'render'         => $this->dto->getRender(),
-            'searchable'     => $this->dto->isSearchable(),
-            'title'          => $this->dto->getTitle(),
-            'type'           => $this->dto->getType()->value,
-            'visible'        => $this->dto->isVisible(),
-            'width'          => $this->dto->getWidth(),
-            'field'          => $this->dto->getField(),
-            'customOptions'  => $this->dto->getCustomOptions(),
-        ], static fn (mixed $value) => null !== $value && '' !== $value && [] !== $value);
+        return $this->dto->jsonSerialize();
     }
 
     /**
