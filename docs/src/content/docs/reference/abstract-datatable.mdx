@@ -207,33 +207,19 @@ final class UsersDataTable extends AbstractDataTable
 ### Extensions
 
 ```php
-use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
-use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Enum\ButtonType;
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\DataTableExtensions;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 
 public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
 {
     return $extensions
-        ->add(new ButtonsExtension([ButtonType::CSV, ButtonType::EXCEL]))
-        ->add(new SelectExtension(SelectStyle::MULTI));
-}
-```
-
-Or configure individual extensions:
-
-```php
-public function configureButtonsExtension(ButtonsExtension $ext): ButtonsExtension
-{
-    return $ext->buttons([
-        ButtonType::COPY,
-        ButtonType::CSV,
-        ButtonType::PDF,
-    ]);
-}
-
-public function configureSelectExtension(SelectExtension $ext): SelectExtension
-{
-    return $ext->style(SelectStyle::SINGLE);
+        ->addExtension(new ButtonsExtension([ButtonType::CSV, ButtonType::EXCEL]))
+        ->addExtension(new SelectExtension(SelectStyle::MULTI))
+        ->addExtension(new ColumnControlExtension());
 }
 ```
 
@@ -269,10 +255,7 @@ into each action. See the [Action Columns](../action-columns/) reference for the
     ['`configureActions(Actions $actions)`', 'Configure built-in row actions'],
     ['`configureDataTable(DataTable $table)`', 'Configure table options'],
     ['`configureColumns()`', 'Define columns (required)'],
-    ['`configureExtensions(DataTableExtensions $ext)`', 'Add extensions'],
-    ['`configureButtonsExtension(ButtonsExtension $ext)`', 'Configure Buttons extension'],
-    ['`configureSelectExtension(SelectExtension $ext)`', 'Configure Select extension'],
-    ['`configureColumnControlExtension(...)`', 'Configure ColumnControl extension'],
+    ['`configureExtensions(DataTableExtensions $ext)`', 'Configure all extensions'],
   ]}
 />
 
