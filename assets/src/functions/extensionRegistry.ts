@@ -15,6 +15,8 @@ const registry: Record<string, ExtensionConfig> = {
   columnControl: {
     bs5: () => import('datatables.net-columncontrol-bs5'),
     dt: () => import('datatables.net-columncontrol-dt'),
+    cssBs5: () => import('datatables.net-columncontrol-bs5/css/columnControl.bootstrap5.min.css'),
+    cssDt: () => import('datatables.net-columncontrol-dt/css/columnControl.dataTables.min.css'),
   },
   fixedColumns: {
     bs5: () => import('datatables.net-fixedcolumns-bs5'),
