@@ -122,7 +122,7 @@ class DataTable
     /**
      * @param ColumnInterface[] $columns
      */
-    public function columns(array|ColumnInterface $columns): static
+    public function columns(array $columns): static
     {
         foreach ($columns as $column) {
             $this->columns[$column->getName()] = $column;
