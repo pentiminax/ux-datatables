@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\QueryFilterInterface;
-use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
+use Pentiminax\UX\DataTables\Query\SearchConditionBuilder;
 
 /**
  * Filter that applies standard DataTables column-specific searches.
@@ -38,43 +37,16 @@ final class ColumnSearchFilter implements QueryFilterInterface
                 continue;
             }
 
+            $paramName = \sprintf('column_search_param_%d', $index);
+
             if ($column->isNumber()) {
-                $this->applyNumericColumnSearch($qb, $column, $search->value, $index, $context->alias);
+                if (!is_numeric($search->value)) {
+                    continue;
+                }
+                $qb->andWhere(SearchConditionBuilder::numeric($qb, $context->alias, $column->getField(), $search->value, $paramName));
             } else {
-                $this->applyTextColumnSearch($qb, $column, $search->value, $index, $context->alias);
+                $qb->andWhere(SearchConditionBuilder::text($qb, $context->alias, $column->getField(), $search->value, $paramName));
             }
         }
-    }
-
-    private function applyTextColumnSearch(
-        QueryBuilder $qb,
-        AbstractColumn $column,
-        string $searchValue,
-        int $index,
-        string $alias,
-    ): void {
-        $field     = RelationFieldResolver::resolve($qb, $alias, $column->getField());
-        $paramName = \sprintf('column_search_param_%d', $index);
-
-        $qb->andWhere(\sprintf('%s LIKE :%s', $field, $paramName));
-        $qb->setParameter($paramName, \sprintf('%%%s%%', $searchValue));
-    }
-
-    private function applyNumericColumnSearch(
-        QueryBuilder $qb,
-        AbstractColumn $column,
-        string $searchValue,
-        int $index,
-        string $alias,
-    ): void {
-        if (!is_numeric($searchValue)) {
-            return;
-        }
-
-        $field     = RelationFieldResolver::resolve($qb, $alias, $column->getField());
-        $paramName = \sprintf('column_search_param_%d', $index);
-
-        $qb->andWhere(\sprintf('%s = :%s', $field, $paramName));
-        $qb->setParameter($paramName, $searchValue);
     }
 }

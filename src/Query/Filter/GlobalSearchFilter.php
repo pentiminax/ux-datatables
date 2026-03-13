@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\QueryFilterInterface;
-use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
+use Pentiminax\UX\DataTables\Query\SearchConditionBuilder;
 
 /**
  * Filter that applies global search across all searchable columns.
@@ -40,31 +39,17 @@ final class GlobalSearchFilter implements QueryFilterInterface
         $conditions = [];
 
         foreach ($globalSearchableColumns as $index => $column) {
+            $paramName = \sprintf('search_param_%d', $index);
+
             if ($column instanceof TextColumn) {
-                $conditions[] = $this->applyTextSearch($qb, $column, $searchValue, $index, $context->alias);
+                $conditions[] = SearchConditionBuilder::text($qb, $context->alias, $column->getField(), $searchValue, $paramName);
             } elseif ($column->isNumber() && is_numeric($searchValue)) {
-                $conditions[] = $this->applyNumericSearch($qb, $column, $searchValue, $index, $context->alias);
+                $conditions[] = SearchConditionBuilder::numeric($qb, $context->alias, $column->getField(), $searchValue, $paramName);
             }
         }
 
         if ([] !== $conditions) {
             $qb->andWhere($qb->expr()->orX(...$conditions));
         }
-    }
-
-    private function applyTextSearch(QueryBuilder $qb, AbstractColumn $column, string $searchValue, int $index, string $alias): string
-    {
-        $paramName = \sprintf('search_param_%d', $index);
-        $qb->setParameter($paramName, "%$searchValue%");
-
-        return \sprintf('%s LIKE :%s', RelationFieldResolver::resolve($qb, $alias, $column->getField()), $paramName);
-    }
-
-    private function applyNumericSearch(QueryBuilder $qb, AbstractColumn $column, string $searchValue, int $index, string $alias): string
-    {
-        $paramName = \sprintf('search_param_%d', $index);
-        $qb->setParameter($paramName, $searchValue);
-
-        return \sprintf('%s = :%s', RelationFieldResolver::resolve($qb, $alias, $column->getField()), $paramName);
     }
 }
