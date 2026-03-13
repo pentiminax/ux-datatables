@@ -10,7 +10,7 @@ use Twig\Environment;
 
 final class TemplateColumnRenderer
 {
-    public const RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row'];
+    public const array RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row'];
 
     public function __construct(
         private readonly ?Environment $twig = null,
