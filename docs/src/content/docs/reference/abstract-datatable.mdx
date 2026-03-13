@@ -6,14 +6,15 @@ description: Create reusable, configurable data tables with Doctrine integration
 # AbstractDataTable
 
 `AbstractDataTable` is the recommended way to create reusable, configurable tables with built-in support for Doctrine entities and server-side processing.
+It now acts primarily as a configuration class. Request handling, provider resolution, and row processing run through internal collaborators behind the existing public façade.
 
 ## Overview
 
 The class wires together:
 
 - **DataTable**: ID, columns, and extensions
-- **DataProvider**: Fetches rows (Doctrine or array-based)
-- **RowMapper**: Transforms entities into frontend-compatible arrays
+- **DataProvider resolution**: Chooses a manual provider or an auto-configured Doctrine provider
+- **Row processing pipeline**: Maps entities into frontend-compatible arrays, then applies template rendering and row actions
 - **Actions**: Optional row-level actions appended automatically when configured
 
 ## Quick Start with #[AsDataTable]
@@ -54,7 +55,7 @@ final class UsersDataTable extends AbstractDataTable
 The attribute automatically creates a `DoctrineDataProvider` configured with:
 
 - Your entity class
-- The `rowMapper()` method
+- The internal row processing pipeline built from `mapRow()`
 - The `queryBuilderConfigurator()` method
 
 ## Defining Columns with Attributes
@@ -264,10 +265,11 @@ into each action. See the [Action Columns](../action-columns/) reference for the
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ['`getDataProvider()`', 'Return custom DataProvider'],
+    ['`createDataProvider()`', 'Protected hook for manual DataProvider instances'],
+    ['`getDataProvider()`', 'Public façade returning the resolved provider'],
     ['`fetchData(DataTableRequest $request)`', 'Fetch data using the provider'],
     ['`mapRow(mixed $item)`', 'Map a single entity to array'],
-    ['`rowMapper()`', 'Get RowMapperInterface instance'],
+    ['`createRowMapper()`', 'Protected helper returning the internal row-processing mapper'],
     ['`queryBuilderConfigurator(QueryBuilder $qb, ...)`', 'Modify Doctrine query'],
   ]}
 />
@@ -286,16 +288,16 @@ into each action. See the [Action Columns](../action-columns/) reference for the
 
 ## Manual Data Provider
 
-Override `getDataProvider()` for custom data sources:
+Override `createDataProvider()` for custom data sources:
 
 ```php
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 
-#[AsDataTable(User::class)] // Attribute is ignored when getDataProvider() is defined
+#[AsDataTable(User::class)] // Auto Doctrine wiring is skipped when createDataProvider() returns a provider
 final class CustomUsersDataTable extends AbstractDataTable
 {
-    public function getDataProvider(): ?DataProviderInterface
+    protected function createDataProvider(): ?DataProviderInterface
     {
         // Static data
         $rows = [
@@ -303,7 +305,7 @@ final class CustomUsersDataTable extends AbstractDataTable
             ['id' => 2, 'name' => 'Jane Smith'],
         ];
 
-        return new ArrayDataProvider($rows, $this->rowMapper());
+        return new ArrayDataProvider($rows, $this->createRowMapper());
     }
 
     protected function mapRow(mixed $item): array
@@ -314,7 +316,7 @@ final class CustomUsersDataTable extends AbstractDataTable
 }
 ```
 
-If an Ajax request is handled and `getDataProvider()` returns `null`, `getResponse()` now returns an
+If an Ajax request is handled and the resolved provider is `null`, `getResponse()` returns an
 empty DataTables payload using the current `draw` value:
 
 ```json
@@ -380,12 +382,17 @@ This includes:
       'Maps DataTables requests/responses to API Platform and Hydra shapes',
     ],
     [
-      'Auto Ajax wiring (`prepareForRendering()`)',
+      'Auto Ajax wiring during `getDataTable()` / rendering',
       'Auto-populates Ajax settings when resource metadata is available',
     ],
     ['Column auto-detection', 'Builds columns from readable API Platform resource properties'],
   ]}
 />
+
+<Aside type="note">
+  `prepareForRendering()` still exists and remains idempotent, but normal rendering no longer needs
+  to call it explicitly. `getDataTable()` is now the canonical rendering entrypoint.
+</Aside>
 
 <Aside type="tip">
   Use the [Maker Command](../maker/) to generate `AbstractDataTable` classes from Doctrine entities.

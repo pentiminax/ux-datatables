@@ -41,12 +41,12 @@ Notes:
 
 ## 2) AbstractDataTable Auto Ajax Wiring
 
-When rendering an `AbstractDataTable`, `prepareForRendering()` can auto-configure Ajax for API resources.
+When rendering an `AbstractDataTable`, calling `getDataTable()` auto-configures Ajax for API resources when possible.
 
 <Table
   headers={['Aspect', 'Value']}
   rows={[
-    ['Trigger', '`prepareForRendering()` on `AbstractDataTable`'],
+    ['Trigger', '`getDataTable()` / Twig rendering of `AbstractDataTable`'],
     ['Purpose', 'Auto-configure Ajax options for API Platform resources'],
     ['Applied to', 'Tables with resolvable API Platform collection metadata'],
   ]}
@@ -64,7 +64,12 @@ Conditions:
   ]}
 />
 
-If `#[AsDataTable(..., mercure: true)]` is also enabled and a Mercure hub is configured, the same metadata pass can auto-attach Mercure topics for live reload.
+If `#[AsDataTable(..., mercure: true)]` is also enabled and a Mercure hub is configured, the same preparation pass can auto-attach Mercure topics for live reload.
+
+<Aside type="note">
+  `prepareForRendering()` is still available and remains idempotent, but normal rendering no longer
+  needs to call it manually.
+</Aside>
 
 Example resolved output:
 
