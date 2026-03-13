@@ -6,10 +6,10 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Mercure;
 
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Psr\Log\LoggerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
 
@@ -67,9 +67,9 @@ final class MercureUpdatePublisherTest extends TestCase
             ->with(
                 'Failed to publish Mercure update.',
                 $this->callback(static function (array $context) use ($exception): bool {
-                    return ['/topic/42'] === $context['topics']
+                    return ['/topic/42']                  === $context['topics']
                         && ['type' => 'edit', 'id' => 42] === $context['data']
-                        && $exception === $context['exception'];
+                        && $exception                     === $context['exception'];
                 })
             );
 

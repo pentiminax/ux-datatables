@@ -47,12 +47,11 @@ final class MercureUpdatePublisher
     private function logPublishFailure(string|array $topics, array $data, \Throwable $exception): void
     {
         $context = [
-            'topics' => $topics,
-            'data' => $data,
+            'topics'    => $topics,
+            'data'      => $data,
             'exception' => $exception,
         ];
 
         $this->logger?->error('Failed to publish Mercure update.', $context);
-
     }
 }
