@@ -19,4 +19,6 @@ interface ColumnInterface extends \JsonSerializable
     public function isGlobalSearchable(): bool;
 
     public function getData(): ?string;
+
+    public function getTitle(): ?string;
 }
