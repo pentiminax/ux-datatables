@@ -44,12 +44,17 @@ class DataTable
 
     public function getOption(string $name): mixed
     {
+        if ('columns' === $name) {
+            return $this->getColumnDefinitions();
+        }
+
         return $this->options[$name] ?? null;
     }
 
     public function getOptions(): array
     {
-        $options = $this->options->getOptions();
+        $options            = $this->options->getOptions();
+        $options['columns'] = $this->getColumnDefinitions();
 
         $this->addButtonsToLayout($options);
 
@@ -114,7 +119,11 @@ class DataTable
 
     public function add(ColumnInterface $column): static
     {
-        $this->options['columns'][] = $column;
+        if (!isset($this->options['columns'])) {
+            $this->options['columns'] = [];
+        }
+
+        $this->columns[$column->getName()] = $column;
 
         return $this;
     }
@@ -124,12 +133,14 @@ class DataTable
      */
     public function columns(array $columns): static
     {
-        $this->columns            = [];
-        $this->options['columns'] = [];
+        if (!isset($this->options['columns'])) {
+            $this->options['columns'] = [];
+        }
+
+        $this->columns = [];
 
         foreach ($columns as $column) {
             $this->columns[$column->getName()] = $column;
-            $this->options->addColumn($column);
         }
 
         return $this;
@@ -465,15 +476,18 @@ class DataTable
 
     public function getColumns(): array
     {
-        return $this->options['columns'] ?? [];
+        return $this->columns;
     }
 
     /**
-     * @return ColumnInterface[]
+     * @return array<int, array<string, mixed>>
      */
-    public function getColumnObjects(): array
+    public function getColumnDefinitions(): array
     {
-        return $this->columns;
+        return array_values(array_map(
+            static fn (ColumnInterface $column): array => $column->jsonSerialize(),
+            $this->columns,
+        ));
     }
 
     public function markTemplateColumnsRendered(bool $rendered = true): static
