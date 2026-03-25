@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectNoAttributeDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectTestDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectWithGroupsDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectWithoutApiPlatformOptInDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -37,6 +38,18 @@ final class AbstractDataTableAutoDetectTest extends TestCase
         $detector->expects($this->never())->method('detectColumns');
 
         $table = new AutoDetectNoAttributeDataTable(columnAutoDetector: $detector);
+
+        $this->assertSame([], $table->getDataTable()->getColumns());
+    }
+
+    #[Test]
+    public function it_returns_empty_columns_without_api_platform_opt_in(): void
+    {
+        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
+        $detector->expects($this->never())->method('supports');
+        $detector->expects($this->never())->method('detectColumns');
+
+        $table = new AutoDetectWithoutApiPlatformOptInDataTable(columnAutoDetector: $detector);
 
         $this->assertSame([], $table->getDataTable()->getColumns());
     }

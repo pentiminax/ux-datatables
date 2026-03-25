@@ -11,7 +11,7 @@ use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 
-#[AsDataTable(entityClass: \stdClass::class)]
+#[AsDataTable(entityClass: \stdClass::class, apiPlatform: true)]
 class TestDataTableWithAttribute extends AbstractDataTable
 {
     public function __construct(
