@@ -298,13 +298,13 @@ $dataTable
     ->language(Language::EN_GB)
     ->ordering(handler: true, indicators: true)
     ->paging(buttons: 5, firstLast: true)
-    ->searching(true)
-    ->serverSide(true)
-    ->processing(true)
+    ->searching()
+    ->serverSide()
+    ->processing()
     ->scrollY('400px')
     ->pageLength(25)
     ->lengthMenu([10, 25, 50, 100])
-    ->stateSave(true)
+    ->stateSave()
     ->layout(
         topStart: Feature::PAGE_LENGTH,
         topEnd: Feature::SEARCH,
