@@ -191,11 +191,12 @@ final class UsersDataTable extends AbstractDataTable
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table
+            ->ajax(url: '/users')
             ->pageLength(25)
-            ->searching(true)
             ->ordering(handler: true, indicators: true)
-            ->serverSide(true)
-            ->processing(true);
+            ->searching()
+            ->serverSide()
+            ->processing();
     }
 
     public function configureColumns(): iterable
