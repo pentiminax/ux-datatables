@@ -6,6 +6,7 @@ export const actionColumnRenderer = {
     },
     configure(column) {
         const actions = column.actions;
+        column.columnControl = [];
         column.render = (data, type, row) => {
             if (type !== 'display') {
                 return '';
