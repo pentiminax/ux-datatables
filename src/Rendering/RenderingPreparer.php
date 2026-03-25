@@ -28,26 +28,25 @@ final class RenderingPreparer
 
     private function configureApiPlatform(DataTable $table, ?AsDataTable $asDataTable): void
     {
-        if (null !== $table->getOption('ajax') || null !== $table->getOption('data')) {
-            return;
-        }
-
-        if (null === $this->urlResolver) {
-            return;
-        }
-
-        if (null === $asDataTable) {
+        if (!$this->canAutoWireApiPlatform($table, $asDataTable)) {
             return;
         }
 
         $collectionUrl = $this->urlResolver->resolveCollectionUrl($asDataTable->entityClass);
 
-        if (null === $collectionUrl) {
-            return;
+        if (null !== $collectionUrl) {
+            $table->ajax($collectionUrl);
+            $table->apiPlatform();
         }
+    }
 
-        $table->ajax($collectionUrl);
-        $table->apiPlatform();
+    private function canAutoWireApiPlatform(DataTable $table, ?AsDataTable $asDataTable): bool
+    {
+        return null === $table->getOption('ajax')
+            && null === $table->getOption('data')
+            && null !== $this->urlResolver
+            && null !== $asDataTable
+            && ($asDataTable->apiPlatform || $table->getOption('apiPlatform'));
     }
 
     private function configureMercure(DataTable $table, ?AsDataTable $asDataTable): void

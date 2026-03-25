@@ -9,7 +9,7 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 
-#[AsDataTable(entityClass: \stdClass::class)]
+#[AsDataTable(entityClass: \stdClass::class, apiPlatform: true)]
 class AutoDetectTestDataTable extends AbstractDataTable
 {
     public function __construct(?ColumnAutoDetectorInterface $columnAutoDetector = null)

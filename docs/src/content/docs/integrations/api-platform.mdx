@@ -5,23 +5,67 @@ description: Use UX DataTables with API Platform collections and Hydra responses
 
 # API Platform Integration
 
-UX DataTables supports two integration paths with API Platform.
+API Platform integration is **opt-in**. The mere presence of `#[AsDataTable(Entity::class)]` does not activate any API Platform behavior. You must explicitly enable it with one of the two opt-in mechanisms below.
 
-## 1) Ajax Adapter Mode (`DataTable::apiPlatform()`)
+## Opt-in mechanisms
 
-Use this mode when DataTables runs in server-side mode and your endpoint is an API Platform collection.
+### 1) Attribute opt-in: `#[AsDataTable(..., apiPlatform: true)]`
+
+Add `apiPlatform: true` to the attribute on your DataTable class. This enables:
+
+- Automatic Ajax URL resolution from API Platform collection metadata
+- Auto-detection of columns from API Platform property metadata
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(entityClass: Book::class, apiPlatform: true)]
+class BookDataTable extends AbstractDataTable
+{
+}
+```
+
+### 2) Imperative opt-in: `DataTable::apiPlatform(true)` in `configureDataTable()`
+
+Use this mode when you need to point to an explicit Ajax URL (e.g. a custom endpoint) while still using the API Platform Hydra adapter on the frontend.
 
 ```php
 use Pentiminax\UX\DataTables\Model\DataTable;
 
-$dataTable = new DataTable('books');
-$dataTable
-    ->ajax('/api/books')
-    ->serverSide(true)
-    ->apiPlatform(true);
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->ajax('/api/books')
+        ->serverSide(true)
+        ->apiPlatform(true);
+}
 ```
 
-The frontend adapter converts:
+When `apiPlatform(true)` is called in `configureDataTable()` but no explicit `ajax()` URL is set, the bundle will still attempt to resolve the collection URL automatically from API Platform metadata (provided `#[AsDataTable]` is present).
+
+## Ajax auto-wiring (attribute opt-in only)
+
+When `#[AsDataTable(entityClass: Book::class, apiPlatform: true)]` is present and no explicit `ajax()` or `data()` option has been set, the bundle resolves the API Platform collection URL and configures Ajax automatically.
+
+<Table
+  headers={['Option', 'Value']}
+  rows={[
+    ['`ajax.url`', 'Resolved from API Platform collection metadata (e.g. `/api/books`)'],
+    ['`ajax.type`', '`GET`'],
+    ['`apiPlatform`', '`true`'],
+  ]}
+/>
+
+Auto-wiring is skipped if:
+
+- `ajax()` is already set (explicit URL takes priority)
+- `data()` is already set (client-side mode)
+- No collection URL can be resolved from API Platform metadata
+
+## Frontend adapter (both opt-ins)
+
+When `apiPlatform` is enabled, the Stimulus controller activates a Hydra adapter that converts:
 
 <Table
   headers={['Input', 'Output']}
@@ -39,67 +83,26 @@ Notes:
 - Date formatting is handled by the backend payload. The adapter does not reformat date values on the client.
 - When API Platform adapter mode is enabled, `serverSide` is enforced so sorting and filtering stay consistent with API queries.
 
-## 2) AbstractDataTable Auto Ajax Wiring
+## Column auto-detection
 
-When rendering an `AbstractDataTable`, calling `getDataTable()` auto-configures Ajax for API resources when possible.
+Column auto-detection from API Platform property metadata is also gated behind the opt-in. Without `apiPlatform: true`, the auto-detector is never called even if API Platform is installed.
 
-<Table
-  headers={['Aspect', 'Value']}
-  rows={[
-    ['Trigger', '`getDataTable()` / Twig rendering of `AbstractDataTable`'],
-    ['Purpose', 'Auto-configure Ajax options for API Platform resources'],
-    ['Applied to', 'Tables with resolvable API Platform collection metadata'],
-  ]}
-/>
-
-Conditions:
-
-<Table
-  headers={['Condition', 'Required']}
-  rows={[
-    ['No explicit `ajax` option', 'Yes'],
-    ['No explicit `data` option', 'Yes'],
-    ['`#[AsDataTable(...)]` exists', 'Yes'],
-    ['A collection URL can be resolved from API Platform metadata', 'Yes'],
-  ]}
-/>
-
-If `#[AsDataTable(..., mercure: true)]` is also enabled and a Mercure hub is configured, the same preparation pass can auto-attach Mercure topics for live reload.
-
-<Aside type="note">
-  `prepareForRendering()` is still available and remains idempotent, but normal rendering no longer
-  needs to call it manually.
-</Aside>
-
-Example resolved output:
-
-<Table
-  headers={['Option', 'Value']}
-  rows={[
-    ['`ajax.url`', '`/api/books`'],
-    ['`ajax.type`', '`GET`'],
-    ['`apiPlatform`', '`true`'],
-  ]}
-/>
-
-## Column Auto Detection
-
-If API Platform metadata is available, columns can be auto-detected from readable properties.
-
-`#[AsDataTable]` supports serialization groups:
+`#[AsDataTable]` supports serialization groups to filter exposed properties:
 
 ```php
-#[AsDataTable(Book::class, serializationGroups: ['book:list'])]
+#[AsDataTable(Book::class, serializationGroups: ['book:list'], apiPlatform: true)]
 ```
 
-## Frequent Pitfalls
+## Frequent pitfalls
 
+- Using `#[AsDataTable(Entity::class)]` alone and expecting Ajax or columns to be auto-configured — add `apiPlatform: true`.
 - Enabling adapter mode without an Ajax endpoint.
-- Expecting auto Ajax wiring when `ajax` or `data` is already set.
+- Expecting auto Ajax wiring when `ajax()` or `data()` is already set.
 - Forgetting that non-readable resource properties are skipped in auto-detection.
 
 ## Cross Links
 
+- [/ux-datatables/reference/attributes/](/ux-datatables/reference/attributes/)
 - [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)
 - [/ux-datatables/guide/data-loading/](/ux-datatables/guide/data-loading/)
 - [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)

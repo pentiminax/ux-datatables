@@ -9,8 +9,8 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 
-#[AsDataTable(entityClass: \stdClass::class, serializationGroups: ['product:list'], apiPlatform: true)]
-class AutoDetectWithGroupsDataTable extends AbstractDataTable
+#[AsDataTable(entityClass: \stdClass::class)]
+class AutoDetectWithoutApiPlatformOptInDataTable extends AbstractDataTable
 {
     public function __construct(?ColumnAutoDetectorInterface $columnAutoDetector = null)
     {
