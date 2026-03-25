@@ -69,8 +69,10 @@ final class AbstractDataTableAutoDetectTest extends TestCase
         $columns = $table->getDataTable()->getColumns();
 
         $this->assertCount(2, $columns);
-        $this->assertSame('id', $columns[0]['name']);
-        $this->assertSame('name', $columns[1]['name']);
+        $this->assertSame('id', $columns['id']->getName());
+        $this->assertSame('name', $columns['name']->getName());
+        $this->assertSame('id', $table->getDataTable()->getColumnDefinitions()[0]['name']);
+        $this->assertSame('name', $table->getDataTable()->getColumnDefinitions()[1]['name']);
     }
 
     #[Test]
