@@ -27,7 +27,8 @@ new DataTable(
   rows={[
     ['`add(ColumnInterface $column)`', 'Add a single column'],
     ['`columns(array|ColumnInterface $columns)`', 'Set multiple columns'],
-    ['`getColumns(): array`', 'Return all configured columns'],
+    ['`getColumns(): ColumnInterface[]`', 'Return configured column objects keyed by name'],
+    ['`getColumnDefinitions(): array`', 'Return the serialized DataTables column definitions'],
     ['`getColumnByName(string $name): ?ColumnInterface`', 'Find a column by its name'],
   ]}
 />

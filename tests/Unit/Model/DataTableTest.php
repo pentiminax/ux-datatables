@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
+use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
@@ -180,5 +181,63 @@ final class DataTableTest extends TestCase
         $table = new DataTable('test');
 
         $this->assertSame($table, $table->mercure('/.well-known/mercure'));
+    }
+
+    #[Test]
+    public function it_returns_column_objects_as_the_single_source_of_truth(): void
+    {
+        $firstColumn  = TextColumn::new('first_name', 'First name');
+        $secondColumn = TextColumn::new('last_name', 'Last name');
+
+        $table = (new DataTable('users'))->columns([$firstColumn, $secondColumn]);
+
+        $this->assertSame([
+            'first_name' => $firstColumn,
+            'last_name'  => $secondColumn,
+        ], $table->getColumns());
+    }
+
+    #[Test]
+    public function it_builds_column_definitions_from_column_objects(): void
+    {
+        $table = (new DataTable('users'))->columns([
+            TextColumn::new('first_name', 'First name'),
+        ]);
+
+        $this->assertSame([
+            [
+                'data'       => 'first_name',
+                'name'       => 'first_name',
+                'orderable'  => true,
+                'searchable' => true,
+                'title'      => 'First name',
+                'type'       => 'string',
+                'visible'    => true,
+                'field'      => 'first_name',
+            ],
+        ], $table->getColumnDefinitions());
+        $this->assertSame($table->getColumnDefinitions(), $table->getOptions()['columns']);
+    }
+
+    #[Test]
+    public function it_keeps_serialized_columns_in_sync_when_a_column_is_mutated_after_configuration(): void
+    {
+        $column = TextColumn::new('status', 'Status');
+        $table  = (new DataTable('users'))->columns([$column]);
+
+        $column->setTitle('Translated status');
+
+        $this->assertSame('Translated status', $table->getOptions()['columns'][0]['title']);
+        $this->assertSame('Translated status', $table->getColumnDefinitions()[0]['title']);
+    }
+
+    #[Test]
+    public function it_adds_single_columns_to_both_object_and_serialized_views(): void
+    {
+        $column = TextColumn::new('email', 'Email');
+        $table  = (new DataTable('users'))->add($column);
+
+        $this->assertSame(['email' => $column], $table->getColumns());
+        $this->assertSame('Email', $table->getColumnDefinitions()[0]['title']);
     }
 }
