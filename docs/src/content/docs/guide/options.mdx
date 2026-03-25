@@ -293,7 +293,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 $dataTable = new DataTable('products');
 
 $dataTable
-    ->autoWidth(true)
+    ->autoWidth()
     ->caption('Product Catalog')
     ->language(Language::EN_GB)
     ->ordering(handler: true, indicators: true)
