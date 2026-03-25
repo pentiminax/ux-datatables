@@ -19,6 +19,22 @@ $dataTable
     ->processing(true);
 ```
 
+## How Request Handling Works
+
+With the current bundle defaults, `ajax()` configures a `GET` request. DataTables sends
+server-side parameters such as `draw`, `start`, `length`, `search`, and `order` to that URL,
+and `DataTableRequest::fromRequest()` reads them from the query string.
+
+At controller level, do not rely on `$request->isXmlHttpRequest()` to detect a DataTables
+request. The supported flow is:
+
+1. Call `handleRequest($request)`
+2. Check `isRequestHandled()`
+3. Return `getResponse()` only when the request actually contains a DataTables payload
+
+What matters here is the DataTables payload, not whether the browser transport happens to be
+implemented as XHR or `fetch`.
+
 ## Request Parameters Sent By DataTables
 
 <Table
@@ -43,27 +59,40 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 $requestDto = DataTableRequest::fromRequest($request);
 ```
 
+Use this DTO when you need direct access to paging, ordering, or search values. If you are using
+`AbstractDataTable` in a controller, the usual entry point is still `handleRequest()` followed by
+`isRequestHandled()`.
+
 ## Typical Controller With AbstractDataTable
 
 ```php
-use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use App\DataTables\ProductsDataTable;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 
-if ($request->isXmlHttpRequest()) {
+#[Route('/products', name: 'app_products')]
+public function index(ProductsDataTable $table, Request $request): Response
+{
     $table->handleRequest($request);
 
-    return $table->getResponse();
-}
+    if ($table->isRequestHandled()) {
+        return $table->getResponse();
+    }
 
-if (!$table->getDataTable()->isServerSide()) {
-    $table->fetchData(DataTableRequest::fromRequest($request));
+    return $this->render('product/index.html.twig', [
+        'table' => $table->getDataTable(),
+    ]);
 }
 ```
 
 ## Best Practices
 
+- Use `isRequestHandled()` instead of `$request->isXmlHttpRequest()`.
 - Always whitelist sortable/searchable fields in your query layer.
 - Keep backend response time predictable (indexes, query limits).
 - Prefer `AbstractDataTable` for reusable query behavior.
+- Keep your server-side endpoint aligned with the URL configured in `ajax()`.
 - Ensure your table resolves a provider in server-side mode, either through `createDataProvider()` or `#[AsDataTable(...)]`; otherwise `getResponse()` falls back to an empty payload.
 
 ## Cross Links
