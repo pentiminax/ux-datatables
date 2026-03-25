@@ -47,11 +47,11 @@ use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
-use Symfony\Contracts\Translation\TranslatorInterface;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class DataTablesBundle extends AbstractBundle
 {
