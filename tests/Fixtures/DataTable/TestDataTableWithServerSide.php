@@ -12,7 +12,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 
-#[AsDataTable(entityClass: \stdClass::class)]
+#[AsDataTable(entityClass: \stdClass::class, apiPlatform: true)]
 class TestDataTableWithServerSide extends AbstractDataTable
 {
     public function __construct(

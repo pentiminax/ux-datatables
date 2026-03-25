@@ -49,6 +49,18 @@ final class ColumnResolverTest extends TestCase
     }
 
     #[Test]
+    public function auto_detect_returns_empty_without_api_platform_opt_in(): void
+    {
+        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
+        $detector->expects($this->never())->method('supports');
+        $detector->expects($this->never())->method('detectColumns');
+
+        $resolver = new ColumnResolver(columnAutoDetector: $detector);
+
+        $this->assertSame([], $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class)));
+    }
+
+    #[Test]
     public function auto_detect_returns_empty_when_not_supported(): void
     {
         $detector = $this->createMock(ColumnAutoDetectorInterface::class);
@@ -57,7 +69,7 @@ final class ColumnResolverTest extends TestCase
 
         $resolver = new ColumnResolver(columnAutoDetector: $detector);
 
-        $this->assertSame([], $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class)));
+        $this->assertSame([], $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: true)));
     }
 
     #[Test]
@@ -74,7 +86,7 @@ final class ColumnResolverTest extends TestCase
 
         $resolver = new ColumnResolver(columnAutoDetector: $detector);
 
-        $this->assertSame($expected, $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class)));
+        $this->assertSame($expected, $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: true)));
     }
 
     #[Test]
@@ -91,7 +103,7 @@ final class ColumnResolverTest extends TestCase
         $resolver = new ColumnResolver(columnAutoDetector: $detector);
 
         $resolver->autoDetectColumns(
-            new AsDataTable(entityClass: \stdClass::class, serializationGroups: ['product:list'])
+            new AsDataTable(entityClass: \stdClass::class, serializationGroups: ['product:list'], apiPlatform: true)
         );
     }
 
@@ -109,7 +121,7 @@ final class ColumnResolverTest extends TestCase
         $resolver = new ColumnResolver(columnAutoDetector: $detector);
 
         $resolver->autoDetectColumns(
-            new AsDataTable(entityClass: \stdClass::class, serializationGroups: ['product:list']),
+            new AsDataTable(entityClass: \stdClass::class, serializationGroups: ['product:list'], apiPlatform: true),
             ['custom:group']
         );
     }
@@ -228,7 +240,7 @@ final class ColumnResolverTest extends TestCase
 
         $this->assertSame(
             $expected,
-            $resolver->resolveColumns(new AsDataTable(entityClass: \stdClass::class))
+            $resolver->resolveColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: true))
         );
     }
 }

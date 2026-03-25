@@ -59,12 +59,46 @@ final class RenderingPreparerTest extends TestCase
         $preparer = new RenderingPreparer(urlResolver: $urlResolver);
         $table    = new DataTable('Test');
 
-        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class));
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
 
         $ajax = $table->getOption('ajax');
         $this->assertIsArray($ajax);
         $this->assertSame('/api/products', $ajax['url']);
         $this->assertTrue($table->getOption('apiPlatform'));
+    }
+
+    #[Test]
+    public function it_skips_api_platform_without_opt_in(): void
+    {
+        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $urlResolver->expects($this->never())->method('resolveCollectionUrl');
+
+        $preparer = new RenderingPreparer(urlResolver: $urlResolver);
+        $table    = new DataTable('Test');
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class));
+
+        $this->assertNull($table->getOption('ajax'));
+        $this->assertNull($table->getOption('apiPlatform'));
+    }
+
+    #[Test]
+    public function it_configures_api_platform_ajax_when_opted_in_via_configure_data_table(): void
+    {
+        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $urlResolver->method('resolveCollectionUrl')
+            ->with(\stdClass::class)
+            ->willReturn('/api/products');
+
+        $preparer = new RenderingPreparer(urlResolver: $urlResolver);
+        $table    = new DataTable('Test');
+        $table->apiPlatform(true);
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class));
+
+        $ajax = $table->getOption('ajax');
+        $this->assertIsArray($ajax);
+        $this->assertSame('/api/products', $ajax['url']);
     }
 
     #[Test]
@@ -106,7 +140,7 @@ final class RenderingPreparerTest extends TestCase
         $preparer = new RenderingPreparer(urlResolver: $urlResolver);
         $table    = new DataTable('Test');
 
-        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class));
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
 
         $this->assertNull($table->getOption('ajax'));
     }
