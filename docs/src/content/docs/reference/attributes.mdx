@@ -10,7 +10,7 @@ description: Reference for AsDataTable and Column PHP attributes
 Target: class
 
 ```php
-#[AsDataTable(User::class, serializationGroups: ['user:list'], mercure: true)]
+#[AsDataTable(User::class, serializationGroups: ['user:list'], mercure: true, apiPlatform: true)]
 ```
 
 Arguments:
@@ -23,7 +23,7 @@ Arguments:
       '`serializationGroups`',
       '`string[]`',
       '`[]`',
-      'API Platform serialization groups for auto-detection',
+      'API Platform serialization groups used during column auto-detection (requires `apiPlatform: true`)',
     ],
     [
       '`mercure`',
@@ -31,14 +31,20 @@ Arguments:
       '`false`',
       'Enable automatic Mercure config resolution for the table',
     ],
+    [
+      '`apiPlatform`',
+      '`bool`',
+      '`false`',
+      'Opt-in to API Platform integration: auto Ajax URL wiring and column auto-detection from API Platform metadata',
+    ],
   ]}
 />
 
 Use this attribute to:
 
 - auto-configure the Doctrine data provider used internally by `AbstractDataTable`
-- enable API Platform-driven column auto-detection
-- resolve API collection URL for auto Ajax wiring
+- opt-in to API Platform-driven column auto-detection (`apiPlatform: true` required)
+- opt-in to automatic API collection URL resolution for Ajax wiring (`apiPlatform: true` required)
 - auto-attach a Mercure config when Mercure is enabled for the table
 
 ## `#[Column]`

@@ -69,6 +69,10 @@ final class ColumnResolver
             return [];
         }
 
+        if (!$asDataTable->apiPlatform) {
+            return [];
+        }
+
         $resolvedGroups = $groups ?: $asDataTable->serializationGroups;
 
         if (!$this->columnAutoDetector->supports($asDataTable->entityClass)) {
