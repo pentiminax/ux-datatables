@@ -15,8 +15,8 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 $dataTable = new DataTable('products');
 $dataTable
     ->ajax('/api/products')
-    ->serverSide(true)
-    ->processing(true);
+    ->serverSide()
+    ->processing();
 ```
 
 ## How Request Handling Works

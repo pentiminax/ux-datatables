@@ -113,8 +113,8 @@ $table = $builder
     ->createDataTable('usersTable')
     ->columns([/* ... */])
     ->ajax('/api/users')
-    ->serverSide(true)
-    ->processing(true);
+    ->serverSide()
+    ->processing();
 ```
 
 ### Customize Column Behavior
