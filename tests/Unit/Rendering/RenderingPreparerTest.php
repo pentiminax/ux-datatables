@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Rendering;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
@@ -13,6 +14,7 @@ use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @internal
@@ -187,5 +189,26 @@ final class RenderingPreparerTest extends TestCase
         $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
 
         $this->assertNull($table->getMercureConfig());
+    }
+
+    #[Test]
+    public function it_translates_column_titles_without_manual_resynchronization(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->expects($this->once())
+            ->method('trans')
+            ->with('Status')
+            ->willReturn('Statut');
+
+        $preparer = new RenderingPreparer(translator: $translator);
+        $table    = (new DataTable('Test'))->columns([
+            TextColumn::new('status', 'Status'),
+        ]);
+
+        $preparer->prepare($table, null);
+
+        $this->assertSame('Statut', $table->getColumns()['status']->getTitle());
+        $this->assertSame('Statut', $table->getOptions()['columns'][0]['title']);
     }
 }
