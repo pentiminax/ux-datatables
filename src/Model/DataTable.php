@@ -80,7 +80,7 @@ class DataTable
     /**
      * Feature control DataTables' smart column width handling.
      */
-    public function autoWidth(bool $autoWidth): static
+    public function autoWidth(bool $autoWidth = true): static
     {
         $this->options['autoWidth'] = $autoWidth;
 
