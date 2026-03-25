@@ -124,6 +124,7 @@ class DataTable
      */
     public function columns(array $columns): static
     {
+        $this->columns            = [];
         $this->options['columns'] = [];
 
         foreach ($columns as $column) {

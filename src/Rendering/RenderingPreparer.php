@@ -88,7 +88,8 @@ final class RenderingPreparer
         }
 
         foreach ($table->getColumnObjects() as $column) {
-            $column->setTitle($this->translator->trans($column->getTitle()));
+            $title = $column->getTitle();
+            $column->setTitle($this->translator->trans($title));
         }
 
         $table->columns($table->getColumnObjects());
