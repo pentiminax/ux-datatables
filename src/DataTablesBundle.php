@@ -47,6 +47,7 @@ use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
+use Symfony\Contracts\Translation\TranslatorInterface;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 use Symfony\Component\DependencyInjection\Reference;
@@ -243,6 +244,7 @@ class DataTablesBundle extends AbstractBundle
             ->set('datatables.rendering.preparer', RenderingPreparer::class)
             ->arg(0, service(ApiResourceCollectionUrlResolverInterface::class)->nullOnInvalid())
             ->arg(1, service(MercureConfigResolverInterface::class)->nullOnInvalid())
+            ->arg(2, service(TranslatorInterface::class)->nullOnInvalid())
             ->private();
 
         $container->services()

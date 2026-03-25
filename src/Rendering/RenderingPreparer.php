@@ -8,12 +8,14 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class RenderingPreparer
 {
     public function __construct(
         private readonly ?ApiResourceCollectionUrlResolverInterface $urlResolver = null,
         private readonly ?MercureConfigResolverInterface $mercureResolver = null,
+        private readonly ?TranslatorInterface $translator = null,
     ) {
     }
 
@@ -21,6 +23,7 @@ final class RenderingPreparer
     {
         $this->configureApiPlatform($table, $asDataTable);
         $this->configureMercure($table, $asDataTable);
+        $this->translateColumnTitles($table);
     }
 
     private function configureApiPlatform(DataTable $table, ?AsDataTable $asDataTable): void
@@ -76,5 +79,18 @@ final class RenderingPreparer
             withCredentials: $mercureConfig->withCredentials,
             debounceMs: $mercureConfig->debounceMs,
         );
+    }
+
+    private function translateColumnTitles(DataTable $table): void
+    {
+        if (null === $this->translator) {
+            return;
+        }
+
+        foreach ($table->getColumnObjects() as $column) {
+            $column->setTitle($this->translator->trans($column->getTitle()));
+        }
+
+        $table->columns($table->getColumnObjects());
     }
 }
