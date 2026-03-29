@@ -103,6 +103,11 @@ abstract class AbstractDataTable
         return $this->runtime()->getRequest();
     }
 
+    protected function getHttpRequest(): ?Request
+    {
+        return $this->runtime()->getHttpRequest();
+    }
+
     public function handleRequest(Request $request): static
     {
         $this->runtime()->handleRequest($request);
