@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Strategy;
 
 use Doctrine\ORM\Query\Expr;
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
@@ -62,6 +63,26 @@ final class NullnessSearchStrategyTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('date_column_cases')]
+    public function it_applies_expected_date_expression(bool $negated, string $expectedExpression): void
+    {
+        $strategy = new NullnessSearchStrategy($negated);
+        $column   = DateColumn::new('sentAt');
+        $search   = new ColumnControlSearch('', $strategy->getLogic(), 'date');
+        $qb       = $this->createMock(QueryBuilder::class);
+
+        $qb->expects($this->once())
+            ->method('expr')
+            ->willReturn(new Expr());
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with($expectedExpression);
+
+        $strategy->apply($qb, $column, $search, 0, 'e');
+    }
+
+    #[Test]
     #[DataProvider('logic_cases')]
     public function it_returns_expected_logic(bool $negated, string $expectedLogic): void
     {
@@ -86,6 +107,15 @@ final class NullnessSearchStrategyTest extends TestCase
     {
         yield 'empty' => [false, 'e.price IS NULL'];
         yield 'not empty' => [true, 'e.price IS NOT NULL'];
+    }
+
+    /**
+     * @return iterable<string, array{bool, string}>
+     */
+    public static function date_column_cases(): iterable
+    {
+        yield 'empty' => [false, 'e.sentAt IS NULL'];
+        yield 'not empty' => [true, 'e.sentAt IS NOT NULL'];
     }
 
     /**

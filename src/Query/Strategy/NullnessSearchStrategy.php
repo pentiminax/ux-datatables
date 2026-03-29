@@ -17,6 +17,8 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  */
 final class NullnessSearchStrategy implements SearchStrategyInterface
 {
+    private const array NULL_ONLY_TYPES = ['date', 'datetime', 'datetime-local', 'time', 'num', 'number', 'numeric'];
+
     public function __construct(
         private readonly bool $negated = false,
     ) {
@@ -26,9 +28,9 @@ final class NullnessSearchStrategy implements SearchStrategyInterface
     {
         $field     = RelationFieldResolver::resolve($qb, $alias, $column->getField());
         $expr      = $qb->expr();
-        $isNumeric = $column->isNumber() || \in_array(strtolower($search->type), ['number', 'numeric', 'num'], true);
+        $isNullOnly = $column->isNumber() || $column->isDate() || \in_array(strtolower($search->type), self::NULL_ONLY_TYPES, true);
 
-        if ($isNumeric) {
+        if ($isNullOnly) {
             $qb->andWhere($this->negated ? $expr->isNotNull($field) : $expr->isNull($field));
 
             return;
