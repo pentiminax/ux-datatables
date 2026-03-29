@@ -13,6 +13,8 @@ use Symfony\Component\HttpFoundation\Request;
 
 final class DataTableRuntime
 {
+    private ?Request $httpRequest = null;
+
     private ?DataTableRequest $request = null;
 
     private ?DataProviderInterface $dataProvider = null;
@@ -30,9 +32,15 @@ final class DataTableRuntime
         return $this->request;
     }
 
+    public function getHttpRequest(): ?Request
+    {
+        return $this->httpRequest;
+    }
+
     public function handleRequest(Request $request): void
     {
-        $this->request = DataTableRequest::fromRequest($request);
+        $this->httpRequest = $request;
+        $this->request     = DataTableRequest::fromRequest($request);
     }
 
     public function isRequestHandled(): bool
