@@ -21,6 +21,31 @@ use Symfony\Component\HttpFoundation\Request;
 final class DataTableRuntimeTest extends TestCase
 {
     #[Test]
+    public function test_give_n_no_handled_request_whe_n_get_http_request_the_n_null_is_returned(): void
+    {
+        $runtime = new DataTableRuntime(
+            table: new DataTable('movies'),
+            dataProviderFactory: static fn (): ?DataProviderInterface => null,
+        );
+
+        $this->assertNull($runtime->getHttpRequest());
+    }
+
+    #[Test]
+    public function test_give_n_handled_request_whe_n_get_http_request_the_n_same_request_is_returned(): void
+    {
+        $runtime = new DataTableRuntime(
+            table: new DataTable('movies'),
+            dataProviderFactory: static fn (): ?DataProviderInterface => null,
+        );
+        $request = new Request(query: ['draw' => 7, 'genre' => 'sci-fi']);
+
+        $runtime->handleRequest($request);
+
+        $this->assertSame($request, $runtime->getHttpRequest());
+    }
+
+    #[Test]
     public function it_returns_an_empty_response_when_no_request_has_been_handled(): void
     {
         $runtime = new DataTableRuntime(

@@ -168,8 +168,8 @@ Use request parameters for dynamic filters:
 ```php
 public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
 {
-    // Access custom parameters
-    if ($roleId = $request->getCustomParameter('role')) {
+    // Access the current Symfony HTTP request for custom parameters
+    if ($roleId = $this->getHttpRequest()?->query->get('role')) {
         $qb->andWhere('e.role = :role')
            ->setParameter('role', $roleId);
     }
@@ -274,6 +274,8 @@ into each action. See the [Action Columns](../action-columns/) reference for the
     ['`createDataProvider()`', 'Protected hook for manual DataProvider instances'],
     ['`getDataProvider()`', 'Public façade returning the resolved provider'],
     ['`fetchData(DataTableRequest $request)`', 'Fetch data using the provider'],
+    ['`getRequest()`', 'Get the parsed DataTables request'],
+    ['`getHttpRequest()`', 'Get the current Symfony HTTP request after `handleRequest()`'],
     ['`mapRow(mixed $item)`', 'Map a single entity to array'],
     ['`createRowMapper()`', 'Protected helper returning the internal row-processing mapper'],
     ['`queryBuilderConfigurator(QueryBuilder $qb, ...)`', 'Modify Doctrine query'],
