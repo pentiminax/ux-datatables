@@ -36,6 +36,13 @@ export interface ChoiceCustomOptions {
     defaultBadgeVariant?: string
 }
 
+export interface EmailCustomOptions {
+    isEmail?: boolean
+    obfuscate?: boolean
+    mask?: boolean
+    displayValue?: string
+}
+
 export interface UrlCustomOptions {
     target?: string
     displayValue?: string

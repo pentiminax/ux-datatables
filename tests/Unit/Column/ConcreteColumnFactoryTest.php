@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\EmailColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\HtmlColumn;
 use Pentiminax\UX\DataTables\Column\HtmlNumberColumn;
@@ -77,5 +78,6 @@ final class ConcreteColumnFactoryTest extends TestCase
         yield 'html-utf8' => [HtmlUtf8Column::class, ColumnType::HTML_UTF8];
         yield 'template' => [TemplateColumn::class, ColumnType::HTML];
         yield 'url' => [UrlColumn::class, ColumnType::HTML];
+        yield 'email' => [EmailColumn::class, ColumnType::HTML];
     }
 }

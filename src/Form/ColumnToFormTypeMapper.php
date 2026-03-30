@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Form;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -42,6 +43,13 @@ final class ColumnToFormTypeMapper
                     'choices'  => array_flip($customOptions['choices']),
                     'required' => false,
                 ],
+            ];
+        }
+
+        if (!empty($customOptions['isEmail'])) {
+            return [
+                'formType' => EmailType::class,
+                'options'  => $options,
             ];
         }
 
