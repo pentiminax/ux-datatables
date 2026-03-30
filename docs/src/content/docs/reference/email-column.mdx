@@ -1,0 +1,124 @@
+---
+title: Email Column
+description: Render email addresses as clickable mailto links with optional obfuscation and privacy masking
+---
+
+# Email Column
+
+The `EmailColumn` renders an email address field as a clickable `<a href="mailto:...">` link. It provides two independent protection options: HTML source obfuscation to deter scrapers, and visual masking for user privacy.
+
+## Basic Usage
+
+```php
+use Pentiminax\UX\DataTables\Column\EmailColumn;
+
+EmailColumn::new('email', 'Email Address');
+```
+
+Renders as: `<a href="mailto:user@example.com">user@example.com</a>`
+
+## Obfuscation (Anti-Spam)
+
+`obfuscate()` encodes the `mailto:` href using HTML entities (`&#64;` for `@`, `&#46;` for `.`), making it harder for basic email scrapers to harvest addresses from your page source. The email remains fully visible and clickable to the end user.
+
+```php
+EmailColumn::new('email', 'Email Address')
+    ->obfuscate();
+```
+
+Renders as: `<a href="mailto:user&#64;example&#46;com">user@example.com</a>`
+
+## Privacy Masking
+
+`mask()` partially hides the email address in the display text: the first character of the local part is shown, the rest is replaced with `***`, and the domain is kept fully visible. The `mailto:` href always contains the full address so the link still works.
+
+```php
+EmailColumn::new('email', 'Email Address')
+    ->mask();
+```
+
+Renders as: `<a href="mailto:user@example.com">u***@example.com</a>`
+
+## Combining Both Options
+
+Obfuscation and masking are independent and can be combined:
+
+```php
+EmailColumn::new('email', 'Email Address')
+    ->obfuscate()
+    ->mask();
+```
+
+Renders as: `<a href="mailto:user&#64;example&#46;com">u***@example.com</a>`
+
+## Custom Display Text
+
+Use `setDisplayValue()` to replace the displayed text entirely. This takes priority over `mask()` when both are set.
+
+```php
+EmailColumn::new('email', 'Email Address')
+    ->setDisplayValue('Contact us');
+```
+
+Renders as: `<a href="mailto:user@example.com">Contact us</a>`
+
+## API Reference
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    [
+      "`EmailColumn::new(string $name, string $title = '')`",
+      'Creates a new EmailColumn (type: `html`)',
+    ],
+    [
+      '`obfuscate(bool $obfuscate = true)`',
+      'Encodes the mailto href with HTML entities to deter email scrapers',
+    ],
+    [
+      '`mask(bool $mask = true)`',
+      'Partially hides the displayed address: `u***@example.com`',
+    ],
+    [
+      '`setDisplayValue(string $displayValue)`',
+      'Sets a fixed display text (takes priority over `mask()`)',
+    ],
+  ]}
+/>
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\EmailColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('name', 'Name');
+        yield EmailColumn::new('email', 'Email Address')
+            ->obfuscate()
+            ->mask();
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return [
+            'id'    => $item->getId(),
+            'name'  => $item->getName(),
+            'email' => $item->getEmail(),
+        ];
+    }
+}
+```
+
+<Aside type="note">
+  Searching and sorting operate on the raw email value, not the masked or obfuscated display text.
+  A search for `john` will still match `john@example.com` even when masking is enabled.
+</Aside>
