@@ -142,11 +142,9 @@ final class UsersDataTable extends AbstractDataTable
 
     public function configureActions(Actions $actions): Actions
     {
-        return $actions->add(
-            Action::detail()->linkToUrl(
-                static fn (User $user): string => '/admin/users/'.$user->getId()
-            )
-        );
+        $detailAction = Action::detail()->linkToUrl(static fn (User $user): string => '/admin/users/'.$user->getId()):
+
+        return $actions->add($detailAction);
     }
 }
 ```
