@@ -284,7 +284,7 @@ class DataTablesBundle extends AbstractBundle
             ->arg(2, service('api_platform.metadata.property.metadata_factory'))
             ->arg(3, service('property_info'))
             ->arg(4, service('datatables.api_platform.type_mapper'))
-            ->arg(5, service('datatables.column.property_name_humanizer.'))
+            ->arg(5, service('datatables.column.property_name_humanizer'))
             ->private();
 
         $container->services()
