@@ -96,6 +96,14 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
   ]}
 />
 
+When `linkToUrl()` receives a callable, the argument depends on how the row was produced:
+
+- `AbstractDataTable` + provider or `setData($objects)`:
+  the callable receives the original source object, so typed closures such as
+  `static fn (User $user): string => ...` work as expected
+- manual `DataTable::data([...])` inline rows:
+  the callable receives the row array, so use `static fn (array $row): string => ...`
+
 ## `Actions` API
 
 <Table
