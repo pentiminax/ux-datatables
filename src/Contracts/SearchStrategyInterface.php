@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Query\Strategy;
+namespace Pentiminax\UX\DataTables\Contracts;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;

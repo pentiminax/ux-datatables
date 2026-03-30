@@ -6,8 +6,8 @@ namespace Pentiminax\UX\DataTables\Runtime;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
-use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
+use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
+use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;

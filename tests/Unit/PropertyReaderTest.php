@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit;
 
-use Pentiminax\UX\DataTables\Util\PropertyReader;
+use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

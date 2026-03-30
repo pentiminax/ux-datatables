@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Builder;
 
+use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
 
 class DataTableBuilder implements DataTableBuilderInterface

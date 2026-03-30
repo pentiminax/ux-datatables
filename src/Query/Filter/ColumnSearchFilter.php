@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
-use Pentiminax\UX\DataTables\Query\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Query\SearchConditionBuilder;
 
 /**

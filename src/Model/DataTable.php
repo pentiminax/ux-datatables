@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Model;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
-use Pentiminax\UX\DataTables\Model\Extensions\ExtensionInterface;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;

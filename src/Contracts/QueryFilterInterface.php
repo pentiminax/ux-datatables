@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Query;
+namespace Pentiminax\UX\DataTables\Contracts;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 
 /**
  * Interface for filters that can be applied to a QueryBuilder.

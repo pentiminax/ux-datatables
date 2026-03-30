@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\RowMapper;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
-use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
+use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
+use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
-use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;

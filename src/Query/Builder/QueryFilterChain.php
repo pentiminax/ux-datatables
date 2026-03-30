@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Builder;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnControlSearchFilter;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnSearchFilter;
 use Pentiminax\UX\DataTables\Query\Filter\GlobalSearchFilter;
 use Pentiminax\UX\DataTables\Query\Filter\OrderFilter;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
-use Pentiminax\UX\DataTables\Query\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 
 /**

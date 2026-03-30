@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Column;
+namespace Pentiminax\UX\DataTables\Column\Rendering;
 
+use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\Util\PropertyReader;
 use Twig\Environment;
 
 final class TemplateColumnRenderer

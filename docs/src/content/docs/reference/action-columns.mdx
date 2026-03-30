@@ -131,12 +131,7 @@ If you build tables manually, create an `Actions` collection and wrap it with
 `ActionColumn::fromActions()`:
 
 ```php
-use App\Entity\User;
-use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
-use Pentiminax\UX\DataTables\Column\ActionColumn;
-use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Model\Action;
-use Pentiminax\UX\DataTables\Model\Actions;
+use App\Entity\User;use Pentiminax\UX\DataTables\Column\ActionColumn;use Pentiminax\UX\DataTables\Column\TextColumn;use Pentiminax\UX\DataTables\Model\Action;use Pentiminax\UX\DataTables\Model\Actions;
 
 $actions = (new Actions())
     ->setColumnLabel('Operations')

@@ -30,8 +30,14 @@ final class ComparisonSearchStrategyTest extends TestCase
     ): void {
         $strategy = new ComparisonSearchStrategy($logic);
         $column   = TextColumn::new('name');
-        $search   = new ColumnControlSearch($value, $logic->value, 'text');
-        $qb       = $this->createMock(QueryBuilder::class);
+
+        $search = new ColumnControlSearch(
+            value: $value,
+            logic: $logic,
+            type: 'text'
+        );
+
+        $qb = $this->createMock(QueryBuilder::class);
 
         $qb->expects($this->once())
             ->method('andWhere')

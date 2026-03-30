@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Util;
+namespace Pentiminax\UX\DataTables\Column\Rendering;
 
 final class PropertyReader
 {

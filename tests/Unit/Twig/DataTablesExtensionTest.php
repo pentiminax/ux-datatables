@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 
-use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
@@ -338,8 +338,8 @@ final readonly class InlineBookEntity
 final class InlinePreparedDataTable extends AbstractDataTable
 {
     public function __construct(
-        \Pentiminax\UX\DataTables\Column\TemplateColumnRenderer $templateColumnRenderer,
-        \Pentiminax\UX\DataTables\Column\ActionRowDataResolver $actionRowDataResolver,
+        \Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer $templateColumnRenderer,
+        \Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver $actionRowDataResolver,
     ) {
         parent::__construct(
             runtimeFactory: new \Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory(

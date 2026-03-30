@@ -60,12 +60,7 @@ possible setup.
 ```php
 namespace App\Controller;
 
-use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
-use Pentiminax\UX\DataTables\Column\EmailColumn;
-use Pentiminax\UX\DataTables\Column\TextColumn;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
+use Pentiminax\UX\DataTables\Column\EmailColumn;use Pentiminax\UX\DataTables\Column\TextColumn;use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;use Symfony\Component\HttpFoundation\Response;use Symfony\Component\Routing\Attribute\Route;
 
 final class UserController extends AbstractController
 {
