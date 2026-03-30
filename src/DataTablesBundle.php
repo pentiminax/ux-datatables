@@ -178,7 +178,8 @@ class DataTablesBundle extends AbstractBundle
 
         $container->services()
             ->set('datatables.maker.datatable', MakeDataTable::class)
-            ->arg(0, service('doctrine')->nullOnInvalid())
+            ->arg('$propertyNameHumanizer', service('datatables.column.property_name_humanizer'))
+            ->arg('$managerRegistry', service('doctrine')->nullOnInvalid())
             ->tag('maker.command')
             ->private();
 
