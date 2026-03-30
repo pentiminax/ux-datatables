@@ -38,7 +38,7 @@ export const emailColumnRenderer: ColumnRenderer = {
             }
 
             const href = shouldObfuscate
-                ? `mailto:${obfuscateMailto(email)}`
+                ? `mailto:${escapeHtml(obfuscateMailto(email))}`
                 : `mailto:${escapeHtml(email)}`
 
             let text: string
