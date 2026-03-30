@@ -48,7 +48,7 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
                 continue;
             }
 
-            $strategy = $this->registry->get($search->logic);
+            $strategy = $this->registry->get($search->logic->value);
             $strategy->apply($qb, $column, $search, $index, $context->alias);
         }
     }
