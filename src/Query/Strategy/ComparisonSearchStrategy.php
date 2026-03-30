@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
@@ -18,10 +19,11 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 final class ComparisonSearchStrategy implements SearchStrategyInterface
 {
     public function __construct(
-        private readonly string $logic,
-        private readonly string $operator,
-        private readonly string $paramFormat,
+        private readonly ColumnControlLogic $logic,
     ) {
+        if (!$this->logic->supportsComparisonStrategy()) {
+            throw new \InvalidArgumentException(\sprintf('Logic "%s" is not compatible with %s.', $this->logic->value, self::class));
+        }
     }
 
     public function apply(QueryBuilder $qb, AbstractColumn $column, ColumnControlSearch $search, int $paramIndex, string $alias): void
@@ -33,12 +35,12 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
         $field     = RelationFieldResolver::resolve($qb, $alias, $column->getField());
         $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
-        $qb->andWhere(\sprintf('%s %s :%s', $field, $this->operator, $paramName));
-        $qb->setParameter($paramName, \sprintf($this->paramFormat, $search->value));
+        $qb->andWhere(\sprintf('%s %s :%s', $field, $this->logic->operator(), $paramName));
+        $qb->setParameter($paramName, \sprintf($this->logic->paramFormat(), $search->value));
     }
 
     public function getLogic(): string
     {
-        return $this->logic;
+        return $this->logic->value;
     }
 }

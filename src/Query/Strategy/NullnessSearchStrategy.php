@@ -26,8 +26,8 @@ final class NullnessSearchStrategy implements SearchStrategyInterface
 
     public function apply(QueryBuilder $qb, AbstractColumn $column, ColumnControlSearch $search, int $paramIndex, string $alias): void
     {
-        $field     = RelationFieldResolver::resolve($qb, $alias, $column->getField());
-        $expr      = $qb->expr();
+        $field      = RelationFieldResolver::resolve($qb, $alias, $column->getField());
+        $expr       = $qb->expr();
         $isNullOnly = $column->isNumber() || $column->isDate() || \in_array(strtolower($search->type), self::NULL_ONLY_TYPES, true);
 
         if ($isNullOnly) {
