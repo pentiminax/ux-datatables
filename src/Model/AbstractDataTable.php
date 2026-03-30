@@ -231,6 +231,20 @@ abstract class AbstractDataTable
         );
     }
 
+    public function setData(array $data): void
+    {
+        $rowMapper = $this->createRowMapper();
+
+        $rows = (static function () use ($data, $rowMapper) {
+            foreach ($data as $item) {
+                yield $rowMapper->map($item);
+            }
+        })();
+
+        $this->table->data(iterator_to_array($rows));
+        $this->table->markTemplateColumnsRendered();
+    }
+
     private function getDefaultRowMapper(): DefaultRowMapper
     {
         if (null === $this->defaultRowMapper) {
