@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\ApiPlatform;
+namespace Pentiminax\UX\DataTables\Column;
 
 final class PropertyNameHumanizer
 {

@@ -9,12 +9,12 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformPropertyTypeMapper;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
-use Pentiminax\UX\DataTables\ApiPlatform\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
 use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\UrlColumnResolver;
@@ -46,12 +46,10 @@ use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-
-use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
-
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 use Symfony\Contracts\Translation\TranslatorInterface;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 class DataTablesBundle extends AbstractBundle
 {

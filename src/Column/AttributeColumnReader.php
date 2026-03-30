@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column;
 
-use Pentiminax\UX\DataTables\ApiPlatform\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Attribute\Column;
 
 final class AttributeColumnReader

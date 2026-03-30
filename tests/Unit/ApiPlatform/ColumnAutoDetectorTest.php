@@ -13,9 +13,9 @@ use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInter
 use ApiPlatform\Metadata\Resource\ResourceMetadataCollection;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformPropertyTypeMapper;
 use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
-use Pentiminax\UX\DataTables\ApiPlatform\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Tests\Fixtures\ApiPlatform\TestPropertyInfoExtractor;
 use PHPUnit\Framework\Attributes\CoversClass;
