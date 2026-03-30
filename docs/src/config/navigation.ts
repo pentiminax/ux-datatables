@@ -31,7 +31,10 @@ export const docsSidebarSections: NavSection[] = [
       { label: 'Configuration', href: '/ux-datatables/guide/configuration/' },
       { label: 'Columns', href: '/ux-datatables/guide/columns/' },
       { label: 'Options', href: '/ux-datatables/guide/options/' },
-      { label: 'Data Loading', href: '/ux-datatables/guide/data-loading/' },
+      {
+        label: 'Client-side Processing',
+        href: '/ux-datatables/guide/client-side-processing/',
+      },
       {
         label: 'Server-Side Processing',
         href: '/ux-datatables/guide/server-side-processing/',
@@ -97,7 +100,10 @@ export const docsFooterSections: NavSection[] = [
       { label: 'Columns', href: '/ux-datatables/guide/columns/' },
       { label: 'Options', href: '/ux-datatables/guide/options/' },
       { label: 'Extensions', href: '/ux-datatables/extensions/' },
-      { label: 'Data Loading', href: '/ux-datatables/guide/data-loading/' },
+      {
+        label: 'Client-side Processing',
+        href: '/ux-datatables/guide/client-side-processing/',
+      },
     ],
   },
 ]

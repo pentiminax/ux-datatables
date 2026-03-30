@@ -1,0 +1,262 @@
+---
+title: Client-side Processing
+description: Load all rows up-front and let DataTables search, sort, and page in the browser
+---
+
+# Client-side Processing
+
+Client-side processing is the default DataTables mode: the full dataset is loaded up-front, and
+DataTables performs searching, ordering, and paging in the browser.
+
+Use this page when your table can fit comfortably in the browser and you want a simpler setup than
+backend-driven processing. For large datasets or database-backed filtering on every draw, see
+[/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/).
+
+## When To Choose This Mode
+
+Use client-side processing when:
+
+- the table stays in the low-thousands of rows
+- you can return the full result set up-front
+- you want DataTables to handle search, sort, and paging without backend query logic
+
+Switch to server-side processing when:
+
+- the dataset is too large to download eagerly
+- filtering or ordering must happen in your backend or database
+- response time and memory usage become unpredictable in the browser
+
+Ajax can still be client-side: DataTables may fetch JSON from `/api/users`, then keep all further
+sorting, searching, and paging in the browser as long as `serverSide(true)` is not enabled.
+
+## Choose Your Data Source
+
+<Table
+  headers={['Setup', 'Use when', 'What UX DataTables gives you']}
+  rows={[
+    [
+      '`data()`',
+      'You already have array rows in the controller',
+      'The fastest path for small in-memory datasets',
+    ],
+    [
+      '`setData()`',
+      'You have domain objects and want the `AbstractDataTable` row pipeline',
+      'Runs `mapRow()`, template rendering, and typed action resolution',
+    ],
+    [
+      '`ajax()`',
+      'You want the browser to fetch JSON before client-side interactions begin',
+      'Keeps payload retrieval separate from page rendering',
+    ],
+  ]}
+/>
+
+## Inline Arrays With `data()`
+
+Use `data()` when your controller already has the rows in array form and you want the smallest
+possible setup.
+
+```php
+namespace App\Controller;
+
+use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Column\EmailColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+final class UserController extends AbstractController
+{
+    #[Route('/admin/users', name: 'app_admin_users')]
+    public function index(DataTableBuilderInterface $builder): Response
+    {
+        $table = $builder
+            ->createDataTable('users')
+            ->columns([
+                TextColumn::new('firstName', 'First name'),
+                TextColumn::new('lastName', 'Last name'),
+                EmailColumn::new('email', 'Email'),
+                TextColumn::new('role', 'Role'),
+            ])
+            ->data([
+                [
+                    'firstName' => 'Ada',
+                    'lastName' => 'Lovelace',
+                    'email' => 'ada@example.com',
+                    'role' => 'Administrator',
+                ],
+                [
+                    'firstName' => 'Grace',
+                    'lastName' => 'Hopper',
+                    'email' => 'grace@example.com',
+                    'role' => 'Manager',
+                ],
+            ]);
+
+        return $this->render('admin/users/index.html.twig', [
+            'table' => $table,
+        ]);
+    }
+}
+```
+
+This setup is ideal when the page already owns the dataset and no extra HTTP request is needed.
+
+## Domain Objects With `setData()`
+
+Use `setData()` on `AbstractDataTable` when your source rows are objects and you want UX
+DataTables to keep using the normal row-processing pipeline.
+
+```php
+namespace App\DataTables;
+
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\EmailColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
+
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('fullName', 'Name');
+        yield EmailColumn::new('email', 'Email');
+        yield TextColumn::new('role', 'Role');
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        /** @var User $item */
+        return [
+            'fullName' => $item->getFirstName().' '.$item->getLastName(),
+            'email' => $item->getEmail(),
+            'role' => $item->getRole()->value,
+        ];
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(
+            Action::detail()->linkToUrl(
+                static fn (User $user): string => '/admin/users/'.$user->getId()
+            )
+        );
+    }
+}
+```
+
+```php
+namespace App\Controller;
+
+use App\DataTables\UsersDataTable;
+use App\Repository\UserRepository;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+final class UserController extends AbstractController
+{
+    #[Route('/admin/users', name: 'app_admin_users')]
+    public function index(UsersDataTable $table, UserRepository $users): Response
+    {
+        $table->setData($users->findBy([], ['lastName' => 'ASC']));
+
+        return $this->render('admin/users/index.html.twig', [
+            'table' => $table->getDataTable(),
+        ]);
+    }
+}
+```
+
+`setData()` is the right choice when you need:
+
+- `mapRow()` to turn domain objects into arrays
+- template columns to render before the payload is exposed to the browser
+- typed action closures such as `static fn (User $user) => ...`
+
+## Ajax With Client-side Processing
+
+Use `ajax()` when you still want client-side processing, but prefer to fetch rows from a dedicated
+endpoint instead of embedding them in the initial HTML response.
+
+```php
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+$dataTable = new DataTable('users');
+$dataTable
+    ->ajax('/api/users', type: 'GET')
+    ->processing();
+```
+
+As long as you do not call `serverSide(true)`, DataTables downloads the JSON once and then performs
+searching, ordering, and paging in the browser.
+
+### Expected JSON Payload
+
+<Table
+  headers={['Parameter', 'Type', 'Description']}
+  rows={[
+    ['`url`', '`string`', 'Endpoint URL returning the full dataset'],
+    ['`dataSrc`', '`string|null`', 'JSON key containing rows (`data` by default)'],
+    ['`type`', '`string`', 'HTTP verb (`GET`, `POST`, etc.)'],
+  ]}
+/>
+
+```json
+{
+  "data": [
+    {
+      "firstName": "Ada",
+      "lastName": "Lovelace",
+      "email": "ada@example.com",
+      "role": "Administrator"
+    },
+    {
+      "firstName": "Grace",
+      "lastName": "Hopper",
+      "email": "grace@example.com",
+      "role": "Manager"
+    }
+  ]
+}
+```
+
+If your API returns a different root key, point DataTables at it explicitly:
+
+```php
+$dataTable->ajax('/api/users', dataSrc: 'items');
+```
+
+## Nested Keys Still Work
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+TextColumn::new('team', 'Team')
+    ->setData('profile.team.name');
+```
+
+This is especially useful with Ajax payloads built from nested JSON objects.
+
+## Frequent Pitfalls
+
+- Returning only one page of rows from your Ajax endpoint while expecting client-side pagination
+  across the full dataset.
+- Using `data([...])` with domain objects while expecting typed action callables; use `setData()`
+  on `AbstractDataTable` instead.
+- Forgetting `dataSrc` when your API does not return `data`.
+- Enabling `serverSide(true)` by habit even though the endpoint returns the full dataset once.
+- Loading too many rows eagerly; once the browser cost becomes noticeable, move to
+  [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/).
+
+## Cross Links
+
+- [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)
+- [/ux-datatables/guide/usage/](/ux-datatables/guide/usage/)
+- [/ux-datatables/integrations/api-platform/](/ux-datatables/integrations/api-platform/)
