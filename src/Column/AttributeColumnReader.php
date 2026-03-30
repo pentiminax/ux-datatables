@@ -27,15 +27,27 @@ final class AttributeColumnReader
         foreach ($reflectionClass->getProperties() as $property) {
             $attributes = $property->getAttributes(Column::class);
 
-            if (empty($attributes)) {
+            if ([] === $attributes) {
                 continue;
             }
 
+            /** @var Column $attr */
             $attr        = $attributes[0]->newInstance();
             $annotated[] = [$property, $attr];
         }
 
-        usort($annotated, static fn (array $a, array $b) => $a[1]->priority <=> $b[1]->priority);
+        $annotated = array_map(
+            static fn (array $item, int $i): array => [...$item, $i],
+            $annotated,
+            array_keys($annotated),
+        );
+
+        usort($annotated, static function (array $a, array $b): int {
+            $posA = $a[1]->position ?? $a[1]->priority;
+            $posB = $b[1]->position ?? $b[1]->priority;
+
+            return $posA !== $posB ? $posA <=> $posB : $a[2] <=> $b[2];
+        });
 
         $columns = [];
 

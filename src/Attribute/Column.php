@@ -23,9 +23,19 @@ final class Column
         public readonly ?string $defaultContent = null,
         public readonly ?string $field = null,
         public readonly ?string $format = null,
+        /** @deprecated Use {@see self::$position} instead */
         public readonly int $priority = 0,
         public readonly array|bool $renderAsBadges = false,
         public readonly bool $hideWhenUpdating = false,
+        public readonly ?int $position = null,
     ) {
+        if (0 !== $priority && null === $position) {
+            trigger_deprecation(
+                'pentiminax/ux-datatables',
+                '2.x',
+                'The "priority" parameter of the "%s" attribute is deprecated, use "position" instead.',
+                self::class,
+            );
+        }
     }
 }
