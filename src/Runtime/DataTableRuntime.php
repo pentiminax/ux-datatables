@@ -63,7 +63,9 @@ final class DataTableRuntime
     public function getResponse(): JsonResponse
     {
         if (!$this->request) {
-            return $this->createEmptyResponse(1);
+            return $this->createEmptyResponse(
+                draw: 1
+            );
         }
 
         $provider = $this->getDataProvider();
