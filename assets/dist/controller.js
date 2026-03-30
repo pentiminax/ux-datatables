@@ -7,6 +7,7 @@ import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
 import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
+import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js';
 import { deleteEntity } from './functions/deleteEntity.js';
@@ -103,6 +104,7 @@ class default_1 extends Controller {
         const columnRenderers = [
             createBooleanColumnRenderer(this.getBooleanToggleUrl()),
             choiceColumnRenderer,
+            emailColumnRenderer,
             urlColumnRenderer,
             actionColumnRenderer,
         ];
