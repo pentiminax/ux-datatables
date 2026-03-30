@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Strategy\NullnessSearchStrategy;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -28,8 +29,14 @@ final class NullnessSearchStrategyTest extends TestCase
     {
         $strategy = new NullnessSearchStrategy($negated);
         $column   = TextColumn::new('name');
-        $search   = new ColumnControlSearch('', $strategy->getLogic(), 'text');
-        $qb       = $this->createMock(QueryBuilder::class);
+
+        $search = new ColumnControlSearch(
+            value: '',
+            logic: ColumnControlLogic::from($strategy->getLogic()),
+            type: 'text'
+        );
+
+        $qb = $this->createMock(QueryBuilder::class);
 
         $qb->expects($this->once())
             ->method('expr')
@@ -48,8 +55,14 @@ final class NullnessSearchStrategyTest extends TestCase
     {
         $strategy = new NullnessSearchStrategy($negated);
         $column   = NumberColumn::new('price');
-        $search   = new ColumnControlSearch('', $strategy->getLogic(), 'num');
-        $qb       = $this->createMock(QueryBuilder::class);
+
+        $search = new ColumnControlSearch(
+            value: '',
+            logic: ColumnControlLogic::from($strategy->getLogic()),
+            type: 'num'
+        );
+
+        $qb = $this->createMock(QueryBuilder::class);
 
         $qb->expects($this->once())
             ->method('expr')
@@ -68,8 +81,14 @@ final class NullnessSearchStrategyTest extends TestCase
     {
         $strategy = new NullnessSearchStrategy($negated);
         $column   = DateColumn::new('sentAt');
-        $search   = new ColumnControlSearch('', $strategy->getLogic(), 'date');
-        $qb       = $this->createMock(QueryBuilder::class);
+
+        $search = new ColumnControlSearch(
+            value: '',
+            logic: ColumnControlLogic::from($strategy->getLogic()),
+            type: 'date'
+        );
+
+        $qb = $this->createMock(QueryBuilder::class);
 
         $qb->expects($this->once())
             ->method('expr')

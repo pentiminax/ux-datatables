@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Column;
+namespace Pentiminax\UX\DataTables\Column\Rendering;
 
+use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Symfony\Component\Routing\RouterInterface;
 

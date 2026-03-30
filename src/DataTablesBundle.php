@@ -10,17 +10,17 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
-use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
-use Pentiminax\UX\DataTables\Column\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
-use Pentiminax\UX\DataTables\Column\TemplateColumnRenderer;
-use Pentiminax\UX\DataTables\Column\UrlColumnResolver;
+use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
+use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
+use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceMercureMetadataResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
+use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
@@ -278,17 +278,13 @@ class DataTablesBundle extends AbstractBundle
             ->private();
 
         $container->services()
-            ->set('datatables.api_platform.property_name_humanizer', PropertyNameHumanizer::class)
-            ->private();
-
-        $container->services()
             ->set('datatables.api_platform.column_auto_detector', ColumnAutoDetector::class)
             ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
             ->arg(1, service('api_platform.metadata.property.name_collection_factory'))
             ->arg(2, service('api_platform.metadata.property.metadata_factory'))
             ->arg(3, service('property_info'))
             ->arg(4, service('datatables.api_platform.type_mapper'))
-            ->arg(5, service('datatables.api_platform.property_name_humanizer'))
+            ->arg(5, service('datatables.column.property_name_humanizer.'))
             ->private();
 
         $container->services()

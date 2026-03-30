@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Query\Strategy;
 
+use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
+
 /**
  * Registry for search strategies with fallback to default strategy.
  *
