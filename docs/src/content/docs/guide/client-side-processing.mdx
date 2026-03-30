@@ -163,10 +163,12 @@ final class UserController extends AbstractController
     #[Route('/admin/users', name: 'app_admin_users')]
     public function index(UsersDataTable $table, UserRepository $users): Response
     {
-        $table->setData($users->findBy([], ['lastName' => 'ASC']));
+        $data = $users->findBy([], ['lastName' => 'ASC'])
+
+        $table->setData($data);
 
         return $this->render('admin/users/index.html.twig', [
-            'table' => $table->getDataTable(),
+            'table' => $table,
         ]);
     }
 }
