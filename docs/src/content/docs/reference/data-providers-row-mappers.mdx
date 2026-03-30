@@ -82,6 +82,10 @@ protected function createDataProvider(): ?DataProviderInterface
 }
 ```
 
+`$this->createRowMapper()` is the important part: it preserves the same mapping, template
+rendering, and action-resolution behavior as the built-in Doctrine provider. `setData()` on
+`AbstractDataTable` uses that same pipeline for inline rows.
+
 ## Cross Links
 
 - [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)

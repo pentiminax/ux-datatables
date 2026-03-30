@@ -127,6 +127,60 @@ final class AbstractDataTableMapRowTest extends TestCase
 
         $this->assertSame('/movies/8', $mappedRow['__ux_datatables_actions']['DETAIL']['url']);
     }
+
+    #[Test]
+    public function it_sets_inline_data_from_objects_with_typed_action_closure(): void
+    {
+        $table = new TypedDetailActionSetDataTable([
+            TextColumn::new('id'),
+            TextColumn::new('title'),
+        ]);
+
+        $table->setData([
+            new MovieRow(
+                id: 11,
+                title: 'Blade Runner',
+                releasedAt: new \DateTimeImmutable('1982-06-25')
+            ),
+        ]);
+
+        $data = $table->getDataTable()->getOption('data');
+
+        $this->assertSame([
+            [
+                'id'                     => 11,
+                'title'                  => 'Blade Runner',
+                'actions'                => null,
+                '__ux_datatables_actions' => [
+                    'DETAIL' => ['url' => '/movies/11'],
+                ],
+            ],
+        ], $data);
+        $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
+    }
+
+    #[Test]
+    public function it_sets_inline_data_from_arrays_with_array_action_closure(): void
+    {
+        $table = new ArrayDetailActionSetDataTable([
+            TextColumn::new('id'),
+            TextColumn::new('title'),
+        ]);
+
+        $table->setData([
+            ['id' => 12, 'title' => 'Alien'],
+        ]);
+
+        $this->assertSame([
+            [
+                'id'                     => 12,
+                'title'                  => 'Alien',
+                '__ux_datatables_actions' => [
+                    'DETAIL' => ['url' => '/movies/12'],
+                ],
+            ],
+        ], $table->getDataTable()->getOption('data'));
+    }
 }
 
 final class MapRowTestTable extends AbstractDataTable
@@ -177,6 +231,54 @@ final class DetailActionMapRowTestTable extends AbstractDataTable
     public function renderRowPublic(mixed $row): array
     {
         return $this->createRowMapper()->map($row);
+    }
+}
+
+final class TypedDetailActionSetDataTable extends AbstractDataTable
+{
+    public function __construct(private readonly array $columnsConfig)
+    {
+        parent::__construct(
+            runtimeFactory: new DataTableRuntimeFactory(
+                actionRowDataResolver: new ActionRowDataResolver(),
+            ),
+        );
+    }
+
+    public function configureColumns(): iterable
+    {
+        return $this->columnsConfig;
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(
+            Action::detail()->linkToUrl(static fn (MovieRow $row): string => '/movies/'.$row->getId())
+        );
+    }
+}
+
+final class ArrayDetailActionSetDataTable extends AbstractDataTable
+{
+    public function __construct(private readonly array $columnsConfig)
+    {
+        parent::__construct(
+            runtimeFactory: new DataTableRuntimeFactory(
+                actionRowDataResolver: new ActionRowDataResolver(),
+            ),
+        );
+    }
+
+    public function configureColumns(): iterable
+    {
+        return $this->columnsConfig;
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(
+            Action::detail()->linkToUrl(static fn (array $row): string => '/movies/'.$row['id'])
+        );
     }
 }
 

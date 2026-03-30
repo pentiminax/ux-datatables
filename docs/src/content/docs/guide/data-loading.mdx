@@ -66,6 +66,16 @@ $dataTable->data([
 ]);
 ```
 
+With `AbstractDataTable`, prefer `setData()` when your source rows are objects and you want the
+normal row-processing pipeline to run:
+
+```php
+$table->setData($products);
+```
+
+`setData()` applies `mapRow()`, template column rendering, and row action URL resolution before
+the inline rows are stored.
+
 ## Mapping Columns To Nested Keys
 
 ```php
@@ -81,6 +91,8 @@ TextColumn::new('amount', 'Amount')
 - Missing `recordsTotal` or `recordsFiltered` in server-side responses.
 - Forgetting `dataSrc` when your API does not return `data`.
 - Handling an Ajax request without resolving a data provider; the response will be empty.
+- Using `data([...])` with object rows while expecting typed action callables; use `setData()`
+  on `AbstractDataTable` instead.
 
 ## Cross Links
 

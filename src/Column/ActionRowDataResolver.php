@@ -15,6 +15,10 @@ final class ActionRowDataResolver
      */
     public function resolveRow(array $row, mixed $sourceRow, iterable $columns): array
     {
+        if (\array_key_exists(self::ROW_ACTIONS_KEY, $row)) {
+            return $row;
+        }
+
         $actions = [];
 
         foreach ($columns as $column) {

@@ -273,4 +273,94 @@ final class DataTablesExtensionTest extends TestCase
 
         $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
     }
+
+    #[Test]
+    public function it_keeps_set_data_rows_prepared_during_rendering(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        /** @var DataTablesExtension $twigExtension */
+        $twigExtension = $container->get('test.datatables.twig_extension');
+        $reflection    = new \ReflectionClass($twigExtension);
+
+        $templateRendererProperty = $reflection->getProperty('templateColumnRenderer');
+        $templateRendererProperty->setAccessible(true);
+
+        $actionResolverProperty = $reflection->getProperty('actionRowDataResolver');
+        $actionResolverProperty->setAccessible(true);
+
+        $table = new InlinePreparedDataTable(
+            $templateRendererProperty->getValue($twigExtension),
+            $actionResolverProperty->getValue($twigExtension),
+        );
+
+        $table->setData([
+            new InlineBookEntity(id: 5, status: 'active'),
+        ]);
+
+        $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
+
+        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+
+        $dom = new \DOMDocument();
+        $dom->loadHTML($rendered);
+        $tableEl = $dom->getElementsByTagName('table')->item(0);
+
+        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
+        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status']));
+        $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
+    }
+}
+
+final readonly class InlineBookEntity
+{
+    public function __construct(
+        private int $id,
+        private string $status,
+    ) {
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+}
+
+final class InlinePreparedDataTable extends AbstractDataTable
+{
+    public function __construct(
+        \Pentiminax\UX\DataTables\Column\TemplateColumnRenderer $templateColumnRenderer,
+        \Pentiminax\UX\DataTables\Column\ActionRowDataResolver $actionRowDataResolver,
+    ) {
+        parent::__construct(
+            runtimeFactory: new \Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory(
+                templateColumnRenderer: $templateColumnRenderer,
+                actionRowDataResolver: $actionRowDataResolver,
+            ),
+        );
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+        yield TemplateColumn::new('status_display')
+            ->setField('status')
+            ->setTemplate('datatable/columns/status_badge.html.twig');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(
+            Action::detail()->linkToUrl(static fn (InlineBookEntity $book): string => '/books/'.$book->getId())
+        );
+    }
 }
