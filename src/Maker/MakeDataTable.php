@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Maker;
 
 use Doctrine\Persistence\ManagerRegistry;
-use Pentiminax\UX\DataTables\ApiPlatform\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Symfony\Bundle\MakerBundle\ConsoleStyle;
 use Symfony\Bundle\MakerBundle\DependencyBuilder;
