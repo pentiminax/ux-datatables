@@ -38,6 +38,8 @@ const registry = {
     select: {
         bs5: () => import('datatables.net-select-bs5'),
         dt: () => import('datatables.net-select-dt'),
+        cssBs5: () => import('datatables.net-select-bs5/css/select.bootstrap5.min.css'),
+        cssDt: () => import('datatables.net-select-dt/css/select.dataTables.min.css'),
     },
 };
 export class ExtensionRegistry {
