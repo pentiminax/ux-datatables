@@ -37,6 +37,7 @@ final class ColumnTest extends TestCase
         $this->assertNull($attr->field);
         $this->assertNull($attr->format);
         $this->assertSame(0, $attr->priority);
+        $this->assertNull($attr->position);
     }
 
     #[Test]
@@ -58,7 +59,7 @@ final class ColumnTest extends TestCase
             defaultContent: 'N/A',
             field: 'product.price',
             format: 'Y-m-d',
-            priority: 10,
+            position: 10,
         );
 
         $this->assertSame(NumberColumn::class, $attr->type);
@@ -76,7 +77,7 @@ final class ColumnTest extends TestCase
         $this->assertSame('N/A', $attr->defaultContent);
         $this->assertSame('product.price', $attr->field);
         $this->assertSame('Y-m-d', $attr->format);
-        $this->assertSame(10, $attr->priority);
+        $this->assertSame(10, $attr->position);
     }
 
     #[Test]

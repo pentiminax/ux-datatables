@@ -6,8 +6,8 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
-use Pentiminax\UX\DataTables\Column\EmailColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
+use Pentiminax\UX\DataTables\Column\EmailColumn;
 use Pentiminax\UX\DataTables\Column\HtmlColumn;
 use Pentiminax\UX\DataTables\Column\HtmlNumberColumn;
 use Pentiminax\UX\DataTables\Column\HtmlNumberFormatColumn;
