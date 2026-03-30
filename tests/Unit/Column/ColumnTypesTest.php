@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\EmailColumn;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\HtmlColumn;
@@ -93,5 +94,6 @@ final class ColumnTypesTest extends TestCase
         yield 'template' => [TemplateColumn::new('col_template')->setTemplate('datatable/columns/cell.html.twig'), ColumnType::HTML];
         yield 'url' => [UrlColumn::new('col_url'), ColumnType::HTML];
         yield 'choice' => [ChoiceColumn::new('col_choice'), ColumnType::HTML];
+        yield 'email' => [EmailColumn::new('col_email'), ColumnType::HTML];
     }
 }

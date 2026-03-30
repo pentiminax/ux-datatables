@@ -9,6 +9,7 @@ import { ApiPlatformAdapter, ColumnConfig } from './functions/apiPlatformAdapter
 import { ColumnRenderer } from './columnRenderers/types.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
+import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { deleteEntity } from './functions/deleteEntity.js'
@@ -137,6 +138,7 @@ export default class extends Controller {
         const columnRenderers: ColumnRenderer[] = [
             createBooleanColumnRenderer(this.getBooleanToggleUrl()),
             choiceColumnRenderer,
+            emailColumnRenderer,
             urlColumnRenderer,
             actionColumnRenderer,
         ]
