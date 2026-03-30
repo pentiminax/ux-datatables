@@ -161,7 +161,9 @@ class default_1 extends Controller {
             if (actionType === 'EDIT' && entity && id) {
                 e.preventDefault();
                 const columns = this.getEditableColumns(payload);
-                const modal = createEditModal();
+                const modal = await createEditModal();
+                if (!modal)
+                    return;
                 const result = await fetchEditForm({ entity, id, columns });
                 if (result.success) {
                     modal.show(result.html, async (formData) => {

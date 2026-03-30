@@ -1,16 +1,43 @@
-import { Modal } from 'bootstrap'
-
 export interface EditModal {
     show(html: string, onSubmit: (formData: Record<string, any>) => Promise<void>): void
     hide(): void
     showErrors(html: string): void
 }
 
+type SubmitHandler = (formData: Record<string, any>) => Promise<void>
+
+let bootstrapModal: any | null = null
+let bootstrapDetected: boolean | null = null
+
+async function getBootstrapModal(): Promise<any | null> {
+    if (bootstrapDetected !== null) {
+        return bootstrapModal
+    }
+
+    try {
+        const bootstrap = await import('bootstrap')
+        bootstrapModal = bootstrap.Modal
+        bootstrapDetected = true
+    } catch {
+        bootstrapModal = null
+        bootstrapDetected = false
+    }
+
+    return bootstrapModal
+}
+
 let modalInstance: EditModal | null = null
 
-export function createEditModal(): EditModal {
+export async function createEditModal(): Promise<EditModal | null> {
     if (modalInstance) {
         return modalInstance
+    }
+
+    const ModalClass = await getBootstrapModal()
+
+    if (!ModalClass) {
+        console.error('[ux-datatables] Bootstrap 5 is required for the edit modal feature.')
+        return null
     }
 
     const modalEl = document.createElement('div')
@@ -27,9 +54,7 @@ export function createEditModal(): EditModal {
                 <div class="modal-body"></div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary ux-datatables-save-btn">
-                        Save
-                    </button>
+                    <button type="button" class="btn btn-primary ux-datatables-save-btn">Save</button>
                 </div>
             </div>
         </div>
@@ -38,24 +63,15 @@ export function createEditModal(): EditModal {
 
     const bodyEl = modalEl.querySelector('.modal-body') as HTMLElement
     const saveBtn = modalEl.querySelector('.ux-datatables-save-btn') as HTMLButtonElement
-
-    if (!Modal) {
-        throw new Error('Bootstrap 5 Modal is required for the edit feature.')
-    }
-
-    const bsModal = new Modal(modalEl)
-    let currentSubmitHandler: ((formData: Record<string, any>) => Promise<void>) | null = null
+    const bsModal = new ModalClass(modalEl)
+    let currentHandler: SubmitHandler | null = null
 
     saveBtn.addEventListener('click', async () => {
-        if (!currentSubmitHandler) {
-            return
-        }
+        if (!currentHandler) return
 
         const form = bodyEl.querySelector<HTMLFormElement>('#ux-datatables-edit-form')
 
-        if (!form) {
-            return
-        }
+        if (!form) return
 
         const formData = extractFormData(form)
 
@@ -64,7 +80,7 @@ export function createEditModal(): EditModal {
             '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...'
 
         try {
-            await currentSubmitHandler(formData)
+            await currentHandler(formData)
         } finally {
             saveBtn.disabled = false
             saveBtn.textContent = 'Save'
@@ -72,18 +88,16 @@ export function createEditModal(): EditModal {
     })
 
     modalInstance = {
-        show(html: string, onSubmit: (formData: Record<string, any>) => Promise<void>): void {
+        show(html, onSubmit) {
             bodyEl.innerHTML = html
-            currentSubmitHandler = onSubmit
+            currentHandler = onSubmit
             bsModal.show()
         },
-
-        hide(): void {
+        hide() {
             bsModal.hide()
-            currentSubmitHandler = null
+            currentHandler = null
         },
-
-        showErrors(html: string): void {
+        showErrors(html) {
             bodyEl.innerHTML = html
         },
     }
@@ -95,15 +109,15 @@ function extractFormData(form: HTMLFormElement): Record<string, any> {
     const data: Record<string, any> = {}
     const formData = new FormData(form)
 
-    // Extract the form name prefix (e.g., "form" from "form[name]")
     const firstInput = form.querySelector<
         HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >('input:not([type=hidden]), select, textarea')
+
     const nameMatch = firstInput?.name?.match(/^([^[]+)\[/)
+
     const prefix = nameMatch ? nameMatch[1] : null
 
     formData.forEach((value, key) => {
-        // Strip Symfony form prefix: "form[fieldName]" → "fieldName"
         if (prefix) {
             const fieldMatch = key.match(new RegExp(`^${prefix}\\[([^\\]]+)\\]$`))
 

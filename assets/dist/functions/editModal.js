@@ -1,8 +1,29 @@
-import { Modal } from 'bootstrap';
+let bootstrapModal = null;
+let bootstrapDetected = null;
+async function getBootstrapModal() {
+    if (bootstrapDetected !== null) {
+        return bootstrapModal;
+    }
+    try {
+        const bootstrap = await import('bootstrap');
+        bootstrapModal = bootstrap.Modal;
+        bootstrapDetected = true;
+    }
+    catch {
+        bootstrapModal = null;
+        bootstrapDetected = false;
+    }
+    return bootstrapModal;
+}
 let modalInstance = null;
-export function createEditModal() {
+export async function createEditModal() {
     if (modalInstance) {
         return modalInstance;
+    }
+    const ModalClass = await getBootstrapModal();
+    if (!ModalClass) {
+        console.error('[ux-datatables] Bootstrap 5 is required for the edit modal feature.');
+        return null;
     }
     const modalEl = document.createElement('div');
     modalEl.className = 'modal fade';
@@ -18,9 +39,7 @@ export function createEditModal() {
                 <div class="modal-body"></div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary ux-datatables-save-btn">
-                        Save
-                    </button>
+                    <button type="button" class="btn btn-primary ux-datatables-save-btn">Save</button>
                 </div>
             </div>
         </div>
@@ -28,25 +47,20 @@ export function createEditModal() {
     document.body.appendChild(modalEl);
     const bodyEl = modalEl.querySelector('.modal-body');
     const saveBtn = modalEl.querySelector('.ux-datatables-save-btn');
-    if (!Modal) {
-        throw new Error('Bootstrap 5 Modal is required for the edit feature.');
-    }
-    const bsModal = new Modal(modalEl);
-    let currentSubmitHandler = null;
+    const bsModal = new ModalClass(modalEl);
+    let currentHandler = null;
     saveBtn.addEventListener('click', async () => {
-        if (!currentSubmitHandler) {
+        if (!currentHandler)
             return;
-        }
         const form = bodyEl.querySelector('#ux-datatables-edit-form');
-        if (!form) {
+        if (!form)
             return;
-        }
         const formData = extractFormData(form);
         saveBtn.disabled = true;
         saveBtn.innerHTML =
             '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
         try {
-            await currentSubmitHandler(formData);
+            await currentHandler(formData);
         }
         finally {
             saveBtn.disabled = false;
@@ -56,12 +70,12 @@ export function createEditModal() {
     modalInstance = {
         show(html, onSubmit) {
             bodyEl.innerHTML = html;
-            currentSubmitHandler = onSubmit;
+            currentHandler = onSubmit;
             bsModal.show();
         },
         hide() {
             bsModal.hide();
-            currentSubmitHandler = null;
+            currentHandler = null;
         },
         showErrors(html) {
             bodyEl.innerHTML = html;
