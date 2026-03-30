@@ -148,9 +148,9 @@ final class AbstractDataTableMapRowTest extends TestCase
 
         $this->assertSame([
             [
-                'id'                     => 11,
-                'title'                  => 'Blade Runner',
-                'actions'                => null,
+                'id'                      => 11,
+                'title'                   => 'Blade Runner',
+                'actions'                 => null,
                 '__ux_datatables_actions' => [
                     'DETAIL' => ['url' => '/movies/11'],
                 ],
@@ -173,8 +173,8 @@ final class AbstractDataTableMapRowTest extends TestCase
 
         $this->assertSame([
             [
-                'id'                     => 12,
-                'title'                  => 'Alien',
+                'id'                      => 12,
+                'title'                   => 'Alien',
                 '__ux_datatables_actions' => [
                     'DETAIL' => ['url' => '/movies/12'],
                 ],

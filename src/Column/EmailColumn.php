@@ -8,9 +8,9 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class EmailColumn extends AbstractColumn
 {
-    public const string OPTION_IS_EMAIL     = 'isEmail';
-    public const string OPTION_OBFUSCATE    = 'obfuscate';
-    public const string OPTION_MASK         = 'mask';
+    public const string OPTION_IS_EMAIL      = 'isEmail';
+    public const string OPTION_OBFUSCATE     = 'obfuscate';
+    public const string OPTION_MASK          = 'mask';
     public const string OPTION_DISPLAY_VALUE = 'displayValue';
 
     public static function new(string $name, string $title = ''): static
