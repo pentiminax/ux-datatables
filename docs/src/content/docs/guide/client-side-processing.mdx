@@ -190,7 +190,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 
 $dataTable = new DataTable('users');
 $dataTable
-    ->ajax('/api/users', type: 'GET')
+    ->ajax(url: '/api/users', type: 'GET')
     ->processing();
 ```
 
