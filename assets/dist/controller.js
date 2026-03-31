@@ -63,9 +63,6 @@ class default_1 extends Controller {
         }
         if (this.isSelectExtensionEnabled(payload)) {
             await ExtensionRegistry.load('select', stylesheet);
-        }
-        if (this.isResponsiveExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('responsive', stylesheet);
             if (payload.select?.withCheckbox) {
                 payload.columns.unshift({
                     data: null,
@@ -83,6 +80,9 @@ class default_1 extends Controller {
                     },
                 ];
             }
+        }
+        if (this.isResponsiveExtensionEnabled(payload)) {
+            await ExtensionRegistry.load('responsive', stylesheet);
         }
         if (this.isColumnControlExtensionEnabled(payload)) {
             await ExtensionRegistry.load('columnControl', stylesheet);

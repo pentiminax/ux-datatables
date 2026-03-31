@@ -45,4 +45,22 @@ final class SelectExtensionTest extends TestCase
 
         $this->assertEquals('multi', $extension->jsonSerialize()['style']);
     }
+
+    #[Test]
+    public function it_configures_with_checkbox(): void
+    {
+        $extension = new SelectExtension();
+        $extension->withCheckbox();
+
+        $this->assertTrue($extension->jsonSerialize()['withCheckbox']);
+    }
+
+    #[Test]
+    public function it_configures_header_checkbox(): void
+    {
+        $extension = new SelectExtension();
+        $extension->headerCheckbox();
+
+        $this->assertTrue($extension->jsonSerialize()['headerCheckbox']);
+    }
 }

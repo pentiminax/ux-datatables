@@ -90,10 +90,6 @@ export default class extends Controller {
 
         if (this.isSelectExtensionEnabled(payload)) {
             await ExtensionRegistry.load('select', stylesheet)
-        }
-
-        if (this.isResponsiveExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('responsive', stylesheet)
             if (payload.select?.withCheckbox) {
                 payload.columns.unshift({
                     data: null,
@@ -111,6 +107,10 @@ export default class extends Controller {
                     },
                 ]
             }
+        }
+
+        if (this.isResponsiveExtensionEnabled(payload)) {
+            await ExtensionRegistry.load('responsive', stylesheet)
         }
 
         if (this.isColumnControlExtensionEnabled(payload)) {
