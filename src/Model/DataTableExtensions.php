@@ -62,9 +62,15 @@ class DataTableExtensions implements \JsonSerializable
         return $this;
     }
 
-    public function addSelectExtension(): static
+    public function addSelectExtension(?callable $configure = null): static
     {
-        $this->addExtension(new SelectExtension());
+        $extension = new SelectExtension();
+
+        if ($configure) {
+            $configure($extension);
+        }
+
+        $this->addExtension($extension);
 
         return $this;
     }

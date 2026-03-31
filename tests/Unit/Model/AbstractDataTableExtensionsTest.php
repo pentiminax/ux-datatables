@@ -99,4 +99,32 @@ final class AbstractDataTableExtensionsTest extends TestCase
             ],
         ], $table->getDataTable()->getExtensions());
     }
+
+    #[Test]
+    public function it_configures_select_extension_with_checkbox_via_closure(): void
+    {
+        $table = new class extends AbstractDataTable {
+            public function configureDataTable(DataTable $table): DataTable
+            {
+                return $table;
+            }
+
+            public function configureColumns(): iterable
+            {
+                yield TextColumn::new('id');
+            }
+
+            public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
+            {
+                return $extensions->addSelectExtension(
+                    fn (SelectExtension $select) => $select->withCheckbox()->headerCheckbox()
+                );
+            }
+        };
+
+        $extensions = $table->getDataTable()->getExtensions();
+
+        $this->assertTrue($extensions['select']['withCheckbox']);
+        $this->assertTrue($extensions['select']['headerCheckbox']);
+    }
 }

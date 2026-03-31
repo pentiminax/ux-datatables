@@ -46,7 +46,9 @@ final class DefaultRowMapper implements RowMapperInterface
                 continue;
             }
 
-            $value = PropertyReader::readPath($row, $key);
+            $field    = $column->getField();
+            $readPath = ($field !== null && $field !== $column->getName()) ? $field : $key;
+            $value    = PropertyReader::readPath($row, $readPath);
             if ($column instanceof DateColumn && $value instanceof \DateTimeInterface) {
                 $value = $value->format($column->getFormat());
             }
