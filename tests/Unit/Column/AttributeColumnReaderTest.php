@@ -114,13 +114,23 @@ final class AttributeColumnReaderTest extends TestCase
     }
 
     #[Test]
-    public function it_sorts_by_priority(): void
+    public function it_sorts_by_position(): void
     {
-        $columns = $this->reader->readColumns(PriorityFixture::class);
+        $columns = $this->reader->readColumns(PositionFixture::class);
 
         $this->assertSame('first', $columns[0]->getName());
         $this->assertSame('second', $columns[1]->getName());
         $this->assertSame('third', $columns[2]->getName());
+    }
+
+    #[Test]
+    public function it_preserves_declaration_order_for_equal_positions(): void
+    {
+        $columns = $this->reader->readColumns(StableSortFixture::class);
+
+        $this->assertSame('alpha', $columns[0]->getName());
+        $this->assertSame('beta', $columns[1]->getName());
+        $this->assertSame('gamma', $columns[2]->getName());
     }
 
     #[Test]
@@ -215,17 +225,30 @@ final class MixedAnnotationFixture
     public string $secret = '';
 }
 
-final class PriorityFixture
+final class PositionFixture
 {
-    #[Column(priority: 2)]
+    #[Column(position: 2)]
     public string $third = '';
 
-    #[Column(priority: 0)]
+    #[Column(position: 0)]
     public string $first = '';
 
-    #[Column(priority: 1)]
+    #[Column(position: 1)]
     public string $second = '';
 }
+
+final class StableSortFixture
+{
+    #[Column]
+    public string $alpha = '';
+
+    #[Column]
+    public string $beta = '';
+
+    #[Column]
+    public string $gamma = '';
+}
+
 
 final class OptionsFixture
 {
