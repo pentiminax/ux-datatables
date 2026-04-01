@@ -49,6 +49,30 @@ final class RelationFieldResolver
     }
 
     /**
+     * Returns true when the given field path (no dot) is a Doctrine association on the root entity.
+     * Always returns false for dot-notation paths (those are already handled with JOINs).
+     */
+    public static function isAssociationField(QueryBuilder $qb, string $fieldPath): bool
+    {
+        if (str_contains($fieldPath, '.')) {
+            return false;
+        }
+
+        try {
+            $rootEntities = $qb->getRootEntities();
+            if (empty($rootEntities)) {
+                return false;
+            }
+
+            return $qb->getEntityManager()
+                ->getClassMetadata($rootEntities[0])
+                ->hasAssociation($fieldPath);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
      * @return array<string, true>
      */
     private static function getExistingJoinAliases(QueryBuilder $qb): array

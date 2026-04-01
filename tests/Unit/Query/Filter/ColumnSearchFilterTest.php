@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Filter;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -51,6 +53,37 @@ final class ColumnSearchFilterTest extends TestCase
         $columns = new Columns(['authorName' => $requestColumn]);
         $request = new DataTableRequest(1, $columns);
 
+        $context = new QueryFilterContext($request, [$column], 'e');
+
+        $filter->apply($qb, $context);
+    }
+
+    #[Test]
+    public function it_skips_text_column_when_field_is_a_doctrine_association(): void
+    {
+        $filter = new ColumnSearchFilter();
+
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->with('client')->willReturn(true);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+        $qb->expects($this->never())->method('leftJoin');
+
+        $column        = TextColumn::new('client', 'Client');
+        $search        = new Search('acme', false);
+        $requestColumn = new Column('client', 'client', true, true, $search);
+
+        $columns = new Columns(['client' => $requestColumn]);
+        $request = new DataTableRequest(1, $columns);
         $context = new QueryFilterContext($request, [$column], 'e');
 
         $filter->apply($qb, $context);

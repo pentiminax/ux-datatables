@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Query\Filter;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Query\SearchConditionBuilder;
 
 /**
@@ -45,6 +46,9 @@ final class ColumnSearchFilter implements QueryFilterInterface
                 }
                 $qb->andWhere(SearchConditionBuilder::numeric($qb, $context->alias, $column->getField(), $search->value, $paramName));
             } else {
+                if (RelationFieldResolver::isAssociationField($qb, $column->getField())) {
+                    continue;
+                }
                 $qb->andWhere(SearchConditionBuilder::text($qb, $context->alias, $column->getField(), $search->value, $paramName));
             }
         }
