@@ -90,10 +90,10 @@ final class RelationFieldResolverTest extends TestCase
     }
 
     #[Test]
-    public function it_detects_an_association_field(): void
+    public function it_supports_search_filtering_for_scalar_field(): void
     {
         $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with('client')->willReturn(true);
+        $metadata->method('hasAssociation')->with('name')->willReturn(false);
 
         $em = $this->createMock(EntityManagerInterface::class);
         $em->method('getClassMetadata')->with('App\\Entity\\Project')->willReturn($metadata);
@@ -102,14 +102,14 @@ final class RelationFieldResolverTest extends TestCase
         $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
         $qb->method('getEntityManager')->willReturn($em);
 
-        $this->assertTrue(RelationFieldResolver::isAssociationField($qb, 'client'));
+        $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'name'));
     }
 
     #[Test]
-    public function it_returns_false_for_scalar_field(): void
+    public function it_does_not_support_search_filtering_for_association_field(): void
     {
         $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with('name')->willReturn(false);
+        $metadata->method('hasAssociation')->with('client')->willReturn(true);
 
         $em = $this->createMock(EntityManagerInterface::class);
         $em->method('getClassMetadata')->willReturn($metadata);
@@ -118,25 +118,25 @@ final class RelationFieldResolverTest extends TestCase
         $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
         $qb->method('getEntityManager')->willReturn($em);
 
-        $this->assertFalse(RelationFieldResolver::isAssociationField($qb, 'name'));
+        $this->assertFalse(RelationFieldResolver::supportsSearchFiltering($qb, 'client'));
     }
 
     #[Test]
-    public function it_returns_false_for_dot_notation_path(): void
+    public function it_supports_search_filtering_for_dot_notation_path(): void
     {
         $qb = $this->createMock(QueryBuilder::class);
         $qb->expects($this->never())->method('getRootEntities');
 
-        $this->assertFalse(RelationFieldResolver::isAssociationField($qb, 'client.name'));
+        $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'client.name'));
     }
 
     #[Test]
-    public function it_returns_false_when_no_root_entity(): void
+    public function it_supports_search_filtering_when_root_entity_is_unavailable(): void
     {
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getRootEntities')->willReturn([]);
 
-        $this->assertFalse(RelationFieldResolver::isAssociationField($qb, 'client'));
+        $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'client'));
     }
 
     #[Test]

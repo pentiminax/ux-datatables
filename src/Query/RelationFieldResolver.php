@@ -49,15 +49,27 @@ final class RelationFieldResolver
     }
 
     /**
-     * Returns true when the given field path (no dot) is a Doctrine association on the root entity.
-     * Always returns false for dot-notation paths (those are already handled with JOINs).
+     * Returns whether a field path can be used for search/filter conditions.
+     *
+     * Bare association fields such as "client" are rejected because they do not
+     * resolve to a scalar column. Explicit scalar paths such as "client.name"
+     * remain supported through join resolution.
      */
-    public static function isAssociationField(QueryBuilder $qb, string $fieldPath): bool
+    public static function supportsSearchFiltering(QueryBuilder $qb, ?string $fieldPath): bool
     {
-        if (str_contains($fieldPath, '.')) {
+        if (null === $fieldPath || '' === $fieldPath) {
             return false;
         }
 
+        if (str_contains($fieldPath, '.')) {
+            return true;
+        }
+
+        return !self::isRootAssociationField($qb, $fieldPath);
+    }
+
+    private static function isRootAssociationField(QueryBuilder $qb, string $fieldPath): bool
+    {
         try {
             $rootEntities = $qb->getRootEntities();
             if (empty($rootEntities)) {

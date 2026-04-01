@@ -8,6 +8,7 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Query\Strategy\InListSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 
@@ -35,16 +36,29 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
         foreach ($searchableColumns as $index => $column) {
             $columnControl = $context->request->columns->getColumnByIndex($index)?->columnControl;
             $search        = $columnControl?->search;
+            $field         = $column->getField();
+
+            if (null === $field) {
+                continue;
+            }
 
             if ($columnControl && [] !== $columnControl->list) {
+                if (!RelationFieldResolver::supportsSearchFiltering($qb, $field)) {
+                    continue;
+                }
+
                 $inStrategy = $this->registry->get('in');
                 if ($inStrategy instanceof InListSearchStrategy) {
-                    $inStrategy->applyForList($qb, $column->getField(), $columnControl->list, $context->alias);
+                    $inStrategy->applyForList($qb, $field, $columnControl->list, $context->alias);
                 }
                 continue;
             }
 
             if (!$search) {
+                continue;
+            }
+
+            if (!RelationFieldResolver::supportsSearchFiltering($qb, $field)) {
                 continue;
             }
 

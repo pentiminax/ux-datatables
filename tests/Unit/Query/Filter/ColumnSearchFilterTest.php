@@ -59,7 +59,7 @@ final class ColumnSearchFilterTest extends TestCase
     }
 
     #[Test]
-    public function it_skips_text_column_when_field_is_a_doctrine_association(): void
+    public function it_skips_text_column_when_field_requires_an_explicit_scalar_path(): void
     {
         $filter = new ColumnSearchFilter();
 

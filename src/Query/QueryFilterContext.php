@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Query;
 
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 
 /**
@@ -16,7 +17,10 @@ final readonly class QueryFilterContext
 {
     public function __construct(
         public DataTableRequest $request,
+
+        /** @var ColumnInterface[] $columns */
         public array $columns,
+
         public string $alias = 'e',
     ) {
     }
