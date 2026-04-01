@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Query\Filter;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Query\SearchConditionBuilder;
 
 /**
@@ -27,6 +28,11 @@ final class ColumnSearchFilter implements QueryFilterInterface
                 continue;
             }
 
+            $field = $column->getField();
+            if (null === $field) {
+                continue;
+            }
+
             $requestColumn = $context->request->columns->getColumnByIndex($index);
             if (!$requestColumn) {
                 continue;
@@ -43,9 +49,12 @@ final class ColumnSearchFilter implements QueryFilterInterface
                 if (!is_numeric($search->value)) {
                     continue;
                 }
-                $qb->andWhere(SearchConditionBuilder::numeric($qb, $context->alias, $column->getField(), $search->value, $paramName));
+                $qb->andWhere(SearchConditionBuilder::numeric($qb, $context->alias, $field, $search->value, $paramName));
             } else {
-                $qb->andWhere(SearchConditionBuilder::text($qb, $context->alias, $column->getField(), $search->value, $paramName));
+                if (!RelationFieldResolver::supportsSearchFiltering($qb, $field)) {
+                    continue;
+                }
+                $qb->andWhere(SearchConditionBuilder::text($qb, $context->alias, $field, $search->value, $paramName));
             }
         }
     }

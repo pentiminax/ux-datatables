@@ -46,14 +46,8 @@ final class DefaultRowMapper implements RowMapperInterface
                 continue;
             }
 
-            $field    = $column->getField();
-            $readPath = ($field !== null && $field !== $column->getName()) ? $field : $key;
-            $value    = PropertyReader::readPath($row, $readPath);
-            if ($column instanceof DateColumn && $value instanceof \DateTimeInterface) {
-                $value = $value->format($column->getFormat());
-            }
-
-            $mapped[$key] = $value;
+            $value        = PropertyReader::readPath($row, $this->resolveReadPath($column, $key));
+            $mapped[$key] = $this->normalizeValue($column, $value);
         }
 
         return $mapped ?: get_object_vars($row);
@@ -64,5 +58,25 @@ final class DefaultRowMapper implements RowMapperInterface
         $key = $column->getData() ?? $column->getName();
 
         return null === $key || '' === $key ? null : $key;
+    }
+
+    private function resolveReadPath(ColumnInterface $column, string $key): string
+    {
+        $field = $column->getField();
+
+        return (null !== $field && $field !== $column->getName()) ? $field : $key;
+    }
+
+    private function normalizeValue(ColumnInterface $column, mixed $value): mixed
+    {
+        if ($column instanceof DateColumn && $value instanceof \DateTimeInterface) {
+            return $value->format($column->getFormat());
+        }
+
+        if ($value instanceof \Stringable) {
+            return (string) $value;
+        }
+
+        return \is_object($value) ? null : $value;
     }
 }

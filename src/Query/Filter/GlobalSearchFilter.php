@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Query\SearchConditionBuilder;
 
 /**
@@ -39,12 +40,20 @@ final class GlobalSearchFilter implements QueryFilterInterface
         $conditions = [];
 
         foreach ($globalSearchableColumns as $index => $column) {
+            $field = $column->getField();
+            if (null === $field) {
+                continue;
+            }
+
             $paramName = \sprintf('search_param_%d', $index);
 
             if ($column instanceof TextColumn) {
-                $conditions[] = SearchConditionBuilder::text($qb, $context->alias, $column->getField(), $searchValue, $paramName);
+                if (!RelationFieldResolver::supportsSearchFiltering($qb, $field)) {
+                    continue;
+                }
+                $conditions[] = SearchConditionBuilder::text($qb, $context->alias, $field, $searchValue, $paramName);
             } elseif ($column->isNumber() && is_numeric($searchValue)) {
-                $conditions[] = SearchConditionBuilder::numeric($qb, $context->alias, $column->getField(), $searchValue, $paramName);
+                $conditions[] = SearchConditionBuilder::numeric($qb, $context->alias, $field, $searchValue, $paramName);
             }
         }
 

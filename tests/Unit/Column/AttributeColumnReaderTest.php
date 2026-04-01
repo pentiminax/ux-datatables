@@ -249,7 +249,6 @@ final class StableSortFixture
     public string $gamma = '';
 }
 
-
 final class OptionsFixture
 {
     #[Column(
