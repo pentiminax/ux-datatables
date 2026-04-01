@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
@@ -85,6 +87,56 @@ final class RelationFieldResolverTest extends TestCase
         $result = RelationFieldResolver::resolve($qb, 'e', 'author.firstName');
 
         $this->assertSame('author.firstName', $result);
+    }
+
+    #[Test]
+    public function it_detects_an_association_field(): void
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->with('client')->willReturn(true);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->with('App\\Entity\\Project')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        $this->assertTrue(RelationFieldResolver::isAssociationField($qb, 'client'));
+    }
+
+    #[Test]
+    public function it_returns_false_for_scalar_field(): void
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->with('name')->willReturn(false);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        $this->assertFalse(RelationFieldResolver::isAssociationField($qb, 'name'));
+    }
+
+    #[Test]
+    public function it_returns_false_for_dot_notation_path(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->expects($this->never())->method('getRootEntities');
+
+        $this->assertFalse(RelationFieldResolver::isAssociationField($qb, 'client.name'));
+    }
+
+    #[Test]
+    public function it_returns_false_when_no_root_entity(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getRootEntities')->willReturn([]);
+
+        $this->assertFalse(RelationFieldResolver::isAssociationField($qb, 'client'));
     }
 
     #[Test]

@@ -11,12 +11,15 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 #[CoversClass(DataTablesBundle::class)]
 #[CoversClass(MakeDataTable::class)]
 final class MakeDataTableServiceWiringTest extends TestCase
 {
     #[Test]
-    public function test_GIVEN_bundleKernelWithMaker_WHEN_makeDataTableServiceIsResolved_THEN_serviceIsInstantiated(): void
+    public function test_give_n_bundle_kernel_with_maker_whe_n_make_data_table_service_is_resolved_the_n_service_is_instantiated(): void
     {
         $kernel = new MakerAppKernel('test', true);
 
