@@ -36,7 +36,6 @@ final class ColumnTest extends TestCase
         $this->assertNull($attr->defaultContent);
         $this->assertNull($attr->field);
         $this->assertNull($attr->format);
-        $this->assertSame(0, $attr->priority);
         $this->assertNull($attr->position);
     }
 

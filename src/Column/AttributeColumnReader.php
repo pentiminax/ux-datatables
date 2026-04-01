@@ -43,8 +43,8 @@ final class AttributeColumnReader
         );
 
         usort($annotated, static function (array $a, array $b): int {
-            $posA = $a[1]->position ?? $a[1]->priority;
-            $posB = $b[1]->position ?? $b[1]->priority;
+            $posA = $a[1]->position ?? 0;
+            $posB = $b[1]->position ?? 0;
 
             return $posA !== $posB ? $posA <=> $posB : $a[2] <=> $b[2];
         });
