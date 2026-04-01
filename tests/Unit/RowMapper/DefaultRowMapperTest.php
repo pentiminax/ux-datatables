@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\RowMapper;
 
+use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -114,6 +115,49 @@ final class DefaultRowMapperTest extends TestCase
         $result = $mapper->map($row);
 
         $this->assertSame('Stringable Corp', $result['client']);
+    }
+
+    #[Test]
+    public function it_converts_public_stringable_property_to_string(): void
+    {
+        $column = TextColumn::new('label', 'Label');
+        $mapper = new DefaultRowMapper([$column]);
+
+        $row = new class {
+            public \Stringable $label;
+
+            public function __construct()
+            {
+                $this->label = new class implements \Stringable {
+                    public function __toString(): string
+                    {
+                        return 'Public Label';
+                    }
+                };
+            }
+        };
+
+        $result = $mapper->map($row);
+
+        $this->assertSame('Public Label', $result['label']);
+    }
+
+    #[Test]
+    public function it_formats_date_columns_using_the_configured_format(): void
+    {
+        $column = DateColumn::new('createdAt', 'Created At')->setFormat('d/m/Y');
+        $mapper = new DefaultRowMapper([$column]);
+
+        $row = new class {
+            public function getCreatedAt(): \DateTimeImmutable
+            {
+                return new \DateTimeImmutable('2024-01-15');
+            }
+        };
+
+        $result = $mapper->map($row);
+
+        $this->assertSame('15/01/2024', $result['createdAt']);
     }
 
     #[Test]
