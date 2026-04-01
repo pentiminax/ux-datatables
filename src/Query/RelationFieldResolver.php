@@ -49,6 +49,42 @@ final class RelationFieldResolver
     }
 
     /**
+     * Returns whether a field path can be used for search/filter conditions.
+     *
+     * Bare association fields such as "client" are rejected because they do not
+     * resolve to a scalar column. Explicit scalar paths such as "client.name"
+     * remain supported through join resolution.
+     */
+    public static function supportsSearchFiltering(QueryBuilder $qb, ?string $fieldPath): bool
+    {
+        if (null === $fieldPath || '' === $fieldPath) {
+            return false;
+        }
+
+        if (str_contains($fieldPath, '.')) {
+            return true;
+        }
+
+        return !self::isRootAssociationField($qb, $fieldPath);
+    }
+
+    private static function isRootAssociationField(QueryBuilder $qb, string $fieldPath): bool
+    {
+        try {
+            $rootEntities = $qb->getRootEntities();
+            if (empty($rootEntities)) {
+                return false;
+            }
+
+            return $qb->getEntityManager()
+                ->getClassMetadata($rootEntities[0])
+                ->hasAssociation($fieldPath);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
      * @return array<string, true>
      */
     private static function getExistingJoinAliases(QueryBuilder $qb): array
