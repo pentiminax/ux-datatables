@@ -1,21 +1,39 @@
 import { Controller } from '@hotwired/stimulus'
-import DataTable from 'datatables.net/types/types'
-import { getLoadedDataTablesStyleSheet } from './functions/getLoadedDataTablesStyleSheet.js'
-import { loadButtonsLibrary } from './functions/loadButtonsLibrary.js'
-import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
-import { ExtensionRegistry } from './functions/extensionRegistry.js'
-import { toggleBooleanValue } from './functions/toggleBooleanValue.js'
-import { ApiPlatformAdapter, ColumnConfig } from './functions/apiPlatformAdapter.js'
-import { ColumnRenderer } from './columnRenderers/types.js'
+import type DataTable from 'datatables.net/types/types'
+import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js'
+import type { ColumnRenderer } from './columnRenderers/types.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
-import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
+import { ApiPlatformAdapter, type ColumnConfig } from './functions/apiPlatformAdapter.js'
 import { deleteEntity } from './functions/deleteEntity.js'
-import { fetchEditForm } from './functions/fetchEditForm.js'
-import { submitEditForm } from './functions/submitEditForm.js'
+import { detectStyleFramework } from './functions/detectStyleFramework.js'
 import { createEditModal } from './functions/editModal.js'
+import { ExtensionRegistry } from './functions/extensionRegistry.js'
+import { fetchEditForm } from './functions/fetchEditForm.js'
+import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
+import { submitEditForm } from './functions/submitEditForm.js'
+import { toggleBooleanValue } from './functions/toggleBooleanValue.js'
+import type { StyleFramework } from './types/styleFramework.js'
+
+/**
+ * Maps DataTables payload property keys to their corresponding extension names
+ * in the ExtensionRegistry.
+ *
+ * The payload key 'keys' maps to the 'keyTable' extension — this is an intentional
+ * naming difference between the DataTables config API ('keys') and the extension
+ * package name ('keyTable').
+ */
+const EXTENSION_MAP: Record<string, string> = {
+    select: 'select',
+    responsive: 'responsive',
+    columnControl: 'columnControl',
+    fixedColumns: 'fixedColumns',
+    colReorder: 'colReorder',
+    keys: 'keyTable',
+    scroller: 'scroller',
+}
 
 export default class extends Controller {
     declare readonly viewValue: any
@@ -43,16 +61,16 @@ export default class extends Controller {
             config: payload,
         })
 
-        const stylesheet = getLoadedDataTablesStyleSheet()
+        const framework = detectStyleFramework()
 
-        const DataTable = await loadDataTableLibrary(stylesheet)
+        const DataTable = await loadDataTableLibrary(framework)
 
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true
             return
         }
 
-        await this.loadExtensions(payload, stylesheet, DataTable)
+        await this.loadExtensions(payload, framework, DataTable)
 
         if (this.isApiPlatformEnabled(payload)) {
             const columns = Array.isArray(payload.columns)
@@ -81,57 +99,37 @@ export default class extends Controller {
 
     private async loadExtensions(
         payload: Record<string, any>,
-        stylesheet: CSSStyleSheet | null,
+        framework: StyleFramework,
         DataTable: any
     ): Promise<void> {
-        if (this.isButtonsExtensionEnabled(payload)) {
-            await loadButtonsLibrary(DataTable, stylesheet)
+        if (payload?.layout?.topStart?.buttons) {
+            const { loadButtonsLibrary } = await import('./functions/loadButtonsLibrary.js')
+            await loadButtonsLibrary(DataTable, framework)
         }
 
-        if (this.isSelectExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('select', stylesheet)
-            if (payload.select?.withCheckbox) {
-                payload.columns.unshift({
-                    data: null,
-                    defaultContent: '',
-                    name: null,
-                    orderable: false,
-                    searchable: false,
-                    title: '',
-                })
-                payload.columnDefs = [
-                    {
-                        orderable: false,
-                        render: DataTable.render.select(),
-                        targets: 0,
-                    },
-                    ...(payload.columnDefs ?? []),
-                ]
+        for (const [payloadKey, extensionName] of Object.entries(EXTENSION_MAP)) {
+            if (payload?.[payloadKey]) {
+                await ExtensionRegistry.load(extensionName, framework)
             }
         }
 
-        if (this.isResponsiveExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('responsive', stylesheet)
-        }
-
-        if (this.isColumnControlExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('columnControl', stylesheet)
-        }
-
-        if (this.isFixedColumnsExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('fixedColumns', stylesheet)
-        }
-
-        if (this.isColReorderExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('colReorder', stylesheet)
-        }
-
-        if (this.isKeyTableExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('keyTable', stylesheet)
-        }
-
-        if (this.isScrollerExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('scroller', stylesheet)
+        if (payload?.select?.withCheckbox) {
+            payload.columns.unshift({
+                data: null,
+                defaultContent: '',
+                name: null,
+                orderable: false,
+                searchable: false,
+                title: '',
+            })
+            payload.columnDefs = [
+                {
+                    orderable: false,
+                    render: DataTable.render.select(),
+                    targets: 0,
+                },
+                ...(payload.columnDefs ?? []),
+            ]
         }
     }
 
@@ -333,38 +331,6 @@ export default class extends Controller {
 
     private getBooleanToggleUrl(): string {
         return '/datatables/ajax/edit'
-    }
-
-    private isButtonsExtensionEnabled(payload: Record<string, any>): boolean {
-        return !!payload?.layout?.topStart?.buttons
-    }
-
-    private isSelectExtensionEnabled(payload: Record<string, any>): boolean {
-        return !!payload?.select
-    }
-
-    private isResponsiveExtensionEnabled(payload: Record<string, any>): boolean {
-        return !!payload?.responsive
-    }
-
-    private isColumnControlExtensionEnabled(payload: Record<string, any>): boolean {
-        return !!payload?.columnControl
-    }
-
-    private isFixedColumnsExtensionEnabled(payload: Record<string, any>): boolean {
-        return !!payload?.fixedColumns
-    }
-
-    private isColReorderExtensionEnabled(payload: Record<string, any>): boolean {
-        return !!payload?.colReorder
-    }
-
-    private isKeyTableExtensionEnabled(payload: Record<string, any>): boolean {
-        return !!payload?.keys
-    }
-
-    private isScrollerExtensionEnabled(payload: Record<string, any>): boolean {
-        return !!payload?.scroller
     }
 
     private isApiPlatformEnabled(payload: Record<string, any>): boolean {
