@@ -1,5 +1,5 @@
 import { escapeHtml } from '../functions/htmlUtils.js'
-import { ChoiceCustomOptions, ColumnRenderer } from './types.js'
+import type { ChoiceCustomOptions, ColumnRenderer } from './types.js'
 
 export const choiceColumnRenderer: ColumnRenderer = {
     matches(column: Record<string, any>): boolean {

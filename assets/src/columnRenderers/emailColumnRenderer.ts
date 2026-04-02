@@ -1,5 +1,5 @@
 import { escapeHtml } from '../functions/htmlUtils.js'
-import { ColumnRenderer, EmailCustomOptions } from './types.js'
+import type { ColumnRenderer, EmailCustomOptions } from './types.js'
 
 function maskEmail(email: string): string {
     const atIndex = email.indexOf('@')
