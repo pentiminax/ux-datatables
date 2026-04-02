@@ -105,6 +105,7 @@ export default class extends Controller {
                         render: DataTable.render.select(),
                         targets: 0,
                     },
+                    ...(payload.columnDefs ?? []),
                 ]
             }
         }
