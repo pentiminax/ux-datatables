@@ -111,6 +111,10 @@ class DataTablesBundle extends AbstractBundle
         if (interface_exists(\Symfony\Component\Mercure\HubInterface::class)) {
             $this->registerMercureServices($container, $builder);
         }
+
+        if (class_exists(\Symfony\Bundle\MakerBundle\Maker\AbstractMaker::class)) {
+            $this->registerMakerServices($container);
+        }
     }
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
@@ -178,12 +182,6 @@ class DataTablesBundle extends AbstractBundle
             ->tag('twig.extension')
             ->private();
 
-        $container->services()
-            ->set('datatables.maker.datatable', MakeDataTable::class)
-            ->arg('$propertyNameHumanizer', service('datatables.column.property_name_humanizer'))
-            ->arg('$managerRegistry', service('doctrine')->nullOnInvalid())
-            ->tag('maker.command')
-            ->private();
 
         $container->services()
             ->set('datatables.controller.ajax_edit', AjaxEditController::class)
@@ -398,5 +396,15 @@ class DataTablesBundle extends AbstractBundle
             $builder->getDefinition('datatables.form.edit_form_submission_handler')
                 ->addArgument(new Reference('datatables.mercure.publisher'));
         }
+    }
+
+    private function registerMakerServices(ContainerConfigurator $container): void
+    {
+        $container->services()
+            ->set('datatables.maker.datatable', MakeDataTable::class)
+            ->arg('$propertyNameHumanizer', service('datatables.column.property_name_humanizer'))
+            ->arg('$managerRegistry', service('doctrine')->nullOnInvalid())
+            ->tag('maker.command')
+            ->private();
     }
 }
