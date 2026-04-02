@@ -1,0 +1,216 @@
+---
+title: Styling & CSS Frameworks
+description: Use Bootstrap, Bulma, Foundation, Semantic UI, jQuery UI, or the default DataTables theme
+---
+
+# Styling & CSS Frameworks
+
+The bundle supports 7 DataTables CSS frameworks out of the box. The Stimulus controller **automatically detects** which stylesheet you have loaded and picks the matching JavaScript integration — no PHP configuration required.
+
+## How It Works
+
+On page load, the controller scans the loaded stylesheets and matches the CSS file's URL against known patterns. The first match wins, so more specific patterns (e.g. `bootstrap5`) are checked before less specific ones (e.g. `bootstrap`). If nothing matches, the bundle falls back to the DataTables default theme.
+
+## Switching Frameworks
+
+### With AssetMapper
+
+Edit `assets/controllers.json` to enable the CSS file for your target framework and disable the others:
+
+<Tabs>
+  <TabItem label="Default (DataTables)">
+    ```json
+    {
+      "controllers": {
+        "@pentiminax/ux-datatables": {
+          "datatable": {
+            "enabled": true,
+            "autoimport": {
+              "datatables.net-dt/css/dataTables.dataTables.min.css": true,
+              "datatables.net-bs5/css/dataTables.bootstrap5.min.css": false
+            }
+          }
+        }
+      }
+    }
+    ```
+  </TabItem>
+  <TabItem label="Bootstrap 5">
+    ```json
+    {
+      "controllers": {
+        "@pentiminax/ux-datatables": {
+          "datatable": {
+            "enabled": true,
+            "autoimport": {
+              "datatables.net-dt/css/dataTables.dataTables.min.css": false,
+              "datatables.net-bs5/css/dataTables.bootstrap5.min.css": true
+            }
+          }
+        }
+      }
+    }
+    ```
+  </TabItem>
+  <TabItem label="Bulma / Foundation / Other">
+    ```json
+    {
+      "controllers": {
+        "@pentiminax/ux-datatables": {
+          "datatable": {
+            "enabled": true,
+            "autoimport": {
+              "datatables.net-dt/css/dataTables.dataTables.min.css": false,
+              "datatables.net-bm/css/dataTables.bulma.min.css": true
+            }
+          }
+        }
+      }
+    }
+    ```
+
+    Then install the packages (see [Framework Setup](#framework-setup) below).
+  </TabItem>
+</Tabs>
+
+<Aside type="note">
+  Only one CSS entry should be `true` at a time. The bundle detects the active framework from the loaded stylesheet.
+</Aside>
+
+### With Webpack Encore
+
+Import the CSS directly in your entry file:
+
+```javascript
+// assets/app.js — enable exactly one:
+import 'datatables.net-dt/css/dataTables.dataTables.min.css'
+// import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css'
+// import 'datatables.net-bm/css/dataTables.bulma.min.css'
+```
+
+## Supported Frameworks
+
+<Table
+  headers={['Framework', 'Key', 'CSS file', 'NPM package']}
+  rows={[
+    ['DataTables (default)', '`dt`', '`dataTables.dataTables`', '`datatables.net-dt`'],
+    ['Bootstrap 5', '`bs5`', '`dataTables.bootstrap5`', '`datatables.net-bs5`'],
+    ['Bootstrap 4', '`bs4`', '`dataTables.bootstrap4`', '`datatables.net-bs4`'],
+    ['Bootstrap 3', '`bs`', '`dataTables.bootstrap`', '`datatables.net-bs`'],
+    ['Bulma', '`bm`', '`dataTables.bulma`', '`datatables.net-bm`'],
+    ['Zurb Foundation', '`zf`', '`dataTables.foundation`', '`datatables.net-zf`'],
+    ['jQuery UI', '`jqui`', '`dataTables.jqueryui`', '`datatables.net-jqui`'],
+    ['Semantic UI', '`se`', '`dataTables.semanticui`', '`datatables.net-se`'],
+  ]}
+/>
+
+## Framework Setup
+
+The bundle ships with the `dt` and `bs5` packages pre-registered in the importmap. For any other framework, you need to install the required packages first.
+
+### DataTables Default
+
+No extra setup. Works out of the box.
+
+### Bootstrap 5
+
+Included by default. Make sure Bootstrap 5 CSS is also loaded in your application.
+
+### Bootstrap 4
+
+```bash
+php bin/console importmap:require datatables.net-bs4
+```
+
+### Bootstrap 3
+
+```bash
+php bin/console importmap:require datatables.net-bs
+```
+
+### Bulma
+
+```bash
+php bin/console importmap:require datatables.net-bm
+```
+
+### Zurb Foundation
+
+```bash
+php bin/console importmap:require datatables.net-zf
+```
+
+### jQuery UI
+
+```bash
+php bin/console importmap:require datatables.net-jqui
+```
+
+### Semantic UI
+
+```bash
+php bin/console importmap:require datatables.net-se
+```
+
+## Installing Extension Packages
+
+Each extension (Select, Responsive, Buttons, etc.) also has framework-specific packages. If you use extensions, install the matching variants alongside the core package.
+
+For example, with **Bulma**:
+
+```bash
+php bin/console importmap:require datatables.net-bm
+php bin/console importmap:require datatables.net-select-bm
+php bin/console importmap:require datatables.net-responsive-bm
+php bin/console importmap:require datatables.net-buttons-bm
+# Add other extensions you use…
+```
+
+The naming pattern is always `datatables.net-{extension}-{key}`.
+
+<Aside type="tip">
+  You only need to install the extensions you actually use. The bundle never loads a package
+  for a framework that isn't detected in the page stylesheets.
+</Aside>
+
+## Customising the Table Element
+
+Override the default CSS classes applied to the `<table>` element globally in `config/packages/data_tables.yaml`:
+
+```yaml
+data_tables:
+  template_parameters:
+    class: 'table table-striped table-hover'
+```
+
+Or per table in Twig:
+
+```twig
+{{ render_datatable(table, {'class': 'table table-bordered table-sm'}) }}
+```
+
+## Troubleshooting
+
+### "No DataTables stylesheet detected"
+
+If you see this warning in the browser console, it means no recognised DataTables CSS file was found in the page's loaded stylesheets. The bundle falls back to the `dt` theme.
+
+Common causes:
+
+- The CSS entry in `controllers.json` is set to `false` for all entries
+- The CSS file failed to load (check the Network tab for 404s)
+- The stylesheet is loaded after Stimulus initialises (ensure CSS loads in `<head>`)
+
+### Styles look wrong after switching frameworks
+
+1. Make sure only **one** CSS entry is enabled in `controllers.json`
+2. Clear the Symfony cache: `php bin/console cache:clear`
+3. For AssetMapper, reimport assets: `php bin/console asset-map:compile`
+
+### Extension styling doesn't match the framework
+
+Each extension must use its framework-specific package. If the extension JS and CSS packages don't match your active framework, you'll see styling inconsistencies. Re-run `importmap:require` for the correct `-{key}` variants.
+
+<Aside type="note">
+  Tailwind CSS is not yet supported — DataTables.net has not published official npm packages for it. The codebase is ready to support it as soon as packages are available.
+</Aside>

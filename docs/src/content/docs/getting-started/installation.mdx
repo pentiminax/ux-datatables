@@ -83,37 +83,27 @@ data_tables:
 
 ## Styling
 
-### Default Styles
-
-The bundle includes default DataTables styling. Check your `assets/controllers.json`:
+The bundle ships with the DataTables default theme enabled. Check your `assets/controllers.json`:
 
 ```json
 {
   "controllers": {
     "@pentiminax/ux-datatables": {
       "datatable": {
-        "enabled": true
+        "enabled": true,
+        "autoimport": {
+          "datatables.net-dt/css/dataTables.dataTables.min.css": true,
+          "datatables.net-bs5/css/dataTables.bootstrap5.min.css": false
+        }
       }
     }
-  },
-  "autoimport": {
-    "datatables.net-dt/css/dataTables.dataTables.min.css": true
   }
 }
 ```
 
-### Using Bootstrap
+The bundle supports 7 CSS frameworks (Bootstrap 5, Bootstrap 4, Bulma, Foundation, and more). The Stimulus controller automatically detects which stylesheet is loaded and applies the matching integration.
 
-To use Bootstrap 5 styling instead:
-
-```json
-{
-  "autoimport": {
-    "datatables.net-dt/css/dataTables.dataTables.min.css": false,
-    "datatables.net-bs5/css/dataTables.bootstrap5.min.css": true
-  }
-}
-```
+See [Styling & CSS Frameworks](../styling/) for the full setup guide.
 
 ## Optional Dependencies
 
