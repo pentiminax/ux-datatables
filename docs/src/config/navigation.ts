@@ -31,7 +31,7 @@ export const docsSidebarSections: NavSection[] = [
       { label: 'Configuration', href: '/ux-datatables/guide/configuration/' },
       { label: 'Columns', href: '/ux-datatables/guide/columns/' },
       { label: 'Options', href: '/ux-datatables/guide/options/' },
-      { label: 'Styling & CSS Frameworks', href: '/ux-datatables/guide/styling/' },
+      { label: 'Styling', href: '/ux-datatables/guide/styling/' },
       {
         label: 'Client-side Processing',
         href: '/ux-datatables/guide/client-side-processing/',
