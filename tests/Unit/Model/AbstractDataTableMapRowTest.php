@@ -197,7 +197,7 @@ final class MapRowTestTable extends AbstractDataTable
 
     public function mapRowPublic(mixed $row): array
     {
-        return $this->mapRow($row);
+        return $this->createRowMapper()->map($row);
     }
 }
 
