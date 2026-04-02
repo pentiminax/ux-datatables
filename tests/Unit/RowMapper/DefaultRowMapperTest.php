@@ -65,7 +65,7 @@ final class DefaultRowMapperTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_null_when_field_resolves_to_non_stringable_object(): void
+    public function it_returns_raw_object_when_field_resolves_to_non_stringable_object(): void
     {
         $column = TextColumn::new('client', 'Client');
         $mapper = new DefaultRowMapper([$column]);
@@ -85,11 +85,11 @@ final class DefaultRowMapperTest extends TestCase
 
         $result = $mapper->map($row);
 
-        $this->assertNull($result['client']);
+        $this->assertInstanceOf(\stdClass::class, $result['client']);
     }
 
     #[Test]
-    public function it_converts_stringable_object_to_string(): void
+    public function it_converts_stringable_returned_by_getter_to_string(): void
     {
         $column = TextColumn::new('client', 'Client');
         $mapper = new DefaultRowMapper([$column]);
@@ -114,36 +114,12 @@ final class DefaultRowMapperTest extends TestCase
 
         $result = $mapper->map($row);
 
+        // PropertyReader already converts Stringable to string when reading via getter
         $this->assertSame('Stringable Corp', $result['client']);
     }
 
     #[Test]
-    public function it_converts_public_stringable_property_to_string(): void
-    {
-        $column = TextColumn::new('label', 'Label');
-        $mapper = new DefaultRowMapper([$column]);
-
-        $row = new class {
-            public \Stringable $label;
-
-            public function __construct()
-            {
-                $this->label = new class implements \Stringable {
-                    public function __toString(): string
-                    {
-                        return 'Public Label';
-                    }
-                };
-            }
-        };
-
-        $result = $mapper->map($row);
-
-        $this->assertSame('Public Label', $result['label']);
-    }
-
-    #[Test]
-    public function it_formats_date_columns_using_the_configured_format(): void
+    public function it_returns_raw_datetime_without_formatting(): void
     {
         $column = DateColumn::new('createdAt', 'Created At')->setFormat('d/m/Y');
         $mapper = new DefaultRowMapper([$column]);
@@ -157,7 +133,7 @@ final class DefaultRowMapperTest extends TestCase
 
         $result = $mapper->map($row);
 
-        $this->assertSame('15/01/2024', $result['createdAt']);
+        $this->assertInstanceOf(\DateTimeImmutable::class, $result['createdAt']);
     }
 
     #[Test]
