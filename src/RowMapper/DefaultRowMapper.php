@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\RowMapper;
 
-use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -46,8 +45,7 @@ final class DefaultRowMapper implements RowMapperInterface
                 continue;
             }
 
-            $value        = PropertyReader::readPath($row, $this->resolveReadPath($column, $key));
-            $mapped[$key] = $this->normalizeValue($column, $value);
+            $mapped[$key] = PropertyReader::readPath($row, $this->resolveReadPath($column, $key));
         }
 
         return $mapped ?: get_object_vars($row);
@@ -65,18 +63,5 @@ final class DefaultRowMapper implements RowMapperInterface
         $field = $column->getField();
 
         return (null !== $field && $field !== $column->getName()) ? $field : $key;
-    }
-
-    private function normalizeValue(ColumnInterface $column, mixed $value): mixed
-    {
-        if ($column instanceof DateColumn && $value instanceof \DateTimeInterface) {
-            return $value->format($column->getFormat());
-        }
-
-        if ($value instanceof \Stringable) {
-            return (string) $value;
-        }
-
-        return \is_object($value) ? null : $value;
     }
 }

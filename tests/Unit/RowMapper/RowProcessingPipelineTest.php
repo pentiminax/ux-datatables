@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\RowMapper;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
@@ -81,6 +82,87 @@ final class RowProcessingPipelineTest extends TestCase
         $mappedRow = $pipeline->map(['id' => 8]);
 
         $this->assertSame('/movies/8', $mappedRow['__ux_datatables_actions']['DETAIL']['url']);
+    }
+
+    #[Test]
+    public function it_resolves_relation_object_via_dotted_field_path(): void
+    {
+        $client = new class {
+            public function getName(): string
+            {
+                return 'Acme Corp';
+            }
+        };
+
+        $pipeline = new RowProcessingPipeline(
+            baseMapper: static fn (mixed $row): array => ['client' => $row],
+            columns: [TextColumn::new('client', 'Client')->setField('client.name')],
+        );
+
+        $mappedRow = $pipeline->map($client);
+
+        $this->assertSame(['client' => 'Acme Corp'], $mappedRow);
+    }
+
+    #[Test]
+    public function it_converts_stringable_object_to_string(): void
+    {
+        $stringable = new class implements \Stringable {
+            public function __toString(): string
+            {
+                return 'My Label';
+            }
+        };
+
+        $pipeline = new RowProcessingPipeline(
+            baseMapper: static fn (mixed $row): array => ['label' => $row],
+            columns: [TextColumn::new('label', 'Label')],
+        );
+
+        $mappedRow = $pipeline->map($stringable);
+
+        $this->assertSame(['label' => 'My Label'], $mappedRow);
+    }
+
+    #[Test]
+    public function it_converts_non_stringable_object_to_null(): void
+    {
+        $pipeline = new RowProcessingPipeline(
+            baseMapper: static fn (mixed $row): array => ['client' => $row],
+            columns: [TextColumn::new('client', 'Client')],
+        );
+
+        $mappedRow = $pipeline->map(new \stdClass());
+
+        $this->assertNull($mappedRow['client']);
+    }
+
+    #[Test]
+    public function it_formats_datetime_values_using_date_column(): void
+    {
+        $date = new \DateTimeImmutable('2024-03-15');
+
+        $pipeline = new RowProcessingPipeline(
+            baseMapper: static fn (mixed $row): array => ['createdAt' => $row],
+            columns: [DateColumn::new('createdAt', 'Date')->setFormat('d/m/Y')],
+        );
+
+        $mappedRow = $pipeline->map($date);
+
+        $this->assertSame(['createdAt' => '15/03/2024'], $mappedRow);
+    }
+
+    #[Test]
+    public function it_leaves_scalar_values_unchanged(): void
+    {
+        $pipeline = new RowProcessingPipeline(
+            baseMapper: static fn (array $row): array => $row,
+            columns: [TextColumn::new('title', 'Title')],
+        );
+
+        $mappedRow = $pipeline->map(['title' => 'Hello World']);
+
+        $this->assertSame(['title' => 'Hello World'], $mappedRow);
     }
 
     #[Test]
