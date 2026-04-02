@@ -1,5 +1,5 @@
 import { escapeHtml, parseBooleanValue } from '../functions/htmlUtils.js'
-import { BooleanCustomOptions, ColumnRenderer } from './types.js'
+import type { BooleanCustomOptions, ColumnRenderer } from './types.js'
 
 export function createBooleanColumnRenderer(toggleUrl: string): ColumnRenderer {
     return {

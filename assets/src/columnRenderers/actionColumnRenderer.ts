@@ -1,5 +1,5 @@
 import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js'
-import { ActionConfig, ActionRowData, ColumnRenderer } from './types.js'
+import type { ActionConfig, ActionRowData, ColumnRenderer } from './types.js'
 
 const SAFE_ATTRIBUTE_NAME_PATTERN = /^[a-zA-Z_:][a-zA-Z0-9:._-]*$/
 

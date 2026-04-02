@@ -1,5 +1,5 @@
 import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js'
-import { ColumnRenderer, UrlCustomOptions } from './types.js'
+import type { ColumnRenderer, UrlCustomOptions } from './types.js'
 
 export const urlColumnRenderer: ColumnRenderer = {
     matches(column: Record<string, any>): boolean {
