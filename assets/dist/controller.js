@@ -1,19 +1,27 @@
 import { Controller } from '@hotwired/stimulus';
-import { getLoadedDataTablesStyleSheet } from './functions/getLoadedDataTablesStyleSheet.js';
-import { loadButtonsLibrary } from './functions/loadButtonsLibrary.js';
-import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
-import { ExtensionRegistry } from './functions/extensionRegistry.js';
-import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
-import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
+import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js';
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
-import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js';
+import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
 import { deleteEntity } from './functions/deleteEntity.js';
-import { fetchEditForm } from './functions/fetchEditForm.js';
-import { submitEditForm } from './functions/submitEditForm.js';
+import { detectStyleFramework } from './functions/detectStyleFramework.js';
 import { createEditModal } from './functions/editModal.js';
+import { ExtensionRegistry } from './functions/extensionRegistry.js';
+import { fetchEditForm } from './functions/fetchEditForm.js';
+import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
+import { submitEditForm } from './functions/submitEditForm.js';
+import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
+const EXTENSION_MAP = {
+    select: 'select',
+    responsive: 'responsive',
+    columnControl: 'columnControl',
+    fixedColumns: 'fixedColumns',
+    colReorder: 'colReorder',
+    keys: 'keyTable',
+    scroller: 'scroller',
+};
 class default_1 extends Controller {
     constructor() {
         super(...arguments);
@@ -32,13 +40,13 @@ class default_1 extends Controller {
         this.dispatchEvent('pre-connect', {
             config: payload,
         });
-        const stylesheet = getLoadedDataTablesStyleSheet();
-        const DataTable = await loadDataTableLibrary(stylesheet);
+        const framework = detectStyleFramework();
+        const DataTable = await loadDataTableLibrary(framework);
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true;
             return;
         }
-        await this.loadExtensions(payload, stylesheet, DataTable);
+        await this.loadExtensions(payload, framework, DataTable);
         if (this.isApiPlatformEnabled(payload)) {
             const columns = Array.isArray(payload.columns)
                 ? payload.columns
@@ -57,48 +65,33 @@ class default_1 extends Controller {
         this.eventSource?.close();
         this.eventSource = null;
     }
-    async loadExtensions(payload, stylesheet, DataTable) {
-        if (this.isButtonsExtensionEnabled(payload)) {
-            await loadButtonsLibrary(DataTable, stylesheet);
+    async loadExtensions(payload, framework, DataTable) {
+        if (payload?.layout?.topStart?.buttons) {
+            const { loadButtonsLibrary } = await import('./functions/loadButtonsLibrary.js');
+            await loadButtonsLibrary(DataTable, framework);
         }
-        if (this.isSelectExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('select', stylesheet);
-            if (payload.select?.withCheckbox) {
-                payload.columns.unshift({
-                    data: null,
-                    defaultContent: '',
-                    name: null,
-                    orderable: false,
-                    searchable: false,
-                    title: '',
-                });
-                payload.columnDefs = [
-                    {
-                        orderable: false,
-                        render: DataTable.render.select(),
-                        targets: 0,
-                    },
-                    ...(payload.columnDefs ?? []),
-                ];
+        for (const [payloadKey, extensionName] of Object.entries(EXTENSION_MAP)) {
+            if (payload?.[payloadKey]) {
+                await ExtensionRegistry.load(extensionName, framework);
             }
         }
-        if (this.isResponsiveExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('responsive', stylesheet);
-        }
-        if (this.isColumnControlExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('columnControl', stylesheet);
-        }
-        if (this.isFixedColumnsExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('fixedColumns', stylesheet);
-        }
-        if (this.isColReorderExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('colReorder', stylesheet);
-        }
-        if (this.isKeyTableExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('keyTable', stylesheet);
-        }
-        if (this.isScrollerExtensionEnabled(payload)) {
-            await ExtensionRegistry.load('scroller', stylesheet);
+        if (payload?.select?.withCheckbox) {
+            payload.columns.unshift({
+                data: null,
+                defaultContent: '',
+                name: null,
+                orderable: false,
+                searchable: false,
+                title: '',
+            });
+            payload.columnDefs = [
+                {
+                    orderable: false,
+                    render: DataTable.render.select(),
+                    targets: 0,
+                },
+                ...(payload.columnDefs ?? []),
+            ];
         }
     }
     configureColumns(payload) {
@@ -269,30 +262,6 @@ class default_1 extends Controller {
     }
     getBooleanToggleUrl() {
         return '/datatables/ajax/edit';
-    }
-    isButtonsExtensionEnabled(payload) {
-        return !!payload?.layout?.topStart?.buttons;
-    }
-    isSelectExtensionEnabled(payload) {
-        return !!payload?.select;
-    }
-    isResponsiveExtensionEnabled(payload) {
-        return !!payload?.responsive;
-    }
-    isColumnControlExtensionEnabled(payload) {
-        return !!payload?.columnControl;
-    }
-    isFixedColumnsExtensionEnabled(payload) {
-        return !!payload?.fixedColumns;
-    }
-    isColReorderExtensionEnabled(payload) {
-        return !!payload?.colReorder;
-    }
-    isKeyTableExtensionEnabled(payload) {
-        return !!payload?.keys;
-    }
-    isScrollerExtensionEnabled(payload) {
-        return !!payload?.scroller;
     }
     isApiPlatformEnabled(payload) {
         return true === payload?.apiPlatform;
