@@ -80,7 +80,7 @@ new DataTable(
   headers={['Method', 'Description']}
   rows={[
     [
-      '`layout(Feature $topStart, Feature $topEnd, Feature $bottomStart, Feature $bottomEnd)`',
+      '`layout(array $layout)`',
       'Position DataTables UI blocks',
     ],
     ['`displayStart(int $displayStart)`', 'Set initial row offset'],
@@ -134,12 +134,12 @@ $table = (new DataTable('users'))
     ->serverSide(true)
     ->processing(true)
     ->language(Language::EN)
-    ->layout(
-        topStart: Feature::PAGE_LENGTH,
-        topEnd: Feature::SEARCH,
-        bottomStart: Feature::INFO,
-        bottomEnd: Feature::PAGING,
-    );
+    ->layout([
+        'topStart'    => Feature::PAGE_LENGTH,
+        'topEnd'      => Feature::SEARCH,
+        'bottomStart' => Feature::INFO,
+        'bottomEnd'   => Feature::PAGING,
+    ]);
 ```
 
 ## Cross Links
