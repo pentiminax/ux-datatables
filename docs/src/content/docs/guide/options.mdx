@@ -270,17 +270,31 @@ $dataTable->language(Language::EN_GB); // British English
 
 ### layout
 
-Position UI components:
+Position UI components using an array. Each position accepts a `Feature` enum, an array of features, a custom string, or `null`.
 
 ```php
 use Pentiminax\UX\DataTables\Enum\Feature;
 
-$dataTable->layout(
-    topStart: Feature::PAGE_LENGTH,
-    topEnd: Feature::SEARCH,
-    bottomStart: Feature::INFO,
-    bottomEnd: Feature::PAGING,
-);
+// Simple layout
+$dataTable->layout([
+    'topStart'    => Feature::PAGE_LENGTH,
+    'topEnd'      => Feature::SEARCH,
+    'bottomStart' => Feature::INFO,
+    'bottomEnd'   => Feature::PAGING,
+]);
+
+// Multiple features per position
+$dataTable->layout([
+    'topEnd' => [Feature::SEARCH, Feature::BUTTONS],
+]);
+
+// Full-width row, null to hide, custom HTML
+$dataTable->layout([
+    'top'         => '<h2>My Table</h2>',
+    'topStart'    => Feature::PAGE_LENGTH,
+    'bottomStart' => null,
+    'bottomEnd'   => Feature::PAGING,
+]);
 ```
 
 ## Complete Example
@@ -305,12 +319,12 @@ $dataTable
     ->pageLength(25)
     ->lengthMenu([10, 25, 50, 100])
     ->stateSave()
-    ->layout(
-        topStart: Feature::PAGE_LENGTH,
-        topEnd: Feature::SEARCH,
-        bottomStart: Feature::INFO,
-        bottomEnd: Feature::PAGING,
-    )
+    ->layout([
+        'topStart'    => Feature::PAGE_LENGTH,
+        'topEnd'      => Feature::SEARCH,
+        'bottomStart' => Feature::INFO,
+        'bottomEnd'   => Feature::PAGING,
+    ])
     ->ajax(
         url: '/api/products',
         dataSrc: 'data',

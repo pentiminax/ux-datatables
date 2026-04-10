@@ -46,16 +46,26 @@ data_tables:
 
 ### layout
 
-Controls the positioning of DataTables UI features. Each position accepts a feature name.
+Controls the positioning of DataTables UI features. Each position accepts a feature name, an array of features, `null` to hide, or a custom string (HTML, plugin name).
 
 ```yaml
 data_tables:
   options:
     layout:
-      topStart: pageLength # Page length selector
-      topEnd: search # Search box
-      bottomStart: info # "Showing X of Y entries"
-      bottomEnd: paging # Pagination controls
+      topStart: pageLength
+      topEnd: search
+      bottomStart: info
+      bottomEnd: paging
+```
+
+Multi-features per position:
+
+```yaml
+data_tables:
+  options:
+    layout:
+      topEnd: [search, buttons]
+      bottomStart: null
 ```
 
 Available positions:
@@ -69,6 +79,7 @@ Available positions:
     ['`bottomEnd`', 'Bottom-right area'],
     ['`top`', 'Full top row'],
     ['`bottom`', 'Full bottom row'],
+    ['`top2Start`, `top2End`, ...', 'Additional numbered rows'],
   ]}
 />
 
@@ -82,6 +93,8 @@ Available features:
     ['`info`', 'Table info summary'],
     ['`paging`', 'Pagination controls'],
     ['`buttons`', 'Buttons extension slot'],
+    ['`searchBuilder`', 'Search builder UI'],
+    ['`searchPanes`', 'Search panes UI'],
   ]}
 />
 
