@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
+use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
-use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableOptions;
-use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -33,21 +32,84 @@ final class DataTableOptionsTest extends TestCase
     }
 
     #[Test]
-    public function it_gets_options(): void
+    public function it_normalizes_layout_with_single_features(): void
     {
         $options = new DataTableOptions([
-            'layout' => new LayoutOption(new DataTable('testTable')),
+            'layout' => [
+                'topStart'    => Feature::PAGE_LENGTH,
+                'topEnd'      => Feature::SEARCH,
+                'bottomStart' => Feature::INFO,
+                'bottomEnd'   => Feature::PAGING,
+            ],
         ]);
 
-        $this->assertLayoutOption($options->getOptions());
+        $this->assertSame([
+            'topStart'    => 'pageLength',
+            'topEnd'      => 'search',
+            'bottomStart' => 'info',
+            'bottomEnd'   => 'paging',
+        ], $options->getOptions()['layout']);
     }
 
-    private function assertLayoutOption(array $options): void
+    #[Test]
+    public function it_normalizes_layout_with_array_of_features(): void
     {
-        $this->assertArrayHasKey('layout', $options);
-        $this->assertArrayHasKey('topStart', $options['layout']);
-        $this->assertArrayHasKey('topEnd', $options['layout']);
-        $this->assertArrayHasKey('bottomStart', $options['layout']);
-        $this->assertArrayHasKey('bottomEnd', $options['layout']);
+        $options = new DataTableOptions([
+            'layout' => [
+                'topEnd' => [Feature::SEARCH, Feature::BUTTONS],
+            ],
+        ]);
+
+        $this->assertSame([
+            'topEnd' => ['search', 'buttons'],
+        ], $options->getOptions()['layout']);
+    }
+
+    #[Test]
+    public function it_preserves_null_values_in_layout(): void
+    {
+        $options = new DataTableOptions([
+            'layout' => [
+                'topStart'    => Feature::PAGE_LENGTH,
+                'bottomStart' => null,
+            ],
+        ]);
+
+        $this->assertSame([
+            'topStart'    => 'pageLength',
+            'bottomStart' => null,
+        ], $options->getOptions()['layout']);
+    }
+
+    #[Test]
+    public function it_preserves_string_values_in_layout(): void
+    {
+        $options = new DataTableOptions([
+            'layout' => [
+                'top'      => '<h2>Title</h2>',
+                'topStart' => 'customPlugin',
+            ],
+        ]);
+
+        $this->assertSame([
+            'top'      => '<h2>Title</h2>',
+            'topStart' => 'customPlugin',
+        ], $options->getOptions()['layout']);
+    }
+
+    #[Test]
+    public function it_handles_layout_as_plain_string_array(): void
+    {
+        $options = new DataTableOptions([
+            'layout' => [
+                'topStart' => 'pageLength',
+                'topEnd'   => 'search',
+            ],
+        ]);
+
+        $this->assertSame([
+            'topStart' => 'pageLength',
+            'topEnd'   => 'search',
+        ], $options->getOptions()['layout']);
     }
 }

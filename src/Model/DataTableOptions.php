@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
-use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 
 class DataTableOptions implements \ArrayAccess
 {
@@ -49,14 +49,29 @@ class DataTableOptions implements \ArrayAccess
 
     private function handleLayoutOption(): void
     {
-        /** @var ?LayoutOption|array $layoutOption */
-        $layoutOption = $this->options['layout'] ?? null;
+        $layout = $this->options['layout'] ?? null;
 
-        if (\is_array($layoutOption)) {
-            $this->options['layout'] = $layoutOption;
-        } elseif ($layoutOption instanceof LayoutOption) {
-            $this->options['layout'] = $layoutOption->jsonSerialize();
+        if (!\is_array($layout)) {
+            return;
         }
+
+        $this->options['layout'] = array_map(
+            fn ($value) => $this->normalizeLayoutValue($value),
+            $layout
+        );
+    }
+
+    private function normalizeLayoutValue(mixed $value): mixed
+    {
+        if ($value instanceof Feature) {
+            return $value->value;
+        }
+
+        if (\is_array($value)) {
+            return array_map(fn ($v) => $this->normalizeLayoutValue($v), $value);
+        }
+
+        return $value;
     }
 
     public function getOptions(): array
