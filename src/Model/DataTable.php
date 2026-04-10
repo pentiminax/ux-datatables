@@ -11,7 +11,6 @@ use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
-use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
 
 class DataTable
@@ -436,21 +435,27 @@ class DataTable
         return $this;
     }
 
-    public function layout(
-        Feature $topStart = Feature::PAGE_LENGTH,
-        Feature $topEnd = Feature::SEARCH,
-        Feature $bottomStart = Feature::INFO,
-        Feature $bottomEnd = Feature::PAGING,
-    ): static {
-        $this->options['layout'] = new LayoutOption(
-            table: $this,
-            topStart: $topStart,
-            topEnd: $topEnd,
-            bottomStart: $bottomStart,
-            bottomEnd: $bottomEnd,
+    public function layout(array $layout): static
+    {
+        $this->options['layout'] = array_map(
+            fn (mixed $value): mixed => $this->normalizeLayoutValue($value),
+            $layout,
         );
 
         return $this;
+    }
+
+    private function normalizeLayoutValue(mixed $value): mixed
+    {
+        if ($value instanceof Feature) {
+            return $value->value;
+        }
+
+        if (\is_array($value)) {
+            return array_map(fn (mixed $v): mixed => $this->normalizeLayoutValue($v), $value);
+        }
+
+        return $value;
     }
 
     public function responsive(): static
@@ -521,12 +526,17 @@ class DataTable
             return;
         }
 
-        foreach ($layout as $position => $feature) {
-            if ($feature === Feature::BUTTONS->value) {
-                $options['layout'][$position] = [
-                    'buttons' => $buttonsExtension->jsonSerialize(),
-                ];
-                break;
+        $buttonsConfig = ['buttons' => $buttonsExtension->jsonSerialize()];
+
+        foreach ($layout as $position => $value) {
+            if ($value === Feature::BUTTONS->value) {
+                $options['layout'][$position] = $buttonsConfig;
+            } elseif (\is_array($value)) {
+                foreach ($value as $i => $item) {
+                    if ($item === Feature::BUTTONS->value) {
+                        $options['layout'][$position][$i] = $buttonsConfig;
+                    }
+                }
             }
         }
     }
