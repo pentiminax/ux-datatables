@@ -182,7 +182,6 @@ class DataTablesBundle extends AbstractBundle
             ->tag('twig.extension')
             ->private();
 
-
         $container->services()
             ->set('datatables.controller.ajax_edit', AjaxEditController::class)
             ->arg(0, service('doctrine')->nullOnInvalid())
