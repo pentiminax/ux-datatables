@@ -82,7 +82,7 @@ final class DataTableTest extends TestCase
             'topEnd'      => 'pageLength',
             'bottomStart' => 'paging',
             'bottomEnd'   => 'info',
-        ], $table->getOption('layout'));
+        ], $table->getOptions()['layout']);
     }
 
     #[Test]
@@ -96,7 +96,7 @@ final class DataTableTest extends TestCase
 
         $this->assertSame([
             'topEnd' => ['search', 'buttons'],
-        ], $table->getOption('layout'));
+        ], $table->getOptions()['layout']);
     }
 
     #[Test]
@@ -111,7 +111,7 @@ final class DataTableTest extends TestCase
             'bottomEnd'   => Feature::PAGING,
         ]);
 
-        $layout = $table->getOption('layout');
+        $layout = $table->getOptions()['layout'];
 
         $this->assertSame('<h2>Title</h2>', $layout['top']);
         $this->assertSame('pageLength', $layout['topStart']);
