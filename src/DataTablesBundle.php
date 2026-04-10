@@ -62,13 +62,13 @@ class DataTablesBundle extends AbstractBundle
                 ->arrayNode('options')
                     ->children()
                         ->scalarNode('language')->defaultValue('en-GB')->end()
-                        ->arrayNode('layout')
-                            ->children()
-                                ->scalarNode('topStart')->defaultValue('pageLength')->end()
-                                ->scalarNode('topEnd')->defaultValue('search')->end()
-                                ->scalarNode('bottomStart')->defaultValue('info')->end()
-                                ->scalarNode('bottomEnd')->defaultValue('paging')->end()
-                            ->end()
+                        ->variableNode('layout')
+                            ->defaultValue([
+                                'topStart'    => 'pageLength',
+                                'topEnd'      => 'search',
+                                'bottomStart' => 'info',
+                                'bottomEnd'   => 'paging',
+                            ])
                         ->end()
                         ->arrayNode('lengthMenu')
                             ->scalarPrototype()->end()
@@ -181,7 +181,6 @@ class DataTablesBundle extends AbstractBundle
             ->arg(2, service('datatables.column.action_row_data_resolver'))
             ->tag('twig.extension')
             ->private();
-
 
         $container->services()
             ->set('datatables.controller.ajax_edit', AjaxEditController::class)
