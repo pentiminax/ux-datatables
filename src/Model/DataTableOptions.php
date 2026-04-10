@@ -16,8 +16,6 @@ class DataTableOptions implements \ArrayAccess
         $options = $this->handleLanguageOption($options);
 
         $this->options = $options;
-
-        $this->handleLayoutOption();
     }
 
     public function setLanguage(Language $language): static

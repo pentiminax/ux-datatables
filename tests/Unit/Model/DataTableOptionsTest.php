@@ -40,6 +40,8 @@ final class DataTableOptionsTest extends TestCase
                 'topEnd'      => Feature::SEARCH,
                 'bottomStart' => Feature::INFO,
                 'bottomEnd'   => Feature::PAGING,
+                'top2Start'   => Feature::SEARCH_BUILDER,
+                'top2End'     => Feature::SEARCH_PANES,
             ],
         ]);
 
@@ -48,6 +50,8 @@ final class DataTableOptionsTest extends TestCase
             'topEnd'      => 'search',
             'bottomStart' => 'info',
             'bottomEnd'   => 'paging',
+            'top2Start'   => 'searchBuilder',
+            'top2End'     => 'searchPanes',
         ], $options->getOptions()['layout']);
     }
 
