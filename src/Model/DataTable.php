@@ -437,25 +437,9 @@ class DataTable
 
     public function layout(array $layout): static
     {
-        $this->options['layout'] = array_map(
-            fn (mixed $value): mixed => $this->normalizeLayoutValue($value),
-            $layout,
-        );
+        $this->options['layout'] = $layout;
 
         return $this;
-    }
-
-    private function normalizeLayoutValue(mixed $value): mixed
-    {
-        if ($value instanceof Feature) {
-            return $value->value;
-        }
-
-        if (\is_array($value)) {
-            return array_map(fn (mixed $v): mixed => $this->normalizeLayoutValue($v), $value);
-        }
-
-        return $value;
     }
 
     public function responsive(): static
