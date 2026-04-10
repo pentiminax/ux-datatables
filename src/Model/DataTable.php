@@ -435,6 +435,18 @@ class DataTable
         return $this;
     }
 
+    /**
+     * Configure the layout of DataTables UI features.
+     *
+     * Keys are DataTables position names (e.g. 'topStart', 'topEnd', 'bottomStart',
+     * 'bottomEnd', 'top', 'bottom', 'top2Start', ...). Each value can be:
+     *   - A Feature enum (e.g. Feature::SEARCH)
+     *   - An array of Feature enums (e.g. [Feature::SEARCH, Feature::BUTTONS])
+     *   - null to hide the position
+     *   - A DataTables feature object (e.g. ['div' => ['html' => '<h2>Title</h2>']])
+     *
+     * @param array<string, Feature|Feature[]|array<string, mixed>|null> $layout
+     */
     public function layout(array $layout): static
     {
         $this->options['layout'] = $layout;
