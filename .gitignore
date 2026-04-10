@@ -16,3 +16,5 @@ assets/node_modules/
 composer.lock
 _bmad/
 _bmad-output/
+
+/docs/superpowers/*
