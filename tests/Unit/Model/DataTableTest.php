@@ -66,27 +66,57 @@ final class DataTableTest extends TestCase
     }
 
     #[Test]
-    public function it_configures_layout_option(): void
+    public function it_configures_layout_with_array(): void
     {
         $table = new DataTable('testTable');
 
-        $table->layout(
-            topStart: Feature::BUTTONS,
-            topEnd: Feature::PAGE_LENGTH,
-            bottomStart: Feature::PAGING,
-            bottomEnd: Feature::INFO
-        );
+        $table->layout([
+            'topStart'    => Feature::BUTTONS,
+            'topEnd'      => Feature::PAGE_LENGTH,
+            'bottomStart' => Feature::PAGING,
+            'bottomEnd'   => Feature::INFO,
+        ]);
 
-        $expectedLayout = [
+        $this->assertSame([
             'topStart'    => 'buttons',
             'topEnd'      => 'pageLength',
-            'bottomStart' => [
-                'paging' => true,
-            ],
-            'bottomEnd' => 'info',
-        ];
+            'bottomStart' => 'paging',
+            'bottomEnd'   => 'info',
+        ], $table->getOptions()['layout']);
+    }
 
-        $this->assertSame($expectedLayout, $table->getOption('layout')->jsonSerialize());
+    #[Test]
+    public function it_configures_layout_with_multi_features(): void
+    {
+        $table = new DataTable('testTable');
+
+        $table->layout([
+            'topEnd' => [Feature::SEARCH, Feature::BUTTONS],
+        ]);
+
+        $this->assertSame([
+            'topEnd' => ['search', 'buttons'],
+        ], $table->getOptions()['layout']);
+    }
+
+    #[Test]
+    public function it_configures_layout_with_null_and_custom_strings(): void
+    {
+        $table = new DataTable('testTable');
+
+        $table->layout([
+            'top'         => '<h2>Title</h2>',
+            'topStart'    => Feature::PAGE_LENGTH,
+            'bottomStart' => null,
+            'bottomEnd'   => Feature::PAGING,
+        ]);
+
+        $layout = $table->getOptions()['layout'];
+
+        $this->assertSame('<h2>Title</h2>', $layout['top']);
+        $this->assertSame('pageLength', $layout['topStart']);
+        $this->assertNull($layout['bottomStart']);
+        $this->assertSame('paging', $layout['bottomEnd']);
     }
 
     #[Test]

@@ -11,7 +11,6 @@ use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
-use Pentiminax\UX\DataTables\Model\Options\LayoutOption;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
 
 class DataTable
@@ -436,19 +435,21 @@ class DataTable
         return $this;
     }
 
-    public function layout(
-        Feature $topStart = Feature::PAGE_LENGTH,
-        Feature $topEnd = Feature::SEARCH,
-        Feature $bottomStart = Feature::INFO,
-        Feature $bottomEnd = Feature::PAGING,
-    ): static {
-        $this->options['layout'] = new LayoutOption(
-            table: $this,
-            topStart: $topStart,
-            topEnd: $topEnd,
-            bottomStart: $bottomStart,
-            bottomEnd: $bottomEnd,
-        );
+    /**
+     * Configure the layout of DataTables UI features.
+     *
+     * Keys are DataTables position names (e.g. 'topStart', 'topEnd', 'bottomStart',
+     * 'bottomEnd', 'top', 'bottom', 'top2Start', ...). Each value can be:
+     *   - A Feature enum (e.g. Feature::SEARCH)
+     *   - An array of Feature enums (e.g. [Feature::SEARCH, Feature::BUTTONS])
+     *   - null to hide the position
+     *   - A DataTables feature object (e.g. ['div' => ['html' => '<h2>Title</h2>']])
+     *
+     * @param array<string, Feature|Feature[]|array<string, mixed>|null> $layout
+     */
+    public function layout(array $layout): static
+    {
+        $this->options['layout'] = $layout;
 
         return $this;
     }
@@ -521,12 +522,17 @@ class DataTable
             return;
         }
 
-        foreach ($layout as $position => $feature) {
-            if ($feature === Feature::BUTTONS->value) {
-                $options['layout'][$position] = [
-                    'buttons' => $buttonsExtension->jsonSerialize(),
-                ];
-                break;
+        $buttonsConfig = ['buttons' => $buttonsExtension->jsonSerialize()];
+
+        foreach ($layout as $position => $value) {
+            if ($value === Feature::BUTTONS->value) {
+                $options['layout'][$position] = $buttonsConfig;
+            } elseif (\is_array($value)) {
+                foreach ($value as $i => $item) {
+                    if ($item === Feature::BUTTONS->value) {
+                        $options['layout'][$position][$i] = $buttonsConfig;
+                    }
+                }
             }
         }
     }
