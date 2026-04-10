@@ -29,7 +29,12 @@ final class AbstractDataTableExtensionsTest extends TestCase
         $table = new class extends AbstractDataTable {
             public function configureDataTable(DataTable $table): DataTable
             {
-                return $table->layout(Feature::BUTTONS);
+                return $table->layout([
+                    'topStart'    => Feature::BUTTONS,
+                    'topEnd'      => Feature::SEARCH,
+                    'bottomStart' => Feature::INFO,
+                    'bottomEnd'   => Feature::PAGING,
+                ]);
             }
 
             public function configureColumns(): iterable
@@ -59,9 +64,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
             ],
             'topEnd'      => 'search',
             'bottomStart' => 'info',
-            'bottomEnd'   => [
-                'paging' => true,
-            ],
+            'bottomEnd'   => 'paging',
         ], $table->getDataTable()->getOptions()['layout']);
 
         $this->assertSame([
@@ -98,6 +101,44 @@ final class AbstractDataTableExtensionsTest extends TestCase
                 'withCheckbox'   => false,
             ],
         ], $table->getDataTable()->getExtensions());
+    }
+
+    #[Test]
+    public function it_injects_buttons_when_in_array_position(): void
+    {
+        $table = new class extends AbstractDataTable {
+            public function configureDataTable(DataTable $table): DataTable
+            {
+                return $table->layout([
+                    'topEnd' => [Feature::SEARCH, Feature::BUTTONS],
+                ]);
+            }
+
+            public function configureColumns(): iterable
+            {
+                yield TextColumn::new('id');
+            }
+
+            public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
+            {
+                return $extensions
+                    ->addExtension(new ButtonsExtension([ButtonType::CSV]));
+            }
+        };
+
+        $layout = $table->getDataTable()->getOptions()['layout'];
+
+        $this->assertSame('search', $layout['topEnd'][0]);
+        $this->assertSame([
+            'buttons' => [
+                [
+                    'extend'        => 'csv',
+                    'exportOptions' => [
+                        'columns' => ':visible:not(.not-exportable)',
+                    ],
+                ],
+            ],
+        ], $layout['topEnd'][1]);
     }
 
     #[Test]
