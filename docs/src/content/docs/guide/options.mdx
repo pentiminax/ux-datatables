@@ -270,7 +270,7 @@ $dataTable->language(Language::EN_GB); // British English
 
 ### layout
 
-Position UI components using an array. Each position accepts a `Feature` enum, an array of features, a custom string, or `null`.
+Position UI components using an array. Each position accepts a `Feature` enum, an array of features, `null` to hide, or a DataTables feature object.
 
 ```php
 use Pentiminax\UX\DataTables\Enum\Feature;
@@ -288,9 +288,9 @@ $dataTable->layout([
     'topEnd' => [Feature::SEARCH, Feature::BUTTONS],
 ]);
 
-// Full-width row, null to hide, custom HTML
+// Full-width row with custom HTML, null to hide a position
 $dataTable->layout([
-    'top'         => '<h2>My Table</h2>',
+    'top'         => ['div' => ['html' => '<h2>My Table</h2>']],
     'topStart'    => Feature::PAGE_LENGTH,
     'bottomStart' => null,
     'bottomEnd'   => Feature::PAGING,
