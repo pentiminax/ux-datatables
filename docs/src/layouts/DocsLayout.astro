@@ -65,6 +65,26 @@ const pathname = Astro.url.pathname
   .prose h3 {
     @apply mt-8 mb-4 text-xl;
   }
+
+  /* Heading anchors */
+  .prose h2,
+  .prose h3,
+  .prose h4 {
+    position: relative;
+    scroll-margin-top: 5rem;
+  }
+  .prose .heading-anchor {
+    @apply ml-2 text-slate-600 no-underline opacity-0 transition-opacity;
+    font-weight: normal;
+  }
+  .prose h2:hover .heading-anchor,
+  .prose h3:hover .heading-anchor,
+  .prose h4:hover .heading-anchor {
+    @apply opacity-100;
+  }
+  .prose .heading-anchor:hover {
+    @apply text-blue-400;
+  }
   .prose p {
     @apply mb-4 leading-relaxed text-slate-400;
   }
