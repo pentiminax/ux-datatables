@@ -66,7 +66,7 @@ class default_1 extends Controller {
         this.eventSource = null;
     }
     async loadExtensions(payload, framework, DataTable) {
-        if (payload?.layout?.topStart?.buttons) {
+        if (this.hasButtonsInLayout(payload)) {
             const { loadButtonsLibrary } = await import('./functions/loadButtonsLibrary.js');
             await loadButtonsLibrary(DataTable, framework);
         }
@@ -252,6 +252,24 @@ class default_1 extends Controller {
             finally {
                 target.disabled = false;
             }
+        });
+    }
+    hasButtonsInLayout(payload) {
+        const layout = payload?.layout;
+        if (!layout)
+            return false;
+        return Object.values(layout).some((value) => {
+            if (value === 'buttons')
+                return true;
+            if (typeof value === 'object' && value !== null) {
+                if (Array.isArray(value)) {
+                    return value.some((v) => v === 'buttons' ||
+                        (typeof v === 'object' && v !== null && 'buttons' in v));
+                }
+                if ('buttons' in value)
+                    return true;
+            }
+            return false;
         });
     }
     dispatchEvent(name, payload) {
