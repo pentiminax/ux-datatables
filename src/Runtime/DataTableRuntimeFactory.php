@@ -59,14 +59,26 @@ final class DataTableRuntimeFactory
 
         return new DataTableRuntime(
             table: $table,
-            dataProviderFactory: function () use ($manualDataProviderFactory, $asDataTable, $rowMapper, $queryBuilderConfigurator): ?DataProviderInterface {
-                return $this->getDataProviderResolver()->resolve(
-                    manualDataProvider: $manualDataProviderFactory(),
-                    asDataTable: $asDataTable,
-                    rowMapper: $rowMapper,
-                    queryBuilderConfigurator: $queryBuilderConfigurator,
-                );
-            },
+            dataProviderFactory: fn (): ?DataProviderInterface => $this->createDataProvider(
+                $manualDataProviderFactory,
+                $asDataTable,
+                $rowMapper,
+                $queryBuilderConfigurator,
+            ),
+        );
+    }
+
+    private function createDataProvider(
+        \Closure $manualDataProviderFactory,
+        ?AsDataTable $asDataTable,
+        RowMapperInterface $rowMapper,
+        callable $queryBuilderConfigurator,
+    ): ?DataProviderInterface {
+        return $this->getDataProviderResolver()->resolve(
+            manualDataProvider: $manualDataProviderFactory(),
+            asDataTable: $asDataTable,
+            rowMapper: $rowMapper,
+            queryBuilderConfigurator: $queryBuilderConfigurator,
         );
     }
 
