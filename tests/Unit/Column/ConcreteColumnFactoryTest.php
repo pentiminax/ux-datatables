@@ -80,4 +80,31 @@ final class ConcreteColumnFactoryTest extends TestCase
         yield 'url' => [UrlColumn::class, ColumnType::HTML];
         yield 'email' => [EmailColumn::class, ColumnType::HTML];
     }
+
+    /**
+     * @return iterable<string, array{0: callable(): AbstractColumn, 1: ColumnType}>
+     */
+    public static function provideConsolidatedFactories(): iterable
+    {
+        yield 'text::utf8' => [static fn () => TextColumn::utf8('field_name', 'Field label'), ColumnType::STRING_UTF8];
+        yield 'text::html' => [static fn () => TextColumn::html('field_name', 'Field label'), ColumnType::HTML];
+        yield 'text::htmlUtf8' => [static fn () => TextColumn::htmlUtf8('field_name', 'Field label'), ColumnType::HTML_UTF8];
+        yield 'number::formatted' => [static fn () => NumberColumn::formatted('field_name', 'Field label'), ColumnType::NUM_FMT];
+        yield 'number::html' => [static fn () => NumberColumn::html('field_name', 'Field label'), ColumnType::HTML_NUM];
+        yield 'number::htmlFormatted' => [static fn () => NumberColumn::htmlFormatted('field_name', 'Field label'), ColumnType::HTML_NUM_FMT];
+    }
+
+    #[Test]
+    #[DataProvider('provideConsolidatedFactories')]
+    public function it_creates_columns_via_consolidated_factories(callable $factory, ColumnType $expectedType): void
+    {
+        $column = $factory();
+
+        $data = $column->jsonSerialize();
+
+        $this->assertSame('field_name', $data['data']);
+        $this->assertSame('field_name', $data['name']);
+        $this->assertSame('Field label', $data['title']);
+        $this->assertSame($expectedType->value, $data['type']);
+    }
 }
