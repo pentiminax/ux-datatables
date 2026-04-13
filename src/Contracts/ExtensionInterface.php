@@ -8,7 +8,7 @@ interface ExtensionInterface extends \JsonSerializable
 {
     public function getKey(): string;
 
-    public function enabled(bool $enabled = true): self;
+    public function enabled(bool $enabled = true): static;
 
     public function isEnabled(): bool;
 }
