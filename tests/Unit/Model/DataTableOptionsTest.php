@@ -27,8 +27,8 @@ final class DataTableOptionsTest extends TestCase
             ],
         ]);
 
-        $this->assertEquals(Language::EN->getUrl(), $options['language']['url']);
-        $this->assertEquals('Alice', $options['search']['search']);
+        $this->assertEquals(Language::EN->getUrl(), $options->get('language')['url']);
+        $this->assertEquals('Alice', $options->get('search')['search']);
     }
 
     #[Test]
@@ -99,6 +99,32 @@ final class DataTableOptionsTest extends TestCase
             'top'      => '<h2>Title</h2>',
             'topStart' => 'customPlugin',
         ], $options->getOptions()['layout']);
+    }
+
+    #[Test]
+    public function it_exposes_typed_accessors_for_arbitrary_options(): void
+    {
+        $options = new DataTableOptions();
+
+        $this->assertFalse($options->has('foo'));
+        $this->assertNull($options->get('foo'));
+
+        $options->set('foo', 'bar');
+
+        $this->assertTrue($options->has('foo'));
+        $this->assertSame('bar', $options->get('foo'));
+        $this->assertSame('bar', $options->getOptions()['foo']);
+
+        $options->remove('foo');
+
+        $this->assertFalse($options->has('foo'));
+        $this->assertNull($options->get('foo'));
+    }
+
+    #[Test]
+    public function it_no_longer_implements_array_access(): void
+    {
+        $this->assertFalse(is_subclass_of(DataTableOptions::class, \ArrayAccess::class));
     }
 
     #[Test]
