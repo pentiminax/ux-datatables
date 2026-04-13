@@ -10,9 +10,13 @@ use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\RowStageInterface;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
+use Pentiminax\UX\DataTables\RowMapper\Stage\ActionResolutionStage;
+use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
+use Pentiminax\UX\DataTables\RowMapper\Stage\TemplateRenderingStage;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -26,7 +30,7 @@ use Twig\Loader\ArrayLoader;
 final class RowProcessingPipelineTest extends TestCase
 {
     #[Test]
-    public function it_applies_the_base_mapper_when_no_optional_stage_is_configured(): void
+    public function it_applies_the_base_mapper_when_no_stage_is_added(): void
     {
         $pipeline = new RowProcessingPipeline(
             baseMapper: static fn (array $row): array => ['id' => $row['id']],
@@ -39,9 +43,58 @@ final class RowProcessingPipelineTest extends TestCase
     }
 
     #[Test]
-    public function it_renders_template_columns_after_the_base_mapper(): void
+    public function add_returns_self_for_fluent_chaining(): void
     {
         $pipeline = new RowProcessingPipeline(
+            baseMapper: static fn (array $row): array => $row,
+            columns: [],
+        );
+
+        $stage = new class implements RowStageInterface {
+            public function process(array $mappedRow, mixed $originalRow, array $columns): array
+            {
+                return $mappedRow;
+            }
+        };
+
+        $this->assertSame($pipeline, $pipeline->add($stage));
+    }
+
+    #[Test]
+    public function stages_are_applied_in_insertion_order(): void
+    {
+        $order    = [];
+        $pipeline = new RowProcessingPipeline(
+            baseMapper: static fn (array $row): array => $row,
+            columns: [],
+        );
+
+        foreach (['first', 'second', 'third'] as $label) {
+            $pipeline->add(new class($label, $order) implements RowStageInterface {
+                public function __construct(
+                    private readonly string $label,
+                    private array &$order,
+                ) {
+                }
+
+                public function process(array $mappedRow, mixed $originalRow, array $columns): array
+                {
+                    $this->order[] = $this->label;
+
+                    return $mappedRow;
+                }
+            });
+        }
+
+        $pipeline->map([]);
+
+        $this->assertSame(['first', 'second', 'third'], $order);
+    }
+
+    #[Test]
+    public function it_renders_template_columns_via_template_rendering_stage(): void
+    {
+        $pipeline = (new RowProcessingPipeline(
             baseMapper: static fn (TemplateRow $row): array => ['id' => $row->id],
             columns: [
                 TextColumn::new('id'),
@@ -49,12 +102,14 @@ final class RowProcessingPipelineTest extends TestCase
                     ->setField('status')
                     ->setTemplate('datatable/columns/status_badge.html.twig'),
             ],
-            templateColumnRenderer: new TemplateColumnRenderer(
-                new Environment(new ArrayLoader([
-                    'datatable/columns/status_badge.html.twig' => '<span>{{ row.id }}-{{ data }}</span>',
-                ]))
-            ),
-        );
+        ))->add(new NormalizationStage())
+          ->add(new TemplateRenderingStage(
+              new TemplateColumnRenderer(
+                  new Environment(new ArrayLoader([
+                      'datatable/columns/status_badge.html.twig' => '<span>{{ row.id }}-{{ data }}</span>',
+                  ]))
+              )
+          ));
 
         $mappedRow = $pipeline->map(new TemplateRow(id: 5, status: 'active'));
 
@@ -65,19 +120,18 @@ final class RowProcessingPipelineTest extends TestCase
     }
 
     #[Test]
-    public function it_resolves_action_urls_after_mapping(): void
+    public function it_resolves_action_urls_via_action_resolution_stage(): void
     {
         $actions = (new Actions())
             ->add(Action::detail()->linkToUrl(static fn (array $row): string => '/movies/'.$row['id']));
 
-        $pipeline = new RowProcessingPipeline(
+        $pipeline = (new RowProcessingPipeline(
             baseMapper: static fn (array $row): array => ['id' => $row['id']],
             columns: [
                 TextColumn::new('id'),
                 ActionColumn::fromActions('actions', 'Actions', $actions),
             ],
-            actionRowDataResolver: new ActionRowDataResolver(),
-        );
+        ))->add(new ActionResolutionStage(new ActionRowDataResolver()));
 
         $mappedRow = $pipeline->map(['id' => 8]);
 
@@ -94,10 +148,10 @@ final class RowProcessingPipelineTest extends TestCase
             }
         };
 
-        $pipeline = new RowProcessingPipeline(
+        $pipeline = (new RowProcessingPipeline(
             baseMapper: static fn (mixed $row): array => ['client' => $row],
             columns: [TextColumn::new('client', 'Client')->setField('client.name')],
-        );
+        ))->add(new NormalizationStage());
 
         $mappedRow = $pipeline->map($client);
 
@@ -114,10 +168,10 @@ final class RowProcessingPipelineTest extends TestCase
             }
         };
 
-        $pipeline = new RowProcessingPipeline(
+        $pipeline = (new RowProcessingPipeline(
             baseMapper: static fn (mixed $row): array => ['label' => $row],
             columns: [TextColumn::new('label', 'Label')],
-        );
+        ))->add(new NormalizationStage());
 
         $mappedRow = $pipeline->map($stringable);
 
@@ -127,10 +181,10 @@ final class RowProcessingPipelineTest extends TestCase
     #[Test]
     public function it_converts_non_stringable_object_to_null(): void
     {
-        $pipeline = new RowProcessingPipeline(
+        $pipeline = (new RowProcessingPipeline(
             baseMapper: static fn (mixed $row): array => ['client' => $row],
             columns: [TextColumn::new('client', 'Client')],
-        );
+        ))->add(new NormalizationStage());
 
         $mappedRow = $pipeline->map(new \stdClass());
 
@@ -142,10 +196,10 @@ final class RowProcessingPipelineTest extends TestCase
     {
         $date = new \DateTimeImmutable('2024-03-15');
 
-        $pipeline = new RowProcessingPipeline(
+        $pipeline = (new RowProcessingPipeline(
             baseMapper: static fn (mixed $row): array => ['createdAt' => $row],
             columns: [DateColumn::new('createdAt', 'Date')->setFormat('d/m/Y')],
-        );
+        ))->add(new NormalizationStage());
 
         $mappedRow = $pipeline->map($date);
 
@@ -155,10 +209,10 @@ final class RowProcessingPipelineTest extends TestCase
     #[Test]
     public function it_leaves_scalar_values_unchanged(): void
     {
-        $pipeline = new RowProcessingPipeline(
+        $pipeline = (new RowProcessingPipeline(
             baseMapper: static fn (array $row): array => $row,
             columns: [TextColumn::new('title', 'Title')],
-        );
+        ))->add(new NormalizationStage());
 
         $mappedRow = $pipeline->map(['title' => 'Hello World']);
 
@@ -166,12 +220,12 @@ final class RowProcessingPipelineTest extends TestCase
     }
 
     #[Test]
-    public function it_runs_map_then_template_then_action_resolution_in_order(): void
+    public function it_runs_stages_in_order_normalization_then_template_then_action(): void
     {
         $actions = (new Actions())
             ->add(Action::detail()->linkToUrl(static fn (array $row): string => '/movies/'.$row['id']));
 
-        $pipeline = new RowProcessingPipeline(
+        $pipeline = (new RowProcessingPipeline(
             baseMapper: static fn (array $row): array => [
                 'id'     => $row['id'],
                 'status' => 'mapped-'.$row['status'],
@@ -183,13 +237,15 @@ final class RowProcessingPipelineTest extends TestCase
                     ->setTemplate('datatable/columns/order.html.twig'),
                 ActionColumn::fromActions('actions', 'Actions', $actions),
             ],
-            templateColumnRenderer: new TemplateColumnRenderer(
-                new Environment(new ArrayLoader([
-                    'datatable/columns/order.html.twig' => '{{ row.__ux_datatables_actions.DETAIL.url|default("missing") }}|{{ data }}',
-                ]))
-            ),
-            actionRowDataResolver: new ActionRowDataResolver(),
-        );
+        ))->add(new NormalizationStage())
+          ->add(new TemplateRenderingStage(
+              new TemplateColumnRenderer(
+                  new Environment(new ArrayLoader([
+                      'datatable/columns/order.html.twig' => '{{ row.__ux_datatables_actions.DETAIL.url|default("missing") }}|{{ data }}',
+                  ]))
+              )
+          ))
+          ->add(new ActionResolutionStage(new ActionRowDataResolver()));
 
         $mappedRow = $pipeline->map(['id' => 7, 'status' => 'active']);
 
