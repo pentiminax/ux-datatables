@@ -50,9 +50,56 @@ Built-in mappers and processors:
   rows={[
     ['`DefaultRowMapper`', 'Default row-to-array mapping behavior'],
     ['`ClosureRowMapper`', 'Custom mapping logic via closure'],
-    ['`RowProcessingPipeline`', 'Internal pipeline used by `AbstractDataTable`'],
+    ['`RowProcessingPipeline`', 'Composable pipeline used by `AbstractDataTable` — stages added via `->add(RowStageInterface)`'],
   ]}
 />
+
+### RowStageInterface
+
+Each stage in `RowProcessingPipeline` implements `RowStageInterface`:
+
+```php
+interface RowStageInterface
+{
+    public function process(array $mappedRow, mixed $originalRow, array $columns): array;
+}
+```
+
+Built-in stages applied by default (in order):
+
+<Table
+  headers={['Stage', 'Responsibility']}
+  rows={[
+    ['`NormalizationStage`', 'Dotted-path resolution, `DateColumn` formatting, `Stringable` casting'],
+    ['`TemplateRenderingStage`', 'Renders `TemplateColumn` cells via Twig (only if renderer is available)'],
+    ['`ActionResolutionStage`', 'Resolves `ActionColumn` URLs into `__ux_datatables_actions` key'],
+  ]}
+/>
+
+Custom stage example:
+
+```php
+use Pentiminax\UX\DataTables\Contracts\RowStageInterface;
+
+final class UpperCaseTitleStage implements RowStageInterface
+{
+    public function process(array $mappedRow, mixed $originalRow, array $columns): array
+    {
+        if (isset($mappedRow['title'])) {
+            $mappedRow['title'] = strtoupper($mappedRow['title']);
+        }
+
+        return $mappedRow;
+    }
+}
+```
+
+```php
+protected function createRowMapper(): RowMapperInterface
+{
+    return parent::createRowMapper()->add(new UpperCaseTitleStage());
+}
+```
 
 ## DataTableResult
 
@@ -85,6 +132,8 @@ protected function createDataProvider(): ?DataProviderInterface
 `$this->createRowMapper()` is the important part: it preserves the same mapping, template
 rendering, and action-resolution behavior as the built-in Doctrine provider. `setData()` on
 `AbstractDataTable` uses that same pipeline for inline rows.
+
+Custom stages added to the pipeline are preserved when passing the mapper to a custom provider.
 
 ## Cross Links
 
