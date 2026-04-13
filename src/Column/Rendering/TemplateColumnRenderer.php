@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column\Rendering;
 
-use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Twig\Environment;
 
 final class TemplateColumnRenderer
@@ -26,7 +26,7 @@ final class TemplateColumnRenderer
         $contextRow  = $row;
 
         foreach ($columns as $column) {
-            if (!$column instanceof TemplateColumn) {
+            if (!$column instanceof TemplateAwareColumnInterface) {
                 continue;
             }
 
