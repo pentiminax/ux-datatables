@@ -7,6 +7,9 @@ namespace Pentiminax\UX\DataTables\Column;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
+/**
+ * @internal
+ */
 abstract class AbstractColumn implements ColumnInterface
 {
     protected ColumnType $type;
@@ -28,6 +31,8 @@ abstract class AbstractColumn implements ColumnInterface
 
     /**
      * Convenient factory helper used by concrete columns to set their type.
+     *
+     * @internal
      */
     protected static function createWithType(string $name, string $title, ColumnType $type): static
     {
@@ -195,6 +200,51 @@ abstract class AbstractColumn implements ColumnInterface
     public function isExportable(): bool
     {
         return $this->exportable;
+    }
+
+    public function getType(): ColumnType
+    {
+        return $this->type;
+    }
+
+    public function isVisible(): bool
+    {
+        return $this->visible;
+    }
+
+    public function isOrderable(): bool
+    {
+        return $this->orderable;
+    }
+
+    public function getWidth(): ?string
+    {
+        return $this->width;
+    }
+
+    public function getClassName(): ?string
+    {
+        return $this->className;
+    }
+
+    public function getCellType(): ?string
+    {
+        return $this->cellType;
+    }
+
+    public function getRender(): ?string
+    {
+        return $this->render;
+    }
+
+    public function getDefaultContent(): ?string
+    {
+        return $this->defaultContent;
+    }
+
+    public function getCustomOptions(): array
+    {
+        return $this->customOptions;
     }
 
     public function isNumber(): bool

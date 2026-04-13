@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\ApiPlatform;
 
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
@@ -17,7 +16,7 @@ final class ApiPlatformPropertyTypeMapper
     /**
      * Map a PropertyInfo type to the appropriate column class.
      *
-     * @return class-string<AbstractColumn>
+     * @return class-string<ColumnInterface>
      */
     public function mapType(mixed $type): string
     {
@@ -39,7 +38,7 @@ final class ApiPlatformPropertyTypeMapper
     }
 
     /**
-     * @return class-string<AbstractColumn>
+     * @return class-string<ColumnInterface>
      */
     private function mapTypeInfoType(Type $type): string
     {
