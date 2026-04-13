@@ -8,16 +8,10 @@ use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\EmailColumn;
-use Pentiminax\UX\DataTables\Column\HtmlColumn;
-use Pentiminax\UX\DataTables\Column\HtmlNumberColumn;
-use Pentiminax\UX\DataTables\Column\HtmlNumberFormatColumn;
-use Pentiminax\UX\DataTables\Column\HtmlUtf8Column;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
-use Pentiminax\UX\DataTables\Column\NumberFormatColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
-use Pentiminax\UX\DataTables\Column\Utf8TextColumn;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -67,15 +61,9 @@ final class ConcreteColumnFactoryTest extends TestCase
     public static function provideColumns(): iterable
     {
         yield 'text' => [TextColumn::class, ColumnType::STRING];
-        yield 'text-utf8' => [Utf8TextColumn::class, ColumnType::STRING_UTF8];
         yield 'boolean' => [BooleanColumn::class, ColumnType::NUM];
         yield 'date' => [DateColumn::class, ColumnType::DATE];
         yield 'number' => [NumberColumn::class, ColumnType::NUM];
-        yield 'number-formatted' => [NumberFormatColumn::class, ColumnType::NUM_FMT];
-        yield 'html-number' => [HtmlNumberColumn::class, ColumnType::HTML_NUM];
-        yield 'html-number-formatted' => [HtmlNumberFormatColumn::class, ColumnType::HTML_NUM_FMT];
-        yield 'html' => [HtmlColumn::class, ColumnType::HTML];
-        yield 'html-utf8' => [HtmlUtf8Column::class, ColumnType::HTML_UTF8];
         yield 'template' => [TemplateColumn::class, ColumnType::HTML];
         yield 'url' => [UrlColumn::class, ColumnType::HTML];
         yield 'email' => [EmailColumn::class, ColumnType::HTML];
