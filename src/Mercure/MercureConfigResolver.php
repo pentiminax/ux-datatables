@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Mercure;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceMercureMetadataResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
+use Symfony\Component\String\Inflector\EnglishInflector;
 
 final class MercureConfigResolver implements MercureConfigResolverInterface
 {
@@ -52,14 +53,6 @@ final class MercureConfigResolver implements MercureConfigResolverInterface
 
     private function pluralize(string $value): string
     {
-        if (preg_match('/[^aeiou]y$/', $value)) {
-            return substr($value, 0, -1).'ies';
-        }
-
-        if (preg_match('/(s|x|z|ch|sh)$/', $value)) {
-            return $value.'es';
-        }
-
-        return $value.'s';
+        return (new EnglishInflector())->pluralize($value)[0];
     }
 }
