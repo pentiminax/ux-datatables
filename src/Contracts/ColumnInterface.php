@@ -21,4 +21,8 @@ interface ColumnInterface extends \JsonSerializable
     public function getData(): ?string;
 
     public function getTitle(): ?string;
+
+    public function isNumber(): bool;
+
+    public function isDate(): bool;
 }
