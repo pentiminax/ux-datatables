@@ -249,12 +249,12 @@ abstract class AbstractColumn implements ColumnInterface
 
     public function isNumber(): bool
     {
-        return \in_array($this->type, [ColumnType::NUM, ColumnType::NUM_FMT, ColumnType::HTML_NUM, ColumnType::HTML_NUM_FMT], true);
+        return $this->type->isNumber();
     }
 
     public function isDate(): bool
     {
-        return ColumnType::DATE === $this->type;
+        return $this->type->isDate();
     }
 
     public function getData(): ?string

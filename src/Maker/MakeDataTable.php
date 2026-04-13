@@ -157,9 +157,9 @@ final class MakeDataTable extends AbstractMaker
         if ($type->isBuiltin()) {
             return match ($typeName) {
                 'int', 'float' => NumberColumn::class,
-                'string' => TextColumn::class,
-                'bool'   => BooleanColumn::class,
-                default  => null,
+                'string'       => TextColumn::class,
+                'bool'         => BooleanColumn::class,
+                default        => null,
             };
         }
 
