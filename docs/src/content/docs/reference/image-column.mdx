@@ -1,0 +1,157 @@
+---
+title: Image Column
+description: Render image thumbnails in table cells with configurable dimensions, lazy loading, placeholder fallback, and optional full-size click
+---
+
+# Image Column
+
+The `ImageColumn` renders an image field as an `<img>` tag. It supports configurable dimensions, lazy loading (enabled by default), a placeholder fallback for missing images, rounded avatar styling, and an optional click-to-open-full-size behavior.
+
+## Basic Usage
+
+```php
+use Pentiminax\UX\DataTables\Column\ImageColumn;
+
+ImageColumn::new('avatar', 'Avatar');
+```
+
+Renders as: `<img src="/uploads/avatar.jpg" alt="" loading="lazy">`
+
+## Width and Height
+
+Set the rendered `<img>` dimensions in pixels. These control the HTML `width`/`height` attributes, not the column width.
+
+```php
+ImageColumn::new('avatar', 'Avatar')
+    ->setImageWidth(50)
+    ->setImageHeight(50);
+```
+
+Renders as: `<img src="..." alt="" width="50" height="50" loading="lazy">`
+
+## Rounded (Avatar Style)
+
+`rounded()` adds `class="rounded-circle"` for circular avatar styling (Bootstrap).
+
+```php
+ImageColumn::new('avatar', 'Avatar')
+    ->setImageWidth(50)
+    ->setImageHeight(50)
+    ->rounded();
+```
+
+## Placeholder Fallback
+
+`setPlaceholder()` sets a fallback image URL rendered when the source image is missing or broken. If the cell value is empty, the placeholder is rendered directly. If the cell value exists but fails to load, an `onerror` handler switches to the placeholder.
+
+```php
+ImageColumn::new('avatar', 'Avatar')
+    ->setPlaceholder('/images/default-avatar.png');
+```
+
+## Lazy Loading
+
+Lazy loading is **enabled by default**. Disable it explicitly if needed:
+
+```php
+ImageColumn::new('avatar', 'Avatar')
+    ->lazy(false);
+```
+
+## Clickable (Full-Size)
+
+`clickable()` wraps the `<img>` in an `<a>` tag that opens the full-size image in a new tab.
+
+```php
+ImageColumn::new('avatar', 'Avatar')
+    ->clickable();
+```
+
+Renders as: `<a href="..." target="_blank" rel="noopener noreferrer"><img ...></a>`
+
+## Alt Text
+
+```php
+ImageColumn::new('avatar', 'Avatar')
+    ->setAlt('User profile picture');
+```
+
+## API Reference
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    [
+      "`ImageColumn::new(string $name, string $title = '')`",
+      'Creates a new ImageColumn (type: `html`). Lazy loading enabled by default.',
+    ],
+    [
+      '`setImageWidth(int $px)`',
+      'Sets the `width` HTML attribute on the `<img>` tag',
+    ],
+    [
+      '`setImageHeight(int $px)`',
+      'Sets the `height` HTML attribute on the `<img>` tag',
+    ],
+    [
+      '`setAlt(string $alt)`',
+      'Sets the `alt` attribute (defaults to empty string)',
+    ],
+    [
+      '`setPlaceholder(string $url)`',
+      'Fallback image URL for missing or broken sources',
+    ],
+    [
+      '`rounded(bool $rounded = true)`',
+      'Adds `class="rounded-circle"` for circular avatar display',
+    ],
+    [
+      '`lazy(bool $lazy = true)`',
+      'Toggles `loading="lazy"` (enabled by default)',
+    ],
+    [
+      '`clickable(bool $clickable = true)`',
+      'Wraps image in an `<a>` link to open full-size in new tab',
+    ],
+  ]}
+/>
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ImageColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield ImageColumn::new('avatar', 'Avatar')
+            ->setImageWidth(50)
+            ->setImageHeight(50)
+            ->rounded()
+            ->setPlaceholder('/images/default-avatar.png')
+            ->clickable();
+        yield TextColumn::new('name', 'Name');
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return [
+            'id'     => $item->getId(),
+            'avatar' => $item->getAvatarUrl(),
+            'name'   => $item->getName(),
+        ];
+    }
+}
+```
+
+<Aside type="note">
+  Searching and sorting operate on the raw image URL value, not the rendered `<img>` tag.
+  Column search and global search filter against the underlying path string.
+</Aside>

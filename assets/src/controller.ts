@@ -5,6 +5,7 @@ import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRend
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js'
 import type { ColumnRenderer } from './columnRenderers/types.js'
+import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 import { ApiPlatformAdapter, type ColumnConfig } from './functions/apiPlatformAdapter.js'
 import { deleteEntity } from './functions/deleteEntity.js'
@@ -138,6 +139,7 @@ export default class extends Controller {
             createBooleanColumnRenderer(this.getBooleanToggleUrl()),
             choiceColumnRenderer,
             emailColumnRenderer,
+            imageColumnRenderer,
             urlColumnRenderer,
             actionColumnRenderer,
         ]

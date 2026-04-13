@@ -3,6 +3,7 @@ import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js';
+import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
 import { deleteEntity } from './functions/deleteEntity.js';
@@ -99,6 +100,7 @@ class default_1 extends Controller {
             createBooleanColumnRenderer(this.getBooleanToggleUrl()),
             choiceColumnRenderer,
             emailColumnRenderer,
+            imageColumnRenderer,
             urlColumnRenderer,
             actionColumnRenderer,
         ];
