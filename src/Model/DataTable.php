@@ -47,7 +47,7 @@ class DataTable
             return $this->getColumnDefinitions();
         }
 
-        return $this->options[$name] ?? null;
+        return $this->options->get($name);
     }
 
     public function getOptions(): array
@@ -86,7 +86,7 @@ class DataTable
      */
     public function autoWidth(bool $autoWidth = true): static
     {
-        $this->options['autoWidth'] = $autoWidth;
+        $this->options->set('autoWidth', $autoWidth);
 
         return $this;
     }
@@ -101,7 +101,7 @@ class DataTable
      */
     public function order(array $order): static
     {
-        $this->options['order'] = $order;
+        $this->options->set('order', $order);
 
         return $this;
     }
@@ -111,15 +111,15 @@ class DataTable
      */
     public function caption(string $caption): static
     {
-        $this->options['caption'] = $caption;
+        $this->options->set('caption', $caption);
 
         return $this;
     }
 
     public function add(ColumnInterface $column): static
     {
-        if (!isset($this->options['columns'])) {
-            $this->options['columns'] = [];
+        if (!$this->options->has('columns')) {
+            $this->options->set('columns', []);
         }
 
         $this->columns[$column->getName()] = $column;
@@ -132,8 +132,8 @@ class DataTable
      */
     public function columns(array $columns): static
     {
-        if (!isset($this->options['columns'])) {
-            $this->options['columns'] = [];
+        if (!$this->options->has('columns')) {
+            $this->options->set('columns', []);
         }
 
         $this->columns = [];
@@ -155,7 +155,7 @@ class DataTable
      */
     public function deferRender(bool $deferRender): static
     {
-        $this->options['deferRender'] = $deferRender;
+        $this->options->set('deferRender', $deferRender);
 
         return $this;
     }
@@ -165,7 +165,7 @@ class DataTable
      */
     public function info(bool $info): static
     {
-        $this->options['info'] = $info;
+        $this->options->set('info', $info);
 
         return $this;
     }
@@ -175,7 +175,7 @@ class DataTable
      */
     public function lengthChange(bool $lengthChange): static
     {
-        $this->options['lengthChange'] = $lengthChange;
+        $this->options->set('lengthChange', $lengthChange);
 
         return $this;
     }
@@ -185,17 +185,17 @@ class DataTable
      */
     public function ordering(bool $handler = true, bool $indicators = true): static
     {
-        $this->options['ordering'] = [
+        $this->options->set('ordering', [
             'handler'    => $handler,
             'indicators' => $indicators,
-        ];
+        ]);
 
         return $this;
     }
 
     public function withoutOrdering(): static
     {
-        $this->options['ordering'] = false;
+        $this->options->set('ordering', false);
 
         return $this;
     }
@@ -207,13 +207,13 @@ class DataTable
         bool $numbers = true,
         bool $previousNext = true,
     ): static {
-        $this->options['paging'] = [
+        $this->options->set('paging', [
             'boundaryNumbers' => $boundaryNumbers,
             'buttons'         => $buttons,
             'firstLast'       => $firstLast,
             'numbers'         => $numbers,
             'previousNext'    => $previousNext,
-        ];
+        ]);
 
         return $this;
     }
@@ -223,7 +223,7 @@ class DataTable
      */
     public function withoutPaging(): static
     {
-        $this->options['paging'] = false;
+        $this->options->set('paging', false);
 
         return $this;
     }
@@ -233,7 +233,7 @@ class DataTable
      */
     public function processing(bool $processing = true): static
     {
-        $this->options['processing'] = $processing;
+        $this->options->set('processing', $processing);
 
         return $this;
     }
@@ -243,7 +243,7 @@ class DataTable
      */
     public function scrollX(bool $scrollX): static
     {
-        $this->options['scrollX'] = $scrollX;
+        $this->options->set('scrollX', $scrollX);
 
         return $this;
     }
@@ -253,7 +253,7 @@ class DataTable
      */
     public function scrollY(string $scrollY): static
     {
-        $this->options['scrollY'] = $scrollY;
+        $this->options->set('scrollY', $scrollY);
 
         return $this;
     }
@@ -263,7 +263,7 @@ class DataTable
      */
     public function searching(bool $searching = true): static
     {
-        $this->options['searching'] = $searching;
+        $this->options->set('searching', $searching);
 
         return $this;
     }
@@ -273,7 +273,7 @@ class DataTable
      */
     public function serverSide(bool $serverSide = true): static
     {
-        $this->options['serverSide'] = $serverSide;
+        $this->options->set('serverSide', $serverSide);
 
         return $this;
     }
@@ -283,7 +283,7 @@ class DataTable
      */
     public function apiPlatform(bool $enabled = true): static
     {
-        $this->options['apiPlatform'] = $enabled;
+        $this->options->set('apiPlatform', $enabled);
 
         return $this;
     }
@@ -323,7 +323,7 @@ class DataTable
      */
     public function stateSave(bool $stateSave = true): static
     {
-        $this->options['stateSave'] = $stateSave;
+        $this->options->set('stateSave', $stateSave);
 
         return $this;
     }
@@ -333,7 +333,7 @@ class DataTable
      */
     public function displayStart(int $displayStart): static
     {
-        $this->options['displayStart'] = $displayStart;
+        $this->options->set('displayStart', $displayStart);
 
         return $this;
     }
@@ -352,7 +352,7 @@ class DataTable
             $ajax['dataSrc'] = $dataSrc;
         }
 
-        $this->options['ajax'] = $ajax;
+        $this->options->set('ajax', $ajax);
 
         return $this;
     }
@@ -362,7 +362,7 @@ class DataTable
      */
     public function data(array $data): static
     {
-        $this->options['data'] = $data;
+        $this->options->set('data', $data);
 
         return $this;
     }
@@ -372,7 +372,7 @@ class DataTable
      */
     public function lengthMenu(array $lengthMenu): static
     {
-        $this->options['lengthMenu'] = $lengthMenu;
+        $this->options->set('lengthMenu', $lengthMenu);
 
         return $this;
     }
@@ -382,7 +382,7 @@ class DataTable
      */
     public function pageLength(int $pageLength): static
     {
-        $this->options['pageLength'] = $pageLength;
+        $this->options->set('pageLength', $pageLength);
 
         return $this;
     }
@@ -449,7 +449,7 @@ class DataTable
      */
     public function layout(array $layout): static
     {
-        $this->options['layout'] = $layout;
+        $this->options->set('layout', $layout);
 
         return $this;
     }
@@ -470,7 +470,7 @@ class DataTable
 
     public function withSearchOption(SearchOption $searchOption): static
     {
-        $this->options['search'] = $searchOption->jsonSerialize();
+        $this->options->set('search', $searchOption->jsonSerialize());
 
         return $this;
     }
@@ -505,7 +505,7 @@ class DataTable
 
     public function isServerSide(): bool
     {
-        return $this->options['serverSide'] ?? false;
+        return $this->options->get('serverSide') ?? false;
     }
 
     private function addButtonsToLayout(array &$options): void
