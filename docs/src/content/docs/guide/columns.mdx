@@ -131,6 +131,20 @@ $column = TextColumn::new('email', 'Email')
     }');
 ```
 
+### ImageColumn
+
+For image fields rendered as `<img>` thumbnails. Lazy loading is enabled by default. See the [ImageColumn reference](../../reference/image-column/) for all options.
+
+```php
+use Pentiminax\UX\DataTables\Column\ImageColumn;
+
+ImageColumn::new('avatar', 'Avatar')
+    ->setImageWidth(50)
+    ->setImageHeight(50)
+    ->rounded()
+    ->setPlaceholder('/images/default-avatar.png');
+```
+
 ### TemplateColumn (Twig)
 
 Use `TemplateColumn` when you want to render server-side HTML with Twig:
