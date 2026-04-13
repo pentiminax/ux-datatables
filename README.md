@@ -8,6 +8,8 @@
 UX DataTables is a Symfony bundle integrating the [DataTables][1]
 library in Symfony applications.
 
+[Video tutorial](https://youtu.be/qYHRXr_qdPY)
+
 [1]: https://datatables.net
 
 ## Requirements
