@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Controller;
 
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
-use Pentiminax\UX\DataTables\Form\EditFormViewHandler;
+use Pentiminax\UX\DataTables\Form\EditFormService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapQueryString;
@@ -13,13 +13,13 @@ use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 final class AjaxEditFormController
 {
     public function __construct(
-        private readonly EditFormViewHandler $viewHandler,
+        private readonly EditFormService $service,
     ) {
     }
 
     public function __invoke(#[MapQueryString] AjaxEditFormQueryDto $payload): Response
     {
-        $result = $this->viewHandler->handle($payload);
+        $result = $this->service->handleView($payload);
 
         if (!$result->success) {
             return $this->jsonError($result->message, $result->statusCode);

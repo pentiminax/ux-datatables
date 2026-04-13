@@ -32,9 +32,7 @@ use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormEntityResolver;
-use Pentiminax\UX\DataTables\Form\EditFormRenderer;
-use Pentiminax\UX\DataTables\Form\EditFormSubmissionHandler;
-use Pentiminax\UX\DataTables\Form\EditFormViewHandler;
+use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
@@ -328,32 +326,21 @@ class DataTablesBundle extends AbstractBundle
             ->private();
 
         $container->services()
-            ->set('datatables.form.edit_form_renderer', EditFormRenderer::class)
-            ->arg(0, service('datatables.form.edit_form_builder'))
-            ->arg(1, service('twig'))
-            ->private();
-
-        $container->services()
-            ->set('datatables.form.edit_form_view_handler', EditFormViewHandler::class)
+            ->set('datatables.form.edit_form_service', EditFormService::class)
             ->arg(0, service('datatables.form.edit_form_entity_resolver'))
-            ->arg(1, service('datatables.form.edit_form_renderer'))
-            ->private();
-
-        $container->services()
-            ->set('datatables.form.edit_form_submission_handler', EditFormSubmissionHandler::class)
-            ->arg(0, service('datatables.form.edit_form_entity_resolver'))
-            ->arg(1, service('datatables.form.edit_form_renderer'))
+            ->arg(1, service('datatables.form.edit_form_builder'))
+            ->arg(2, service('twig'))
             ->private();
 
         $container->services()
             ->set('datatables.controller.ajax_edit_form', AjaxEditFormController::class)
-            ->arg(0, service('datatables.form.edit_form_view_handler'))
+            ->arg(0, service('datatables.form.edit_form_service'))
             ->tag('controller.service_arguments')
             ->public();
 
         $container->services()
             ->set('datatables.controller.ajax_edit_form_submit', AjaxEditFormSubmitController::class)
-            ->arg(0, service('datatables.form.edit_form_submission_handler'))
+            ->arg(0, service('datatables.form.edit_form_service'))
             ->tag('controller.service_arguments')
             ->public();
     }
@@ -391,8 +378,8 @@ class DataTablesBundle extends AbstractBundle
         $builder->getDefinition('datatables.controller.ajax_delete')
             ->addArgument(new Reference('datatables.mercure.publisher'));
 
-        if ($builder->hasDefinition('datatables.form.edit_form_submission_handler')) {
-            $builder->getDefinition('datatables.form.edit_form_submission_handler')
+        if ($builder->hasDefinition('datatables.form.edit_form_service')) {
+            $builder->getDefinition('datatables.form.edit_form_service')
                 ->addArgument(new Reference('datatables.mercure.publisher'));
         }
     }

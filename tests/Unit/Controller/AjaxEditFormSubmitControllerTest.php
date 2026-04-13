@@ -13,8 +13,7 @@ use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormEntityResolver;
-use Pentiminax\UX\DataTables\Form\EditFormRenderer;
-use Pentiminax\UX\DataTables\Form\EditFormSubmissionHandler;
+use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -51,9 +50,12 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ->method('createView')
             ->willReturn(new FormView());
 
-        $controller = new AjaxEditFormSubmitController(new EditFormSubmissionHandler(
+        [$formFactory, $twig] = $this->createFormFactoryAndTwig($form, '<form>invalid</form>', 1);
+
+        $controller = new AjaxEditFormSubmitController(new EditFormService(
             new EditFormEntityResolver($registry),
-            $this->createRenderer($form, '<form>invalid</form>'),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $twig,
         ));
 
         $response = $controller(new AjaxEditFormRequestDto(
@@ -86,9 +88,12 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ->willReturn(true);
         $form->expects($this->never())->method('createView');
 
-        $controller = new AjaxEditFormSubmitController(new EditFormSubmissionHandler(
+        [$formFactory, $twig] = $this->createFormFactoryAndTwig($form, '', 1);
+
+        $controller = new AjaxEditFormSubmitController(new EditFormService(
             new EditFormEntityResolver($registry),
-            $this->createRenderer($form, '<form>unused</form>'),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $twig,
         ));
 
         $response = $controller(new AjaxEditFormRequestDto(
@@ -125,9 +130,33 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             }))
             ->willReturn('urn:uuid:published');
 
-        $controller = new AjaxEditFormSubmitController(new EditFormSubmissionHandler(
+        $forms = [
+            $this->createValidFormMock(),
+            $this->createValidFormMock(),
+        ];
+
+        $formBuilder = $this->createMock(FormBuilderInterface::class);
+        $formBuilder->expects($this->exactly(2))
+            ->method('add')
+            ->with('name', $this->isType('string'), $this->isType('array'))
+            ->willReturnSelf();
+        $formBuilder->expects($this->exactly(2))
+            ->method('getForm')
+            ->willReturnOnConsecutiveCalls(...$forms);
+
+        $formFactory = $this->createMock(FormFactoryInterface::class);
+        $formFactory->expects($this->exactly(2))
+            ->method('createBuilder')
+            ->with($this->isType('string'), $this->isType('object'))
+            ->willReturn($formBuilder);
+
+        $twig = $this->createMock(Environment::class);
+        $twig->expects($this->never())->method('render');
+
+        $controller = new AjaxEditFormSubmitController(new EditFormService(
             new EditFormEntityResolver($registry),
-            $this->createRendererSequence(),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $twig,
             new MercureUpdatePublisher($hub),
         ));
 
@@ -190,19 +219,22 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         return $entityManager;
     }
 
-    private function createRenderer(FormInterface $form, string $html): EditFormRenderer
+    /**
+     * @return array{FormFactoryInterface, Environment}
+     */
+    private function createFormFactoryAndTwig(FormInterface $form, string $html, int $calls): array
     {
         $formBuilder = $this->createMock(FormBuilderInterface::class);
-        $formBuilder->expects($this->once())
+        $formBuilder->expects($this->exactly($calls))
             ->method('add')
             ->with('name', $this->isType('string'), $this->isType('array'))
             ->willReturnSelf();
-        $formBuilder->expects($this->once())
+        $formBuilder->expects($this->exactly($calls))
             ->method('getForm')
             ->willReturn($form);
 
         $formFactory = $this->createMock(FormFactoryInterface::class);
-        $formFactory->expects($this->once())
+        $formFactory->expects($this->exactly($calls))
             ->method('createBuilder')
             ->with($this->isType('string'), $this->isType('object'))
             ->willReturn($formBuilder);
@@ -210,35 +242,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $twig = $this->createMock(Environment::class);
         $twig->method('render')->willReturn($html);
 
-        return new EditFormRenderer(new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()), $twig);
-    }
-
-    private function createRendererSequence(): EditFormRenderer
-    {
-        $forms = [
-            $this->createValidFormMock(),
-            $this->createValidFormMock(),
-        ];
-
-        $formBuilder = $this->createMock(FormBuilderInterface::class);
-        $formBuilder->expects($this->exactly(2))
-            ->method('add')
-            ->with('name', $this->isType('string'), $this->isType('array'))
-            ->willReturnSelf();
-        $formBuilder->expects($this->exactly(2))
-            ->method('getForm')
-            ->willReturnOnConsecutiveCalls(...$forms);
-
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-        $formFactory->expects($this->exactly(2))
-            ->method('createBuilder')
-            ->with($this->isType('string'), $this->isType('object'))
-            ->willReturn($formBuilder);
-
-        $twig = $this->createMock(Environment::class);
-        $twig->expects($this->never())->method('render');
-
-        return new EditFormRenderer(new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()), $twig);
+        return [$formFactory, $twig];
     }
 
     private function createValidFormMock(): FormInterface
