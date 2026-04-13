@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Model;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -143,7 +142,7 @@ abstract class AbstractDataTable
     }
 
     /**
-     * @return iterable<AbstractColumn>
+     * @return iterable<ColumnInterface>
      */
     public function configureColumns(): iterable
     {
