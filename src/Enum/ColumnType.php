@@ -15,4 +15,17 @@ enum ColumnType: string
     case HTML         = 'html';
     case STRING_UTF8  = 'string-utf8';
     case STRING       = 'string';
+
+    public function isNumber(): bool
+    {
+        return match ($this) {
+            self::NUM, self::NUM_FMT, self::HTML_NUM, self::HTML_NUM_FMT => true,
+            default                                                      => false,
+        };
+    }
+
+    public function isDate(): bool
+    {
+        return self::DATE === $this;
+    }
 }

@@ -17,6 +17,7 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -68,6 +69,35 @@ final class ColumnTypesTest extends TestCase
         $data = $column->jsonSerialize();
 
         $this->assertSame($expectedType->value, $data['type']);
+    }
+
+    #[Test]
+    #[TestWith([ColumnType::NUM])]
+    #[TestWith([ColumnType::NUM_FMT])]
+    #[TestWith([ColumnType::HTML_NUM])]
+    #[TestWith([ColumnType::HTML_NUM_FMT])]
+    public function it_identifies_number_types(ColumnType $type): void
+    {
+        $this->assertTrue($type->isNumber());
+        $this->assertFalse($type->isDate());
+    }
+
+    #[Test]
+    public function it_identifies_date_type(): void
+    {
+        $this->assertTrue(ColumnType::DATE->isDate());
+        $this->assertFalse(ColumnType::DATE->isNumber());
+    }
+
+    #[Test]
+    #[TestWith([ColumnType::HTML])]
+    #[TestWith([ColumnType::HTML_UTF8])]
+    #[TestWith([ColumnType::STRING])]
+    #[TestWith([ColumnType::STRING_UTF8])]
+    public function it_returns_false_for_non_numeric_non_date_types(ColumnType $type): void
+    {
+        $this->assertFalse($type->isNumber());
+        $this->assertFalse($type->isDate());
     }
 
     /**
