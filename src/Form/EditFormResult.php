@@ -6,7 +6,7 @@ namespace Pentiminax\UX\DataTables\Form;
 
 use Symfony\Component\HttpFoundation\Response;
 
-final readonly class EditFormSubmissionResult
+final readonly class EditFormResult
 {
     private function __construct(
         public bool $success,
@@ -16,11 +16,11 @@ final readonly class EditFormSubmissionResult
     ) {
     }
 
-    public static function success(): self
+    public static function success(?string $html = null): self
     {
         return new self(
             success: true,
-            html: null,
+            html: $html,
             message: '',
             statusCode: Response::HTTP_OK,
         );

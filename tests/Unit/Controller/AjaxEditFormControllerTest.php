@@ -13,8 +13,7 @@ use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormEntityResolver;
-use Pentiminax\UX\DataTables\Form\EditFormRenderer;
-use Pentiminax\UX\DataTables\Form\EditFormViewHandler;
+use Pentiminax\UX\DataTables\Form\EditFormService;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -41,9 +40,31 @@ final class AjaxEditFormControllerTest extends TestCase
             ->method('createView')
             ->willReturn(new FormView());
 
-        $controller = new AjaxEditFormController(new EditFormViewHandler(
+        $formBuilder = $this->createMock(FormBuilderInterface::class);
+        $formBuilder->expects($this->once())
+            ->method('add')
+            ->with('name', $this->isType('string'), $this->isType('array'))
+            ->willReturnSelf();
+        $formBuilder->expects($this->once())
+            ->method('getForm')
+            ->willReturn($form);
+
+        $formFactory = $this->createMock(FormFactoryInterface::class);
+        $formFactory->expects($this->once())
+            ->method('createBuilder')
+            ->with($this->isType('string'), $this->isType('object'))
+            ->willReturn($formBuilder);
+
+        $twig = $this->createMock(Environment::class);
+        $twig->expects($this->once())
+            ->method('render')
+            ->with('@DataTables/form/edit_form.html.twig', $this->isType('array'))
+            ->willReturn('<form>ok</form>');
+
+        $controller = new AjaxEditFormController(new EditFormService(
             new EditFormEntityResolver($registry),
-            $this->createRenderer($form),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $twig,
         ));
 
         $response = $controller(new AjaxEditFormQueryDto(
@@ -83,9 +104,10 @@ final class AjaxEditFormControllerTest extends TestCase
         $twig = $this->createMock(Environment::class);
         $twig->expects($this->never())->method('render');
 
-        $controller = new AjaxEditFormController(new EditFormViewHandler(
+        $controller = new AjaxEditFormController(new EditFormService(
             new EditFormEntityResolver($registry),
-            new EditFormRenderer(new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()), $twig),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $twig,
         ));
 
         $response = $controller(new AjaxEditFormQueryDto(
@@ -116,9 +138,10 @@ final class AjaxEditFormControllerTest extends TestCase
         $twig = $this->createMock(Environment::class);
         $twig->expects($this->never())->method('render');
 
-        $controller = new AjaxEditFormController(new EditFormViewHandler(
+        $controller = new AjaxEditFormController(new EditFormService(
             new EditFormEntityResolver($registry),
-            new EditFormRenderer(new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()), $twig),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $twig,
         ));
 
         $response = $controller(new AjaxEditFormQueryDto(
@@ -169,32 +192,6 @@ final class AjaxEditFormControllerTest extends TestCase
             ->willReturn($classMetadata);
 
         return $entityManager;
-    }
-
-    private function createRenderer(FormInterface $form): EditFormRenderer
-    {
-        $formBuilder = $this->createMock(FormBuilderInterface::class);
-        $formBuilder->expects($this->once())
-            ->method('add')
-            ->with('name', $this->isType('string'), $this->isType('array'))
-            ->willReturnSelf();
-        $formBuilder->expects($this->once())
-            ->method('getForm')
-            ->willReturn($form);
-
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-        $formFactory->expects($this->once())
-            ->method('createBuilder')
-            ->with($this->isType('string'), $this->isType('object'))
-            ->willReturn($formBuilder);
-
-        $twig = $this->createMock(Environment::class);
-        $twig->expects($this->once())
-            ->method('render')
-            ->with('@DataTables/form/edit_form.html.twig', $this->isType('array'))
-            ->willReturn('<form>ok</form>');
-
-        return new EditFormRenderer(new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()), $twig);
     }
 }
 

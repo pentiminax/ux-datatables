@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Controller;
 
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
-use Pentiminax\UX\DataTables\Form\EditFormSubmissionHandler;
+use Pentiminax\UX\DataTables\Form\EditFormService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
@@ -13,13 +13,13 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 final class AjaxEditFormSubmitController
 {
     public function __construct(
-        private readonly EditFormSubmissionHandler $submissionHandler,
+        private readonly EditFormService $service,
     ) {
     }
 
     public function __invoke(#[MapRequestPayload] AjaxEditFormRequestDto $payload): Response
     {
-        $result = $this->submissionHandler->handle($payload);
+        $result = $this->service->handleSubmit($payload);
 
         if (!$result->success) {
             if (null !== $result->html) {
