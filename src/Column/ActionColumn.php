@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column;
 
+use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Model\Actions;
 
-class ActionColumn extends AbstractColumn
+class ActionColumn extends AbstractColumn implements ActionsProvidingColumnInterface
 {
     private ?Actions $actions = null;
 

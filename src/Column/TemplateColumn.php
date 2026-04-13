@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column;
 
+use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
-class TemplateColumn extends AbstractColumn
+class TemplateColumn extends AbstractColumn implements TemplateAwareColumnInterface
 {
     public const string OPTION_TEMPLATE_PATH       = 'templatePath';
     public const string OPTION_TEMPLATE_PARAMETERS = 'templateParameters';

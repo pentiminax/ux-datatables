@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column;
 
+use Pentiminax\UX\DataTables\Contracts\RouteAwareColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
-class UrlColumn extends AbstractColumn
+class UrlColumn extends AbstractColumn implements RouteAwareColumnInterface
 {
     public const string OPTION_TARGET             = 'target';
     public const string OPTION_DISPLAY_VALUE      = 'displayValue';
