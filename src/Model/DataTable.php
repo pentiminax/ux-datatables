@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
+use Symfony\Component\String\Inflector\EnglishInflector;
 
 class DataTable
 {
@@ -546,14 +547,6 @@ class DataTable
 
     private function pluralize(string $value): string
     {
-        if (preg_match('/[^aeiou]y$/', $value)) {
-            return substr($value, 0, -1).'ies';
-        }
-
-        if (preg_match('/(s|x|z|ch|sh)$/', $value)) {
-            return $value.'es';
-        }
-
-        return $value.'s';
+        return (new EnglishInflector())->pluralize($value)[0];
     }
 }
