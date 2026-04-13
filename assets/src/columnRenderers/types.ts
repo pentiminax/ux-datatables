@@ -51,6 +51,17 @@ export interface UrlCustomOptions {
     showExternalIcon?: boolean
 }
 
+export interface ImageCustomOptions {
+    isImage?: boolean
+    imageWidth?: number
+    imageHeight?: number
+    alt?: string
+    lazy?: boolean
+    rounded?: boolean
+    placeholder?: string
+    clickable?: boolean
+}
+
 export interface ActionConfig {
     type: string
     label: string
