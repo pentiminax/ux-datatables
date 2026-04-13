@@ -5,18 +5,15 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
-use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
-use Pentiminax\UX\DataTables\Query\SearchConditionBuilder;
+use Pentiminax\UX\DataTables\Query\SearchPredicateFactory;
 
 /**
- * Filter that applies global search across all searchable columns.
+ * Filter that applies global search across all globally searchable columns.
  *
- * For text columns, performs LIKE %value% search.
- * For numeric columns, performs exact match if the search value is numeric.
+ * Delegates condition building to SearchPredicateFactory.
  * All conditions are combined with OR logic.
  */
 final class GlobalSearchFilter implements QueryFilterInterface
@@ -46,14 +43,10 @@ final class GlobalSearchFilter implements QueryFilterInterface
             }
 
             $paramName = \sprintf('search_param_%d', $index);
+            $condition = SearchPredicateFactory::build($qb, $column, $context->alias, $field, $searchValue, $paramName);
 
-            if ($column instanceof TextColumn) {
-                if (!RelationFieldResolver::supportsSearchFiltering($qb, $field)) {
-                    continue;
-                }
-                $conditions[] = SearchConditionBuilder::text($qb, $context->alias, $field, $searchValue, $paramName);
-            } elseif ($column->isNumber() && is_numeric($searchValue)) {
-                $conditions[] = SearchConditionBuilder::numeric($qb, $context->alias, $field, $searchValue, $paramName);
+            if (null !== $condition) {
+                $conditions[] = $condition;
             }
         }
 
