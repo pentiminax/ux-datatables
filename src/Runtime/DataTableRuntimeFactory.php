@@ -15,6 +15,9 @@ use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
+use Pentiminax\UX\DataTables\RowMapper\Stage\ActionResolutionStage;
+use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
+use Pentiminax\UX\DataTables\RowMapper\Stage\TemplateRenderingStage;
 
 final class DataTableRuntimeFactory
 {
@@ -36,12 +39,16 @@ final class DataTableRuntimeFactory
      */
     public function createRowMapper(\Closure $baseMapper, array $columns): RowMapperInterface
     {
-        return new RowProcessingPipeline(
-            baseMapper: $baseMapper,
-            columns: $columns,
-            templateColumnRenderer: $this->templateColumnRenderer,
-            actionRowDataResolver: $this->actionRowDataResolver ?? new ActionRowDataResolver(),
-        );
+        $pipeline = (new RowProcessingPipeline($baseMapper, $columns))
+            ->add(new NormalizationStage());
+
+        if (null !== $this->templateColumnRenderer) {
+            $pipeline->add(new TemplateRenderingStage($this->templateColumnRenderer));
+        }
+
+        $pipeline->add(new ActionResolutionStage($this->actionRowDataResolver ?? new ActionRowDataResolver()));
+
+        return $pipeline;
     }
 
     /**
