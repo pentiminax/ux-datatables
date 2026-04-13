@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
+use Pentiminax\UX\DataTables\Contracts\RouteAwareColumnInterface;
+use Pentiminax\UX\DataTables\Enum\ColumnType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -88,6 +91,44 @@ final class UrlColumnResolverTest extends TestCase
 
         $data = $column->jsonSerialize();
         $this->assertSame('/app/users/{id}', $data['customOptions']['template']);
+    }
+
+    #[Test]
+    public function it_resolves_routes_for_custom_route_aware_columns(): void
+    {
+        $column = new class extends AbstractColumn implements RouteAwareColumnInterface {
+            private ?string $routeName = 'app_user_show';
+            private ?string $template  = null;
+
+            public function __construct()
+            {
+                $this->setName('custom');
+                $this->setTitle('custom');
+                $this->setType(ColumnType::HTML);
+            }
+
+            public function getRouteName(): ?string
+            {
+                return $this->routeName;
+            }
+
+            public function setUrlTemplate(string $template): static
+            {
+                $this->template = $template;
+
+                return $this;
+            }
+
+            public function resolvedTemplate(): ?string
+            {
+                return $this->template;
+            }
+        };
+
+        $resolver = new UrlColumnResolver($this->createRouter('/custom/{id}'));
+        $resolver->resolveRoutes([$column]);
+
+        $this->assertSame('/custom/{id}', $column->resolvedTemplate());
     }
 
     private function createRouter(string $path, string $baseUrl = ''): RouterInterface

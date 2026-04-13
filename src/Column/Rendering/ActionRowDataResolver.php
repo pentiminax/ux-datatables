@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column\Rendering;
 
-use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 
 final class ActionRowDataResolver
@@ -23,7 +23,7 @@ final class ActionRowDataResolver
         $actions = [];
 
         foreach ($columns as $column) {
-            if (!$column instanceof ActionColumn) {
+            if (!$column instanceof ActionsProvidingColumnInterface) {
                 continue;
             }
 
