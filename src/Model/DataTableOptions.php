@@ -7,7 +7,7 @@ namespace Pentiminax\UX\DataTables\Model;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 
-class DataTableOptions implements \ArrayAccess
+class DataTableOptions
 {
     private array $options;
 
@@ -30,6 +30,44 @@ class DataTableOptions implements \ArrayAccess
         $this->options['search']['search'] = $search;
 
         return $this;
+    }
+
+    /**
+     * Set an arbitrary DataTables.net option.
+     *
+     * Escape hatch for options the bundle does not expose through a typed
+     * setter. Prefer the dedicated builder methods on {@see DataTable} when
+     * available.
+     */
+    public function set(string $name, mixed $value): static
+    {
+        $this->options[$name] = $value;
+
+        return $this;
+    }
+
+    public function get(string $name): mixed
+    {
+        return $this->options[$name] ?? null;
+    }
+
+    public function has(string $name): bool
+    {
+        return isset($this->options[$name]);
+    }
+
+    public function remove(string $name): static
+    {
+        unset($this->options[$name]);
+
+        return $this;
+    }
+
+    public function getOptions(): array
+    {
+        $this->handleLayoutOption();
+
+        return $this->options;
     }
 
     private function handleLanguageOption(array $options): array
@@ -70,32 +108,5 @@ class DataTableOptions implements \ArrayAccess
         }
 
         return $value;
-    }
-
-    public function getOptions(): array
-    {
-        $this->handleLayoutOption();
-
-        return $this->options;
-    }
-
-    public function offsetExists($offset): bool
-    {
-        return isset($this->options[$offset]);
-    }
-
-    public function offsetGet($offset): mixed
-    {
-        return $this->options[$offset] ?? null;
-    }
-
-    public function offsetSet($offset, $value): void
-    {
-        $this->options[$offset] = $value;
-    }
-
-    public function offsetUnset($offset): void
-    {
-        unset($this->options[$offset]);
     }
 }
