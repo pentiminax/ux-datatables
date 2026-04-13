@@ -12,7 +12,7 @@ abstract class AbstractExtension implements ExtensionInterface
 
     abstract public function getKey(): string;
 
-    public function enabled(bool $enabled = true): self
+    public function enabled(bool $enabled = true): static
     {
         $this->enabled = $enabled;
 
