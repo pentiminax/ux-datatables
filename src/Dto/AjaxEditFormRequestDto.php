@@ -9,9 +9,9 @@ final readonly class AjaxEditFormRequestDto
     public function __construct(
         public string $entity,
         public int|string $id,
-        public array $columns = [],
         public array $formData = [],
         public array $topics = [],
+        public ?string $dataTableClass = null,
     ) {
     }
 }
