@@ -3,8 +3,6 @@ title: Edit Modal
 description: Inline edit modal configuration, template overrides, form mapping, and customization
 ---
 
-import { Aside, Table } from '../../../components'
-
 # Edit Modal
 
 `Action::edit()` opens a configured edit modal containing an auto-generated Symfony Form. The bundle ships with Bootstrap 5 templates and a Bootstrap modal adapter by default, but both the Twig template and the JavaScript adapter can be overridden.
@@ -148,17 +146,83 @@ final class ProductsDataTable extends AbstractDataTable
                 ->setIcon('bi bi-pencil')
         );
     }
+}
+```
 
-    protected function mapRow(mixed $item): array
-    {
-        /** @var Product $item */
-        return [
-            'id' => $item->getId(),
-            'name' => $item->getName(),
-            'price' => $item->getPrice(),
-            'active' => $item->isActive(),
-        ];
+## Custom Modal Adapter
+
+Implement the `ModalAdapter` interface and register it via `modalAdapters`.
+
+```ts
+// assets/modal/dialog-adapter.ts
+import type { ModalAdapter, ModalHandlers } from '@pentiminax/ux-datatables/modal/ModalAdapter'
+
+export class DialogModalAdapter implements ModalAdapter {
+    private dialog: HTMLDialogElement | null = null
+    private handlers: ModalHandlers | null = null
+
+    async show(html: string, handlers: ModalHandlers): Promise<void> {
+        this.handlers = handlers
+
+        const template = document.createElement('template')
+        template.innerHTML = html.trim()
+
+        const root = template.content.querySelector<HTMLElement>('[data-ux-datatables-modal]')
+        if (!root) return
+
+        this.dialog = root as HTMLDialogElement
+        document.body.appendChild(this.dialog)
+
+        this.dialog.querySelector('[data-ux-datatables-submit]')
+            ?.addEventListener('click', async () => {
+                const form = this.dialog!.querySelector<HTMLFormElement>('#ux-datatables-edit-form')
+                if (form) await handlers.onSubmit(Object.fromEntries(new FormData(form)))
+            })
+
+        this.dialog.addEventListener('close', () => handlers.onCancel?.())
+        this.dialog.showModal()
     }
+
+    replaceBody(html: string): void {
+        const body = this.dialog?.querySelector('[data-ux-datatables-modal-body]')
+        if (body) body.innerHTML = html
+    }
+
+    async hide(): Promise<void> {
+        this.dialog?.close()
+        this.dialog?.remove()
+        this.dialog = null
+    }
+
+    isOpen(): boolean {
+        return this.dialog?.open ?? false
+    }
+}
+```
+
+Then register it once (e.g. in your app entrypoint):
+
+```ts
+import { modalAdapters } from '@pentiminax/ux-datatables/modal/ModalAdapterRegistry'
+import { DialogModalAdapter } from './modal/dialog-adapter'
+
+modalAdapters.register('dialog', () => new DialogModalAdapter())
+```
+
+Activate it globally via config or per-table:
+
+```yaml
+# config/packages/data_tables.yaml
+data_tables:
+  edit_modal:
+    adapter: 'dialog'
+```
+
+```php
+// Per-table
+protected function configureDataTable(DataTable $table): DataTable
+{
+    return $table->editModalAdapter('dialog');
 }
 ```
 
