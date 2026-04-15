@@ -27,6 +27,10 @@ class DataTable
 
     private ?MercureConfig $mercureConfig = null;
 
+    private ?string $editModalTemplate = null;
+
+    private ?string $editModalAdapter = null;
+
     public function __construct(
         private readonly string $id,
         array $options = [],
@@ -80,6 +84,30 @@ class DataTable
     public function getDataController(): ?string
     {
         return $this->attributes['data-controller'] ?? null;
+    }
+
+    public function editModalTemplate(string $template): static
+    {
+        $this->editModalTemplate = $template;
+
+        return $this;
+    }
+
+    public function getEditModalTemplate(): ?string
+    {
+        return $this->editModalTemplate;
+    }
+
+    public function editModalAdapter(string $adapter): static
+    {
+        $this->editModalAdapter = $adapter;
+
+        return $this;
+    }
+
+    public function getEditModalAdapter(): ?string
+    {
+        return $this->editModalAdapter;
     }
 
     /**

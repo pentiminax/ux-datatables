@@ -26,6 +26,16 @@ final readonly class EditFormResult
         );
     }
 
+    public static function badRequest(string $message): self
+    {
+        return new self(
+            success: false,
+            html: null,
+            message: $message,
+            statusCode: Response::HTTP_BAD_REQUEST,
+        );
+    }
+
     public static function invalid(string $html): self
     {
         return new self(

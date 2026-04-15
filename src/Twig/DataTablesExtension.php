@@ -30,6 +30,8 @@ class DataTablesExtension extends AbstractExtension
 
     public function renderDataTable(AbstractDataTable|DataTable $table, array $attributes = []): string
     {
+        $dataTableClass = $table instanceof AbstractDataTable ? $table::class : null;
+
         if ($table instanceof AbstractDataTable) {
             $table = $table->getDataTable();
         }
@@ -61,7 +63,12 @@ class DataTablesExtension extends AbstractExtension
         }
 
         $controllers['@pentiminax/ux-datatables/datatable'] = [
-            'view' => array_merge($options, $table->getExtensions()),
+            'view' => array_merge($options, $table->getExtensions(), [
+                'dataTableClass' => $dataTableClass,
+                'editModal'      => [
+                    'adapter' => $table->getEditModalAdapter(),
+                ],
+            ]),
         ];
 
         $stimulusAttributes = $this->stimulus->createStimulusAttributes();

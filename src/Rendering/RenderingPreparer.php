@@ -23,6 +23,7 @@ final class RenderingPreparer
     {
         $this->configureApiPlatform($table, $asDataTable);
         $this->configureMercure($table, $asDataTable);
+        $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
     }
 
@@ -78,6 +79,21 @@ final class RenderingPreparer
             withCredentials: $mercureConfig->withCredentials,
             debounceMs: $mercureConfig->debounceMs,
         );
+    }
+
+    private function configureEditModal(DataTable $table, ?AsDataTable $asDataTable): void
+    {
+        if (null === $asDataTable) {
+            return;
+        }
+
+        if (null === $table->getEditModalAdapter() && \is_string($asDataTable->editModalAdapter) && '' !== trim($asDataTable->editModalAdapter)) {
+            $table->editModalAdapter($asDataTable->editModalAdapter);
+        }
+
+        if (null === $table->getEditModalTemplate() && \is_string($asDataTable->editModalTemplate) && '' !== trim($asDataTable->editModalTemplate)) {
+            $table->editModalTemplate($asDataTable->editModalTemplate);
+        }
     }
 
     private function translateColumnTitles(DataTable $table): void

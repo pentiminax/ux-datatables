@@ -1,7 +1,7 @@
 type FetchEditFormPayload = {
     entity: string
     id: string
-    columns: Record<string, unknown>[]
+    dataTableClass: string | null
 }
 
 type FetchEditFormResponse = {
@@ -15,33 +15,13 @@ export async function fetchEditForm(payload: FetchEditFormPayload): Promise<Fetc
         id: payload.id,
     })
 
-    appendSearchParams(params, 'columns', payload.columns)
+    if (payload.dataTableClass) {
+        params.append('dataTableClass', payload.dataTableClass)
+    }
 
     const response = await fetch(`/datatables/ajax/edit-form?${params}`, {
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
     })
 
     return response.json()
-}
-
-function appendSearchParams(params: URLSearchParams, key: string, value: unknown): void {
-    if (Array.isArray(value)) {
-        value.forEach((item, index) => appendSearchParams(params, `${key}[${index}]`, item))
-
-        return
-    }
-
-    if (value !== null && typeof value === 'object') {
-        Object.entries(value).forEach(([nestedKey, nestedValue]) => {
-            appendSearchParams(params, `${key}[${nestedKey}]`, nestedValue)
-        })
-
-        return
-    }
-
-    if (value === null || value === undefined) {
-        return
-    }
-
-    params.append(key, String(value))
 }

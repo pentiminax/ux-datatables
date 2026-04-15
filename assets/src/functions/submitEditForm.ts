@@ -1,9 +1,9 @@
 type SubmitEditFormPayload = {
     entity: string
     id: string
-    columns: Record<string, any>[]
     formData: Record<string, any>
     topics?: string[]
+    dataTableClass: string | null
 }
 
 type SubmitEditFormResponse = {
@@ -23,9 +23,9 @@ export async function submitEditForm(
         body: JSON.stringify({
             entity: payload.entity,
             id: payload.id,
-            columns: payload.columns,
             formData: payload.formData,
             topics: payload.topics ?? [],
+            dataTableClass: payload.dataTableClass,
         }),
     })
 

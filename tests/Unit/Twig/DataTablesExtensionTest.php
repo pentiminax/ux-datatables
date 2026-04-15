@@ -95,9 +95,35 @@ final class DataTablesExtensionTest extends TestCase
                 ['firstColumn' => 'Row 1 Column 1', 'secondColumn' => 'Row 1 Column 2'],
                 ['firstColumn' => 'Row 2 Column 1', 'secondColumn' => 'Row 2 Column 2'],
             ],
+            'dataTableClass' => null,
+            'editModal'      => [
+                'adapter' => null,
+            ],
         ];
 
         $this->assertSame($expected, $actual);
+    }
+
+    #[Test]
+    public function it_exposes_edit_modal_overrides_and_the_datatable_class(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        $table = new EditModalConfiguredDataTable();
+
+        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+
+        $dom = new \DOMDocument();
+        $dom->loadHTML($rendered);
+        $tableEl = $dom->getElementsByTagName('table')->item(0);
+
+        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
+        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('tw', $actual['editModal']['adapter']);
+        $this->assertSame($table::class, $actual['dataTableClass']);
     }
 
     #[Test]
@@ -313,6 +339,21 @@ final class DataTablesExtensionTest extends TestCase
 
         $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status']));
         $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
+    }
+}
+
+final class EditModalConfiguredDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->editModalTemplate('custom/modal.html.twig')
+            ->editModalAdapter('tw');
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('firstColumn');
     }
 }
 
