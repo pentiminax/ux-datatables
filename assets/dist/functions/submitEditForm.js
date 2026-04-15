@@ -8,9 +8,9 @@ export async function submitEditForm(payload) {
         body: JSON.stringify({
             entity: payload.entity,
             id: payload.id,
-            columns: payload.columns,
             formData: payload.formData,
             topics: payload.topics ?? [],
+            dataTableClass: payload.dataTableClass,
         }),
     });
     return response.json();

@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Form;
 
+use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
+use Pentiminax\UX\DataTables\Model\Actions;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
@@ -22,8 +25,8 @@ class EditFormBuilderTest extends TestCase
     {
         $entity  = new \stdClass();
         $columns = [
-            ['name' => 'name', 'title' => 'Name', 'type' => 'string'],
-            ['name' => 'price', 'title' => 'Price', 'type' => 'num'],
+            TextColumn::new('name', 'Name'),
+            NumberColumn::new('price', 'Price'),
         ];
 
         $form        = $this->createMock(FormInterface::class);
@@ -32,7 +35,6 @@ class EditFormBuilderTest extends TestCase
 
         $formFactory->expects($this->once())
             ->method('createBuilder')
-            ->with(FormType::class, $entity)
             ->willReturn($formBuilder);
 
         $formBuilder->expects($this->exactly(2))
@@ -53,8 +55,8 @@ class EditFormBuilderTest extends TestCase
     {
         $entity  = new \stdClass();
         $columns = [
-            ['name' => 'name', 'title' => 'Name', 'type' => 'string'],
-            ['name' => 'actions', 'title' => 'Actions', 'actions' => [['type' => 'DELETE']]],
+            TextColumn::new('name', 'Name'),
+            ActionColumn::fromActions('actions', 'Actions', new Actions([])),
         ];
 
         $form        = $this->createMock(FormInterface::class);
@@ -74,35 +76,12 @@ class EditFormBuilderTest extends TestCase
         $builder->buildForm($entity, $columns);
     }
 
-    public function test_build_form_skips_columns_without_name(): void
-    {
-        $entity  = new \stdClass();
-        $columns = [
-            ['title' => 'Name', 'type' => 'string'],
-            ['name' => '', 'title' => 'Empty', 'type' => 'string'],
-        ];
-
-        $form        = $this->createMock(FormInterface::class);
-        $formBuilder = $this->createMock(FormBuilderInterface::class);
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-
-        $formFactory->method('createBuilder')->willReturn($formBuilder);
-
-        $formBuilder->expects($this->never())
-            ->method('add');
-
-        $formBuilder->method('getForm')->willReturn($form);
-
-        $builder = new EditFormBuilder($formFactory, new ColumnToFormTypeMapper());
-        $builder->buildForm($entity, $columns);
-    }
-
     public function test_build_form_disables_identifier_fields(): void
     {
         $entity  = new \stdClass();
         $columns = [
-            ['name' => 'id', 'title' => 'ID', 'type' => 'num'],
-            ['name' => 'name', 'title' => 'Name', 'type' => 'string'],
+            NumberColumn::new('id', 'ID'),
+            TextColumn::new('name', 'Name'),
         ];
 
         $form        = $this->createMock(FormInterface::class);

@@ -76,7 +76,7 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
   rows={[
     ['`Action::delete($label = \'Delete\', $className = \'btn btn-danger\')`', 'Create the built-in delete action'],
     ['`Action::detail($label = \'Detail\', $className = \'btn btn-primary\')`', 'Create a link action to a detail page'],
-    ['`Action::edit($label = \'Edit\', $className = \'btn btn-warning\')`', 'Create an inline edit action (opens a Bootstrap 5 modal)'],
+    ['`Action::edit($label = \'Edit\', $className = \'btn btn-warning\')`', 'Create an inline edit action (opens the configured edit modal)'],
   ]}
 />
 
@@ -158,21 +158,63 @@ attribute to infer it from.
 
 ## Inline Edit (Modal)
 
-`Action::edit()` opens a Bootstrap 5 modal containing an auto-generated Symfony Form. The form
-fields are built from the table's column configuration.
+`Action::edit()` opens the configured edit modal containing an auto-generated Symfony Form. The
+bundle ships with Bootstrap 5 templates and a Bootstrap modal adapter by default, but both the
+Twig template and the JavaScript adapter can be overridden.
 
 ### Requirements
 
 - `symfony/form` must be installed (`composer require symfony/form`)
-- Bootstrap 5 must be loaded on the page (the modal uses `bootstrap.Modal`)
+- `symfony/twig-bundle` must be installed to render the modal templates
+- Bootstrap is only required when you use the default Bootstrap modal adapter
 
 ### How It Works
 
 1. User clicks the Edit button on a row
 2. The Stimulus controller fetches a pre-filled form from `GET /datatables/ajax/edit-form`
-3. A Bootstrap 5 modal opens with the rendered form
+3. The configured modal adapter opens the returned modal HTML
 4. On submit, a `POST /datatables/ajax/edit-form` validates and persists the changes
-5. The table reloads automatically (with Mercure broadcast if enabled)
+5. If the form is invalid, only the modal body is re-rendered and replaced in place
+6. On success, the modal closes and the table reloads automatically (with Mercure broadcast if enabled)
+
+### Modal Template Overrides
+
+You can override the edit modal Twig template globally or per table.
+
+```yaml
+# config/packages/data_tables.yaml
+data_tables:
+  edit_modal:
+    template: '@DataTables/modal/bootstrap5/edit_modal.html.twig'
+    body_template: '@DataTables/modal/_form_body_bs5.html.twig'
+    default_title: 'Edit'
+```
+
+```php
+#[AsDataTable(
+    entityClass: Product::class,
+    editModalTemplate: 'datatables/product_edit_modal.html.twig',
+)]
+final class ProductsDataTable extends AbstractDataTable
+{
+}
+```
+
+```php
+protected function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->editModalTemplate('datatables/product_edit_modal.html.twig')
+        ->editModalAdapter('tw');
+}
+```
+
+Custom modal templates must preserve these DOM hooks:
+
+- `data-ux-datatables-modal` on the modal root
+- `data-ux-datatables-modal-body` on the container replaced after validation errors
+- `data-ux-datatables-submit` on the submit button
+- `id="ux-datatables-edit-form"` on the rendered `<form>`
 
 ### Column-to-Form Mapping
 
@@ -277,8 +319,8 @@ return static function (RoutingConfigurator $routes): void {
 
 ### Edit Form Endpoints
 
-- `GET /datatables/ajax/edit-form` — returns the rendered form HTML
-- `POST /datatables/ajax/edit-form` — validates and persists the form data
+- `GET /datatables/ajax/edit-form` — returns the rendered modal HTML
+- `POST /datatables/ajax/edit-form` — validates and persists the form data, and returns only the modal body HTML when invalid
 
 These endpoints are only available when `symfony/form` is installed.
 

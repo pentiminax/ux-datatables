@@ -8,12 +8,15 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormEntityResolver;
 use Pentiminax\UX\DataTables\Form\EditFormService;
+use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -21,10 +24,8 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
-use Symfony\Component\Form\FormView;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
-use Twig\Environment;
 
 /**
  * @internal
@@ -46,23 +47,21 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $form->expects($this->once())
             ->method('isValid')
             ->willReturn(false);
-        $form->expects($this->once())
-            ->method('createView')
-            ->willReturn(new FormView());
 
-        [$formFactory, $twig] = $this->createFormFactoryAndTwig($form, '<form>invalid</form>', 1);
+        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver($form, '<form>invalid</form>', 1, true, 'SomeDataTable');
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
             new EditFormEntityResolver($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $twig,
+            $renderer,
+            $templateResolver,
         ));
 
         $response = $controller(new AjaxEditFormRequestDto(
             entity: AjaxEditFormSubmitControllerFixture::class,
             id: 42,
-            columns: [['name' => 'name', 'title' => 'Name', 'type' => 'string']],
             formData: ['name' => 'Alice'],
+            dataTableClass: 'SomeDataTable',
         ));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
@@ -88,19 +87,20 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ->willReturn(true);
         $form->expects($this->never())->method('createView');
 
-        [$formFactory, $twig] = $this->createFormFactoryAndTwig($form, '', 1);
+        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver($form, '', 1, false, 'SomeDataTable');
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
             new EditFormEntityResolver($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $twig,
+            $renderer,
+            $templateResolver,
         ));
 
         $response = $controller(new AjaxEditFormRequestDto(
             entity: AjaxEditFormSubmitControllerFixture::class,
             id: 42,
-            columns: [['name' => 'name', 'title' => 'Name', 'type' => 'string']],
             formData: ['name' => 'Alice'],
+            dataTableClass: 'SomeDataTable',
         ));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
@@ -150,29 +150,39 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ->with($this->isType('string'), $this->isType('object'))
             ->willReturn($formBuilder);
 
-        $twig = $this->createMock(Environment::class);
-        $twig->expects($this->never())->method('render');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('render');
+        $renderer->expects($this->never())->method('renderBody');
+
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveChromeTemplate');
+        $templateResolver->expects($this->never())->method('resolveBodyTemplate');
+        $templateResolver->expects($this->exactly(2))
+            ->method('resolveColumns')
+            ->with('SomeDataTable')
+            ->willReturn([TextColumn::new('name', 'Name')]);
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
             new EditFormEntityResolver($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $twig,
+            $renderer,
+            $templateResolver,
             new MercureUpdatePublisher($hub),
         ));
 
         $responseWithoutTopics = $controller(new AjaxEditFormRequestDto(
             entity: AjaxEditFormSubmitControllerFixture::class,
             id: 42,
-            columns: [['name' => 'name', 'title' => 'Name', 'type' => 'string']],
             formData: ['name' => 'Alice'],
+            dataTableClass: 'SomeDataTable',
         ));
 
         $responseWithTopics = $controller(new AjaxEditFormRequestDto(
             entity: AjaxEditFormSubmitControllerFixture::class,
             id: 42,
-            columns: [['name' => 'name', 'title' => 'Name', 'type' => 'string']],
             formData: ['name' => 'Alice'],
             topics: ['/topic/42'],
+            dataTableClass: 'SomeDataTable',
         ));
 
         $payloadWithoutTopics = json_decode((string) $responseWithoutTopics->getContent(), true, 512, \JSON_THROW_ON_ERROR);
@@ -220,9 +230,9 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
     }
 
     /**
-     * @return array{FormFactoryInterface, Environment}
+     * @return array{FormFactoryInterface, EditModalRenderer, EditModalTemplateResolverInterface}
      */
-    private function createFormFactoryAndTwig(FormInterface $form, string $html, int $calls): array
+    private function createFormFactoryRendererAndResolver(FormInterface $form, string $html, int $calls, bool $expectInvalidRender, ?string $dataTableClass = null): array
     {
         $formBuilder = $this->createMock(FormBuilderInterface::class);
         $formBuilder->expects($this->exactly($calls))
@@ -239,10 +249,34 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ->with($this->isType('string'), $this->isType('object'))
             ->willReturn($formBuilder);
 
-        $twig = $this->createMock(Environment::class);
-        $twig->method('render')->willReturn($html);
+        $renderer = $this->createMock(EditModalRenderer::class);
+        if ($expectInvalidRender) {
+            $renderer->expects($this->once())->method('renderBody')->with($this->isType('object'))->willReturn($html);
+        } else {
+            $renderer->expects($this->never())->method('render');
+            $renderer->expects($this->never())->method('renderBody');
+        }
 
-        return [$formFactory, $twig];
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->exactly($calls))
+            ->method('resolveColumns')
+            ->with($dataTableClass)
+            ->willReturn([TextColumn::new('name', 'Name')]);
+
+        if ($expectInvalidRender) {
+            $templateResolver->expects($this->exactly($calls))
+                ->method('resolveChromeTemplate')
+                ->with($dataTableClass)
+                ->willReturn('modal.html.twig');
+            $templateResolver->expects($this->exactly($calls))
+                ->method('resolveBodyTemplate')
+                ->willReturn('body.html.twig');
+        } else {
+            $templateResolver->expects($this->never())->method('resolveChromeTemplate');
+            $templateResolver->expects($this->never())->method('resolveBodyTemplate');
+        }
+
+        return [$formFactory, $renderer, $templateResolver];
     }
 
     private function createValidFormMock(): FormInterface
@@ -254,7 +288,6 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $form->expects($this->once())
             ->method('isValid')
             ->willReturn(true);
-        $form->expects($this->never())->method('createView');
 
         return $form;
     }
