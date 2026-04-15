@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Form;
 
+use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -17,16 +20,16 @@ final class ColumnToFormTypeMapper
     /**
      * @return array{formType: class-string, options: array<string, mixed>}|null
      */
-    public function map(array $column): ?array
+    public function map(ColumnInterface $column): ?array
     {
-        $customOptions = $column['customOptions'] ?? [];
+        $customOptions = $column->getCustomOptions();
 
         if ($this->isSkippable($column, $customOptions)) {
             return null;
         }
 
         $options = [
-            'label' => $column['title'] ?? $column['name'] ?? null,
+            'label' => $column->getTitle() ?: $column->getName(),
         ];
 
         if (!empty($customOptions['renderAsSwitch'])) {
@@ -53,30 +56,30 @@ final class ColumnToFormTypeMapper
             ];
         }
 
-        if (isset($customOptions['dateFormat'])) {
+        if (null !== $column->getCustomOption('dateFormat')) {
             return [
                 'formType' => DateType::class,
                 'options'  => $options + ['widget' => 'single_text'],
             ];
         }
 
-        $type = $column['type'] ?? null;
+        $type = $column->getType();
 
-        if (\in_array($type, ['num', 'num-fmt', 'html-num', 'html-num-fmt'], true)) {
+        if ($type->isNumber()) {
             return [
                 'formType' => NumberType::class,
                 'options'  => $options,
             ];
         }
 
-        if (\in_array($type, ['string', 'string-utf8'], true)) {
+        if (ColumnType::STRING === $type || ColumnType::STRING_UTF8 === $type) {
             return [
                 'formType' => TextType::class,
                 'options'  => $options,
             ];
         }
 
-        if ('html' === $type) {
+        if (ColumnType::HTML === $type) {
             return [
                 'formType' => TextareaType::class,
                 'options'  => $options,
@@ -89,13 +92,13 @@ final class ColumnToFormTypeMapper
         ];
     }
 
-    private function isSkippable(array $column, array $customOptions): bool
+    private function isSkippable(ColumnInterface $column, array $customOptions): bool
     {
-        if (isset($customOptions['hideWhenUpdating']) && true === $customOptions['hideWhenUpdating']) {
+        if ($column instanceof ActionColumn) {
             return true;
         }
 
-        if (isset($column['actions'])) {
+        if (isset($customOptions['hideWhenUpdating']) && true === $customOptions['hideWhenUpdating']) {
             return true;
         }
 
@@ -104,6 +107,10 @@ final class ColumnToFormTypeMapper
         }
 
         if (isset($customOptions['routeName']) || isset($customOptions['template'])) {
+            return true;
+        }
+
+        if (str_contains($column->getField() ?? '', '.')) {
             return true;
         }
 

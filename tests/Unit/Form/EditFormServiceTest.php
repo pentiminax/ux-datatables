@@ -8,12 +8,16 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormEntityResolver;
 use Pentiminax\UX\DataTables\Form\EditFormService;
+use Pentiminax\UX\DataTables\Form\EditModalRenderer;
+use Pentiminax\UX\DataTables\Form\EditModalRenderRequest;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -22,10 +26,8 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
-use Symfony\Component\Form\FormView;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
-use Twig\Environment;
 
 /**
  * @internal
@@ -45,19 +47,24 @@ final class EditFormServiceTest extends TestCase
         $formFactory = $this->createMock(FormFactoryInterface::class);
         $formFactory->expects($this->never())->method('createBuilder');
 
-        $twig = $this->createMock(Environment::class);
-        $twig->expects($this->never())->method('render');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('render');
+
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveChromeTemplate');
+        $templateResolver->expects($this->never())->method('resolveColumns');
 
         $service = new EditFormService(
             new EditFormEntityResolver($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $twig,
+            $renderer,
+            $templateResolver,
         );
 
         $result = $service->handleView(new AjaxEditFormQueryDto(
             entity: EditFormServiceFixture::class,
             id: '404',
-            columns: [['name' => 'name', 'title' => 'Name', 'type' => 'string']],
+            dataTableClass: EditFormServiceFixtureDataTable::class,
         ));
 
         $this->assertFalse($result->success);
@@ -72,11 +79,7 @@ final class EditFormServiceTest extends TestCase
 
         $entityManager = $this->createEntityManagerWithEntity($entity, '42');
         $registry      = $this->createRegistry($entityManager);
-
-        $form = $this->createMock(FormInterface::class);
-        $form->expects($this->once())
-            ->method('createView')
-            ->willReturn(new FormView());
+        $form          = $this->createMock(FormInterface::class);
 
         $formBuilder = $this->createMock(FormBuilderInterface::class);
         $formBuilder->expects($this->once())
@@ -93,26 +96,45 @@ final class EditFormServiceTest extends TestCase
             ->with($this->isType('string'), $entity)
             ->willReturn($formBuilder);
 
-        $twig = $this->createMock(Environment::class);
-        $twig->expects($this->once())
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->once())
             ->method('render')
-            ->with('@DataTables/form/edit_form.html.twig', $this->isType('array'))
-            ->willReturn('<form>ok</form>');
+            ->with($this->callback(function (EditModalRenderRequest $request) use ($entity, $form) {
+                return $request->form    === $form
+                    && $request->entity  === $entity
+                    && 'table.html.twig' === $request->templatePath
+                    && 'body.html.twig'  === $request->bodyTemplatePath;
+            }))
+            ->willReturn('<div>ok</div>');
+
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->once())
+            ->method('resolveChromeTemplate')
+            ->with(EditFormServiceFixtureDataTable::class)
+            ->willReturn('table.html.twig');
+        $templateResolver->expects($this->once())
+            ->method('resolveBodyTemplate')
+            ->willReturn('body.html.twig');
+        $templateResolver->expects($this->once())
+            ->method('resolveColumns')
+            ->with(EditFormServiceFixtureDataTable::class)
+            ->willReturn([TextColumn::new('name', 'Name')]);
 
         $service = new EditFormService(
             new EditFormEntityResolver($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $twig,
+            $renderer,
+            $templateResolver,
         );
 
         $result = $service->handleView(new AjaxEditFormQueryDto(
             entity: EditFormServiceFixture::class,
             id: '42',
-            columns: [['name' => 'name', 'title' => 'Name', 'type' => 'string']],
+            dataTableClass: EditFormServiceFixtureDataTable::class,
         ));
 
         $this->assertTrue($result->success);
-        $this->assertSame('<form>ok</form>', $result->html);
+        $this->assertSame('<div>ok</div>', $result->html);
         $this->assertSame('', $result->message);
     }
 
@@ -128,20 +150,25 @@ final class EditFormServiceTest extends TestCase
         $formFactory = $this->createMock(FormFactoryInterface::class);
         $formFactory->expects($this->never())->method('createBuilder');
 
-        $twig = $this->createMock(Environment::class);
-        $twig->expects($this->never())->method('render');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('renderBody');
+
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveChromeTemplate');
+        $templateResolver->expects($this->never())->method('resolveColumns');
 
         $service = new EditFormService(
             new EditFormEntityResolver($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $twig,
+            $renderer,
+            $templateResolver,
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
             entity: EditFormServiceFixture::class,
             id: 404,
-            columns: [['name' => 'name', 'title' => 'Name', 'type' => 'string']],
             formData: ['name' => 'Alice'],
+            dataTableClass: EditFormServiceFixtureDataTable::class,
         ));
 
         $this->assertFalse($result->success);
@@ -152,29 +179,34 @@ final class EditFormServiceTest extends TestCase
     #[Test]
     public function it_returns_rendered_html_when_the_form_is_invalid_on_submit(): void
     {
-        $entityManager = $this->createEntityManagerWithEntity(new EditFormServiceFixture(), 42);
+        $entity        = new EditFormServiceFixture();
+        $entityManager = $this->createEntityManagerWithEntity($entity, 42);
         $entityManager->expects($this->never())->method('flush');
-
         $registry = $this->createRegistry($entityManager);
-
-        $form = $this->createMock(FormInterface::class);
+        $form     = $this->createMock(FormInterface::class);
         $form->expects($this->once())->method('submit')->with(['name' => 'Alice']);
         $form->expects($this->once())->method('isValid')->willReturn(false);
-        $form->expects($this->once())->method('createView')->willReturn(new FormView());
 
-        [$formFactory, $twig] = $this->createFormFactoryAndTwig($form, '<form>invalid</form>');
+        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver(
+            form: $form,
+            entity: $entity,
+            renderedHtml: '<form>invalid</form>',
+            expectRenderRequest: true,
+            dataTableClass: EditFormServiceFixtureDataTable::class,
+        );
 
         $service = new EditFormService(
             new EditFormEntityResolver($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $twig,
+            $renderer,
+            $templateResolver,
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
             entity: EditFormServiceFixture::class,
             id: 42,
-            columns: [['name' => 'name', 'title' => 'Name', 'type' => 'string']],
             formData: ['name' => 'Alice'],
+            dataTableClass: EditFormServiceFixtureDataTable::class,
         ));
 
         $this->assertFalse($result->success);
@@ -195,7 +227,13 @@ final class EditFormServiceTest extends TestCase
         $form->expects($this->once())->method('isValid')->willReturn(true);
         $form->expects($this->never())->method('createView');
 
-        [$formFactory, $twig] = $this->createFormFactoryAndTwig($form, '');
+        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver(
+            form: $form,
+            entity: new EditFormServiceFixture(),
+            renderedHtml: '',
+            expectRenderRequest: false,
+            dataTableClass: EditFormServiceFixtureDataTable::class,
+        );
 
         $hub = $this->createMock(HubInterface::class);
         $hub->expects($this->once())
@@ -209,16 +247,17 @@ final class EditFormServiceTest extends TestCase
         $service = new EditFormService(
             new EditFormEntityResolver($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $twig,
+            $renderer,
+            $templateResolver,
             new MercureUpdatePublisher($hub),
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
             entity: EditFormServiceFixture::class,
             id: 42,
-            columns: [['name' => 'name', 'title' => 'Name', 'type' => 'string']],
             formData: ['name' => 'Alice'],
             topics: ['/topic/42'],
+            dataTableClass: EditFormServiceFixtureDataTable::class,
         ));
 
         $this->assertTrue($result->success);
@@ -239,7 +278,13 @@ final class EditFormServiceTest extends TestCase
         $form->expects($this->once())->method('isValid')->willReturn(true);
         $form->expects($this->never())->method('createView');
 
-        [$formFactory, $twig] = $this->createFormFactoryAndTwig($form, '');
+        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver(
+            form: $form,
+            entity: new EditFormServiceFixture(),
+            renderedHtml: '',
+            expectRenderRequest: false,
+            dataTableClass: EditFormServiceFixtureDataTable::class,
+        );
 
         $hub = $this->createMock(HubInterface::class);
         $hub->expects($this->once())
@@ -252,21 +297,79 @@ final class EditFormServiceTest extends TestCase
         $service = new EditFormService(
             new EditFormEntityResolver($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $twig,
+            $renderer,
+            $templateResolver,
             new MercureUpdatePublisher($hub, $logger),
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
             entity: EditFormServiceFixture::class,
             id: 42,
-            columns: [['name' => 'name', 'title' => 'Name', 'type' => 'string']],
             formData: ['name' => 'Alice'],
             topics: ['/topic/42'],
+            dataTableClass: EditFormServiceFixtureDataTable::class,
         ));
 
         $this->assertTrue($result->success);
         $this->assertNull($result->html);
         $this->assertSame('', $result->message);
+    }
+
+    #[Test]
+    public function it_returns_bad_request_when_data_table_class_is_missing_on_view(): void
+    {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManagerForClass');
+
+        $formFactory      = $this->createMock(FormFactoryInterface::class);
+        $renderer         = $this->createMock(EditModalRenderer::class);
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveColumns');
+
+        $service = new EditFormService(
+            new EditFormEntityResolver($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+        );
+
+        $result = $service->handleView(new AjaxEditFormQueryDto(
+            entity: EditFormServiceFixture::class,
+            id: '1',
+        ));
+
+        $this->assertFalse($result->success);
+        $this->assertSame(400, $result->statusCode);
+        $this->assertNull($result->html);
+    }
+
+    #[Test]
+    public function it_returns_bad_request_when_data_table_class_is_missing_on_submit(): void
+    {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManagerForClass');
+
+        $formFactory      = $this->createMock(FormFactoryInterface::class);
+        $renderer         = $this->createMock(EditModalRenderer::class);
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveColumns');
+
+        $service = new EditFormService(
+            new EditFormEntityResolver($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+        );
+
+        $result = $service->handleSubmit(new AjaxEditFormRequestDto(
+            entity: EditFormServiceFixture::class,
+            id: 1,
+            formData: ['name' => 'Alice'],
+        ));
+
+        $this->assertFalse($result->success);
+        $this->assertSame(400, $result->statusCode);
+        $this->assertNull($result->html);
     }
 
     private function createRegistry(EntityManagerInterface $entityManager): ManagerRegistry
@@ -307,10 +410,15 @@ final class EditFormServiceTest extends TestCase
     }
 
     /**
-     * @return array{FormFactoryInterface, Environment}
+     * @return array{FormFactoryInterface, EditModalRenderer, EditModalTemplateResolverInterface}
      */
-    private function createFormFactoryAndTwig(FormInterface $form, string $renderedHtml): array
-    {
+    private function createFormFactoryRendererAndResolver(
+        FormInterface $form,
+        object $entity,
+        string $renderedHtml,
+        bool $expectRenderRequest,
+        ?string $dataTableClass = null,
+    ): array {
         $formBuilder = $this->createMock(FormBuilderInterface::class);
         $formBuilder->expects($this->once())
             ->method('add')
@@ -326,13 +434,50 @@ final class EditFormServiceTest extends TestCase
             ->with($this->isType('string'), $this->isType('object'))
             ->willReturn($formBuilder);
 
-        $twig = $this->createMock(Environment::class);
-        $twig->method('render')->willReturn($renderedHtml);
+        $renderer = $this->createMock(EditModalRenderer::class);
 
-        return [$formFactory, $twig];
+        if ($expectRenderRequest) {
+            $renderer->expects($this->once())
+                ->method('renderBody')
+                ->with($this->callback(function (EditModalRenderRequest $request) use ($form, $entity) {
+                    return $request->form    === $form
+                        && $request->entity  === $entity
+                        && 'table.html.twig' === $request->templatePath
+                        && 'body.html.twig'  === $request->bodyTemplatePath;
+                }))
+                ->willReturn($renderedHtml);
+        } else {
+            $renderer->expects($this->never())->method('render');
+            $renderer->expects($this->never())->method('renderBody');
+        }
+
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->once())
+            ->method('resolveColumns')
+            ->with($dataTableClass)
+            ->willReturn([TextColumn::new('name', 'Name')]);
+
+        if ($expectRenderRequest) {
+            $templateResolver->expects($this->once())
+                ->method('resolveChromeTemplate')
+                ->with($dataTableClass)
+                ->willReturn('table.html.twig');
+            $templateResolver->expects($this->once())
+                ->method('resolveBodyTemplate')
+                ->willReturn('body.html.twig');
+        } else {
+            $templateResolver->expects($this->never())->method('resolveChromeTemplate');
+            $templateResolver->expects($this->never())->method('resolveBodyTemplate');
+        }
+
+        return [$formFactory, $renderer, $templateResolver];
     }
 }
 
 final class EditFormServiceFixture
+{
+}
+
+final class EditFormServiceFixtureDataTable
 {
 }

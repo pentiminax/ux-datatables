@@ -66,6 +66,17 @@ final class DataTableTest extends TestCase
     }
 
     #[Test]
+    public function it_configures_edit_modal_overrides(): void
+    {
+        $table = (new DataTable('tableId'))
+            ->editModalTemplate('custom/modal.html.twig')
+            ->editModalAdapter('tw');
+
+        $this->assertSame('custom/modal.html.twig', $table->getEditModalTemplate());
+        $this->assertSame('tw', $table->getEditModalAdapter());
+    }
+
+    #[Test]
     public function it_configures_layout_with_array(): void
     {
         $table = new DataTable('testTable');

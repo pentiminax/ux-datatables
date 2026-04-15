@@ -8,12 +8,12 @@ import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
-import { createEditModal } from './functions/editModal.js';
 import { ExtensionRegistry } from './functions/extensionRegistry.js';
 import { fetchEditForm } from './functions/fetchEditForm.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { submitEditForm } from './functions/submitEditForm.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
+import { resolveModalAdapter } from './modal/resolveModalAdapter.js';
 const EXTENSION_MAP = {
     select: 'select',
     responsive: 'responsive',
@@ -29,6 +29,7 @@ class default_1 extends Controller {
         this.table = null;
         this.isDataTableInitialized = false;
         this.eventSource = null;
+        this.framework = 'dt';
     }
     async connect() {
         if (this.isDataTableInitialized) {
@@ -42,6 +43,7 @@ class default_1 extends Controller {
             config: payload,
         });
         const framework = detectStyleFramework();
+        this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true;
@@ -156,57 +158,37 @@ class default_1 extends Controller {
             }
             if (actionType === 'EDIT' && entity && id) {
                 e.preventDefault();
-                const columns = this.getEditableColumns(payload);
-                const modal = await createEditModal();
+                const modalConfig = payload.editModal ?? {};
+                const modal = await resolveModalAdapter(modalConfig.adapter ?? null, this.framework);
                 if (!modal)
                     return;
-                const result = await fetchEditForm({ entity, id, columns });
+                const result = await fetchEditForm({
+                    entity,
+                    id,
+                    dataTableClass: payload.dataTableClass ?? null,
+                });
                 if (result.success) {
-                    modal.show(result.html, async (formData) => {
-                        const submitResult = await submitEditForm({
-                            entity,
-                            id,
-                            columns,
-                            formData,
-                            topics: this.getMercureTopics(payload),
-                        });
-                        if (submitResult.success) {
-                            modal.hide();
-                            this.table?.ajax?.reload(null, false);
-                        }
-                        else if (submitResult.html) {
-                            modal.showErrors(submitResult.html);
-                        }
+                    await modal.show(result.html, {
+                        onSubmit: async (formData) => {
+                            const submitResult = await submitEditForm({
+                                entity,
+                                id,
+                                formData,
+                                topics: this.getMercureTopics(payload),
+                                dataTableClass: payload.dataTableClass ?? null,
+                            });
+                            if (submitResult.success) {
+                                await modal.hide();
+                                this.table?.ajax?.reload(null, false);
+                            }
+                            else if (submitResult.html) {
+                                modal.replaceBody(submitResult.html);
+                            }
+                        },
                     });
                 }
             }
         });
-    }
-    getEditableColumns(payload) {
-        if (!Array.isArray(payload.columns)) {
-            return [];
-        }
-        return payload.columns
-            .filter((column) => {
-            if (Array.isArray(column.actions)) {
-                return false;
-            }
-            const custom = column.customOptions ?? {};
-            if (custom.hideWhenUpdating) {
-                return false;
-            }
-            if (custom.templatePath || custom.routeName || custom.template) {
-                return false;
-            }
-            return true;
-        })
-            .map((column) => ({
-            name: column.name,
-            title: column.title,
-            type: column.type,
-            field: column.field,
-            customOptions: column.customOptions,
-        }));
     }
     bindBooleanToggleHandler(payload) {
         this.element.addEventListener('change', async (e) => {

@@ -9,7 +9,7 @@ final readonly class AjaxEditFormQueryDto
     public function __construct(
         public string $entity,
         public int|string $id,
-        public array $columns = [],
+        public ?string $dataTableClass = null,
     ) {
     }
 }

@@ -8,20 +8,21 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormEntityResolver;
 use Pentiminax\UX\DataTables\Form\EditFormService;
+use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
-use Symfony\Component\Form\FormView;
-use Twig\Environment;
 
 /**
  * @internal
@@ -36,9 +37,6 @@ final class AjaxEditFormControllerTest extends TestCase
         $registry      = $this->createRegistry($entityManager);
 
         $form = $this->createMock(FormInterface::class);
-        $form->expects($this->once())
-            ->method('createView')
-            ->willReturn(new FormView());
 
         $formBuilder = $this->createMock(FormBuilderInterface::class);
         $formBuilder->expects($this->once())
@@ -55,29 +53,37 @@ final class AjaxEditFormControllerTest extends TestCase
             ->with($this->isType('string'), $this->isType('object'))
             ->willReturn($formBuilder);
 
-        $twig = $this->createMock(Environment::class);
-        $twig->expects($this->once())
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->once())
             ->method('render')
-            ->with('@DataTables/form/edit_form.html.twig', $this->isType('array'))
-            ->willReturn('<form>ok</form>');
+            ->with($this->isType('object'))
+            ->willReturn('<div>ok</div>');
+
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->once())->method('resolveChromeTemplate')->willReturn('modal.html.twig');
+        $templateResolver->expects($this->once())->method('resolveBodyTemplate')->willReturn('body.html.twig');
+        $templateResolver->expects($this->once())
+            ->method('resolveColumns')
+            ->willReturn([TextColumn::new('name', 'Name')]);
 
         $controller = new AjaxEditFormController(new EditFormService(
             new EditFormEntityResolver($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $twig,
+            $renderer,
+            $templateResolver,
         ));
 
         $response = $controller(new AjaxEditFormQueryDto(
             entity: AjaxEditFormControllerFixture::class,
             id: '42',
-            columns: [['name' => 'name', 'title' => 'Name', 'type' => 'string']],
+            dataTableClass: 'SomeDataTable',
         ));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertTrue($payload['success']);
-        $this->assertSame('<form>ok</form>', $payload['html']);
+        $this->assertSame('<div>ok</div>', $payload['html']);
     }
 
     #[Test]
@@ -101,19 +107,24 @@ final class AjaxEditFormControllerTest extends TestCase
         $formFactory = $this->createMock(FormFactoryInterface::class);
         $formFactory->expects($this->never())->method('createBuilder');
 
-        $twig = $this->createMock(Environment::class);
-        $twig->expects($this->never())->method('render');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('render');
+
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveChromeTemplate');
+        $templateResolver->expects($this->never())->method('resolveColumns');
 
         $controller = new AjaxEditFormController(new EditFormService(
             new EditFormEntityResolver($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $twig,
+            $renderer,
+            $templateResolver,
         ));
 
         $response = $controller(new AjaxEditFormQueryDto(
             entity: AjaxEditFormControllerFixture::class,
             id: 'missing',
-            columns: [],
+            dataTableClass: 'SomeDataTable',
         ));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
@@ -135,19 +146,24 @@ final class AjaxEditFormControllerTest extends TestCase
         $formFactory = $this->createMock(FormFactoryInterface::class);
         $formFactory->expects($this->never())->method('createBuilder');
 
-        $twig = $this->createMock(Environment::class);
-        $twig->expects($this->never())->method('render');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('render');
+
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveChromeTemplate');
+        $templateResolver->expects($this->never())->method('resolveColumns');
 
         $controller = new AjaxEditFormController(new EditFormService(
             new EditFormEntityResolver($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $twig,
+            $renderer,
+            $templateResolver,
         ));
 
         $response = $controller(new AjaxEditFormQueryDto(
             entity: AjaxEditFormControllerFixture::class,
             id: '42',
-            columns: [],
+            dataTableClass: 'SomeDataTable',
         ));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);

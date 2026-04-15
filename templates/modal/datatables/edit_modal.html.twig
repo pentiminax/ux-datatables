@@ -1,0 +1,13 @@
+<dialog class="dt-modal" data-ux-datatables-modal>
+    <div class="dt-modal-header">
+        <h5 class="dt-modal-title">{{ title }}</h5>
+        <button type="button" class="dt-modal-close" data-ux-datatables-cancel aria-label="Close">&times;</button>
+    </div>
+    <div class="dt-modal-body" data-ux-datatables-modal-body>
+        {{ include(body_template, { form: form, entity: entity }) }}
+    </div>
+    <div class="dt-modal-footer">
+        <button type="button" class="dt-button" data-ux-datatables-cancel>Cancel</button>
+        <button type="button" class="dt-button dt-button-primary" data-ux-datatables-submit>Save</button>
+    </div>
+</dialog>

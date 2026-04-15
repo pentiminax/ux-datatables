@@ -16,6 +16,7 @@ final class AsDataTable
         public readonly array $serializationGroups = [],
         public readonly bool $mercure = false,
         public readonly bool $apiPlatform = false,
+        public readonly ?string $editModalTemplate = null,
     ) {
     }
 }

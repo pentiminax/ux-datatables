@@ -21,6 +21,7 @@ use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface
 use Pentiminax\UX\DataTables\Contracts\ApiResourceMercureMetadataResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
@@ -33,10 +34,13 @@ use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormEntityResolver;
 use Pentiminax\UX\DataTables\Form\EditFormService;
+use Pentiminax\UX\DataTables\Form\EditModalRenderer;
+use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
@@ -46,6 +50,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_locator;
 
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
@@ -87,15 +92,29 @@ class DataTablesBundle extends AbstractBundle
                         ->arrayNode('select')
                             ->children()
                                 ->scalarNode('style')->defaultValue('single')->end()
-                             ->end()
-                         ->end()
+                            ->end()
+                        ->end()
                     ->end()
+                ->end()
+                ->arrayNode('edit_modal')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->scalarNode('template')
+                            ->defaultValue('@DataTables/modal/bs5/edit_modal.html.twig')->end()
+                        ->scalarNode('body_template')
+                            ->defaultValue('@DataTables/modal/bs5/_form_body.html.twig')->end()
+                        ->scalarNode('default_title')->defaultValue('Edit')->end()
+                    ->end()
+                ->end()
             ->end()
         ;
     }
 
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
+        $builder->registerForAutoconfiguration(AbstractDataTable::class)
+            ->addTag('datatables.data_table');
+
         $this->registerCoreServices($container, $config);
 
         if (interface_exists(ResourceMetadataCollectionFactoryInterface::class)) {
@@ -103,7 +122,7 @@ class DataTablesBundle extends AbstractBundle
         }
 
         if (interface_exists(\Symfony\Component\Form\FormFactoryInterface::class)) {
-            $this->registerFormServices($container);
+            $this->registerFormServices($container, $config);
         }
 
         if (interface_exists(\Symfony\Component\Mercure\HubInterface::class)) {
@@ -308,7 +327,7 @@ class DataTablesBundle extends AbstractBundle
             ->private();
     }
 
-    private function registerFormServices(ContainerConfigurator $container): void
+    private function registerFormServices(ContainerConfigurator $container, array $config): void
     {
         $container->services()
             ->set('datatables.form.column_to_form_type_mapper', ColumnToFormTypeMapper::class)
@@ -326,10 +345,28 @@ class DataTablesBundle extends AbstractBundle
             ->private();
 
         $container->services()
+            ->set('datatables.form.edit_modal_renderer', EditModalRenderer::class)
+            ->arg(0, service('twig'))
+            ->arg(1, '%datatables.edit_modal.default_title%')
+            ->private();
+
+        $container->services()
+            ->set('datatables.form.edit_modal_template_resolver', EditModalTemplateResolver::class)
+            ->arg(0, tagged_locator('datatables.data_table'))
+            ->arg(1, '%datatables.edit_modal.template%')
+            ->arg(2, '%datatables.edit_modal.body_template%')
+            ->private();
+
+        $container->services()
+            ->alias(EditModalTemplateResolverInterface::class, 'datatables.form.edit_modal_template_resolver')
+            ->private();
+
+        $container->services()
             ->set('datatables.form.edit_form_service', EditFormService::class)
             ->arg(0, service('datatables.form.edit_form_entity_resolver'))
             ->arg(1, service('datatables.form.edit_form_builder'))
-            ->arg(2, service('twig'))
+            ->arg(2, service('datatables.form.edit_modal_renderer'))
+            ->arg(3, service('datatables.form.edit_modal_template_resolver'))
             ->private();
 
         $container->services()
@@ -343,6 +380,11 @@ class DataTablesBundle extends AbstractBundle
             ->arg(0, service('datatables.form.edit_form_service'))
             ->tag('controller.service_arguments')
             ->public();
+
+        $container->parameters()
+            ->set('datatables.edit_modal.template', $config['edit_modal']['template'])
+            ->set('datatables.edit_modal.body_template', $config['edit_modal']['body_template'])
+            ->set('datatables.edit_modal.default_title', $config['edit_modal']['default_title']);
     }
 
     private function registerMercureServices(ContainerConfigurator $container, ContainerBuilder $builder): void

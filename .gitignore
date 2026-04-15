@@ -13,6 +13,7 @@ vendor/
 
 assets/package-lock.json
 assets/node_modules/
+/node_modules/*
 
 composer.lock
 _bmad/
