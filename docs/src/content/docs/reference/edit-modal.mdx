@@ -1,0 +1,169 @@
+---
+title: Edit Modal
+description: Inline edit modal configuration, template overrides, form mapping, and customization
+---
+
+import { Aside, Table } from '../../../components'
+
+# Edit Modal
+
+`Action::edit()` opens a configured edit modal containing an auto-generated Symfony Form. The bundle ships with Bootstrap 5 templates and a Bootstrap modal adapter by default, but both the Twig template and the JavaScript adapter can be overridden.
+
+## Requirements
+
+- `symfony/form` must be installed (`composer require symfony/form`)
+- `symfony/twig-bundle` must be installed to render the modal templates
+- Bootstrap is only required when you use the default Bootstrap modal adapter
+
+## How It Works
+
+1. User clicks the Edit button on a row
+2. The Stimulus controller fetches a pre-filled form from `GET /datatables/ajax/edit-form`
+3. The configured modal adapter opens the returned modal HTML
+4. On submit, a `POST /datatables/ajax/edit-form` validates and persists the changes
+5. If the form is invalid, only the modal body is re-rendered and replaced in place
+6. On success, the modal closes and the table reloads automatically (with Mercure broadcast if enabled)
+
+## Modal Template Overrides
+
+Override the edit modal Twig template globally or per table.
+
+### Global Configuration
+
+```yaml
+# config/packages/data_tables.yaml
+data_tables:
+  edit_modal:
+    template: '@DataTables/modal/bootstrap5/edit_modal.html.twig'
+    body_template: '@DataTables/modal/_form_body_bs5.html.twig'
+    default_title: 'Edit'
+```
+
+### Per-Table via Attribute
+
+```php
+#[AsDataTable(
+    entityClass: Product::class,
+    editModalTemplate: 'datatables/product_edit_modal.html.twig',
+)]
+final class ProductsDataTable extends AbstractDataTable
+{
+}
+```
+
+### Per-Table via `configureDataTable()`
+
+```php
+protected function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->editModalTemplate('datatables/product_edit_modal.html.twig')
+        ->editModalAdapter('tw');
+}
+```
+
+### Required DOM Hooks
+
+Custom modal templates must preserve these attributes:
+
+<Table
+  headers={['Attribute / ID', 'Element', 'Purpose']}
+  rows={[
+    ['`data-ux-datatables-modal`', 'Modal root', 'Used by the adapter to open/close the modal'],
+    ['`data-ux-datatables-modal-body`', 'Body container', 'Replaced in-place after validation errors'],
+    ['`data-ux-datatables-submit`', 'Submit button', 'Wired to the form submit handler'],
+    ['`id="ux-datatables-edit-form"`', '`<form>` element', 'Required for form serialization'],
+  ]}
+/>
+
+## Column-to-Form Mapping
+
+The form builder maps each column to a Symfony Form type:
+
+<Table
+  headers={['Column Pattern', 'Form Type']}
+  rows={[
+    ['`BooleanColumn` (`renderAsSwitch`)', '`CheckboxType`'],
+    ['`ChoiceColumn` (has `choices`)', '`ChoiceType`'],
+    ['`DateColumn` (has `dateFormat`)', '`DateType` (single_text widget)'],
+    ['`NumberColumn` (`num`, `num-fmt`, …)', '`NumberType`'],
+    ['`TextColumn` (`string`, `string-utf8`)', '`TextType`'],
+    ['`html` type', '`TextareaType`'],
+    ['`ActionColumn`, `TemplateColumn`, `UrlColumn`', 'Skipped automatically'],
+  ]}
+/>
+
+## Primary Key Fields
+
+Columns matching the entity's Doctrine identifier are rendered as **disabled** fields in the form. They are visible for reference but cannot be modified.
+
+## Excluding Columns from the Form
+
+Use `hideWhenUpdating()` on any column to exclude it from the edit modal entirely:
+
+```php
+public function configureColumns(): iterable
+{
+    yield NumberColumn::new('id', 'ID');
+    yield TextColumn::new('name', 'Name');
+    yield DateColumn::new('createdAt', 'Created')
+        ->hideWhenUpdating();  // Excluded from the edit form
+}
+```
+
+## Ajax Endpoints
+
+- `GET /datatables/ajax/edit-form` — returns the rendered modal HTML
+- `POST /datatables/ajax/edit-form` — validates and persists the form data, returns only the modal body HTML when invalid
+
+These endpoints are only available when `symfony/form` is installed.
+
+## Full Example
+
+```php
+use App\Entity\Product;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
+
+#[AsDataTable(Product::class)]
+final class ProductsDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('name', 'Name');
+        yield NumberColumn::new('price', 'Price');
+        yield BooleanColumn::new('active', 'Active');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(
+            Action::edit('Edit')
+                ->setIcon('bi bi-pencil')
+        );
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        /** @var Product $item */
+        return [
+            'id' => $item->getId(),
+            'name' => $item->getName(),
+            'price' => $item->getPrice(),
+            'active' => $item->isActive(),
+        ];
+    }
+}
+```
+
+## Cross Links
+
+- [/ux-datatables/reference/action-columns/](/ux-datatables/reference/action-columns/)
+- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)
+- [/ux-datatables/guide/columns/](/ux-datatables/guide/columns/)
