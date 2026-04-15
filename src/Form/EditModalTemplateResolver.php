@@ -63,7 +63,11 @@ final class EditModalTemplateResolver implements EditModalTemplateResolverInterf
 
     private function resolveAttribute(string $dataTableClass): ?AsDataTable
     {
-        $attributes = (new \ReflectionClass($dataTableClass))->getAttributes(AsDataTable::class);
+        try {
+            $attributes = (new \ReflectionClass($dataTableClass))->getAttributes(AsDataTable::class);
+        } catch (\ReflectionException) {
+            return null;
+        }
 
         if ([] === $attributes) {
             return null;
