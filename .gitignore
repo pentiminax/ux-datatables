@@ -14,6 +14,7 @@ vendor/
 assets/package-lock.json
 assets/node_modules/
 /node_modules/*
+node_modules/.vite/
 
 composer.lock
 _bmad/

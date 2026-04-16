@@ -26,6 +26,11 @@ use Symfony\Component\HttpFoundation\Request;
 
 abstract class AbstractDataTable
 {
+    /**
+     * @var array<class-string, AsDataTable|null>
+     */
+    private static array $attributeCache = [];
+
     protected DataTable $table;
 
     /**
@@ -255,18 +260,23 @@ abstract class AbstractDataTable
 
     private function getClassName(): string
     {
-        return (new \ReflectionClass($this))->getShortName();
+        $class = static::class;
+        $pos   = strrpos($class, '\\');
+
+        return false === $pos ? $class : substr($class, $pos + 1);
     }
 
     private function resolveAsDataTable(): ?AsDataTable
     {
-        $attributes = (new \ReflectionClass($this))->getAttributes(AsDataTable::class);
+        $class = static::class;
 
-        if ([] === $attributes) {
-            return null;
+        if (array_key_exists($class, self::$attributeCache)) {
+            return self::$attributeCache[$class];
         }
 
-        return $attributes[0]->newInstance();
+        $attributes = (new \ReflectionClass($class))->getAttributes(AsDataTable::class);
+
+        return self::$attributeCache[$class] = [] === $attributes ? null : $attributes[0]->newInstance();
     }
 
     private function runtime(): DataTableRuntime
