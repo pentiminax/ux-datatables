@@ -61,18 +61,23 @@ final class EditModalTemplateResolver implements EditModalTemplateResolverInterf
         return array_values($dataTable->getDataTable()->getColumns());
     }
 
+    /**
+     * @var array<string, AsDataTable|null>
+     */
+    private static array $attributeCache = [];
+
     private function resolveAttribute(string $dataTableClass): ?AsDataTable
     {
+        if (array_key_exists($dataTableClass, self::$attributeCache)) {
+            return self::$attributeCache[$dataTableClass];
+        }
+
         try {
             $attributes = (new \ReflectionClass($dataTableClass))->getAttributes(AsDataTable::class);
         } catch (\ReflectionException) {
-            return null;
+            return self::$attributeCache[$dataTableClass] = null;
         }
 
-        if ([] === $attributes) {
-            return null;
-        }
-
-        return $attributes[0]->newInstance();
+        return self::$attributeCache[$dataTableClass] = [] === $attributes ? null : $attributes[0]->newInstance();
     }
 }
