@@ -21,3 +21,4 @@ _bmad/
 _bmad-output/
 
 /docs/superpowers/*
+.omx/
