@@ -72,21 +72,21 @@ final class ConcreteColumnFactoryTest extends TestCase
     /**
      * @return iterable<string, array{0: callable(): AbstractColumn, 1: ColumnType}>
      */
-    public static function provideConsolidatedFactories(): iterable
+    public static function provideVariantBuilders(): iterable
     {
-        yield 'text::utf8' => [static fn () => TextColumn::utf8('field_name', 'Field label'), ColumnType::STRING_UTF8];
-        yield 'text::html' => [static fn () => TextColumn::html('field_name', 'Field label'), ColumnType::HTML];
-        yield 'text::htmlUtf8' => [static fn () => TextColumn::htmlUtf8('field_name', 'Field label'), ColumnType::HTML_UTF8];
-        yield 'number::formatted' => [static fn () => NumberColumn::formatted('field_name', 'Field label'), ColumnType::NUM_FMT];
-        yield 'number::html' => [static fn () => NumberColumn::html('field_name', 'Field label'), ColumnType::HTML_NUM];
-        yield 'number::htmlFormatted' => [static fn () => NumberColumn::htmlFormatted('field_name', 'Field label'), ColumnType::HTML_NUM_FMT];
+        yield 'text::utf8' => [static fn () => TextColumn::new('field_name', 'Field label')->utf8(), ColumnType::STRING_UTF8];
+        yield 'text::html' => [static fn () => TextColumn::new('field_name', 'Field label')->html(), ColumnType::HTML];
+        yield 'text::html+utf8' => [static fn () => TextColumn::new('field_name', 'Field label')->html()->utf8(), ColumnType::HTML_UTF8];
+        yield 'number::formatted' => [static fn () => NumberColumn::new('field_name', 'Field label')->formatted(), ColumnType::NUM_FMT];
+        yield 'number::html' => [static fn () => NumberColumn::new('field_name', 'Field label')->html(), ColumnType::HTML_NUM];
+        yield 'number::html+formatted' => [static fn () => NumberColumn::new('field_name', 'Field label')->html()->formatted(), ColumnType::HTML_NUM_FMT];
     }
 
     #[Test]
-    #[DataProvider('provideConsolidatedFactories')]
-    public function it_creates_columns_via_consolidated_factories(callable $factory, ColumnType $expectedType): void
+    #[DataProvider('provideVariantBuilders')]
+    public function it_creates_columns_via_variant_modifiers(callable $builder, ColumnType $expectedType): void
     {
-        $column = $factory();
+        $column = $builder();
 
         $data = $column->jsonSerialize();
 
@@ -94,5 +94,36 @@ final class ConcreteColumnFactoryTest extends TestCase
         $this->assertSame('field_name', $data['name']);
         $this->assertSame('Field label', $data['title']);
         $this->assertSame($expectedType->value, $data['type']);
+    }
+
+    #[Test]
+    public function it_does_not_add_implicit_custom_options_in_new(): void
+    {
+        $this->assertArrayNotHasKey('customOptions', BooleanColumn::new('active')->jsonSerialize());
+        $this->assertArrayNotHasKey('customOptions', DateColumn::new('createdAt')->jsonSerialize());
+    }
+
+    #[Test]
+    public function text_modifiers_are_idempotent_and_order_independent(): void
+    {
+        $fromHtmlThenUtf8  = TextColumn::new('field_name')->html()->utf8()->jsonSerialize();
+        $fromUtf8ThenHtml  = TextColumn::new('field_name')->utf8()->html()->jsonSerialize();
+        $fromRepeatedCalls = TextColumn::new('field_name')->html()->utf8()->html()->utf8()->jsonSerialize();
+
+        $this->assertSame(ColumnType::HTML_UTF8->value, $fromHtmlThenUtf8['type']);
+        $this->assertSame($fromHtmlThenUtf8['type'], $fromUtf8ThenHtml['type']);
+        $this->assertSame($fromHtmlThenUtf8['type'], $fromRepeatedCalls['type']);
+    }
+
+    #[Test]
+    public function number_modifiers_are_idempotent_and_order_independent(): void
+    {
+        $fromHtmlThenFormatted = NumberColumn::new('field_name')->html()->formatted()->jsonSerialize();
+        $fromFormattedThenHtml = NumberColumn::new('field_name')->formatted()->html()->jsonSerialize();
+        $fromRepeatedCalls     = NumberColumn::new('field_name')->html()->formatted()->html()->formatted()->jsonSerialize();
+
+        $this->assertSame(ColumnType::HTML_NUM_FMT->value, $fromHtmlThenFormatted['type']);
+        $this->assertSame($fromHtmlThenFormatted['type'], $fromFormattedThenHtml['type']);
+        $this->assertSame($fromHtmlThenFormatted['type'], $fromRepeatedCalls['type']);
     }
 }

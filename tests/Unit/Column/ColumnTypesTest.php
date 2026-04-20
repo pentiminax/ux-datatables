@@ -106,15 +106,15 @@ final class ColumnTypesTest extends TestCase
     public static function provideColumns(): iterable
     {
         yield 'text' => [TextColumn::new('col_text'), ColumnType::STRING];
-        yield 'text-utf8' => [TextColumn::utf8('col_utf8'), ColumnType::STRING_UTF8];
+        yield 'text-utf8' => [TextColumn::new('col_utf8')->utf8(), ColumnType::STRING_UTF8];
         yield 'boolean' => [BooleanColumn::new('col_bool'), ColumnType::NUM];
         yield 'date' => [DateColumn::new('col_date'), ColumnType::DATE];
         yield 'number' => [NumberColumn::new('col_number'), ColumnType::NUM];
-        yield 'number-formatted' => [NumberColumn::formatted('col_num_fmt'), ColumnType::NUM_FMT];
-        yield 'html-number' => [NumberColumn::html('col_html_num'), ColumnType::HTML_NUM];
-        yield 'html-number-formatted' => [NumberColumn::htmlFormatted('col_html_num_fmt'), ColumnType::HTML_NUM_FMT];
-        yield 'html' => [TextColumn::html('col_html'), ColumnType::HTML];
-        yield 'html-utf8' => [TextColumn::htmlUtf8('col_html_utf8'), ColumnType::HTML_UTF8];
+        yield 'number-formatted' => [NumberColumn::new('col_num_fmt')->formatted(), ColumnType::NUM_FMT];
+        yield 'html-number' => [NumberColumn::new('col_html_num')->html(), ColumnType::HTML_NUM];
+        yield 'html-number-formatted' => [NumberColumn::new('col_html_num_fmt')->html()->formatted(), ColumnType::HTML_NUM_FMT];
+        yield 'html' => [TextColumn::new('col_html')->html(), ColumnType::HTML];
+        yield 'html-utf8' => [TextColumn::new('col_html_utf8')->html()->utf8(), ColumnType::HTML_UTF8];
         yield 'template' => [TemplateColumn::new('col_template')->setTemplate('datatable/columns/cell.html.twig'), ColumnType::HTML];
         yield 'url' => [UrlColumn::new('col_url'), ColumnType::HTML];
         yield 'choice' => [ChoiceColumn::new('col_choice'), ColumnType::HTML];

@@ -270,7 +270,7 @@ abstract class AbstractDataTable
     {
         $class = static::class;
 
-        if (array_key_exists($class, self::$attributeCache)) {
+        if (\array_key_exists($class, self::$attributeCache)) {
             return self::$attributeCache[$class];
         }
 

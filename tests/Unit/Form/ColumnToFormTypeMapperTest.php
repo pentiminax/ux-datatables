@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Form;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -59,10 +60,9 @@ class ColumnToFormTypeMapperTest extends TestCase
         $this->assertFalse($result['options']['required']);
     }
 
-    public function test_date_format_maps_to_date_type(): void
+    public function test_date_type_maps_to_date_type_without_custom_option(): void
     {
-        $column = TextColumn::new('createdAt', 'Created At')
-            ->setCustomOption('dateFormat', 'Y-m-d');
+        $column = DateColumn::new('createdAt', 'Created At');
 
         $result = $this->mapper->map($column);
 
@@ -72,9 +72,9 @@ class ColumnToFormTypeMapperTest extends TestCase
     }
 
     #[DataProvider('numericColumnProvider')]
-    public function test_numeric_types_map_to_number_type(string $factory): void
+    public function test_numeric_types_map_to_number_type(callable $builder): void
     {
-        $column = NumberColumn::$factory('price', 'Price');
+        $column = $builder();
 
         $result = $this->mapper->map($column);
 
@@ -84,16 +84,16 @@ class ColumnToFormTypeMapperTest extends TestCase
 
     public static function numericColumnProvider(): \Generator
     {
-        yield 'num' => ['new'];
-        yield 'num-fmt' => ['formatted'];
-        yield 'html-num' => ['html'];
-        yield 'html-num-fmt' => ['htmlFormatted'];
+        yield 'num' => [static fn (): NumberColumn => NumberColumn::new('price', 'Price')];
+        yield 'num-fmt' => [static fn (): NumberColumn => NumberColumn::new('price', 'Price')->formatted()];
+        yield 'html-num' => [static fn (): NumberColumn => NumberColumn::new('price', 'Price')->html()];
+        yield 'html-num-fmt' => [static fn (): NumberColumn => NumberColumn::new('price', 'Price')->html()->formatted()];
     }
 
     #[DataProvider('stringColumnProvider')]
-    public function test_string_types_map_to_text_type(string $factory): void
+    public function test_string_types_map_to_text_type(callable $builder): void
     {
-        $column = TextColumn::$factory('name', 'Name');
+        $column = $builder();
 
         $result = $this->mapper->map($column);
 
@@ -103,13 +103,13 @@ class ColumnToFormTypeMapperTest extends TestCase
 
     public static function stringColumnProvider(): \Generator
     {
-        yield 'string' => ['new'];
-        yield 'string-utf8' => ['utf8'];
+        yield 'string' => [static fn (): TextColumn => TextColumn::new('name', 'Name')];
+        yield 'string-utf8' => [static fn (): TextColumn => TextColumn::new('name', 'Name')->utf8()];
     }
 
     public function test_html_type_maps_to_textarea(): void
     {
-        $column = TextColumn::html('description', 'Description');
+        $column = TextColumn::new('description', 'Description')->html();
 
         $result = $this->mapper->map($column);
 

@@ -16,13 +16,12 @@ use PHPUnit\Framework\TestCase;
 final class BooleanColumnTest extends TestCase
 {
     #[Test]
-    public function it_has_default_serialization(): void
+    public function it_has_neutral_default_serialization(): void
     {
         $data = BooleanColumn::new('active', 'Active')->jsonSerialize();
 
-        $this->assertTrue($data['customOptions']['renderAsSwitch']);
-        $this->assertFalse($data['customOptions']['defaultState']);
         $this->assertSame('num', $data['type']);
+        $this->assertArrayNotHasKey('customOptions', $data);
     }
 
     #[Test]
@@ -40,13 +39,12 @@ final class BooleanColumnTest extends TestCase
     }
 
     #[Test]
-    public function it_can_set_default_off_state(): void
+    public function it_is_not_rendered_as_switch_by_default(): void
     {
-        $data = BooleanColumn::new('active')
-            ->jsonSerialize();
+        $column = BooleanColumn::new('active');
 
-        $this->assertTrue($data['customOptions']['renderAsSwitch']);
-        $this->assertFalse($data['customOptions']['defaultState']);
+        $this->assertFalse($column->isRenderedAsSwitch());
+        $this->assertFalse($column->getDefaultState());
     }
 
     #[Test]
