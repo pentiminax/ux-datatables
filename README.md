@@ -32,6 +32,7 @@ composer require pentiminax/ux-datatables
 ```php
 use App\Entity\User;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -50,6 +51,15 @@ final class UserDataTable extends AbstractDataTable
         ];
     }
 }
+```
+
+Column variants are configured fluently after `new()`:
+
+```php
+TextColumn::new('name')->utf8();
+TextColumn::new('content')->html()->utf8();
+NumberColumn::new('price')->formatted();
+BooleanColumn::new('active')->renderAsSwitch();
 ```
 
 ### 2. Wire it in a controller

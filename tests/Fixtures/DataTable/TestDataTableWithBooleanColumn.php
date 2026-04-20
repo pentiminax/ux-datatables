@@ -13,6 +13,6 @@ class TestDataTableWithBooleanColumn extends AbstractDataTable
 {
     public function configureColumns(): iterable
     {
-        yield BooleanColumn::new('isEmailAuthEnabled');
+        yield BooleanColumn::new('isEmailAuthEnabled')->renderAsSwitch();
     }
 }

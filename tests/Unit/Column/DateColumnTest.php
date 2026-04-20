@@ -34,10 +34,10 @@ final class DateColumnTest extends TestCase
     }
 
     #[Test]
-    public function it_serializes_default_format_in_custom_options(): void
+    public function it_does_not_serialize_default_format_in_custom_options(): void
     {
         $data = DateColumn::new('createdAt')->jsonSerialize();
 
-        $this->assertSame('Y-m-d', $data['customOptions']['dateFormat']);
+        $this->assertArrayNotHasKey('customOptions', $data);
     }
 }

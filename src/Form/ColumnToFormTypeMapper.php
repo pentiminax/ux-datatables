@@ -56,14 +56,14 @@ final class ColumnToFormTypeMapper
             ];
         }
 
-        if (null !== $column->getCustomOption('dateFormat')) {
+        $type = $column->getType();
+
+        if (ColumnType::DATE === $type) {
             return [
                 'formType' => DateType::class,
                 'options'  => $options + ['widget' => 'single_text'],
             ];
         }
-
-        $type = $column->getType();
 
         if ($type->isNumber()) {
             return [

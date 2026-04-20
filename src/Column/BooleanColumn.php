@@ -17,8 +17,7 @@ class BooleanColumn extends AbstractColumn
 
     public static function new(string $name, string $title = ''): static
     {
-        return static::createWithType($name, $title, ColumnType::NUM)
-            ->renderAsSwitch();
+        return static::createWithType($name, $title, ColumnType::NUM);
     }
 
     public function renderAsSwitch(bool $defaultState = false): self
@@ -51,7 +50,7 @@ class BooleanColumn extends AbstractColumn
 
     public function isRenderedAsSwitch(): bool
     {
-        return $this->getCustomOption(self::OPTION_RENDER_AS_SWITCH) ?? true;
+        return $this->getCustomOption(self::OPTION_RENDER_AS_SWITCH) ?? false;
     }
 
     public function getDefaultState(): bool

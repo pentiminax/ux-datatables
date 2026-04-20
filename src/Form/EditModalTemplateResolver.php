@@ -68,7 +68,7 @@ final class EditModalTemplateResolver implements EditModalTemplateResolverInterf
 
     private function resolveAttribute(string $dataTableClass): ?AsDataTable
     {
-        if (array_key_exists($dataTableClass, self::$attributeCache)) {
+        if (\array_key_exists($dataTableClass, self::$attributeCache)) {
             return self::$attributeCache[$dataTableClass];
         }
 
