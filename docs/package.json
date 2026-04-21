@@ -15,7 +15,7 @@
     "@astrojs/mdx": "^5.0.0",
     "@astrojs/sitemap": "^3.7.1",
     "@tailwindcss/vite": "^4.2.1",
-    "astro": "^6.0.4",
+    "astro": "^6.1.8",
     "rehype-autolink-headings": "^7.1.0",
     "sharp": "^0.34.0",
     "tailwindcss": "^4.2.1"
