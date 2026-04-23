@@ -30,6 +30,10 @@ final class PropertyReader
             return null;
         }
 
+        if ($value instanceof \Stringable) {
+            return (string)$value;
+        }
+
         return $value;
     }
 
@@ -41,14 +45,9 @@ final class PropertyReader
 
         $accessor = self::buildAccessorSuffix($property);
         foreach (['get', 'is', 'has'] as $prefix) {
-            $method = $prefix.$accessor;
+            $method = $prefix . $accessor;
             if (\is_callable([$object, $method])) {
-                $value = $object->$method();
-                if ($value instanceof \Stringable) {
-                    return (string) $value;
-                }
-
-                return $value;
+                return $object->$method();
             }
         }
 

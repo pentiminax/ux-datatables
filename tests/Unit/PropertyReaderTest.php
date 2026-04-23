@@ -111,7 +111,7 @@ final class PropertyReaderTest extends TestCase
     public function it_traverses_dot_notation_on_nested_objects(): void
     {
         $address = new PropertyReaderAddressStub('Paris');
-        $user    = new PropertyReaderUserStub($address);
+        $user = new PropertyReaderUserStub($address);
 
         $this->assertSame('Paris', PropertyReader::readPath($user, 'address.city'));
     }
@@ -129,15 +129,35 @@ final class PropertyReaderTest extends TestCase
 
         $this->assertNull(PropertyReader::readObjectValue($object, 'secret'));
     }
+
+    #[Test]
+    public function it_traverses_nested_path_when_intermediate_entity_is_stringable(): void
+    {
+        $product = new PropertyReaderStringableProductStub('REF-001', 'Widget');
+        $stock = new PropertyReaderStockStub($product);
+
+        $this->assertSame('REF-001', PropertyReader::readPath($stock, 'product.ref'));
+        $this->assertSame('Widget', PropertyReader::readPath($stock, 'product.name'));
+    }
+
+    #[Test]
+    public function it_casts_leaf_stringable_entity_to_string(): void
+    {
+        $product = new PropertyReaderStringableProductStub('REF-001', 'Widget');
+        $stock = new PropertyReaderStockStub($product);
+
+        $this->assertSame('Widget', PropertyReader::readPath($stock, 'product'));
+    }
 }
 
 final readonly class PropertyReaderStub
 {
     public function __construct(
         private string $name,
-        private bool $active,
+        private bool   $active,
         private string $role,
-    ) {
+    )
+    {
     }
 
     public function getName(): string
@@ -222,4 +242,41 @@ final readonly class PropertyReaderUserStub
 final class PropertyReaderPrivateFieldStub
 {
     private string $secret = 'hidden';
+}
+
+final readonly class PropertyReaderStringableProductStub implements \Stringable
+{
+    public function __construct(
+        private string $ref,
+        private string $name,
+    )
+    {
+    }
+
+    public function getRef(): string
+    {
+        return $this->ref;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    public function __toString(): string
+    {
+        return $this->name;
+    }
+}
+
+final readonly class PropertyReaderStockStub
+{
+    public function __construct(private PropertyReaderStringableProductStub $product)
+    {
+    }
+
+    public function getProduct(): PropertyReaderStringableProductStub
+    {
+        return $this->product;
+    }
 }
