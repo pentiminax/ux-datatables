@@ -145,6 +145,21 @@ ImageColumn::new('avatar', 'Avatar')
     ->setPlaceholder('/images/default-avatar.png');
 ```
 
+### UrlColumn
+
+For link cells, use `UrlColumn`. It can render a raw URL value or resolve the `href` from a Symfony
+route or a per-row callable. See the [UrlColumn reference](../../reference/url-column/) for the full API.
+
+```php
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
+
+UrlColumn::new('email', 'Email')
+    ->linkToRoute('admin_user_show', static fn (User $user): array => [
+        'id' => $user->getId(),
+    ]);
+```
+
 ### TemplateColumn (Twig)
 
 Use `TemplateColumn` when you want to render server-side HTML with Twig:

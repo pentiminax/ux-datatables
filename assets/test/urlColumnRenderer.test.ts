@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { urlColumnRenderer } from '../src/columnRenderers/urlColumnRenderer'
 
 describe('urlColumnRenderer', () => {
-  it('matches columns with template in customOptions', () => {
-    expect(urlColumnRenderer.matches({ customOptions: { template: '/users/{id}' } })).toBe(true)
+  it('matches URL columns', () => {
+    expect(urlColumnRenderer.matches({ customOptions: { isUrl: true } })).toBe(true)
   })
 
   it('matches columns with target in customOptions', () => {
@@ -36,16 +36,16 @@ describe('urlColumnRenderer', () => {
       expect(html).toBe('<a href="https://example.com">https://example.com</a>')
     })
 
-    it('builds URL from template and routeParams', () => {
+    it('uses resolved row URL metadata as href', () => {
       const column: Record<string, any> = {
-        customOptions: {
-          template: '/users/{id}/posts/{slug}',
-          routeParams: { id: 'userId', slug: 'postSlug' },
-        },
+        customOptions: { isUrl: true },
+        data: 'profile',
       }
       urlColumnRenderer.configure(column)
-      const html = column.render('ignored', 'display', { userId: 7, postSlug: 'hello world' })
-      expect(html).toContain('/users/7/posts/hello%20world')
+      const html = column.render('Jane', 'display', {
+        __ux_datatables_urls: { profile: '/users/7' },
+      })
+      expect(html).toBe('<a href="/users/7">Jane</a>')
     })
 
     it('renders a custom display value', () => {

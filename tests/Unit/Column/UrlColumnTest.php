@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Column\UrlColumn;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * @internal
@@ -24,6 +25,7 @@ final class UrlColumnTest extends TestCase
         $this->assertSame('website', $data['data']);
         $this->assertSame('website', $data['name']);
         $this->assertSame('Website', $data['title']);
+        $this->assertTrue($data['customOptions']['isUrl']);
     }
 
     #[Test]
@@ -45,16 +47,6 @@ final class UrlColumnTest extends TestCase
     }
 
     #[Test]
-    public function it_stores_custom_target(): void
-    {
-        $data = UrlColumn::new('website')
-            ->setTarget('_self')
-            ->jsonSerialize();
-
-        $this->assertSame('_self', $data['customOptions']['target']);
-    }
-
-    #[Test]
     public function it_stores_display_value_text(): void
     {
         $data = UrlColumn::new('website')
@@ -62,16 +54,6 @@ final class UrlColumnTest extends TestCase
             ->jsonSerialize();
 
         $this->assertSame('Visit', $data['customOptions']['displayValue']);
-    }
-
-    #[Test]
-    public function it_stores_route_params(): void
-    {
-        $data = UrlColumn::new('website')
-            ->route('app_user_show', ['id' => 'id'])
-            ->jsonSerialize();
-
-        $this->assertSame(['id' => 'id'], $data['customOptions']['routeParams']);
     }
 
     #[Test]
@@ -95,65 +77,63 @@ final class UrlColumnTest extends TestCase
     }
 
     #[Test]
-    public function it_stores_url_template(): void
-    {
-        $data = UrlColumn::new('website')
-            ->setUrlTemplate('/users/{id}')
-            ->jsonSerialize();
-
-        $this->assertSame('/users/{id}', $data['customOptions']['template']);
-    }
-
-    #[Test]
-    public function it_has_no_url_options_in_default_serialization(): void
-    {
-        $data = UrlColumn::new('website')->jsonSerialize();
-
-        $this->assertArrayNotHasKey('customOptions', $data);
-    }
-
-    #[Test]
-    public function it_serializes_full_configuration(): void
-    {
-        $data = UrlColumn::new('website', 'User Link')
-            ->route('app_user_show', ['id' => 'id'])
-            ->setUrlTemplate('/users/{id}')
-            ->openInNewTab()
-            ->setDisplayValue('View')
-            ->showExternalIcon()
-            ->jsonSerialize();
-
-        $this->assertSame('html', $data['type']);
-        $this->assertSame('_blank', $data['customOptions']['target']);
-        $this->assertSame('View', $data['customOptions']['displayValue']);
-        $this->assertSame(['id' => 'id'], $data['customOptions']['routeParams']);
-        $this->assertSame('/users/{id}', $data['customOptions']['template']);
-        $this->assertTrue($data['customOptions']['showExternalIcon']);
-    }
-
-    #[Test]
-    public function it_returns_stored_route_name(): void
+    public function it_resolves_static_url(): void
     {
         $column = UrlColumn::new('website')
-            ->route('app_user_show', ['id' => 'id']);
+            ->linkToUrl('/users');
 
-        $this->assertSame('app_user_show', $column->getRouteName());
+        $this->assertSame('/users', $column->resolveUrl((object) ['id' => 7]));
+        $this->assertTrue($column->hasUrlResolver());
+        $this->assertArrayNotHasKey('url', $column->jsonSerialize()['customOptions']);
     }
 
     #[Test]
-    public function it_returns_null_route_name_by_default(): void
-    {
-        $column = UrlColumn::new('website');
-
-        $this->assertNull($column->getRouteName());
-    }
-
-    #[Test]
-    public function it_returns_stored_route_params(): void
+    public function it_resolves_url_from_callable(): void
     {
         $column = UrlColumn::new('website')
-            ->route('app_user_show', ['id' => 'id', 'slug' => 'slug']);
+            ->linkToUrl(static fn (object $row): string => '/users/'.$row->id);
 
-        $this->assertSame(['id' => 'id', 'slug' => 'slug'], $column->getRouteParams());
+        $this->assertSame('/users/7', $column->resolveUrl((object) ['id' => 7]));
+        $this->assertTrue($column->hasUrlResolver());
+        $this->assertArrayNotHasKey('url', $column->jsonSerialize()['customOptions']);
+    }
+
+    #[Test]
+    public function it_resolves_route_from_callable_params(): void
+    {
+        $column = UrlColumn::new('website')
+            ->linkToRoute('app_user_show', static fn (object $row): array => ['id' => $row->id]);
+
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator
+            ->expects($this->once())
+            ->method('generate')
+            ->with('app_user_show', ['id' => 7])
+            ->willReturn('/users/7');
+
+        $this->assertSame('/users/7', $column->resolveUrl((object) ['id' => 7], $urlGenerator));
+        $this->assertTrue($column->hasUrlResolver());
+        $this->assertArrayNotHasKey('routeName', $column->jsonSerialize()['customOptions']);
+    }
+
+    #[Test]
+    public function it_returns_null_for_blank_url(): void
+    {
+        $column = UrlColumn::new('website')
+            ->linkToUrl(static fn (): string => '   ');
+
+        $this->assertNull($column->resolveUrl((object) ['id' => 7]));
+    }
+
+    #[Test]
+    public function it_fails_when_route_is_resolved_without_url_generator(): void
+    {
+        $column = UrlColumn::new('website')
+            ->linkToRoute('app_user_show');
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('UrlGeneratorInterface is required to resolve UrlColumn routes.');
+
+        $column->resolveUrl((object) ['id' => 7]);
     }
 }

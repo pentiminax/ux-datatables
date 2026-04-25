@@ -44,10 +44,9 @@ export interface EmailCustomOptions {
 }
 
 export interface UrlCustomOptions {
+    isUrl?: boolean
     target?: string
     displayValue?: string
-    routeParams?: Record<string, string>
-    template?: string
     showExternalIcon?: boolean
 }
 
@@ -81,4 +80,8 @@ export interface ActionRowConfig {
 
 export interface ActionRowData {
     __ux_datatables_actions?: Record<string, ActionRowConfig>
+}
+
+export interface UrlRowData {
+    __ux_datatables_urls?: Record<string, string>
 }

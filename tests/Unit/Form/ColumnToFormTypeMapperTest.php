@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Model\Actions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -136,20 +137,9 @@ class ColumnToFormTypeMapperTest extends TestCase
         $this->assertNull($result);
     }
 
-    public function test_url_column_with_route_name_is_skipped(): void
+    public function test_url_column_is_skipped(): void
     {
-        $column = TextColumn::new('link', 'Link')
-            ->setCustomOption('routeName', 'app_show');
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNull($result);
-    }
-
-    public function test_url_column_with_template_is_skipped(): void
-    {
-        $column = TextColumn::new('link', 'Link')
-            ->setCustomOption('template', '/items/{id}');
+        $column = UrlColumn::new('link', 'Link');
 
         $result = $this->mapper->map($column);
 
