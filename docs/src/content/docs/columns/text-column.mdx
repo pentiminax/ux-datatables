@@ -1,0 +1,87 @@
+---
+title: TextColumn
+description: Render plain text or HTML string values in table cells
+---
+
+# Text Column
+
+`TextColumn` is the default column type for string values. It uses the DataTables `string` type for sorting and searching, which means values are compared as plain text.
+
+## Basic Usage
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+TextColumn::new('name', 'Name');
+```
+
+## HTML Content
+
+When the cell value contains HTML markup, call `html()` to switch the DataTables type to `html`. This strips tags before sorting and searching, so users search against the visible text, not the markup.
+
+```php
+TextColumn::new('description', 'Description')
+    ->html();
+```
+
+## UTF-8 Sorting
+
+For non-ASCII text (accented characters, CJK), use `utf8()` to switch to a UTF-8 aware comparison algorithm:
+
+```php
+TextColumn::new('name', 'Name')
+    ->utf8();
+```
+
+Combining both uses the `html-utf8` type:
+
+```php
+TextColumn::new('content', 'Content')
+    ->html()
+    ->utf8();
+```
+
+## API Reference
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ["`TextColumn::new(string $name, string $title = '')`", 'Creates a new TextColumn (type: `string`)'],
+    ['`html(bool $html = true)`', 'Switches to `html` type (or `html-utf8` when combined with `utf8()`)'],
+    ['`utf8(bool $utf8 = true)`', 'Switches to `string-utf8` type (or `html-utf8` when combined with `html()`)'],
+  ]}
+/>
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID')->setWidth('60px');
+        yield TextColumn::new('name', 'Name')->utf8();
+        yield TextColumn::new('bio', 'Bio')->html()->utf8();
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return [
+            'id'   => $item->getId(),
+            'name' => $item->getName(),
+            'bio'  => $item->getBio(),
+        ];
+    }
+}
+```
+
+<Aside type="note">
+  Use `html()` only when the cell actually contains markup — the extra tag-stripping step has a
+  small runtime cost in the browser.
+</Aside>
