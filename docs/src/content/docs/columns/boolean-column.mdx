@@ -1,0 +1,120 @@
+---
+title: Boolean Column
+description: Render boolean values as Bootstrap toggle switches with optional AJAX update support
+---
+
+# Boolean Column
+
+`BooleanColumn` renders a `true`/`false` (or `1`/`0`) field as a Bootstrap form switch. When combined with `renderAsSwitch()`, toggling the switch sends an AJAX request to update the field server-side.
+
+## Basic Usage
+
+```php
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
+
+BooleanColumn::new('active', 'Status');
+```
+
+Renders the raw boolean value as text. Not interactive.
+
+## Interactive Toggle Switch
+
+`renderAsSwitch()` turns the cell into a live Bootstrap switch. Clicking it sends an AJAX `PATCH` request to update the field.
+
+```php
+BooleanColumn::new('active', 'Status')
+    ->renderAsSwitch();
+```
+
+Set the initial state of the switch when the row value is not available:
+
+```php
+BooleanColumn::new('active', 'Status')
+    ->renderAsSwitch(defaultState: false);
+```
+
+## Entity Class
+
+The AJAX request includes the entity class so the backend knows which object to update. When using `#[AsDataTable(Entity::class)]`, it is injected automatically. For manual tables, set it explicitly:
+
+```php
+BooleanColumn::new('active', 'Status')
+    ->renderAsSwitch()
+    ->setEntityClass(User::class);
+```
+
+## AJAX Configuration
+
+Customize the identifier field and HTTP method used for the toggle request:
+
+```php
+BooleanColumn::new('active', 'Status')
+    ->renderAsSwitch()
+    ->setToggleAjax(idField: 'uuid', method: 'PUT');
+```
+
+The default is `id` + `PATCH`.
+
+## Route Import
+
+The toggle endpoint is provided by the bundle. Import the routes once in your project:
+
+```php
+// config/routes/ux_datatables.php
+use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
+
+return static function (RoutingConfigurator $routes): void {
+    $routes->import('@DataTablesBundle/config/routes.php');
+};
+```
+
+## API Reference
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ["`BooleanColumn::new(string $name, string $title = '')`", 'Creates a new BooleanColumn (type: `num`)'],
+    ['`renderAsSwitch(bool $defaultState = false)`', 'Enable Bootstrap switch rendering with AJAX toggle'],
+    ['`setEntityClass(string $class)`', 'Set the Doctrine entity class for the AJAX request (auto-injected when using `#[AsDataTable]`)'],
+    ['`setToggleAjax(string $idField = \'id\', string $method = \'PATCH\')`', 'Customize the identifier field and HTTP method for the toggle request'],
+    ['`getDefaultState(): bool`', 'Returns the configured default switch state'],
+    ['`getToggleField(): ?string`', 'Returns the field name used in the toggle request'],
+  ]}
+/>
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('email', 'Email');
+        yield BooleanColumn::new('active', 'Active')
+            ->renderAsSwitch();
+        // Entity class is injected automatically from #[AsDataTable(User::class)]
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return [
+            'id'     => $item->getId(),
+            'email'  => $item->getEmail(),
+            'active' => $item->isActive(),
+        ];
+    }
+}
+```
+
+<Aside type="note">
+  `BooleanColumn` uses the `num` DataTables type internally so that `true`/`1` and `false`/`0`
+  sort correctly. The bundle routes must be imported for the AJAX toggle to work.
+</Aside>
