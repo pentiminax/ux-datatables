@@ -1,34 +1,25 @@
 import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js';
 export const urlColumnRenderer = {
     matches(column) {
-        const opts = column?.customOptions;
-        return (typeof opts?.template === 'string' ||
-            typeof opts?.target === 'string' ||
-            typeof opts?.displayValue === 'string' ||
-            true === opts?.showExternalIcon);
+        const opts = (column?.customOptions ?? {});
+        return (true === opts.isUrl ||
+            opts.target !== undefined ||
+            opts.displayValue !== undefined ||
+            true === opts.showExternalIcon);
     },
     configure(column) {
-        const customOptions = (column.customOptions ?? {});
-        const urlTemplate = customOptions.template;
-        const routeParams = typeof customOptions.routeParams === 'object' ? customOptions.routeParams : null;
-        const target = typeof customOptions.target === 'string' ? customOptions.target : null;
-        const displayValue = typeof customOptions.displayValue === 'string' ? customOptions.displayValue : null;
-        const showExternalIcon = true === customOptions.showExternalIcon;
+        const { target, displayValue, showExternalIcon } = (column.customOptions ??
+            {});
         column.render = (data, type, row) => {
             if (type !== 'display') {
                 return data;
             }
-            let href;
-            if (urlTemplate && routeParams) {
-                href = urlTemplate;
-                for (const [paramName, fieldName] of Object.entries(routeParams)) {
-                    const value = row[fieldName] ?? '';
-                    href = href.replace(`{${paramName}}`, encodeURIComponent(String(value)));
-                }
-            }
-            else {
-                href = typeof data === 'string' ? data : '';
-            }
+            const key = column.data ?? column.name;
+            const href = typeof key === 'string' && row.__ux_datatables_urls?.[key]
+                ? row.__ux_datatables_urls[key]
+                : typeof data === 'string'
+                    ? data
+                    : '';
             if (isUnsafeUrl(href)) {
                 return escapeHtml(String(data ?? ''));
             }

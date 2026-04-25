@@ -16,7 +16,7 @@ use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
-use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnResolver;
+use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceMercureMetadataResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
@@ -237,21 +237,20 @@ class DataTablesBundle extends AbstractBundle
             ->set('datatables.column.resolver', ColumnResolver::class)
             ->arg(0, service('datatables.column.attribute_column_reader'))
             ->arg(1, service(ColumnAutoDetectorInterface::class)->nullOnInvalid())
-            ->arg(2, service(UrlColumnResolver::class)->nullOnInvalid())
             ->private();
 
         $container->services()
             ->alias(ColumnResolver::class, 'datatables.column.resolver')
             ->private();
 
-        if (interface_exists(\Symfony\Component\Routing\RouterInterface::class)) {
+        if (interface_exists(\Symfony\Component\Routing\Generator\UrlGeneratorInterface::class)) {
             $container->services()
-                ->set('datatables.column.url_column_resolver', UrlColumnResolver::class)
+                ->set('datatables.column.url_column_data_resolver', UrlColumnDataResolver::class)
                 ->arg(0, service('router'))
                 ->private();
 
             $container->services()
-                ->alias(UrlColumnResolver::class, 'datatables.column.url_column_resolver')
+                ->alias(UrlColumnDataResolver::class, 'datatables.column.url_column_data_resolver')
                 ->private();
         }
 
@@ -281,6 +280,7 @@ class DataTablesBundle extends AbstractBundle
             ->arg(0, service('datatables.data_provider.resolver'))
             ->arg(1, service('datatables.column.template_column_renderer'))
             ->arg(2, service('datatables.column.action_row_data_resolver'))
+            ->arg(3, service(UrlColumnDataResolver::class)->nullOnInvalid())
             ->private();
 
         $container->services()

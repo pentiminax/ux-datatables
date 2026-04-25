@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\Actions;
@@ -15,7 +14,6 @@ final class ColumnResolver
     public function __construct(
         private readonly ?AttributeColumnReader $attributeColumnReader = null,
         private readonly ?ColumnAutoDetectorInterface $columnAutoDetector = null,
-        private readonly ?UrlColumnResolver $urlColumnResolver = null,
     ) {
     }
 
@@ -105,16 +103,6 @@ final class ColumnResolver
 
             $column->setEntityClass($asDataTable->entityClass);
         }
-    }
-
-    /**
-     * Resolve URL templates for UrlColumns.
-     *
-     * @param ColumnInterface[] $columns
-     */
-    public function configureUrlColumns(array $columns): void
-    {
-        $this->urlColumnResolver?->resolveRoutes($columns);
     }
 
     /**

@@ -9,7 +9,6 @@ use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
-use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Model\Action;
@@ -163,30 +162,6 @@ final class ColumnResolverTest extends TestCase
         $resolver->configureBooleanColumns([$boolCol], null);
 
         $this->assertNull($boolCol->getEntityClass());
-    }
-
-    #[Test]
-    public function configure_url_columns_delegates_to_url_resolver(): void
-    {
-        $urlResolver = $this->createMock(UrlColumnResolver::class);
-        $columns     = [TextColumn::new('name', 'Name')];
-
-        $urlResolver->expects($this->once())
-            ->method('resolveRoutes')
-            ->with($columns);
-
-        $resolver = new ColumnResolver(urlColumnResolver: $urlResolver);
-        $resolver->configureUrlColumns($columns);
-    }
-
-    #[Test]
-    public function configure_url_columns_noop_without_resolver(): void
-    {
-        $resolver = new ColumnResolver();
-
-        // Should not throw
-        $resolver->configureUrlColumns([TextColumn::new('name', 'Name')]);
-        $this->addToAssertionCount(1);
     }
 
     #[Test]

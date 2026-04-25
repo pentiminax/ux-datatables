@@ -79,8 +79,6 @@ abstract class AbstractDataTable
         $this->columns = iterator_to_array($this->configureColumns());
 
         $this->columnResolver->configureBooleanColumns($this->columns, $this->asDataTable);
-        $this->columnResolver->configureUrlColumns($this->columns);
-
         $actions = $this->configureActions(new Actions());
         $this->columnResolver->configureActionEntityClass($actions, $this->asDataTable);
 
