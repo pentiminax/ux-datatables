@@ -39,12 +39,20 @@ class UrlColumn extends AbstractColumn
         return $this;
     }
 
-    public function linkToRoute(string $routeName, ?callable $params = null): static
+    public function linkToRoute(string $routeName, array|callable|null $params = null): static
     {
-        $this->routeName       = $routeName;
-        $this->routeParameters = null === $params ? null : $params(...);
-        $this->url             = null;
-        $this->urlResolver     = null;
+        $this->routeName = $routeName;
+
+        if (null === $params) {
+            $this->routeParameters = null;
+        } elseif (\is_array($params)) {
+            $this->routeParameters = static fn (): array => $params;
+        } else {
+            $this->routeParameters = $params(...);
+        }
+
+        $this->url         = null;
+        $this->urlResolver = null;
 
         return $this;
     }
