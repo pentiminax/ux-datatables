@@ -1,0 +1,149 @@
+---
+title: Columns Overview
+description: Column system overview — factory pattern, inherited methods, types, and how to pick the right column
+---
+
+# Columns Overview
+
+Each column in a DataTable is a PHP object that configures how a field is displayed, sorted, searched, and exported. All column classes extend `AbstractColumn`, which provides a common set of fluent methods.
+
+## Creating a Column
+
+Use the static `::new()` factory on the concrete column class:
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\DateColumn;
+
+TextColumn::new('firstName', 'First Name');
+NumberColumn::new('age', 'Age');
+DateColumn::new('createdAt', 'Created');
+```
+
+The first argument is the data key (must match your `mapRow()` output), the second is the display header.
+
+## Choosing a Column Type
+
+<Table
+  headers={['Column', 'Use when…']}
+  rows={[
+    ['[TextColumn](./text-column/)', 'Plain text or HTML values'],
+    ['[NumberColumn](./number-column/)', 'Integers, floats, monetary amounts'],
+    ['[DateColumn](./date-column/)', 'Date/datetime strings'],
+    ['[BooleanColumn](./boolean-column/)', 'True/false toggles with optional AJAX switch'],
+    ['[ChoiceColumn](./choice-column/)', 'Finite value sets (statuses, enum variants)'],
+    ['[EmailColumn](./email-column/)', 'Email addresses as clickable mailto links'],
+    ['[ImageColumn](./image-column/)', 'Image URLs rendered as `<img>` thumbnails'],
+    ['[UrlColumn](./url-column/)', 'Arbitrary links from raw URLs, routes, or callables'],
+    ['[TemplateColumn](./template-column/)', 'Custom server-side Twig rendering'],
+    ['[ActionColumn](./action-column/)', 'Row action buttons (edit, delete, detail)'],
+  ]}
+/>
+
+## Inherited Methods (AbstractColumn)
+
+All column types inherit these methods.
+
+### Display
+
+```php
+$column
+    ->setTitle('Full Name')           // Header label
+    ->setClassName('text-primary')    // CSS class on each cell
+    ->setWidth('200px')               // Column width
+    ->setVisible(false)               // Hide the column
+    ->setDefaultContent('N/A');       // Fallback for null values
+```
+
+### Data
+
+```php
+$column
+    ->setData('user.name')            // Nested data path for inline rows
+    ->setField('product.ref');        // Nested property path for entity rows
+```
+
+### Sorting & Searching
+
+```php
+$column
+    ->setOrderable(false)             // Disable sorting
+    ->setSearchable(false)            // Disable column search
+    ->disableGlobalSearch();          // Exclude from global search
+```
+
+### Cell Type
+
+```php
+$column->setCellType('th');           // Use <th> instead of <td>
+```
+
+### Custom JS Rendering
+
+Define a DataTables `render` callback (executed client-side):
+
+```php
+$column->setRender('function(data, type, row) {
+    return "<strong>" + data + "</strong>";
+}');
+```
+
+### Export
+
+```php
+$column->setExportable(false);        // Exclude from CSV/Excel exports
+```
+
+Non-exportable columns automatically receive the `not-exportable` CSS class.
+
+### Edit Form Control
+
+```php
+$column->hideWhenUpdating();          // Exclude from inline edit modal
+```
+
+### Custom Options
+
+Pass arbitrary options to the frontend renderer:
+
+```php
+$column->setCustomOption('myKey', 'myValue');
+```
+
+## ColumnType Enum
+
+The `ColumnType` enum controls DataTables.net's internal sort and search algorithm for a column:
+
+<Table
+  headers={['Type', 'Description']}
+  rows={[
+    ['`STRING`', 'Plain text (default for TextColumn)'],
+    ['`STRING_UTF8`', 'UTF-8 aware text sorting'],
+    ['`NUM`', 'Numeric values'],
+    ['`NUM_FMT`', 'Formatted numbers ($1,000)'],
+    ['`DATE`', 'Date values'],
+    ['`HTML`', 'HTML content — sorts/filters on plain text extracted from markup'],
+    ['`HTML_NUM`', 'Numeric values extracted from HTML'],
+    ['`HTML_NUM_FMT`', 'Formatted numeric values extracted from HTML'],
+    ['`HTML_UTF8`', 'HTML with UTF-8 aware text sorting'],
+  ]}
+/>
+
+## Translating Column Titles
+
+Pass a Symfony translator key as the title and it will be resolved automatically when using `AbstractDataTable`:
+
+```php
+yield TextColumn::new('name', 'datatable.columns.name');
+yield TextColumn::new('email', 'datatable.columns.email');
+```
+
+## Serialization
+
+`jsonSerialize()` returns the DataTables.net configuration array for a column:
+
+```php
+$config = $column->jsonSerialize();
+// ['data' => 'name', 'title' => 'Full Name', 'orderable' => true, ...]
+```

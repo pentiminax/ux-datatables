@@ -1,0 +1,95 @@
+---
+title: Date Column
+description: Render date and datetime values with correct chronological sorting
+---
+
+# Date Column
+
+`DateColumn` uses the DataTables `date` type for chronological sorting. The column expects values formatted as ISO 8601 strings by default (`Y-m-d`). Pass a custom format when your data uses a different pattern.
+
+## Basic Usage
+
+```php
+use Pentiminax\UX\DataTables\Column\DateColumn;
+
+DateColumn::new('createdAt', 'Created');
+```
+
+Returns values as-is. `mapRow()` must return a string in `Y-m-d` format (or the configured format) for correct sorting.
+
+## Custom Format
+
+Use `setFormat()` to declare the date format of your values:
+
+```php
+DateColumn::new('publishedAt', 'Published')
+    ->setFormat('d/m/Y');
+```
+
+Pass `null` to revert to the default `Y-m-d`:
+
+```php
+$column->setFormat(null);
+```
+
+## Display Formatting
+
+To display dates in a different format than the raw stored value, use `setRender()` for client-side formatting:
+
+```php
+DateColumn::new('createdAt', 'Created')
+    ->setRender('function(data) {
+        if (!data) return "";
+        var d = new Date(data);
+        return d.toLocaleDateString("fr-FR");
+    }');
+```
+
+## API Reference
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ["`DateColumn::new(string $name, string $title = '')`", 'Creates a new DateColumn (type: `date`). Default format: `Y-m-d`.'],
+    ['`setFormat(?string $format)`', 'Set the expected date format; `null` resets to default'],
+    ['`getFormat()`', 'Returns the active format string'],
+  ]}
+/>
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\DateColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(Article::class)]
+final class ArticlesDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('title', 'Title');
+        yield DateColumn::new('publishedAt', 'Published');
+        yield DateColumn::new('updatedAt', 'Updated')->setFormat('Y-m-d H:i');
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return [
+            'id'          => $item->getId(),
+            'title'       => $item->getTitle(),
+            'publishedAt' => $item->getPublishedAt()?->format('Y-m-d'),
+            'updatedAt'   => $item->getUpdatedAt()?->format('Y-m-d H:i'),
+        ];
+    }
+}
+```
+
+<Aside type="note">
+  `DateColumn` tells DataTables.net to sort using date parsing logic. The `format` option is passed
+  to the frontend so the correct parser is applied. Make sure `mapRow()` returns dates in the exact
+  format declared, otherwise sorting may be incorrect.
+</Aside>

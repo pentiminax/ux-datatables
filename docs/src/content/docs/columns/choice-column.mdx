@@ -35,10 +35,6 @@ enum Status: string
 ChoiceColumn::new('status', 'Status')
     ->setChoices(Status::cases());
 // Generates: ['active' => 'Active', 'inactive' => 'Inactive', 'pending' => 'Pending']
-
-ChoiceColumn::new('status', 'Status')
-    ->setChoices(Status::cases());
-// Generates the same mapping
 ```
 
 ## Rendering as Bootstrap Badges

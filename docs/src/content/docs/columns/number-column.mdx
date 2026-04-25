@@ -1,0 +1,101 @@
+---
+title: Number Column
+description: Render numeric values with correct numeric sorting and optional formatted number support
+---
+
+# Number Column
+
+`NumberColumn` is for integer and float values. It uses the DataTables `num` type, which sorts numerically rather than lexicographically.
+
+## Basic Usage
+
+```php
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+
+NumberColumn::new('price', 'Price');
+NumberColumn::new('quantity', 'Qty');
+```
+
+## Formatted Numbers
+
+When cells contain locale-formatted numbers such as `$1,234.56`, use `formatted()` to switch to the `num-fmt` type, which strips formatting characters before comparing:
+
+```php
+NumberColumn::new('revenue', 'Revenue')
+    ->formatted();
+```
+
+## HTML Content
+
+When cells contain HTML markup wrapping a number, call `html()` to switch to `html-num` — DataTables will extract the numeric value from inside the HTML before sorting:
+
+```php
+NumberColumn::new('price', 'Price')
+    ->html();
+```
+
+Combining `html()` and `formatted()` uses `html-num-fmt`:
+
+```php
+NumberColumn::new('revenue', 'Revenue')
+    ->html()
+    ->formatted();
+```
+
+## Custom JS Rendering
+
+Use `setRender()` to format numbers client-side:
+
+```php
+NumberColumn::new('price', 'Price')
+    ->setRender('function(data) { return "$" + parseFloat(data).toFixed(2); }');
+```
+
+## API Reference
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ["`NumberColumn::new(string $name, string $title = '')`", 'Creates a new NumberColumn (type: `num`)'],
+    ['`formatted(bool $formatted = true)`', 'Switches to `num-fmt` type (or `html-num-fmt` when combined with `html()`)'],
+    ['`html(bool $html = true)`', 'Switches to `html-num` type (or `html-num-fmt` when combined with `formatted()`)'],
+  ]}
+/>
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(Product::class)]
+final class ProductsDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID')->setWidth('60px');
+        yield TextColumn::new('name', 'Product');
+        yield NumberColumn::new('stock', 'Stock');
+        yield NumberColumn::new('price', 'Price')
+            ->setRender('function(data) { return "€" + parseFloat(data).toFixed(2); }');
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return [
+            'id'    => $item->getId(),
+            'name'  => $item->getName(),
+            'stock' => $item->getStock(),
+            'price' => $item->getPrice(),
+        ];
+    }
+}
+```
+
+<Aside type="note">
+  `NumberColumn` uses the `num` DataTables type. Sorting is numeric; searching compares raw values.
+  For monetary display, combine with `setRender()` — but keep the raw numeric value in `mapRow()`
+  so sorting works correctly.
+</Aside>

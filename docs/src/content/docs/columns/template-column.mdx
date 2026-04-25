@@ -1,0 +1,108 @@
+---
+title: Template Column
+description: Render table cells with a custom server-side Twig template
+---
+
+# Template Column
+
+`TemplateColumn` delegates cell rendering to a Twig template. Use it when you need server-side HTML that depends on entity state, complex conditionals, or components that are impractical to build as a JavaScript `render` callback.
+
+## Basic Usage
+
+```php
+use Pentiminax\UX\DataTables\Column\TemplateColumn;
+
+TemplateColumn::new('status_display', 'Status')
+    ->setField('status')
+    ->setTemplate('datatable/columns/user_status.html.twig');
+```
+
+The column name (`status_display`) is the key used in `mapRow()`. `setField()` tells the row mapper which property to read from the entity.
+
+## Template Context
+
+Inside the template, the following variables are available:
+
+| Variable | Value |
+|---|---|
+| `entity` | The source object from `mapRow()` |
+| `data` | The resolved field value |
+| `column` | Serialized column configuration array |
+| `row` | The full row array |
+
+Example template:
+
+```twig
+{# templates/datatable/columns/user_status.html.twig #}
+<span class="badge bg-{{ data == 'active' ? 'success' : 'danger' }}">
+    {{ data|capitalize }}
+</span>
+```
+
+## Passing Parameters
+
+Pass static parameters to the template via `setTemplate()`:
+
+```php
+TemplateColumn::new('actions', 'Actions')
+    ->setTemplate('datatable/columns/row_actions.html.twig', [
+        'editRoute' => 'admin_user_edit',
+    ]);
+```
+
+Parameters are merged into the template context.
+
+## API Reference
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ["`TemplateColumn::new(string $name, string $title = '')`", 'Creates a new TemplateColumn (type: `html`)'],
+    ['`setTemplate(string $template, array $parameters = [])`', 'Set the Twig template path and optional static parameters. Throws on empty path.'],
+    ['`getTemplate(): string`', 'Returns the configured template path. Throws if not set.'],
+    ['`getTemplateParameters(): array`', 'Returns the static parameters passed to the template'],
+  ]}
+/>
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TemplateColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(Product::class)]
+final class ProductsDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('name', 'Name');
+        yield TemplateColumn::new('stock_badge', 'Stock')
+            ->setField('stock')
+            ->setTemplate('datatable/columns/stock_badge.html.twig');
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return [
+            'id'         => $item->getId(),
+            'name'       => $item->getName(),
+            'stock_badge' => $item->getStock(),
+        ];
+    }
+}
+```
+
+```twig
+{# templates/datatable/columns/stock_badge.html.twig #}
+{% set variant = data > 10 ? 'success' : (data > 0 ? 'warning' : 'danger') %}
+<span class="badge text-bg-{{ variant }}">{{ data }}</span>
+```
+
+<Aside type="note">
+  `TemplateColumn` works with both server-side processing (AJAX responses) and client-side inline
+  data (`->data([...])`). Templates are rendered server-side on every request.
+</Aside>
