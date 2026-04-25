@@ -127,7 +127,7 @@ class UsersController extends AbstractController
         }
 
         return $this->render('users/index.html.twig', [
-            'table' => $table->getDataTable(),
+            'table' => $table,
         ]);
     }
 }

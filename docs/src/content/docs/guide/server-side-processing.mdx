@@ -81,7 +81,7 @@ public function index(ProductsDataTable $table, Request $request): Response
     }
 
     return $this->render('product/index.html.twig', [
-        'table' => $table->getDataTable(),
+        'table' => $table
     ]);
 }
 ```

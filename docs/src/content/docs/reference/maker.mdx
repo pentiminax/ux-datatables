@@ -192,12 +192,8 @@ class UserController extends AbstractController
             return $table->getResponse();
         }
 
-        if (!$table->getDataTable()->isServerSide()) {
-            $table->fetchData(DataTableRequest::fromRequest($request));
-        }
-
         return $this->render('user/index.html.twig', [
-            'table' => $table->getDataTable(),
+            'table' => $table,
         ]);
     }
 }
