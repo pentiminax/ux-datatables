@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
+use Symfony\Component\Form\FormInterface;
 
 final class EditFormService
 {
@@ -70,11 +71,15 @@ final class EditFormService
         $form->submit($payload->formData);
 
         if (!$form->isValid()) {
-            return EditFormResult::invalid($this->renderer->renderBody($this->createRenderRequest(
-                entity: $context->entity,
-                form: $form,
-                dataTableClass: $payload->dataTableClass,
-            )));
+            $html = $this->renderer->renderBody(
+                $this->createRenderRequest(
+                    entity: $context->entity,
+                    form: $form,
+                    dataTableClass: $payload->dataTableClass,
+                )
+            );
+
+            return EditFormResult::invalid($html);
         }
 
         $context->manager->flush();
@@ -91,7 +96,7 @@ final class EditFormService
 
     private function createRenderRequest(
         object $entity,
-        \Symfony\Component\Form\FormInterface $form,
+        FormInterface $form,
         ?string $dataTableClass,
     ): EditModalRenderRequest {
         return new EditModalRenderRequest(
