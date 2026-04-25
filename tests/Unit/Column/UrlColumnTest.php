@@ -117,6 +117,22 @@ final class UrlColumnTest extends TestCase
     }
 
     #[Test]
+    public function it_resolves_route_from_array_params(): void
+    {
+        $column = UrlColumn::new('website')
+            ->linkToRoute('app_user_index', ['type' => 'admin']);
+
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator
+            ->expects($this->once())
+            ->method('generate')
+            ->with('app_user_index', ['type' => 'admin'])
+            ->willReturn('/users?type=admin');
+
+        $this->assertSame('/users?type=admin', $column->resolveUrl((object) ['id' => 7], $urlGenerator));
+    }
+
+    #[Test]
     public function it_returns_null_for_blank_url(): void
     {
         $column = UrlColumn::new('website')
