@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Form;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -106,7 +107,7 @@ final class ColumnToFormTypeMapper
             return true;
         }
 
-        if (isset($customOptions['routeName']) || isset($customOptions['template'])) {
+        if ($column instanceof UrlColumn) {
             return true;
         }
 

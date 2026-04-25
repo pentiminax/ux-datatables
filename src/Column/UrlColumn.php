@@ -4,31 +4,30 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column;
 
-use Pentiminax\UX\DataTables\Contracts\RouteAwareColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
-class UrlColumn extends AbstractColumn implements RouteAwareColumnInterface
+class UrlColumn extends AbstractColumn
 {
+    public const string OPTION_IS_URL             = 'isUrl';
     public const string OPTION_TARGET             = 'target';
     public const string OPTION_DISPLAY_VALUE      = 'displayValue';
-    public const string OPTION_ROUTE_NAME         = 'routeName';
-    public const string OPTION_ROUTE_PARAMS       = 'routeParams';
-    public const string OPTION_URL_TEMPLATE       = 'template';
     public const string OPTION_SHOW_EXTERNAL_ICON = 'showExternalIcon';
+
+    private ?string $url               = null;
+    private ?\Closure $urlResolver     = null;
+    private ?string $routeName         = null;
+    private ?\Closure $routeParameters = null;
 
     public static function new(string $name, string $title = ''): static
     {
-        return static::createWithType($name, $title, ColumnType::HTML);
+        return static::createWithType($name, $title, ColumnType::HTML)
+            ->setCustomOption(self::OPTION_IS_URL, true);
     }
 
     public function openInNewTab(): static
     {
-        return $this->setTarget('_blank');
-    }
-
-    public function setTarget(string $target): static
-    {
-        $this->setCustomOption(self::OPTION_TARGET, $target);
+        $this->setCustomOption(self::OPTION_TARGET, '_blank');
 
         return $this;
     }
@@ -40,13 +39,28 @@ class UrlColumn extends AbstractColumn implements RouteAwareColumnInterface
         return $this;
     }
 
-    /**
-     * @param array<string, string> $params Maps route parameter names to entity field names (e.g. ['id' => 'id'])
-     */
-    public function route(string $routeName, array $params = []): static
+    public function linkToRoute(string $routeName, ?callable $params = null): static
     {
-        $this->setCustomOption(self::OPTION_ROUTE_NAME, $routeName);
-        $this->setCustomOption(self::OPTION_ROUTE_PARAMS, $params);
+        $this->routeName       = $routeName;
+        $this->routeParameters = null === $params ? null : $params(...);
+        $this->url             = null;
+        $this->urlResolver     = null;
+
+        return $this;
+    }
+
+    public function linkToUrl(string|callable $url): static
+    {
+        if (\is_string($url)) {
+            $this->url         = $url;
+            $this->urlResolver = null;
+        } else {
+            $this->url         = null;
+            $this->urlResolver = $url(...);
+        }
+
+        $this->routeName       = null;
+        $this->routeParameters = null;
 
         return $this;
     }
@@ -58,23 +72,38 @@ class UrlColumn extends AbstractColumn implements RouteAwareColumnInterface
         return $this;
     }
 
-    public function getRouteName(): ?string
+    public function resolveUrl(mixed $row, ?UrlGeneratorInterface $urlGenerator = null): ?string
     {
-        return $this->getCustomOption(self::OPTION_ROUTE_NAME);
+        $url = $this->url;
+
+        if (null !== $this->urlResolver) {
+            $url = ($this->urlResolver)($row);
+        }
+
+        if (null !== $this->routeName) {
+            if (null === $urlGenerator) {
+                throw new \LogicException('UrlGeneratorInterface is required to resolve UrlColumn routes.');
+            }
+
+            $params = null === $this->routeParameters ? [] : ($this->routeParameters)($row);
+            if (!\is_array($params)) {
+                throw new \UnexpectedValueException(\sprintf('Route parameters for column "%s" must be an array.', $this->getName()));
+            }
+
+            $url = $urlGenerator->generate($this->routeName, $params);
+        }
+
+        if (null === $url) {
+            return null;
+        }
+
+        $url = trim($url);
+
+        return '' === $url ? null : $url;
     }
 
-    /**
-     * @return array<string, string>|null
-     */
-    public function getRouteParams(): ?array
+    public function hasUrlResolver(): bool
     {
-        return $this->getCustomOption(self::OPTION_ROUTE_PARAMS);
-    }
-
-    public function setUrlTemplate(string $template): static
-    {
-        $this->setCustomOption(self::OPTION_URL_TEMPLATE, $template);
-
-        return $this;
+        return null !== $this->url || null !== $this->urlResolver || null !== $this->routeName;
     }
 }

@@ -6,7 +6,9 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
+use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
@@ -14,6 +16,7 @@ use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * @internal
@@ -181,6 +184,66 @@ final class AbstractDataTableMapRowTest extends TestCase
             ],
         ], $table->getDataTable()->getOption('data'));
     }
+
+    #[Test]
+    public function it_sets_inline_data_from_objects_with_typed_url_route_closure(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator
+            ->expects($this->once())
+            ->method('generate')
+            ->with('movie_show', ['id' => 13])
+            ->willReturn('/movies/13');
+
+        $table = new TypedUrlColumnSetDataTable([
+            TextColumn::new('id'),
+            UrlColumn::new('title')->linkToRoute(
+                'movie_show',
+                static fn (MovieRow $movie): array => ['id' => $movie->getId()]
+            ),
+        ], $urlGenerator);
+
+        $table->setData([
+            new MovieRow(
+                id: 13,
+                title: 'Arrival',
+                releasedAt: new \DateTimeImmutable('2016-09-01')
+            ),
+        ]);
+
+        $this->assertSame([
+            [
+                'id'                   => 13,
+                'title'                => 'Arrival',
+                '__ux_datatables_urls' => [
+                    'title' => '/movies/13',
+                ],
+            ],
+        ], $table->getDataTable()->getOption('data'));
+    }
+
+    #[Test]
+    public function it_sets_inline_data_from_arrays_with_array_url_closure(): void
+    {
+        $table = new ArrayUrlColumnSetDataTable([
+            TextColumn::new('id'),
+            UrlColumn::new('title')->linkToUrl(static fn (array $row): string => '/movies/'.$row['id']),
+        ]);
+
+        $table->setData([
+            ['id' => 14, 'title' => 'Aliens'],
+        ]);
+
+        $this->assertSame([
+            [
+                'id'                   => 14,
+                'title'                => 'Aliens',
+                '__ux_datatables_urls' => [
+                    'title' => '/movies/14',
+                ],
+            ],
+        ], $table->getDataTable()->getOption('data'));
+    }
 }
 
 final class MapRowTestTable extends AbstractDataTable
@@ -279,6 +342,36 @@ final class ArrayDetailActionSetDataTable extends AbstractDataTable
         return $actions->add(
             Action::detail()->linkToUrl(static fn (array $row): string => '/movies/'.$row['id'])
         );
+    }
+}
+
+final class TypedUrlColumnSetDataTable extends AbstractDataTable
+{
+    public function __construct(private readonly array $columnsConfig, UrlGeneratorInterface $urlGenerator)
+    {
+        parent::__construct(
+            runtimeFactory: new DataTableRuntimeFactory(
+                urlColumnDataResolver: new UrlColumnDataResolver($urlGenerator),
+            ),
+        );
+    }
+
+    public function configureColumns(): iterable
+    {
+        return $this->columnsConfig;
+    }
+}
+
+final class ArrayUrlColumnSetDataTable extends AbstractDataTable
+{
+    public function __construct(private readonly array $columnsConfig)
+    {
+        parent::__construct();
+    }
+
+    public function configureColumns(): iterable
+    {
+        return $this->columnsConfig;
     }
 }
 
