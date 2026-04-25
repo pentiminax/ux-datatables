@@ -75,7 +75,7 @@ public function index(UserDataTable $table, Request $request): Response
     }
 
     return $this->render('user/index.html.twig', [
-        'table' => $table->getDataTable(),
+        'table' => $table,
     ]);
 }
 ```
