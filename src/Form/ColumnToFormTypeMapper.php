@@ -69,7 +69,7 @@ final class ColumnToFormTypeMapper
         if ($type->isNumber()) {
             return [
                 'formType' => NumberType::class,
-                'options'  => $options,
+                'options'  => $options + ['html5' => true],
             ];
         }
 
