@@ -1,42 +1,34 @@
 import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js'
-import type { ColumnRenderer, UrlCustomOptions } from './types.js'
+import type { ColumnRenderer, UrlCustomOptions, UrlRowData } from './types.js'
 
 export const urlColumnRenderer: ColumnRenderer = {
     matches(column: Record<string, any>): boolean {
-        const opts = column?.customOptions
+        const opts = (column?.customOptions ?? {}) as UrlCustomOptions
+
         return (
-            typeof opts?.template === 'string' ||
-            typeof opts?.target === 'string' ||
-            typeof opts?.displayValue === 'string' ||
-            true === opts?.showExternalIcon
+            true === opts.isUrl ||
+            opts.target !== undefined ||
+            opts.displayValue !== undefined ||
+            true === opts.showExternalIcon
         )
     },
 
     configure(column: Record<string, any>): void {
-        const customOptions = (column.customOptions ?? {}) as UrlCustomOptions
-        const urlTemplate = customOptions.template
-        const routeParams =
-            typeof customOptions.routeParams === 'object' ? customOptions.routeParams : null
-        const target = typeof customOptions.target === 'string' ? customOptions.target : null
-        const displayValue =
-            typeof customOptions.displayValue === 'string' ? customOptions.displayValue : null
-        const showExternalIcon = true === customOptions.showExternalIcon
+        const { target, displayValue, showExternalIcon } = (column.customOptions ??
+            {}) as UrlCustomOptions
 
-        column.render = (data: any, type: string, row: Record<string, any>): any => {
+        column.render = (data: any, type: string, row: Record<string, any> & UrlRowData): any => {
             if (type !== 'display') {
                 return data
             }
 
-            let href: string
-            if (urlTemplate && routeParams) {
-                href = urlTemplate
-                for (const [paramName, fieldName] of Object.entries(routeParams)) {
-                    const value = row[fieldName as string] ?? ''
-                    href = href.replace(`{${paramName}}`, encodeURIComponent(String(value)))
-                }
-            } else {
-                href = typeof data === 'string' ? data : ''
-            }
+            const key = column.data ?? column.name
+            const href =
+                typeof key === 'string' && row.__ux_datatables_urls?.[key]
+                    ? row.__ux_datatables_urls[key]
+                    : typeof data === 'string'
+                      ? data
+                      : ''
 
             if (isUnsafeUrl(href)) {
                 return escapeHtml(String(data ?? ''))

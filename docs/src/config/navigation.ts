@@ -75,6 +75,7 @@ export const docsSidebarSections: NavSection[] = [
       { label: 'DataTableRequest', href: '/ux-datatables/reference/datatable-request/' },
       { label: 'Attributes', href: '/ux-datatables/reference/attributes/' },
       { label: 'Action Columns', href: '/ux-datatables/reference/action-columns/' },
+      { label: 'UrlColumn', href: '/ux-datatables/reference/url-column/' },
       { label: 'Edit Modal', href: '/ux-datatables/reference/edit-modal/' },
       {
         label: 'Data Providers & Row Mappers',

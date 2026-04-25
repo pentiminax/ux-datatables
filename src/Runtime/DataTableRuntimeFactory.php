@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
+use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -18,6 +19,7 @@ use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
 use Pentiminax\UX\DataTables\RowMapper\Stage\ActionResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\TemplateRenderingStage;
+use Pentiminax\UX\DataTables\RowMapper\Stage\UrlColumnResolutionStage;
 
 final class DataTableRuntimeFactory
 {
@@ -25,6 +27,7 @@ final class DataTableRuntimeFactory
         private ?DataProviderResolver $dataProviderResolver = null,
         private readonly ?TemplateColumnRenderer $templateColumnRenderer = null,
         private readonly ?ActionRowDataResolver $actionRowDataResolver = null,
+        private readonly ?UrlColumnDataResolver $urlColumnDataResolver = null,
     ) {
     }
 
@@ -41,6 +44,8 @@ final class DataTableRuntimeFactory
     {
         $pipeline = (new RowProcessingPipeline($baseMapper, $columns))
             ->add(new NormalizationStage());
+
+        $pipeline->add(new UrlColumnResolutionStage($this->urlColumnDataResolver ?? new UrlColumnDataResolver()));
 
         if (null !== $this->templateColumnRenderer) {
             $pipeline->add(new TemplateRenderingStage($this->templateColumnRenderer));
