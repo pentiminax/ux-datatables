@@ -1,0 +1,153 @@
+---
+title: Url Column
+description: Render DataTable cells as links from raw URLs, Symfony routes, or per-row callables
+---
+
+# Url Column
+
+`UrlColumn` renders a cell as an `<a>` tag. The link target can be read from the cell value directly, generated from a Symfony route, or computed with a per-row callable.
+
+## Basic Usage
+
+When the cell value already contains the URL, no extra configuration is needed:
+
+```php
+use Pentiminax\UX\DataTables\Column\UrlColumn;
+
+UrlColumn::new('website', 'Website');
+```
+
+Renders as: `<a href="https://example.com">https://example.com</a>`
+
+<Aside type="note">
+  `javascript:` and `data:` URLs are rendered as escaped plain text instead of links.
+</Aside>
+
+## Symfony Route
+
+Use `linkToRoute()` when the URL should be generated from a Symfony route. The callable receives the original source object (or the row array for inline data).
+
+```php
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
+
+UrlColumn::new('email', 'Email')
+    ->linkToRoute('admin_user_show', static fn (User $user): array => [
+        'id' => $user->getId(),
+    ]);
+```
+
+The displayed text stays the column value (`email` here). Only the `href` is generated from the route.
+
+Pass a static array when the parameters do not depend on the row:
+
+```php
+UrlColumn::new('help', 'Help')
+    ->linkToRoute('app_help', ['section' => 'users']);
+```
+
+## Custom URL per Row
+
+Use `linkToUrl()` for external URLs or computed URLs:
+
+```php
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
+
+UrlColumn::new('profileLabel', 'Profile')
+    ->linkToUrl(static fn (User $user): string => 'https://example.com/u/' . $user->getSlug())
+    ->openInNewTab();
+```
+
+`linkToUrl()` also accepts a static string:
+
+```php
+UrlColumn::new('support', 'Support')
+    ->setDisplayValue('Contact support')
+    ->linkToUrl('/support');
+```
+
+`linkToRoute()` and `linkToUrl()` are mutually exclusive — calling one clears the other.
+
+## Open in New Tab
+
+```php
+UrlColumn::new('website', 'Website')
+    ->openInNewTab();
+```
+
+Adds `target="_blank"` and `rel="noopener noreferrer"`.
+
+## Custom Display Text
+
+Use a fixed label instead of the cell value:
+
+```php
+UrlColumn::new('profile_url', 'Profile')
+    ->setDisplayValue('View profile');
+```
+
+## External Link Icon
+
+Append a visual indicator that the link opens externally:
+
+```php
+UrlColumn::new('website', 'Website')
+    ->showExternalIcon();
+```
+
+## API Reference
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ["`UrlColumn::new(string $name, string $title = '')`", 'Creates a new UrlColumn (type: `html`)'],
+    ['`linkToRoute(string $routeName, array|callable|null $params = null)`', 'Generate href from a Symfony route. Params can be a static array or a per-row callable.'],
+    ['`linkToUrl(string|callable $url)`', 'Set href from a static string or a per-row callable. Clears any configured route.'],
+    ['`openInNewTab()`', 'Add `target="_blank"` and `rel="noopener noreferrer"`'],
+    ['`setDisplayValue(string $value)`', 'Use a fixed label instead of the cell value'],
+    ['`showExternalIcon(bool $show = true)`', 'Append the external-link icon after the anchor text'],
+  ]}
+/>
+
+## Complete Example
+
+```php
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('name', 'Name');
+        yield UrlColumn::new('name', 'Profile')
+            ->linkToRoute('admin_user_show', static fn (User $user): array => [
+                'id' => $user->getId(),
+            ]);
+        yield UrlColumn::new('website', 'Website')
+            ->openInNewTab()
+            ->showExternalIcon();
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return [
+            'id'      => $item->getId(),
+            'name'    => $item->getName(),
+            'website' => $item->getWebsite(),
+        ];
+    }
+}
+```
+
+<Aside type="note">
+  When using `linkToRoute()`, the Symfony `UrlGeneratorInterface` is injected automatically in the
+  row resolution pipeline. No manual wiring needed.
+</Aside>

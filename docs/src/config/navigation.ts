@@ -29,7 +29,6 @@ export const docsSidebarSections: NavSection[] = [
     items: [
       { label: 'Usage', href: '/ux-datatables/guide/usage/' },
       { label: 'Configuration', href: '/ux-datatables/guide/configuration/' },
-      { label: 'Columns', href: '/ux-datatables/guide/columns/' },
       { label: 'Options', href: '/ux-datatables/guide/options/' },
       { label: 'Styling', href: '/ux-datatables/guide/styling/' },
       {
@@ -40,6 +39,22 @@ export const docsSidebarSections: NavSection[] = [
         label: 'Server-Side Processing',
         href: '/ux-datatables/guide/server-side-processing/',
       },
+    ],
+  },
+  {
+    label: 'Columns',
+    items: [
+      { label: 'Overview', href: '/ux-datatables/columns/overview/' },
+      { label: 'Text Column', href: '/ux-datatables/columns/text-column/' },
+      { label: 'Number Column', href: '/ux-datatables/columns/number-column/' },
+      { label: 'Date Column', href: '/ux-datatables/columns/date-column/' },
+      { label: 'Boolean Column', href: '/ux-datatables/columns/boolean-column/' },
+      { label: 'Choice Column', href: '/ux-datatables/columns/choice-column/' },
+      { label: 'Email Column', href: '/ux-datatables/columns/email-column/' },
+      { label: 'Image Column', href: '/ux-datatables/columns/image-column/' },
+      { label: 'Url Column', href: '/ux-datatables/columns/url-column/' },
+      { label: 'Template Column', href: '/ux-datatables/columns/template-column/' },
+      { label: 'Action Column', href: '/ux-datatables/columns/action-column/' },
     ],
   },
   {
@@ -74,8 +89,6 @@ export const docsSidebarSections: NavSection[] = [
       { label: 'DataTable', href: '/ux-datatables/reference/datatable/' },
       { label: 'DataTableRequest', href: '/ux-datatables/reference/datatable-request/' },
       { label: 'Attributes', href: '/ux-datatables/reference/attributes/' },
-      { label: 'Action Columns', href: '/ux-datatables/reference/action-columns/' },
-      { label: 'UrlColumn', href: '/ux-datatables/reference/url-column/' },
       { label: 'Edit Modal', href: '/ux-datatables/reference/edit-modal/' },
       {
         label: 'Data Providers & Row Mappers',
@@ -100,7 +113,7 @@ export const docsFooterSections: NavSection[] = [
   {
     label: 'Key Features',
     items: [
-      { label: 'Columns', href: '/ux-datatables/guide/columns/' },
+      { label: 'Columns', href: '/ux-datatables/columns/overview/' },
       { label: 'Options', href: '/ux-datatables/guide/options/' },
       { label: 'Extensions', href: '/ux-datatables/extensions/' },
       {

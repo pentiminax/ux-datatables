@@ -1,12 +1,11 @@
 ---
-title: Action Columns
-description: Configure built-in row actions for AbstractDataTable and manual tables
+title: Action Column
+description: Configure built-in row actions (edit, delete, detail) for AbstractDataTable and manual tables
 ---
 
-# Action Columns
+# Action Column
 
-UX DataTables now builds row actions from an `Actions` collection. The recommended entry point is
-`AbstractDataTable::configureActions()`.
+UX DataTables builds row actions from an `Actions` collection. The recommended entry point is `AbstractDataTable::configureActions()`.
 
 ## Recommended Usage with `AbstractDataTable`
 
@@ -51,16 +50,15 @@ final class UsersDataTable extends AbstractDataTable
     {
         /** @var User $item */
         return [
-            'id' => $item->getId(),
-            'email' => $item->getEmail(),
+            'id'     => $item->getId(),
+            'email'  => $item->getEmail(),
             'status' => $item->getStatus(),
         ];
     }
 }
 ```
 
-When `configureActions()` returns at least one action, `AbstractDataTable` automatically appends an
-`ActionColumn` named `actions`.
+When `configureActions()` returns at least one action, `AbstractDataTable` automatically appends an `ActionColumn` named `actions`.
 
 <Aside type="tip">
   When your table uses `#[AsDataTable(Entity::class)]`, the entity class is injected automatically
@@ -74,9 +72,9 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ['`Action::delete($label = \'Delete\', $className = \'btn btn-danger\')`', 'Create the built-in delete action'],
-    ['`Action::detail($label = \'Detail\', $className = \'btn btn-primary\')`', 'Create a link action to a detail page'],
-    ['`Action::edit($label = \'Edit\', $className = \'btn btn-warning\')`', 'Create an inline edit action (opens the configured edit modal)'],
+    ["``Action::delete($label = 'Delete', $className = 'btn btn-danger')``", 'Create the built-in delete action'],
+    ["``Action::detail($label = 'Detail', $className = 'btn btn-primary')``", 'Create a link action to a detail page'],
+    ["``Action::edit($label = 'Edit', $className = 'btn btn-warning')``", 'Create an inline edit action (opens the configured edit modal)'],
   ]}
 />
 
@@ -92,17 +90,14 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
     ['`displayIf(string $field, mixed $value)`', 'Show the action only when `row[field] === value`'],
     ['`setIdField(string $idField)`', 'Use another row key instead of `id`'],
     ['`setEntityClass(string $entityClass)`', 'Set the Doctrine entity class explicitly'],
-    ['`linkToUrl(string\\|callable $url)`', 'Set the URL for detail actions (static string or per-row callable)'],
+    ['`linkToUrl(string|callable $url)`', 'Set the URL for detail actions (static string or per-row callable)'],
   ]}
 />
 
 When `linkToUrl()` receives a callable, the argument depends on how the row was produced:
 
-- `AbstractDataTable` + provider or `setData($objects)`:
-  the callable receives the original source object, so typed closures such as
-  `static fn (User $user): string => ...` work as expected
-- manual `DataTable::data([...])` inline rows:
-  the callable receives the row array, so use `static fn (array $row): string => ...`
+- `AbstractDataTable` + provider or `setData($objects)`: the callable receives the original source object
+- manual `DataTable::data([...])` inline rows: the callable receives the row array
 
 ## `Actions` API
 
@@ -127,11 +122,14 @@ ActionType::Edit;   // value: EDIT
 
 ## Manual Usage with `DataTableBuilderInterface`
 
-If you build tables manually, create an `Actions` collection and wrap it with
-`ActionColumn::fromActions()`:
+If you build tables manually, create an `Actions` collection and wrap it with `ActionColumn::fromActions()`:
 
 ```php
-use App\Entity\User;use Pentiminax\UX\DataTables\Column\ActionColumn;use Pentiminax\UX\DataTables\Column\TextColumn;use Pentiminax\UX\DataTables\Model\Action;use Pentiminax\UX\DataTables\Model\Actions;
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
 
 $actions = (new Actions())
     ->setColumnLabel('Operations')
@@ -153,8 +151,7 @@ $table = $builder
     ]);
 ```
 
-Manual tables must provide the entity class themselves because there is no `#[AsDataTable]`
-attribute to infer it from.
+Manual tables must provide the entity class themselves because there is no `#[AsDataTable]` attribute to infer it from.
 
 ## Inline Edit (Modal)
 
@@ -184,12 +181,6 @@ return static function (RoutingConfigurator $routes): void {
 ### Edit Form Endpoints
 
 - `GET /datatables/ajax/edit-form` — returns the rendered modal HTML
-- `POST /datatables/ajax/edit-form` — validates and persists the form data, and returns only the modal body HTML when invalid
+- `POST /datatables/ajax/edit-form` — validates and persists the form data
 
 These endpoints are only available when `symfony/form` is installed.
-
-## Cross Links
-
-- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)
-- [/ux-datatables/reference/edit-modal/](/ux-datatables/reference/edit-modal/)
-- [/ux-datatables/guide/columns/](/ux-datatables/guide/columns/)
