@@ -24,8 +24,14 @@ final class StateExtension extends AbstractExtension
 
     public function duration(int $seconds): static
     {
+        if ($seconds < -1) {
+            throw new \InvalidArgumentException('State duration must be -1 or greater.');
+        }
+
         $this->duration = $seconds;
 
+        return $this;
+    }
         return $this;
     }
 
