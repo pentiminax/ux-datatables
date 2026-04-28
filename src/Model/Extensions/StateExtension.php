@@ -32,8 +32,6 @@ final class StateExtension extends AbstractExtension
 
         return $this;
     }
-        return $this;
-    }
 
     public function sessionStorage(): static
     {
