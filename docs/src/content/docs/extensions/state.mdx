@@ -36,33 +36,42 @@ $extensions->addStateExtension(fn(StateExtension $s) => $s->indefinite());
 
 DataTables saves and restores the following state automatically:
 
-| State | Description |
-|---|---|
-| Page | Current pagination offset |
-| Length | Rows-per-page value |
-| Order | Active column sort and direction |
-| Search | Global search string |
-| Columns | Per-column search, visibility, and order |
+<Table
+  headers={['State', 'Description']}
+  rows={[
+    ['Page', 'Current pagination offset'],
+    ['Length', 'Rows-per-page value'],
+    ['Order', 'Active column sort and direction'],
+    ['Search', 'Global search string'],
+    ['Columns', 'Per-column search, visibility, and order'],
+  ]}
+/>
 
 ## Duration Reference
 
 The `duration()` method controls both the **storage backend** and the **validity window**:
 
-| Value | Storage | Behaviour |
-|---|---|---|
-| `-1` | `sessionStorage` | Cleared when the browser tab closes |
-| `0` | `localStorage` | Persists indefinitely, no expiration |
-| `> 0` | `localStorage` | Expires after the given number of seconds |
-| `7200` *(default)* | `localStorage` | Expires after 2 hours |
+<Table
+  headers={['Value', 'Storage', 'Behaviour']}
+  rows={[
+    ['-1', 'sessionStorage', 'Cleared when the browser tab closes'],
+    ['0', 'localStorage', 'Persists indefinitely, no expiration'],
+    ['> 0', 'localStorage', 'Expires after the given number of seconds'],
+    ['7200', 'localStorage', 'Expires after 2 hours (default)'],
+  ]}
+/>
 
 ## API
 
-| Method | Description |
-|---|---|
-| `addStateExtension(?callable $configure = null)` | Register the extension, optionally configure it inline |
-| `duration(int $seconds)` | Set validity duration (see table above) |
-| `sessionStorage()` | Shorthand for `duration(-1)` |
-| `indefinite()` | Shorthand for `duration(0)` |
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`addStateExtension(?callable $configure = null)`', 'Register the extension, optionally configure it inline'],
+    ['`duration(int $seconds)`', 'Set validity duration (see table above)'],
+    ['`sessionStorage()`', 'Shorthand for `duration(-1)`'],
+    ['`indefinite()`', 'Shorthand for `duration(0)`'],
+  ]}
+/>
 
 ## Frequent Pitfalls
 
