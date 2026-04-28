@@ -1,0 +1,77 @@
+---
+title: State Extension
+description: Persist pagination, ordering, search, and column visibility across page reloads
+---
+
+# State Extension
+
+## When To Use
+
+Use State when users navigate away from the table and expect to return to the same position — same page, same sort, same search. Avoids repetitive filtering after every reload.
+
+## Minimal Example
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\StateExtension;
+
+$extensions->addStateExtension();
+```
+
+State is saved to `localStorage` with a default duration of **2 hours** (7200 seconds).
+
+## Advanced Example
+
+```php
+// Custom duration — 1 hour
+$extensions->addStateExtension(fn(StateExtension $s) => $s->duration(3600));
+
+// Session only — uses sessionStorage, cleared when the browser tab closes
+$extensions->addStateExtension(fn(StateExtension $s) => $s->sessionStorage());
+
+// Indefinite — localStorage with no expiration
+$extensions->addStateExtension(fn(StateExtension $s) => $s->indefinite());
+```
+
+## What Is Saved
+
+DataTables saves and restores the following state automatically:
+
+| State | Description |
+|---|---|
+| Page | Current pagination offset |
+| Length | Rows-per-page value |
+| Order | Active column sort and direction |
+| Search | Global search string |
+| Columns | Per-column search, visibility, and order |
+
+## Duration Reference
+
+The `duration()` method controls both the **storage backend** and the **validity window**:
+
+| Value | Storage | Behaviour |
+|---|---|---|
+| `-1` | `sessionStorage` | Cleared when the browser tab closes |
+| `0` | `localStorage` | Persists indefinitely, no expiration |
+| `> 0` | `localStorage` | Expires after the given number of seconds |
+| `7200` *(default)* | `localStorage` | Expires after 2 hours |
+
+## API
+
+| Method | Description |
+|---|---|
+| `addStateExtension(?callable $configure = null)` | Register the extension, optionally configure it inline |
+| `duration(int $seconds)` | Set validity duration (see table above) |
+| `sessionStorage()` | Shorthand for `duration(-1)` |
+| `indefinite()` | Shorthand for `duration(0)` |
+
+## Frequent Pitfalls
+
+- **Stale state after schema changes**: if columns are added or renamed, a saved state may silently misalign column data. Use `columns.name` on each column so DataTables can match saved state by name rather than index.
+- **Shared browsers**: `localStorage` is per-origin and per-browser profile, not per user. On shared machines, state bleeds between sessions.
+- **Combining with server-side processing**: state restores the *display* parameters (page, sort, search) but the actual data is re-fetched on every load — this is the expected behaviour.
+
+## Cross Links
+
+- [/ux-datatables/extensions/](/ux-datatables/extensions/)
+- [/ux-datatables/extensions/responsive/](/ux-datatables/extensions/responsive/)
+- [/ux-datatables/guide/options/](/ux-datatables/guide/options/)
