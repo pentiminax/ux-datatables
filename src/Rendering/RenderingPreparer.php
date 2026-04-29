@@ -97,11 +97,11 @@ final class RenderingPreparer
             return;
         }
 
-        if (null === $table->getEditModalAdapter() && \is_string($asDataTable->editModalAdapter) && '' !== trim($asDataTable->editModalAdapter)) {
+        if (null === $table->getEditModalAdapter() && '' !== trim($asDataTable->editModalAdapter)) {
             $table->editModalAdapter($asDataTable->editModalAdapter);
         }
 
-        if (null === $table->getEditModalTemplate() && \is_string($asDataTable->editModalTemplate) && '' !== trim($asDataTable->editModalTemplate)) {
+        if (null === $table->getEditModalTemplate() && '' !== trim($asDataTable->editModalTemplate)) {
             $table->editModalTemplate($asDataTable->editModalTemplate);
         }
     }
