@@ -81,22 +81,12 @@ abstract class AbstractDataTable
         $this->columns = iterator_to_array($this->configureColumns());
 
         $this->columnResolver->configureBooleanColumns($this->columns, $this->asDataTable);
+
         $actions = $this->configureActions(new Actions());
+
         $this->columnResolver->configureActionEntityClass($actions, $this->asDataTable);
 
-        if (!$actions->isEmpty()) {
-            $actionColumn = ActionColumn::fromActions(
-                name: 'actions',
-                title: $actions->getColumnLabel(),
-                actions: $actions,
-            );
-
-            if (null !== $actions->getColumnClassName()) {
-                $actionColumn->setClassName($actions->getColumnClassName());
-            }
-
-            $this->columns[] = $actionColumn;
-        }
+        $this->configureActionColumn($actions);
 
         $this->table->columns($this->columns);
     }
@@ -340,5 +330,24 @@ abstract class AbstractDataTable
             manualDataProviderFactory: $this->createDataProvider(...),
             queryBuilderConfigurator: $this->queryBuilderConfigurator(...),
         );
+    }
+
+    private function configureActionColumn(Actions $actions): void
+    {
+        if ($actions->isEmpty()) {
+            return;
+        }
+
+        $actionColumn = ActionColumn::fromActions(
+            name: 'actions',
+            title: $actions->getColumnLabel(),
+            actions: $actions,
+        );
+
+        if (null !== $actions->getColumnClassName()) {
+            $actionColumn->setClassName($actions->getColumnClassName());
+        }
+
+        $this->columns[] = $actionColumn;
     }
 }
