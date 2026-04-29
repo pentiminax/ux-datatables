@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 
 #[AsDataTable(entityClass: \stdClass::class, mercure: true)]
@@ -26,5 +27,10 @@ class TestDataTableWithMercureAttribute extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->ajax('/api/books');
     }
 }

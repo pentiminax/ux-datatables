@@ -89,6 +89,11 @@ final class Action implements \JsonSerializable
         return $this;
     }
 
+    public function getEntityClass(): ?string
+    {
+        return $this->entityClass;
+    }
+
     /**
      * @param array<string, scalar|null> $htmlAttributes
      */

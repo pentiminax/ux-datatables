@@ -40,7 +40,8 @@ final class AsDataTableTest extends TestCase
 
         $this->assertSame(\stdClass::class, $attribute->entityClass);
         $this->assertFalse($attribute->mercure);
-        $this->assertNull($attribute->editModalTemplate);
+        $this->assertSame('', $attribute->editModalTemplate);
+        $this->assertSame('', $attribute->editModalAdapter);
     }
 
     #[Test]
@@ -55,7 +56,8 @@ final class AsDataTableTest extends TestCase
         $this->assertInstanceOf(AsDataTable::class, $instance);
         $this->assertSame(\stdClass::class, $instance->entityClass);
         $this->assertFalse($instance->mercure);
-        $this->assertNull($instance->editModalTemplate);
+        $this->assertSame('', $instance->editModalTemplate);
+        $this->assertSame('', $instance->editModalAdapter);
     }
 
     #[Test]

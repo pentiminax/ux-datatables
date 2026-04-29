@@ -8,6 +8,7 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -54,10 +55,18 @@ final class AbstractDataTableHttpRequestTest extends TestCase
             ->method('setParameter')
             ->with('genre', 'sci-fi')
             ->willReturn($qb);
+        $qb->expects($this->once())
+            ->method('addOrderBy')
+            ->with('e.id', 'desc')
+            ->willReturn($qb);
 
-        $request = new DataTableRequest(draw: 3, columns: new Columns([]));
+        $request = new DataTableRequest(
+            draw: 3,
+            columns: new Columns([]),
+            order: [new Order(column: 0, dir: 'desc', name: 'id')],
+        );
 
-        $result = $table->configureQueryBuilder($qb, $request);
+        $result = $table->exposedConfigureQueryBuilder($qb, $request);
 
         $this->assertSame($qb, $result);
     }
@@ -75,7 +84,12 @@ final class HttpRequestAwareTable extends AbstractDataTable
         return $this->getHttpRequest();
     }
 
-    public function configureQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    public function exposedConfigureQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    {
+        return $this->configureQueryBuilder($qb, $request);
+    }
+
+    protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
         $genre = $this->getHttpRequest()?->query->get('genre');
         if (null === $genre) {

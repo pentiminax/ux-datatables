@@ -131,16 +131,22 @@ abstract class AbstractDataTable
             return;
         }
 
-        $this->renderingPrepared = true;
         $this->renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable);
         $this->hydrateClientSideData();
         $this->renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable);
+
+        $this->renderingPrepared = true;
     }
 
     public function getDataTable(): DataTable
     {
         $this->prepareForRendering();
 
+        return $this->table;
+    }
+
+    public function getConfiguredDataTable(): DataTable
+    {
         return $this->table;
     }
 
@@ -188,13 +194,7 @@ abstract class AbstractDataTable
             return;
         }
 
-        try {
-            $this->fetchData($this->createClientSideDataRequest());
-        } catch (\LogicException $exception) {
-            if (!str_contains($exception->getMessage(), 'EntityManagerInterface is required to auto-configure a DoctrineDataProvider')) {
-                throw $exception;
-            }
-        }
+        $this->fetchData($this->createClientSideDataRequest());
     }
 
     private function shouldHydrateClientSideData(): bool
@@ -202,7 +202,8 @@ abstract class AbstractDataTable
         return !$this->table->isServerSide()
             && null === $this->table->getOption('data')
             && null === $this->table->getOption('ajax')
-            && true !== $this->table->getOption('apiPlatform');
+            && true !== $this->table->getOption('apiPlatform')
+            && true !== $this->asDataTable?->apiPlatform;
     }
 
     private function createClientSideDataRequest(): DataTableRequest
@@ -225,8 +226,10 @@ abstract class AbstractDataTable
         );
     }
 
-    public function configureQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    final protected function configureQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
+        $qb = $this->customizeQueryBuilder($qb, $request);
+
         $context = new QueryFilterContext(
             request: $request,
             columns: $this->columns,
@@ -236,6 +239,11 @@ abstract class AbstractDataTable
         $registry = $this->createSearchStrategyRegistry();
 
         return QueryFilterChain::createDefault($registry)->apply($qb, $context);
+    }
+
+    protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    {
+        return $qb;
     }
 
     /**
@@ -279,14 +287,13 @@ abstract class AbstractDataTable
     public function setData(array $data): void
     {
         $rowMapper = $this->createRowMapper();
+        $rows      = [];
 
-        $rows = (static function () use ($data, $rowMapper) {
-            foreach ($data as $item) {
-                yield $rowMapper->map($item);
-            }
-        })();
+        foreach ($data as $item) {
+            $rows[] = $rowMapper->map($item);
+        }
 
-        $this->table->data(iterator_to_array($rows));
+        $this->table->data($rows);
         $this->table->markTemplateColumnsRendered();
     }
 
