@@ -53,7 +53,7 @@ class DoctrineDataProvider implements DataProviderInterface
             $qb->setFirstResult($request->start);
         }
 
-        if ($request->length) {
+        if ($request->length > 0) {
             $qb->setMaxResults($request->length);
         }
 

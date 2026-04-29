@@ -21,10 +21,20 @@ final class RenderingPreparer
 
     public function prepare(DataTable $table, ?AsDataTable $asDataTable): void
     {
+        $this->prepareBeforeDataHydration($table, $asDataTable);
+        $this->prepareAfterDataHydration($table, $asDataTable);
+    }
+
+    public function prepareBeforeDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
+    {
         $this->configureApiPlatform($table, $asDataTable);
-        $this->configureMercure($table, $asDataTable);
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
+    }
+
+    public function prepareAfterDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
+    {
+        $this->configureMercure($table, $asDataTable);
     }
 
     private function configureApiPlatform(DataTable $table, ?AsDataTable $asDataTable): void
