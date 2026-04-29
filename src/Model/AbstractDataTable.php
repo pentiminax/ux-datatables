@@ -225,7 +225,7 @@ abstract class AbstractDataTable
         );
     }
 
-    public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    public function configureQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
         $context = new QueryFilterContext(
             request: $request,
@@ -328,7 +328,7 @@ abstract class AbstractDataTable
             asDataTable: $this->asDataTable,
             baseMapper: $this->mapRow(...),
             manualDataProviderFactory: $this->createDataProvider(...),
-            queryBuilderConfigurator: $this->queryBuilderConfigurator(...),
+            configureQueryBuilder: $this->configureQueryBuilder(...),
         );
     }
 

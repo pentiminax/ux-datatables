@@ -24,12 +24,12 @@ final class AutoDataProviderFactory
     }
 
     /**
-     * @param callable(QueryBuilder, DataTableRequest):QueryBuilder $queryBuilderConfigurator
+     * @param callable(QueryBuilder, DataTableRequest):QueryBuilder $configureQueryBuilder
      */
     public function create(
         ?AsDataTable $asDataTable,
         RowMapperInterface $rowMapper,
-        callable $queryBuilderConfigurator,
+        callable $configureQueryBuilder,
     ): ?DataProviderInterface {
         if (null === $asDataTable) {
             return null;
@@ -43,7 +43,7 @@ final class AutoDataProviderFactory
             em: $this->em,
             entityClass: $asDataTable->entityClass,
             rowMapper: $rowMapper,
-            queryBuilderConfigurator: $queryBuilderConfigurator,
+            configureQueryBuilder: $configureQueryBuilder,
         );
     }
 }

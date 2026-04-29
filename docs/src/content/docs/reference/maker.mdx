@@ -146,7 +146,7 @@ public function configureDataTable(DataTable $table): DataTable
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 
-public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+public function configureQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
 {
     return $qb
         ->andWhere('e.active = :active')

@@ -60,7 +60,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
             asDataTable: null,
             baseMapper: static fn ($r): array => [],
             manualDataProviderFactory: static fn (): ?DataProviderInterface => null,
-            queryBuilderConfigurator: static fn ($qb, $req) => $qb,
+            configureQueryBuilder: static fn ($qb, $req) => $qb,
         );
 
         $this->assertInstanceOf(DataTableRuntime::class, $runtime);
@@ -82,7 +82,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
 
                 return null;
             },
-            queryBuilderConfigurator: static fn ($qb, $req) => $qb,
+            configureQueryBuilder: static fn ($qb, $req) => $qb,
         );
 
         $this->assertSame(0, $factoryCalls, 'Factory must not be called before getDataProvider()');
@@ -113,7 +113,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
             asDataTable: null,
             baseMapper: static fn ($r): array => [],
             manualDataProviderFactory: static fn (): ?DataProviderInterface => $manualProvider,
-            queryBuilderConfigurator: static fn ($qb, $req) => $qb,
+            configureQueryBuilder: static fn ($qb, $req) => $qb,
         );
 
         $this->assertSame($manualProvider, $runtime->getDataProvider());
@@ -129,7 +129,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
             asDataTable: null,
             baseMapper: static fn ($r): array => [],
             manualDataProviderFactory: static fn (): ?DataProviderInterface => null,
-            queryBuilderConfigurator: static fn ($qb, $req) => $qb,
+            configureQueryBuilder: static fn ($qb, $req) => $qb,
         );
 
         $this->assertNull($runtime->getDataProvider());
@@ -149,7 +149,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
             asDataTable: new AsDataTable(entityClass: 'App\Entity\Movie'),
             baseMapper: static fn ($r): array => [],
             manualDataProviderFactory: static fn (): ?DataProviderInterface => null,
-            queryBuilderConfigurator: static fn ($qb, $req) => $qb,
+            configureQueryBuilder: static fn ($qb, $req) => $qb,
         );
 
         // AutoDataProviderFactory::create() returns a DoctrineDataProvider (not null)

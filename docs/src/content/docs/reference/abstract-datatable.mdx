@@ -56,7 +56,7 @@ The attribute automatically creates a `DoctrineDataProvider` configured with:
 
 - Your entity class
 - The internal row processing pipeline built from `mapRow()`
-- The `queryBuilderConfigurator()` method
+- The `configureQueryBuilder()` method
 
 ## Defining Columns with Attributes
 
@@ -146,7 +146,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 #[AsDataTable(User::class)]
 final class ActiveUsersDataTable extends AbstractDataTable
 {
-    public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    public function configureQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
         return $qb
             ->andWhere('e.active = :active')
@@ -166,7 +166,7 @@ final class ActiveUsersDataTable extends AbstractDataTable
 Use request parameters for dynamic filters:
 
 ```php
-public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+public function configureQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
 {
     // Access the current Symfony HTTP request for custom parameters
     if ($roleId = $this->getHttpRequest()?->query->get('role')) {
@@ -279,7 +279,7 @@ into each action. See the [Action Columns](../action-columns/) reference for the
     ['`mapRow(mixed $item)`', 'Map a single entity to array'],
     ['`setData(array $data)`', 'Set inline data through the same row-processing pipeline used by providers'],
     ['`createRowMapper()`', 'Protected helper returning the internal row-processing mapper'],
-    ['`queryBuilderConfigurator(QueryBuilder $qb, ...)`', 'Modify Doctrine query'],
+    ['`configureQueryBuilder(QueryBuilder $qb, ...)`', 'Modify Doctrine query'],
   ]}
 />
 
