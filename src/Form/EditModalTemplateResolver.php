@@ -24,7 +24,7 @@ final class EditModalTemplateResolver implements EditModalTemplateResolverInterf
             $dataTable = $this->dataTables->get($dataTableClass);
 
             if ($dataTable instanceof AbstractDataTable) {
-                $template = $dataTable->getDataTable()->getEditModalTemplate();
+                $template = $dataTable->getConfiguredDataTable()->getEditModalTemplate();
 
                 if (\is_string($template) && '' !== trim($template)) {
                     return $template;
@@ -33,7 +33,7 @@ final class EditModalTemplateResolver implements EditModalTemplateResolverInterf
 
             $attribute = $this->resolveAttribute($dataTableClass);
 
-            if (\is_string($attribute?->editModalTemplate) && '' !== trim($attribute->editModalTemplate)) {
+            if (null !== $attribute && '' !== trim($attribute->editModalTemplate)) {
                 return $attribute->editModalTemplate;
             }
         }
@@ -58,7 +58,7 @@ final class EditModalTemplateResolver implements EditModalTemplateResolverInterf
             throw new \RuntimeException(\sprintf('"%s" must extend AbstractDataTable.', $dataTableClass));
         }
 
-        return array_values($dataTable->getDataTable()->getColumns());
+        return array_values($dataTable->getConfiguredDataTable()->getColumns());
     }
 
     /**

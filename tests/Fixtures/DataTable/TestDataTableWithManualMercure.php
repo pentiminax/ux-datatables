@@ -26,10 +26,12 @@ class TestDataTableWithManualMercure extends AbstractDataTable
 
     public function configureDataTable(DataTable $table): DataTable
     {
-        return $table->mercure(
-            hubUrl: '/.well-known/mercure',
-            topics: ['manual/topic'],
-        );
+        return $table
+            ->ajax('/api/books')
+            ->mercure(
+                hubUrl: '/.well-known/mercure',
+                topics: ['manual/topic'],
+            );
     }
 
     public function configureColumns(): iterable

@@ -115,6 +115,10 @@ final class ColumnResolver
         }
 
         foreach ($actions->getActions() as $action) {
+            if (null !== $action->getEntityClass()) {
+                continue;
+            }
+
             $action->setEntityClass($asDataTable->entityClass);
         }
     }

@@ -27,7 +27,7 @@ final class AbstractDataTableAutoDetectTest extends TestCase
     {
         $table = new AutoDetectTestDataTable();
 
-        $this->assertSame([], $table->getDataTable()->getColumns());
+        $this->assertSame([], $table->getConfiguredDataTable()->getColumns());
     }
 
     #[Test]
@@ -39,7 +39,7 @@ final class AbstractDataTableAutoDetectTest extends TestCase
 
         $table = new AutoDetectNoAttributeDataTable(columnAutoDetector: $detector);
 
-        $this->assertSame([], $table->getDataTable()->getColumns());
+        $this->assertSame([], $table->getConfiguredDataTable()->getColumns());
     }
 
     #[Test]
@@ -51,7 +51,7 @@ final class AbstractDataTableAutoDetectTest extends TestCase
 
         $table = new AutoDetectWithoutApiPlatformOptInDataTable(columnAutoDetector: $detector);
 
-        $this->assertSame([], $table->getDataTable()->getColumns());
+        $this->assertSame([], $table->getConfiguredDataTable()->getColumns());
     }
 
     #[Test]
@@ -63,7 +63,7 @@ final class AbstractDataTableAutoDetectTest extends TestCase
 
         $table = new AutoDetectTestDataTable(columnAutoDetector: $detector);
 
-        $this->assertSame([], $table->getDataTable()->getColumns());
+        $this->assertSame([], $table->getConfiguredDataTable()->getColumns());
     }
 
     #[Test]
@@ -79,13 +79,13 @@ final class AbstractDataTableAutoDetectTest extends TestCase
         $detector->method('detectColumns')->with(\stdClass::class, [])->willReturn($detected);
 
         $table   = new AutoDetectTestDataTable(columnAutoDetector: $detector);
-        $columns = $table->getDataTable()->getColumns();
+        $columns = $table->getConfiguredDataTable()->getColumns();
 
         $this->assertCount(2, $columns);
         $this->assertSame('id', $columns['id']->getName());
         $this->assertSame('name', $columns['name']->getName());
-        $this->assertSame('id', $table->getDataTable()->getColumnDefinitions()[0]['name']);
-        $this->assertSame('name', $table->getDataTable()->getColumnDefinitions()[1]['name']);
+        $this->assertSame('id', $table->getConfiguredDataTable()->getColumnDefinitions()[0]['name']);
+        $this->assertSame('name', $table->getConfiguredDataTable()->getColumnDefinitions()[1]['name']);
     }
 
     #[Test]
