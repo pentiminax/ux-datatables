@@ -56,6 +56,14 @@ class ActionsTest extends TestCase
         $this->assertSame('Actions', $actions->getColumnLabel());
     }
 
+    public function test_set_column_class_name(): void
+    {
+        $actions = new Actions();
+        $actions->setColumnClassName('dt-center');
+
+        $this->assertSame('dt-center', $actions->getColumnClassName());
+    }
+
     public function test_json_serialize(): void
     {
         $actions = new Actions();

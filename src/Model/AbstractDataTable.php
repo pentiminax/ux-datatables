@@ -83,11 +83,17 @@ abstract class AbstractDataTable
         $this->columnResolver->configureActionEntityClass($actions, $this->asDataTable);
 
         if (!$actions->isEmpty()) {
-            $this->columns[] = ActionColumn::fromActions(
+            $actionColumn = ActionColumn::fromActions(
                 name: 'actions',
                 title: $actions->getColumnLabel(),
                 actions: $actions,
             );
+
+            if (null !== $actions->getColumnClassName()) {
+                $actionColumn->setClassName($actions->getColumnClassName());
+            }
+
+            $this->columns[] = $actionColumn;
         }
 
         $this->table->columns($this->columns);
