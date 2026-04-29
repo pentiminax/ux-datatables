@@ -65,7 +65,7 @@ final class DataTableRuntimeFactory
         ?AsDataTable $asDataTable,
         \Closure $baseMapper,
         \Closure $manualDataProviderFactory,
-        callable $queryBuilderConfigurator,
+        callable $configureQueryBuilder,
     ): DataTableRuntime {
         $rowMapper = $this->createRowMapper($baseMapper, $columns);
 
@@ -75,7 +75,7 @@ final class DataTableRuntimeFactory
                 $manualDataProviderFactory,
                 $asDataTable,
                 $rowMapper,
-                $queryBuilderConfigurator,
+                $configureQueryBuilder,
             ),
         );
     }
@@ -84,13 +84,13 @@ final class DataTableRuntimeFactory
         \Closure $manualDataProviderFactory,
         ?AsDataTable $asDataTable,
         RowMapperInterface $rowMapper,
-        callable $queryBuilderConfigurator,
+        callable $configureQueryBuilder,
     ): ?DataProviderInterface {
         return $this->getDataProviderResolver()->resolve(
             manualDataProvider: $manualDataProviderFactory(),
             asDataTable: $asDataTable,
             rowMapper: $rowMapper,
-            queryBuilderConfigurator: $queryBuilderConfigurator,
+            configureQueryBuilder: $configureQueryBuilder,
         );
     }
 

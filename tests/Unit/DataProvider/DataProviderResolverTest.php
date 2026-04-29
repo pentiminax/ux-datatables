@@ -32,7 +32,7 @@ final class DataProviderResolverTest extends TestCase
             manualDataProvider: $manualProvider,
             asDataTable: new AsDataTable(entityClass: \stdClass::class),
             rowMapper: new DefaultRowMapper([]),
-            queryBuilderConfigurator: static fn ($qb, $request) => $qb,
+            configureQueryBuilder: static fn ($qb, $request) => $qb,
         );
 
         $this->assertSame($manualProvider, $provider);
@@ -49,7 +49,7 @@ final class DataProviderResolverTest extends TestCase
             manualDataProvider: null,
             asDataTable: new AsDataTable(entityClass: \stdClass::class),
             rowMapper: new DefaultRowMapper([]),
-            queryBuilderConfigurator: static fn ($qb, $request) => $qb,
+            configureQueryBuilder: static fn ($qb, $request) => $qb,
         );
 
         $this->assertInstanceOf(DoctrineDataProvider::class, $provider);
@@ -64,7 +64,7 @@ final class DataProviderResolverTest extends TestCase
             manualDataProvider: null,
             asDataTable: null,
             rowMapper: new DefaultRowMapper([]),
-            queryBuilderConfigurator: static fn ($qb, $request) => $qb,
+            configureQueryBuilder: static fn ($qb, $request) => $qb,
         );
 
         $this->assertNull($provider);
@@ -82,7 +82,7 @@ final class DataProviderResolverTest extends TestCase
             manualDataProvider: null,
             asDataTable: new AsDataTable(entityClass: \stdClass::class),
             rowMapper: new DefaultRowMapper([]),
-            queryBuilderConfigurator: static fn ($qb, $request) => $qb,
+            configureQueryBuilder: static fn ($qb, $request) => $qb,
         );
     }
 }

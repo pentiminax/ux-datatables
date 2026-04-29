@@ -18,7 +18,7 @@ class DoctrineDataProvider implements DataProviderInterface
         private readonly string $entityClass,
         private readonly RowMapperInterface $rowMapper,
         /** @var callable(QueryBuilder, DataTableRequest):QueryBuilder|null */
-        private $queryBuilderConfigurator = null,
+        private $configureQueryBuilder = null,
     ) {
     }
 
@@ -38,8 +38,8 @@ class DoctrineDataProvider implements DataProviderInterface
             ->select($alias)
             ->from($this->entityClass, $alias);
 
-        if ($this->queryBuilderConfigurator) {
-            $qb = ($this->queryBuilderConfigurator)($qb, $request);
+        if ($this->configureQueryBuilder) {
+            $qb = ($this->configureQueryBuilder)($qb, $request);
         }
 
         $filteredCountQb = clone $qb;

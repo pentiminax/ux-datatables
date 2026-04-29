@@ -40,7 +40,7 @@ final class AbstractDataTableHttpRequestTest extends TestCase
     }
 
     #[Test]
-    public function test_give_n_custom_http_filter_whe_n_query_builder_configurator_runs_the_n_it_reads_the_current_http_request(): void
+    public function test_give_n_custom_http_filter_whe_n_configure_query_builder_runs_the_n_it_reads_the_current_http_request(): void
     {
         $table = new HttpRequestAwareTable();
         $table->handleRequest(new Request(query: ['draw' => 3, 'genre' => 'sci-fi']));
@@ -57,7 +57,7 @@ final class AbstractDataTableHttpRequestTest extends TestCase
 
         $request = new DataTableRequest(draw: 3, columns: new Columns([]));
 
-        $result = $table->queryBuilderConfigurator($qb, $request);
+        $result = $table->configureQueryBuilder($qb, $request);
 
         $this->assertSame($qb, $result);
     }
@@ -75,7 +75,7 @@ final class HttpRequestAwareTable extends AbstractDataTable
         return $this->getHttpRequest();
     }
 
-    public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    public function configureQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
     {
         $genre = $this->getHttpRequest()?->query->get('genre');
         if (null === $genre) {
