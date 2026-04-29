@@ -12,6 +12,8 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
+use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
@@ -140,7 +142,9 @@ abstract class AbstractDataTable
         }
 
         $this->renderingPrepared = true;
-        $this->renderingPreparer->prepare($this->table, $this->asDataTable);
+        $this->renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable);
+        $this->hydrateClientSideData();
+        $this->renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable);
     }
 
     public function getDataTable(): DataTable
@@ -186,6 +190,49 @@ abstract class AbstractDataTable
     public function fetchData(DataTableRequest $request): DataTableResult
     {
         return $this->runtime()->fetchData($request);
+    }
+
+    private function hydrateClientSideData(): void
+    {
+        if (!$this->shouldHydrateClientSideData()) {
+            return;
+        }
+
+        try {
+            $this->fetchData($this->createClientSideDataRequest());
+        } catch (\LogicException $exception) {
+            if (!str_contains($exception->getMessage(), 'EntityManagerInterface is required to auto-configure a DoctrineDataProvider')) {
+                throw $exception;
+            }
+        }
+    }
+
+    private function shouldHydrateClientSideData(): bool
+    {
+        return !$this->table->isServerSide()
+            && null === $this->table->getOption('data')
+            && null === $this->table->getOption('ajax')
+            && true !== $this->table->getOption('apiPlatform');
+    }
+
+    private function createClientSideDataRequest(): DataTableRequest
+    {
+        $columns = [];
+        foreach ($this->columns as $column) {
+            $columns[$column->getName()] = new RequestColumn(
+                data: $column->getData() ?? $column->getName(),
+                name: $column->getName(),
+                searchable: $column->isSearchable(),
+                orderable: $column->isOrderable(),
+            );
+        }
+
+        return new DataTableRequest(
+            draw: null,
+            columns: new RequestColumns($columns),
+            start: 0,
+            length: 0,
+        );
     }
 
     public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder

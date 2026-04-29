@@ -8,6 +8,8 @@ use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
@@ -340,6 +342,59 @@ final class DataTablesExtensionTest extends TestCase
         $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status']));
         $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
     }
+
+    #[Test]
+    public function it_auto_hydrates_client_side_abstract_datatable_from_provider(): void
+    {
+        $table = new ProviderHydratedDataTable([
+            new ProviderHydratedBookEntity(id: 5, title: 'Dune'),
+            new ProviderHydratedBookEntity(id: 9, title: 'Foundation'),
+        ]);
+
+        $actual = $this->renderPayload($table);
+
+        $this->assertSame(1, $table->providerCalls);
+        $this->assertSame('Dune', $actual['data'][0]['title']);
+        $this->assertSame('Foundation', $actual['data'][1]['title']);
+        $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
+    }
+
+    #[Test]
+    public function it_does_not_auto_hydrate_when_an_explicit_data_source_or_server_side_mode_is_configured(): void
+    {
+        foreach (['serverSide', 'ajax', 'data', 'apiPlatform'] as $mode) {
+            $table = new ProviderHydratedDataTable([
+                new ProviderHydratedBookEntity(id: 5, title: 'Dune'),
+            ], $mode);
+
+            $actual = $this->renderPayload($table);
+
+            $this->assertSame(0, $table->providerCalls, $mode);
+
+            if ('data' === $mode) {
+                $this->assertSame([['id' => 99, 'title' => 'Manual']], $actual['data']);
+            } else {
+                $this->assertArrayNotHasKey('data', $actual, $mode);
+            }
+        }
+    }
+
+    private function renderPayload(AbstractDataTable|DataTable $table): array
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+
+        $dom = new \DOMDocument();
+        $dom->loadHTML($rendered);
+        $tableEl = $dom->getElementsByTagName('table')->item(0);
+
+        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
+
+        return json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+    }
 }
 
 final class EditModalConfiguredDataTable extends AbstractDataTable
@@ -403,5 +458,71 @@ final class InlinePreparedDataTable extends AbstractDataTable
         return $actions->add(
             Action::detail()->linkToUrl(static fn (InlineBookEntity $book): string => '/books/'.$book->getId())
         );
+    }
+}
+
+final readonly class ProviderHydratedBookEntity
+{
+    public function __construct(
+        private int $id,
+        private string $title,
+    ) {
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getTitle(): string
+    {
+        return $this->title;
+    }
+}
+
+final class ProviderHydratedDataTable extends AbstractDataTable
+{
+    public int $providerCalls = 0;
+
+    public function __construct(
+        private readonly array $items,
+        private readonly string $mode = 'default',
+    ) {
+        parent::__construct();
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return match ($this->mode) {
+            'serverSide'  => $table->serverSide(),
+            'ajax'        => $table->ajax('/books.json'),
+            'data'        => $table->data([['id' => 99, 'title' => 'Manual']]),
+            'apiPlatform' => $table->apiPlatform(),
+            default       => $table,
+        };
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+        yield TextColumn::new('title');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        if ('data' === $this->mode) {
+            return $actions;
+        }
+
+        return $actions->add(
+            Action::detail()->linkToUrl(static fn (ProviderHydratedBookEntity $book): string => '/books/'.$book->getId())
+        );
+    }
+
+    protected function createDataProvider(): ?DataProviderInterface
+    {
+        ++$this->providerCalls;
+
+        return new ArrayDataProvider($this->items, $this->createRowMapper());
     }
 }

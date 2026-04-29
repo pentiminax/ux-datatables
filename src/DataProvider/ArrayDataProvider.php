@@ -37,9 +37,9 @@ final class ArrayDataProvider implements DataProviderInterface
             });
         }
 
-        $slice = \array_slice(
-            array_values($filtered), $request->start, $request->length
-        );
+        $slice = $request->length > 0
+            ? \array_slice(array_values($filtered), $request->start, $request->length)
+            : \array_slice(array_values($filtered), $request->start);
 
         $rows = (function () use ($slice) {
             foreach ($slice as $item) {
