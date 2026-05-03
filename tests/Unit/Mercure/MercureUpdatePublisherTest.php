@@ -82,7 +82,7 @@ final class MercureUpdatePublisherTest extends TestCase
     public function it_publishes_for_datatable(): void
     {
         $table = (new DataTable('ProductDataTable'))
-            ->mercure(hubUrl: '/.well-known/mercure');
+            ->mercure();
 
         $hub = $this->createMock(HubInterface::class);
         $hub->expects($this->once())
@@ -100,7 +100,7 @@ final class MercureUpdatePublisherTest extends TestCase
     public function it_publishes_all_datatable_topics(): void
     {
         $table = (new DataTable('ProductDataTable'))
-            ->mercure(hubUrl: '/.well-known/mercure', topics: ['/api/products/{id}', '/api/categories/{id}']);
+            ->mercure(topics: ['/api/products/{id}', '/api/categories/{id}']);
 
         $hub = $this->createMock(HubInterface::class);
         $hub->expects($this->once())

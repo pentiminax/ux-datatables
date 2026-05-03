@@ -259,6 +259,7 @@ class DataTablesBundle extends AbstractBundle
             ->arg(0, service(ApiResourceCollectionUrlResolverInterface::class)->nullOnInvalid())
             ->arg(1, service(MercureConfigResolverInterface::class)->nullOnInvalid())
             ->arg(2, service(TranslatorInterface::class)->nullOnInvalid())
+            ->arg(3, service(MercureHubUrlResolverInterface::class)->nullOnInvalid())
             ->private();
 
         $container->services()
