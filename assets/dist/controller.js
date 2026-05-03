@@ -6,6 +6,7 @@ import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js';
 import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
+import { configureState } from './functions/configureState.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
 import { ExtensionRegistry } from './functions/extensionRegistry.js';
@@ -57,6 +58,7 @@ class default_1 extends Controller {
             new ApiPlatformAdapter(columns).configure(payload);
         }
         this.configureColumns(payload);
+        configureState(payload);
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
         await this.initMercure(payload);

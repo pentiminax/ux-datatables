@@ -69,6 +69,7 @@ export const docsSidebarSections: NavSection[] = [
       { label: 'Scroller', href: '/ux-datatables/extensions/scroller/' },
       { label: 'Fixed Columns', href: '/ux-datatables/extensions/fixed-columns/' },
       { label: 'ColReorder', href: '/ux-datatables/extensions/col-reorder/' },
+      { label: 'State', href: '/ux-datatables/extensions/state/' },
       {
         label: 'Combining Extensions',
         href: '/ux-datatables/extensions/combining-extensions/',
