@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
@@ -148,10 +149,8 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_configures_mercure(): void
     {
-        $mercureConfig = new MercureConfig(
-            hubUrl: '/.well-known/mercure',
-            topics: ['/products/{id}'],
-        );
+        $mercureConfig = (new MercureConfig(topics: ['/products/{id}']))
+            ->withHubUrl('/.well-known/mercure');
 
         $mercureResolver = $this->createMock(MercureConfigResolverInterface::class);
         $mercureResolver->method('resolveMercureConfig')
@@ -182,18 +181,41 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
-    public function it_skips_mercure_when_already_configured(): void
+    public function it_enriches_manual_mercure_config_with_resolved_hub_url(): void
     {
         $mercureResolver = $this->createMock(MercureConfigResolverInterface::class);
         $mercureResolver->expects($this->never())->method('resolveMercureConfig');
 
-        $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
-        $table    = new DataTable('Test');
-        $table->mercure(hubUrl: '/hub', topics: ['/existing']);
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
+
+        $preparer = new RenderingPreparer(
+            mercureResolver: $mercureResolver,
+            mercureHubUrlResolver: $hubUrlResolver,
+        );
+        $table = new DataTable('Test');
+        $table->mercure(topics: ['/existing']);
 
         $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
 
-        $this->assertSame('/hub', $table->getMercureConfig()->hubUrl);
+        $this->assertSame('/.well-known/mercure', $table->getMercureConfig()->hubUrl);
+        $this->assertSame(['/existing'], $table->getMercureConfig()->topics);
+    }
+
+    #[Test]
+    public function it_throws_when_manual_mercure_has_no_resolvable_hub_url(): void
+    {
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn(null);
+
+        $preparer = new RenderingPreparer(mercureHubUrlResolver: $hubUrlResolver);
+        $table    = new DataTable('Test');
+        $table->mercure(topics: ['/existing']);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Mercure hub URL could not be resolved');
+
+        $preparer->prepare($table, null);
     }
 
     #[Test]
