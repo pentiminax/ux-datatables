@@ -158,12 +158,12 @@ final class DataTableTest extends TestCase
     public function it_configures_mercure_with_default_topic(): void
     {
         $table = (new DataTable('ProductDataTable'))
-            ->mercure(hubUrl: '/.well-known/mercure');
+            ->mercure();
 
         $config = $table->getMercureConfig();
 
         $this->assertInstanceOf(MercureConfig::class, $config);
-        $this->assertSame('/.well-known/mercure', $config->hubUrl);
+        $this->assertNull($config->hubUrl);
         $this->assertSame(['/datatables/product-data-tables/{id}'], $config->topics);
         $this->assertFalse($config->withCredentials);
         $this->assertNull($config->debounceMs);
@@ -173,7 +173,7 @@ final class DataTableTest extends TestCase
     public function it_configures_mercure_with_custom_topic(): void
     {
         $table = (new DataTable('ProductDataTable'))
-            ->mercure(hubUrl: '/.well-known/mercure', topics: ['my/custom/topic']);
+            ->mercure(topics: ['my/custom/topic']);
 
         $config = $table->getMercureConfig();
 
@@ -184,7 +184,7 @@ final class DataTableTest extends TestCase
     public function it_configures_mercure_with_multiple_topics(): void
     {
         $table = (new DataTable('ProductDataTable'))
-            ->mercure(hubUrl: '/.well-known/mercure', topics: ['/api/products/{id}', '/api/categories/{id}']);
+            ->mercure(topics: ['/api/products/{id}', '/api/categories/{id}']);
 
         $config = $table->getMercureConfig();
 
@@ -195,7 +195,9 @@ final class DataTableTest extends TestCase
     public function it_includes_mercure_in_get_options(): void
     {
         $table = (new DataTable('ProductDataTable'))
-            ->mercure(hubUrl: '/.well-known/mercure', debounceMs: 300);
+            ->mercure(debounceMs: 300);
+
+        $table->setMercureConfig($table->getMercureConfig()->withHubUrl('/.well-known/mercure'));
 
         $options = $table->getOptions();
 
@@ -221,7 +223,7 @@ final class DataTableTest extends TestCase
     {
         $table = new DataTable('test');
 
-        $this->assertSame($table, $table->mercure('/.well-known/mercure'));
+        $this->assertSame($table, $table->mercure());
     }
 
     #[Test]

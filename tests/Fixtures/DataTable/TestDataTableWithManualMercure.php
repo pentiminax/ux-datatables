@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
@@ -18,9 +19,15 @@ class TestDataTableWithManualMercure extends AbstractDataTable
     public function __construct(
         ?ApiResourceCollectionUrlResolverInterface $apiResourceCollectionUrlResolver = null,
         ?MercureConfigResolverInterface $mercureConfigResolver = null,
+        ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
     ) {
         parent::__construct(
-            renderingPreparer: new RenderingPreparer($apiResourceCollectionUrlResolver, $mercureConfigResolver),
+            renderingPreparer: new RenderingPreparer(
+                $apiResourceCollectionUrlResolver,
+                $mercureConfigResolver,
+                null,
+                $mercureHubUrlResolver,
+            ),
         );
     }
 
@@ -28,10 +35,7 @@ class TestDataTableWithManualMercure extends AbstractDataTable
     {
         return $table
             ->ajax('/api/books')
-            ->mercure(
-                hubUrl: '/.well-known/mercure',
-                topics: ['manual/topic'],
-            );
+            ->mercure(topics: ['manual/topic']);
     }
 
     public function configureColumns(): iterable
