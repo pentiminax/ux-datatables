@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
@@ -222,10 +223,10 @@ final class AsDataTableTest extends TestCase
             ->expects($this->once())
             ->method('resolveMercureConfig')
             ->with(\stdClass::class)
-            ->willReturn(new MercureConfig(
-                hubUrl: 'http://localhost/.well-known/mercure',
-                topics: ['/api/books/{id}'],
-            ));
+            ->willReturn(
+                (new MercureConfig(topics: ['/api/books/{id}']))
+                    ->withHubUrl('http://localhost/.well-known/mercure')
+            );
 
         $table = new TestDataTableWithMercureAttribute(mercureConfigResolver: $resolver);
 
@@ -245,10 +246,10 @@ final class AsDataTableTest extends TestCase
             ->expects($this->once())
             ->method('resolveMercureConfig')
             ->with(\stdClass::class)
-            ->willReturn(new MercureConfig(
-                hubUrl: 'http://localhost/.well-known/mercure',
-                topics: ['/api/books/{id}', '/api/authors/{id}'],
-            ));
+            ->willReturn(
+                (new MercureConfig(topics: ['/api/books/{id}', '/api/authors/{id}']))
+                    ->withHubUrl('http://localhost/.well-known/mercure')
+            );
 
         $table = new TestDataTableWithMercureAndManualAjax(mercureConfigResolver: $resolver);
 
@@ -284,7 +285,13 @@ final class AsDataTableTest extends TestCase
         $resolver = $this->createMock(MercureConfigResolverInterface::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
-        $table = new TestDataTableWithManualMercure(mercureConfigResolver: $resolver);
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
+
+        $table = new TestDataTableWithManualMercure(
+            mercureConfigResolver: $resolver,
+            mercureHubUrlResolver: $hubUrlResolver,
+        );
 
         $table->prepareForRendering();
 
