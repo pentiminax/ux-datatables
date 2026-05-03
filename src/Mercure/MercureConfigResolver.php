@@ -31,8 +31,8 @@ final class MercureConfigResolver implements MercureConfigResolverInterface
         }
 
         return new MercureConfig(
-            hubUrl: $hubUrl,
             topics: $topics,
+            hubUrl: $hubUrl,
         );
     }
 

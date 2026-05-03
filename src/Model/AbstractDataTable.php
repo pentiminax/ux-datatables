@@ -12,6 +12,8 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
+use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
@@ -79,16 +81,12 @@ abstract class AbstractDataTable
         $this->columns = iterator_to_array($this->configureColumns());
 
         $this->columnResolver->configureBooleanColumns($this->columns, $this->asDataTable);
+
         $actions = $this->configureActions(new Actions());
+
         $this->columnResolver->configureActionEntityClass($actions, $this->asDataTable);
 
-        if (!$actions->isEmpty()) {
-            $this->columns[] = ActionColumn::fromActions(
-                name: 'actions',
-                title: $actions->getColumnLabel(),
-                actions: $actions,
-            );
-        }
+        $this->configureActionColumn($actions);
 
         $this->table->columns($this->columns);
     }
@@ -133,14 +131,22 @@ abstract class AbstractDataTable
             return;
         }
 
+        $this->renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable);
+        $this->hydrateClientSideData();
+        $this->renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable);
+
         $this->renderingPrepared = true;
-        $this->renderingPreparer->prepare($this->table, $this->asDataTable);
     }
 
     public function getDataTable(): DataTable
     {
         $this->prepareForRendering();
 
+        return $this->table;
+    }
+
+    public function getConfiguredDataTable(): DataTable
+    {
         return $this->table;
     }
 
@@ -182,8 +188,48 @@ abstract class AbstractDataTable
         return $this->runtime()->fetchData($request);
     }
 
-    public function queryBuilderConfigurator(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    private function hydrateClientSideData(): void
     {
+        if (!$this->shouldHydrateClientSideData()) {
+            return;
+        }
+
+        $this->fetchData($this->createClientSideDataRequest());
+    }
+
+    private function shouldHydrateClientSideData(): bool
+    {
+        return !$this->table->isServerSide()
+            && null === $this->table->getOption('data')
+            && null === $this->table->getOption('ajax')
+            && true !== $this->table->getOption('apiPlatform')
+            && true !== $this->asDataTable?->apiPlatform;
+    }
+
+    private function createClientSideDataRequest(): DataTableRequest
+    {
+        $columns = [];
+        foreach ($this->columns as $column) {
+            $columns[$column->getName()] = new RequestColumn(
+                data: $column->getData() ?? $column->getName(),
+                name: $column->getName(),
+                searchable: $column->isSearchable(),
+                orderable: $column->isOrderable(),
+            );
+        }
+
+        return new DataTableRequest(
+            draw: null,
+            columns: new RequestColumns($columns),
+            start: 0,
+            length: 0,
+        );
+    }
+
+    final protected function configureQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    {
+        $qb = $this->customizeQueryBuilder($qb, $request);
+
         $context = new QueryFilterContext(
             request: $request,
             columns: $this->columns,
@@ -193,6 +239,11 @@ abstract class AbstractDataTable
         $registry = $this->createSearchStrategyRegistry();
 
         return QueryFilterChain::createDefault($registry)->apply($qb, $context);
+    }
+
+    protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    {
+        return $qb;
     }
 
     /**
@@ -236,14 +287,13 @@ abstract class AbstractDataTable
     public function setData(array $data): void
     {
         $rowMapper = $this->createRowMapper();
+        $rows      = [];
 
-        $rows = (static function () use ($data, $rowMapper) {
-            foreach ($data as $item) {
-                yield $rowMapper->map($item);
-            }
-        })();
+        foreach ($data as $item) {
+            $rows[] = $rowMapper->map($item);
+        }
 
-        $this->table->data(iterator_to_array($rows));
+        $this->table->data($rows);
         $this->table->markTemplateColumnsRendered();
     }
 
@@ -285,7 +335,26 @@ abstract class AbstractDataTable
             asDataTable: $this->asDataTable,
             baseMapper: $this->mapRow(...),
             manualDataProviderFactory: $this->createDataProvider(...),
-            queryBuilderConfigurator: $this->queryBuilderConfigurator(...),
+            configureQueryBuilder: $this->configureQueryBuilder(...),
         );
+    }
+
+    private function configureActionColumn(Actions $actions): void
+    {
+        if ($actions->isEmpty()) {
+            return;
+        }
+
+        $actionColumn = ActionColumn::fromActions(
+            name: 'actions',
+            title: $actions->getColumnLabel(),
+            actions: $actions,
+        );
+
+        if (null !== $actions->getColumnClassName()) {
+            $actionColumn->setClassName($actions->getColumnClassName());
+        }
+
+        $this->columns[] = $actionColumn;
     }
 }

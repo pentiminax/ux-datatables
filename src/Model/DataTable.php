@@ -319,25 +319,30 @@ class DataTable
 
     /**
      * Enable Mercure SSE real-time updates for this DataTable.
-     * Requires symfony/mercure-bundle to be installed.
+     * Requires symfony/mercure-bundle to be installed. The hub URL is resolved
+     * automatically from the configured Mercure HubInterface at render time.
      *
-     * @param string   $hubUrl          The Mercure hub URL (e.g. "/.well-known/mercure")
      * @param string[] $topics          Mercure topics. Defaults to ["/datatables/{pluralized-id}/{id}"]
      * @param bool     $withCredentials Whether to send credentials with the SSE request
      * @param int|null $debounceMs      Debounce delay in ms (default: 500)
      */
     public function mercure(
-        string $hubUrl,
         array $topics = [],
         bool $withCredentials = false,
         ?int $debounceMs = null,
     ): static {
         $this->mercureConfig = new MercureConfig(
-            hubUrl: $hubUrl,
             topics: [] !== $topics ? $topics : [$this->buildFallbackMercureTopic()],
             withCredentials: $withCredentials,
             debounceMs: $debounceMs,
         );
+
+        return $this;
+    }
+
+    public function setMercureConfig(MercureConfig $config): static
+    {
+        $this->mercureConfig = $config;
 
         return $this;
     }

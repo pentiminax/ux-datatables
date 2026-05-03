@@ -13,6 +13,8 @@ final class Actions implements \JsonSerializable
 
     private string $columnLabel = 'Actions';
 
+    private ?string $columnClassName = null;
+
     public function add(Action $action): self
     {
         $this->actions[$action->getType()->value] = $action;
@@ -37,6 +39,18 @@ final class Actions implements \JsonSerializable
     public function getColumnLabel(): string
     {
         return $this->columnLabel;
+    }
+
+    public function setColumnClassName(?string $className): self
+    {
+        $this->columnClassName = $className;
+
+        return $this;
+    }
+
+    public function getColumnClassName(): ?string
+    {
+        return $this->columnClassName;
     }
 
     public function isEmpty(): bool

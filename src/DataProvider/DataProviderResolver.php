@@ -24,14 +24,14 @@ final class DataProviderResolver
     }
 
     /**
-     * @param callable(QueryBuilder, DataTableRequest):QueryBuilder $queryBuilderConfigurator
+     * @param callable(QueryBuilder, DataTableRequest):QueryBuilder $configureQueryBuilder
      */
     public function resolve(
         ?DataProviderInterface $manualDataProvider,
         ?AsDataTable $asDataTable,
         RowMapperInterface $rowMapper,
-        callable $queryBuilderConfigurator,
+        callable $configureQueryBuilder,
     ): ?DataProviderInterface {
-        return $manualDataProvider ?? $this->autoDataProviderFactory->create($asDataTable, $rowMapper, $queryBuilderConfigurator);
+        return $manualDataProvider ?? $this->autoDataProviderFactory->create($asDataTable, $rowMapper, $configureQueryBuilder);
     }
 }

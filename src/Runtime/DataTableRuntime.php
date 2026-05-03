@@ -54,8 +54,10 @@ final class DataTableRuntime
             return $this->dataProvider;
         }
 
+        $dataProvider = ($this->dataProviderFactory)();
+
         $this->dataProviderResolved = true;
-        $this->dataProvider         = ($this->dataProviderFactory)();
+        $this->dataProvider         = $dataProvider;
 
         return $this->dataProvider;
     }

@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Rendering;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -16,15 +17,26 @@ final class RenderingPreparer
         private readonly ?ApiResourceCollectionUrlResolverInterface $urlResolver = null,
         private readonly ?MercureConfigResolverInterface $mercureResolver = null,
         private readonly ?TranslatorInterface $translator = null,
+        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
     ) {
     }
 
     public function prepare(DataTable $table, ?AsDataTable $asDataTable): void
     {
+        $this->prepareBeforeDataHydration($table, $asDataTable);
+        $this->prepareAfterDataHydration($table, $asDataTable);
+    }
+
+    public function prepareBeforeDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
+    {
         $this->configureApiPlatform($table, $asDataTable);
-        $this->configureMercure($table, $asDataTable);
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
+    }
+
+    public function prepareAfterDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
+    {
+        $this->configureMercure($table, $asDataTable);
     }
 
     private function configureApiPlatform(DataTable $table, ?AsDataTable $asDataTable): void
@@ -52,7 +64,13 @@ final class RenderingPreparer
 
     private function configureMercure(DataTable $table, ?AsDataTable $asDataTable): void
     {
-        if (null !== $table->getMercureConfig()) {
+        $manualConfig = $table->getMercureConfig();
+
+        if (null !== $manualConfig) {
+            $table->setMercureConfig(
+                $manualConfig->withHubUrl($this->resolveHubUrlOrThrow())
+            );
+
             return;
         }
 
@@ -73,12 +91,18 @@ final class RenderingPreparer
             return;
         }
 
-        $table->mercure(
-            hubUrl: $mercureConfig->hubUrl,
-            topics: $mercureConfig->topics,
-            withCredentials: $mercureConfig->withCredentials,
-            debounceMs: $mercureConfig->debounceMs,
-        );
+        $table->setMercureConfig($mercureConfig);
+    }
+
+    private function resolveHubUrlOrThrow(): string
+    {
+        $hubUrl = $this->mercureHubUrlResolver?->resolveHubUrl();
+
+        if (null === $hubUrl || '' === $hubUrl) {
+            throw new \LogicException('Cannot enable Mercure on this DataTable: the Mercure hub URL could not be resolved. Ensure symfony/mercure-bundle is installed and configured (e.g. MERCURE_URL / MERCURE_PUBLIC_URL).');
+        }
+
+        return $hubUrl;
     }
 
     private function configureEditModal(DataTable $table, ?AsDataTable $asDataTable): void
@@ -87,11 +111,11 @@ final class RenderingPreparer
             return;
         }
 
-        if (null === $table->getEditModalAdapter() && \is_string($asDataTable->editModalAdapter) && '' !== trim($asDataTable->editModalAdapter)) {
+        if (null === $table->getEditModalAdapter() && '' !== trim($asDataTable->editModalAdapter)) {
             $table->editModalAdapter($asDataTable->editModalAdapter);
         }
 
-        if (null === $table->getEditModalTemplate() && \is_string($asDataTable->editModalTemplate) && '' !== trim($asDataTable->editModalTemplate)) {
+        if (null === $table->getEditModalTemplate() && '' !== trim($asDataTable->editModalTemplate)) {
             $table->editModalTemplate($asDataTable->editModalTemplate);
         }
     }
