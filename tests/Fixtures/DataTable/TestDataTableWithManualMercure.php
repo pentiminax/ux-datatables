@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 
 #[AsDataTable(entityClass: \stdClass::class, mercure: true)]
 class TestDataTableWithManualMercure extends AbstractDataTable
@@ -22,16 +23,14 @@ class TestDataTableWithManualMercure extends AbstractDataTable
         private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
     ) {
         parent::__construct();
-    }
-
-    protected function createRenderingPreparer(): RenderingPreparer
-    {
-        return new RenderingPreparer(
-            $this->apiResourceCollectionUrlResolver,
-            $this->mercureConfigResolver,
-            null,
-            $this->mercureHubUrlResolver,
-        );
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            renderingPreparer: new RenderingPreparer(
+                $this->apiResourceCollectionUrlResolver,
+                $this->mercureConfigResolver,
+                null,
+                $this->mercureHubUrlResolver,
+            )
+        ));
     }
 
     public function configureDataTable(DataTable $table): DataTable
