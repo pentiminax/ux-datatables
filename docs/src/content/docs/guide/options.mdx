@@ -173,6 +173,67 @@ $dataTable->stateSave(true);
 
 Saves: page position, ordering, search term, page length.
 
+### urlState
+
+Synchronise table state (search, ordering, page, page length) with the URL query string. Makes the URL shareable and restores state on page reload or browser back/forward navigation.
+
+```php
+$dataTable->urlState();
+```
+
+Example URL produced:
+
+```
+?search=foo&order[name]=email&order[dir]=asc&start=20&pageLength=25
+```
+
+#### Disabling individual keys
+
+Each key can be enabled or disabled independently:
+
+```php
+$dataTable->urlState(['page' => false]);
+// Search, ordering and pageLength reflected in URL; pagination ignored.
+
+$dataTable->urlState(['search' => true, 'order' => false, 'page' => false, 'pageLength' => false]);
+// Only search is synchronised.
+```
+
+Supported keys: `search`, `order`, `page`, `pageLength` (all `true` by default).
+
+#### Prefix for multiple tables on the same page
+
+To avoid query-string collisions when multiple DataTables share the same page, pass a `prefix`:
+
+```php
+$usersTable->urlState(prefix: 'users');
+$ordersTable->urlState(prefix: 'orders');
+```
+
+Resulting URL:
+
+```
+?users[search]=alice&users[order][name]=id&users[order][dir]=asc&orders[start]=10&orders[pageLength]=25
+```
+
+Bracket notation is written unencoded (human-readable) and is natively parsed by PHP, Symfony, Laravel and Rails.
+
+#### Multi-column ordering
+
+When multiple columns are sorted, the format becomes indexed:
+
+```
+?order[0][name]=id&order[0][dir]=asc&order[1][name]=email&order[1][dir]=desc
+```
+
+<Aside type="note">
+  State is written via `history.replaceState` — no browser history pollution. Columns must have a `name` defined for ordering to be serialised; columns created with `TextColumn::new('email', …)` have one automatically.
+</Aside>
+
+<Aside type="tip">
+  `urlState` and `stateSave` are complementary: `stateSave` (localStorage) restores state for the same user on the same browser; `urlState` makes the URL shareable across users and devices.
+</Aside>
+
 ## Scrolling
 
 ### scrollX
@@ -319,6 +380,7 @@ $dataTable
     ->pageLength(25)
     ->lengthMenu([10, 25, 50, 100])
     ->stateSave()
+    ->urlState()
     ->layout([
         'topStart'    => Feature::PAGE_LENGTH,
         'topEnd'      => Feature::SEARCH,
