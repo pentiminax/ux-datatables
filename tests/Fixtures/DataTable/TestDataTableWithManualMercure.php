@@ -17,17 +17,20 @@ use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 class TestDataTableWithManualMercure extends AbstractDataTable
 {
     public function __construct(
-        ?ApiResourceCollectionUrlResolverInterface $apiResourceCollectionUrlResolver = null,
-        ?MercureConfigResolverInterface $mercureConfigResolver = null,
-        ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?ApiResourceCollectionUrlResolverInterface $apiResourceCollectionUrlResolver = null,
+        private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
+        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
     ) {
-        parent::__construct(
-            renderingPreparer: new RenderingPreparer(
-                $apiResourceCollectionUrlResolver,
-                $mercureConfigResolver,
-                null,
-                $mercureHubUrlResolver,
-            ),
+        parent::__construct();
+    }
+
+    protected function createRenderingPreparer(): RenderingPreparer
+    {
+        return new RenderingPreparer(
+            $this->apiResourceCollectionUrlResolver,
+            $this->mercureConfigResolver,
+            null,
+            $this->mercureHubUrlResolver,
         );
     }
 

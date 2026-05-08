@@ -268,10 +268,13 @@ final class DetailActionMapRowTestTable extends AbstractDataTable
 {
     public function __construct(private readonly array $columnsConfig)
     {
-        parent::__construct(
-            runtimeFactory: new DataTableRuntimeFactory(
-                actionRowDataResolver: new ActionRowDataResolver(),
-            ),
+        parent::__construct();
+    }
+
+    protected function createRuntimeFactory(): DataTableRuntimeFactory
+    {
+        return new DataTableRuntimeFactory(
+            actionRowDataResolver: new ActionRowDataResolver(),
         );
     }
 
@@ -301,10 +304,13 @@ final class TypedDetailActionSetDataTable extends AbstractDataTable
 {
     public function __construct(private readonly array $columnsConfig)
     {
-        parent::__construct(
-            runtimeFactory: new DataTableRuntimeFactory(
-                actionRowDataResolver: new ActionRowDataResolver(),
-            ),
+        parent::__construct();
+    }
+
+    protected function createRuntimeFactory(): DataTableRuntimeFactory
+    {
+        return new DataTableRuntimeFactory(
+            actionRowDataResolver: new ActionRowDataResolver(),
         );
     }
 
@@ -325,10 +331,13 @@ final class ArrayDetailActionSetDataTable extends AbstractDataTable
 {
     public function __construct(private readonly array $columnsConfig)
     {
-        parent::__construct(
-            runtimeFactory: new DataTableRuntimeFactory(
-                actionRowDataResolver: new ActionRowDataResolver(),
-            ),
+        parent::__construct();
+    }
+
+    protected function createRuntimeFactory(): DataTableRuntimeFactory
+    {
+        return new DataTableRuntimeFactory(
+            actionRowDataResolver: new ActionRowDataResolver(),
         );
     }
 
@@ -347,12 +356,17 @@ final class ArrayDetailActionSetDataTable extends AbstractDataTable
 
 final class TypedUrlColumnSetDataTable extends AbstractDataTable
 {
-    public function __construct(private readonly array $columnsConfig, UrlGeneratorInterface $urlGenerator)
+    public function __construct(
+        private readonly array $columnsConfig,
+        private readonly UrlGeneratorInterface $urlGenerator,
+    ) {
+        parent::__construct();
+    }
+
+    protected function createRuntimeFactory(): DataTableRuntimeFactory
     {
-        parent::__construct(
-            runtimeFactory: new DataTableRuntimeFactory(
-                urlColumnDataResolver: new UrlColumnDataResolver($urlGenerator),
-            ),
+        return new DataTableRuntimeFactory(
+            urlColumnDataResolver: new UrlColumnDataResolver($this->urlGenerator),
         );
     }
 

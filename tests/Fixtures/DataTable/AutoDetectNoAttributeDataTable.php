@@ -10,10 +10,13 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 
 class AutoDetectNoAttributeDataTable extends AbstractDataTable
 {
-    public function __construct(?ColumnAutoDetectorInterface $columnAutoDetector = null)
+    public function __construct(private readonly ?ColumnAutoDetectorInterface $columnAutoDetector = null)
     {
-        parent::__construct(
-            columnResolver: new ColumnResolver(columnAutoDetector: $columnAutoDetector),
-        );
+        parent::__construct();
+    }
+
+    protected function createColumnResolver(): ColumnResolver
+    {
+        return new ColumnResolver(columnAutoDetector: $this->columnAutoDetector);
     }
 }

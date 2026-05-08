@@ -13,12 +13,15 @@ use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 class TestDataTableWithoutAttribute extends AbstractDataTable
 {
     public function __construct(
-        ?ApiResourceCollectionUrlResolverInterface $apiResourceCollectionUrlResolver = null,
-        ?MercureConfigResolverInterface $mercureConfigResolver = null,
+        private readonly ?ApiResourceCollectionUrlResolverInterface $apiResourceCollectionUrlResolver = null,
+        private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
     ) {
-        parent::__construct(
-            renderingPreparer: new RenderingPreparer($apiResourceCollectionUrlResolver, $mercureConfigResolver),
-        );
+        parent::__construct();
+    }
+
+    protected function createRenderingPreparer(): RenderingPreparer
+    {
+        return new RenderingPreparer($this->apiResourceCollectionUrlResolver, $this->mercureConfigResolver);
     }
 
     public function configureColumns(): iterable

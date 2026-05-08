@@ -41,12 +41,15 @@ final class AbstractDataTableTemplateColumnTest extends TestCase
 
 final class TemplatePipelineTable extends AbstractDataTable
 {
-    public function __construct(TemplateColumnRenderer $renderer)
+    public function __construct(private readonly TemplateColumnRenderer $renderer)
     {
-        parent::__construct(
-            runtimeFactory: new DataTableRuntimeFactory(
-                templateColumnRenderer: $renderer,
-            ),
+        parent::__construct();
+    }
+
+    protected function createRuntimeFactory(): DataTableRuntimeFactory
+    {
+        return new DataTableRuntimeFactory(
+            templateColumnRenderer: $this->renderer,
         );
     }
 
