@@ -434,14 +434,17 @@ final readonly class InlineBookEntity
 final class InlinePreparedDataTable extends AbstractDataTable
 {
     public function __construct(
-        \Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer $templateColumnRenderer,
-        \Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver $actionRowDataResolver,
+        private readonly \Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer $templateColumnRenderer,
+        private readonly \Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver $actionRowDataResolver,
     ) {
-        parent::__construct(
-            runtimeFactory: new \Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory(
-                templateColumnRenderer: $templateColumnRenderer,
-                actionRowDataResolver: $actionRowDataResolver,
-            ),
+        parent::__construct();
+    }
+
+    protected function createRuntimeFactory(): \Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory
+    {
+        return new \Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory(
+            templateColumnRenderer: $this->templateColumnRenderer,
+            actionRowDataResolver: $this->actionRowDataResolver,
         );
     }
 

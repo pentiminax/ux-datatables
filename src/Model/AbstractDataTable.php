@@ -54,19 +54,31 @@ abstract class AbstractDataTable
 
     private bool $renderingPrepared = false;
 
-    public function __construct(
-        ?ColumnResolver $columnResolver = null,
-        ?RenderingPreparer $renderingPreparer = null,
-        ?DataTableRuntimeFactory $runtimeFactory = null,
-    ) {
+    public function __construct()
+    {
         $this->asDataTable       = $this->resolveAsDataTable();
-        $this->columnResolver    = $columnResolver    ?? new ColumnResolver();
-        $this->renderingPreparer = $renderingPreparer ?? new RenderingPreparer();
-        $this->runtimeFactory    = $runtimeFactory    ?? new DataTableRuntimeFactory();
+        $this->columnResolver    = $this->createColumnResolver();
+        $this->renderingPreparer = $this->createRenderingPreparer();
+        $this->runtimeFactory    = $this->createRuntimeFactory();
 
         $this->initializeTable();
         $this->initializeColumns();
         $this->initializeExtensions();
+    }
+
+    protected function createColumnResolver(): ColumnResolver
+    {
+        return new ColumnResolver();
+    }
+
+    protected function createRenderingPreparer(): RenderingPreparer
+    {
+        return new RenderingPreparer();
+    }
+
+    protected function createRuntimeFactory(): DataTableRuntimeFactory
+    {
+        return new DataTableRuntimeFactory();
     }
 
     private function initializeTable(): void
