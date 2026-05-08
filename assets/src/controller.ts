@@ -17,6 +17,13 @@ import { submitEditForm } from './functions/submitEditForm.js'
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js'
 import { resolveModalAdapter } from './modal/resolveModalAdapter.js'
 import type { StyleFramework } from './types/styleFramework.js'
+import {
+    applyUrlStateToPayload,
+    isUrlStateEnabled,
+    readUrlState,
+    writeUrlState,
+    type UrlStateConfig,
+} from './functions/urlState.js'
 
 /**
  * Maps DataTables payload property keys to their corresponding extension names
@@ -47,6 +54,7 @@ export default class extends Controller {
     private isDataTableInitialized = false
     private eventSource: EventSource | null = null
     private framework: StyleFramework = 'dt'
+    private popstateHandler: (() => void) | null = null
 
     async connect() {
         if (this.isDataTableInitialized) {
@@ -84,9 +92,20 @@ export default class extends Controller {
 
         this.configureColumns(payload)
 
+        const urlStateCfg = isUrlStateEnabled(payload)
+        if (urlStateCfg) {
+            applyUrlStateToPayload(payload, readUrlState(urlStateCfg))
+        }
+
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
 
         this.dispatchEvent('connect', { table: this.table })
+
+        if (urlStateCfg && this.table) {
+            this.table.on('draw.dt', () => writeUrlState(urlStateCfg, this.table!))
+            this.popstateHandler = () => this.applyUrlStateToTable(urlStateCfg)
+            window.addEventListener('popstate', this.popstateHandler)
+        }
 
         await this.initMercure(payload)
         this.bindActionHandler(payload)
@@ -98,6 +117,27 @@ export default class extends Controller {
     disconnect() {
         this.eventSource?.close()
         this.eventSource = null
+
+        if (this.popstateHandler) {
+            window.removeEventListener('popstate', this.popstateHandler)
+            this.popstateHandler = null
+        }
+    }
+
+    private applyUrlStateToTable(cfg: UrlStateConfig): void {
+        if (!this.table) return
+
+        const snap = readUrlState(cfg)
+
+        if (snap.search !== undefined) this.table.search(snap.search as string)
+        if (snap.order !== undefined) this.table.order(snap.order as any)
+        if (snap.pageLength !== undefined) ;(this.table.page as any).len(snap.pageLength)
+        if (snap.start !== undefined) {
+            const pageLen = (this.table.page as any).len() as number
+            this.table.page(Math.floor(snap.start / (pageLen || 10)))
+        }
+
+        this.table.draw(false)
     }
 
     private async loadExtensions(

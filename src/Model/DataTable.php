@@ -308,6 +308,22 @@ class DataTable
     }
 
     /**
+     * @param array{search?: bool, order?: bool, page?: bool, pageLength?: bool} $keys
+     */
+    public function urlState(array $keys = [], string $prefix = ''): static
+    {
+        $this->options->set('urlState', [
+            'search'     => $keys['search']     ?? true,
+            'order'      => $keys['order']      ?? true,
+            'page'       => $keys['page']       ?? true,
+            'pageLength' => $keys['pageLength'] ?? true,
+            'prefix'     => $prefix,
+        ]);
+
+        return $this;
+    }
+
+    /**
      * Enable API Platform client-side adapter mode in the Stimulus controller.
      */
     public function apiPlatform(bool $enabled = true): static
