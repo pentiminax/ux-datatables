@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
-use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -19,10 +17,9 @@ use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
-use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
-use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -42,72 +39,58 @@ abstract class AbstractDataTable
 
     private ?RowMapperInterface $defaultRowMapper = null;
 
-    private ?AsDataTable $asDataTable;
+    private ?AsDataTable $asDataTable = null;
 
-    private ColumnResolver $columnResolver;
-
-    private RenderingPreparer $renderingPreparer;
-
-    private DataTableRuntimeFactory $runtimeFactory;
+    private ?DataTableInfrastructure $infrastructure = null;
 
     private ?DataTableRuntime $runtime = null;
+
+    private bool $initialized = false;
 
     private bool $renderingPrepared = false;
 
     public function __construct()
     {
-        $this->asDataTable       = $this->resolveAsDataTable();
-        $this->columnResolver    = $this->createColumnResolver();
-        $this->renderingPreparer = $this->createRenderingPreparer();
-        $this->runtimeFactory    = $this->createRuntimeFactory();
-
-        $this->initializeTable();
-        $this->initializeColumns();
-        $this->initializeExtensions();
     }
 
-    protected function createColumnResolver(): ColumnResolver
+    final public function setDataTableInfrastructure(DataTableInfrastructure $infrastructure): void
     {
-        return new ColumnResolver();
+        if ($this->initialized || null !== $this->runtime) {
+            throw new \LogicException('DataTable infrastructure must be injected before the table is initialized.');
+        }
+
+        $this->infrastructure = $infrastructure;
     }
 
-    protected function createRenderingPreparer(): RenderingPreparer
+    private function initialize(): void
     {
-        return new RenderingPreparer();
-    }
+        if ($this->initialized) {
+            return;
+        }
 
-    protected function createRuntimeFactory(): DataTableRuntimeFactory
-    {
-        return new DataTableRuntimeFactory();
-    }
+        $this->asDataTable = $this->resolveAsDataTable();
 
-    private function initializeTable(): void
-    {
         $this->table = $this->configureDataTable(
             new DataTable($this->getClassName())
         );
-    }
 
-    private function initializeColumns(): void
-    {
         $this->columns = iterator_to_array($this->configureColumns());
 
-        $this->columnResolver->configureBooleanColumns($this->columns, $this->asDataTable);
+        $this->infrastructure()->columnResolver()->configureBooleanColumns($this->columns, $this->asDataTable);
 
         $actions = $this->configureActions(new Actions());
 
-        $this->columnResolver->configureActionEntityClass($actions, $this->asDataTable);
+        $this->infrastructure()->columnResolver()->configureActionEntityClass($actions, $this->asDataTable);
 
         $this->configureActionColumn($actions);
 
         $this->table->columns($this->columns);
-    }
 
-    private function initializeExtensions(): void
-    {
         $this->table->setExtensions(
             $this->configureExtensions(new DataTableExtensions())
         );
+
+        $this->initialized = true;
     }
 
     public function getRequest(): ?DataTableRequest
@@ -139,13 +122,17 @@ abstract class AbstractDataTable
 
     public function prepareForRendering(): void
     {
+        $this->initialize();
+
         if ($this->renderingPrepared) {
             return;
         }
 
-        $this->renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable);
+        $renderingPreparer = $this->infrastructure()->renderingPreparer();
+
+        $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable);
         $this->hydrateClientSideData();
-        $this->renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable);
+        $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable);
 
         $this->renderingPrepared = true;
     }
@@ -159,6 +146,8 @@ abstract class AbstractDataTable
 
     public function getConfiguredDataTable(): DataTable
     {
+        $this->initialize();
+
         return $this->table;
     }
 
@@ -167,12 +156,14 @@ abstract class AbstractDataTable
      */
     public function configureColumns(): iterable
     {
-        $columns = $this->table->getColumns();
-        if ([] !== $columns) {
-            return $columns;
+        if (isset($this->table)) {
+            $columns = $this->table->getColumns();
+            if ([] !== $columns) {
+                return $columns;
+            }
         }
 
-        return $this->columnResolver->resolveColumns($this->asDataTable);
+        return $this->infrastructure()->columnResolver()->resolveColumns($this->asDataTable ?? $this->resolveAsDataTable());
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -268,13 +259,10 @@ abstract class AbstractDataTable
         return new DefaultSearchStrategyRegistry();
     }
 
-    public function setEntityManager(?EntityManagerInterface $em): void
-    {
-        $this->runtimeFactory->setEntityManager($em);
-    }
-
     public function getColumnByName(string $name): ?ColumnInterface
     {
+        $this->initialize();
+
         return $this->table->getColumnByName($name);
     }
 
@@ -290,7 +278,9 @@ abstract class AbstractDataTable
 
     final protected function createRowMapper(): RowMapperInterface
     {
-        return $this->runtimeFactory->createRowMapper(
+        $this->initialize();
+
+        return $this->infrastructure()->runtimeFactory()->createRowMapper(
             baseMapper: $this->mapRow(...),
             columns: $this->columns,
         );
@@ -298,6 +288,8 @@ abstract class AbstractDataTable
 
     public function setData(array $data): void
     {
+        $this->initialize();
+
         $rowMapper = $this->createRowMapper();
         $rows      = [];
 
@@ -311,6 +303,8 @@ abstract class AbstractDataTable
 
     private function getDefaultRowMapper(): DefaultRowMapper
     {
+        $this->initialize();
+
         if (null === $this->defaultRowMapper) {
             $this->defaultRowMapper = new DefaultRowMapper($this->columns);
         }
@@ -341,7 +335,9 @@ abstract class AbstractDataTable
 
     private function runtime(): DataTableRuntime
     {
-        return $this->runtime ??= $this->runtimeFactory->createRuntime(
+        $this->initialize();
+
+        return $this->runtime ??= $this->infrastructure()->runtimeFactory()->createRuntime(
             table: $this->table,
             columns: $this->columns,
             asDataTable: $this->asDataTable,
@@ -349,6 +345,11 @@ abstract class AbstractDataTable
             manualDataProviderFactory: $this->createDataProvider(...),
             configureQueryBuilder: $this->configureQueryBuilder(...),
         );
+    }
+
+    private function infrastructure(): DataTableInfrastructure
+    {
+        return $this->infrastructure ??= DataTableInfrastructure::createDefault();
     }
 
     private function configureActionColumn(Actions $actions): void

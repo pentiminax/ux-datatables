@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 
 class TestDataTableWithoutAttribute extends AbstractDataTable
 {
@@ -17,11 +18,9 @@ class TestDataTableWithoutAttribute extends AbstractDataTable
         private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
     ) {
         parent::__construct();
-    }
-
-    protected function createRenderingPreparer(): RenderingPreparer
-    {
-        return new RenderingPreparer($this->apiResourceCollectionUrlResolver, $this->mercureConfigResolver);
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            renderingPreparer: new RenderingPreparer($this->apiResourceCollectionUrlResolver, $this->mercureConfigResolver)
+        ));
     }
 
     public function configureColumns(): iterable

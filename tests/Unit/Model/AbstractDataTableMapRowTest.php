@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -269,13 +270,11 @@ final class DetailActionMapRowTestTable extends AbstractDataTable
     public function __construct(private readonly array $columnsConfig)
     {
         parent::__construct();
-    }
-
-    protected function createRuntimeFactory(): DataTableRuntimeFactory
-    {
-        return new DataTableRuntimeFactory(
-            actionRowDataResolver: new ActionRowDataResolver(),
-        );
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            runtimeFactory: new DataTableRuntimeFactory(
+                actionRowDataResolver: new ActionRowDataResolver(),
+            )
+        ));
     }
 
     public function configureColumns(): iterable
@@ -305,13 +304,11 @@ final class TypedDetailActionSetDataTable extends AbstractDataTable
     public function __construct(private readonly array $columnsConfig)
     {
         parent::__construct();
-    }
-
-    protected function createRuntimeFactory(): DataTableRuntimeFactory
-    {
-        return new DataTableRuntimeFactory(
-            actionRowDataResolver: new ActionRowDataResolver(),
-        );
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            runtimeFactory: new DataTableRuntimeFactory(
+                actionRowDataResolver: new ActionRowDataResolver(),
+            )
+        ));
     }
 
     public function configureColumns(): iterable
@@ -332,13 +329,11 @@ final class ArrayDetailActionSetDataTable extends AbstractDataTable
     public function __construct(private readonly array $columnsConfig)
     {
         parent::__construct();
-    }
-
-    protected function createRuntimeFactory(): DataTableRuntimeFactory
-    {
-        return new DataTableRuntimeFactory(
-            actionRowDataResolver: new ActionRowDataResolver(),
-        );
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            runtimeFactory: new DataTableRuntimeFactory(
+                actionRowDataResolver: new ActionRowDataResolver(),
+            )
+        ));
     }
 
     public function configureColumns(): iterable
@@ -361,13 +356,11 @@ final class TypedUrlColumnSetDataTable extends AbstractDataTable
         private readonly UrlGeneratorInterface $urlGenerator,
     ) {
         parent::__construct();
-    }
-
-    protected function createRuntimeFactory(): DataTableRuntimeFactory
-    {
-        return new DataTableRuntimeFactory(
-            urlColumnDataResolver: new UrlColumnDataResolver($this->urlGenerator),
-        );
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            runtimeFactory: new DataTableRuntimeFactory(
+                urlColumnDataResolver: new UrlColumnDataResolver($this->urlGenerator),
+            )
+        ));
     }
 
     public function configureColumns(): iterable

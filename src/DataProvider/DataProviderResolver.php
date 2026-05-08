@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\DataProvider;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
@@ -16,11 +15,6 @@ final class DataProviderResolver
     public function __construct(
         private readonly AutoDataProviderFactory $autoDataProviderFactory,
     ) {
-    }
-
-    public function setEntityManager(?EntityManagerInterface $em): void
-    {
-        $this->autoDataProviderFactory->setEntityManager($em);
     }
 
     /**
