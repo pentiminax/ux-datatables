@@ -10,8 +10,12 @@ use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
+use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithBooleanColumn;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithData;
@@ -66,7 +70,7 @@ final class AsDataTableTest extends TestCase
     {
         $table = new TestDataTableWithAttribute();
         $em    = $this->createMock(EntityManagerInterface::class);
-        $table->setEntityManager($em);
+        $table->setDataTableInfrastructure($this->createInfrastructureWithEntityManager($em));
 
         $provider = $table->getDataProvider();
 
@@ -96,12 +100,21 @@ final class AsDataTableTest extends TestCase
     {
         $table = new TestDataTableWithAttribute();
         $em    = $this->createMock(EntityManagerInterface::class);
-        $table->setEntityManager($em);
+        $table->setDataTableInfrastructure($this->createInfrastructureWithEntityManager($em));
 
         $provider1 = $table->getDataProvider();
         $provider2 = $table->getDataProvider();
 
         $this->assertSame($provider1, $provider2);
+    }
+
+    private function createInfrastructureWithEntityManager(EntityManagerInterface $em): DataTableInfrastructure
+    {
+        return DataTableInfrastructure::createDefault(
+            runtimeFactory: new DataTableRuntimeFactory(
+                dataProviderResolver: new DataProviderResolver(new AutoDataProviderFactory($em))
+            )
+        );
     }
 
     #[Test]

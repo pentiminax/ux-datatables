@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
+use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
@@ -136,12 +137,12 @@ final class DataTableRuntimeFactoryTest extends TestCase
     }
 
     #[Test]
-    public function set_entity_manager_enables_auto_provider_resolution(): void
+    public function injected_data_provider_resolver_enables_auto_provider_resolution(): void
     {
         $em      = $this->createMock(EntityManagerInterface::class);
-        $factory = new DataTableRuntimeFactory();
-
-        $factory->setEntityManager($em);
+        $factory = new DataTableRuntimeFactory(
+            dataProviderResolver: new DataProviderResolver(new AutoDataProviderFactory($em))
+        );
 
         $runtime = $factory->createRuntime(
             table: new DataTable('movies'),
@@ -152,8 +153,6 @@ final class DataTableRuntimeFactoryTest extends TestCase
             configureQueryBuilder: static fn ($qb, $req) => $qb,
         );
 
-        // AutoDataProviderFactory::create() returns a DoctrineDataProvider (not null)
-        // only if the em was properly forwarded via setEntityManager()
         $this->assertInstanceOf(DataProviderInterface::class, $runtime->getDataProvider());
     }
 }

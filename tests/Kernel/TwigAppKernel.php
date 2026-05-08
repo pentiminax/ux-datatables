@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
 use Pentiminax\UX\DataTables\DataTablesBundle;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\ServerSideTemplateDataTable;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\MercureBundle\MercureBundle;
 use Symfony\Bundle\TwigBundle\TwigBundle;
@@ -46,6 +47,12 @@ class TwigAppKernel extends Kernel
 
             $container->setAlias('test.datatables.builder', 'datatables.builder')->setPublic(true);
             $container->setAlias('test.datatables.twig_extension', 'datatables.twig_extension')->setPublic(true);
+            $container->setAlias('test.datatables.infrastructure', 'datatables.infrastructure')->setPublic(true);
+
+            $container
+                ->register('test.datatables.server_side_template', ServerSideTemplateDataTable::class)
+                ->setAutoconfigured(true)
+                ->setPublic(true);
         });
     }
 
