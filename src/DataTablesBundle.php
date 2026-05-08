@@ -43,6 +43,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -113,11 +114,12 @@ class DataTablesBundle extends AbstractBundle
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
         $builder->registerForAutoconfiguration(AbstractDataTable::class)
-            ->addTag('datatables.data_table');
+            ->addTag('datatables.data_table')
+            ->addMethodCall('setDataTableInfrastructure', [new Reference('datatables.infrastructure')]);
 
         $this->registerCoreServices($container, $config);
 
-        if (interface_exists(ResourceMetadataCollectionFactoryInterface::class)) {
+        if ($this->isApiPlatformAvailable($builder)) {
             $this->registerApiPlatformServices($container);
         }
 
@@ -159,6 +161,15 @@ class DataTablesBundle extends AbstractBundle
         }
 
         return is_file($bundlesMetadata['FrameworkBundle']['path'].'/Resources/config/asset_mapper.php');
+    }
+
+    private function isApiPlatformAvailable(ContainerBuilder $builder): bool
+    {
+        if (!interface_exists(ResourceMetadataCollectionFactoryInterface::class)) {
+            return false;
+        }
+
+        return isset($builder->getParameter('kernel.bundles')['ApiPlatformBundle']);
     }
 
     private function registerCoreServices(ContainerConfigurator $container, array $config): void
@@ -246,7 +257,7 @@ class DataTablesBundle extends AbstractBundle
         if (interface_exists(\Symfony\Component\Routing\Generator\UrlGeneratorInterface::class)) {
             $container->services()
                 ->set('datatables.column.url_column_data_resolver', UrlColumnDataResolver::class)
-                ->arg(0, service('router'))
+                ->arg(0, service('router')->nullOnInvalid())
                 ->private();
 
             $container->services()
@@ -286,6 +297,17 @@ class DataTablesBundle extends AbstractBundle
 
         $container->services()
             ->alias(DataTableRuntimeFactory::class, 'datatables.runtime.factory')
+            ->private();
+
+        $container->services()
+            ->set('datatables.infrastructure', DataTableInfrastructure::class)
+            ->arg(0, service('datatables.column.resolver'))
+            ->arg(1, service('datatables.rendering.preparer'))
+            ->arg(2, service('datatables.runtime.factory'))
+            ->private();
+
+        $container->services()
+            ->alias(DataTableInfrastructure::class, 'datatables.infrastructure')
             ->private();
     }
 

@@ -99,6 +99,6 @@ final class AbstractDataTableAutoDetectTest extends TestCase
             ->with(\stdClass::class, ['product:list'])
             ->willReturn([]);
 
-        new AutoDetectWithGroupsDataTable(columnAutoDetector: $detector);
+        (new AutoDetectWithGroupsDataTable(columnAutoDetector: $detector))->getConfiguredDataTable();
     }
 }

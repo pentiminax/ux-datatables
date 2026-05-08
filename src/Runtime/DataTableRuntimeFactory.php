@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Runtime;
 
-use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
@@ -31,11 +30,6 @@ final class DataTableRuntimeFactory
     ) {
     }
 
-    public function setEntityManager(?EntityManagerInterface $em): void
-    {
-        $this->getDataProviderResolver()->setEntityManager($em);
-    }
-
     /**
      * @param ColumnInterface[]     $columns
      * @param \Closure(mixed):array $baseMapper
@@ -47,9 +41,7 @@ final class DataTableRuntimeFactory
 
         $pipeline->add(new UrlColumnResolutionStage($this->urlColumnDataResolver ?? new UrlColumnDataResolver()));
 
-        if (null !== $this->templateColumnRenderer) {
-            $pipeline->add(new TemplateRenderingStage($this->templateColumnRenderer));
-        }
+        $pipeline->add(new TemplateRenderingStage($this->templateColumnRenderer ?? new TemplateColumnRenderer()));
 
         $pipeline->add(new ActionResolutionStage($this->actionRowDataResolver ?? new ActionRowDataResolver()));
 

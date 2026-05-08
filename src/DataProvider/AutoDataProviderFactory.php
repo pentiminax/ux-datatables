@@ -18,11 +18,6 @@ final class AutoDataProviderFactory
     ) {
     }
 
-    public function setEntityManager(?EntityManagerInterface $em): void
-    {
-        $this->em = $em;
-    }
-
     /**
      * @param callable(QueryBuilder, DataTableRequest):QueryBuilder $configureQueryBuilder
      */
@@ -36,7 +31,7 @@ final class AutoDataProviderFactory
         }
 
         if (null === $this->em) {
-            throw new \LogicException('EntityManagerInterface is required to auto-configure a DoctrineDataProvider from #[AsDataTable]. Inject it via the runtime factory or setEntityManager().');
+            throw new \LogicException('EntityManagerInterface is required to auto-configure a DoctrineDataProvider from #[AsDataTable]. Ensure Doctrine ORM is installed and the DataTable is managed by Symfony.');
         }
 
         return new DoctrineDataProvider(

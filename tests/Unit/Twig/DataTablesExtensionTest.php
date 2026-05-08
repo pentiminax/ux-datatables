@@ -14,11 +14,13 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @internal
@@ -309,20 +311,7 @@ final class DataTablesExtensionTest extends TestCase
         $kernel->boot();
         $container = $kernel->getContainer()->get('test.service_container');
 
-        /** @var DataTablesExtension $twigExtension */
-        $twigExtension = $container->get('test.datatables.twig_extension');
-        $reflection    = new \ReflectionClass($twigExtension);
-
-        $templateRendererProperty = $reflection->getProperty('templateColumnRenderer');
-        $templateRendererProperty->setAccessible(true);
-
-        $actionResolverProperty = $reflection->getProperty('actionRowDataResolver');
-        $actionResolverProperty->setAccessible(true);
-
-        $table = new InlinePreparedDataTable(
-            $templateRendererProperty->getValue($twigExtension),
-            $actionResolverProperty->getValue($twigExtension),
-        );
+        $table = new InlinePreparedDataTable($container->get('test.datatables.infrastructure'));
 
         $table->setData([
             new InlineBookEntity(id: 5, status: 'active'),
@@ -379,6 +368,33 @@ final class DataTablesExtensionTest extends TestCase
         }
     }
 
+    #[Test]
+    public function it_renders_template_columns_in_service_managed_server_side_ajax_response(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        /** @var AbstractDataTable $table */
+        $table = $container->get('test.datatables.server_side_template');
+        $table->handleRequest(Request::create('/datatable/books', 'GET', [
+            'draw'    => 1,
+            'start'   => 0,
+            'length'  => 10,
+            'search'  => ['value' => '', 'regex' => 'false'],
+            'columns' => [
+                ['data' => 'id', 'name' => 'id', 'searchable' => 'true', 'orderable' => 'true'],
+                ['data' => 'status', 'name' => 'status_display', 'searchable' => 'true', 'orderable' => 'true'],
+            ],
+        ]));
+
+        $payload = json_decode($table->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('<span class="badge">7-active</span>', trim($payload['data'][0]['status']));
+
+        $kernel->shutdown();
+    }
+
     private function renderPayload(AbstractDataTable|DataTable $table): array
     {
         $kernel = new TwigAppKernel('test', true);
@@ -433,19 +449,10 @@ final readonly class InlineBookEntity
 
 final class InlinePreparedDataTable extends AbstractDataTable
 {
-    public function __construct(
-        private readonly \Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer $templateColumnRenderer,
-        private readonly \Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver $actionRowDataResolver,
-    ) {
-        parent::__construct();
-    }
-
-    protected function createRuntimeFactory(): \Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory
+    public function __construct(DataTableInfrastructure $infrastructure)
     {
-        return new \Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory(
-            templateColumnRenderer: $this->templateColumnRenderer,
-            actionRowDataResolver: $this->actionRowDataResolver,
-        );
+        parent::__construct();
+        $this->setDataTableInfrastructure($infrastructure);
     }
 
     public function configureColumns(): iterable

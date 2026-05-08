@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 
 #[AsDataTable(entityClass: \stdClass::class, apiPlatform: true)]
 class AutoDetectTestDataTable extends AbstractDataTable
@@ -15,10 +16,8 @@ class AutoDetectTestDataTable extends AbstractDataTable
     public function __construct(private readonly ?ColumnAutoDetectorInterface $columnAutoDetector = null)
     {
         parent::__construct();
-    }
-
-    protected function createColumnResolver(): ColumnResolver
-    {
-        return new ColumnResolver(columnAutoDetector: $this->columnAutoDetector);
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            columnResolver: new ColumnResolver(columnAutoDetector: $this->columnAutoDetector)
+        ));
     }
 }
