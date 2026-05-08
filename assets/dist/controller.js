@@ -14,6 +14,7 @@ import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { submitEditForm } from './functions/submitEditForm.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
 import { resolveModalAdapter } from './modal/resolveModalAdapter.js';
+import { applyUrlStateToPayload, isUrlStateEnabled, readUrlState, writeUrlState, } from './functions/urlState.js';
 const EXTENSION_MAP = {
     select: 'select',
     responsive: 'responsive',
@@ -30,6 +31,7 @@ class default_1 extends Controller {
         this.isDataTableInitialized = false;
         this.eventSource = null;
         this.framework = 'dt';
+        this.popstateHandler = null;
     }
     async connect() {
         if (this.isDataTableInitialized) {
@@ -57,8 +59,17 @@ class default_1 extends Controller {
             new ApiPlatformAdapter(columns).configure(payload);
         }
         this.configureColumns(payload);
+        const urlStateCfg = isUrlStateEnabled(payload);
+        if (urlStateCfg) {
+            applyUrlStateToPayload(payload, readUrlState(urlStateCfg));
+        }
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
+        if (urlStateCfg && this.table) {
+            this.table.on('draw.dt', () => writeUrlState(urlStateCfg, this.table));
+            this.popstateHandler = () => this.applyUrlStateToTable(urlStateCfg);
+            window.addEventListener('popstate', this.popstateHandler);
+        }
         await this.initMercure(payload);
         this.bindActionHandler(payload);
         this.bindBooleanToggleHandler(payload);
@@ -67,6 +78,27 @@ class default_1 extends Controller {
     disconnect() {
         this.eventSource?.close();
         this.eventSource = null;
+        if (this.popstateHandler) {
+            window.removeEventListener('popstate', this.popstateHandler);
+            this.popstateHandler = null;
+        }
+    }
+    applyUrlStateToTable(cfg) {
+        if (!this.table)
+            return;
+        const snap = readUrlState(cfg);
+        if (snap.search !== undefined)
+            this.table.search(snap.search);
+        if (snap.order !== undefined)
+            this.table.order(snap.order);
+        if (snap.pageLength !== undefined)
+            ;
+        this.table.page.len(snap.pageLength);
+        if (snap.start !== undefined) {
+            const pageLen = this.table.page.len();
+            this.table.page(Math.floor(snap.start / (pageLen || 10)));
+        }
+        this.table.draw(false);
     }
     async loadExtensions(payload, framework, DataTable) {
         if (this.hasButtonsInLayout(payload)) {

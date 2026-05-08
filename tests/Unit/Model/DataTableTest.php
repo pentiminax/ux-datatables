@@ -283,4 +283,62 @@ final class DataTableTest extends TestCase
         $this->assertSame(['email' => $column], $table->getColumns());
         $this->assertSame('Email', $table->getColumnDefinitions()[0]['title']);
     }
+
+    #[Test]
+    public function it_configures_url_state_with_all_keys_enabled_by_default(): void
+    {
+        $table = (new DataTable('users'))->urlState();
+
+        $this->assertSame([
+            'search'     => true,
+            'order'      => true,
+            'page'       => true,
+            'pageLength' => true,
+            'prefix'     => '',
+        ], $table->getOption('urlState'));
+    }
+
+    #[Test]
+    public function it_configures_url_state_with_partial_keys(): void
+    {
+        $table = (new DataTable('users'))->urlState(['page' => false]);
+
+        $this->assertSame([
+            'search'     => true,
+            'order'      => true,
+            'page'       => false,
+            'pageLength' => true,
+            'prefix'     => '',
+        ], $table->getOption('urlState'));
+    }
+
+    #[Test]
+    public function it_configures_url_state_with_prefix(): void
+    {
+        $table = (new DataTable('users'))->urlState(prefix: 'usersTable');
+
+        $this->assertSame('usersTable', $table->getOption('urlState')['prefix']);
+    }
+
+    #[Test]
+    public function it_configures_url_state_with_granular_keys_and_prefix(): void
+    {
+        $table = (new DataTable('users'))->urlState(['search' => true, 'order' => false], 'u');
+
+        $this->assertSame([
+            'search'     => true,
+            'order'      => false,
+            'page'       => true,
+            'pageLength' => true,
+            'prefix'     => 'u',
+        ], $table->getOption('urlState'));
+    }
+
+    #[Test]
+    public function it_returns_static_for_url_state_chaining(): void
+    {
+        $table = new DataTable('users');
+
+        $this->assertSame($table, $table->urlState());
+    }
 }
