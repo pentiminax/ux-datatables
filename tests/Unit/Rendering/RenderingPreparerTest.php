@@ -167,6 +167,35 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
+    public function it_configures_explicit_mercure_topics_from_attribute(): void
+    {
+        $mercureResolver = $this->createMock(MercureConfigResolverInterface::class);
+        $mercureResolver->expects($this->never())->method('resolveMercureConfig');
+
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
+
+        $preparer = new RenderingPreparer(
+            mercureResolver: $mercureResolver,
+            mercureHubUrlResolver: $hubUrlResolver,
+        );
+        $table = (new DataTable('Test'))->ajax('/api/books');
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: [
+            'topics'          => ['https://example.com/books'],
+            'withCredentials' => true,
+            'debounceMs'      => 250,
+        ]));
+
+        $this->assertSame([
+            'hubUrl'          => '/.well-known/mercure',
+            'topics'          => ['https://example.com/books'],
+            'withCredentials' => true,
+            'debounceMs'      => 250,
+        ], $table->getOptions()['mercure']);
+    }
+
+    #[Test]
     public function it_skips_mercure_when_attribute_mercure_is_false(): void
     {
         $mercureResolver = $this->createMock(MercureConfigResolverInterface::class);

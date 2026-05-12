@@ -25,6 +25,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualOve
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureAndData;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureAndManualAjax;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureAttribute;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureTopicsAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithoutAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithServerSide;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\ToggleEntityFixture;
@@ -50,6 +51,22 @@ final class AsDataTableTest extends TestCase
     }
 
     #[Test]
+    public function it_accepts_explicit_mercure_topics(): void
+    {
+        $attribute = new AsDataTable(entityClass: \stdClass::class, mercure: [
+            'topics' => [
+                'https://example.com/books',
+            ],
+        ]);
+
+        $this->assertSame([
+            'topics' => [
+                'https://example.com/books',
+            ],
+        ], $attribute->mercure);
+    }
+
+    #[Test]
     public function it_can_be_applied_to_class(): void
     {
         $reflection = new \ReflectionClass(TestDataTableWithAttribute::class);
@@ -63,6 +80,22 @@ final class AsDataTableTest extends TestCase
         $this->assertFalse($instance->mercure);
         $this->assertSame('', $instance->editModalTemplate);
         $this->assertSame('', $instance->editModalAdapter);
+    }
+
+    #[Test]
+    public function it_can_be_applied_to_class_with_explicit_mercure_topics(): void
+    {
+        $reflection = new \ReflectionClass(TestDataTableWithMercureTopicsAttribute::class);
+        $attributes = $reflection->getAttributes(AsDataTable::class);
+
+        $this->assertCount(1, $attributes);
+
+        $instance = $attributes[0]->newInstance();
+        $this->assertSame([
+            'topics' => [
+                'https://example.com/books',
+            ],
+        ], $instance->mercure);
     }
 
     #[Test]
@@ -276,6 +309,28 @@ final class AsDataTableTest extends TestCase
         $this->assertSame([
             'hubUrl' => 'http://localhost/.well-known/mercure',
             'topics' => ['/api/books/{id}', '/api/authors/{id}'],
+        ], $table->getDataTable()->getOptions()['mercure']);
+    }
+
+    #[Test]
+    public function it_configures_mercure_from_attribute_topics(): void
+    {
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver->expects($this->never())->method('resolveMercureConfig');
+
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
+
+        $table = new TestDataTableWithMercureTopicsAttribute(
+            mercureConfigResolver: $resolver,
+            mercureHubUrlResolver: $hubUrlResolver,
+        );
+
+        $table->prepareForRendering();
+
+        $this->assertSame([
+            'hubUrl' => '/.well-known/mercure',
+            'topics' => ['https://example.com/books'],
         ], $table->getDataTable()->getOptions()['mercure']);
     }
 
