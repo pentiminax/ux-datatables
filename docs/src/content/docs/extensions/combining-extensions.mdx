@@ -9,6 +9,7 @@ description: Recommended extension combinations and integration notes
 
 ```php
 use Pentiminax\UX\DataTables\Enum\ButtonType;
+use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
@@ -17,7 +18,11 @@ use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 $dataTable
     ->addExtension(new ButtonsExtension([ButtonType::CSV, ButtonType::EXCEL]))
     ->addExtension(new SelectExtension(SelectStyle::MULTI))
-    ->addExtension(new ResponsiveExtension());
+    ->addExtension(new ResponsiveExtension())
+    ->layout([
+        'topStart' => Feature::BUTTONS,
+        'topEnd' => Feature::SEARCH,
+    ]);
 ```
 
 ## Test Checklist

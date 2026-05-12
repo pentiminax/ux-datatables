@@ -13,14 +13,25 @@ Use Buttons when users need export actions (CSV, Excel, PDF, Print) or column vi
 
 ```php
 use Pentiminax\UX\DataTables\Enum\ButtonType;
+use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 
-$dataTable->addExtension(new ButtonsExtension([
-    ButtonType::COPY,
-    ButtonType::CSV,
-    ButtonType::EXCEL,
-]));
+$dataTable
+    ->addExtension(new ButtonsExtension([
+        ButtonType::COPY,
+        ButtonType::CSV,
+        ButtonType::EXCEL,
+    ]))
+    ->layout([
+        'topStart' => Feature::BUTTONS,
+        'topEnd' => Feature::SEARCH,
+    ]);
 ```
+
+Buttons is a layout-aware extension: `ButtonsExtension` configures the buttons,
+and `Feature::BUTTONS` tells DataTables where to render the `.dt-buttons`
+container. Without `Feature::BUTTONS` in `layout()`, no buttons container is
+generated.
 
 ## Available Button Types
 
@@ -43,11 +54,16 @@ $buttons = (new ButtonsExtension([ButtonType::CSV]))
     ->withExcelButton()
     ->withPrintButton();
 
-$dataTable->addExtension($buttons);
+$dataTable
+    ->addExtension($buttons)
+    ->layout([
+        'topStart' => Feature::BUTTONS,
+    ]);
 ```
 
 ## Frequent Pitfalls
 
+- Adding `ButtonsExtension` without adding `Feature::BUTTONS` to the layout.
 - Mixing button values as invalid strings.
 - Forgetting that non-column-visibility buttons apply export filtering by default.
 
