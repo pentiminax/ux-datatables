@@ -7,7 +7,9 @@ description: Real-time DataTables refresh with Mercure SSE
 
 Use Mercure when table data can change outside the current browser session and you want automatic refresh.
 
-`MercureConfig` can now be configured manually through `DataTable::mercure(...)` or auto-resolved from `#[AsDataTable(..., mercure: true)]`.
+`MercureConfig` can be configured manually through `DataTable::mercure(...)`,
+declared on `#[AsDataTable(...)]`, or auto-resolved from
+`#[AsDataTable(..., mercure: true)]`.
 
 ## What The Integration Does
 
@@ -33,6 +35,46 @@ When auto-resolution is enabled:
 - explicit API Platform `mercure.topics` are reused when available
 - otherwise the bundle falls back to an item IRI template (for example `/api/books/{id}`)
 - if no API Platform item metadata is available, it falls back to `/datatables/books/{id}`
+
+## Attribute Topics
+
+Use explicit topics on the attribute when you do not want topic auto-resolution
+from API Platform metadata:
+
+```php
+#[AsDataTable(
+    entityClass: Book::class,
+    mercure: [
+        'topics' => [
+            'https://example.com/books',
+        ],
+    ],
+)]
+final class BookDataTable extends AbstractDataTable
+{
+}
+```
+
+The same form accepts one topic or several topics:
+
+```php
+#[AsDataTable(
+    entityClass: Book::class,
+    mercure: [
+        'topics' => [
+            'https://example.com/books',
+            'https://example.com/authors',
+        ],
+        'withCredentials' => true,
+        'debounceMs' => 300,
+    ],
+)]
+```
+
+Mercure supports multiple subscriptions by repeating the `topic` query
+parameter. For most tables, one topic is enough. Use several topics when a
+single DataTable must refresh after changes published on different resources or
+channels.
 
 ## Advanced Setup
 

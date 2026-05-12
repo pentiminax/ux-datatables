@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -74,11 +75,18 @@ final class RenderingPreparer
             return;
         }
 
-        if (null === $asDataTable || !$asDataTable->mercure) {
+        if (null === $asDataTable || false === $asDataTable->mercure) {
             return;
         }
 
         if (null !== $table->getOption('data') && null === $table->getOption('ajax')) {
+            return;
+        }
+
+        $explicitConfig = $this->createExplicitMercureConfig($asDataTable);
+        if (null !== $explicitConfig) {
+            $table->setMercureConfig($explicitConfig);
+
             return;
         }
 
@@ -92,6 +100,33 @@ final class RenderingPreparer
         }
 
         $table->setMercureConfig($mercureConfig);
+    }
+
+    private function createExplicitMercureConfig(AsDataTable $asDataTable): ?MercureConfig
+    {
+        if (!\is_array($asDataTable->mercure)) {
+            return null;
+        }
+
+        $topics = $asDataTable->mercure['topics'] ?? [];
+        if (\is_string($topics)) {
+            $topics = [$topics];
+        }
+
+        if (!\is_array($topics)) {
+            throw new \InvalidArgumentException('AsDataTable mercure topics must be a string or an array of strings.');
+        }
+
+        $debounceMs = $asDataTable->mercure['debounceMs'] ?? null;
+        if (null !== $debounceMs && !\is_int($debounceMs)) {
+            throw new \InvalidArgumentException('AsDataTable mercure debounceMs must be an integer or null.');
+        }
+
+        return (new MercureConfig(
+            topics: $topics,
+            withCredentials: true === ($asDataTable->mercure['withCredentials'] ?? false),
+            debounceMs: $debounceMs,
+        ))->withHubUrl($this->resolveHubUrlOrThrow());
     }
 
     private function resolveHubUrlOrThrow(): string
