@@ -13,6 +13,17 @@ Target: class
 #[AsDataTable(User::class, serializationGroups: ['user:list'], mercure: true, apiPlatform: true)]
 ```
 
+```php
+#[AsDataTable(
+    entityClass: User::class,
+    mercure: [
+        'topics' => [
+            'https://example.com/users',
+        ],
+    ],
+)]
+```
+
 Arguments:
 
 <Table
@@ -27,9 +38,9 @@ Arguments:
     ],
     [
       '`mercure`',
-      '`bool`',
+      '`bool|array`',
       '`false`',
-      'Enable automatic Mercure config resolution for the table',
+      'Enable automatic Mercure config resolution (`true`) or declare explicit Mercure options (`topics`, `withCredentials`, `debounceMs`)',
     ],
     [
       '`apiPlatform`',
@@ -46,6 +57,7 @@ Use this attribute to:
 - opt-in to API Platform-driven column auto-detection (`apiPlatform: true` required)
 - opt-in to automatic API collection URL resolution for Ajax wiring (`apiPlatform: true` required)
 - auto-attach a Mercure config when Mercure is enabled for the table
+- declare explicit Mercure topics with `mercure: ['topics' => [...]]`
 
 ## `#[Column]`
 
