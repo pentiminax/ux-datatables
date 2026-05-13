@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableExtensions;
+use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
@@ -21,6 +22,7 @@ use PHPUnit\Framework\TestCase;
  * @internal
  */
 #[CoversClass(AbstractDataTable::class)]
+#[CoversClass(Button::class)]
 final class AbstractDataTableExtensionsTest extends TestCase
 {
     #[Test]
@@ -101,6 +103,49 @@ final class AbstractDataTableExtensionsTest extends TestCase
                 'withCheckbox'   => false,
             ],
         ], $table->getDataTable()->getExtensions());
+    }
+
+    #[Test]
+    public function it_injects_customized_buttons_into_layout(): void
+    {
+        $table = new class extends AbstractDataTable {
+            public function configureDataTable(DataTable $table): DataTable
+            {
+                return $table->layout([
+                    'topStart' => Feature::BUTTONS,
+                    'topEnd'   => Feature::SEARCH,
+                ]);
+            }
+
+            public function configureColumns(): iterable
+            {
+                yield TextColumn::new('id');
+            }
+
+            public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
+            {
+                return $extensions
+                    ->addExtension(new ButtonsExtension([
+                        Button::csv()
+                            ->text('Export CSV')
+                            ->className('btn btn-primary')
+                            ->exportOptions(['columns' => ':visible']),
+                    ]));
+            }
+        };
+
+        $this->assertSame([
+            'buttons' => [
+                [
+                    'extend'        => 'csv',
+                    'text'          => 'Export CSV',
+                    'className'     => 'btn btn-primary',
+                    'exportOptions' => [
+                        'columns' => ':visible',
+                    ],
+                ],
+            ],
+        ], $table->getDataTable()->getOptions()['layout']['topStart']);
     }
 
     #[Test]
