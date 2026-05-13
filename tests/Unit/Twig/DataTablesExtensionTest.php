@@ -333,6 +333,33 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
+    public function it_prepares_explicit_abstract_datatable_inline_dto_rows_during_rendering(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        $table = new ExplicitInlineDtoDataTable([
+            new ExplicitInlineBookDto(id: 5, title: 'Dune', status: 'active'),
+        ], $container->get('test.datatables.infrastructure'));
+
+        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+
+        $dom = new \DOMDocument();
+        $dom->loadHTML($rendered);
+        $tableEl = $dom->getElementsByTagName('table')->item(0);
+
+        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
+        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(5, $actual['data'][0]['id']);
+        $this->assertSame('Dune', $actual['data'][0]['title']);
+        $this->assertSame('<span class="badge">dto-5-active</span>', trim($actual['data'][0]['status']));
+        $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
+        $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
+    }
+
+    #[Test]
     public function it_auto_hydrates_client_side_abstract_datatable_from_provider(): void
     {
         $table = new ProviderHydratedDataTable([
@@ -467,6 +494,68 @@ final class InlinePreparedDataTable extends AbstractDataTable
     {
         return $actions->add(
             Action::detail()->linkToUrl(static fn (InlineBookEntity $book): string => '/books/'.$book->getId())
+        );
+    }
+}
+
+final readonly class ExplicitInlineBookDto
+{
+    public function __construct(
+        private int $id,
+        private string $title,
+        private string $status,
+    ) {
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function getStatus(): string
+    {
+        return $this->status;
+    }
+
+    public function getTemplateLabel(): string
+    {
+        return 'dto-'.$this->id;
+    }
+}
+
+final class ExplicitInlineDtoDataTable extends AbstractDataTable
+{
+    public function __construct(
+        private readonly array $items,
+        DataTableInfrastructure $infrastructure,
+    ) {
+        parent::__construct();
+        $this->setDataTableInfrastructure($infrastructure);
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->data($this->items);
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+        yield TextColumn::new('title');
+        yield TemplateColumn::new('status_display')
+            ->setField('status')
+            ->setTemplate('datatable/columns/entity_status_badge.html.twig');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(
+            Action::detail()->linkToUrl(static fn (ExplicitInlineBookDto $book): string => '/books/'.$book->getId())
         );
     }
 }

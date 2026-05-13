@@ -131,6 +131,7 @@ abstract class AbstractDataTable
         $renderingPreparer = $this->infrastructure()->renderingPreparer();
 
         $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable);
+        $this->prepareExplicitInlineData();
         $this->hydrateClientSideData();
         $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable);
 
@@ -198,6 +199,24 @@ abstract class AbstractDataTable
         }
 
         $this->fetchData($this->createClientSideDataRequest());
+    }
+
+    private function prepareExplicitInlineData(): void
+    {
+        $data = $this->table->getOption('data');
+        if (null === $data || $this->table->areTemplateColumnsRendered()) {
+            return;
+        }
+
+        $rowMapper = $this->createRowMapper();
+        $rows      = [];
+
+        foreach ($data as $item) {
+            $rows[] = $rowMapper->map($item);
+        }
+
+        $this->table->data($rows);
+        $this->table->markTemplateColumnsRendered();
     }
 
     private function shouldHydrateClientSideData(): bool
