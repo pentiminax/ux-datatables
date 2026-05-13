@@ -40,7 +40,7 @@ class DataTableExtensions implements \JsonSerializable
     }
 
     /**
-     * @param ButtonType[]|string[] $buttons
+     * @param ButtonType[]|string[]|Button[] $buttons
      */
     public function addButtonsExtension(array $buttons): static
     {

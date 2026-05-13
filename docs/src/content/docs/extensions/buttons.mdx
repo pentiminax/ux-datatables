@@ -61,6 +61,54 @@ $dataTable
     ]);
 ```
 
+## Customizing Buttons
+
+Use `Button` objects when you need DataTables button options such as `text`,
+`className`, `exportOptions`, or export-specific options like `filename`.
+
+```php
+use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Model\Extensions\Button;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+
+$dataTable
+    ->addExtension(new ButtonsExtension([
+        Button::csv()
+            ->text('Export CSV')
+            ->className('btn btn-sm btn-outline-primary')
+            ->exportOptions(['columns' => ':visible:not(.not-exportable)']),
+        Button::excel()
+            ->text('Excel')
+            ->option('filename', 'users-export'),
+        Button::colVis()->text('Columns'),
+    ]))
+    ->layout([
+        'topStart' => Feature::BUTTONS,
+        'topEnd' => Feature::SEARCH,
+    ]);
+```
+
+Button options must be JSON-serializable. JavaScript callbacks such as
+DataTables `action` or `customize` functions cannot be serialized from PHP.
+
+For options not covered by the typed API, you can still pass a raw DataTables
+layout object:
+
+```php
+$dataTable->layout([
+    'topStart' => [
+        'buttons' => [
+            [
+                'extend' => 'csv',
+                'text' => 'Export CSV',
+                'className' => 'btn btn-primary',
+                'exportOptions' => ['columns' => ':visible'],
+            ],
+        ],
+    ],
+]);
+```
+
 ## Frequent Pitfalls
 
 - Adding `ButtonsExtension` without adding `Feature::BUTTONS` to the layout.

@@ -9,11 +9,11 @@ use Pentiminax\UX\DataTables\Enum\ButtonType;
 
 final class ButtonsExtension extends AbstractExtension implements LayoutAwareExtensionInterface
 {
-    /** @var ButtonType[] */
+    /** @var Button[] */
     private array $buttons = [];
 
     /**
-     * @param ButtonType[]|string[] $buttons
+     * @param ButtonType[]|string[]|Button[] $buttons
      */
     public function __construct(
         array $buttons,
@@ -23,7 +23,7 @@ final class ButtonsExtension extends AbstractExtension implements LayoutAwareExt
                 $button = ButtonType::from($button);
             }
 
-            $this->buttons[] = $button;
+            $this->buttons[] = $button instanceof Button ? $button : Button::fromType($button);
         }
     }
 
@@ -34,64 +34,50 @@ final class ButtonsExtension extends AbstractExtension implements LayoutAwareExt
 
     public function jsonSerialize(): array
     {
-        $buttons = [];
-
-        foreach ($this->buttons as $button) {
-            if (ButtonType::COLUMN_VISIBILITY === $button) {
-                $buttons[] = $button->value;
-
-                continue;
-            }
-
-            $buttons[] = [
-                'extend'        => $button->value,
-                'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
-                ],
-            ];
-        }
-
-        return $buttons;
+        return array_map(
+            static fn (Button $button): array|string => $button->jsonSerialize(),
+            $this->buttons,
+        );
     }
 
     public function withColVisButton(): self
     {
-        $this->buttons[] = ButtonType::COLUMN_VISIBILITY;
+        $this->buttons[] = Button::colVis();
 
         return $this;
     }
 
     public function withCopyButton(): self
     {
-        $this->buttons[] = ButtonType::COPY;
+        $this->buttons[] = Button::copy();
 
         return $this;
     }
 
     public function withCsvButton(): self
     {
-        $this->buttons[] = ButtonType::CSV;
+        $this->buttons[] = Button::csv();
 
         return $this;
     }
 
     public function withExcelButton(): self
     {
-        $this->buttons[] = ButtonType::EXCEL;
+        $this->buttons[] = Button::excel();
 
         return $this;
     }
 
     public function withPdfButton(): self
     {
-        $this->buttons[] = ButtonType::PDF;
+        $this->buttons[] = Button::pdf();
 
         return $this;
     }
 
     public function withPrintButton(): self
     {
-        $this->buttons[] = ButtonType::PRINT;
+        $this->buttons[] = Button::print();
 
         return $this;
     }
