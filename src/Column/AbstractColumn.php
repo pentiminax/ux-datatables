@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\PermissionAwareColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 /**
  * @internal
  */
-abstract class AbstractColumn implements ColumnInterface
+abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnInterface
 {
     protected ColumnType $type;
     protected ?string $cellType       = null;
@@ -28,6 +29,7 @@ abstract class AbstractColumn implements ColumnInterface
     protected ?string $field          = null;
     protected bool $globalSearchable  = true;
     protected array $customOptions    = [];
+    protected ?string $permission     = null;
 
     /**
      * Convenient factory helper used by concrete columns to set their type.
@@ -291,6 +293,23 @@ abstract class AbstractColumn implements ColumnInterface
     public function getCustomOption(string $optionName): mixed
     {
         return $this->customOptions[$optionName] ?? null;
+    }
+
+    /**
+     * Restrict the column visibility with a Symfony security attribute (role, voter, expression).
+     *
+     * Evaluated once before serialization. The attribute name is never sent to the client.
+     */
+    public function permission(string $attribute): static
+    {
+        $this->permission = $attribute;
+
+        return $this;
+    }
+
+    public function getPermission(): ?string
+    {
+        return $this->permission;
     }
 
     public function jsonSerialize(): array

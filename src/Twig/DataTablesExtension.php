@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Twig;
 
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -18,6 +19,7 @@ class DataTablesExtension extends AbstractExtension
         private StimulusHelper $stimulus,
         private TemplateColumnRenderer $templateColumnRenderer,
         private ActionRowDataResolver $actionRowDataResolver,
+        private ColumnResolver $columnResolver,
     ) {
     }
 
@@ -35,6 +37,8 @@ class DataTablesExtension extends AbstractExtension
         if ($table instanceof AbstractDataTable) {
             $table = $table->getDataTable();
         }
+
+        $table->columns($this->columnResolver->filterStaticPermissions($table->getColumns()));
 
         $table->setAttributes(array_merge($table->getAttributes(), $attributes));
 

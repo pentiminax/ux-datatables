@@ -6,12 +6,14 @@ namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
 use Pentiminax\UX\DataTables\DataTablesBundle;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\ServerSideTemplateDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\MercureBundle\MercureBundle;
 use Symfony\Bundle\TwigBundle\TwigBundle;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Kernel;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\UX\StimulusBundle\StimulusBundle;
 
 class TwigAppKernel extends Kernel
@@ -48,6 +50,9 @@ class TwigAppKernel extends Kernel
             $container->setAlias('test.datatables.builder', 'datatables.builder')->setPublic(true);
             $container->setAlias('test.datatables.twig_extension', 'datatables.twig_extension')->setPublic(true);
             $container->setAlias('test.datatables.infrastructure', 'datatables.infrastructure')->setPublic(true);
+
+            $container
+                ->register(AuthorizationCheckerInterface::class, TestAuthorizationChecker::class);
 
             $container
                 ->register('test.datatables.server_side_template', ServerSideTemplateDataTable::class)
