@@ -305,6 +305,80 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
+    public function it_filters_denied_columns_on_direct_datatable_rendering(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        /** @var DataTableBuilderInterface $builder */
+        $builder = $container->get('test.datatables.builder');
+
+        $table = $builder->createDataTable('permission_table');
+        $table->columns([
+            TextColumn::new('id'),
+            TextColumn::new('secret')->permission('ROLE_DENIED'),
+        ]);
+        $table->data([
+            ['id' => 5, 'secret' => 'hidden'],
+        ]);
+
+        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+
+        $dom = new \DOMDocument();
+        $dom->loadHTML($rendered);
+        $tableEl = $dom->getElementsByTagName('table')->item(0);
+
+        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
+        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(['id'], array_column($actual['columns'], 'name'));
+    }
+
+    #[Test]
+    public function it_filters_denied_static_actions_on_direct_datatable_rendering(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        /** @var DataTableBuilderInterface $builder */
+        $builder = $container->get('test.datatables.builder');
+
+        $actions = (new Actions())->add(
+            Action::detail()
+                ->permission('ROLE_DENIED')
+                ->linkToUrl(static fn (array $row): string => '/books/'.$row['id'])
+        );
+
+        $table = $builder->createDataTable('denied_actions_table');
+        $table->columns([
+            TextColumn::new('id'),
+            ActionColumn::fromActions('actions', 'Actions', $actions),
+        ]);
+        $table->data([
+            ['id' => 5],
+        ]);
+
+        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+
+        $dom = new \DOMDocument();
+        $dom->loadHTML($rendered);
+        $tableEl = $dom->getElementsByTagName('table')->item(0);
+
+        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
+        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+
+        $actionColumn = array_values(array_filter(
+            $actual['columns'],
+            static fn (array $column): bool => 'actions' === $column['name'],
+        ))[0];
+
+        $this->assertSame([], $actionColumn['actions']);
+        $this->assertArrayNotHasKey('__ux_datatables_actions', $actual['data'][0]);
+    }
+
+    #[Test]
     public function it_keeps_set_data_rows_prepared_during_rendering(): void
     {
         $kernel = new TwigAppKernel('test', true);

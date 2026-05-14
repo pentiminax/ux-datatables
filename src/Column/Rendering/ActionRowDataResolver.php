@@ -6,10 +6,18 @@ namespace Pentiminax\UX\DataTables\Column\Rendering;
 
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 
 final class ActionRowDataResolver
 {
     public const string ROW_ACTIONS_KEY = '__ux_datatables_actions';
+
+    private readonly PermissionChecker $permissionChecker;
+
+    public function __construct(?PermissionChecker $permissionChecker = null)
+    {
+        $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
+    }
 
     /**
      * @param iterable<ColumnInterface> $columns
@@ -28,6 +36,15 @@ final class ActionRowDataResolver
             }
 
             foreach ($column->getActions()?->getActions() ?? [] as $action) {
+                if ($action->hasPerRowPermission()) {
+                    $resolver = $action->getPermissionSubjectResolver();
+                    $subject  = null !== $resolver ? $resolver($sourceRow) : null;
+
+                    if (!$this->permissionChecker->isGranted((string) $action->getPermission(), $subject)) {
+                        continue;
+                    }
+                }
+
                 $url = $action->resolveUrl($sourceRow);
 
                 if (null === $url) {
