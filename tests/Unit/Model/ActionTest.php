@@ -136,4 +136,42 @@ class ActionTest extends TestCase
 
         $this->assertNull($action->resolveUrl(['id' => 42]));
     }
+
+    public function test_permission_static_marks_attribute_without_subject_resolver(): void
+    {
+        $action = Action::delete()->permission('ROLE_ADMIN');
+
+        $this->assertSame('ROLE_ADMIN', $action->getPermission());
+        $this->assertNull($action->getPermissionSubjectResolver());
+        $this->assertTrue($action->hasStaticPermission());
+        $this->assertFalse($action->hasPerRowPermission());
+    }
+
+    public function test_permission_with_subject_resolver_is_per_row(): void
+    {
+        $resolver = static fn (mixed $row): mixed => $row;
+        $action   = Action::edit()->permission('EDIT', $resolver);
+
+        $this->assertSame('EDIT', $action->getPermission());
+        $this->assertInstanceOf(\Closure::class, $action->getPermissionSubjectResolver());
+        $this->assertFalse($action->hasStaticPermission());
+        $this->assertTrue($action->hasPerRowPermission());
+    }
+
+    public function test_permission_is_not_serialized_to_client(): void
+    {
+        $json = Action::delete()
+            ->permission('ROLE_ADMIN')
+            ->jsonSerialize();
+
+        $this->assertArrayNotHasKey('permission', $json);
+        $this->assertArrayNotHasKey('permissionSubjectResolver', $json);
+    }
+
+    public function test_permission_setter_is_chainable(): void
+    {
+        $action = Action::delete();
+
+        $this->assertSame($action, $action->permission('ROLE_ADMIN'));
+    }
 }

@@ -76,13 +76,18 @@ abstract class AbstractDataTable
 
         $this->columns = iterator_to_array($this->configureColumns());
 
-        $this->infrastructure()->columnResolver()->configureBooleanColumns($this->columns, $this->asDataTable);
+        $columnResolver = $this->infrastructure()->columnResolver();
+
+        $columnResolver->configureBooleanColumns($this->columns, $this->asDataTable);
 
         $actions = $this->configureActions(new Actions());
 
-        $this->infrastructure()->columnResolver()->configureActionEntityClass($actions, $this->asDataTable);
+        $columnResolver->configureActionEntityClass($actions, $this->asDataTable);
+        $columnResolver->filterActionsByStaticPermissions($actions);
 
         $this->configureActionColumn($actions);
+
+        $this->columns = $columnResolver->filterStaticPermissions($this->columns);
 
         $this->table->columns($this->columns);
 
