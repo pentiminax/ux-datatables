@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Fixtures\DataTable;
 
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
-use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;

@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Mercure;
 
-use Pentiminax\UX\DataTables\Contracts\ApiResourceMercureMetadataResolverInterface;
-use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Symfony\Component\String\Inflector\EnglishInflector;
 
 final class MercureConfigResolver implements MercureConfigResolverInterface

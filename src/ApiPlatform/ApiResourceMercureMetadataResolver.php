@@ -7,7 +7,7 @@ namespace Pentiminax\UX\DataTables\ApiPlatform;
 use ApiPlatform\Metadata\CollectionOperationInterface;
 use ApiPlatform\Metadata\HttpOperation;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
-use Pentiminax\UX\DataTables\Contracts\ApiResourceMercureMetadataResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\ApiResourceMercureMetadataResolverInterface;
 
 final class ApiResourceMercureMetadataResolver implements ApiResourceMercureMetadataResolverInterface
 {

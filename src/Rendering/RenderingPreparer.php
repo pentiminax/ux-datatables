@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Rendering;
 
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
-use Pentiminax\UX\DataTables\Contracts\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
