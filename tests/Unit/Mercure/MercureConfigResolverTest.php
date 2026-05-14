@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Mercure;
 
-use Pentiminax\UX\DataTables\Contracts\ApiResourceMercureMetadataResolverInterface;
-use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\ApiResourceMercureMetadataResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

@@ -6,7 +6,6 @@ namespace Pentiminax\UX\DataTables\ApiPlatform;
 
 use ApiPlatform\Metadata\CollectionOperationInterface;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
-use Pentiminax\UX\DataTables\Contracts\ApiResourceCollectionUrlResolverInterface;
 
 final class ApiResourceCollectionUrlResolver implements ApiResourceCollectionUrlResolverInterface
 {

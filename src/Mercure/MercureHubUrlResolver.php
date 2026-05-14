@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Mercure;
 
-use Pentiminax\UX\DataTables\Contracts\MercureHubUrlResolverInterface;
 use Symfony\Component\Mercure\HubInterface;
 
 final class MercureHubUrlResolver implements MercureHubUrlResolverInterface
