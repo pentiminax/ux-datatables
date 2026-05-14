@@ -45,15 +45,19 @@ use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use Symfony\Component\DependencyInjection\Reference;
-use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
-use Symfony\Contracts\Translation\TranslatorInterface;
+
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_locator;
+
+use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class DataTablesBundle extends AbstractBundle
 {
@@ -184,12 +188,22 @@ class DataTablesBundle extends AbstractBundle
             ->private();
 
         $container->services()
+            ->set('datatables.security.permission_checker', PermissionChecker::class)
+            ->arg(0, service(AuthorizationCheckerInterface::class)->nullOnInvalid())
+            ->private();
+
+        $container->services()
+            ->alias(PermissionChecker::class, 'datatables.security.permission_checker')
+            ->private();
+
+        $container->services()
             ->set('datatables.column.template_column_renderer', TemplateColumnRenderer::class)
             ->arg(0, service('twig')->nullOnInvalid())
             ->private();
 
         $container->services()
             ->set('datatables.column.action_row_data_resolver', ActionRowDataResolver::class)
+            ->arg(0, service('datatables.security.permission_checker'))
             ->private();
 
         $container->services()
@@ -205,6 +219,7 @@ class DataTablesBundle extends AbstractBundle
             ->arg(0, new Reference('stimulus.helper'))
             ->arg(1, service('datatables.column.template_column_renderer'))
             ->arg(2, service('datatables.column.action_row_data_resolver'))
+            ->arg(3, service('datatables.column.resolver'))
             ->tag('twig.extension')
             ->private();
 
@@ -246,6 +261,7 @@ class DataTablesBundle extends AbstractBundle
             ->set('datatables.column.resolver', ColumnResolver::class)
             ->arg(0, service('datatables.column.attribute_column_reader'))
             ->arg(1, service(ColumnAutoDetectorInterface::class)->nullOnInvalid())
+            ->arg(2, service('datatables.security.permission_checker'))
             ->private();
 
         $container->services()

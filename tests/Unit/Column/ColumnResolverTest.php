@@ -5,17 +5,23 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Enum\ActionType;
+use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * @internal
@@ -194,6 +200,208 @@ final class ColumnResolverTest extends TestCase
 
         $serialized = $actions->getActions()[0]->jsonSerialize();
         $this->assertArrayNotHasKey('entityClass', $serialized);
+    }
+
+    #[Test]
+    public function filter_static_permissions_drops_denied_columns(): void
+    {
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->method('isGranted')->willReturnMap([
+            ['ROLE_HR', null, false],
+            ['ROLE_PUBLIC', null, true],
+        ]);
+
+        $resolver = new ColumnResolver(permissionChecker: new PermissionChecker($inner));
+
+        $salary = TextColumn::new('salary', 'Salary')->permission('ROLE_HR');
+        $name   = TextColumn::new('name', 'Name');
+        $public = TextColumn::new('public', 'Public')->permission('ROLE_PUBLIC');
+
+        $filtered = $resolver->filterStaticPermissions([$salary, $name, $public]);
+
+        $this->assertSame([$name, $public], $filtered);
+    }
+
+    #[Test]
+    public function filter_static_permissions_filters_actions_inside_action_column(): void
+    {
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->method('isGranted')->willReturnMap([
+            ['ROLE_ADMIN', null, false],
+            ['ROLE_EDITOR', null, true],
+        ]);
+
+        $actions = new Actions();
+        $actions->add(Action::delete()->permission('ROLE_ADMIN'));
+        $actions->add(Action::edit()->permission('ROLE_EDITOR'));
+
+        $actionColumn = ActionColumn::fromActions('actions', '', $actions);
+
+        $resolver = new ColumnResolver(permissionChecker: new PermissionChecker($inner));
+        $filtered = $resolver->filterStaticPermissions([$actionColumn]);
+
+        $this->assertCount(1, $filtered);
+        $this->assertSame(1, $actions->count());
+        $this->assertSame(ActionType::Edit, $actions->getActions()[0]->getType());
+    }
+
+    #[Test]
+    public function filter_static_permissions_drops_action_column_when_column_permission_denied(): void
+    {
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->method('isGranted')->willReturn(false);
+
+        $actions = new Actions();
+        $actions->add(Action::delete());
+        $actionColumn = ActionColumn::fromActions('actions', '', $actions)->permission('ROLE_MANAGER');
+
+        $resolver = new ColumnResolver(permissionChecker: new PermissionChecker($inner));
+        $filtered = $resolver->filterStaticPermissions([$actionColumn]);
+
+        $this->assertSame([], $filtered);
+    }
+
+    #[Test]
+    public function filter_actions_by_static_permissions_delegates_to_actions(): void
+    {
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->method('isGranted')->willReturn(false);
+
+        $actions = new Actions();
+        $actions->add(Action::delete()->permission('ROLE_ADMIN'));
+
+        $resolver = new ColumnResolver(permissionChecker: new PermissionChecker($inner));
+        $resolver->filterActionsByStaticPermissions($actions);
+
+        $this->assertTrue($actions->isEmpty());
+    }
+
+    #[Test]
+    public function filter_static_permissions_is_noop_without_checker(): void
+    {
+        $resolver = new ColumnResolver();
+        $column   = TextColumn::new('salary', 'Salary')->permission('ROLE_HR');
+
+        $this->assertSame([$column], $resolver->filterStaticPermissions([$column]));
+    }
+
+    #[Test]
+    public function filter_static_permissions_keeps_custom_column_without_permission_contract(): void
+    {
+        $resolver = new ColumnResolver(permissionChecker: new PermissionChecker());
+        $column   = new class implements ColumnInterface {
+            public function getName(): string
+            {
+                return 'custom';
+            }
+
+            public function getField(): ?string
+            {
+                return 'custom';
+            }
+
+            public function setField(string $field): static
+            {
+                return $this;
+            }
+
+            public function setVisible(bool $visible): static
+            {
+                return $this;
+            }
+
+            public function isSearchable(): bool
+            {
+                return true;
+            }
+
+            public function isGlobalSearchable(): bool
+            {
+                return true;
+            }
+
+            public function getData(): ?string
+            {
+                return 'custom';
+            }
+
+            public function getTitle(): ?string
+            {
+                return 'Custom';
+            }
+
+            public function isNumber(): bool
+            {
+                return false;
+            }
+
+            public function isDate(): bool
+            {
+                return false;
+            }
+
+            public function getType(): ColumnType
+            {
+                return ColumnType::STRING;
+            }
+
+            public function isVisible(): bool
+            {
+                return true;
+            }
+
+            public function isOrderable(): bool
+            {
+                return true;
+            }
+
+            public function isExportable(): bool
+            {
+                return true;
+            }
+
+            public function getWidth(): ?string
+            {
+                return null;
+            }
+
+            public function getClassName(): ?string
+            {
+                return null;
+            }
+
+            public function getCellType(): ?string
+            {
+                return null;
+            }
+
+            public function getRender(): ?string
+            {
+                return null;
+            }
+
+            public function getDefaultContent(): ?string
+            {
+                return null;
+            }
+
+            public function getCustomOption(string $optionName): mixed
+            {
+                return null;
+            }
+
+            public function getCustomOptions(): array
+            {
+                return [];
+            }
+
+            public function jsonSerialize(): array
+            {
+                return ['name' => 'custom'];
+            }
+        };
+
+        $this->assertSame([$column], $resolver->filterStaticPermissions([$column]));
     }
 
     #[Test]

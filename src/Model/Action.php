@@ -11,14 +11,16 @@ final class Action implements \JsonSerializable
     private ActionType $type;
     private string $label;
     private string $className;
-    private ?string $icon                    = null;
-    private ?string $confirmationButtonLabel = null;
-    private ?array $displayCondition         = null;
-    private ?string $entityClass             = null;
-    private array $htmlAttributes            = [];
-    private string $idField                  = 'id';
-    private ?string $url                     = null;
-    private ?\Closure $urlResolver           = null;
+    private ?string $icon                        = null;
+    private ?string $confirmationButtonLabel     = null;
+    private ?array $displayCondition             = null;
+    private ?string $entityClass                 = null;
+    private array $htmlAttributes                = [];
+    private string $idField                      = 'id';
+    private ?string $url                         = null;
+    private ?\Closure $urlResolver               = null;
+    private ?string $permission                  = null;
+    private ?\Closure $permissionSubjectResolver = null;
 
     private function __construct(ActionType $type, string $label, string $className)
     {
@@ -124,6 +126,43 @@ final class Action implements \JsonSerializable
         $this->urlResolver = $url instanceof \Closure ? $url : $url(...);
 
         return $this;
+    }
+
+    /**
+     * Restrict this action with a Symfony security attribute (role, voter, expression).
+     *
+     * Without a subject resolver, the attribute is evaluated once before serialization
+     * (e.g. `ROLE_ADMIN`). With a resolver, the attribute is evaluated per row and
+     * the resolver receives the raw row passed to the rendering pipeline.
+     */
+    public function permission(string $attribute, ?callable $subjectResolver = null): self
+    {
+        $this->permission                = $attribute;
+        $this->permissionSubjectResolver = null === $subjectResolver
+            ? null
+            : ($subjectResolver instanceof \Closure ? $subjectResolver : $subjectResolver(...));
+
+        return $this;
+    }
+
+    public function getPermission(): ?string
+    {
+        return $this->permission;
+    }
+
+    public function getPermissionSubjectResolver(): ?\Closure
+    {
+        return $this->permissionSubjectResolver;
+    }
+
+    public function hasStaticPermission(): bool
+    {
+        return null !== $this->permission && null === $this->permissionSubjectResolver;
+    }
+
+    public function hasPerRowPermission(): bool
+    {
+        return null !== $this->permission && null !== $this->permissionSubjectResolver;
     }
 
     public function resolveUrl(mixed $row): ?string

@@ -89,4 +89,28 @@ final class AbstractColumnTest extends TestCase
         $this->assertSame(['highlight' => true], $column->getCustomOptions());
         $this->assertTrue($column->getCustomOption('highlight'));
     }
+
+    #[Test]
+    public function permission_setter_is_chainable_and_stores_attribute(): void
+    {
+        $column = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('salary');
+
+        $this->assertNull($column->getPermission());
+
+        $this->assertSame($column, $column->permission('ROLE_HR'));
+        $this->assertSame('ROLE_HR', $column->getPermission());
+    }
+
+    #[Test]
+    public function permission_is_not_serialized_to_client(): void
+    {
+        $column = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('salary')
+            ->permission('ROLE_HR');
+
+        $this->assertArrayNotHasKey('permission', $column->jsonSerialize());
+    }
 }

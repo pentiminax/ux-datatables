@@ -5,16 +5,23 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\PermissionAwareColumnInterface;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 
 final class ColumnResolver
 {
+    private readonly PermissionChecker $permissionChecker;
+
     public function __construct(
         private readonly ?AttributeColumnReader $attributeColumnReader = null,
         private readonly ?ColumnAutoDetectorInterface $columnAutoDetector = null,
+        ?PermissionChecker $permissionChecker = null,
     ) {
+        $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
     }
 
     /**
@@ -103,6 +110,43 @@ final class ColumnResolver
 
             $column->setEntityClass($asDataTable->entityClass);
         }
+    }
+
+    /**
+     * Filter columns whose static permission is not granted, and filter actions
+     * with static permissions inside any remaining ActionColumn.
+     *
+     * @param ColumnInterface[] $columns
+     *
+     * @return ColumnInterface[]
+     */
+    public function filterStaticPermissions(array $columns): array
+    {
+        $filtered = [];
+
+        foreach ($columns as $column) {
+            $permission = $column instanceof PermissionAwareColumnInterface ? $column->getPermission() : null;
+
+            if (null !== $permission && !$this->permissionChecker->isGranted($permission)) {
+                continue;
+            }
+
+            if ($column instanceof ActionsProvidingColumnInterface) {
+                $column->getActions()?->filterStaticPermissions($this->permissionChecker);
+            }
+
+            $filtered[] = $column;
+        }
+
+        return array_values($filtered);
+    }
+
+    /**
+     * Filter actions whose static permission is not granted. Mutates the Actions collection.
+     */
+    public function filterActionsByStaticPermissions(Actions $actions): void
+    {
+        $actions->filterStaticPermissions($this->permissionChecker);
     }
 
     /**

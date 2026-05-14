@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Model;
 
 use Pentiminax\UX\DataTables\Enum\ActionType;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 
 final class Actions implements \JsonSerializable
 {
@@ -69,6 +70,24 @@ final class Actions implements \JsonSerializable
     public function getActions(): array
     {
         return array_values($this->actions);
+    }
+
+    /**
+     * Remove actions whose static permission is not granted. Mutates in place.
+     */
+    public function filterStaticPermissions(PermissionChecker $checker): self
+    {
+        foreach ($this->actions as $key => $action) {
+            if (!$action->hasStaticPermission()) {
+                continue;
+            }
+
+            if (!$checker->isGranted((string) $action->getPermission())) {
+                unset($this->actions[$key]);
+            }
+        }
+
+        return $this;
     }
 
     public function jsonSerialize(): array

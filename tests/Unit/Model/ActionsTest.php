@@ -7,7 +7,9 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * @internal
@@ -94,5 +96,47 @@ class ActionsTest extends TestCase
 
         $this->assertSame(1, $actions->count());
         $this->assertSame('Second', $actions->getActions()[0]->jsonSerialize()['label']);
+    }
+
+    public function test_filter_static_permissions_removes_denied_actions(): void
+    {
+        $actions = new Actions();
+        $actions->add(Action::delete()->permission('ROLE_ADMIN'));
+        $actions->add(Action::edit()->permission('ROLE_EDITOR'));
+        $actions->add(Action::detail()); // no permission
+
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->method('isGranted')->willReturnMap([
+            ['ROLE_ADMIN', null, false],
+            ['ROLE_EDITOR', null, true],
+        ]);
+
+        $actions->filterStaticPermissions(new PermissionChecker($inner));
+
+        $types = array_map(static fn (Action $a) => $a->getType(), $actions->getActions());
+        $this->assertSame([ActionType::Edit, ActionType::Detail], $types);
+    }
+
+    public function test_filter_static_permissions_ignores_per_row_actions(): void
+    {
+        $actions = new Actions();
+        $actions->add(Action::delete()->permission('DELETE', static fn ($row) => $row));
+
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->expects($this->never())->method('isGranted');
+
+        $actions->filterStaticPermissions(new PermissionChecker($inner));
+
+        $this->assertSame(1, $actions->count());
+    }
+
+    public function test_filter_static_permissions_with_no_checker_is_noop(): void
+    {
+        $actions = new Actions();
+        $actions->add(Action::delete()->permission('ROLE_ADMIN'));
+
+        $actions->filterStaticPermissions(new PermissionChecker());
+
+        $this->assertSame(1, $actions->count());
     }
 }
