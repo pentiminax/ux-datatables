@@ -48,6 +48,8 @@ export interface UrlCustomOptions {
     target?: string
     displayValue?: string
     showExternalIcon?: boolean
+    defaultProtocol?: string
+    allowedProtocols?: string[]
 }
 
 export interface ImageCustomOptions {

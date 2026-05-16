@@ -20,7 +20,7 @@ UrlColumn::new('website', 'Website');
 Renders as: `<a href="https://example.com">https://example.com</a>`
 
 <Aside type="note">
-  `javascript:` and `data:` URLs are rendered as escaped plain text instead of links.
+  `javascript:`, `data:`, `vbscript:` and `file:` URLs are rendered as escaped plain text instead of links.
 </Aside>
 
 ## Symfony Route
@@ -96,6 +96,32 @@ UrlColumn::new('website', 'Website')
     ->showExternalIcon();
 ```
 
+## Protocol Options
+
+Use `setDefaultProtocol()` to prepend a protocol to values that do not already include one:
+
+```php
+UrlColumn::new('website', 'Website')
+    ->setDefaultProtocol('https');
+```
+
+With this configuration, a value like `example.com` is rendered with `href="https://example.com"` while keeping `example.com` as the displayed text.
+
+Use `allowedProtocols()` to render only specific URL protocols as links:
+
+```php
+UrlColumn::new('website', 'Website')
+    ->allowedProtocols(['http', 'https']);
+```
+
+Values with other protocols are escaped and rendered as plain text. You can combine both options:
+
+```php
+UrlColumn::new('website', 'Website')
+    ->setDefaultProtocol('https')
+    ->allowedProtocols(['https']);
+```
+
 ## API Reference
 
 <Table
@@ -107,6 +133,8 @@ UrlColumn::new('website', 'Website')
     ['`openInNewTab()`', 'Add `target="_blank"` and `rel="noopener noreferrer"`'],
     ['`setDisplayValue(string $value)`', 'Use a fixed label instead of the cell value'],
     ['`showExternalIcon(bool $show = true)`', 'Append the external-link icon after the anchor text'],
+    ['`setDefaultProtocol(string $protocol)`', 'Prepend a protocol to href values that do not already include one'],
+    ['`allowedProtocols(array $protocols)`', 'Render only URLs with the listed protocols as links'],
   ]}
 />
 
