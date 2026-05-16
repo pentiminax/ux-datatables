@@ -57,6 +57,26 @@ final class UrlColumnTest extends TestCase
     }
 
     #[Test]
+    public function it_stores_default_protocol(): void
+    {
+        $data = UrlColumn::new('website')
+            ->setDefaultProtocol('https')
+            ->jsonSerialize();
+
+        $this->assertSame('https', $data['customOptions']['defaultProtocol']);
+    }
+
+    #[Test]
+    public function it_stores_allowed_protocols(): void
+    {
+        $data = UrlColumn::new('website')
+            ->allowedProtocols(['http', 'https'])
+            ->jsonSerialize();
+
+        $this->assertSame(['http', 'https'], $data['customOptions']['allowedProtocols']);
+    }
+
+    #[Test]
     public function it_stores_external_icon_flag(): void
     {
         $data = UrlColumn::new('website')

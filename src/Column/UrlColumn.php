@@ -13,6 +13,8 @@ class UrlColumn extends AbstractColumn
     public const string OPTION_TARGET             = 'target';
     public const string OPTION_DISPLAY_VALUE      = 'displayValue';
     public const string OPTION_SHOW_EXTERNAL_ICON = 'showExternalIcon';
+    public const string OPTION_DEFAULT_PROTOCOL   = 'defaultProtocol';
+    public const string OPTION_ALLOWED_PROTOCOLS  = 'allowedProtocols';
 
     private ?string $url               = null;
     private ?\Closure $urlResolver     = null;
@@ -35,6 +37,23 @@ class UrlColumn extends AbstractColumn
     public function setDisplayValue(string $displayValue): static
     {
         $this->setCustomOption(self::OPTION_DISPLAY_VALUE, $displayValue);
+
+        return $this;
+    }
+
+    public function setDefaultProtocol(string $protocol): static
+    {
+        $this->setCustomOption(self::OPTION_DEFAULT_PROTOCOL, $protocol);
+
+        return $this;
+    }
+
+    /**
+     * @param list<string> $protocols
+     */
+    public function allowedProtocols(array $protocols): static
+    {
+        $this->setCustomOption(self::OPTION_ALLOWED_PROTOCOLS, $protocols);
 
         return $this;
     }

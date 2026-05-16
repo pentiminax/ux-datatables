@@ -18,6 +18,11 @@ describe('urlColumnRenderer', () => {
     expect(urlColumnRenderer.matches({ customOptions: { showExternalIcon: true } })).toBe(true)
   })
 
+  it('matches columns with protocol options in customOptions', () => {
+    expect(urlColumnRenderer.matches({ customOptions: { defaultProtocol: 'https' } })).toBe(true)
+    expect(urlColumnRenderer.matches({ customOptions: { allowedProtocols: ['https'] } })).toBe(true)
+  })
+
   it('does not match plain columns', () => {
     expect(urlColumnRenderer.matches({ data: 'name' })).toBe(false)
   })
@@ -81,6 +86,44 @@ describe('urlColumnRenderer', () => {
       urlColumnRenderer.configure(column)
       const html = column.render('https://example.com', 'display', {})
       expect(html).toContain('<span aria-label="external link">&#x2197;</span>')
+    })
+
+    it('prepends the default protocol when the URL has no protocol', () => {
+      const column: Record<string, any> = { customOptions: { defaultProtocol: 'https' } }
+      urlColumnRenderer.configure(column)
+      const html = column.render('example.com', 'display', {})
+      expect(html).toBe('<a href="https://example.com">example.com</a>')
+    })
+
+    it('does not prepend the default protocol to existing protocols', () => {
+      const column: Record<string, any> = { customOptions: { defaultProtocol: 'https' } }
+      urlColumnRenderer.configure(column)
+      const html = column.render('ftp://example.com/file', 'display', {})
+      expect(html).toBe('<a href="ftp://example.com/file">ftp://example.com/file</a>')
+    })
+
+    it('renders URLs with allowed protocols as links', () => {
+      const column: Record<string, any> = { customOptions: { allowedProtocols: ['http', 'https'] } }
+      urlColumnRenderer.configure(column)
+      const html = column.render('https://example.com', 'display', {})
+      expect(html).toBe('<a href="https://example.com">https://example.com</a>')
+    })
+
+    it('renders URLs with disallowed protocols as plain text', () => {
+      const column: Record<string, any> = { customOptions: { allowedProtocols: ['http', 'https'] } }
+      urlColumnRenderer.configure(column)
+      const result = column.render('ftp://example.com/file', 'display', {})
+      expect(result).not.toContain('<a')
+      expect(result).toBe('ftp://example.com/file')
+    })
+
+    it('applies the default protocol before checking allowed protocols', () => {
+      const column: Record<string, any> = {
+        customOptions: { defaultProtocol: 'https', allowedProtocols: ['https'] },
+      }
+      urlColumnRenderer.configure(column)
+      const html = column.render('example.com', 'display', {})
+      expect(html).toBe('<a href="https://example.com">example.com</a>')
     })
 
     it('escapes unsafe javascript: URLs and returns plain text', () => {
