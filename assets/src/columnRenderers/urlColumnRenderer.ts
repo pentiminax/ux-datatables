@@ -1,4 +1,9 @@
-import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js'
+import {
+    escapeHtml,
+    isAllowedUrlProtocol,
+    isUnsafeUrl,
+    withDefaultProtocol,
+} from '../functions/htmlUtils.js'
 import type { ColumnRenderer, UrlCustomOptions, UrlRowData } from './types.js'
 
 export const urlColumnRenderer: ColumnRenderer = {
@@ -9,13 +14,15 @@ export const urlColumnRenderer: ColumnRenderer = {
             true === opts.isUrl ||
             opts.target !== undefined ||
             opts.displayValue !== undefined ||
-            true === opts.showExternalIcon
+            true === opts.showExternalIcon ||
+            opts.defaultProtocol !== undefined ||
+            opts.allowedProtocols !== undefined
         )
     },
 
     configure(column: Record<string, any>): void {
-        const { target, displayValue, showExternalIcon } = (column.customOptions ??
-            {}) as UrlCustomOptions
+        const { target, displayValue, showExternalIcon, defaultProtocol, allowedProtocols } =
+            (column.customOptions ?? {}) as UrlCustomOptions
 
         column.render = (data: any, type: string, row: Record<string, any> & UrlRowData): any => {
             if (type !== 'display') {
@@ -23,14 +30,15 @@ export const urlColumnRenderer: ColumnRenderer = {
             }
 
             const key = column.data ?? column.name
-            const href =
+            const rawHref =
                 typeof key === 'string' && row.__ux_datatables_urls?.[key]
                     ? row.__ux_datatables_urls[key]
                     : typeof data === 'string'
                       ? data
                       : ''
+            const href = withDefaultProtocol(rawHref, defaultProtocol)
 
-            if (isUnsafeUrl(href)) {
+            if (isUnsafeUrl(href) || !isAllowedUrlProtocol(href, allowedProtocols)) {
                 return escapeHtml(String(data ?? ''))
             }
 

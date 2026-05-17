@@ -1,26 +1,28 @@
-import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js';
+import { escapeHtml, isAllowedUrlProtocol, isUnsafeUrl, withDefaultProtocol, } from '../functions/htmlUtils.js';
 export const urlColumnRenderer = {
     matches(column) {
         const opts = (column?.customOptions ?? {});
         return (true === opts.isUrl ||
             opts.target !== undefined ||
             opts.displayValue !== undefined ||
-            true === opts.showExternalIcon);
+            true === opts.showExternalIcon ||
+            opts.defaultProtocol !== undefined ||
+            opts.allowedProtocols !== undefined);
     },
     configure(column) {
-        const { target, displayValue, showExternalIcon } = (column.customOptions ??
-            {});
+        const { target, displayValue, showExternalIcon, defaultProtocol, allowedProtocols } = (column.customOptions ?? {});
         column.render = (data, type, row) => {
             if (type !== 'display') {
                 return data;
             }
             const key = column.data ?? column.name;
-            const href = typeof key === 'string' && row.__ux_datatables_urls?.[key]
+            const rawHref = typeof key === 'string' && row.__ux_datatables_urls?.[key]
                 ? row.__ux_datatables_urls[key]
                 : typeof data === 'string'
                     ? data
                     : '';
-            if (isUnsafeUrl(href)) {
+            const href = withDefaultProtocol(rawHref, defaultProtocol);
+            if (isUnsafeUrl(href) || !isAllowedUrlProtocol(href, allowedProtocols)) {
                 return escapeHtml(String(data ?? ''));
             }
             const escapedHref = escapeHtml(href);
