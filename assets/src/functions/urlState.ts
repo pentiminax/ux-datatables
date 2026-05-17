@@ -47,7 +47,7 @@ function clearOrderParams(params: URLSearchParams, base: string): void {
     params.forEach((_, key) => {
         if (key.startsWith(`${base}[`)) toDelete.push(key)
     })
-    toDelete.forEach((key) => params.delete(key))
+    for (const key of toDelete) params.delete(key)
 }
 
 function resolveColumnName(table: any, idx: number): string {
