@@ -16,6 +16,8 @@ class UrlColumn extends AbstractColumn
     public const string OPTION_DEFAULT_PROTOCOL   = 'defaultProtocol';
     public const string OPTION_ALLOWED_PROTOCOLS  = 'allowedProtocols';
 
+    private const array UNSAFE_PROTOCOLS = ['javascript', 'data', 'vbscript', 'file'];
+
     private ?string $url               = null;
     private ?\Closure $urlResolver     = null;
     private ?string $routeName         = null;
@@ -43,7 +45,7 @@ class UrlColumn extends AbstractColumn
 
     public function setDefaultProtocol(string $protocol): static
     {
-        $this->setCustomOption(self::OPTION_DEFAULT_PROTOCOL, $protocol);
+        $this->setCustomOption(self::OPTION_DEFAULT_PROTOCOL, $this->normalizeProtocol($protocol));
 
         return $this;
     }
@@ -53,9 +55,34 @@ class UrlColumn extends AbstractColumn
      */
     public function allowedProtocols(array $protocols): static
     {
-        $this->setCustomOption(self::OPTION_ALLOWED_PROTOCOLS, $protocols);
+        $normalized = [];
+
+        foreach ($protocols as $protocol) {
+            $normalized[] = $this->normalizeProtocol($protocol);
+        }
+
+        $this->setCustomOption(self::OPTION_ALLOWED_PROTOCOLS, array_values(array_unique($normalized)));
 
         return $this;
+    }
+
+    private function normalizeProtocol(string $protocol): string
+    {
+        $normalized = strtolower(rtrim(trim($protocol), ':'));
+
+        if ('' === $normalized) {
+            throw new \InvalidArgumentException('Protocol cannot be empty.');
+        }
+
+        if (1 !== preg_match('/^[a-z][a-z0-9+.-]*$/', $normalized)) {
+            throw new \InvalidArgumentException(\sprintf('Invalid protocol format: "%s".', $protocol));
+        }
+
+        if (\in_array($normalized, self::UNSAFE_PROTOCOLS, true)) {
+            throw new \InvalidArgumentException(\sprintf('Unsafe protocol "%s" is not allowed.', $normalized));
+        }
+
+        return $normalized;
     }
 
     public function linkToRoute(string $routeName, array|callable|null $params = null): static

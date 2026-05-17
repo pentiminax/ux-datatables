@@ -117,6 +117,13 @@ describe('urlColumnRenderer', () => {
       expect(result).toBe('ftp://example.com/file')
     })
 
+    it('renders relative and fragment hrefs as links when an allowlist is set', () => {
+      const column: Record<string, any> = { customOptions: { allowedProtocols: ['https'] } }
+      urlColumnRenderer.configure(column)
+      expect(column.render('/users/7', 'display', {})).toBe('<a href="/users/7">/users/7</a>')
+      expect(column.render('#section', 'display', {})).toBe('<a href="#section">#section</a>')
+    })
+
     it('applies the default protocol before checking allowed protocols', () => {
       const column: Record<string, any> = {
         customOptions: { defaultProtocol: 'https', allowedProtocols: ['https'] },
