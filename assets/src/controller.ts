@@ -131,9 +131,9 @@ export default class extends Controller {
 
         if (snap.search !== undefined) this.table.search(snap.search as string)
         if (snap.order !== undefined) this.table.order(snap.order as any)
-        if (snap.pageLength !== undefined) ;(this.table.page as any).len(snap.pageLength)
+        if (snap.pageLength !== undefined) this.table.page.len(snap.pageLength)
         if (snap.start !== undefined) {
-            const pageLen = (this.table.page as any).len() as number
+            const pageLen = this.table.page.len() as number
             this.table.page(Math.floor(snap.start / (pageLen || 10)))
         }
 
@@ -399,4 +399,9 @@ type DataTableWithAjax = DataTable<any> & {
     ajax?: {
         reload: (callback?: null, resetPaging?: boolean) => void
     }
+    on: (event: string, callback: (...args: any[]) => void) => DataTableWithAjax
+    search: (input: string) => DataTableWithAjax
+    order: (order: any) => DataTableWithAjax
+    page: ((page?: number) => DataTableWithAjax) & { len: (len?: number) => number }
+    draw: (resetPaging?: boolean | string) => DataTableWithAjax
 }
