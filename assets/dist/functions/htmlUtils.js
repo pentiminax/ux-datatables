@@ -44,7 +44,12 @@ export function isAllowedUrlProtocol(url, allowedProtocols) {
     if (!allowedProtocols) {
         return true;
     }
-    const protocol = getUrlProtocol(url);
+    const normalizedUrl = url.trimStart();
+    if (normalizedUrl.startsWith('#') ||
+        (normalizedUrl.startsWith('/') && !normalizedUrl.startsWith('//'))) {
+        return true;
+    }
+    const protocol = getUrlProtocol(normalizedUrl);
     if (!protocol) {
         return false;
     }

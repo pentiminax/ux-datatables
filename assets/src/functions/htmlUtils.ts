@@ -59,7 +59,18 @@ export function isAllowedUrlProtocol(url: string, allowedProtocols?: string[]): 
         return true
     }
 
-    const protocol = getUrlProtocol(url)
+    const normalizedUrl = url.trimStart()
+
+    // Same-origin links (fragments and root-relative paths) carry no protocol;
+    // protocol-relative "//host" is excluded so it stays subject to the allowlist.
+    if (
+        normalizedUrl.startsWith('#') ||
+        (normalizedUrl.startsWith('/') && !normalizedUrl.startsWith('//'))
+    ) {
+        return true
+    }
+
+    const protocol = getUrlProtocol(normalizedUrl)
     if (!protocol) {
         return false
     }
