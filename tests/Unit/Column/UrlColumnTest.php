@@ -57,6 +57,82 @@ final class UrlColumnTest extends TestCase
     }
 
     #[Test]
+    public function it_stores_default_protocol(): void
+    {
+        $data = UrlColumn::new('website')
+            ->setDefaultProtocol('https')
+            ->jsonSerialize();
+
+        $this->assertSame('https', $data['customOptions']['defaultProtocol']);
+    }
+
+    #[Test]
+    public function it_stores_allowed_protocols(): void
+    {
+        $data = UrlColumn::new('website')
+            ->allowedProtocols(['http', 'https'])
+            ->jsonSerialize();
+
+        $this->assertSame(['http', 'https'], $data['customOptions']['allowedProtocols']);
+    }
+
+    #[Test]
+    public function it_normalizes_default_protocol(): void
+    {
+        $data = UrlColumn::new('website')
+            ->setDefaultProtocol('  HTTPS:  ')
+            ->jsonSerialize();
+
+        $this->assertSame('https', $data['customOptions']['defaultProtocol']);
+    }
+
+    #[Test]
+    public function it_rejects_empty_default_protocol(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Protocol cannot be empty.');
+
+        UrlColumn::new('website')->setDefaultProtocol('   ');
+    }
+
+    #[Test]
+    public function it_rejects_default_protocol_with_invalid_format(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid protocol format: "http://".');
+
+        UrlColumn::new('website')->setDefaultProtocol('http://');
+    }
+
+    #[Test]
+    public function it_rejects_unsafe_default_protocol(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsafe protocol "javascript" is not allowed.');
+
+        UrlColumn::new('website')->setDefaultProtocol('JavaScript');
+    }
+
+    #[Test]
+    public function it_normalizes_and_deduplicates_allowed_protocols(): void
+    {
+        $data = UrlColumn::new('website')
+            ->allowedProtocols(['HTTP', 'http', ' https: '])
+            ->jsonSerialize();
+
+        $this->assertSame(['http', 'https'], $data['customOptions']['allowedProtocols']);
+    }
+
+    #[Test]
+    public function it_rejects_unsafe_allowed_protocols(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsafe protocol "data" is not allowed.');
+
+        UrlColumn::new('website')->allowedProtocols(['https', 'data']);
+    }
+
+    #[Test]
     public function it_stores_external_icon_flag(): void
     {
         $data = UrlColumn::new('website')
