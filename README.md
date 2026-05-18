@@ -34,6 +34,7 @@ use App\Entity\User;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
+use Pentiminax\UX\DataTables\Column\MoneyColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -59,6 +60,7 @@ Column variants are configured fluently after `new()`:
 TextColumn::new('name')->utf8();
 TextColumn::new('content')->html()->utf8();
 NumberColumn::new('price')->formatted();
+MoneyColumn::new('price')->currency('EUR')->storedAsCents();
 BooleanColumn::new('active')->renderAsSwitch();
 ```
 

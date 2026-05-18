@@ -36,6 +36,14 @@ export interface ChoiceCustomOptions {
     defaultBadgeVariant?: string
 }
 
+export interface MoneyCustomOptions {
+    isMoney?: boolean
+    currency?: string
+    storedAsCents?: boolean
+    decimals?: number
+    locale?: string
+}
+
 export interface EmailCustomOptions {
     isEmail?: boolean
     obfuscate?: boolean
