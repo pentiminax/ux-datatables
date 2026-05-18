@@ -131,6 +131,33 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
+    public function it_exposes_the_current_request_locale(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        $request = Request::create('/products');
+        $request->setLocale('fr_FR');
+        $container->get('request_stack')->push($request);
+
+        $table = (new DataTable('products'))->columns([
+            TextColumn::new('name'),
+        ]);
+
+        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+
+        $dom = new \DOMDocument();
+        $dom->loadHTML($rendered);
+        $tableEl = $dom->getElementsByTagName('table')->item(0);
+
+        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
+        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('fr_FR', $actual['locale']);
+    }
+
+    #[Test]
     public function it_uses_get_data_table_for_abstract_datatable(): void
     {
         $kernel = new TwigAppKernel('test', true);

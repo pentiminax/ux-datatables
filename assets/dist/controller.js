@@ -92,8 +92,7 @@ class default_1 extends Controller {
         if (snap.order !== undefined)
             this.table.order(snap.order);
         if (snap.pageLength !== undefined)
-            ;
-        this.table.page.len(snap.pageLength);
+            this.table.page.len(snap.pageLength);
         if (snap.start !== undefined) {
             const pageLen = this.table.page.len();
             this.table.page(Math.floor(snap.start / (pageLen || 10)));

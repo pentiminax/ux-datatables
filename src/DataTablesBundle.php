@@ -220,6 +220,7 @@ class DataTablesBundle extends AbstractBundle
             ->arg(1, service('datatables.column.template_column_renderer'))
             ->arg(2, service('datatables.column.action_row_data_resolver'))
             ->arg(3, service('datatables.column.resolver'))
+            ->arg(4, service('request_stack'))
             ->tag('twig.extension')
             ->private();
 
