@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
@@ -16,17 +17,18 @@ use Twig\TwigFunction;
 class DataTablesExtension extends AbstractExtension
 {
     public function __construct(
-        private StimulusHelper $stimulus,
-        private TemplateColumnRenderer $templateColumnRenderer,
-        private ActionRowDataResolver $actionRowDataResolver,
-        private ColumnResolver $columnResolver,
+        private readonly StimulusHelper $stimulus,
+        private readonly TemplateColumnRenderer $templateColumnRenderer,
+        private readonly ActionRowDataResolver $actionRowDataResolver,
+        private readonly ColumnResolver $columnResolver,
+        private readonly ?RequestStack $requestStack = null,
     ) {
     }
 
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('render_datatable', [$this, 'renderDataTable'], ['is_safe' => ['html']]),
+            new TwigFunction('render_datatable', $this->renderDataTable(...), ['is_safe' => ['html']]),
         ];
     }
 
@@ -66,13 +68,19 @@ class DataTablesExtension extends AbstractExtension
             }
         }
 
+        $view = array_merge($options, $table->getExtensions(), [
+            'dataTableClass' => $dataTableClass,
+            'editModal'      => [
+                'adapter' => $table->getEditModalAdapter(),
+            ],
+        ]);
+
+        if (null !== $locale = $this->requestStack?->getCurrentRequest()?->getLocale()) {
+            $view['locale'] = $locale;
+        }
+
         $controllers['@pentiminax/ux-datatables/datatable'] = [
-            'view' => array_merge($options, $table->getExtensions(), [
-                'dataTableClass' => $dataTableClass,
-                'editModal'      => [
-                    'adapter' => $table->getEditModalAdapter(),
-                ],
-            ]),
+            'view' => $view,
         ];
 
         $stimulusAttributes = $this->stimulus->createStimulusAttributes();
