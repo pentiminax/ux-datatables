@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Rendering;
 
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -15,6 +17,8 @@ use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -274,6 +278,150 @@ final class RenderingPreparerTest extends TestCase
         $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
 
         $this->assertNull($table->getMercureConfig());
+    }
+
+    #[Test]
+    public function it_auto_configures_ajax_for_server_side_table_without_explicit_url(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')
+            ->with(RenderingPreparer::AJAX_DATA_ROUTE)
+            ->willReturn('/datatables/ajax/data');
+
+        $registry = $this->createAjaxRegistry(['App\\DataTables\\UserDataTable' => 'app.users_datatable']);
+        $preparer = new RenderingPreparer(urlGenerator: $urlGenerator, ajaxRegistry: $registry);
+        $table    = (new DataTable('Test'))
+            ->setDataTableClass('App\\DataTables\\UserDataTable')
+            ->serverSide();
+
+        $preparer->prepare($table, null);
+
+        $ajax = $table->getOption('ajax');
+        $this->assertIsArray($ajax);
+        $this->assertSame('/datatables/ajax/data', $ajax['url']);
+        $this->assertSame('GET', $ajax['type']);
+        $this->assertSame(['table' => $registry->getToken('App\\DataTables\\UserDataTable')], $ajax['data']);
+        $this->assertStringNotContainsString('UserDataTable', $ajax['data']['table']);
+    }
+
+    #[Test]
+    public function it_does_not_auto_configure_ajax_for_client_side_table(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->expects($this->never())->method('generate');
+
+        $preparer = new RenderingPreparer(urlGenerator: $urlGenerator);
+        $table    = (new DataTable('Test'))->setDataTableClass('App\\DataTables\\UserDataTable');
+
+        $preparer->prepare($table, null);
+
+        $this->assertNull($table->getOption('ajax'));
+    }
+
+    #[Test]
+    public function it_does_not_override_manual_ajax_url(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->expects($this->never())->method('generate');
+
+        $preparer = new RenderingPreparer(
+            urlGenerator: $urlGenerator,
+            ajaxRegistry: $this->createAjaxRegistry(['App\\DataTables\\UserDataTable' => 'app.users_datatable']),
+        );
+        $table = (new DataTable('Test'))
+            ->setDataTableClass('App\\DataTables\\UserDataTable')
+            ->serverSide()
+            ->ajax('/custom-endpoint');
+
+        $preparer->prepare($table, null);
+
+        $this->assertSame('/custom-endpoint', $table->getOption('ajax')['url']);
+    }
+
+    #[Test]
+    public function it_does_not_auto_configure_ajax_when_api_platform_is_enabled(): void
+    {
+        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $urlResolver->method('resolveCollectionUrl')->willReturn('/api/users');
+
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->expects($this->never())->method('generate');
+
+        $preparer = new RenderingPreparer(urlResolver: $urlResolver, urlGenerator: $urlGenerator);
+        $table    = (new DataTable('Test'))
+            ->setDataTableClass('App\\DataTables\\UserDataTable')
+            ->serverSide();
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+
+        $this->assertSame('/api/users', $table->getOption('ajax')['url']);
+    }
+
+    #[Test]
+    public function it_does_not_auto_configure_ajax_when_url_generator_is_missing(): void
+    {
+        $preparer = new RenderingPreparer(
+            ajaxRegistry: $this->createAjaxRegistry(['App\\DataTables\\UserDataTable' => 'app.users_datatable']),
+        );
+        $table = (new DataTable('Test'))
+            ->setDataTableClass('App\\DataTables\\UserDataTable')
+            ->serverSide();
+
+        $preparer->prepare($table, null);
+
+        $this->assertNull($table->getOption('ajax'));
+    }
+
+    #[Test]
+    public function it_does_not_auto_configure_ajax_when_registry_is_missing(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->expects($this->never())->method('generate');
+
+        $preparer = new RenderingPreparer(urlGenerator: $urlGenerator);
+        $table    = (new DataTable('Test'))
+            ->setDataTableClass('App\\DataTables\\UserDataTable')
+            ->serverSide();
+
+        $preparer->prepare($table, null);
+
+        $this->assertNull($table->getOption('ajax'));
+    }
+
+    #[Test]
+    public function it_does_not_auto_configure_ajax_when_fqcn_is_missing(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->expects($this->never())->method('generate');
+
+        $preparer = new RenderingPreparer(
+            urlGenerator: $urlGenerator,
+            ajaxRegistry: $this->createAjaxRegistry(['App\\DataTables\\UserDataTable' => 'app.users_datatable']),
+        );
+        $table = (new DataTable('Test'))->serverSide();
+
+        $preparer->prepare($table, null);
+
+        $this->assertNull($table->getOption('ajax'));
+    }
+
+    private function createAjaxRegistry(array $serviceIdsByClass): AjaxDataTableRegistry
+    {
+        return new AjaxDataTableRegistry(
+            new class implements ContainerInterface {
+                public function get(string $id): mixed
+                {
+                    throw new \LogicException('The test registry should only generate tokens.');
+                }
+
+                public function has(string $id): bool
+                {
+                    return false;
+                }
+            },
+            new AjaxDataTableTokenManager('test-secret'),
+            $serviceIdsByClass,
+        );
     }
 
     #[Test]

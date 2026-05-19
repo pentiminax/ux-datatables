@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
@@ -12,6 +13,7 @@ use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Controller\AjaxDataController;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
@@ -30,7 +32,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
-
 return static function (ContainerConfigurator $container): void {
     $services = $container->services();
 
@@ -48,6 +49,10 @@ return static function (ContainerConfigurator $container): void {
         ->private();
 
     $services->alias(PermissionChecker::class, 'datatables.security.permission_checker')
+        ->private();
+
+    $services->set('datatables.ajax.token_manager', AjaxDataTableTokenManager::class)
+        ->arg(0, param('kernel.secret'))
         ->private();
 
     $services->set('datatables.column.template_column_renderer', TemplateColumnRenderer::class)
@@ -81,6 +86,11 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_delete', AjaxDeleteController::class)
         ->arg(0, service('doctrine')->nullOnInvalid())
+        ->tag('controller.service_arguments')
+        ->public();
+
+    $services->set('datatables.controller.ajax_data', AjaxDataController::class)
+        ->arg(0, service('datatables.ajax.registry'))
         ->tag('controller.service_arguments')
         ->public();
 
@@ -123,6 +133,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg(1, service(MercureConfigResolverInterface::class)->nullOnInvalid())
         ->arg(2, service(TranslatorInterface::class)->nullOnInvalid())
         ->arg(3, service(MercureHubUrlResolverInterface::class)->nullOnInvalid())
+        ->arg(4, service('router')->nullOnInvalid())
+        ->arg(5, service('datatables.ajax.registry'))
         ->private();
 
     $services->alias(RenderingPreparer::class, 'datatables.rendering.preparer')

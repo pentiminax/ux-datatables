@@ -4,21 +4,27 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Rendering;
 
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class RenderingPreparer
 {
+    public const AJAX_DATA_ROUTE = 'ux_datatables_ajax_data';
+
     public function __construct(
         private readonly ?ApiResourceCollectionUrlResolverInterface $urlResolver = null,
         private readonly ?MercureConfigResolverInterface $mercureResolver = null,
         private readonly ?TranslatorInterface $translator = null,
         private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?UrlGeneratorInterface $urlGenerator = null,
+        private readonly ?AjaxDataTableRegistry $ajaxRegistry = null,
     ) {
     }
 
@@ -31,6 +37,7 @@ final class RenderingPreparer
     public function prepareBeforeDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
     {
         $this->configureApiPlatform($table, $asDataTable);
+        $this->configureAutoAjax($table);
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
     }
@@ -61,6 +68,41 @@ final class RenderingPreparer
             && null !== $this->urlResolver
             && null !== $asDataTable
             && ($asDataTable->apiPlatform || $table->getOption('apiPlatform'));
+    }
+
+    private function configureAutoAjax(DataTable $table): void
+    {
+        if (!$this->canAutoWireAjax($table)) {
+            return;
+        }
+
+        $fqcn = $table->getDataTableClass();
+        if (null === $fqcn) {
+            return;
+        }
+
+        $token = $this->ajaxRegistry?->getToken($fqcn);
+        if (null === $token) {
+            return;
+        }
+
+        $url = $this->urlGenerator->generate(self::AJAX_DATA_ROUTE);
+
+        $table->ajaxRequestData(
+            url: $url,
+            data: ['table' => $token],
+            type: 'GET',
+        );
+    }
+
+    private function canAutoWireAjax(DataTable $table): bool
+    {
+        return $table->isServerSide()
+            && null === $table->getOption('ajax')
+            && null === $table->getOption('data')
+            && true !== $table->getOption('apiPlatform')
+            && null !== $this->urlGenerator
+            && null !== $this->ajaxRegistry;
     }
 
     private function configureMercure(DataTable $table, ?AsDataTable $asDataTable): void
