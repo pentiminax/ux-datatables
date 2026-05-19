@@ -15,12 +15,14 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoAjaxServerSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * @internal
@@ -519,6 +521,49 @@ final class DataTablesExtensionTest extends TestCase
         $payload = json_decode($table->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
 
         $this->assertSame('<span class="badge">7-active</span>', trim($payload['data'][0]['status']));
+
+        $kernel->shutdown();
+    }
+
+    #[Test]
+    public function it_dispatches_auto_ajax_for_service_managed_server_side_table_with_custom_service_id(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        $registry = $container->get('datatables.ajax.registry');
+        $token    = $registry->getToken(AutoAjaxServerSideDataTable::class);
+
+        $this->assertIsString($token);
+        $this->assertStringNotContainsString('AutoAjaxServerSideDataTable', $token);
+
+        $controller = $container->get('datatables.controller.ajax_data');
+        $response   = $controller(Request::create('/datatables/ajax/data', 'GET', [
+            'table'   => $token,
+            'draw'    => 1,
+            'start'   => 0,
+            'length'  => 10,
+            'search'  => ['value' => '', 'regex' => 'false'],
+            'columns' => [
+                ['data' => 'id', 'name' => 'id', 'searchable' => 'true', 'orderable' => 'true'],
+                ['data' => 'title', 'name' => 'title', 'searchable' => 'true', 'orderable' => 'true'],
+            ],
+        ]));
+
+        $payload = json_decode($response->getContent(), true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(1, $payload['draw']);
+        $this->assertSame('Generated endpoint', $payload['data'][0]['title']);
+
+        try {
+            $controller(Request::create('/datatables/ajax/data', 'GET', [
+                'table' => $token,
+            ]));
+            $this->fail('Expected invalid DataTables payload to be rejected.');
+        } catch (BadRequestHttpException) {
+            $this->addToAssertionCount(1);
+        }
 
         $kernel->shutdown();
     }

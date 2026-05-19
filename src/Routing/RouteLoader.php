@@ -14,6 +14,12 @@ final class RouteLoader implements RouteLoaderInterface
     {
         $routes = new RouteCollection();
 
+        $routes->add('ux_datatables_ajax_data', new Route(
+            path: '/datatables/ajax/data',
+            defaults: ['_controller' => 'datatables.controller.ajax_data'],
+            methods: ['GET'],
+        ));
+
         $routes->add('ux_datatables_ajax_edit', new Route(
             path: '/datatables/ajax/edit',
             defaults: ['_controller' => 'datatables.controller.ajax_edit'],

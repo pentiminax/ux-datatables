@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
 use Pentiminax\UX\DataTables\DataTablesBundle;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoAjaxServerSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\ServerSideTemplateDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -56,6 +57,11 @@ class TwigAppKernel extends Kernel
 
             $container
                 ->register('test.datatables.server_side_template', ServerSideTemplateDataTable::class)
+                ->setAutoconfigured(true)
+                ->setPublic(true);
+
+            $container
+                ->register('test.datatables.auto_ajax_server_side', AutoAjaxServerSideDataTable::class)
                 ->setAutoconfigured(true)
                 ->setPublic(true);
         });

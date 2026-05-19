@@ -31,6 +31,8 @@ class DataTable
 
     private ?string $editModalAdapter = null;
 
+    private ?string $dataTableClass = null;
+
     public function __construct(
         private readonly string $id,
         array $options = [],
@@ -408,6 +410,22 @@ class DataTable
     }
 
     /**
+     * Load data via Ajax with extra request data merged into every call.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function ajaxRequestData(string $url, array $data, string $type = 'GET'): static
+    {
+        $this->options->set('ajax', [
+            'type' => $type,
+            'url'  => $url,
+            'data' => $data,
+        ]);
+
+        return $this;
+    }
+
+    /**
      * Data to use as the display data for the table.
      */
     public function data(array $data): static
@@ -556,6 +574,18 @@ class DataTable
     public function isServerSide(): bool
     {
         return $this->options->get('serverSide') ?? false;
+    }
+
+    public function setDataTableClass(string $fqcn): static
+    {
+        $this->dataTableClass = $fqcn;
+
+        return $this;
+    }
+
+    public function getDataTableClass(): ?string
+    {
+        return $this->dataTableClass;
     }
 
     private function addButtonsToLayout(array &$options): void
