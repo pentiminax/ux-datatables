@@ -74,6 +74,8 @@ abstract class AbstractDataTable
             new DataTable($this->getClassName())
         );
 
+        $this->table->setDataTableClass(static::class);
+
         $this->columns = iterator_to_array($this->configureColumns());
 
         $columnResolver = $this->infrastructure()->columnResolver();

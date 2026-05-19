@@ -103,18 +103,45 @@ final class UsersDataTable extends AbstractDataTable
 
 ## Using in a Controller
 
+For server-side tables without a custom Ajax URL, the page controller only needs to render the table.
+UX DataTables adds the bundle Ajax endpoint during rendering and handles DataTables requests through
+that endpoint. The generated Ajax request uses an opaque table token so the PHP DataTable class name
+is not exposed in the browser URL or payload:
+
+```php
+use App\DataTables\UsersDataTable;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+class UsersController extends AbstractController
+{
+    #[Route('/users', name: 'app_users')]
+    public function index(UsersDataTable $table): Response
+    {
+        return $this->render('users/index.html.twig', [
+            'table' => $table,
+        ]);
+    }
+}
+```
+
+When you configure the table to use the same route as its Ajax endpoint, handle the request manually:
+
 ```php
 use App\DataTables\UsersDataTable;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 
 class UsersController extends AbstractController
 {
     #[Route('/users', name: 'app_users')]
     public function index(UsersDataTable $table, Request $request): Response
     {
-        // Handle Ajax requests for server-side processing
+        // Needed only when this controller is also the configured Ajax endpoint.
         $table->handleRequest($request);
 
         if ($table->isRequestHandled()) {
@@ -191,7 +218,6 @@ final class UsersDataTable extends AbstractDataTable
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table
-            ->ajax(url: '/users')
             ->pageLength(25)
             ->ordering(handler: true, indicators: true)
             ->searching()
@@ -205,6 +231,8 @@ final class UsersDataTable extends AbstractDataTable
     }
 }
 ```
+
+Add `->ajax(url: '/users')` only when you want to override the automatic bundle endpoint.
 
 ### Extensions
 
