@@ -24,7 +24,8 @@ function clearOrderParams(params, base) {
         if (key.startsWith(`${base}[`))
             toDelete.push(key);
     });
-    toDelete.forEach((key) => params.delete(key));
+    for (const key of toDelete)
+        params.delete(key);
 }
 function resolveColumnName(table, idx) {
     try {
