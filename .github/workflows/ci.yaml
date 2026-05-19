@@ -41,7 +41,7 @@ jobs:
 
   js:
     runs-on: ubuntu-latest
-    name: JS / TypeScript
+    name: JS
     defaults:
       run:
         working-directory: assets
