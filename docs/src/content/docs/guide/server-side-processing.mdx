@@ -9,6 +9,38 @@ Move filtering, ordering, and paging to the backend for large datasets.
 
 ## Minimal Setup
 
+When a reusable `AbstractDataTable` enables server-side processing and does not define its own
+Ajax source, UX DataTables wires the bundle Ajax endpoint automatically:
+
+```php
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+protected function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->serverSide()
+        ->processing();
+}
+```
+
+The rendered table will call the built-in `ux_datatables_ajax_data` route. The request includes an
+opaque table token, not the PHP class name, and the bundle resolves the matching tagged
+`AbstractDataTable` service before calling `handleRequest()` internally.
+
+Make sure the bundle routes are imported once in your app:
+
+```php
+// config/routes/ux_datatables.php
+use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
+
+return static function (RoutingConfigurator $routes): void {
+    $routes->import('@DataTablesBundle/config/routes.php');
+};
+```
+
+Use an explicit `ajax()` URL when the endpoint is not an `AbstractDataTable` service, when you want a
+custom route, or when you are using a plain `DataTable` instance:
+
 ```php
 use Pentiminax\UX\DataTables\Model\DataTable;
 
@@ -25,8 +57,10 @@ With the current bundle defaults, `ajax()` configures a `GET` request. DataTable
 server-side parameters such as `draw`, `start`, `length`, `search`, and `order` to that URL,
 and `DataTableRequest::fromRequest()` reads them from the query string.
 
-At controller level, do not rely on `$request->isXmlHttpRequest()` to detect a DataTables
-request. The supported flow is:
+With automatic Ajax wiring, the page controller only renders the table. Manual request handling is
+still useful when your table posts back to the same route or when you configured a custom Ajax URL.
+In that case, do not rely on `$request->isXmlHttpRequest()` to detect a DataTables request. The
+supported flow is:
 
 1. Call `handleRequest($request)`
 2. Check `isRequestHandled()`
@@ -63,7 +97,23 @@ Use this DTO when you need direct access to paging, ordering, or search values. 
 `AbstractDataTable` in a controller, the usual entry point is still `handleRequest()` followed by
 `isRequestHandled()`.
 
-## Typical Controller With AbstractDataTable
+## Typical Controller With Automatic Ajax
+
+```php
+use App\DataTables\ProductsDataTable;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+#[Route('/products', name: 'app_products')]
+public function index(ProductsDataTable $table): Response
+{
+    return $this->render('product/index.html.twig', [
+        'table' => $table
+    ]);
+}
+```
+
+## Manual Same-Route Handling
 
 ```php
 use App\DataTables\ProductsDataTable;
@@ -74,6 +124,7 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/products', name: 'app_products')]
 public function index(ProductsDataTable $table, Request $request): Response
 {
+    // Needed only when the table Ajax URL points to this route.
     $table->handleRequest($request);
 
     if ($table->isRequestHandled()) {
@@ -89,6 +140,7 @@ public function index(ProductsDataTable $table, Request $request): Response
 ## Best Practices
 
 - Use `isRequestHandled()` instead of `$request->isXmlHttpRequest()`.
+- Let `AbstractDataTable` auto-wire Ajax when the default bundle route is enough.
 - Always whitelist sortable/searchable fields in your query layer.
 - Keep backend response time predictable (indexes, query limits).
 - Prefer `AbstractDataTable` for reusable query behavior.
