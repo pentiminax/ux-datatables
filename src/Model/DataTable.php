@@ -184,7 +184,7 @@ class DataTable
     /**
      * Feature control deferred rendering for additional speed of initialisation.
      */
-    public function deferRender(bool $deferRender): static
+    public function deferRender(bool $deferRender = true): static
     {
         $this->options->set('deferRender', $deferRender);
 
