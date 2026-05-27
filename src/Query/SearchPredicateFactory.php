@@ -31,7 +31,11 @@ final class SearchPredicateFactory
             return SearchConditionBuilder::numeric($qb, $alias, $field, $value, $paramName);
         }
 
-        if (!RelationFieldResolver::supportsSearchFiltering($qb, $field)) {
+        if ($column->isDate()) {
+            return null;
+        }
+
+        if (!RelationFieldResolver::supportsTextSearch($qb, $field)) {
             return null;
         }
 

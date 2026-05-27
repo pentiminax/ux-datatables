@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Mapping\FieldMapping;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
@@ -137,6 +138,58 @@ final class RelationFieldResolverTest extends TestCase
         $qb->method('getRootEntities')->willReturn([]);
 
         $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'client'));
+    }
+
+    #[Test]
+    public function it_supports_text_search_for_string_field(): void
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->with('email')->willReturn(false);
+        $metadata->method('hasField')->with('email')->willReturn(true);
+        $metadata->method('getFieldMapping')->with('email')->willReturn(new FieldMapping('string', 'email', 'email'));
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->with('App\\Entity\\User')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\User']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        $this->assertTrue(RelationFieldResolver::supportsTextSearch($qb, 'email'));
+    }
+
+    #[Test]
+    public function it_does_not_support_text_search_for_boolean_field(): void
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->with('active')->willReturn(false);
+        $metadata->method('hasField')->with('active')->willReturn(true);
+        $metadata->method('getFieldMapping')->with('active')->willReturn(new FieldMapping('boolean', 'active', 'active'));
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->with('App\\Entity\\User')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\User']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'active'));
+    }
+
+    #[Test]
+    public function it_does_not_support_text_search_for_association_field(): void
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->with('client')->willReturn(true);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'client'));
     }
 
     #[Test]

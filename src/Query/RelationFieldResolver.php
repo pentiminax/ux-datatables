@@ -16,6 +16,30 @@ use Doctrine\ORM\QueryBuilder;
 final class RelationFieldResolver
 {
     /**
+     * Doctrine field types that cannot be used with SQL LIKE without an explicit cast.
+     *
+     * @var list<string>
+     */
+    private const array NON_TEXT_SEARCHABLE_TYPES = [
+        'bigint',
+        'binary',
+        'blob',
+        'boolean',
+        'date',
+        'date_immutable',
+        'datetime',
+        'datetime_immutable',
+        'datetimetz',
+        'datetimetz_immutable',
+        'decimal',
+        'float',
+        'integer',
+        'json',
+        'smallint',
+        'time',
+        'time_immutable',
+    ];
+    /**
      * Resolve a field path into a DQL expression, adding LEFT JOINs as needed.
      *
      * Examples:
@@ -66,6 +90,60 @@ final class RelationFieldResolver
         }
 
         return !self::isRootAssociationField($qb, $fieldPath);
+    }
+
+    /**
+     * Returns whether a field path supports SQL LIKE text search.
+     *
+     * Non-string Doctrine field types (boolean, integer, datetime, etc.) are rejected
+     * because operators like LIKE are not valid on those columns in strict SQL engines
+     * such as PostgreSQL.
+     */
+    public static function supportsTextSearch(QueryBuilder $qb, string $fieldPath): bool
+    {
+        if (!self::supportsSearchFiltering($qb, $fieldPath)) {
+            return false;
+        }
+
+        $fieldType = self::resolveFieldType($qb, $fieldPath);
+
+        return null === $fieldType || self::isTextSearchableFieldType($fieldType);
+    }
+
+    private static function isTextSearchableFieldType(string $type): bool
+    {
+        return !\in_array($type, self::NON_TEXT_SEARCHABLE_TYPES, true);
+    }
+
+    private static function resolveFieldType(QueryBuilder $qb, string $fieldPath): ?string
+    {
+        try {
+            $rootEntities = $qb->getRootEntities();
+            if ([] === $rootEntities) {
+                return null;
+            }
+
+            $em       = $qb->getEntityManager();
+            $metadata = $em->getClassMetadata($rootEntities[0]);
+            $segments = explode('.', $fieldPath);
+            $field    = array_pop($segments);
+
+            foreach ($segments as $segment) {
+                if (!$metadata->hasAssociation($segment)) {
+                    return null;
+                }
+
+                $metadata = $em->getClassMetadata($metadata->getAssociationTargetClass($segment));
+            }
+
+            if (!$metadata->hasField($field)) {
+                return null;
+            }
+
+            return $metadata->getFieldMapping($field)->type;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private static function isRootAssociationField(QueryBuilder $qb, string $fieldPath): bool
