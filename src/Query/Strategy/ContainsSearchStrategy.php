@@ -8,6 +8,7 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Query\SearchConditionBuilder;
 
 /**
@@ -34,8 +35,15 @@ final class ContainsSearchStrategy implements SearchStrategyInterface
                 return;
             }
             $qb->andWhere(SearchConditionBuilder::numeric($qb, $alias, $column->getField(), $search->value, $paramName));
+        } elseif ($column->isDate()) {
+            return;
         } else {
-            $qb->andWhere(SearchConditionBuilder::text($qb, $alias, $column->getField(), $search->value, $paramName));
+            $field = $column->getField();
+            if (null === $field || !RelationFieldResolver::supportsTextSearch($qb, $field)) {
+                return;
+            }
+
+            $qb->andWhere(SearchConditionBuilder::text($qb, $alias, $field, $search->value, $paramName));
         }
     }
 

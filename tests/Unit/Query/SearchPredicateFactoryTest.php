@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Mapping\FieldMapping;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -75,6 +76,29 @@ final class SearchPredicateFactoryTest extends TestCase
 
         $column = NumberColumn::new('id', 'ID')->setField('id');
         $result = SearchPredicateFactory::build($qb, $column, 'e', 'id', 'abc', 'p_0');
+
+        $this->assertNull($result);
+    }
+
+    #[Test]
+    public function it_returns_null_for_non_text_field(): void
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->with('active')->willReturn(false);
+        $metadata->method('hasField')->with('active')->willReturn(true);
+        $metadata->method('getFieldMapping')->with('active')->willReturn(new FieldMapping('boolean', 'active', 'active'));
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->with('App\\Entity\\User')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\User']);
+        $qb->method('getEntityManager')->willReturn($em);
+        $qb->expects($this->never())->method('setParameter');
+
+        $column = TextColumn::new('active', 'Active')->setField('active');
+        $result = SearchPredicateFactory::build($qb, $column, 'e', 'active', 'true', 'p_0');
 
         $this->assertNull($result);
     }
