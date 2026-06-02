@@ -69,6 +69,7 @@ export class ApiPlatformAdapter {
         const originalData = ajaxConfig.data;
         const originalDataFilter = ajaxConfig.dataFilter;
         payload.serverSide = true;
+        payload.columns = this.withDefaultColumnContent(payload.columns);
         let draw = 0;
         ajaxConfig.data = (params) => {
             const resolvedParams = this.resolveDataTableParams(params, originalData);
@@ -84,6 +85,20 @@ export class ApiPlatformAdapter {
             const response = this.buildResponse(parsedPayload, draw);
             return JSON.stringify(response);
         };
+    }
+    withDefaultColumnContent(columns) {
+        if (!Array.isArray(columns)) {
+            return columns;
+        }
+        return columns.map((column) => {
+            if (!isRecord(column) || typeof column.defaultContent === 'string') {
+                return column;
+            }
+            return {
+                ...column,
+                defaultContent: '',
+            };
+        });
     }
     parseResponsePayload(rawData) {
         if (isRecord(rawData)) {
