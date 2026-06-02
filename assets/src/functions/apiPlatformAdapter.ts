@@ -23,6 +23,7 @@ interface DataTableServerSideParams {
 
 export interface ColumnConfig {
     data?: string | null
+    defaultContent?: string
     field?: string | null
     name: string
 }
@@ -135,6 +136,7 @@ export class ApiPlatformAdapter {
         const originalDataFilter = ajaxConfig.dataFilter
 
         payload.serverSide = true
+        payload.columns = this.withDefaultColumnContent(payload.columns)
 
         let draw = 0
 
@@ -158,6 +160,23 @@ export class ApiPlatformAdapter {
 
             return JSON.stringify(response)
         }
+    }
+
+    withDefaultColumnContent(columns: unknown): unknown {
+        if (!Array.isArray(columns)) {
+            return columns
+        }
+
+        return columns.map((column: unknown): unknown => {
+            if (!isRecord(column) || typeof column.defaultContent === 'string') {
+                return column
+            }
+
+            return {
+                ...column,
+                defaultContent: '',
+            }
+        })
     }
 
     parseResponsePayload(rawData: unknown): HydraCollectionResponse | null {

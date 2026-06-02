@@ -125,5 +125,43 @@ describe('ApiPlatformAdapter', () => {
                 data: [{id: 1, createdAt: '2025-01-31'}],
             });
         });
+
+        it('adds an empty defaultContent fallback for missing or nullable API fields', () => {
+            const payload: Record<string, any> = {
+                columns: [
+                    {name: 'avatar', data: 'avatar', field: 'avatar'},
+                    {
+                        name: 'lastLoginAt',
+                        data: 'lastLoginAt',
+                        field: 'lastLoginAt',
+                        defaultContent: 'Never',
+                    },
+                ],
+                serverSide: false,
+                ajax: {
+                    type: 'GET',
+                    url: '/api/users',
+                },
+            };
+
+            new ApiPlatformAdapter(payload.columns).configure(payload);
+
+            expect(payload.columns).toEqual([
+                {name: 'avatar', data: 'avatar', field: 'avatar', defaultContent: ''},
+                {
+                    name: 'lastLoginAt',
+                    data: 'lastLoginAt',
+                    field: 'lastLoginAt',
+                    defaultContent: 'Never',
+                },
+            ]);
+
+            const response = JSON.parse(payload.ajax.dataFilter(JSON.stringify({
+                'hydra:member': [{id: 1, avatar: null}, {id: 2}],
+                'hydra:totalItems': 2,
+            }), 'json'));
+
+            expect(response.data).toEqual([{id: 1, avatar: null}, {id: 2}]);
+        });
     });
 });
