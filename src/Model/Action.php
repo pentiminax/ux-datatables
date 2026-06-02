@@ -113,6 +113,11 @@ final class Action implements \JsonSerializable
         return $this;
     }
 
+    public function getIdField(): string
+    {
+        return $this->idField;
+    }
+
     public function linkToUrl(string|callable $url): self
     {
         if (\is_string($url)) {

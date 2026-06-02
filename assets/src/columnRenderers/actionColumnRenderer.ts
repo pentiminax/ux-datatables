@@ -28,8 +28,8 @@ export const actionColumnRenderer: ColumnRenderer = {
                     return row[field] === value
                 })
                 .map((action) => {
-                    const idField = action.idField ?? 'id'
-                    const escapedId = escapeHtml(String(row[idField] ?? ''))
+                    const id = resolveActionId(action, row as ActionRowData)
+                    const escapedId = escapeHtml(String(id ?? ''))
                     const escapedEntity = escapeHtml(action.entityClass ?? '')
                     const escapedLabel = escapeHtml(action.label)
                     const escapedClassName = escapeHtml(action.className)
@@ -89,6 +89,27 @@ export const actionColumnRenderer: ColumnRenderer = {
                 .join(' ')
         }
     },
+}
+
+function resolveActionId(action: ActionConfig, row: ActionRowData): string | number | null {
+    const idField = action.idField ?? 'id'
+    const rowId = (row as Record<string, unknown>)[idField]
+
+    if (isUsableActionId(rowId)) {
+        return rowId
+    }
+
+    const resolvedId = row.__ux_datatables_actions?.[action.type]?.id
+
+    return isUsableActionId(resolvedId) ? resolvedId : null
+}
+
+function isUsableActionId(value: unknown): value is string | number {
+    if (typeof value === 'number') {
+        return Number.isFinite(value)
+    }
+
+    return typeof value === 'string' && value.trim().length > 0
 }
 
 function resolveActionUrl(action: ActionConfig, row: ActionRowData): string | null {

@@ -20,8 +20,8 @@ export const actionColumnRenderer = {
                 return row[field] === value;
             })
                 .map((action) => {
-                const idField = action.idField ?? 'id';
-                const escapedId = escapeHtml(String(row[idField] ?? ''));
+                const id = resolveActionId(action, row);
+                const escapedId = escapeHtml(String(id ?? ''));
                 const escapedEntity = escapeHtml(action.entityClass ?? '');
                 const escapedLabel = escapeHtml(action.label);
                 const escapedClassName = escapeHtml(action.className);
@@ -68,6 +68,21 @@ export const actionColumnRenderer = {
         };
     },
 };
+function resolveActionId(action, row) {
+    const idField = action.idField ?? 'id';
+    const rowId = row[idField];
+    if (isUsableActionId(rowId)) {
+        return rowId;
+    }
+    const resolvedId = row.__ux_datatables_actions?.[action.type]?.id;
+    return isUsableActionId(resolvedId) ? resolvedId : null;
+}
+function isUsableActionId(value) {
+    if (typeof value === 'number') {
+        return Number.isFinite(value);
+    }
+    return typeof value === 'string' && value.trim().length > 0;
+}
 function resolveActionUrl(action, row) {
     const resolvedUrl = row.__ux_datatables_actions?.[action.type]?.url;
     if (typeof resolvedUrl === 'string' && resolvedUrl.trim().length > 0) {
