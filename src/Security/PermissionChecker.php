@@ -15,8 +15,9 @@ use Symfony\Component\Security\Core\Exception\AuthenticationCredentialsNotFoundE
  */
 final class PermissionChecker
 {
-    public function __construct(private readonly ?AuthorizationCheckerInterface $checker = null)
-    {
+    public function __construct(
+        private readonly ?AuthorizationCheckerInterface $checker = null
+    ) {
     }
 
     public function isGranted(string $attribute, mixed $subject = null): bool
