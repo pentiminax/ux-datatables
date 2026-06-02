@@ -174,6 +174,87 @@ describe('actionColumnRenderer', () => {
       expect(html).toContain('href="/books/42"')
     })
 
+    it('renders button id from row-resolved action metadata when row id is missing', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'EDIT',
+            label: 'Edit',
+            className: 'btn btn-warning',
+            entityClass: 'App\\Entity\\User',
+            idField: 'id',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', {
+        __ux_datatables_actions: {
+          EDIT: {
+            id: 42,
+          },
+        },
+      })
+
+      expect(html).toContain('data-action-type="EDIT"')
+      expect(html).toContain('data-id="42"')
+    })
+
+    it('prefers row id over row-resolved action metadata', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'EDIT',
+            label: 'Edit',
+            className: 'btn btn-warning',
+            entityClass: 'App\\Entity\\User',
+            idField: 'id',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', {
+        id: 7,
+        __ux_datatables_actions: {
+          EDIT: {
+            id: 42,
+          },
+        },
+      })
+
+      expect(html).toContain('data-id="7"')
+      expect(html).not.toContain('data-id="42"')
+    })
+
+    it('escapes button id resolved from action metadata', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'EDIT',
+            label: 'Edit',
+            className: 'btn btn-warning',
+            entityClass: 'App\\Entity\\User',
+            idField: 'id',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', {
+        __ux_datatables_actions: {
+          EDIT: {
+            id: 'abc"<script>',
+          },
+        },
+      })
+
+      expect(html).toContain('data-id="abc&quot;&lt;script&gt;"')
+    })
+
     it('hides detail action when url is missing', () => {
       const column: Record<string, any> = {
         actions: [

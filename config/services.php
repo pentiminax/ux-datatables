@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
+use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
@@ -27,11 +27,13 @@ use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
+
 return static function (ContainerConfigurator $container): void {
     $services = $container->services();
 
@@ -61,6 +63,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.column.action_row_data_resolver', ActionRowDataResolver::class)
         ->arg(0, service('datatables.security.permission_checker'))
+        ->arg(1, service('property_accessor')->nullOnInvalid())
         ->private();
 
     $services->alias(TemplateColumnRenderer::class, 'datatables.column.template_column_renderer')
@@ -119,7 +122,7 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(ColumnResolver::class, 'datatables.column.resolver')
         ->private();
 
-    if (interface_exists(\Symfony\Component\Routing\Generator\UrlGeneratorInterface::class)) {
+    if (interface_exists(Symfony\Component\Routing\Generator\UrlGeneratorInterface::class)) {
         $services->set('datatables.column.url_column_data_resolver', UrlColumnDataResolver::class)
             ->arg(0, service('router')->nullOnInvalid())
             ->private();
@@ -129,7 +132,7 @@ return static function (ContainerConfigurator $container): void {
     }
 
     $services->set('datatables.rendering.preparer', RenderingPreparer::class)
-        ->arg(0, service(\Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface::class)->nullOnInvalid())
+        ->arg(0, service(Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface::class)->nullOnInvalid())
         ->arg(1, service(MercureConfigResolverInterface::class)->nullOnInvalid())
         ->arg(2, service(TranslatorInterface::class)->nullOnInvalid())
         ->arg(3, service(MercureHubUrlResolverInterface::class)->nullOnInvalid())

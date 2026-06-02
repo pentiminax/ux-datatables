@@ -53,5 +53,6 @@ class ActionEditTest extends TestCase
         $this->assertSame('bi bi-pencil', $json['icon']);
         $this->assertSame('App\\Entity\\Product', $json['entityClass']);
         $this->assertSame('uuid', $json['idField']);
+        $this->assertSame('uuid', $action->getIdField());
     }
 }

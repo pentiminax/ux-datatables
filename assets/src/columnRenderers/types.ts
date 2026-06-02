@@ -85,6 +85,7 @@ export interface ActionConfig {
 }
 
 export interface ActionRowConfig {
+    id?: string | number
     url?: string
 }
 
