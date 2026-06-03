@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
@@ -104,6 +105,66 @@ final class RenderingPreparerTest extends TestCase
         $ajax = $table->getOption('ajax');
         $this->assertIsArray($ajax);
         $this->assertSame('/api/products', $ajax['url']);
+    }
+
+    #[Test]
+    public function it_configures_api_platform_template_rendering_for_template_columns(): void
+    {
+        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $urlResolver->method('resolveCollectionUrl')
+            ->with(\stdClass::class)
+            ->willReturn('/api/users');
+
+        $registry = $this->createAjaxRegistry(['App\\DataTables\\UserDataTable' => 'app.users_datatable']);
+
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->expects($this->once())
+            ->method('generate')
+            ->with('ux_datatables_ajax_templates')
+            ->willReturn('/datatables/ajax/templates');
+
+        $preparer = new RenderingPreparer(
+            urlResolver: $urlResolver,
+            urlGenerator: $urlGenerator,
+            ajaxRegistry: $registry,
+        );
+        $table = (new DataTable('Test'))
+            ->setDataTableClass('App\\DataTables\\UserDataTable')
+            ->columns([
+                TemplateColumn::new('avatar', 'Avatar')
+                    ->setTemplate('user.html.twig'),
+                TextColumn::new('email', 'Email'),
+            ]);
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+
+        $this->assertSame([
+            'url'   => '/datatables/ajax/templates',
+            'table' => $registry->getToken('App\\DataTables\\UserDataTable'),
+        ], $table->getOption('apiPlatformTemplateRendering'));
+    }
+
+    #[Test]
+    public function it_skips_api_platform_template_rendering_without_template_columns(): void
+    {
+        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $urlResolver->method('resolveCollectionUrl')->willReturn('/api/users');
+
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->expects($this->never())->method('generate');
+
+        $preparer = new RenderingPreparer(
+            urlResolver: $urlResolver,
+            urlGenerator: $urlGenerator,
+            ajaxRegistry: $this->createAjaxRegistry(['App\\DataTables\\UserDataTable' => 'app.users_datatable']),
+        );
+        $table = (new DataTable('Test'))
+            ->setDataTableClass('App\\DataTables\\UserDataTable')
+            ->columns([TextColumn::new('email', 'Email')]);
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+
+        $this->assertNull($table->getOption('apiPlatformTemplateRendering'));
     }
 
     #[Test]

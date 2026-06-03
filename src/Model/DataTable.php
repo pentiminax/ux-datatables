@@ -335,6 +335,16 @@ class DataTable
         return $this;
     }
 
+    public function apiPlatformTemplateRendering(string $url, string $tableToken): static
+    {
+        $this->options->set('apiPlatformTemplateRendering', [
+            'url'   => $url,
+            'table' => $tableToken,
+        ]);
+
+        return $this;
+    }
+
     /**
      * Enable Mercure SSE real-time updates for this DataTable.
      * Requires symfony/mercure-bundle to be installed. The hub URL is resolved

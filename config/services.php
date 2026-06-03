@@ -16,6 +16,7 @@ use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxDataController;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
+use Pentiminax\UX\DataTables\Controller\AjaxTemplateRenderController;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
@@ -94,6 +95,13 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_data', AjaxDataController::class)
         ->arg(0, service('datatables.ajax.registry'))
+        ->tag('controller.service_arguments')
+        ->public();
+
+    $services->set('datatables.controller.ajax_templates', AjaxTemplateRenderController::class)
+        ->arg(0, service('datatables.ajax.registry'))
+        ->arg(1, service('datatables.runtime.factory'))
+        ->arg(2, service('doctrine')->nullOnInvalid())
         ->tag('controller.service_arguments')
         ->public();
 

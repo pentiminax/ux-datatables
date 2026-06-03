@@ -30,6 +30,18 @@ final class RouteLoaderTest extends TestCase
     }
 
     #[Test]
+    public function it_loads_ajax_template_render_route(): void
+    {
+        $routes = (new RouteLoader())->loadRoutes();
+
+        $route = $routes->get('ux_datatables_ajax_templates');
+        $this->assertNotNull($route);
+        $this->assertSame('/datatables/ajax/templates', $route->getPath());
+        $this->assertSame('datatables.controller.ajax_templates', $route->getDefault('_controller'));
+        $this->assertSame(['POST'], $route->getMethods());
+    }
+
+    #[Test]
     public function it_loads_ajax_edit_form_routes(): void
     {
         $routes = (new RouteLoader())->loadRoutes();
