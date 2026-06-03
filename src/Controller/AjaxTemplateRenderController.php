@@ -24,16 +24,17 @@ final class AjaxTemplateRenderController
 
     public function __invoke(Request $request): JsonResponse
     {
-        $payload = $request->getPayload()->all();
-        $token   = $payload['table'] ?? null;
-        $rows    = $payload['rows']  ?? null;
+        $payload = $request->getPayload();
+        $token   = $payload->getString('table');
 
-        if (!\is_string($token) || '' === $token) {
+        if ('' === $token) {
             throw new NotFoundHttpException('DataTable not found.');
         }
 
-        if (!\is_array($rows)) {
-            throw new BadRequestHttpException('Rows must be an array.');
+        $rows    = $payload->all()['rows'] ?? [];
+
+        if ([] === $rows) {
+            throw new BadRequestHttpException('No rows provided.');
         }
 
         $table = $this->registry->get($token);
