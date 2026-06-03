@@ -39,6 +39,7 @@ final class RelationFieldResolver
         'time',
         'time_immutable',
     ];
+
     /**
      * Resolve a field path into a DQL expression, adding LEFT JOINs as needed.
      *
