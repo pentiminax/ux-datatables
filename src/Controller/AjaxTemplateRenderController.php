@@ -31,16 +31,16 @@ final class AjaxTemplateRenderController
             throw new NotFoundHttpException('DataTable not found.');
         }
 
-        $rows = $payload->all()['rows'] ?? [];
-
-        if ([] === $rows) {
-            throw new BadRequestHttpException('No rows provided.');
-        }
-
         $table = $this->registry->get($token);
 
         if (null === $table) {
             throw new NotFoundHttpException('DataTable not found.');
+        }
+
+        $rows = $payload->all()['rows'] ?? [];
+
+        if ([] === $rows) {
+            throw new BadRequestHttpException('No rows provided.');
         }
 
         return new JsonResponse([

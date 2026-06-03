@@ -19,6 +19,7 @@ interface DataTableServerSideParams {
     length?: number
     order?: DataTableServerSideOrder[]
     columns?: DataTableServerSideColumn[]
+    search?: DataTableServerSideSearch
 }
 
 export interface ColumnConfig {
@@ -89,6 +90,11 @@ export class ApiPlatformAdapter {
 
         result.page = String(Math.floor(start / length) + 1)
         result.itemsPerPage = String(length)
+
+        const globalSearchValue = params.search?.value
+        if (typeof globalSearchValue === 'string' && globalSearchValue.trim() !== '') {
+            result.q = globalSearchValue.trim()
+        }
 
         for (const order of params.order ?? []) {
             const columnConfig = this.columns[order.column]

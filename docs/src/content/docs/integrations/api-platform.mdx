@@ -72,7 +72,7 @@ When `apiPlatform` is enabled, the Stimulus controller activates a Hydra adapter
   rows={[
     [
       'DataTables query params',
-      'API Platform params (`page`, `itemsPerPage`, `order[field]`, filters)',
+      'API Platform params (`page`, `itemsPerPage`, `order[field]`, `q`, filters)',
     ],
     ['Hydra response (`hydra:member`, `hydra:totalItems`)', 'DataTables response shape'],
   ]}
@@ -82,6 +82,31 @@ Notes:
 
 - Date formatting is handled by the backend payload. The adapter does not reformat date values on the client.
 - When API Platform adapter mode is enabled, `serverSide` is enforced so sorting and filtering stay consistent with API queries.
+
+## Global search
+
+The DataTables global search box is mapped to the API Platform `q` query parameter.
+
+```php
+use ApiPlatform\Doctrine\Orm\Filter\FreeTextQueryFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrFilter;
+use ApiPlatform\Doctrine\Orm\Filter\PartialSearchFilter;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\QueryParameter;
+
+#[ApiResource(operations: [
+    new GetCollection(parameters: [
+        'q' => new QueryParameter(
+            filter: new OrFilter(new FreeTextQueryFilter(new PartialSearchFilter())),
+            properties: ['email', 'firstName', 'lastName'],
+        ),
+    ]),
+])]
+final class User
+{
+}
+```
 
 ## Column auto-detection
 
