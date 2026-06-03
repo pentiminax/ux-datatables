@@ -16,7 +16,7 @@ use Symfony\Component\Security\Core\Exception\AuthenticationCredentialsNotFoundE
 final class PermissionChecker
 {
     public function __construct(
-        private readonly ?AuthorizationCheckerInterface $checker = null
+        private readonly ?AuthorizationCheckerInterface $checker = null,
     ) {
     }
 
