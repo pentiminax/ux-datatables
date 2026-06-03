@@ -31,7 +31,7 @@ final class AjaxTemplateRenderController
             throw new NotFoundHttpException('DataTable not found.');
         }
 
-        $rows    = $payload->all()['rows'] ?? [];
+        $rows = $payload->all()['rows'] ?? [];
 
         if ([] === $rows) {
             throw new BadRequestHttpException('No rows provided.');
