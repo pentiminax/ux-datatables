@@ -68,8 +68,15 @@ export class ApiPlatformAdapter {
         const ajaxConfig = payload.ajax;
         const originalData = ajaxConfig.data;
         const originalDataFilter = ajaxConfig.dataFilter;
+        const templateRendering = this.resolveTemplateRenderingConfig(payload.apiPlatformTemplateRendering);
         payload.serverSide = true;
         payload.columns = this.withDefaultColumnContent(payload.columns);
+        if (null !== templateRendering) {
+            payload.ajax = (params, callback) => {
+                void this.fetchDataTableResponse(ajaxConfig, params, originalData, originalDataFilter, templateRendering).then(callback);
+            };
+            return;
+        }
         let draw = 0;
         ajaxConfig.data = (params) => {
             const resolvedParams = this.resolveDataTableParams(params, originalData);
@@ -86,6 +93,23 @@ export class ApiPlatformAdapter {
             return JSON.stringify(response);
         };
     }
+    async fetchDataTableResponse(ajaxConfig, params, originalData, originalDataFilter, templateRendering) {
+        const resolvedParams = this.resolveDataTableParams(params, originalData);
+        const draw = this.toDraw(resolvedParams.draw);
+        const queryParams = this.buildRequestParams(resolvedParams);
+        const rawData = await this.fetchApiPlatformData(ajaxConfig, queryParams);
+        const filteredRawData = this.resolveRawResponse(rawData, 'json', originalDataFilter);
+        const parsedPayload = this.parseResponsePayload(filteredRawData);
+        if (null === parsedPayload) {
+            return {
+                draw,
+                recordsTotal: 0,
+                recordsFiltered: 0,
+                data: [],
+            };
+        }
+        return this.renderTemplateRows(this.buildResponse(parsedPayload, draw), templateRendering);
+    }
     withDefaultColumnContent(columns) {
         if (!Array.isArray(columns)) {
             return columns;
@@ -99,6 +123,68 @@ export class ApiPlatformAdapter {
                 defaultContent: '',
             };
         });
+    }
+    async fetchApiPlatformData(ajaxConfig, params) {
+        const url = typeof ajaxConfig.url === 'string' ? ajaxConfig.url : '';
+        const methodValue = ajaxConfig.type ?? ajaxConfig.method;
+        const method = typeof methodValue === 'string' ? methodValue.toUpperCase() : 'GET';
+        const query = new URLSearchParams(params);
+        const headers = this.resolveHeaders(ajaxConfig.headers);
+        const requestInit = {
+            credentials: 'same-origin',
+            method,
+        };
+        if ('GET' === method) {
+            return fetch(this.appendQueryString(url, query), requestInit).then((response) => response.text());
+        }
+        requestInit.headers = headers;
+        requestInit.body = query;
+        return fetch(url, requestInit).then((response) => response.text());
+    }
+    async renderTemplateRows(response, templateRendering) {
+        if (response.data.length === 0) {
+            return response;
+        }
+        const renderedResponse = await fetch(templateRendering.url, {
+            body: JSON.stringify({
+                table: templateRendering.table,
+                rows: response.data,
+            }),
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            method: 'POST',
+        });
+        const renderedPayload = await renderedResponse.json();
+        const data = isRecord(renderedPayload) && Array.isArray(renderedPayload.data)
+            ? renderedPayload.data
+            : response.data;
+        return {
+            ...response,
+            data,
+        };
+    }
+    resolveTemplateRenderingConfig(value) {
+        if (!isRecord(value)) {
+            return null;
+        }
+        return typeof value.url === 'string' &&
+            value.url.trim() !== '' &&
+            typeof value.table === 'string' &&
+            value.table.trim() !== ''
+            ? { url: value.url, table: value.table }
+            : null;
+    }
+    appendQueryString(url, params) {
+        const query = params.toString();
+        if ('' === query) {
+            return url;
+        }
+        return url.includes('?') ? `${url}&${query}` : `${url}?${query}`;
+    }
+    resolveHeaders(headers) {
+        return isRecord(headers) ? headers : undefined;
     }
     parseResponsePayload(rawData) {
         if (isRecord(rawData)) {

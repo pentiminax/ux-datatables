@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Rendering;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
@@ -37,6 +38,7 @@ final class RenderingPreparer
     public function prepareBeforeDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
     {
         $this->configureApiPlatform($table, $asDataTable);
+        $this->configureApiPlatformTemplateRendering($table);
         $this->configureAutoAjax($table);
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
@@ -68,6 +70,51 @@ final class RenderingPreparer
             && null !== $this->urlResolver
             && null !== $asDataTable
             && ($asDataTable->apiPlatform || $table->getOption('apiPlatform'));
+    }
+
+    private function configureApiPlatformTemplateRendering(DataTable $table): void
+    {
+        if (true !== $table->getOption('apiPlatform')) {
+            return;
+        }
+
+        if (null !== $table->getOption('apiPlatformTemplateRendering')) {
+            return;
+        }
+
+        if (null === $this->urlGenerator || null === $this->ajaxRegistry) {
+            return;
+        }
+
+        if (!$this->hasTemplateColumn($table)) {
+            return;
+        }
+
+        $fqcn = $table->getDataTableClass();
+        if (null === $fqcn) {
+            return;
+        }
+
+        $token = $this->ajaxRegistry->getToken($fqcn);
+        if (null === $token) {
+            return;
+        }
+
+        $table->apiPlatformTemplateRendering(
+            url: $this->urlGenerator->generate('ux_datatables_ajax_templates'),
+            tableToken: $token,
+        );
+    }
+
+    private function hasTemplateColumn(DataTable $table): bool
+    {
+        foreach ($table->getColumns() as $column) {
+            if ($column instanceof TemplateAwareColumnInterface) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function configureAutoAjax(DataTable $table): void

@@ -42,6 +42,13 @@ interface DataTableServerSideResponse {
     data: unknown[]
 }
 
+interface ApiPlatformTemplateRenderingConfig {
+    table: string
+    url: string
+}
+
+type DataTableAjaxCallback = (response: DataTableServerSideResponse) => void
+
 function toPositiveLength(length: number | undefined): number {
     return typeof length === 'number' && Number.isFinite(length) && length > 0
         ? Math.floor(length)
@@ -134,9 +141,29 @@ export class ApiPlatformAdapter {
         const ajaxConfig = payload.ajax as Record<string, unknown>
         const originalData = ajaxConfig.data
         const originalDataFilter = ajaxConfig.dataFilter
+        const templateRendering = this.resolveTemplateRenderingConfig(
+            payload.apiPlatformTemplateRendering
+        )
 
         payload.serverSide = true
         payload.columns = this.withDefaultColumnContent(payload.columns)
+
+        if (null !== templateRendering) {
+            payload.ajax = (
+                params: DataTableServerSideParams,
+                callback: DataTableAjaxCallback
+            ): void => {
+                void this.fetchDataTableResponse(
+                    ajaxConfig,
+                    params,
+                    originalData,
+                    originalDataFilter,
+                    templateRendering
+                ).then(callback)
+            }
+
+            return
+        }
 
         let draw = 0
 
@@ -162,6 +189,32 @@ export class ApiPlatformAdapter {
         }
     }
 
+    async fetchDataTableResponse(
+        ajaxConfig: Record<string, unknown>,
+        params: DataTableServerSideParams,
+        originalData: unknown,
+        originalDataFilter: unknown,
+        templateRendering: ApiPlatformTemplateRenderingConfig
+    ): Promise<DataTableServerSideResponse> {
+        const resolvedParams = this.resolveDataTableParams(params, originalData)
+        const draw = this.toDraw(resolvedParams.draw)
+        const queryParams = this.buildRequestParams(resolvedParams)
+        const rawData = await this.fetchApiPlatformData(ajaxConfig, queryParams)
+        const filteredRawData = this.resolveRawResponse(rawData, 'json', originalDataFilter)
+        const parsedPayload = this.parseResponsePayload(filteredRawData)
+
+        if (null === parsedPayload) {
+            return {
+                draw,
+                recordsTotal: 0,
+                recordsFiltered: 0,
+                data: [],
+            }
+        }
+
+        return this.renderTemplateRows(this.buildResponse(parsedPayload, draw), templateRendering)
+    }
+
     withDefaultColumnContent(columns: unknown): unknown {
         if (!Array.isArray(columns)) {
             return columns
@@ -177,6 +230,91 @@ export class ApiPlatformAdapter {
                 defaultContent: '',
             }
         })
+    }
+
+    async fetchApiPlatformData(
+        ajaxConfig: Record<string, unknown>,
+        params: Record<string, string>
+    ): Promise<string> {
+        const url = typeof ajaxConfig.url === 'string' ? ajaxConfig.url : ''
+        const methodValue = ajaxConfig.type ?? ajaxConfig.method
+        const method = typeof methodValue === 'string' ? methodValue.toUpperCase() : 'GET'
+        const query = new URLSearchParams(params)
+        const headers = this.resolveHeaders(ajaxConfig.headers)
+
+        const requestInit: RequestInit = {
+            credentials: 'same-origin',
+            method,
+        }
+
+        if ('GET' === method) {
+            return fetch(this.appendQueryString(url, query), requestInit).then((response) =>
+                response.text()
+            )
+        }
+
+        requestInit.headers = headers
+        requestInit.body = query
+
+        return fetch(url, requestInit).then((response) => response.text())
+    }
+
+    async renderTemplateRows(
+        response: DataTableServerSideResponse,
+        templateRendering: ApiPlatformTemplateRenderingConfig
+    ): Promise<DataTableServerSideResponse> {
+        if (response.data.length === 0) {
+            return response
+        }
+
+        const renderedResponse = await fetch(templateRendering.url, {
+            body: JSON.stringify({
+                table: templateRendering.table,
+                rows: response.data,
+            }),
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            method: 'POST',
+        })
+
+        const renderedPayload = await renderedResponse.json()
+        const data = isRecord(renderedPayload) && Array.isArray(renderedPayload.data)
+            ? renderedPayload.data
+            : response.data
+
+        return {
+            ...response,
+            data,
+        }
+    }
+
+    resolveTemplateRenderingConfig(value: unknown): ApiPlatformTemplateRenderingConfig | null {
+        if (!isRecord(value)) {
+            return null
+        }
+
+        return typeof value.url === 'string' &&
+            value.url.trim() !== '' &&
+            typeof value.table === 'string' &&
+            value.table.trim() !== ''
+            ? { url: value.url, table: value.table }
+            : null
+    }
+
+    private appendQueryString(url: string, params: URLSearchParams): string {
+        const query = params.toString()
+
+        if ('' === query) {
+            return url
+        }
+
+        return url.includes('?') ? `${url}&${query}` : `${url}?${query}`
+    }
+
+    private resolveHeaders(headers: unknown): HeadersInit | undefined {
+        return isRecord(headers) ? (headers as HeadersInit) : undefined
     }
 
     parseResponsePayload(rawData: unknown): HydraCollectionResponse | null {
