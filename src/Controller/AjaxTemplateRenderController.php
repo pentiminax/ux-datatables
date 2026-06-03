@@ -24,14 +24,9 @@ final class AjaxTemplateRenderController
 
     public function __invoke(Request $request): JsonResponse
     {
-        $payload = json_decode($request->getContent(), true);
-
-        if (!\is_array($payload)) {
-            throw new BadRequestHttpException('Invalid JSON payload.');
-        }
-
-        $token = $payload['table'] ?? null;
-        $rows  = $payload['rows']  ?? null;
+        $payload = $request->getPayload()->all();
+        $token   = $payload['table'] ?? null;
+        $rows    = $payload['rows']  ?? null;
 
         if (!\is_string($token) || '' === $token) {
             throw new NotFoundHttpException('DataTable not found.');
