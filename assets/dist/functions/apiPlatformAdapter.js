@@ -28,6 +28,10 @@ export class ApiPlatformAdapter {
         const start = toNonNegativeInt(params.start);
         result.page = String(Math.floor(start / length) + 1);
         result.itemsPerPage = String(length);
+        const globalSearchValue = params.search?.value;
+        if (typeof globalSearchValue === 'string' && globalSearchValue.trim() !== '') {
+            result.q = globalSearchValue.trim();
+        }
         for (const order of params.order ?? []) {
             const columnConfig = this.columns[order.column];
             const fieldName = columnConfig.field ?? columnConfig.data ?? columnConfig.name;
