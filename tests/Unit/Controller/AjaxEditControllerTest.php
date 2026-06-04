@@ -9,6 +9,11 @@ use Doctrine\ORM\EntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
+use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
+use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -21,26 +26,17 @@ use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 final class AjaxEditControllerTest extends TestCase
 {
     #[Test]
-    public function it_updates_boolean_field_from_json_payload(): void
+    public function it_returns_zero_when_updating_boolean_field_to_false(): void
     {
         $entity = new ToggleBooleanEntityFixture();
 
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->with(799)->willReturn($entity);
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
+        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', false);
 
-        $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->method('getRepository')->with(ToggleBooleanEntityFixture::class)->willReturn($repository);
-        $entityManager->expects($this->once())->method('flush');
+        $controller = $this->controller($entity, 799, $accessor, expectFlush: true);
 
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($entityManager);
-
-        $propertyAccessor = $this->createMock(PropertyAccessorInterface::class);
-        $propertyAccessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
-        $propertyAccessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', false);
-
-        $controller = new AjaxEditController($registry, $propertyAccessor);
-        $response   = $controller(new AjaxEditRequestDto(
+        $response = $controller(new AjaxEditRequestDto(
             entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
@@ -52,61 +48,17 @@ final class AjaxEditControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_rejects_non_writable_field(): void
-    {
-        $entity = new ToggleBooleanEntityFixture();
-
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->with(799)->willReturn($entity);
-
-        $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->method('getRepository')->with(ToggleBooleanEntityFixture::class)->willReturn($repository);
-        $entityManager->expects($this->never())->method('flush');
-
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($entityManager);
-
-        $propertyAccessor = $this->createMock(PropertyAccessorInterface::class);
-        $propertyAccessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(false);
-        $propertyAccessor->expects($this->never())->method('setValue');
-
-        $controller = new AjaxEditController($registry, $propertyAccessor);
-        $response   = $controller(new AjaxEditRequestDto(
-            entity: ToggleBooleanEntityFixture::class,
-            field: 'isEmailAuthEnabled',
-            id: 799,
-            newValue: false,
-        ));
-
-        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
-
-        $this->assertSame(400, $response->getStatusCode());
-        $this->assertTrue(isset($payload['success']) && false === $payload['success']);
-        $this->assertSame('Unable to write "isEmailAuthEnabled" on the entity.', $payload['message']);
-        $this->assertTrue($entity->isEmailAuthEnabled());
-    }
-
-    #[Test]
     public function it_returns_one_when_updating_boolean_field_to_true(): void
     {
         $entity = new ToggleBooleanEntityFixture();
 
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->with(799)->willReturn($entity);
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
+        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', true);
 
-        $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->method('getRepository')->with(ToggleBooleanEntityFixture::class)->willReturn($repository);
-        $entityManager->expects($this->once())->method('flush');
+        $controller = $this->controller($entity, 799, $accessor, expectFlush: true);
 
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($entityManager);
-
-        $propertyAccessor = $this->createMock(PropertyAccessorInterface::class);
-        $propertyAccessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
-        $propertyAccessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', true);
-
-        $controller = new AjaxEditController($registry, $propertyAccessor);
-        $response   = $controller(new AjaxEditRequestDto(
+        $response = $controller(new AjaxEditRequestDto(
             entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
@@ -118,35 +70,61 @@ final class AjaxEditControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_not_found_when_entity_does_not_exist(): void
+    public function it_lets_a_not_writable_field_bubble_as_an_exception(): void
     {
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->with(799)->willReturn(null);
+        $entity = new ToggleBooleanEntityFixture();
 
-        $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->method('getRepository')->with(ToggleBooleanEntityFixture::class)->willReturn($repository);
-        $entityManager->expects($this->never())->method('flush');
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(false);
+        $accessor->expects($this->never())->method('setValue');
 
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($entityManager);
+        $controller = $this->controller($entity, 799, $accessor, expectFlush: false);
 
-        $propertyAccessor = $this->createMock(PropertyAccessorInterface::class);
-        $propertyAccessor->expects($this->never())->method('isWritable');
-        $propertyAccessor->expects($this->never())->method('setValue');
-
-        $controller = new AjaxEditController($registry, $propertyAccessor);
-        $response   = $controller(new AjaxEditRequestDto(
+        $this->expectException(PropertyNotWritableException::class);
+        $controller(new AjaxEditRequestDto(
             entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
             newValue: false,
         ));
+    }
 
-        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
+    #[Test]
+    public function it_lets_a_missing_entity_bubble_as_an_exception(): void
+    {
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->expects($this->never())->method('isWritable');
 
-        $this->assertSame(404, $response->getStatusCode());
-        $this->assertTrue(isset($payload['success']) && false === $payload['success']);
-        $this->assertSame('Entity not found.', $payload['message']);
+        $controller = $this->controller(null, 799, $accessor, expectFlush: false);
+
+        $this->expectException(EntityNotFoundException::class);
+        $controller(new AjaxEditRequestDto(
+            entity: ToggleBooleanEntityFixture::class,
+            field: 'isEmailAuthEnabled',
+            id: 799,
+            newValue: false,
+        ));
+    }
+
+    private function controller(
+        ?object $entity,
+        int|string $id,
+        PropertyAccessorInterface $accessor,
+        bool $expectFlush,
+    ): AjaxEditController {
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->method('find')->with($id)->willReturn($entity);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('getRepository')->with(ToggleBooleanEntityFixture::class)->willReturn($repository);
+        $manager->expects($expectFlush ? $this->once() : $this->never())->method('flush');
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($manager);
+
+        $mutator = new EntityMutator(new EntityLocator($registry), $accessor, new NullMercurePublisher());
+
+        return new AjaxEditController($mutator);
     }
 }
 

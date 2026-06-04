@@ -6,6 +6,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -34,9 +35,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg(1, service('logger')->nullOnInvalid())
         ->private();
 
-    $services->get('datatables.controller.ajax_edit')
-        ->arg(2, service('datatables.mercure.publisher'));
-
-    $services->get('datatables.controller.ajax_delete')
-        ->arg(1, service('datatables.mercure.publisher'));
+    // When Mercure is installed, the real publisher replaces the NullMercurePublisher
+    // aliased in services.php, so EntityMutator and EditFormService publish for real.
+    $services->alias(MercurePublisherInterface::class, 'datatables.mercure.publisher')
+        ->private();
 };

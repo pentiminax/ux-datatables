@@ -14,11 +14,12 @@ use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
-use Pentiminax\UX\DataTables\Form\EditFormEntityResolver;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalRenderRequest;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
+use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -55,10 +56,11 @@ final class EditFormServiceTest extends TestCase
         $templateResolver->expects($this->never())->method('resolveColumns');
 
         $service = new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
+            new NullMercurePublisher(),
         );
 
         $result = $service->handleView(new AjaxEditFormQueryDto(
@@ -121,10 +123,11 @@ final class EditFormServiceTest extends TestCase
             ->willReturn([TextColumn::new('name', 'Name')]);
 
         $service = new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
+            new NullMercurePublisher(),
         );
 
         $result = $service->handleView(new AjaxEditFormQueryDto(
@@ -158,10 +161,11 @@ final class EditFormServiceTest extends TestCase
         $templateResolver->expects($this->never())->method('resolveColumns');
 
         $service = new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
+            new NullMercurePublisher(),
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
@@ -196,10 +200,11 @@ final class EditFormServiceTest extends TestCase
         );
 
         $service = new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
+            new NullMercurePublisher(),
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
@@ -245,7 +250,7 @@ final class EditFormServiceTest extends TestCase
             ->willReturn('urn:uuid:edit');
 
         $service = new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
@@ -295,7 +300,7 @@ final class EditFormServiceTest extends TestCase
         $logger->expects($this->once())->method('error');
 
         $service = new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
@@ -327,10 +332,11 @@ final class EditFormServiceTest extends TestCase
         $templateResolver->expects($this->never())->method('resolveColumns');
 
         $service = new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
+            new NullMercurePublisher(),
         );
 
         $result = $service->handleView(new AjaxEditFormQueryDto(
@@ -355,10 +361,11 @@ final class EditFormServiceTest extends TestCase
         $templateResolver->expects($this->never())->method('resolveColumns');
 
         $service = new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
+            new NullMercurePublisher(),
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
