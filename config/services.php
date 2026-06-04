@@ -170,6 +170,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(3, service(MercureHubUrlResolverInterface::class)->nullOnInvalid())
         ->arg(4, service('router')->nullOnInvalid())
         ->arg(5, service('datatables.ajax.registry'))
+        ->arg(6, service('request_stack')->nullOnInvalid())
         ->private();
 
     $services->alias(RenderingPreparer::class, 'datatables.rendering.preparer')
