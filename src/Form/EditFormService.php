@@ -7,17 +7,20 @@ namespace Pentiminax\UX\DataTables\Form;
 use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
-use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
+use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Symfony\Component\Form\FormInterface;
 
 final class EditFormService
 {
     public function __construct(
-        private readonly EditFormEntityResolver $resolver,
+        private readonly EntityLocator $locator,
         private readonly EditFormBuilder $builder,
         private readonly EditModalRenderer $renderer,
         private readonly EditModalTemplateResolverInterface $templateResolver,
-        private readonly ?MercureUpdatePublisher $mercurePublisher = null,
+        private readonly MercurePublisherInterface $publisher,
     ) {
     }
 
@@ -27,9 +30,9 @@ final class EditFormService
             return EditFormResult::badRequest('Edit modal requires a DataTable class (AbstractDataTable).');
         }
 
-        $context = $this->resolver->resolve($payload->entity, $payload->id);
-
-        if (null === $context) {
+        try {
+            $context = $this->locator->locate($payload->entity, $payload->id);
+        } catch (EntityNotFoundException) {
             return EditFormResult::notFound();
         }
 
@@ -38,7 +41,7 @@ final class EditFormService
         $form = $this->builder->buildForm(
             entity: $context->entity,
             columns: $columns,
-            identifierFields: $context->identifierFields,
+            identifierFields: $this->identifierFields($context, $payload->entity),
         );
 
         return EditFormResult::success($this->renderer->render($this->createRenderRequest(
@@ -54,9 +57,9 @@ final class EditFormService
             return EditFormResult::badRequest('Edit modal requires a DataTable class (AbstractDataTable).');
         }
 
-        $context = $this->resolver->resolve($payload->entity, $payload->id);
-
-        if (null === $context) {
+        try {
+            $context = $this->locator->locate($payload->entity, $payload->id);
+        } catch (EntityNotFoundException) {
             return EditFormResult::notFound();
         }
 
@@ -65,7 +68,7 @@ final class EditFormService
         $form = $this->builder->buildForm(
             entity: $context->entity,
             columns: $columns,
-            identifierFields: $context->identifierFields,
+            identifierFields: $this->identifierFields($context, $payload->entity),
         );
 
         $form->submit($payload->formData);
@@ -84,14 +87,20 @@ final class EditFormService
 
         $context->manager->flush();
 
-        if (null !== $this->mercurePublisher && [] !== $payload->topics) {
-            $this->mercurePublisher->publish($payload->topics, [
-                'type' => 'edit',
-                'id'   => $payload->id,
-            ]);
-        }
+        $this->publisher->publish($payload->topics, [
+            'type' => 'edit',
+            'id'   => $payload->id,
+        ]);
 
         return EditFormResult::success();
+    }
+
+    /**
+     * @return string[]
+     */
+    private function identifierFields(MutationContext $context, string $entityClass): array
+    {
+        return $context->manager->getClassMetadata($entityClass)->getIdentifierFieldNames();
     }
 
     private function createRenderRequest(

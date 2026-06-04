@@ -51,6 +51,9 @@ class TwigAppKernel extends Kernel
             $container->setAlias('test.datatables.builder', 'datatables.builder')->setPublic(true);
             $container->setAlias('test.datatables.twig_extension', 'datatables.twig_extension')->setPublic(true);
             $container->setAlias('test.datatables.infrastructure', 'datatables.infrastructure')->setPublic(true);
+            $container->setAlias('test.datatables.mutation.mutator', 'datatables.mutation.mutator')->setPublic(true);
+            $container->setAlias('test.mercure.publisher', \Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface::class)->setPublic(true);
+            $container->setAlias('test.datatables.mercure.null_publisher', 'datatables.mercure.null_publisher')->setPublic(true);
 
             $container
                 ->register(AuthorizationCheckerInterface::class, TestAuthorizationChecker::class);

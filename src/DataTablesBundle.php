@@ -109,10 +109,6 @@ class DataTablesBundle extends AbstractBundle
             $container->import('../config/mercure.php');
         }
 
-        if ($formAvailable && $mercureAvailable) {
-            $container->import('../config/mercure_form.php');
-        }
-
         if (class_exists(AbstractMaker::class)) {
             $container->import('../config/maker.php');
         }

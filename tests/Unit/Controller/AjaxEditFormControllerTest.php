@@ -14,9 +14,10 @@ use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
-use Pentiminax\UX\DataTables\Form\EditFormEntityResolver;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
+use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -67,10 +68,11 @@ final class AjaxEditFormControllerTest extends TestCase
             ->willReturn([TextColumn::new('name', 'Name')]);
 
         $controller = new AjaxEditFormController(new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
+            new NullMercurePublisher(),
         ));
 
         $response = $controller(new AjaxEditFormQueryDto(
@@ -115,10 +117,11 @@ final class AjaxEditFormControllerTest extends TestCase
         $templateResolver->expects($this->never())->method('resolveColumns');
 
         $controller = new AjaxEditFormController(new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
+            new NullMercurePublisher(),
         ));
 
         $response = $controller(new AjaxEditFormQueryDto(
@@ -154,10 +157,11 @@ final class AjaxEditFormControllerTest extends TestCase
         $templateResolver->expects($this->never())->method('resolveColumns');
 
         $controller = new AjaxEditFormController(new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
+            new NullMercurePublisher(),
         ));
 
         $response = $controller(new AjaxEditFormQueryDto(

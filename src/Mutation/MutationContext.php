@@ -2,19 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Form;
+namespace Pentiminax\UX\DataTables\Mutation;
 
 use Doctrine\Persistence\ObjectManager;
 
-final readonly class EditFormEntityContext
+final readonly class MutationContext
 {
-    /**
-     * @param string[] $identifierFields
-     */
     public function __construct(
         public object $entity,
         public ObjectManager $manager,
-        public array $identifierFields,
     ) {
     }
 }
