@@ -19,8 +19,13 @@ use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Controller\AjaxTemplateRenderController;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
+use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
@@ -82,14 +87,33 @@ return static function (ContainerConfigurator $container): void {
         ->tag('twig.extension')
         ->private();
 
-    $services->set('datatables.controller.ajax_edit', AjaxEditController::class)
+    $services->set('datatables.mutation.locator', EntityLocator::class)
         ->arg(0, service('doctrine')->nullOnInvalid())
+        ->private();
+
+    $services->set('datatables.mercure.null_publisher', NullMercurePublisher::class)
+        ->private();
+
+    $services->alias(MercurePublisherInterface::class, 'datatables.mercure.null_publisher')
+        ->private();
+
+    $services->set('datatables.mutation.mutator', EntityMutator::class)
+        ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('property_accessor'))
+        ->arg(2, service(MercurePublisherInterface::class))
+        ->private();
+
+    $services->set('datatables.event_listener.mutation_exception', MutationExceptionListener::class)
+        ->tag('kernel.event_listener', ['event' => 'kernel.exception', 'priority' => 10])
+        ->private();
+
+    $services->set('datatables.controller.ajax_edit', AjaxEditController::class)
+        ->arg(0, service('datatables.mutation.mutator'))
         ->tag('controller.service_arguments')
         ->public();
 
     $services->set('datatables.controller.ajax_delete', AjaxDeleteController::class)
-        ->arg(0, service('doctrine')->nullOnInvalid())
+        ->arg(0, service('datatables.mutation.mutator'))
         ->tag('controller.service_arguments')
         ->public();
 

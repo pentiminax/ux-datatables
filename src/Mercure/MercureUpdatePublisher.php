@@ -9,7 +9,7 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
 
-final class MercureUpdatePublisher
+final class MercureUpdatePublisher implements MercurePublisherInterface
 {
     public function __construct(
         private readonly HubInterface $hub,
@@ -19,6 +19,10 @@ final class MercureUpdatePublisher
 
     public function publish(string|array $topics, array $data = []): string
     {
+        if ([] === $topics) {
+            return '';
+        }
+
         $update = new Update(
             topics: $topics,
             data: json_encode($data)
