@@ -19,6 +19,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -464,6 +466,105 @@ final class RenderingPreparerTest extends TestCase
         $preparer->prepare($table, null);
 
         $this->assertNull($table->getOption('ajax'));
+    }
+
+    #[Test]
+    public function it_forwards_present_query_parameters_into_auto_ajax_data(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturn('/datatables/ajax/data');
+
+        $registry = $this->createAjaxRegistry(['App\\DataTables\\UserDataTable' => 'app.users_datatable']);
+        $preparer = new RenderingPreparer(
+            urlGenerator: $urlGenerator,
+            ajaxRegistry: $registry,
+            requestStack: $this->createRequestStack(['q' => 'foo', 'pending' => '1', 'unrelated' => 'x']),
+        );
+        $table = (new DataTable('Test'))
+            ->setDataTableClass('App\\DataTables\\UserDataTable')
+            ->serverSide()
+            ->forwardQueryParameters(['q', 'pending']);
+
+        $preparer->prepare($table, null);
+
+        $data = $table->getOption('ajax')['data'];
+        $this->assertSame($registry->getToken('App\\DataTables\\UserDataTable'), $data['table']);
+        $this->assertSame('foo', $data['q']);
+        $this->assertSame('1', $data['pending']);
+        $this->assertArrayNotHasKey('unrelated', $data);
+    }
+
+    #[Test]
+    public function it_forwards_only_query_parameters_present_in_the_request(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturn('/datatables/ajax/data');
+
+        $preparer = new RenderingPreparer(
+            urlGenerator: $urlGenerator,
+            ajaxRegistry: $this->createAjaxRegistry(['App\\DataTables\\UserDataTable' => 'app.users_datatable']),
+            requestStack: $this->createRequestStack(['q' => 'foo']),
+        );
+        $table = (new DataTable('Test'))
+            ->setDataTableClass('App\\DataTables\\UserDataTable')
+            ->serverSide()
+            ->forwardQueryParameters(['q', 'pending']);
+
+        $preparer->prepare($table, null);
+
+        $data = $table->getOption('ajax')['data'];
+        $this->assertSame('foo', $data['q']);
+        $this->assertArrayNotHasKey('pending', $data);
+    }
+
+    #[Test]
+    public function it_does_not_forward_query_parameters_without_a_current_request(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturn('/datatables/ajax/data');
+
+        $registry = $this->createAjaxRegistry(['App\\DataTables\\UserDataTable' => 'app.users_datatable']);
+        $preparer = new RenderingPreparer(
+            urlGenerator: $urlGenerator,
+            ajaxRegistry: $registry,
+            requestStack: new RequestStack(),
+        );
+        $table = (new DataTable('Test'))
+            ->setDataTableClass('App\\DataTables\\UserDataTable')
+            ->serverSide()
+            ->forwardQueryParameters(['q']);
+
+        $preparer->prepare($table, null);
+
+        $this->assertSame(
+            ['table' => $registry->getToken('App\\DataTables\\UserDataTable')],
+            $table->getOption('ajax')['data'],
+        );
+    }
+
+    #[Test]
+    public function it_forwards_query_parameters_into_manual_ajax(): void
+    {
+        $preparer = new RenderingPreparer(
+            requestStack: $this->createRequestStack(['q' => 'foo']),
+        );
+        $table = (new DataTable('Test'))
+            ->ajax('/custom-endpoint')
+            ->forwardQueryParameters(['q']);
+
+        $preparer->prepare($table, null);
+
+        $ajax = $table->getOption('ajax');
+        $this->assertSame('/custom-endpoint', $ajax['url']);
+        $this->assertSame(['q' => 'foo'], $ajax['data']);
+    }
+
+    private function createRequestStack(array $query): RequestStack
+    {
+        $stack = new RequestStack();
+        $stack->push(new Request($query));
+
+        return $stack;
     }
 
     private function createAjaxRegistry(array $serviceIdsByClass): AjaxDataTableRegistry

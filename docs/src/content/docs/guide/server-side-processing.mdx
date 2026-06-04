@@ -137,6 +137,35 @@ public function index(ProductsDataTable $table, Request $request): Response
 }
 ```
 
+## Forwarding Page Query Parameters
+
+With automatic Ajax, the browser sends its request to the bundle endpoint rather than to the page URL, so query parameters present on the page (`?q=...&pending=...`) never reach your server-side query. `forwardQueryParameters()` captures the named parameters **at render time** and forwards them on every Ajax call, letting you read them in `customizeQueryBuilder()` — no dedicated relay controller required.
+
+```php
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->serverSide()
+        ->forwardQueryParameters(['q', 'pending']);
+}
+
+protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+{
+    $httpRequest = $this->getHttpRequest();
+
+    if (null !== $pending = $httpRequest?->query->get('pending')) {
+        $qb->andWhere('e.pending = :pending')->setParameter('pending', $pending);
+    }
+
+    return $qb;
+}
+```
+
+The forwarded values are a snapshot taken when the page renders and are sent unchanged on every paging/search/sort reload. Only parameters actually present in the request are forwarded. This works with automatic Ajax and with manual `ajax()` / `ajaxRequestData()`; it is not applied in API Platform mode.
+
 ## Best Practices
 
 - Use `isRequestHandled()` instead of `$request->isXmlHttpRequest()`.
