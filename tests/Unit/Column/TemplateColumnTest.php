@@ -86,4 +86,35 @@ final class TemplateColumnTest extends TestCase
 
         $this->assertSame($column, $column->setTemplate('some/template.html.twig'));
     }
+
+    #[Test]
+    public function it_is_display_only_by_default(): void
+    {
+        $column = TemplateColumn::new('status_display');
+
+        $this->assertFalse($column->isOrderable());
+        $this->assertFalse($column->isSearchable());
+        $this->assertFalse($column->isGlobalSearchable());
+    }
+
+    #[Test]
+    public function it_serializes_display_only_flags(): void
+    {
+        $data = TemplateColumn::new('status_display')->jsonSerialize();
+
+        $this->assertFalse($data['orderable']);
+        $this->assertFalse($data['searchable']);
+    }
+
+    #[Test]
+    public function it_allows_re_enabling_query_behavior(): void
+    {
+        $column = TemplateColumn::new('email')
+            ->setField('email')
+            ->setOrderable(true)
+            ->setSearchable(true);
+
+        $this->assertTrue($column->isOrderable());
+        $this->assertTrue($column->isSearchable());
+    }
 }
