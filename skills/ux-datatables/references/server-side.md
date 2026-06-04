@@ -61,6 +61,32 @@ $table->ajax('/api/products', dataSrc: null, type: 'GET')->serverSide();
 $table->ajaxRequestData('/api/products', ['tenant' => 5], 'GET');
 ```
 
+## Forward page query parameters
+
+When using Auto Ajax, the browser sends its request to the bundle endpoint, not the page URL — so contextual query parameters present on the page (`?q=...&pending=...`) never reach the server. `forwardQueryParameters()` captures the named params **at render time** and forwards them on every Ajax call, so you can read them in `customizeQueryBuilder()` without writing a dedicated relay controller:
+
+```php
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->serverSide()
+        ->forwardQueryParameters(['q', 'pending']);
+}
+
+protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+{
+    $request = $this->getHttpRequest();
+
+    if (null !== $pending = $request?->query->get('pending')) {
+        $qb->andWhere('e.pending = :pending')->setParameter('pending', $pending);
+    }
+
+    return $qb;
+}
+```
+
+Values are a **snapshot** taken when the page renders (sent unchanged on every paging/search/sort reload); only params present in the request are forwarded. Works with Auto Ajax and manual `ajax()` / `ajaxRequestData()` alike. Not applied in API Platform mode.
+
 ## Frontend hooks (Stimulus)
 
 The controller is registered as `@pentiminax/ux-datatables/datatable` and dispatches events with the `datatables` prefix. Attach a custom controller via `render_datatable(table, {'data-controller': 'my-table'})` and listen:

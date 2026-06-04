@@ -341,4 +341,46 @@ final class DataTableTest extends TestCase
 
         $this->assertSame($table, $table->urlState());
     }
+
+    #[Test]
+    public function it_stores_forwarded_query_parameters(): void
+    {
+        $table = (new DataTable('users'))->forwardQueryParameters(['q', 'pending']);
+
+        $this->assertSame(['q', 'pending'], $table->getForwardedQueryParameters());
+    }
+
+    #[Test]
+    public function it_defaults_forwarded_query_parameters_to_an_empty_array(): void
+    {
+        $this->assertSame([], (new DataTable('users'))->getForwardedQueryParameters());
+    }
+
+    #[Test]
+    public function it_merges_ajax_data_into_existing_ajax_payload(): void
+    {
+        $table = (new DataTable('users'))
+            ->ajaxRequestData('/endpoint', ['table' => 'token'])
+            ->mergeAjaxData(['q' => 'foo']);
+
+        $this->assertSame(['table' => 'token', 'q' => 'foo'], $table->getOption('ajax')['data']);
+    }
+
+    #[Test]
+    public function it_creates_ajax_data_key_when_merging_into_ajax_without_data(): void
+    {
+        $table = (new DataTable('users'))
+            ->ajax('/endpoint')
+            ->mergeAjaxData(['q' => 'foo']);
+
+        $this->assertSame(['q' => 'foo'], $table->getOption('ajax')['data']);
+    }
+
+    #[Test]
+    public function it_does_not_merge_ajax_data_when_no_ajax_source_is_configured(): void
+    {
+        $table = (new DataTable('users'))->mergeAjaxData(['q' => 'foo']);
+
+        $this->assertNull($table->getOption('ajax'));
+    }
 }

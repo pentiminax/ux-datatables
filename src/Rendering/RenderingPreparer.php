@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -26,6 +27,7 @@ final class RenderingPreparer
         private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
         private readonly ?UrlGeneratorInterface $urlGenerator = null,
         private readonly ?AjaxDataTableRegistry $ajaxRegistry = null,
+        private readonly ?RequestStack $requestStack = null,
     ) {
     }
 
@@ -40,6 +42,7 @@ final class RenderingPreparer
         $this->configureApiPlatform($table, $asDataTable);
         $this->configureApiPlatformTemplateRendering($table);
         $this->configureAutoAjax($table);
+        $this->configureForwardedQueryParameters($table);
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
     }
@@ -150,6 +153,33 @@ final class RenderingPreparer
             && true !== $table->getOption('apiPlatform')
             && null !== $this->urlGenerator
             && null !== $this->ajaxRegistry;
+    }
+
+    private function configureForwardedQueryParameters(DataTable $table): void
+    {
+        $names = $table->getForwardedQueryParameters();
+        if ([] === $names) {
+            return;
+        }
+
+        $request = $this->requestStack?->getCurrentRequest();
+        if (null === $request) {
+            return;
+        }
+
+        $all       = $request->query->all();
+        $forwarded = [];
+        foreach ($names as $name) {
+            if (\array_key_exists($name, $all)) {
+                $forwarded[$name] = $all[$name];
+            }
+        }
+
+        if ([] === $forwarded) {
+            return;
+        }
+
+        $table->mergeAjaxData($forwarded);
     }
 
     private function configureMercure(DataTable $table, ?AsDataTable $asDataTable): void
