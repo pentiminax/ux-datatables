@@ -33,6 +33,9 @@ class DataTable
 
     private ?string $dataTableClass = null;
 
+    /** @var string[] */
+    private array $forwardedQueryParameters = [];
+
     public function __construct(
         private readonly string $id,
         array $options = [],
@@ -431,6 +434,49 @@ class DataTable
             'url'  => $url,
             'data' => $data,
         ]);
+
+        return $this;
+    }
+
+    /**
+     * Names of current-request query parameters to capture at render time and
+     * forward to the AJAX endpoint on every request. Read them server-side in
+     * customizeQueryBuilder() via $this->getHttpRequest()?->query->get($name).
+     *
+     * @param string[] $parameters
+     */
+    public function forwardQueryParameters(array $parameters): static
+    {
+        $this->forwardedQueryParameters = $parameters;
+
+        return $this;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getForwardedQueryParameters(): array
+    {
+        return $this->forwardedQueryParameters;
+    }
+
+    /**
+     * Merge extra entries into the existing AJAX `data` payload.
+     *
+     * No-op when no AJAX source is configured (e.g. client-side data tables).
+     *
+     * @param array<string, mixed> $data
+     */
+    public function mergeAjaxData(array $data): static
+    {
+        $ajax = $this->options->get('ajax');
+
+        if (!\is_array($ajax)) {
+            return $this;
+        }
+
+        $ajax['data'] = array_merge($ajax['data'] ?? [], $data);
+        $this->options->set('ajax', $ajax);
 
         return $this;
     }
