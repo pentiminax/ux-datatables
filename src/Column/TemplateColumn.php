@@ -16,7 +16,10 @@ class TemplateColumn extends AbstractColumn implements TemplateAwareColumnInterf
 
     public static function new(string $name, string $title = ''): static
     {
-        return static::createWithType($name, $title, ColumnType::HTML);
+        return static::createWithType($name, $title, ColumnType::HTML)
+            ->setOrderable(false)
+            ->setSearchable(false)
+            ->disableGlobalSearch();
     }
 
     public function setTemplate(string $template, array $parameters = []): static
