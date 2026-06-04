@@ -53,6 +53,17 @@ final class MercureUpdatePublisherTest extends TestCase
     }
 
     #[Test]
+    public function it_does_not_publish_when_topics_is_an_empty_array(): void
+    {
+        $hub = $this->createMock(HubInterface::class);
+        $hub->expects($this->never())->method('publish');
+
+        $publisher = new MercureUpdatePublisher($hub);
+
+        $this->assertSame('', $publisher->publish([], ['type' => 'edit', 'id' => 1]));
+    }
+
+    #[Test]
     public function it_logs_and_swallows_publish_failures(): void
     {
         $exception = new \RuntimeException('Mercure hub unavailable.');

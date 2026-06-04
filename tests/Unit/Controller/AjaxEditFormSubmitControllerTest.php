@@ -14,10 +14,11 @@ use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
-use Pentiminax\UX\DataTables\Form\EditFormEntityResolver;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
+use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -51,10 +52,11 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver($form, '<form>invalid</form>', 1, true, 'SomeDataTable');
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
+            new NullMercurePublisher(),
         ));
 
         $response = $controller(new AjaxEditFormRequestDto(
@@ -90,10 +92,11 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver($form, '', 1, false, 'SomeDataTable');
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
+            new NullMercurePublisher(),
         ));
 
         $response = $controller(new AjaxEditFormRequestDto(
@@ -163,7 +166,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ->willReturn([TextColumn::new('name', 'Name')]);
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
-            new EditFormEntityResolver($registry),
+            new EntityLocator($registry),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
