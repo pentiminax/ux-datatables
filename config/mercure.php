@@ -35,8 +35,6 @@ return static function (ContainerConfigurator $container): void {
         ->arg(1, service('logger')->nullOnInvalid())
         ->private();
 
-    // When Mercure is installed, the real publisher replaces the NullMercurePublisher
-    // aliased in services.php, so EntityMutator and EditFormService publish for real.
     $services->alias(MercurePublisherInterface::class, 'datatables.mercure.publisher')
         ->private();
 };
