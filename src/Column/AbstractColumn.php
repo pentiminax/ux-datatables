@@ -14,22 +14,23 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnInterface
 {
     protected ColumnType $type;
-    protected ?string $cellType       = null;
-    protected ?string $className      = null;
-    protected ?string $name           = null;
-    protected ?string $width          = null;
-    protected ?string $title          = null;
-    protected bool $orderable         = true;
-    protected bool $searchable        = true;
-    protected bool $visible           = true;
-    protected ?string $data           = null;
-    protected bool $exportable        = true;
-    protected ?string $render         = null;
-    protected ?string $defaultContent = null;
-    protected ?string $field          = null;
-    protected bool $globalSearchable  = true;
-    protected array $customOptions    = [];
-    protected ?string $permission     = null;
+    protected ?string $cellType        = null;
+    protected ?string $className       = null;
+    protected ?string $name            = null;
+    protected ?string $width           = null;
+    protected ?string $title           = null;
+    protected bool $orderable          = true;
+    protected bool $searchable         = true;
+    protected bool $visible            = true;
+    protected ?string $data            = null;
+    protected bool $exportable         = true;
+    protected ?string $render          = null;
+    protected ?string $defaultContent  = null;
+    protected ?string $field           = null;
+    protected ?string $orderExpression = null;
+    protected bool $globalSearchable   = true;
+    protected array $customOptions     = [];
+    protected ?string $permission      = null;
 
     /**
      * Convenient factory helper used by concrete columns to set their type.
@@ -274,6 +275,24 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
         $this->field = $field;
 
         return $this;
+    }
+
+    /**
+     * Override the ORDER BY expression for this column (raw DQL or a SELECT alias).
+     *
+     * Bypasses the default "<alias>.<field>" resolution — use for computed columns
+     * backed by an addSelect(... AS HIDDEN alias) in customizeQueryBuilder().
+     */
+    public function setOrderExpression(string $orderExpression): static
+    {
+        $this->orderExpression = $orderExpression;
+
+        return $this;
+    }
+
+    public function getOrderExpression(): ?string
+    {
+        return $this->orderExpression;
     }
 
     public function hideWhenUpdating(bool $hidden = true): static

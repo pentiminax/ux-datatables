@@ -305,6 +305,11 @@ final class ColumnResolverTest extends TestCase
                 return $this;
             }
 
+            public function getOrderExpression(): ?string
+            {
+                return null;
+            }
+
             public function setVisible(bool $visible): static
             {
                 return $this;
