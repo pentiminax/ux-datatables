@@ -30,9 +30,9 @@ final class OrderFilter implements QueryFilterInterface
             return;
         }
 
-        $qb->addOrderBy(
-            RelationFieldResolver::resolve($qb, $context->alias, $column->getField()),
-            $order->dir
-        );
+        $expr = $column->getOrderExpression()
+            ?? RelationFieldResolver::resolve($qb, $context->alias, $column->getField());
+
+        $qb->addOrderBy($expr, $order->dir);
     }
 }

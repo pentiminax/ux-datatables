@@ -73,6 +73,23 @@ $column
     ->disableGlobalSearch();          // Exclude from global search
 ```
 
+#### Sorting on a custom expression
+
+By default, server-side ordering targets `<alias>.<field>`. For a **computed column** — one
+backed by a `SELECT` alias instead of a mapped entity field — that resolution fails
+(`has no field or association named …`). Use `setOrderExpression()` to provide the raw DQL
+expression or SELECT alias used verbatim in the `ORDER BY`, bypassing the default resolution:
+
+```php
+NumberColumn::new('invoiceCount', 'Invoices')
+    ->setOrderExpression('invoiceCount') // a SELECT alias added in customizeQueryBuilder()
+    ->setSearchable(false)
+    ->disableGlobalSearch();
+```
+
+See [Sorting computed columns](/ux-datatables/guide/server-side-processing/#sorting-computed-columns)
+for the matching `customizeQueryBuilder()` setup.
+
 ### Cell Type
 
 ```php

@@ -69,6 +69,30 @@ final class OrderFilterTest extends TestCase
     }
 
     #[Test]
+    public function it_uses_order_expression_verbatim_when_set(): void
+    {
+        $filter = new OrderFilter();
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->expects($this->never())->method('leftJoin');
+
+        // Raw SELECT alias — no "e." prefix, no join resolution.
+        $qb->expects($this->once())
+            ->method('addOrderBy')
+            ->with('invoiceCount', 'desc');
+
+        $column        = TextColumn::new('invoiceCount', 'Invoices')->setOrderExpression('invoiceCount');
+        $requestColumn = new Column('invoiceCount', 'invoiceCount', false, true);
+        $columns       = new Columns(['invoiceCount' => $requestColumn]);
+        $order         = new Order(0, 'desc', 'invoiceCount');
+
+        $request = new DataTableRequest(1, $columns, order: [$order]);
+        $context = new QueryFilterContext($request, [$column], 'e');
+
+        $filter->apply($qb, $context);
+    }
+
+    #[Test]
     public function it_applies_order_with_dot_notation_field(): void
     {
         $filter = new OrderFilter();

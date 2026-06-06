@@ -166,6 +166,60 @@ protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $req
 
 The forwarded values are a snapshot taken when the page renders and are sent unchanged on every paging/search/sort reload. Only parameters actually present in the request are forwarded. This works with automatic Ajax and with manual `ajax()` / `ajaxRequestData()`; it is not applied in API Platform mode.
 
+## Sorting Computed Columns
+
+Server-side ordering resolves a column to `<alias>.<field>` and runs `ORDER BY` on it. A column
+whose value is **computed** (an aggregate, a count, a derived expression) has no matching entity
+field, so Doctrine throws:
+
+```
+[Semantical Error] line 0, col … near 'invoiceCount':
+Error: Class App\Entity\Customer has no field or association named invoiceCount
+```
+
+To sort such a column in the database, expose the value as a `SELECT` alias and tell the column to
+order by it:
+
+1. In `customizeQueryBuilder()`, add the aggregate with `addSelect(... AS HIDDEN <alias>)`. The
+   `HIDDEN` keyword keeps the scalar out of the hydrated result, so entity hydration (and any page
+   projector) is unaffected — the alias exists only for `ORDER BY`.
+2. On the column, call `setOrderExpression('<alias>')` so `OrderFilter` uses the alias verbatim
+   instead of `<alias>.<field>`.
+
+```php
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Doctrine\ORM\QueryBuilder;
+
+public function configureColumns(): iterable
+{
+    yield NumberColumn::new('invoiceCount', 'Invoices')
+        ->setOrderExpression('invoiceCount') // matches the HIDDEN alias below
+        ->setSearchable(false)               // search would still resolve e.invoiceCount → error
+        ->disableGlobalSearch();
+}
+
+protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+{
+    return $qb->addSelect(
+        '(SELECT COUNT(inv.id) FROM App\Entity\Invoice inv WHERE inv.customer = e.id) AS HIDDEN invoiceCount'
+    );
+}
+```
+
+Prefer a **correlated scalar subquery** (as above) over a `leftJoin` + `groupBy`: joining a
+to-many relation inflates the counts (cartesian product) and changes pagination. A scalar subquery
+keeps one row per root entity, so `LIMIT`/`OFFSET` paginate correctly.
+
+<Aside type="note">
+`setOrderExpression()` only affects ordering. Searching/filtering still resolve `<alias>.<field>`,
+so disable both `setSearchable(false)` and `disableGlobalSearch()` on computed columns unless the
+underlying field is also selectable.
+</Aside>
+
+The count query the provider builds for `recordsFiltered` resets the `SELECT` and `ORDER BY` parts,
+so the `HIDDEN` alias and `ORDER BY` are dropped there automatically — no extra handling needed.
+
 ## Best Practices
 
 - Use `isRequestHandled()` instead of `$request->isXmlHttpRequest()`.
