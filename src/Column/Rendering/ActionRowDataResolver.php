@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use Symfony\Component\PropertyAccess\Exception\ExceptionInterface as PropertyAccessExceptionInterface;
 use Symfony\Component\PropertyAccess\PropertyAccess;
@@ -35,6 +36,10 @@ final class ActionRowDataResolver
     {
         if (\array_key_exists(self::ROW_ACTIONS_KEY, $row)) {
             return $row;
+        }
+
+        if ($sourceRow instanceof RowContext) {
+            $sourceRow = $sourceRow->source;
         }
 
         $actions = [];

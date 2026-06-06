@@ -6,11 +6,12 @@ namespace Pentiminax\UX\DataTables\Column\Rendering;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
+use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use Twig\Environment;
 
 final class TemplateColumnRenderer
 {
-    public const array RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row'];
+    public const array RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row', 'source', 'item'];
 
     public function __construct(
         private readonly ?Environment $twig = null,
@@ -25,19 +26,24 @@ final class TemplateColumnRenderer
         $renderedRow = $row;
         $contextRow  = $row;
 
+        $source = $mappedRow instanceof RowContext ? $mappedRow->source : $mappedRow;
+        $item   = $mappedRow instanceof RowContext ? $mappedRow->item : $mappedRow;
+
         foreach ($columns as $column) {
             if (!$column instanceof TemplateAwareColumnInterface) {
                 continue;
             }
 
             $field = $column->getField();
-            $data  = $this->resolveData(mappedRow: $mappedRow, row: $contextRow, field: $field);
+            $data  = $this->resolveData(mappedRow: $item, row: $contextRow, field: $field);
 
             $context = [
-                'entity' => $mappedRow,
+                'entity' => $item,
                 'data'   => $data,
                 'column' => $column->jsonSerialize(),
                 'row'    => $contextRow,
+                'source' => $source,
+                'item'   => $item,
             ];
 
             foreach ($column->getTemplateParameters() as $key => $value) {

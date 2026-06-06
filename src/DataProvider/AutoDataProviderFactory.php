@@ -25,6 +25,7 @@ final class AutoDataProviderFactory
         ?AsDataTable $asDataTable,
         RowMapperInterface $rowMapper,
         callable $configureQueryBuilder,
+        ?\Closure $pageProjector = null,
     ): ?DataProviderInterface {
         if (null === $asDataTable) {
             return null;
@@ -39,6 +40,7 @@ final class AutoDataProviderFactory
             entityClass: $asDataTable->entityClass,
             rowMapper: $rowMapper,
             configureQueryBuilder: $configureQueryBuilder,
+            pageProjector: $pageProjector,
         );
     }
 }

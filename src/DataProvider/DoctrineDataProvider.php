@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
+use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
 class DoctrineDataProvider implements DataProviderInterface
 {
@@ -19,16 +20,19 @@ class DoctrineDataProvider implements DataProviderInterface
         private readonly RowMapperInterface $rowMapper,
         /** @var callable(QueryBuilder, DataTableRequest):QueryBuilder|null */
         private $configureQueryBuilder = null,
+        /** @var (\Closure(list<object>):(list<mixed>|null))|null */
+        private readonly ?\Closure $pageProjector = null,
     ) {
     }
 
     public function fetchData(DataTableRequest $request): DataTableResult
     {
-        $alias = 'e';
+        $alias     = 'e';
+        $countExpr = "COUNT($alias)";
 
         $countQb = $this->em
             ->createQueryBuilder()
-            ->select("COUNT($alias)")
+            ->select($countExpr)
             ->from($this->entityClass, $alias);
 
         $recordsTotal = (int) $countQb->getQuery()->getSingleScalarResult();
@@ -44,7 +48,7 @@ class DoctrineDataProvider implements DataProviderInterface
 
         $filteredCountQb = clone $qb;
         $filteredCount   = (int) $filteredCountQb
-            ->select("COUNT($alias)")
+            ->select($countExpr)
             ->resetDQLPart('orderBy')
             ->getQuery()
             ->getSingleScalarResult();
@@ -57,11 +61,20 @@ class DoctrineDataProvider implements DataProviderInterface
             $qb->setMaxResults($request->length);
         }
 
-        $items = $qb->getQuery()->getResult();
+        $items         = array_values($qb->getQuery()->getResult());
+        $pageProjector = $this->pageProjector;
+        $projectedRaw  = null !== $pageProjector ? ($pageProjector)($items) : null;
+        $projected     = null === $projectedRaw ? null : array_values($projectedRaw);
 
-        $rows = (function () use ($items) {
-            foreach ($items as $item) {
-                yield $this->rowMapper->map($item);
+        if (null !== $projected && \count($projected) !== \count($items)) {
+            throw new \LogicException(\sprintf('Page projector returned %d items for a source page containing %d items. Projectors must preserve page size and order.', \count($projected), \count($items)));
+        }
+
+        $rows = (function () use ($items, $projected) {
+            foreach ($items as $index => $item) {
+                yield $this->rowMapper->map(
+                    null === $projected ? $item : new RowContext($item, $projected[$index]),
+                );
             }
         })();
 
