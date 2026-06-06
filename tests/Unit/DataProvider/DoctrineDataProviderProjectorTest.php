@@ -36,7 +36,10 @@ final class DoctrineDataProviderProjectorTest extends TestCase
             paths: [__DIR__.'/../../Fixtures/Count'],
             isDevMode: true,
         );
-        $config->enableNativeLazyObjects(true);
+
+        if (\PHP_VERSION_ID >= 80400) {
+            $config->enableNativeLazyObjects(true);
+        }
 
         $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true], $config);
         $this->em   = new EntityManager($connection, $config);
