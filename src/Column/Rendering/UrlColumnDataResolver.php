@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Column\Rendering;
 
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class UrlColumnDataResolver
@@ -22,6 +23,10 @@ final class UrlColumnDataResolver
      */
     public function resolveRow(array $row, mixed $sourceRow, iterable $columns): array
     {
+        if ($sourceRow instanceof RowContext) {
+            $sourceRow = $sourceRow->source;
+        }
+
         $urls = [];
 
         foreach ($columns as $column) {

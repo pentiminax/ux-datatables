@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -167,6 +168,31 @@ final class TemplateColumnRendererTest extends TestCase
         );
 
         $this->assertSame('verified-42-status_display', $row['status']);
+    }
+
+    #[Test]
+    public function it_exposes_projected_item_and_original_source_for_a_row_context(): void
+    {
+        $twig = new Environment(new ArrayLoader([
+            'column.html.twig' => '{{ item.getStatus() }}|{{ source.getStatus() }}|{{ entity.getStatus() }}',
+        ]));
+
+        $renderer = new TemplateColumnRenderer($twig);
+        $columns  = [
+            TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig'),
+        ];
+
+        $source = new TemplateEntity(id: 1, status: 'raw');
+        $item   = new TemplateEntity(id: 1, status: 'projected');
+
+        $row = $renderer->renderRow(
+            row: ['id' => 1],
+            mappedRow: new RowContext($source, $item),
+            columns: $columns
+        );
+
+        // entity (back-compat) and item both resolve to the projected DTO; source stays the original.
+        $this->assertSame('projected|raw|projected', $row['status']);
     }
 }
 

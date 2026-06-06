@@ -58,16 +58,18 @@ final class DataTableRuntimeFactory
         \Closure $baseMapper,
         \Closure $manualDataProviderFactory,
         callable $configureQueryBuilder,
+        ?\Closure $pageProjector = null,
     ): DataTableRuntime {
         $rowMapper = $this->createRowMapper($baseMapper, $columns);
 
         return new DataTableRuntime(
             table: $table,
             dataProviderFactory: fn (): ?DataProviderInterface => $this->createDataProvider(
-                $manualDataProviderFactory,
-                $asDataTable,
-                $rowMapper,
-                $configureQueryBuilder,
+                manualDataProviderFactory: $manualDataProviderFactory,
+                asDataTable: $asDataTable,
+                rowMapper: $rowMapper,
+                configureQueryBuilder: $configureQueryBuilder,
+                pageProjector: $pageProjector,
             ),
         );
     }
@@ -77,12 +79,14 @@ final class DataTableRuntimeFactory
         ?AsDataTable $asDataTable,
         RowMapperInterface $rowMapper,
         callable $configureQueryBuilder,
+        ?\Closure $pageProjector = null,
     ): ?DataProviderInterface {
         return $this->getDataProviderResolver()->resolve(
             manualDataProvider: $manualDataProviderFactory(),
             asDataTable: $asDataTable,
             rowMapper: $rowMapper,
             configureQueryBuilder: $configureQueryBuilder,
+            pageProjector: $pageProjector,
         );
     }
 

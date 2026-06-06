@@ -309,6 +309,23 @@ abstract class AbstractDataTable
         return null;
     }
 
+    /**
+     * Transform a complete, already-paginated page of source entities.
+     *
+     * Override to batch-enrich the page (load metrics, project to DTOs) without an N+1.
+     * Return null (the default) to disable projection. When projecting, the returned list
+     * must preserve the count and order of $items: columns and Twig then read the projected
+     * item, while actions still receive the source entity.
+     *
+     * @param list<mixed> $items
+     *
+     * @return list<mixed>|null
+     */
+    protected function projectPage(array $items): ?array
+    {
+        return null;
+    }
+
     final protected function createRowMapper(): RowMapperInterface
     {
         $this->initialize();
@@ -377,6 +394,7 @@ abstract class AbstractDataTable
             baseMapper: $this->mapRow(...),
             manualDataProviderFactory: $this->createDataProvider(...),
             configureQueryBuilder: $this->configureQueryBuilder(...),
+            pageProjector: $this->projectPage(...),
         );
     }
 
