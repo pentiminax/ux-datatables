@@ -20,6 +20,10 @@ final class DefaultRowMapper implements RowMapperInterface
 
     public function map(mixed $row): array
     {
+        if ($row instanceof RowContext) {
+            $row = $row->item;
+        }
+
         if (\is_array($row)) {
             return $row;
         }
