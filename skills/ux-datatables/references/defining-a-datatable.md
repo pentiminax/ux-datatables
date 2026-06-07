@@ -74,6 +74,35 @@ protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $req
 
 The root alias is `e`. The bundle's search/order filters run *after* this hook via `QueryFilterChain`. To register custom search strategies, override `createSearchStrategyRegistry()`.
 
+## Page projection (server-side)
+
+To enrich or map a **whole page at once** — batch-load metrics, project entities to DTOs — without an N+1, override `projectPage()`. It receives the already-paginated, hydrated page and returns the projected list:
+
+```php
+protected function projectPage(array $items): ?array
+{
+    return array_map(
+        static fn (Customer $c): CustomerListDto => new CustomerListDto(
+            $c->getId(),
+            $c->getName(),
+            'BADGE:'.$c->getName(),   // computed field, only on the DTO
+        ),
+        $items,
+    );
+}
+```
+
+Then a column simply reads the DTO field: `yield TextColumn::new('badge');`.
+
+Rules and routing:
+
+- Return `null` (the default) to disable projection. The returned list **must preserve the count and order** of `$items` — otherwise a `LogicException` is thrown.
+- When a projector is active, the bundle pairs each source entity with its projected item (`RowContext`, `src/RowMapper/RowContext.php`) and routes them:
+  - **Columns + Twig rendering** read the **projected** item (the DTO).
+  - **Actions, `UrlColumn`, and `permission()`** receive the **source** entity.
+  - Without a projector, both reference the same value.
+- A projected/computed column has no DB counterpart: mark it `->setOrderable(false)->setSearchable(false)`, or sort it via `->setOrderExpression(...)` backed by an `addSelect(... AS HIDDEN ...)` — see `references/server-side.md`.
+
 ## Maker
 
 ```bash

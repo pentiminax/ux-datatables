@@ -38,3 +38,9 @@ Static `permission()` on actions/columns is evaluated server-side before seriali
 
 ## `ButtonType::COLUMN_VISIBILITY`
 The enum case is `COLUMN_VISIBILITY` (serialized value `'colvis'`), not `COL_VIS`.
+
+## `projectPage()` must preserve page size and order
+A page projector that returns a different count (or reordered rows) throws `LogicException`. Map one-to-one. Remember the split: columns/Twig read the projected DTO, but actions/`UrlColumn`/`permission()` still receive the **source** entity — don't move identifiers needed by actions into the DTO only.
+
+## Sorting a computed column needs `setOrderExpression()`
+A column with no real entity property (e.g. an `addSelect(... AS HIDDEN <alias>)` subquery) can't sort via the default `<alias>.<field>` — it resolves to a nonexistent `e.<field>` and errors. Either `->setOrderExpression('<alias>')` (and `->setSearchable(false)`), or `->setOrderable(false)->setSearchable(false)`.

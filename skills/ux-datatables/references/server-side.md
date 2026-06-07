@@ -87,6 +87,29 @@ protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $req
 
 Values are a **snapshot** taken when the page renders (sent unchanged on every paging/search/sort reload); only params present in the request are forwarded. Works with Auto Ajax and manual `ajax()` / `ajaxRequestData()` alike. Not applied in API Platform mode.
 
+## Computed / sorted columns
+
+A column backed by a subquery (not a real entity property) can't be sorted by the default `<alias>.<field>` resolution. Add the value as a `HIDDEN` select alias in `customizeQueryBuilder()` and point the column's ORDER BY at that alias with `setOrderExpression()`:
+
+```php
+public function configureColumns(): iterable
+{
+    yield NumberColumn::new('invoiceCount', 'Invoices')
+        ->setOrderExpression('invoiceCount') // matches the HIDDEN alias below
+        ->setSearchable(false)               // search would still resolve e.invoiceCount → error
+        ->disableGlobalSearch();
+}
+
+protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+{
+    return $qb->addSelect(
+        '(SELECT COUNT(inv.id) FROM App\Entity\Invoice inv WHERE inv.customer = e.id) AS HIDDEN invoiceCount'
+    );
+}
+```
+
+`setOrderExpression()` is injected **verbatim** into `ORDER BY` (raw DQL or a SELECT alias), bypassing the default `<alias>.<field>` resolution. Unset, the column falls back to `e.<field>`.
+
 ## Frontend hooks (Stimulus)
 
 The controller is registered as `@pentiminax/ux-datatables/datatable` and dispatches events with the `datatables` prefix. Attach a custom controller via `render_datatable(table, {'data-controller': 'my-table'})` and listen:
