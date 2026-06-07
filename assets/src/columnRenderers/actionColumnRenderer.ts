@@ -11,8 +11,6 @@ export const actionColumnRenderer: ColumnRenderer = {
     configure(column: Record<string, any>): void {
         const actions = column.actions as ActionConfig[]
 
-        column.columnControl = []
-
         column.render = (data: any, type: string, row: Record<string, any>): string => {
             if (type !== 'display') {
                 return ''

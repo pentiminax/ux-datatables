@@ -57,6 +57,19 @@ final class AbstractColumnTest extends TestCase
         $this->assertNull($column->getDefaultContent());
         $this->assertSame([], $column->getCustomOptions());
         $this->assertNull($column->getCustomOption('unknown'));
+        $this->assertArrayNotHasKey('columnControl', $column->jsonSerialize());
+    }
+
+    #[Test]
+    public function it_can_disable_column_control_without_disabling_search(): void
+    {
+        $column = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('foo');
+
+        $this->assertSame($column, $column->disableColumnControl());
+        $this->assertTrue($column->isSearchable());
+        $this->assertSame([], $column->jsonSerialize()['columnControl']);
     }
 
     #[Test]
