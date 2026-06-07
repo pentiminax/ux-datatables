@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column;
 
+use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Model\Actions;
@@ -29,6 +30,8 @@ class ActionColumn extends AbstractColumn implements ActionsProvidingColumnInter
         $this
             ->setName($name)
             ->setTitle($title)
+            ->setData(ActionRowDataResolver::ROW_ACTIONS_KEY)
+            ->setDefaultContent('')
             ->setOrderable(false)
             ->setSearchable(false)
             ->disableGlobalSearch()
@@ -45,7 +48,8 @@ class ActionColumn extends AbstractColumn implements ActionsProvidingColumnInter
     public function jsonSerialize(): array
     {
         return array_merge(parent::jsonSerialize(), [
-            'actions' => $this->actions?->jsonSerialize(),
+            'actions'            => $this->actions?->jsonSerialize(),
+            'responsivePriority' => 1,
         ]);
     }
 }

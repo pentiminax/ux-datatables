@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\RowMapper;
 
+use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
+use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -134,6 +138,29 @@ final class DefaultRowMapperTest extends TestCase
         $result = $mapper->map($row);
 
         $this->assertInstanceOf(\DateTimeImmutable::class, $result['createdAt']);
+    }
+
+    #[Test]
+    public function it_does_not_pre_insert_actions_key_for_action_columns(): void
+    {
+        $actions      = (new Actions())->add(Action::detail());
+        $actionColumn = ActionColumn::fromActions('actions', 'Actions', $actions);
+        $mapper       = new DefaultRowMapper([
+            TextColumn::new('name', 'Name'),
+            $actionColumn,
+        ]);
+
+        $row = new class {
+            public function getName(): string
+            {
+                return 'Alice';
+            }
+        };
+
+        $result = $mapper->map($row);
+
+        $this->assertSame(['name' => 'Alice'], $result);
+        $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
     }
 
     #[Test]

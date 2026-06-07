@@ -36,6 +36,8 @@ final class ActionColumnTest extends TestCase
 
         $this->assertSame('actions', $data['name']);
         $this->assertSame('Actions', $data['title']);
+        $this->assertSame('__ux_datatables_actions', $data['data']);
+        $this->assertSame(1, $data['responsivePriority']);
         $this->assertSame('bookActions', $data['field']);
         $this->assertFalse($data['visible']);
         $this->assertSame('not-exportable', $data['className']);
