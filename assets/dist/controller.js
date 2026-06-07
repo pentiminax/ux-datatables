@@ -6,6 +6,7 @@ import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js';
 import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
+import { normalizeDisabledColumnControls } from './functions/columnControl.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
 import { ExtensionRegistry } from './functions/extensionRegistry.js';
@@ -129,6 +130,7 @@ class default_1 extends Controller {
         }
     }
     configureColumns(payload) {
+        normalizeDisabledColumnControls(payload);
         const columnRenderers = [
             createBooleanColumnRenderer(this.getBooleanToggleUrl()),
             choiceColumnRenderer,

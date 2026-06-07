@@ -8,6 +8,7 @@ import type { ColumnRenderer } from './columnRenderers/types.js'
 import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 import { ApiPlatformAdapter, type ColumnConfig } from './functions/apiPlatformAdapter.js'
+import { normalizeDisabledColumnControls } from './functions/columnControl.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
 import { ExtensionRegistry } from './functions/extensionRegistry.js'
@@ -177,6 +178,8 @@ export default class extends Controller {
     }
 
     private configureColumns(payload: Record<string, any>): void {
+        normalizeDisabledColumnControls(payload)
+
         const columnRenderers: ColumnRenderer[] = [
             createBooleanColumnRenderer(this.getBooleanToggleUrl()),
             choiceColumnRenderer,
