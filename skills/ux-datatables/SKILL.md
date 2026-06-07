@@ -70,9 +70,9 @@ Scaffold from an entity: `php bin/console make:datatable`.
 
 ## References (read on demand)
 
-- `references/defining-a-datatable.md` — `AbstractDataTable`, `#[AsDataTable]`, the `configure*()` hooks, data providers, `customizeQueryBuilder()`.
+- `references/defining-a-datatable.md` — `AbstractDataTable`, `#[AsDataTable]`, the `configure*()` hooks, data providers, `customizeQueryBuilder()`, page projection (`projectPage()`).
 - `references/columns.md` — all 11 column types + shared `AbstractColumn` methods.
-- `references/server-side.md` — server-side wiring, route import, Stimulus events, custom Ajax.
+- `references/server-side.md` — server-side wiring, route import, Stimulus events, custom Ajax, computed columns (`setOrderExpression()`).
 - `references/extensions.md` — Buttons, Select, Responsive, ColumnControl, Scroller, KeyTable, ColReorder, FixedColumns.
 - `references/actions.md` — row actions, permissions, conditional display.
 - `references/api-platform.md` — API Platform + Mercure integration (both opt-in).
