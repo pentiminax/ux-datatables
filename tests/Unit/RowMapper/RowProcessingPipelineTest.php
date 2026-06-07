@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\RowStageInterface;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
 use Pentiminax\UX\DataTables\RowMapper\Stage\ActionResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
@@ -136,6 +137,40 @@ final class RowProcessingPipelineTest extends TestCase
         $mappedRow = $pipeline->map(['id' => 8]);
 
         $this->assertSame('/movies/8', $mappedRow['__ux_datatables_actions']['DETAIL']['url']);
+    }
+
+    #[Test]
+    public function it_resolves_detail_url_when_default_mapper_handles_object_rows_with_action_column(): void
+    {
+        $actions = (new Actions())
+            ->add(Action::detail()->linkToUrl(static fn (object $row): string => '/movies/'.$row->getId()));
+
+        $columns = [
+            TextColumn::new('title', 'Title'),
+            ActionColumn::fromActions('actions', 'Actions', $actions),
+        ];
+
+        $pipeline = (new RowProcessingPipeline(
+            baseMapper: (new DefaultRowMapper($columns))->map(...),
+            columns: $columns,
+        ))->add(new ActionResolutionStage(new ActionRowDataResolver()));
+
+        $row = new class {
+            public function getId(): int
+            {
+                return 42;
+            }
+
+            public function getTitle(): string
+            {
+                return 'Alien';
+            }
+        };
+
+        $mappedRow = $pipeline->map($row);
+
+        $this->assertSame('Alien', $mappedRow['title']);
+        $this->assertSame('/movies/42', $mappedRow['__ux_datatables_actions']['DETAIL']['url']);
     }
 
     #[Test]

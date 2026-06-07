@@ -154,7 +154,6 @@ final class AbstractDataTableMapRowTest extends TestCase
             [
                 'id'                      => 11,
                 'title'                   => 'Blade Runner',
-                'actions'                 => null,
                 '__ux_datatables_actions' => [
                     'DETAIL' => ['url' => '/movies/11'],
                 ],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\RowMapper;
 
 use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
+use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 
@@ -44,6 +45,10 @@ final class DefaultRowMapper implements RowMapperInterface
         $mapped = [];
 
         foreach ($this->columns as $column) {
+            if ($column instanceof ActionsProvidingColumnInterface) {
+                continue;
+            }
+
             $key = $this->resolveColumnKey($column);
             if (null === $key) {
                 continue;
