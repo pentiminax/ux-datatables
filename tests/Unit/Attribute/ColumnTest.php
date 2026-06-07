@@ -32,7 +32,6 @@ final class ColumnTest extends TestCase
         $this->assertNull($attr->width);
         $this->assertNull($attr->className);
         $this->assertNull($attr->cellType);
-        $this->assertNull($attr->render);
         $this->assertNull($attr->defaultContent);
         $this->assertNull($attr->field);
         $this->assertNull($attr->format);
@@ -54,7 +53,6 @@ final class ColumnTest extends TestCase
             width: '120px',
             className: 'text-right',
             cellType: 'th',
-            render: 'renderPrice',
             defaultContent: 'N/A',
             field: 'product.price',
             format: 'Y-m-d',
@@ -72,7 +70,6 @@ final class ColumnTest extends TestCase
         $this->assertSame('120px', $attr->width);
         $this->assertSame('text-right', $attr->className);
         $this->assertSame('th', $attr->cellType);
-        $this->assertSame('renderPrice', $attr->render);
         $this->assertSame('N/A', $attr->defaultContent);
         $this->assertSame('product.price', $attr->field);
         $this->assertSame('Y-m-d', $attr->format);

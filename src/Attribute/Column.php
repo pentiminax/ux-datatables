@@ -19,7 +19,6 @@ final class Column
         public readonly ?string $width = null,
         public readonly ?string $className = null,
         public readonly ?string $cellType = null,
-        public readonly ?string $render = null,
         public readonly ?string $defaultContent = null,
         public readonly ?string $field = null,
         public readonly ?string $format = null,

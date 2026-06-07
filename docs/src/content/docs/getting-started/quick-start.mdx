@@ -120,15 +120,17 @@ $table = $builder
 ### Customize Column Behavior
 
 ```php
+use Pentiminax\UX\DataTables\Column\EmailColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
 $nameColumn = TextColumn::new('name', 'Name')
     ->setClassName('fw-bold')
     ->setOrderable(true)
     ->setSearchable(true)
     ->setWidth('200px');
 
-$emailColumn = TextColumn::new('email', 'Email')
-    ->setOrderable(true)
-    ->setRender('function(data) { return "<a href=\"mailto:" + data + "\">" + data + "</a>"; }');
+$emailColumn = EmailColumn::new('email', 'Email')
+    ->setOrderable(true);
 ```
 
 ## Using AbstractDataTable

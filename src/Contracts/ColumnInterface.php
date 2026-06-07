@@ -44,8 +44,6 @@ interface ColumnInterface extends \JsonSerializable
 
     public function getCellType(): ?string;
 
-    public function getRender(): ?string;
-
     public function getDefaultContent(): ?string;
 
     public function getCustomOption(string $optionName): mixed;

@@ -44,12 +44,22 @@ NumberColumn::new('revenue', 'Revenue')
 
 ## Custom JS Rendering
 
-Use `setRender()` to format numbers client-side:
+Attach a real JavaScript callback through the `datatables:pre-connect` event:
 
-```php
-NumberColumn::new('price', 'Price')
-    ->setRender('function(data) { return "$" + parseFloat(data).toFixed(2); }');
+```javascript
+this.element.addEventListener('datatables:pre-connect', (event) => {
+  const priceColumn = event.detail.config.columns.find(
+    (column) => column.name === 'price'
+  )
+
+  if (priceColumn) {
+    priceColumn.render = (data, type) =>
+      type === 'display' ? `${Number(data).toFixed(2)} €` : data
+  }
+})
 ```
+
+Returning the raw value for sorting and filtering preserves numeric behavior.
 
 ## API Reference
 
@@ -78,8 +88,7 @@ final class ProductsDataTable extends AbstractDataTable
         yield NumberColumn::new('id', 'ID')->setWidth('60px');
         yield TextColumn::new('name', 'Product');
         yield NumberColumn::new('stock', 'Stock');
-        yield NumberColumn::new('price', 'Price')
-            ->setRender('function(data) { return "€" + parseFloat(data).toFixed(2); }');
+        yield NumberColumn::new('price', 'Price');
     }
 
     protected function mapRow(mixed $item): array
@@ -96,6 +105,6 @@ final class ProductsDataTable extends AbstractDataTable
 
 <Aside type="note">
   `NumberColumn` uses the `num` DataTables type. Sorting is numeric; searching compares raw values.
-  For monetary display, combine with `setRender()` — but keep the raw numeric value in `mapRow()`
-  so sorting works correctly.
+  Keep the raw numeric value in `mapRow()` and format display values client-side so sorting
+  remains numeric.
 </Aside>

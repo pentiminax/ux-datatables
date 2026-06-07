@@ -54,7 +54,6 @@ final class AbstractColumnTest extends TestCase
         $this->assertNull($column->getWidth());
         $this->assertNull($column->getClassName());
         $this->assertNull($column->getCellType());
-        $this->assertNull($column->getRender());
         $this->assertNull($column->getDefaultContent());
         $this->assertSame([], $column->getCustomOptions());
         $this->assertNull($column->getCustomOption('unknown'));
@@ -72,7 +71,6 @@ final class AbstractColumnTest extends TestCase
             ->setWidth('120px')
             ->setClassName('text-center')
             ->setCellType('th')
-            ->setRender('renderDate')
             ->setDefaultContent('—');
 
         $column->setCustomOption('highlight', true);
@@ -84,7 +82,6 @@ final class AbstractColumnTest extends TestCase
         $this->assertSame('120px', $column->getWidth());
         $this->assertSame('text-center', $column->getClassName());
         $this->assertSame('th', $column->getCellType());
-        $this->assertSame('renderDate', $column->getRender());
         $this->assertSame('—', $column->getDefaultContent());
         $this->assertSame(['highlight' => true], $column->getCustomOptions());
         $this->assertTrue($column->getCustomOption('highlight'));

@@ -147,7 +147,7 @@ final class AttributeColumnReaderTest extends TestCase
         $this->assertSame('120px', $data['width']);
         $this->assertSame('text-center not-exportable', $data['className']);
         $this->assertSame('th', $data['cellType']);
-        $this->assertSame('renderFn', $data['render']);
+        $this->assertArrayNotHasKey('render', $data);
         $this->assertSame('N/A', $data['defaultContent']);
         $this->assertFalse($column->isExportable());
         $this->assertFalse($column->isGlobalSearchable());
@@ -260,7 +260,6 @@ final class OptionsFixture
         width: '120px',
         className: 'text-center',
         cellType: 'th',
-        render: 'renderFn',
         defaultContent: 'N/A',
     )]
     public string $value = '';

@@ -380,11 +380,6 @@ final class ColumnResolverTest extends TestCase
                 return null;
             }
 
-            public function getRender(): ?string
-            {
-                return null;
-            }
-
             public function getDefaultContent(): ?string
             {
                 return null;

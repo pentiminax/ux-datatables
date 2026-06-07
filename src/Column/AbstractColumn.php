@@ -24,7 +24,6 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
     protected bool $visible            = true;
     protected ?string $data            = null;
     protected bool $exportable         = true;
-    protected ?string $render          = null;
     protected ?string $defaultContent  = null;
     protected ?string $field           = null;
     protected ?string $orderExpression = null;
@@ -171,16 +170,6 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
     }
 
     /**
-     * Register a JavaScript render callback (stringified function name/body).
-     */
-    public function setRender(?string $render): static
-    {
-        $this->render = $render;
-
-        return $this;
-    }
-
-    /**
      * Define a fallback content when the data source is null or missing.
      */
     public function setDefaultContent(?string $defaultContent): static
@@ -233,11 +222,6 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
     public function getCellType(): ?string
     {
         return $this->cellType;
-    }
-
-    public function getRender(): ?string
-    {
-        return $this->render;
     }
 
     public function getDefaultContent(): ?string
@@ -346,7 +330,6 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
             'defaultContent' => $this->defaultContent,
             'name'           => $this->name,
             'orderable'      => $this->orderable,
-            'render'         => $this->render,
             'searchable'     => $this->searchable,
             'title'          => $this->title,
             'type'           => $this->type->value,

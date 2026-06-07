@@ -98,12 +98,13 @@ $column->setCellType('th');           // Use <th> instead of <td>
 
 ### Custom JS Rendering
 
-Define a DataTables `render` callback (executed client-side):
+Define arbitrary DataTables `render` callbacks client-side with the `datatables:pre-connect`
+event:
 
-```php
-$column->setRender('function(data, type, row) {
-    return "<strong>" + data + "</strong>";
-}');
+```javascript
+this.element.addEventListener('datatables:pre-connect', (event) => {
+  event.detail.config.columns[0].render = (data) => `<strong>${data}</strong>`
+})
 ```
 
 ### Export

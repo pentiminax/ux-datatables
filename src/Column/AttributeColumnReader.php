@@ -89,10 +89,6 @@ final class AttributeColumnReader
             $column->setCellType($attr->cellType);
         }
 
-        if (null !== $attr->render) {
-            $column->setRender($attr->render);
-        }
-
         if (null !== $attr->defaultContent) {
             $column->setDefaultContent($attr->defaultContent);
         }
