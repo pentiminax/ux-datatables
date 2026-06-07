@@ -48,15 +48,14 @@ final class ColumnTypesTest extends TestCase
     }
 
     #[Test]
-    public function it_exposes_render_and_default_content(): void
+    public function it_exposes_default_content_without_a_render_option(): void
     {
         $data = TextColumn::new('username')
             ->setTitle('Username')
-            ->setRender('renderFn')
             ->setDefaultContent('N/A')
             ->jsonSerialize();
 
-        $this->assertSame('renderFn', $data['render']);
+        $this->assertArrayNotHasKey('render', $data);
         $this->assertSame('N/A', $data['defaultContent']);
     }
 

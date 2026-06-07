@@ -36,7 +36,6 @@ TextColumn::new('email', 'Email')
     ->setOrderExpression('invoiceCount')  // raw ORDER BY (DQL/SELECT alias) for a computed column — see server-side.md
     ->setData('user.email')        // data source path (client-side rows)
     ->setField('user.email')       // entity property path (server-side query/sort)
-    ->setRender('function(d,t,r){return d}')  // stringified JS render callback
     ->setDefaultContent('—')       // fallback when value is null/missing
     ->setExportable(false)         // exclude from export (adds 'not-exportable' class)
     ->hideWhenUpdating()           // hide field in the edit modal
@@ -47,5 +46,5 @@ TextColumn::new('email', 'Email')
 Notes:
 - `setField()` vs `setData()`: `field` is the entity/query path used for server-side filtering & ordering; `data` is the JSON path the front-end reads. Set `field` when the displayed property differs from the queried one (e.g. joined relations).
 - `permission()` on a column is evaluated once before serialization — the attribute name is never exposed to the browser.
-- `setRender()` takes a stringified JS function; for richer client-side behavior prefer the Stimulus `datatables:pre-connect` event (see `references/server-side.md`).
+- Define custom JavaScript render callbacks with the Stimulus `datatables:pre-connect` event (see `references/server-side.md`).
 - `setOrderExpression()` is for computed columns sorted on a subquery: pair it with an `addSelect(... AS HIDDEN <alias>)` in `customizeQueryBuilder()` — see `references/server-side.md`.

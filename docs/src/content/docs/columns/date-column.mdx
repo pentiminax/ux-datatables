@@ -34,15 +34,20 @@ $column->setFormat(null);
 
 ## Display Formatting
 
-To display dates in a different format than the raw stored value, use `setRender()` for client-side formatting:
+To display dates in a different format than the raw stored value, attach a renderer through
+the `datatables:pre-connect` event:
 
-```php
-DateColumn::new('createdAt', 'Created')
-    ->setRender('function(data) {
-        if (!data) return "";
-        var d = new Date(data);
-        return d.toLocaleDateString("fr-FR");
-    }');
+```javascript
+this.element.addEventListener('datatables:pre-connect', (event) => {
+  const createdAtColumn = event.detail.config.columns.find(
+    (column) => column.name === 'createdAt'
+  )
+
+  if (createdAtColumn) {
+    createdAtColumn.render = (data) =>
+      data ? new Date(data).toLocaleDateString('fr-FR') : ''
+  }
+})
 ```
 
 ## API Reference

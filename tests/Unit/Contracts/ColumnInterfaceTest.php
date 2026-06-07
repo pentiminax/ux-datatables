@@ -70,7 +70,6 @@ final class ColumnInterfaceTest extends TestCase
             ->setWidth('200px')
             ->setClassName('col-title')
             ->setCellType('th')
-            ->setRender('renderFn')
             ->setDefaultContent('N/A');
 
         $column->setCustomOption('highlight', true);
@@ -85,7 +84,6 @@ final class ColumnInterfaceTest extends TestCase
         $this->assertSame('200px', $interface->getWidth());
         $this->assertSame('col-title', $interface->getClassName());
         $this->assertSame('th', $interface->getCellType());
-        $this->assertSame('renderFn', $interface->getRender());
         $this->assertSame('N/A', $interface->getDefaultContent());
         $this->assertSame(['highlight' => true], $interface->getCustomOptions());
         $this->assertTrue($interface->getCustomOption('highlight'));
