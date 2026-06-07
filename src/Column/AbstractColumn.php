@@ -14,22 +14,23 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnInterface
 {
     protected ColumnType $type;
-    protected ?string $cellType        = null;
-    protected ?string $className       = null;
-    protected ?string $name            = null;
-    protected ?string $width           = null;
-    protected ?string $title           = null;
-    protected bool $orderable          = true;
-    protected bool $searchable         = true;
-    protected bool $visible            = true;
-    protected ?string $data            = null;
-    protected bool $exportable         = true;
-    protected ?string $defaultContent  = null;
-    protected ?string $field           = null;
-    protected ?string $orderExpression = null;
-    protected bool $globalSearchable   = true;
-    protected array $customOptions     = [];
-    protected ?string $permission      = null;
+    protected ?string $cellType          = null;
+    protected ?string $className         = null;
+    protected ?string $name              = null;
+    protected ?string $width             = null;
+    protected ?string $title             = null;
+    protected bool $orderable            = true;
+    protected bool $searchable           = true;
+    protected bool $visible              = true;
+    protected ?string $data              = null;
+    protected bool $exportable           = true;
+    protected ?string $defaultContent    = null;
+    protected ?string $field             = null;
+    protected ?string $orderExpression   = null;
+    protected bool $globalSearchable     = true;
+    protected bool $columnControlEnabled = true;
+    protected array $customOptions       = [];
+    protected ?string $permission        = null;
 
     /**
      * Convenient factory helper used by concrete columns to set their type.
@@ -113,6 +114,16 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
     public function disableGlobalSearch(): static
     {
         $this->globalSearchable = false;
+
+        return $this;
+    }
+
+    /**
+     * Disable all ColumnControl controls for this column.
+     */
+    public function disableColumnControl(): static
+    {
+        $this->columnControlEnabled = false;
 
         return $this;
     }
@@ -323,7 +334,7 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
             $className = trim(\sprintf('%s not-exportable', $className ?? '')) ?: null;
         }
 
-        return array_filter([
+        $options = array_filter([
             'cellType'       => $this->cellType,
             'className'      => $className,
             'data'           => $this->data,
@@ -338,5 +349,11 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
             'field'          => $this->getField(),
             'customOptions'  => $this->customOptions,
         ], static fn (mixed $value) => null !== $value && '' !== $value && [] !== $value);
+
+        if (!$this->columnControlEnabled) {
+            $options['columnControl'] = [];
+        }
+
+        return $options;
     }
 }

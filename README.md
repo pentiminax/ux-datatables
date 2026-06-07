@@ -62,7 +62,11 @@ TextColumn::new('content')->html()->utf8();
 NumberColumn::new('price')->formatted();
 MoneyColumn::new('price')->currency('EUR')->storedAsCents();
 BooleanColumn::new('active')->renderAsSwitch();
+TextColumn::new('internalCode')->disableColumnControl();
 ```
+
+`disableColumnControl()` removes all ColumnControl controls for the column without disabling
+DataTables search processing.
 
 ### 2. Wire it in a controller
 

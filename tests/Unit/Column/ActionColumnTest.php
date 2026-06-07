@@ -41,6 +41,7 @@ final class ActionColumnTest extends TestCase
         $this->assertSame('not-exportable', $data['className']);
         $this->assertFalse($data['orderable']);
         $this->assertFalse($data['searchable']);
+        $this->assertSame([], $data['columnControl']);
         $this->assertCount(1, $data['actions']);
         $this->assertSame('DETAIL', $data['actions'][0]['type']);
         $this->assertSame('/books/42', $data['actions'][0]['url']);

@@ -32,6 +32,7 @@ class ActionColumn extends AbstractColumn implements ActionsProvidingColumnInter
             ->setOrderable(false)
             ->setSearchable(false)
             ->disableGlobalSearch()
+            ->disableColumnControl()
             ->setType(ColumnType::STRING)
             ->setExportable(false);
     }
