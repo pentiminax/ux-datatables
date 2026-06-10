@@ -42,6 +42,7 @@ export interface MoneyCustomOptions {
     storedAsCents?: boolean
     decimals?: number
     locale?: string
+    showCurrencySign?: boolean
 }
 
 export interface EmailCustomOptions {
