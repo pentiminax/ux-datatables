@@ -97,4 +97,32 @@ final class MoneyColumnTest extends TestCase
 
         MoneyColumn::new('price')->decimals(21);
     }
+
+    #[Test]
+    public function it_can_show_currency_sign(): void
+    {
+        $data = MoneyColumn::new('price')
+            ->showCurrencySign()
+            ->jsonSerialize();
+
+        $this->assertTrue($data['customOptions']['showCurrencySign']);
+    }
+
+    #[Test]
+    public function it_can_hide_currency_sign(): void
+    {
+        $data = MoneyColumn::new('price')
+            ->showCurrencySign(false)
+            ->jsonSerialize();
+
+        $this->assertFalse($data['customOptions']['showCurrencySign']);
+    }
+
+    #[Test]
+    public function it_does_not_set_show_currency_sign_by_default(): void
+    {
+        $data = MoneyColumn::new('price')->jsonSerialize();
+
+        $this->assertArrayNotHasKey('showCurrencySign', $data['customOptions']);
+    }
 }
