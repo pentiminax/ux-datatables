@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
+use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\Action;
 use PHPUnit\Framework\TestCase;
@@ -51,11 +52,11 @@ class ActionTest extends TestCase
     public function test_fluent_setters(): void
     {
         $action = Action::delete()
-            ->setLabel('Supprimer')
+            ->label('Supprimer')
             ->setClassName('btn btn-sm btn-danger')
-            ->setIcon('bi bi-trash')
+            ->icon('bi bi-trash')
             ->askConfirmation('Are you sure?')
-            ->setHtmlAttributes(['target' => '_blank'])
+            ->htmlAttributes(['target' => '_blank'])
             ->setIdField('uuid');
 
         $json = $action->jsonSerialize();
@@ -173,5 +174,63 @@ class ActionTest extends TestCase
         $action = Action::delete();
 
         $this->assertSame($action, $action->permission('ROLE_ADMIN'));
+    }
+
+    public function test_collapsible_stores_template_and_parameters(): void
+    {
+        $action = Action::detail()->collapsible('book/detail.html.twig', ['extra' => 'value']);
+
+        $this->assertTrue($action->isCollapsible());
+        $this->assertSame('book/detail.html.twig', $action->getCollapsibleTemplate());
+        $this->assertSame(['extra' => 'value'], $action->getCollapsibleParameters());
+    }
+
+    public function test_action_is_not_collapsible_by_default(): void
+    {
+        $action = Action::detail();
+
+        $this->assertFalse($action->isCollapsible());
+        $this->assertNull($action->getCollapsibleTemplate());
+        $this->assertSame([], $action->getCollapsibleParameters());
+    }
+
+    public function test_collapsible_serializes_flag_without_leaking_template_path(): void
+    {
+        $json = Action::detail()->collapsible('book/detail.html.twig')->jsonSerialize();
+
+        $this->assertTrue($json['collapsible']);
+        $this->assertArrayNotHasKey('collapsibleTemplate', $json);
+        $this->assertArrayNotHasKey('collapsibleParameters', $json);
+    }
+
+    public function test_non_collapsible_action_omits_collapsible_flag(): void
+    {
+        $this->assertArrayNotHasKey('collapsible', Action::detail()->jsonSerialize());
+    }
+
+    public function test_position_is_null_by_default(): void
+    {
+        $this->assertNull(Action::detail()->getPosition());
+    }
+
+    public function test_set_position_overrides_position(): void
+    {
+        $action = Action::detail()->position(ActionsPosition::BeforeColumns);
+
+        $this->assertSame(ActionsPosition::BeforeColumns, $action->getPosition());
+    }
+
+    public function test_set_position_is_chainable(): void
+    {
+        $action = Action::detail();
+
+        $this->assertSame($action, $action->position(ActionsPosition::BeforeColumns));
+    }
+
+    public function test_position_is_not_serialized_to_client(): void
+    {
+        $json = Action::detail()->position(ActionsPosition::BeforeColumns)->jsonSerialize();
+
+        $this->assertArrayNotHasKey('position', $json);
     }
 }

@@ -13,6 +13,7 @@ import { normalizeDisabledColumnControls } from './functions/columnControl.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
 import { ExtensionRegistry } from './functions/extensionRegistry.js'
+import { fetchDetailRow } from './functions/fetchDetailRow.js'
 import { fetchEditForm } from './functions/fetchEditForm.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
 import { submitEditForm } from './functions/submitEditForm.js'
@@ -238,6 +239,34 @@ export default class extends Controller {
                     return
                 }
 
+                if (actionType === 'DETAIL' && entity && id) {
+                    e.preventDefault()
+
+                    const rowElement = actionButton.closest('tr')
+                    const row = rowElement ? this.table?.row(rowElement) : null
+
+                    if (!row) {
+                        return
+                    }
+
+                    if (row.child.isShown()) {
+                        row.child.hide()
+                        actionButton.classList.remove('expanded')
+                        return
+                    }
+
+                    const result = await fetchDetailRow({
+                        entity,
+                        id,
+                        dataTableClass: payload.dataTableClass ?? null,
+                    })
+
+                    if (result.success) {
+                        row.child(result.html).show()
+                        actionButton.classList.add('expanded')
+                    }
+                }
+
                 if (actionType === 'DELETE' && entity && id) {
                     e.preventDefault()
                     const response = await deleteEntity({
@@ -409,4 +438,12 @@ type DataTableWithAjax = DataTable<any> & {
     order: (order: any) => DataTableWithAjax
     page: ((page?: number) => DataTableWithAjax) & { len: (len?: number) => number }
     draw: (resetPaging?: boolean | string) => DataTableWithAjax
+    row: (selector: any) => {
+        data: () => Record<string, any>
+        child: ((content?: any) => { show: () => void; hide: () => void }) & {
+            isShown: () => boolean
+            show: () => void
+            hide: () => void
+        }
+    }
 }
