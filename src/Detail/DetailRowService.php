@@ -45,10 +45,12 @@ final readonly class DetailRowService
             return DetailRowResult::notFound();
         }
 
-        $html = $this->twig->render(
-            (string) $action->getCollapsibleTemplate(),
-            ['entity' => $context->entity] + $action->getCollapsibleParameters(),
-        );
+        $parameters = [
+            'entity' => $context->entity,
+        ];
+
+        $parameters = array_merge($parameters, $action->getCollapsibleParameters());
+        $html       = $this->twig->render($action->getCollapsibleTemplate(), $parameters);
 
         return DetailRowResult::success($html);
     }
