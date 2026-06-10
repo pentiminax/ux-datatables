@@ -26,7 +26,7 @@ public function configureActions(Actions $actions): Actions
 |---------|---------------|---------------|----------|
 | `Action::edit($label='Edit', $class='btn btn-warning')` | Edit | warning | opens the edit modal |
 | `Action::delete($label='Delete', $class='btn btn-danger')` | Delete | danger | deletes the row via Ajax |
-| `Action::detail($label='Detail', $class='btn btn-primary')` | Detail | primary | links to a detail page |
+| `Action::detail($label='Detail', $class='btn btn-primary')` | Detail | primary | links to a detail page, or expands a collapsible child row (see below) |
 
 Only one action per type is kept (`Actions::add()` keys by type).
 
@@ -43,6 +43,8 @@ Action::detail()
     ->displayIf('status', 'draft')             // show only when row.status === 'draft'
     ->linkToUrl(fn (User $u) => '/users/'.$u->getId())  // string | callable
     ->setEntityClass(User::class)              // entity for permission subject
+    ->collapsible('detail.html.twig', [...])   // detail-only: expand into a child row (see below)
+    ->position(ActionsPosition::BeforeColumns) // pin THIS action's column (null = inherit collection)
     ->permission('EDIT', fn (User $u) => $u->getId() !== 1);  // see below
 ```
 
@@ -56,3 +58,40 @@ Action::detail()
 - **Per-row** (with resolver) — evaluated per row; the resolver receives the raw row and returns the voter subject: `->permission('EDIT', fn ($row) => $row)`.
 
 Same model applies to columns (`AbstractColumn::permission()`), but columns only support the static form.
+
+## Collapsible detail rows
+
+`Action::detail()->collapsible($template, $parameters = [])` turns the detail action into an expand/collapse arrow. Clicking it lazily fetches `$template` and injects the result as a DataTables child row. The template receives the located row as `entity`, plus any extra `$parameters`.
+
+```php
+use Pentiminax\UX\DataTables\Enum\ActionsPosition;
+use Pentiminax\UX\DataTables\Model\{Action, Actions};
+
+public function configureActions(Actions $actions): Actions
+{
+    return $actions
+        ->add(
+            Action::detail('')
+                ->icon('fa-solid fa-eye')
+                ->position(ActionsPosition::BeforeColumns)
+                ->collapsible('data_tables/details.html.twig')
+        )
+        ->add(Action::edit())
+        ->add(Action::delete());
+}
+```
+
+- Loaded lazily via `GET /datatables/ajax/detail` (frontend `fetchDetailRow`). **Requires the bundle routes imported** — same import as server-side (see `server-side.md`); without it the toggle does nothing.
+- `collapsible()` is meaningful only on `Action::detail()`. It is mutually exclusive with `linkToUrl()` in practice (an expand toggle, not a link).
+- Template example: `<div>{{ entity.email }}</div>` — `entity` is the resolved Doctrine entity / source row.
+
+## Column position & alignment
+
+`ActionsPosition` (`Pentiminax\UX\DataTables\Enum\ActionsPosition`): `BeforeColumns` (`'before'`), `AfterColumns` (`'after'`, default).
+
+- **Collection-level**: `Actions::position(ActionsPosition::BeforeColumns)` places the whole actions column before/after the data columns.
+- **Per-action**: `Action::position(...)` overrides one action only; `null` (default) inherits the collection position.
+- **Two-column split**: when actions resolve to both positions, **two** columns are produced — `actions_before` (prepended) and `actions` (appended). Typical use: pin a collapsible detail toggle before the data, keep edit/delete after.
+- `position` is a server-side layout concern only — **not** serialized into the client JSON.
+
+`Actions::alignment(ActionsAlignment)` horizontally aligns the action cell. `ActionsAlignment`: `Left`/`Center`/`Right`, applied as a `dt-{value}` CSS class (e.g. `Center` → `dt-center`). Method name is literally `alignment` — use verbatim.
