@@ -4,6 +4,7 @@ import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js'
+import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js'
 import type { ColumnRenderer } from './columnRenderers/types.js'
 import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
@@ -184,6 +185,7 @@ export default class extends Controller {
             createBooleanColumnRenderer(this.getBooleanToggleUrl()),
             choiceColumnRenderer,
             emailColumnRenderer,
+            moneyColumnRenderer,
             imageColumnRenderer,
             urlColumnRenderer,
             actionColumnRenderer,
