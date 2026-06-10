@@ -28,6 +28,39 @@ describe('moneyColumnRenderer', () => {
       expect(column.render(12345, 'display')).toBe('$123.45')
     })
 
+    it('formats without currency sign when showCurrencySign is false', () => {
+      const column: Record<string, any> = {
+        customOptions: {
+          isMoney: true,
+          currency: 'USD',
+          decimals: 2,
+          locale: 'en-US',
+          storedAsCents: true,
+          showCurrencySign: false,
+        },
+      }
+
+      moneyColumnRenderer.configure(column)
+
+      expect(column.render(12345, 'display')).toBe('123.45')
+    })
+
+    it('shows currency sign by default', () => {
+      const column: Record<string, any> = {
+        customOptions: {
+          isMoney: true,
+          currency: 'USD',
+          decimals: 2,
+          locale: 'en-US',
+          storedAsCents: true,
+        },
+      }
+
+      moneyColumnRenderer.configure(column)
+
+      expect(column.render(12345, 'display')).toBe('$123.45')
+    })
+
     it('formats decimal values when amounts are not stored as cents', () => {
       const column: Record<string, any> = {
         customOptions: {

@@ -26,10 +26,11 @@ export const moneyColumnRenderer = {
         const currency = resolveCurrency(customOptions.currency);
         const decimals = resolveDecimals(customOptions.decimals);
         const storedAsCents = false !== customOptions.storedAsCents;
+        const showCurrencySign = false !== customOptions.showCurrencySign;
         const locale = typeof customOptions.locale === 'string' ? customOptions.locale : undefined;
         const formatter = new Intl.NumberFormat(locale ?? navigator.language, {
-            style: 'currency',
-            currency,
+            style: showCurrencySign ? 'currency' : 'decimal',
+            ...(showCurrencySign ? { currency } : {}),
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals,
         });
