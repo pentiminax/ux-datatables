@@ -35,12 +35,12 @@ final class UsersDataTable extends AbstractDataTable
             ->add(
                 Action::edit('Edit')
                     ->setClassName('btn btn-sm btn-warning')
-                    ->setIcon('bi bi-pencil')
+                    ->icon('bi bi-pencil')
             )
             ->add(
                 Action::delete('Delete')
                     ->setClassName('btn btn-sm btn-danger')
-                    ->setIcon('bi bi-trash')
+                    ->icon('bi bi-trash')
                     ->askConfirmation('Delete this user?')
                     ->displayIf('status', 'draft')
             );
@@ -83,14 +83,18 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ['`setLabel(string $label)`', 'Override the button label'],
+    ['`label(string $label)`', 'Override the button label'],
     ['`setClassName(string $className)`', 'Customize button classes'],
-    ['`setIcon(string $icon)`', 'Render an icon before the label'],
+    ['`icon(string $icon)`', 'Render an icon before the label'],
+    ['`htmlAttributes(array $htmlAttributes)`', 'Set extra HTML attributes on the rendered action button/link'],
     ['`askConfirmation(string $message)`', 'Display a browser confirmation prompt before the action'],
     ['`displayIf(string $field, mixed $value)`', 'Show the action only when `row[field] === value`'],
     ['`setIdField(string $idField)`', 'Use another row key instead of `id`'],
     ['`setEntityClass(string $entityClass)`', 'Set the Doctrine entity class explicitly'],
     ['`linkToUrl(string|callable $url)`', 'Set the URL for detail actions (static string or per-row callable)'],
+    ['`collapsible(string $template, array $parameters = [])`', 'Render a `detail` action as an expand/collapse control that lazily loads a Twig child row (the template receives the row as `entity`, plus any extra `$parameters`). Only meaningful for `Action::detail()`'],
+    ['`permission(string $attribute, ?callable $subjectResolver = null)`', 'Restrict the action with a Symfony security attribute (role/voter/expression). Without a resolver it is evaluated once before serialization; with a resolver it is evaluated per row (the resolver receives the raw source row). Denied actions are removed and never serialized to the client'],
+    ['`position(?ActionsPosition $position)`', 'Override the column placement for this action only (`null` inherits the `Actions` collection position). See [Column Position & Alignment](#column-position--alignment)'],
   ]}
 />
 
@@ -107,6 +111,8 @@ When `linkToUrl()` receives a callable, the argument depends on how the row was 
     ['`add(Action $action)`', 'Register an action for the column'],
     ['`remove(ActionType $type)`', 'Remove a previously registered action'],
     ['`setColumnLabel(string $label)`', 'Customize the action column header'],
+    ['`position(ActionsPosition $position)`', 'Place the actions column before or after the data columns (default: `AfterColumns`)'],
+    ['`alignment(ActionsAlignment $alignment)`', 'Horizontally align the action cell. See [Column Position & Alignment](#column-position--alignment)'],
   ]}
 />
 
@@ -119,6 +125,106 @@ ActionType::Delete; // value: DELETE
 ActionType::Detail; // value: DETAIL
 ActionType::Edit;   // value: EDIT
 ```
+
+## Column Position & Alignment
+
+By default, the action column is appended **after** the data columns. You can move it,
+align its content, and even split actions across two dedicated columns.
+
+### Collection-level position
+
+Use `Actions::position()` to place the whole actions column before or after the data
+columns:
+
+```php
+use Pentiminax\UX\DataTables\Enum\ActionsPosition;
+use Pentiminax\UX\DataTables\Model\Actions;
+
+public function configureActions(Actions $actions): Actions
+{
+    return $actions
+        ->position(ActionsPosition::BeforeColumns)
+        ->add(Action::edit('Edit'))
+        ->add(Action::delete('Delete'));
+}
+```
+
+The `ActionsPosition` enum exposes:
+
+```php
+use Pentiminax\UX\DataTables\Enum\ActionsPosition;
+
+ActionsPosition::BeforeColumns; // value: before
+ActionsPosition::AfterColumns;  // value: after  (default)
+```
+
+### Alignment
+
+Use `Actions::alignment()` to horizontally align the content of the action cell:
+
+```php
+use Pentiminax\UX\DataTables\Enum\ActionsAlignment;
+
+$actions->alignment(ActionsAlignment::Center);
+```
+
+The alignment is applied as a `dt-{value}` CSS class on the column (for example,
+`ActionsAlignment::Center` adds `dt-center`).
+
+```php
+use Pentiminax\UX\DataTables\Enum\ActionsAlignment;
+
+ActionsAlignment::Left;   // value: left
+ActionsAlignment::Center; // value: center
+ActionsAlignment::Right;  // value: right
+```
+
+<Aside type="caution">
+  The PHP method is literally named `alignment(...)` (missing the second `n`). This is the
+  exact method name in the source — use it verbatim so copy-paste works.
+</Aside>
+
+### Per-action position
+
+`Action::position()` overrides the placement for a **single** action, independently of the
+collection-level position. Pass `null` (the default) to inherit the `Actions` collection
+position, or an explicit `ActionsPosition` to pin that action.
+
+When all actions resolve to the same position, a single `ActionColumn` named `actions` is
+produced (the default behavior). When actions are split across both positions, **two** action
+columns are produced:
+
+- the `BeforeColumns` group is prepended as a column named `actions_before`;
+- the `AfterColumns` group is appended as a column named `actions`.
+
+A typical use case is pinning a collapsible detail toggle before the data while keeping
+edit/delete after it:
+
+```php
+use Pentiminax\UX\DataTables\Enum\ActionsPosition;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
+
+public function configureActions(Actions $actions): Actions
+{
+    return $actions
+        ->add(
+            Action::detail('Details')
+                ->collapsible('data_tables/details.html.twig')
+                ->position(ActionsPosition::BeforeColumns)
+        )
+        ->add(Action::edit('Edit'))
+        ->add(Action::delete('Delete'));
+}
+```
+
+This renders the detail toggle in an `actions_before` column placed before the data, and the
+edit/delete buttons in the trailing `actions` column.
+
+<Aside type="note">
+  `position` is a server-side layout concern only. It controls how columns are laid out before
+  rendering and is **not** serialized into the client JSON.
+</Aside>
 
 ## Manual Usage with `DataTableBuilderInterface`
 

@@ -83,6 +83,7 @@ export interface ActionConfig {
     htmlAttributes?: Record<string, string | number | boolean | null>
     idField: string
     url?: string
+    collapsible?: boolean
 }
 
 export interface ActionRowConfig {

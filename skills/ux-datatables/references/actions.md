@@ -13,7 +13,7 @@ public function configureActions(Actions $actions): Actions
         ->add(Action::edit())
         ->add(
             Action::delete('Delete')
-                ->setIcon('bi bi-trash')
+                ->icon('bi bi-trash')
                 ->askConfirmation('Delete this row?')
                 ->permission('ROLE_ADMIN')
         );

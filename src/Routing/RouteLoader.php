@@ -50,6 +50,12 @@ final class RouteLoader implements RouteLoaderInterface
             methods: ['POST'],
         ));
 
+        $routes->add('ux_datatables_ajax_detail', new Route(
+            path: '/datatables/ajax/detail',
+            defaults: ['_controller' => 'datatables.controller.ajax_detail'],
+            methods: ['GET'],
+        ));
+
         return $routes;
     }
 }

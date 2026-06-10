@@ -1,5 +1,6 @@
 import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js';
 const SAFE_ATTRIBUTE_NAME_PATTERN = /^[a-zA-Z_:][a-zA-Z0-9:._-]*$/;
+const DEFAULT_COLLAPSIBLE_ICON = '<span class="dtr-control-icon" aria-hidden="true">&#9656;</span> ';
 export const actionColumnRenderer = {
     matches(column) {
         return Array.isArray(column?.actions);
@@ -28,6 +29,24 @@ export const actionColumnRenderer = {
                 const iconHtml = action.icon
                     ? `<i class="${escapeHtml(action.icon)}"></i> `
                     : '';
+                if (action.type === 'DETAIL' && action.collapsible) {
+                    const iconMarkup = iconHtml || DEFAULT_COLLAPSIBLE_ICON;
+                    const attrs = [
+                        `type="button"`,
+                        `class="${escapedClassName}"`,
+                        `data-action-type="${escapedType}"`,
+                        `data-entity="${escapedEntity}"`,
+                        `data-id="${escapedId}"`,
+                        ...serializeHtmlAttributes(action.htmlAttributes, new Set([
+                            'type',
+                            'class',
+                            'data-action-type',
+                            'data-entity',
+                            'data-id',
+                        ])),
+                    ];
+                    return `<button ${attrs.join(' ')}>${iconMarkup}${escapedLabel}</button>`;
+                }
                 if (action.type === 'DETAIL') {
                     const href = resolveActionUrl(action, row);
                     if (!href || isUnsafeUrl(href)) {

@@ -25,7 +25,7 @@ final class ActionColumnTest extends TestCase
             'Actions',
             (new Actions())->add(
                 Action::detail()
-                    ->setLabel('View')
+                    ->label('View')
                     ->linkToUrl('/books/42')
             )
         )

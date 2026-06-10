@@ -15,8 +15,10 @@ use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxDataController;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
+use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Controller\AjaxTemplateRenderController;
+use Pentiminax\UX\DataTables\Detail\DetailRowService;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
@@ -36,6 +38,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_locator;
 
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -119,6 +122,17 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_data', AjaxDataController::class)
         ->arg(0, service('datatables.ajax.registry'))
+        ->tag('controller.service_arguments')
+        ->public();
+
+    $services->set('datatables.detail.row_service', DetailRowService::class)
+        ->arg(0, tagged_locator('datatables.data_table'))
+        ->arg(1, service('datatables.mutation.locator'))
+        ->arg(2, service('twig')->nullOnInvalid())
+        ->private();
+
+    $services->set('datatables.controller.ajax_detail', AjaxDetailController::class)
+        ->arg(0, service('datatables.detail.row_service'))
         ->tag('controller.service_arguments')
         ->public();
 
