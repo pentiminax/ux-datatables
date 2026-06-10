@@ -42,8 +42,8 @@ class ActionEditTest extends TestCase
     public function test_edit_action_supports_all_fluent_setters(): void
     {
         $action = Action::edit()
-            ->setLabel('Modifier')
-            ->setIcon('bi bi-pencil')
+            ->label('Modifier')
+            ->icon('bi bi-pencil')
             ->setEntityClass('App\\Entity\\Product')
             ->setIdField('uuid');
 

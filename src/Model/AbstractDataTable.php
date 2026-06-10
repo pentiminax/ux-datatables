@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
@@ -409,16 +410,43 @@ abstract class AbstractDataTable
             return;
         }
 
+        $groups = $actions->partitionByPosition();
+        $single = 1 === \count($groups);
+
+        foreach ($groups as $position => $group) {
+            $isBefore = ActionsPosition::BeforeColumns->value === $position;
+
+            $name = $single || !$isBefore ? 'actions' : 'actions_before';
+
+            $actionColumn = $this->createActionColumn($name, $group);
+
+            if ($isBefore) {
+                array_unshift($this->columns, $actionColumn);
+
+                continue;
+            }
+
+            $this->columns[] = $actionColumn;
+        }
+    }
+
+    private function createActionColumn(string $name, Actions $actions): ActionColumn
+    {
         $actionColumn = ActionColumn::fromActions(
-            name: 'actions',
+            name: $name,
             title: $actions->getColumnLabel(),
             actions: $actions,
         );
 
-        if (null !== $actions->getColumnClassName()) {
-            $actionColumn->setClassName($actions->getColumnClassName());
+        $className = trim(implode(' ', array_filter([
+            $actions->getColumnClassName(),
+            $actions->getAlignment()?->cssClass(),
+        ])));
+
+        if ('' !== $className) {
+            $actionColumn->setClassName($className);
         }
 
-        $this->columns[] = $actionColumn;
+        return $actionColumn;
     }
 }
