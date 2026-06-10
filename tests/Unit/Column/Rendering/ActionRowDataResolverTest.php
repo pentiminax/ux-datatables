@@ -52,6 +52,22 @@ final class ActionRowDataResolverTest extends TestCase
     }
 
     #[Test]
+    public function resolves_id_for_collapsible_detail_action(): void
+    {
+        $actions = new Actions();
+        $actions->add(Action::detail()->collapsible('book/detail.html.twig'));
+
+        $column = ActionColumn::fromActions('actions', '', $actions);
+
+        $result = (new ActionRowDataResolver())->resolveRow(['id' => 7], (object) ['id' => 7], [$column]);
+
+        $this->assertSame(
+            ['DETAIL' => ['id' => 7]],
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
+        );
+    }
+
+    #[Test]
     public function excludes_per_row_action_when_denied(): void
     {
         $row = (object) ['id' => 7];

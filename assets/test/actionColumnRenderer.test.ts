@@ -120,6 +120,50 @@ describe('actionColumnRenderer', () => {
       expect(html).toContain('View')
     })
 
+    it('renders a collapsible detail action as a button with entity and id', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DETAIL',
+            label: 'Details',
+            className: 'btn btn-link',
+            idField: 'id',
+            entityClass: 'App\\Entity\\Book',
+            collapsible: true,
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 42 })
+      expect(html).toContain('<button ')
+      expect(html).toContain('type="button"')
+      expect(html).toContain('data-action-type="DETAIL"')
+      expect(html).toContain('data-entity="App\\Entity\\Book"')
+      expect(html).toContain('data-id="42"')
+      expect(html).not.toContain('href=')
+    })
+
+    it('uses a default control icon for a collapsible detail action without an icon', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DETAIL',
+            label: '',
+            className: 'btn',
+            idField: 'id',
+            collapsible: true,
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 1 })
+      expect(html).toContain('dtr-control-icon')
+    })
+
     it('renders custom html attributes for detail actions', () => {
       const column: Record<string, any> = {
         actions: [

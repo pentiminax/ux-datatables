@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 
 final class Action implements \JsonSerializable
@@ -21,6 +22,9 @@ final class Action implements \JsonSerializable
     private ?\Closure $urlResolver               = null;
     private ?string $permission                  = null;
     private ?\Closure $permissionSubjectResolver = null;
+    private ?string $collapsibleTemplate         = null;
+    private array $collapsibleParameters         = [];
+    private ?ActionsPosition $position           = null;
 
     private function __construct(ActionType $type, string $label, string $className)
     {
@@ -49,7 +53,7 @@ final class Action implements \JsonSerializable
         return $this->type;
     }
 
-    public function setLabel(string $label): self
+    public function label(string $label): self
     {
         $this->label = $label;
 
@@ -63,7 +67,7 @@ final class Action implements \JsonSerializable
         return $this;
     }
 
-    public function setIcon(string $icon): self
+    public function icon(string $icon): self
     {
         $this->icon = $icon;
 
@@ -99,7 +103,7 @@ final class Action implements \JsonSerializable
     /**
      * @param array<string, scalar|null> $htmlAttributes
      */
-    public function setHtmlAttributes(array $htmlAttributes): self
+    public function htmlAttributes(array $htmlAttributes): self
     {
         $this->htmlAttributes = $htmlAttributes;
 
@@ -116,6 +120,58 @@ final class Action implements \JsonSerializable
     public function getIdField(): string
     {
         return $this->idField;
+    }
+
+    /**
+     * Override the column placement for this action only.
+     *
+     * When set, this action is rendered in a dedicated actions column placed
+     * before or after the data columns, independently of the collection-level
+     * position. When null (default), the action inherits the {@see Actions}
+     * collection position.
+     */
+    public function position(?ActionsPosition $position): self
+    {
+        $this->position = $position;
+
+        return $this;
+    }
+
+    public function getPosition(): ?ActionsPosition
+    {
+        return $this->position;
+    }
+
+    /**
+     * Render this action as an arrow control that expands the row into a child row,
+     * lazily fetching the given Twig template (which receives the current row as `entity`).
+     *
+     * @param array<string, mixed> $parameters extra context merged into the template
+     */
+    public function collapsible(string $template, array $parameters = []): self
+    {
+        $this->collapsibleTemplate   = $template;
+        $this->collapsibleParameters = $parameters;
+
+        return $this;
+    }
+
+    public function getCollapsibleTemplate(): ?string
+    {
+        return $this->collapsibleTemplate;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getCollapsibleParameters(): array
+    {
+        return $this->collapsibleParameters;
+    }
+
+    public function isCollapsible(): bool
+    {
+        return null !== $this->collapsibleTemplate;
     }
 
     public function linkToUrl(string|callable $url): self
@@ -216,6 +272,10 @@ final class Action implements \JsonSerializable
 
         if (null !== $this->url) {
             $data['url'] = $this->url;
+        }
+
+        if ($this->isCollapsible()) {
+            $data['collapsible'] = true;
         }
 
         return $data;

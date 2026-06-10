@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
+use Pentiminax\UX\DataTables\Enum\ActionsAlignment;
+use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
@@ -69,7 +71,7 @@ class ActionsTest extends TestCase
     public function test_json_serialize(): void
     {
         $actions = new Actions();
-        $actions->add(Action::delete()->setLabel('Remove'));
+        $actions->add(Action::delete()->label('Remove'));
 
         $json = $actions->jsonSerialize();
 
@@ -91,8 +93,8 @@ class ActionsTest extends TestCase
     public function test_add_replaces_action_of_same_type(): void
     {
         $actions = new Actions();
-        $actions->add(Action::delete()->setLabel('First'));
-        $actions->add(Action::delete()->setLabel('Second'));
+        $actions->add(Action::delete()->label('First'));
+        $actions->add(Action::delete()->label('Second'));
 
         $this->assertSame(1, $actions->count());
         $this->assertSame('Second', $actions->getActions()[0]->jsonSerialize()['label']);
@@ -138,5 +140,87 @@ class ActionsTest extends TestCase
         $actions->filterStaticPermissions(new PermissionChecker());
 
         $this->assertSame(1, $actions->count());
+    }
+
+    public function test_position_defaults_to_after_columns(): void
+    {
+        $this->assertSame(ActionsPosition::AfterColumns, (new Actions())->getPosition());
+    }
+
+    public function test_alignment_defaults_to_null(): void
+    {
+        $this->assertNull((new Actions())->getAlignment());
+    }
+
+    public function test_set_position_and_alignment_are_fluent(): void
+    {
+        $actions = (new Actions())
+            ->position(ActionsPosition::BeforeColumns)
+            ->alignment(ActionsAlignment::Center);
+
+        $this->assertSame(ActionsPosition::BeforeColumns, $actions->getPosition());
+        $this->assertSame(ActionsAlignment::Center, $actions->getAlignment());
+        $this->assertSame('dt-center', $actions->getAlignment()->cssClass());
+    }
+
+    public function test_partition_groups_all_actions_under_collection_position_when_no_override(): void
+    {
+        $actions = (new Actions())
+            ->add(Action::detail())
+            ->add(Action::edit());
+
+        $groups = $actions->partitionByPosition();
+
+        $this->assertSame([ActionsPosition::AfterColumns->value], array_keys($groups));
+        $this->assertSame(2, $groups[ActionsPosition::AfterColumns->value]->count());
+    }
+
+    public function test_partition_splits_actions_by_per_action_position(): void
+    {
+        $actions = (new Actions())
+            ->add(Action::detail()->position(ActionsPosition::BeforeColumns))
+            ->add(Action::edit())
+            ->add(Action::delete());
+
+        $groups = $actions->partitionByPosition();
+
+        $this->assertArrayHasKey(ActionsPosition::BeforeColumns->value, $groups);
+        $this->assertArrayHasKey(ActionsPosition::AfterColumns->value, $groups);
+
+        $before = $groups[ActionsPosition::BeforeColumns->value];
+        $after  = $groups[ActionsPosition::AfterColumns->value];
+
+        $this->assertSame(1, $before->count());
+        $this->assertSame(ActionType::Detail, $before->getActions()[0]->getType());
+        $this->assertSame(2, $after->count());
+    }
+
+    public function test_partition_groups_inherit_column_metadata(): void
+    {
+        $actions = (new Actions())
+            ->setColumnLabel('Ops')
+            ->setColumnClassName('dt-center')
+            ->alignment(ActionsAlignment::Center)
+            ->add(Action::detail()->position(ActionsPosition::BeforeColumns));
+
+        $group = $actions->partitionByPosition()[ActionsPosition::BeforeColumns->value];
+
+        $this->assertSame('Ops', $group->getColumnLabel());
+        $this->assertSame('dt-center', $group->getColumnClassName());
+        $this->assertSame(ActionsAlignment::Center, $group->getAlignment());
+    }
+
+    public function test_partition_respects_collection_position_as_fallback(): void
+    {
+        $actions = (new Actions())
+            ->position(ActionsPosition::BeforeColumns)
+            ->add(Action::detail()) // inherits BeforeColumns
+            ->add(Action::edit()->position(ActionsPosition::AfterColumns));
+
+        $groups = $actions->partitionByPosition();
+
+        $this->assertSame(1, $groups[ActionsPosition::BeforeColumns->value]->count());
+        $this->assertSame(ActionType::Detail, $groups[ActionsPosition::BeforeColumns->value]->getActions()[0]->getType());
+        $this->assertSame(ActionType::Edit, $groups[ActionsPosition::AfterColumns->value]->getActions()[0]->getType());
     }
 }
