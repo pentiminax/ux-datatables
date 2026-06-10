@@ -14,6 +14,7 @@ export const docsSidebarSections: NavSection[] = [
     items: [
       { label: 'Introduction', href: '/ux-datatables/getting-started/introduction/' },
       { label: 'Installation', href: '/ux-datatables/getting-started/installation/' },
+      { label: 'AI-Assisted Development', href: '/ux-datatables/getting-started/ai-assisted-development/' },
       { label: 'Quick Start', href: '/ux-datatables/getting-started/quick-start/' },
     ],
   },

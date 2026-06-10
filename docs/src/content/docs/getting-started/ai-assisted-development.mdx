@@ -1,0 +1,68 @@
+---
+title: AI-Assisted Development
+description: Use the bundled AI agent skill to build DataTables correctly with Claude Code, Cursor, and other coding agents
+---
+
+# AI-Assisted Development
+
+AI coding agents like Claude Code, Cursor, and GitHub Copilot can significantly accelerate your development — but only if they understand the bundle's API. To help them get it right, this repository ships a dedicated **agent skill** that teaches them exactly how UX DataTables works.
+
+<Aside type="note">
+  The skill lives in the bundle's source repository under `skills/ux-datatables/`. It is documentation
+  for AI agents — there is nothing to install or configure in your own application.
+</Aside>
+
+## What the Skill Teaches
+
+The skill captures the conventions you would otherwise have to explain to an agent yourself. It covers:
+
+<Table
+  headers={['Topic', 'What the agent learns']}
+  rows={[
+    ['Defining a DataTable', 'Extending `AbstractDataTable`, the `#[AsDataTable(Entity::class)]` attribute, and the `configure*()` hooks'],
+    ['Columns', 'The available column types and shared `AbstractColumn` methods'],
+    ['Processing mode', 'When to use client-side vs server-side rendering'],
+    ['Extensions', 'Buttons, Select, Responsive, ColumnControl, Scroller, KeyTable, ColReorder, FixedColumns'],
+    ['Row actions', 'Edit/delete actions, permissions, and conditional display'],
+    ['Integrations', 'API Platform and Mercure (both opt-in)'],
+    ['Gotchas', 'Common mistakes and their fixes'],
+  ]}
+/>
+
+## How It Is Organized
+
+The skill follows a progressive-disclosure layout: a concise entry point plus reference files the agent reads only when needed.
+
+<Steps>
+**Entry point**
+
+    `skills/ux-datatables/SKILL.md` gives the agent an overview, a decision tree for client-side vs server-side, and a minimal working example.
+
+**On-demand references**
+
+    The `skills/ux-datatables/references/` directory holds focused guides the agent pulls in as the task requires:
+
+    - `defining-a-datatable.md`
+    - `columns.md`
+    - `server-side.md`
+    - `extensions.md`
+    - `actions.md`
+    - `api-platform.md`
+    - `gotchas.md`
+
+</Steps>
+
+## Using the Skill
+
+<Tabs>
+  <TabItem label="Claude Code">
+    When you open the project in **Claude Code**, the skill is auto-discovered and the agent invokes it through its Skill mechanism whenever you ask it to build, configure, or debug a DataTable. No manual setup is required — it is a plain skill directory committed to the repository.
+  </TabItem>
+  <TabItem label="Cursor / Copilot / Others">
+    Agents without native skill support can still benefit. Point them at `skills/ux-datatables/SKILL.md` (and the files under `references/`) as context, and they will follow the same conventions the bundle expects.
+  </TabItem>
+</Tabs>
+
+<Aside type="tip">
+  Ready to build your first table by hand? Continue to the [Quick Start](../quick-start/) guide.
+</Aside>
