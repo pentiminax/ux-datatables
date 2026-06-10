@@ -9,7 +9,7 @@ All columns live in `src/Column/`. Every type is created with the static factory
 | `TextColumn` | `TextColumn::new('name', 'Name')` | `utf8()`, `html()` |
 | `NumberColumn` | `NumberColumn::new('qty')` | `formatted()`, `html()` |
 | `DateColumn` | `DateColumn::new('createdAt')` | `setFormat('d/m/Y H:i')` |
-| `MoneyColumn` | `MoneyColumn::new('price')` | `currency('EUR')`, `storedAsCents(bool=true)`, `decimals(int)` |
+| `MoneyColumn` | `MoneyColumn::new('price')` | `currency('EUR')`, `storedAsCents(bool=true)`, `decimals(int)`, `showCurrencySign(bool=true)` |
 | `BooleanColumn` | `BooleanColumn::new('active')` | `renderAsSwitch(bool $defaultState=false)`, `setToggleAjax(string $idField='id', string $method='PATCH')`, `setEntityClass(...)` |
 | `ChoiceColumn` | `ChoiceColumn::new('status')` | `setChoices(array\|string)`, `renderAsBadges(array\|bool $selector=[], string $defaultVariant='secondary')` |
 | `EmailColumn` | `EmailColumn::new('email')` | `obfuscate(bool=true)`, `mask(bool=true)`, `setDisplayValue(string)` |

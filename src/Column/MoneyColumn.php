@@ -8,10 +8,11 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class MoneyColumn extends AbstractColumn
 {
-    public const string OPTION_IS_MONEY        = 'isMoney';
-    public const string OPTION_CURRENCY        = 'currency';
-    public const string OPTION_STORED_AS_CENTS = 'storedAsCents';
-    public const string OPTION_DECIMALS        = 'decimals';
+    public const string OPTION_IS_MONEY           = 'isMoney';
+    public const string OPTION_CURRENCY           = 'currency';
+    public const string OPTION_STORED_AS_CENTS    = 'storedAsCents';
+    public const string OPTION_DECIMALS           = 'decimals';
+    public const string OPTION_SHOW_CURRENCY_SIGN = 'showCurrencySign';
 
     private const int MIN_DECIMALS = 0;
     private const int MAX_DECIMALS = 20;
@@ -69,6 +70,18 @@ class MoneyColumn extends AbstractColumn
         }
 
         $this->setCustomOption(self::OPTION_DECIMALS, $decimals);
+
+        return $this;
+    }
+
+    public function showCurrencySign(bool $show = true): static
+    {
+        return $this->setShowCurrencySign($show);
+    }
+
+    public function setShowCurrencySign(bool $show = true): static
+    {
+        $this->setCustomOption(self::OPTION_SHOW_CURRENCY_SIGN, $show);
 
         return $this;
     }
