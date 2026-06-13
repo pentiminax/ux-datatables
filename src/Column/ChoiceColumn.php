@@ -20,7 +20,7 @@ class ChoiceColumn extends AbstractColumn
     }
 
     /**
-     * Define the available choices, mirroring EasyAdmin's ChoiceField::setChoices().
+     * Define the available choices.
      *
      * Accepts:
      *  - an associative array using the EasyAdmin convention `[label => value]`
