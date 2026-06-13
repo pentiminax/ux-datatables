@@ -34,14 +34,39 @@ final class ChoiceColumnTest extends TestCase
     }
 
     #[Test]
-    public function it_sets_choices_from_array(): void
+    public function it_sets_choices_from_array_using_easyadmin_convention(): void
     {
+        // EasyAdmin convention: keys are the human-readable labels, values are the stored values.
         $data = ChoiceColumn::new('status')
-            ->setChoices(['active' => 'Active', 'inactive' => 'Inactive'])
+            ->setChoices(['Active' => 'active', 'Inactive' => 'inactive'])
             ->jsonSerialize();
 
         $this->assertArrayHasKey('choices', $data['customOptions']);
+        // Stored internally as [value => label] so the renderer can resolve label from the cell value.
         $this->assertSame(['active' => 'Active', 'inactive' => 'Inactive'], $data['customOptions']['choices']);
+    }
+
+    #[Test]
+    public function it_casts_non_string_choice_values_to_string_keys(): void
+    {
+        $data = ChoiceColumn::new('status')
+            ->setChoices(['One' => 1, 'Two' => 2])
+            ->jsonSerialize();
+
+        $this->assertSame(['1' => 'One', '2' => 'Two'], $data['customOptions']['choices']);
+    }
+
+    #[Test]
+    public function it_resolves_enum_labels_from_get_label_method(): void
+    {
+        $data = ChoiceColumn::new('status')
+            ->setChoices(TestStatusWithLabel::cases())
+            ->jsonSerialize();
+
+        $this->assertSame([
+            'active'   => 'Active ✅',
+            'inactive' => 'Inactive ❌',
+        ], $data['customOptions']['choices']);
     }
 
     #[Test]

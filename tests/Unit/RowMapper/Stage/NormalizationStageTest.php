@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\RowMapper\Stage;
 
+use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
+use Pentiminax\UX\DataTables\Tests\Unit\Column\TestStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -49,6 +51,15 @@ final class NormalizationStageTest extends TestCase
         $result = $stage->process(['obj' => new \stdClass()], 'original', [TextColumn::new('obj')]);
 
         $this->assertNull($result['obj']);
+    }
+
+    #[Test]
+    public function it_converts_backed_enum_to_its_value(): void
+    {
+        $stage  = new NormalizationStage();
+        $result = $stage->process(['status' => TestStatus::Active], 'original', [ChoiceColumn::new('status')]);
+
+        $this->assertSame(['status' => 'active'], $result);
     }
 
     #[Test]
