@@ -20,7 +20,20 @@ class ChoiceColumn extends AbstractColumn
     }
 
     /**
-     * @param array<string|int, string>|list<\BackedEnum>|class-string<\BackedEnum> $choices
+     * Define the available choices, mirroring EasyAdmin's ChoiceField::setChoices().
+     *
+     * Accepts:
+     *  - an associative array using the EasyAdmin convention `[label => value]`
+     *    (keys are the human-readable labels, values are the stored values);
+     *  - a list of BackedEnum cases (e.g. `MyEnum::cases()`);
+     *  - a BackedEnum class-string (e.g. `MyEnum::class`).
+     *
+     * Choices are always stored internally as `[value => label]` so the frontend
+     * renderer can resolve the label from the raw cell value. For enums, the label
+     * is taken from a `getLabel()`/`label()` method when available, otherwise the
+     * case name.
+     *
+     * @param array<string|int, string|int>|list<\BackedEnum>|class-string<\BackedEnum> $choices
      */
     public function setChoices(array|string $choices): self
     {
@@ -35,10 +48,12 @@ class ChoiceColumn extends AbstractColumn
         }
 
         if ($this->isBackedEnumList($choices)) {
-            $choices = $this->normalizeBackedEnumChoices($choices);
+            $this->setCustomOption(self::OPTION_CHOICES, $this->normalizeBackedEnumChoices($choices));
+
+            return $this;
         }
 
-        $this->setCustomOption(self::OPTION_CHOICES, $choices);
+        $this->setCustomOption(self::OPTION_CHOICES, $this->normalizeArrayChoices($choices));
 
         return $this;
     }
@@ -71,6 +86,25 @@ class ChoiceColumn extends AbstractColumn
     }
 
     /**
+     * Invert the EasyAdmin `[label => value]` convention into the internal
+     * `[value => label]` map consumed by the frontend renderer.
+     *
+     * @param array<string|int, string|int> $choices
+     *
+     * @return array<string, string>
+     */
+    private function normalizeArrayChoices(array $choices): array
+    {
+        $map = [];
+
+        foreach ($choices as $label => $value) {
+            $map[(string) $value] = (string) $label;
+        }
+
+        return $map;
+    }
+
+    /**
      * @param list<\BackedEnum> $choices
      *
      * @return array<string, string>
@@ -80,10 +114,23 @@ class ChoiceColumn extends AbstractColumn
         $map = [];
 
         foreach ($choices as $case) {
-            $map[(string) $case->value] = $case->name;
+            $map[(string) $case->value] = $this->resolveEnumLabel($case);
         }
 
         return $map;
+    }
+
+    private function resolveEnumLabel(\BackedEnum $case): string
+    {
+        if (method_exists($case, 'getLabel')) {
+            return (string) $case->getLabel();
+        }
+
+        if (method_exists($case, 'label')) {
+            return (string) $case->label();
+        }
+
+        return $case->name;
     }
 
     /**
