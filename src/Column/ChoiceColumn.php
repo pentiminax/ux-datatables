@@ -23,7 +23,7 @@ class ChoiceColumn extends AbstractColumn
      * Define the available choices.
      *
      * Accepts:
-     *  - an associative array using the EasyAdmin convention `[label => value]`
+     *  - an associative array using the following convention `[label => value]`
      *    (keys are the human-readable labels, values are the stored values);
      *  - a list of BackedEnum cases (e.g. `MyEnum::cases()`);
      *  - a BackedEnum class-string (e.g. `MyEnum::class`).
@@ -86,7 +86,7 @@ class ChoiceColumn extends AbstractColumn
     }
 
     /**
-     * Invert the EasyAdmin `[label => value]` convention into the internal
+     * Invert the `[label => value]` convention into the internal
      * `[value => label]` map consumed by the frontend renderer.
      *
      * @param array<string|int, string|int> $choices
