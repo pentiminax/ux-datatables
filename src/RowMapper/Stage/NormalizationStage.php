@@ -34,6 +34,8 @@ final class NormalizationStage implements RowStageInterface
 
             if ($column instanceof DateColumn && $value instanceof \DateTimeInterface) {
                 $mappedRow[$key] = $value->format($column->getFormat());
+            } elseif ($value instanceof \BackedEnum) {
+                $mappedRow[$key] = $value->value;
             } elseif ($value instanceof \Stringable) {
                 $mappedRow[$key] = (string) $value;
             } else {
