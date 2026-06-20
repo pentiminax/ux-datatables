@@ -34,15 +34,13 @@ final class ChoiceColumnTest extends TestCase
     }
 
     #[Test]
-    public function it_sets_choices_from_array_using_easyadmin_convention(): void
+    public function it_sets_choices_from_array(): void
     {
-        // EasyAdmin convention: keys are the human-readable labels, values are the stored values.
         $data = ChoiceColumn::new('status')
             ->setChoices(['Active' => 'active', 'Inactive' => 'inactive'])
             ->jsonSerialize();
 
         $this->assertArrayHasKey('choices', $data['customOptions']);
-        // Stored internally as [value => label] so the renderer can resolve label from the cell value.
         $this->assertSame(['active' => 'Active', 'inactive' => 'Inactive'], $data['customOptions']['choices']);
     }
 
