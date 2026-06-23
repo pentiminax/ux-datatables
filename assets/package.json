@@ -13,6 +13,7 @@
         "fetch": "eager",
         "enabled": true,
         "autoimport": {
+          "@pentiminax/ux-datatables/dist/styles/datatables-style.css": true,
           "datatables.net-dt/css/dataTables.dataTables.min.css": true,
           "datatables.net-bs5/css/dataTables.bootstrap5.min.css": false,
           "datatables.net-bs4/css/dataTables.bootstrap4.min.css": false,

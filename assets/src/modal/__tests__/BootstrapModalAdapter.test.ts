@@ -57,9 +57,9 @@ describe('BootstrapModalAdapter', () => {
             </form>
         `)
 
-        expect(
-            document.querySelector('[data-ux-datatables-modal-body]')?.innerHTML
-        ).toContain('Chair')
+        expect(document.querySelector('[data-ux-datatables-modal-body]')?.innerHTML).toContain(
+            'Chair'
+        )
 
         await adapter.hide()
 

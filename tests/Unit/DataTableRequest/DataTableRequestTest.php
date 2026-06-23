@@ -124,4 +124,47 @@ final class DataTableRequestTest extends TestCase
         $this->assertEquals('desc', $dataTableRequest->order[0]->dir);
         $this->assertEquals('username', $dataTableRequest->order[0]->name);
     }
+
+    #[Test]
+    public function it_parses_filters_from_request(): void
+    {
+        $request = new Request(
+            query: [
+                'draw'    => 1,
+                'columns' => [
+                    ['data' => 'id', 'name' => 'id', 'searchable' => true, 'orderable' => true],
+                ],
+                'filters' => [
+                    'name'      => 'john',
+                    'status'    => ['draft', 'published'],
+                    'createdAt' => ['from' => '2024-01-01', 'to' => '2024-12-31'],
+                ],
+            ]
+        );
+
+        $dataTableRequest = DataTableRequest::fromRequest($request);
+
+        $this->assertSame([
+            'name'      => 'john',
+            'status'    => ['draft', 'published'],
+            'createdAt' => ['from' => '2024-01-01', 'to' => '2024-12-31'],
+        ], $dataTableRequest->filters);
+    }
+
+    #[Test]
+    public function it_defaults_filters_to_an_empty_array(): void
+    {
+        $request = new Request(
+            query: [
+                'draw'    => 1,
+                'columns' => [
+                    ['data' => 'id', 'name' => 'id', 'searchable' => true, 'orderable' => true],
+                ],
+            ]
+        );
+
+        $dataTableRequest = DataTableRequest::fromRequest($request);
+
+        $this->assertSame([], $dataTableRequest->filters);
+    }
 }

@@ -66,13 +66,17 @@ export class DialogModalAdapter implements ModalAdapter {
         }
 
         if (!(modalRoot instanceof HTMLDialogElement)) {
-            console.error('[ux-datatables] DialogModalAdapter requires a <dialog data-ux-datatables-modal> element.')
+            console.error(
+                '[ux-datatables] DialogModalAdapter requires a <dialog data-ux-datatables-modal> element.'
+            )
 
             return
         }
 
         const modalBody = modalRoot.querySelector<HTMLElement>('[data-ux-datatables-modal-body]')
-        const submitButton = modalRoot.querySelector<HTMLButtonElement>('[data-ux-datatables-submit]')
+        const submitButton = modalRoot.querySelector<HTMLButtonElement>(
+            '[data-ux-datatables-submit]'
+        )
 
         if (!modalBody || !submitButton) {
             console.error(

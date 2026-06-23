@@ -3,8 +3,8 @@ import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js';
-import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js';
 import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js';
+import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
@@ -13,11 +13,14 @@ import { detectStyleFramework } from './functions/detectStyleFramework.js';
 import { ExtensionRegistry } from './functions/extensionRegistry.js';
 import { fetchDetailRow } from './functions/fetchDetailRow.js';
 import { fetchEditForm } from './functions/fetchEditForm.js';
+import { registerFilterFeature } from './functions/filterFeature.js';
+import { applyFilterLayout } from './functions/filterLayout.js';
+import { FilterBar, hasFilters } from './functions/filters.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { submitEditForm } from './functions/submitEditForm.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
-import { resolveModalAdapter } from './modal/resolveModalAdapter.js';
 import { applyUrlStateToPayload, isUrlStateEnabled, readUrlState, writeUrlState, } from './functions/urlState.js';
+import { resolveModalAdapter } from './modal/resolveModalAdapter.js';
 const EXTENSION_MAP = {
     select: 'select',
     responsive: 'responsive',
@@ -50,6 +53,7 @@ class default_1 extends Controller {
         const framework = detectStyleFramework();
         this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
+        registerFilterFeature(DataTable);
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true;
             return;
@@ -65,6 +69,11 @@ class default_1 extends Controller {
         const urlStateCfg = isUrlStateEnabled(payload);
         if (urlStateCfg) {
             applyUrlStateToPayload(payload, readUrlState(urlStateCfg));
+        }
+        if (hasFilters(payload)) {
+            const filterBar = new FilterBar(payload, framework);
+            filterBar.attachToPayload(payload);
+            applyFilterLayout(payload, filterBar);
         }
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
