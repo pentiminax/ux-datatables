@@ -14,7 +14,6 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnSearchFilter;
-use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -25,6 +24,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ColumnSearchFilter::class)]
 final class ColumnSearchFilterTest extends TestCase
 {
+    use BuildsQueryFilterContext;
+
     #[Test]
     public function it_applies_text_column_search_with_dot_notation(): void
     {
@@ -53,7 +54,7 @@ final class ColumnSearchFilterTest extends TestCase
         $columns = new Columns(['authorName' => $requestColumn]);
         $request = new DataTableRequest(1, $columns);
 
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -84,7 +85,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $columns = new Columns(['client' => $requestColumn]);
         $request = new DataTableRequest(1, $columns);
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -111,7 +112,7 @@ final class ColumnSearchFilterTest extends TestCase
         $columns = new Columns(['name' => $requestColumn]);
         $request = new DataTableRequest(1, $columns);
 
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -139,7 +140,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $request = new DataTableRequest(1, $columns);
 
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -165,7 +166,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $request = new DataTableRequest(1, $columns);
 
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -191,7 +192,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $request = new DataTableRequest(1, $columns);
 
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -217,7 +218,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $request = new DataTableRequest(1, $columns);
 
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -243,7 +244,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $request = new DataTableRequest(1, $columns);
 
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -269,7 +270,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $request = new DataTableRequest(1, $columns);
 
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -293,7 +294,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $request = new DataTableRequest(1, $columns);
 
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -351,7 +352,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $request = new DataTableRequest(1, $columns);
 
-        $context = new QueryFilterContext($request, [$nameColumn, $emailColumn], 'e');
+        $context = $this->context($request, [$nameColumn, $emailColumn]);
 
         $filter->apply($qb, $context);
     }

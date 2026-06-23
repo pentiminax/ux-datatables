@@ -38,7 +38,7 @@ final class QueryFilterChain
      * Apply all filters in sequence to the QueryBuilder.
      *
      * @param QueryBuilder       $qb      The query builder to modify
-     * @param QueryFilterContext $context The filter context with request data
+     * @param QueryFilterContext $context The filter context with normalized query intent
      *
      * @return QueryBuilder The modified query builder
      */

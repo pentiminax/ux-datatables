@@ -18,9 +18,9 @@ use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Controller\AjaxTemplateRenderController;
-use Pentiminax\UX\DataTables\Detail\DetailRowService;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
+use Pentiminax\UX\DataTables\Detail\DetailRowService;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
@@ -28,6 +28,8 @@ use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntentFactoryInterface;
+use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
@@ -53,6 +55,12 @@ return static function (ContainerConfigurator $container): void {
         ->private();
 
     $services->alias(DataTableBuilderInterface::class, 'datatables.builder')
+        ->private();
+
+    $services->set('datatables.query.intent_factory', DefaultDataTableQueryIntentFactory::class)
+        ->private();
+
+    $services->alias(DataTableQueryIntentFactoryInterface::class, 'datatables.query.intent_factory')
         ->private();
 
     $services->set('datatables.security.permission_checker', PermissionChecker::class)
@@ -212,6 +220,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('datatables.column.resolver'))
         ->arg(1, service('datatables.rendering.preparer'))
         ->arg(2, service('datatables.runtime.factory'))
+        ->arg(3, service('datatables.query.intent_factory'))
         ->private();
 
     $services->alias(DataTableInfrastructure::class, 'datatables.infrastructure')

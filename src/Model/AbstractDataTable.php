@@ -267,9 +267,16 @@ abstract class AbstractDataTable
     {
         $qb = $this->customizeQueryBuilder($qb, $request);
 
+        $intent = $this->infrastructure()->queryIntentFactory()->create($request, array_values($this->columns));
+
+        $columnsByName = [];
+        foreach ($this->columns as $column) {
+            $columnsByName[$column->getName()] = $column;
+        }
+
         $context = new QueryFilterContext(
-            request: $request,
-            columns: $this->columns,
+            intent: $intent,
+            columns: $columnsByName,
             alias: 'e'
         );
 
