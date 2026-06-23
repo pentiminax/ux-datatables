@@ -11,7 +11,6 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\Query\Filter\OrderFilter;
-use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -22,6 +21,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(OrderFilter::class)]
 final class OrderFilterTest extends TestCase
 {
+    use BuildsQueryFilterContext;
+
     #[Test]
     public function it_applies_order_on_simple_field(): void
     {
@@ -40,7 +41,7 @@ final class OrderFilterTest extends TestCase
         $order         = new Order(0, 'asc', 'name');
 
         $request = new DataTableRequest(1, $columns, order: [$order]);
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -63,7 +64,7 @@ final class OrderFilterTest extends TestCase
         $order         = new Order(0, 'desc', 'displayName');
 
         $request = new DataTableRequest(1, $columns, order: [$order]);
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -87,7 +88,7 @@ final class OrderFilterTest extends TestCase
         $order         = new Order(0, 'desc', 'invoiceCount');
 
         $request = new DataTableRequest(1, $columns, order: [$order]);
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -115,7 +116,7 @@ final class OrderFilterTest extends TestCase
         $order         = new Order(0, 'asc', 'authorName');
 
         $request = new DataTableRequest(1, $columns, order: [$order]);
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -131,7 +132,7 @@ final class OrderFilterTest extends TestCase
         $column  = TextColumn::new('name', 'Name')->setField('name');
         $columns = new Columns([]);
         $request = new DataTableRequest(1, $columns, order: []);
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -149,7 +150,7 @@ final class OrderFilterTest extends TestCase
         $order         = new Order(5, 'asc', 'name');
 
         $request = new DataTableRequest(1, $columns, order: [$order]);
-        $context = new QueryFilterContext($request, [], 'e');
+        $context = $this->context($request, []);
 
         $filter->apply($qb, $context);
     }

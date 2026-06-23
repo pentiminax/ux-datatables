@@ -10,29 +10,30 @@ use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
- * Filter that applies ordering from DataTableRequest to QueryBuilder.
+ * Filter that applies ordering from the normalized query intent to the QueryBuilder.
  *
- * Currently only supports single-column ordering. Multi-column ordering
- * is ignored to maintain consistency with the original implementation.
+ * Consumes the single {@see \Pentiminax\UX\DataTables\Query\Intent\OrderIntent} emitted
+ * by the intent factory. The raw Doctrine order expression
+ * ({@see \Pentiminax\UX\DataTables\Contracts\ColumnInterface::getOrderExpression()})
+ * stays out of the intent and is resolved here by column name.
  */
 final class OrderFilter implements QueryFilterInterface
 {
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
-        if (1 !== \count($context->request->order)) {
+        $order = $context->intent->order;
+        if (null === $order) {
             return;
         }
 
-        $order  = $context->request->order[0];
-        $column = $context->columns[$order->column] ?? null;
-
-        if (!$column) {
+        $column = $context->columnByName($order->column->name);
+        if (null === $column) {
             return;
         }
 
         $expr = $column->getOrderExpression()
             ?? RelationFieldResolver::resolve($qb, $context->alias, $column->getField());
 
-        $qb->addOrderBy($expr, $order->dir);
+        $qb->addOrderBy($expr, $order->direction->value);
     }
 }
