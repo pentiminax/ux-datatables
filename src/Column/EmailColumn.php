@@ -8,10 +8,11 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class EmailColumn extends AbstractColumn
 {
-    public const string OPTION_IS_EMAIL      = 'isEmail';
-    public const string OPTION_OBFUSCATE     = 'obfuscate';
-    public const string OPTION_MASK          = 'mask';
-    public const string OPTION_DISPLAY_VALUE = 'displayValue';
+    public const string OPTION_IS_EMAIL       = 'isEmail';
+    public const string OPTION_OBFUSCATE      = 'obfuscate';
+    public const string OPTION_MASK           = 'mask';
+    public const string OPTION_DISPLAY_VALUE  = 'displayValue';
+    public const string OPTION_RENDER_AS_TEXT = 'renderAsText';
 
     public static function new(string $name, string $title = ''): static
     {
@@ -50,6 +51,16 @@ class EmailColumn extends AbstractColumn
     public function setDisplayValue(string $displayValue): static
     {
         $this->setCustomOption(self::OPTION_DISPLAY_VALUE, $displayValue);
+
+        return $this;
+    }
+
+    /**
+     * Renders the email as plain text instead of a mailto link.
+     */
+    public function renderAsText(bool $renderAsText = true): static
+    {
+        $this->setCustomOption(self::OPTION_RENDER_AS_TEXT, $renderAsText);
 
         return $this;
     }
