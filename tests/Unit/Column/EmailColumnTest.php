@@ -91,12 +91,29 @@ final class EmailColumnTest extends TestCase
     }
 
     #[Test]
+    public function it_enables_plain_text_rendering(): void
+    {
+        $data = EmailColumn::new('email')->renderAsText()->jsonSerialize();
+
+        $this->assertTrue($data['customOptions']['renderAsText']);
+    }
+
+    #[Test]
+    public function it_disables_plain_text_rendering(): void
+    {
+        $data = EmailColumn::new('email')->renderAsText(false)->jsonSerialize();
+
+        $this->assertFalse($data['customOptions']['renderAsText']);
+    }
+
+    #[Test]
     public function it_serializes_full_configuration(): void
     {
         $data = EmailColumn::new('email', 'Email Address')
             ->obfuscate()
             ->mask()
             ->setDisplayValue('Contact')
+            ->renderAsText()
             ->jsonSerialize();
 
         $this->assertSame('html', $data['type']);
@@ -104,5 +121,6 @@ final class EmailColumnTest extends TestCase
         $this->assertTrue($data['customOptions']['obfuscate']);
         $this->assertTrue($data['customOptions']['mask']);
         $this->assertSame('Contact', $data['customOptions']['displayValue']);
+        $this->assertTrue($data['customOptions']['renderAsText']);
     }
 }

@@ -12,7 +12,7 @@ All columns live in `src/Column/`. Every type is created with the static factory
 | `MoneyColumn` | `MoneyColumn::new('price')` | `currency('EUR')`, `storedAsCents(bool=true)`, `decimals(int)`, `showCurrencySign(bool=true)` |
 | `BooleanColumn` | `BooleanColumn::new('active')` | `renderAsSwitch(bool $defaultState=false)`, `setToggleAjax(string $idField='id', string $method='PATCH')`, `setEntityClass(...)` |
 | `ChoiceColumn` | `ChoiceColumn::new('status')` | `setChoices(array\|string)`, `renderAsBadges(array\|bool $selector=[], string $defaultVariant='secondary')` |
-| `EmailColumn` | `EmailColumn::new('email')` | `obfuscate(bool=true)`, `mask(bool=true)`, `setDisplayValue(string)` |
+| `EmailColumn` | `EmailColumn::new('email')` | `obfuscate(bool=true)`, `mask(bool=true)`, `setDisplayValue(string)`, `renderAsText(bool=true)` |
 | `ImageColumn` | `ImageColumn::new('photo')` | `setImageWidth(int)`, `setImageHeight(int)`, `setAlt(string)`, `setPlaceholder(string)`, `rounded()`, `lazy()`, `clickable()` |
 | `UrlColumn` | `UrlColumn::new('website')` | `linkToUrl(string\|callable)`, `linkToRoute(string $route, array\|callable\|null $params=null)`, `openInNewTab()`, `showExternalIcon(bool=true)`, `setDisplayValue(string)`, `setDefaultProtocol(string)`, `allowedProtocols(array)` |
 | `TemplateColumn` | `TemplateColumn::new('preview')` | `setTemplate(string $template, array $parameters=[])` — server-side Twig rendering |
