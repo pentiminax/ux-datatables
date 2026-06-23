@@ -15,8 +15,6 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
-use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntentFactoryInterface;
-use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
@@ -47,8 +45,6 @@ abstract class AbstractDataTable
     private ?DataTableInfrastructure $infrastructure = null;
 
     private ?DataTableRuntime $runtime = null;
-
-    private ?DataTableQueryIntentFactoryInterface $queryIntentFactory = null;
 
     private bool $initialized = false;
 
@@ -271,7 +267,7 @@ abstract class AbstractDataTable
     {
         $qb = $this->customizeQueryBuilder($qb, $request);
 
-        $intent = $this->queryIntentFactory()->create($request, array_values($this->columns));
+        $intent = $this->infrastructure()->queryIntentFactory()->create($request, array_values($this->columns));
 
         $columnsByName = [];
         foreach ($this->columns as $column) {
@@ -302,11 +298,6 @@ abstract class AbstractDataTable
     protected function createSearchStrategyRegistry(): SearchStrategyRegistry
     {
         return new DefaultSearchStrategyRegistry();
-    }
-
-    private function queryIntentFactory(): DataTableQueryIntentFactoryInterface
-    {
-        return $this->queryIntentFactory ??= new DefaultDataTableQueryIntentFactory();
     }
 
     public function getColumnByName(string $name): ?ColumnInterface
