@@ -17,6 +17,9 @@ final readonly class DataTableRequest
 
         /** @var Order[] */
         public array $order = [],
+
+        /** @var array<string, mixed> User-facing filter values keyed by filter name. */
+        public array $filters = [],
     ) {
     }
 
@@ -36,6 +39,7 @@ final readonly class DataTableRequest
             length: $request->query->getInt('length'),
             search: Search::fromRequest($request),
             order: $orders,
+            filters: $request->query->all('filters'),
         );
     }
 }

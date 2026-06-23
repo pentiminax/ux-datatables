@@ -84,7 +84,9 @@ export class BootstrapModalAdapter implements ModalAdapter {
         }
 
         const modalBody = modalRoot.querySelector<HTMLElement>('[data-ux-datatables-modal-body]')
-        const submitButton = modalRoot.querySelector<HTMLButtonElement>('[data-ux-datatables-submit]')
+        const submitButton = modalRoot.querySelector<HTMLButtonElement>(
+            '[data-ux-datatables-submit]'
+        )
 
         if (!modalBody || !submitButton) {
             console.error(

@@ -286,9 +286,10 @@ export class ApiPlatformAdapter {
         })
 
         const renderedPayload = await renderedResponse.json()
-        const data = isRecord(renderedPayload) && Array.isArray(renderedPayload.data)
-            ? renderedPayload.data
-            : response.data
+        const data =
+            isRecord(renderedPayload) && Array.isArray(renderedPayload.data)
+                ? renderedPayload.data
+                : response.data
 
         return {
             ...response,

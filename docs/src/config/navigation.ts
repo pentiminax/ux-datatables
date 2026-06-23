@@ -89,6 +89,7 @@ export const docsSidebarSections: NavSection[] = [
       { label: 'AbstractDataTable', href: '/ux-datatables/reference/abstract-datatable/' },
       { label: 'DataTable', href: '/ux-datatables/reference/datatable/' },
       { label: 'DataTableRequest', href: '/ux-datatables/reference/datatable-request/' },
+      { label: 'Filters', href: '/ux-datatables/reference/filters/' },
       { label: 'Attributes', href: '/ux-datatables/reference/attributes/' },
       { label: 'Edit Modal', href: '/ux-datatables/reference/edit-modal/' },
       {

@@ -20,6 +20,7 @@ final class FeatureTest extends TestCase
     {
         $expected = [
             'buttons'       => 'buttons',
+            'filters'       => 'filters',
             'info'          => 'info',
             'pageLength'    => 'pageLength',
             'paging'        => 'paging',

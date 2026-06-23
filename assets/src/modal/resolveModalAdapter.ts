@@ -1,6 +1,6 @@
 import type { StyleFramework } from '../types/styleFramework.js'
-import { modalAdapters } from './ModalAdapterRegistry.js'
 import type { ModalAdapter, ModalAdapterConstructor } from './ModalAdapter.js'
+import { modalAdapters } from './ModalAdapterRegistry.js'
 
 export async function resolveModalAdapter(
     explicitKey: string | null,

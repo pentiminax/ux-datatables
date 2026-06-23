@@ -75,6 +75,7 @@ Scaffold from an entity: `php bin/console make:datatable`.
 - `references/server-side.md` — server-side wiring, route import, Stimulus events, custom Ajax, computed columns (`setOrderExpression()`).
 - `references/extensions.md` — Buttons, Select, Responsive, ColumnControl, Scroller, KeyTable, ColReorder, FixedColumns.
 - `references/actions.md` — row actions, permissions, conditional display.
+- `references/filters.md` — declarative filter bar (`configureFilters()`): Text, Select, Ternary, DateRange, generic Filter (server-side Doctrine).
 - `references/api-platform.md` — API Platform + Mercure integration (both opt-in).
 - `references/gotchas.md` — common mistakes and fixes.
 
