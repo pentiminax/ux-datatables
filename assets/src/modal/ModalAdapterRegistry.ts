@@ -1,4 +1,5 @@
 import { BootstrapModalAdapter } from './BootstrapModalAdapter.js'
+import { DialogModalAdapter } from './DialogModalAdapter.js'
 import type { ModalAdapterFactory } from './ModalAdapter.js'
 
 export class ModalAdapterRegistry {
@@ -16,6 +17,7 @@ export class ModalAdapterRegistry {
 }
 
 export const modalAdapters = new ModalAdapterRegistry()
+    .register('dt', () => new DialogModalAdapter())
     .register('bs', () => new BootstrapModalAdapter())
     .register('bs4', () => new BootstrapModalAdapter())
     .register('bs5', () => new BootstrapModalAdapter())
