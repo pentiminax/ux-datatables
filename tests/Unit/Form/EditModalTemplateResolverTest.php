@@ -53,7 +53,7 @@ final class EditModalTemplateResolverTest extends TestCase
 
         $template = $resolver->resolveChromeTemplate(DefaultEditModalDataTable::class);
 
-        $this->assertSame('@DataTables/modal/bootstrap5/edit_modal.html.twig', $template);
+        $this->assertSame('@DataTables/modal/datatables/edit_modal.html.twig', $template);
     }
 
     #[Test]
@@ -63,7 +63,7 @@ final class EditModalTemplateResolverTest extends TestCase
 
         $template = $resolver->resolveChromeTemplate(AttributeEditModalDataTable::class);
 
-        $this->assertSame('@DataTables/modal/bootstrap5/edit_modal.html.twig', $template);
+        $this->assertSame('@DataTables/modal/datatables/edit_modal.html.twig', $template);
     }
 
     #[Test]
@@ -73,7 +73,7 @@ final class EditModalTemplateResolverTest extends TestCase
 
         $template = $resolver->resolveBodyTemplate();
 
-        $this->assertSame('@DataTables/modal/_form_body_bs5.html.twig', $template);
+        $this->assertSame('@DataTables/modal/datatables/_form_body.html.twig', $template);
     }
 
     #[Test]
@@ -107,8 +107,8 @@ final class EditModalTemplateResolverTest extends TestCase
     {
         return new EditModalTemplateResolver(
             new TestContainer($services),
-            '@DataTables/modal/bootstrap5/edit_modal.html.twig',
-            '@DataTables/modal/_form_body_bs5.html.twig',
+            '@DataTables/modal/datatables/edit_modal.html.twig',
+            '@DataTables/modal/datatables/_form_body.html.twig',
         );
     }
 }

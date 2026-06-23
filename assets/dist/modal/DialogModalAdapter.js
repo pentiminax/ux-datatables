@@ -1,26 +1,15 @@
 import { createModalRoot, extractFormData } from './modalUtils.js';
-async function loadBootstrapModal() {
-    try {
-        const bootstrap = await import('bootstrap');
-        return bootstrap.Modal ?? null;
-    }
-    catch {
-        console.error('[ux-datatables] Bootstrap is required for the BootstrapModalAdapter.');
-        return null;
-    }
-}
-export class BootstrapModalAdapter {
+export class DialogModalAdapter {
     constructor() {
-        this.modalRoot = null;
+        this.dialog = null;
         this.modalBody = null;
         this.submitButton = null;
-        this.modalInstance = null;
         this.handlers = null;
-        this.open = false;
-        this.notifyCancelOnHide = true;
+        this.notifyCancelOnClose = true;
         this.hideResolver = null;
-        this.hiddenListener = () => {
-            const shouldCancel = this.notifyCancelOnHide;
+        this.cancelButtons = [];
+        this.closeListener = () => {
+            const shouldCancel = this.notifyCancelOnClose;
             const onCancel = this.handlers?.onCancel;
             this.cleanup();
             this.hideResolver?.();
@@ -40,8 +29,7 @@ export class BootstrapModalAdapter {
             }
             const originalLabel = this.submitButton.innerHTML;
             this.submitButton.disabled = true;
-            this.submitButton.innerHTML =
-                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+            this.submitButton.textContent = 'Saving...';
             try {
                 await this.handlers.onSubmit(extractFormData(form));
             }
@@ -52,13 +40,20 @@ export class BootstrapModalAdapter {
                 }
             }
         };
+        this.cancelListener = () => {
+            this.dialog?.close();
+        };
     }
     async show(html, handlers) {
         this.cleanup();
         this.handlers = handlers;
-        this.notifyCancelOnHide = true;
+        this.notifyCancelOnClose = true;
         const modalRoot = createModalRoot(html);
         if (!modalRoot) {
+            return;
+        }
+        if (!(modalRoot instanceof HTMLDialogElement)) {
+            console.error('[ux-datatables] DialogModalAdapter requires a <dialog data-ux-datatables-modal> element.');
             return;
         }
         const modalBody = modalRoot.querySelector('[data-ux-datatables-modal-body]');
@@ -67,19 +62,17 @@ export class BootstrapModalAdapter {
             console.error('[ux-datatables] Edit modal template must include [data-ux-datatables-modal-body] and [data-ux-datatables-submit].');
             return;
         }
-        const ModalClass = await loadBootstrapModal();
-        if (!ModalClass) {
-            return;
-        }
         document.body.appendChild(modalRoot);
-        this.modalRoot = modalRoot;
+        this.dialog = modalRoot;
         this.modalBody = modalBody;
         this.submitButton = submitButton;
-        this.modalInstance = new ModalClass(modalRoot);
-        this.modalRoot.addEventListener('hidden.bs.modal', this.hiddenListener);
-        this.submitButton.addEventListener('click', this.submitListener);
-        this.modalInstance.show();
-        this.open = true;
+        modalRoot.addEventListener('close', this.closeListener);
+        submitButton.addEventListener('click', this.submitListener);
+        for (const cancelButton of modalRoot.querySelectorAll('[data-ux-datatables-cancel]')) {
+            cancelButton.addEventListener('click', this.cancelListener);
+            this.cancelButtons.push(cancelButton);
+        }
+        modalRoot.showModal();
     }
     replaceBody(html) {
         if (!this.modalBody) {
@@ -89,34 +82,38 @@ export class BootstrapModalAdapter {
         this.modalBody.innerHTML = html;
     }
     hide() {
-        if (!this.modalInstance || !this.open) {
+        if (!this.dialog?.open) {
             this.cleanup();
             return Promise.resolve();
         }
-        this.notifyCancelOnHide = false;
+        this.notifyCancelOnClose = false;
         return new Promise((resolve) => {
             this.hideResolver = resolve;
-            this.modalInstance?.hide();
+            this.dialog?.close();
         });
     }
     isOpen() {
-        return this.open;
+        return this.dialog?.open ?? false;
     }
     cleanup() {
-        this.open = false;
         if (this.submitButton) {
             this.submitButton.removeEventListener('click', this.submitListener);
         }
-        if (this.modalRoot) {
-            this.modalRoot.removeEventListener('hidden.bs.modal', this.hiddenListener);
+        for (const cancelButton of this.cancelButtons) {
+            cancelButton.removeEventListener('click', this.cancelListener);
         }
-        this.modalInstance?.dispose?.();
-        this.modalRoot?.remove();
-        this.modalInstance = null;
-        this.modalRoot = null;
+        this.cancelButtons.length = 0;
+        if (this.dialog) {
+            this.dialog.removeEventListener('close', this.closeListener);
+            if (this.dialog.open) {
+                this.dialog.close();
+            }
+            this.dialog.remove();
+        }
+        this.dialog = null;
         this.modalBody = null;
         this.submitButton = null;
         this.handlers = null;
     }
 }
-//# sourceMappingURL=BootstrapModalAdapter.js.map
+//# sourceMappingURL=DialogModalAdapter.js.map

@@ -5,39 +5,54 @@ description: Inline edit modal configuration, template overrides, form mapping, 
 
 # Edit Modal
 
-`Action::edit()` opens a configured edit modal containing an auto-generated Symfony Form. The bundle ships with Bootstrap 5 templates and a Bootstrap modal adapter by default, but both the Twig template and the JavaScript adapter can be overridden.
+`Action::edit()` opens a configured edit modal containing an auto-generated Symfony Form. The bundle ships with a framework-agnostic `<dialog>` template and a native `DialogModalAdapter` by default — no Bootstrap or extra JavaScript setup required. Both the Twig template and the JavaScript adapter can be overridden.
 
 ## Requirements
 
 - `symfony/form` must be installed (`composer require symfony/form`)
 - `symfony/twig-bundle` must be installed to render the modal templates
-- Bootstrap is only required when you use the default Bootstrap modal adapter
+- Bootstrap is only required when you use the Bootstrap modal adapter (detected automatically when Bootstrap CSS is loaded)
 
 ## How It Works
 
 1. User clicks the Edit button on a row
 2. The Stimulus controller fetches a pre-filled form from `GET /datatables/ajax/edit-form`
-3. The configured modal adapter opens the returned modal HTML
+3. The modal adapter matching the detected CSS framework opens the returned modal HTML (`dt` by default, `bs5` when Bootstrap is detected)
 4. On submit, a `POST /datatables/ajax/edit-form` validates and persists the changes
 5. If the form is invalid, only the modal body is re-rendered and replaced in place
 6. On success, the modal closes and the table reloads automatically (with Mercure broadcast if enabled)
 
-## Modal Template Overrides
+## Zero Configuration
 
-Override the edit modal Twig template globally or per table.
+With `symfony/form` installed, `Action::edit()` works out of the box in Tailwind or custom CSS projects:
 
-### Global Configuration
+```php
+public function configureActions(Actions $actions): Actions
+{
+    return $actions->add(
+        Action::edit('Edit')
+            ->setIcon('fa-solid fa-pen')
+    );
+}
+```
+
+The Stimulus controller detects the CSS framework on page load. When no Bootstrap stylesheet is found, it falls back to `dt` and uses the built-in `DialogModalAdapter` with the default `@DataTables/modal/datatables/` Twig template.
+
+## Bootstrap Projects
+
+When Bootstrap 5 CSS is detected, the `BootstrapModalAdapter` is used automatically. Override the Twig template globally to match:
 
 ```yaml
 # config/packages/data_tables.yaml
 data_tables:
   edit_modal:
-    template: '@DataTables/modal/bootstrap5/edit_modal.html.twig'
-    body_template: '@DataTables/modal/_form_body_bs5.html.twig'
-    default_title: 'Edit'
+    template: '@DataTables/modal/bs5/edit_modal.html.twig'
+    body_template: '@DataTables/modal/bs5/_form_body.html.twig'
 ```
 
-### Per-Table via Attribute
+## Tailwind / Custom CSS
+
+Override only the Twig template with your own classes. The built-in `DialogModalAdapter` handles the rest — no custom JavaScript adapter needed:
 
 ```php
 #[AsDataTable(
@@ -49,14 +64,46 @@ final class ProductsDataTable extends AbstractDataTable
 }
 ```
 
+```twig
+{# templates/datatables/product_edit_modal.html.twig #}
+<dialog class="fixed inset-0 z-50 bg-black/50" data-ux-datatables-modal>
+    <div class="bg-white rounded-xl shadow-xl max-w-lg mx-auto mt-20">
+        <div class="px-6 py-4 border-b">
+            <h2 class="text-lg font-semibold">{{ title|trans }}</h2>
+        </div>
+        <div class="px-6 py-4" data-ux-datatables-modal-body>
+            {{ include(body_template, { form: form, entity: entity }) }}
+        </div>
+        <div class="px-6 py-4 border-t flex justify-end gap-2">
+            <button type="button" data-ux-datatables-cancel class="btn-secondary">Cancel</button>
+            <button type="button" data-ux-datatables-submit class="btn-primary">Save</button>
+        </div>
+    </div>
+</dialog>
+```
+
+## Modal Template Overrides
+
+Override the edit modal Twig template globally or per table.
+
+### Global Configuration
+
+```yaml
+# config/packages/data_tables.yaml
+data_tables:
+  edit_modal:
+    template: '@DataTables/modal/datatables/edit_modal.html.twig'
+    body_template: '@DataTables/modal/datatables/_form_body.html.twig'
+    default_title: 'Edit'
+```
+
 ### Per-Table via `configureDataTable()`
 
 ```php
 protected function configureDataTable(DataTable $table): DataTable
 {
     return $table
-        ->editModalTemplate('datatables/product_edit_modal.html.twig')
-        ->editModalAdapter('tw');
+        ->editModalTemplate('datatables/product_edit_modal.html.twig');
 }
 ```
 
@@ -67,9 +114,10 @@ Custom modal templates must preserve these attributes:
 <Table
   headers={['Attribute / ID', 'Element', 'Purpose']}
   rows={[
-    ['`data-ux-datatables-modal`', 'Modal root', 'Used by the adapter to open/close the modal'],
+    ['`data-ux-datatables-modal`', 'Modal root (`<dialog>` for `dt`, `<div class="modal">` for Bootstrap)', 'Used by the adapter to open/close the modal'],
     ['`data-ux-datatables-modal-body`', 'Body container', 'Replaced in-place after validation errors'],
     ['`data-ux-datatables-submit`', 'Submit button', 'Wired to the form submit handler'],
+    ['`data-ux-datatables-cancel`', 'Cancel button(s)', 'Closes the modal and triggers `onCancel`'],
     ['`id="ux-datatables-edit-form"`', '`<form>` element', 'Required for form serialization'],
   ]}
 />
@@ -151,80 +199,42 @@ final class ProductsDataTable extends AbstractDataTable
 
 ## Custom Modal Adapter
 
-Implement the `ModalAdapter` interface and register it via `modalAdapters`.
+For advanced modal behavior (animations, third-party libraries), implement the `ModalAdapter` interface and register it via `modalAdapters`:
 
 ```ts
-// assets/modal/dialog-adapter.ts
-import type { ModalAdapter, ModalHandlers } from '@pentiminax/ux-datatables/modal/ModalAdapter'
+import type { ModalAdapter, ModalHandlers } from '@pentiminax/ux-datatables'
 
-export class DialogModalAdapter implements ModalAdapter {
-    private dialog: HTMLDialogElement | null = null
-    private handlers: ModalHandlers | null = null
-
-    async show(html: string, handlers: ModalHandlers): Promise<void> {
-        this.handlers = handlers
-
-        const template = document.createElement('template')
-        template.innerHTML = html.trim()
-
-        const root = template.content.querySelector<HTMLElement>('[data-ux-datatables-modal]')
-        if (!root) return
-
-        this.dialog = root as HTMLDialogElement
-        document.body.appendChild(this.dialog)
-
-        this.dialog.querySelector('[data-ux-datatables-submit]')
-            ?.addEventListener('click', async () => {
-                const form = this.dialog!.querySelector<HTMLFormElement>('#ux-datatables-edit-form')
-                if (form) await handlers.onSubmit(Object.fromEntries(new FormData(form)))
-            })
-
-        this.dialog.addEventListener('close', () => handlers.onCancel?.())
-        this.dialog.showModal()
-    }
-
-    replaceBody(html: string): void {
-        const body = this.dialog?.querySelector('[data-ux-datatables-modal-body]')
-        if (body) body.innerHTML = html
-    }
-
-    async hide(): Promise<void> {
-        this.dialog?.close()
-        this.dialog?.remove()
-        this.dialog = null
-    }
-
-    isOpen(): boolean {
-        return this.dialog?.open ?? false
-    }
+export class MyModalAdapter implements ModalAdapter {
+    async show(html: string, handlers: ModalHandlers): Promise<void> { /* ... */ }
+    replaceBody(html: string): void { /* ... */ }
+    async hide(): Promise<void> { /* ... */ }
+    isOpen(): boolean { /* ... */ }
 }
 ```
 
-Then register it once (e.g. in your app entrypoint):
+Register it once in your app entrypoint:
 
 ```ts
-import { modalAdapters } from '@pentiminax/ux-datatables/modal/ModalAdapterRegistry'
-import { DialogModalAdapter } from './modal/dialog-adapter'
+import { modalAdapters } from '@pentiminax/ux-datatables'
 
-modalAdapters.register('dialog', () => new DialogModalAdapter())
+modalAdapters.register('my-adapter', () => new MyModalAdapter())
 ```
 
-Activate it globally via config or per-table:
-
-```yaml
-# config/packages/data_tables.yaml
-data_tables:
-  edit_modal:
-    adapter: 'dialog'
-```
+Activate it per-table:
 
 ```php
-// Per-table
 protected function configureDataTable(DataTable $table): DataTable
 {
-    return $table->editModalAdapter('dialog');
+    return $table->editModalAdapter('my-adapter');
 }
 ```
+
+The built-in adapters are:
+
+| Key | Adapter | When used |
+|-----|---------|-----------|
+| `dt` | `DialogModalAdapter` | Default fallback (Tailwind, custom CSS) |
+| `bs` / `bs4` / `bs5` | `BootstrapModalAdapter` | Bootstrap CSS detected |
 
 ## Cross Links
 

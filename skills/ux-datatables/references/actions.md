@@ -24,7 +24,7 @@ public function configureActions(Actions $actions): Actions
 
 | Factory | Default label | Default class | Behavior |
 |---------|---------------|---------------|----------|
-| `Action::edit($label='Edit', $class='btn btn-warning')` | Edit | warning | opens the edit modal |
+| `Action::edit($label='Edit', $class='btn btn-warning')` | Edit | warning | opens the inline edit modal (zero-config with `symfony/form`, no Bootstrap required) |
 | `Action::delete($label='Delete', $class='btn btn-danger')` | Delete | danger | deletes the row via Ajax |
 | `Action::detail($label='Detail', $class='btn btn-primary')` | Detail | primary | links to a detail page, or expands a collapsible child row (see below) |
 
