@@ -1,38 +1,17 @@
 import type { ModalAdapter, ModalHandlers } from './ModalAdapter.js'
 import { createModalRoot, extractFormData } from './modalUtils.js'
 
-type BootstrapModalInstance = {
-    dispose?: () => void
-    hide: () => void
-    show: () => void
-}
-
-type BootstrapModalConstructor = new (element: HTMLElement) => BootstrapModalInstance
-
-async function loadBootstrapModal(): Promise<BootstrapModalConstructor | null> {
-    try {
-        const bootstrap = await import('bootstrap')
-
-        return bootstrap.Modal ?? null
-    } catch {
-        console.error('[ux-datatables] Bootstrap is required for the BootstrapModalAdapter.')
-
-        return null
-    }
-}
-
-export class BootstrapModalAdapter implements ModalAdapter {
-    private modalRoot: HTMLElement | null = null
+export class DialogModalAdapter implements ModalAdapter {
+    private dialog: HTMLDialogElement | null = null
     private modalBody: HTMLElement | null = null
     private submitButton: HTMLButtonElement | null = null
-    private modalInstance: BootstrapModalInstance | null = null
     private handlers: ModalHandlers | null = null
-    private open = false
-    private notifyCancelOnHide = true
+    private notifyCancelOnClose = true
     private hideResolver: (() => void) | null = null
+    private readonly cancelButtons: HTMLButtonElement[] = []
 
-    private readonly hiddenListener = (): void => {
-        const shouldCancel = this.notifyCancelOnHide
+    private readonly closeListener = (): void => {
+        const shouldCancel = this.notifyCancelOnClose
         const onCancel = this.handlers?.onCancel
 
         this.cleanup()
@@ -59,8 +38,7 @@ export class BootstrapModalAdapter implements ModalAdapter {
 
         const originalLabel = this.submitButton.innerHTML
         this.submitButton.disabled = true
-        this.submitButton.innerHTML =
-            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...'
+        this.submitButton.textContent = 'Saving...'
 
         try {
             await this.handlers.onSubmit(extractFormData(form))
@@ -72,14 +50,24 @@ export class BootstrapModalAdapter implements ModalAdapter {
         }
     }
 
+    private readonly cancelListener = (): void => {
+        this.dialog?.close()
+    }
+
     async show(html: string, handlers: ModalHandlers): Promise<void> {
         this.cleanup()
         this.handlers = handlers
-        this.notifyCancelOnHide = true
+        this.notifyCancelOnClose = true
 
         const modalRoot = createModalRoot(html)
 
         if (!modalRoot) {
+            return
+        }
+
+        if (!(modalRoot instanceof HTMLDialogElement)) {
+            console.error('[ux-datatables] DialogModalAdapter requires a <dialog data-ux-datatables-modal> element.')
+
             return
         }
 
@@ -94,24 +82,23 @@ export class BootstrapModalAdapter implements ModalAdapter {
             return
         }
 
-        const ModalClass = await loadBootstrapModal()
-
-        if (!ModalClass) {
-            return
-        }
-
         document.body.appendChild(modalRoot)
 
-        this.modalRoot = modalRoot
+        this.dialog = modalRoot
         this.modalBody = modalBody
         this.submitButton = submitButton
-        this.modalInstance = new ModalClass(modalRoot)
 
-        this.modalRoot.addEventListener('hidden.bs.modal', this.hiddenListener)
-        this.submitButton.addEventListener('click', this.submitListener)
+        modalRoot.addEventListener('close', this.closeListener)
+        submitButton.addEventListener('click', this.submitListener)
 
-        this.modalInstance.show()
-        this.open = true
+        for (const cancelButton of modalRoot.querySelectorAll<HTMLButtonElement>(
+            '[data-ux-datatables-cancel]'
+        )) {
+            cancelButton.addEventListener('click', this.cancelListener)
+            this.cancelButtons.push(cancelButton)
+        }
+
+        modalRoot.showModal()
     }
 
     replaceBody(html: string): void {
@@ -125,40 +112,46 @@ export class BootstrapModalAdapter implements ModalAdapter {
     }
 
     hide(): Promise<void> {
-        if (!this.modalInstance || !this.open) {
+        if (!this.dialog?.open) {
             this.cleanup()
 
             return Promise.resolve()
         }
 
-        this.notifyCancelOnHide = false
+        this.notifyCancelOnClose = false
 
         return new Promise((resolve) => {
             this.hideResolver = resolve
-            this.modalInstance?.hide()
+            this.dialog?.close()
         })
     }
 
     isOpen(): boolean {
-        return this.open
+        return this.dialog?.open ?? false
     }
 
     private cleanup(): void {
-        this.open = false
-
         if (this.submitButton) {
             this.submitButton.removeEventListener('click', this.submitListener)
         }
 
-        if (this.modalRoot) {
-            this.modalRoot.removeEventListener('hidden.bs.modal', this.hiddenListener)
+        for (const cancelButton of this.cancelButtons) {
+            cancelButton.removeEventListener('click', this.cancelListener)
         }
 
-        this.modalInstance?.dispose?.()
-        this.modalRoot?.remove()
+        this.cancelButtons.length = 0
 
-        this.modalInstance = null
-        this.modalRoot = null
+        if (this.dialog) {
+            this.dialog.removeEventListener('close', this.closeListener)
+
+            if (this.dialog.open) {
+                this.dialog.close()
+            }
+
+            this.dialog.remove()
+        }
+
+        this.dialog = null
         this.modalBody = null
         this.submitButton = null
         this.handlers = null
