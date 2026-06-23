@@ -28,6 +28,8 @@ use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntentFactoryInterface;
+use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
@@ -53,6 +55,12 @@ return static function (ContainerConfigurator $container): void {
         ->private();
 
     $services->alias(DataTableBuilderInterface::class, 'datatables.builder')
+        ->private();
+
+    $services->set('datatables.query.intent_factory', DefaultDataTableQueryIntentFactory::class)
+        ->private();
+
+    $services->alias(DataTableQueryIntentFactoryInterface::class, 'datatables.query.intent_factory')
         ->private();
 
     $services->set('datatables.security.permission_checker', PermissionChecker::class)

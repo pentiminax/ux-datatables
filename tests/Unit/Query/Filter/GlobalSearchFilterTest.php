@@ -13,7 +13,6 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Query\Filter\GlobalSearchFilter;
-use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -24,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(GlobalSearchFilter::class)]
 final class GlobalSearchFilterTest extends TestCase
 {
+    use BuildsQueryFilterContext;
+
     #[Test]
     public function it_applies_with_dot_notation_field(): void
     {
@@ -54,7 +55,7 @@ final class GlobalSearchFilterTest extends TestCase
         $columns = new Columns([]);
         $search  = new Search('john', false);
         $request = new DataTableRequest(1, $columns, search: $search);
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -83,7 +84,7 @@ final class GlobalSearchFilterTest extends TestCase
         $columns = new Columns([]);
         $search  = new Search('acme', false);
         $request = new DataTableRequest(1, $columns, search: $search);
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -115,7 +116,7 @@ final class GlobalSearchFilterTest extends TestCase
         $columns = new Columns([]);
         $search  = new Search('test', false);
         $request = new DataTableRequest(1, $columns, search: $search);
-        $context = new QueryFilterContext($request, [$column], 'e');
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
