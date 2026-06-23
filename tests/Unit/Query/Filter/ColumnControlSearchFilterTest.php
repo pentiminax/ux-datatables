@@ -16,7 +16,6 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnControlSearchFilter;
-use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\InListSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -29,6 +28,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ColumnControlSearchFilter::class)]
 final class ColumnControlSearchFilterTest extends TestCase
 {
+    use BuildsQueryFilterContext;
+
     #[Test]
     public function it_skips_strategy_search_when_field_requires_an_explicit_scalar_path(): void
     {
@@ -44,7 +45,7 @@ final class ColumnControlSearchFilterTest extends TestCase
         );
         $requestColumn = new Column('client', 'client', true, true, columnControl: $columnControl);
         $request       = new DataTableRequest(1, new Columns(['client' => $requestColumn]));
-        $context       = new QueryFilterContext($request, [$column], 'e');
+        $context       = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -63,7 +64,7 @@ final class ColumnControlSearchFilterTest extends TestCase
         $columnControl = new ColumnControl(list: ['acme']);
         $requestColumn = new Column('client', 'client', true, true, columnControl: $columnControl);
         $request       = new DataTableRequest(1, new Columns(['client' => $requestColumn]));
-        $context       = new QueryFilterContext($request, [$column], 'e');
+        $context       = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
@@ -77,7 +78,7 @@ final class ColumnControlSearchFilterTest extends TestCase
         $strategy = $this->createMock(SearchStrategyInterface::class);
         $strategy->expects($this->once())
             ->method('apply')
-            ->with($this->identicalTo($qb), $this->isInstanceOf(TextColumn::class), $search, 0, 'e');
+            ->with($this->identicalTo($qb), $this->isInstanceOf(TextColumn::class), $this->equalTo($search), 0, 'e');
 
         $filter = new ColumnControlSearchFilter(new SearchStrategyRegistry([], $strategy));
 
@@ -85,7 +86,7 @@ final class ColumnControlSearchFilterTest extends TestCase
         $columnControl = new ColumnControl(search: $search);
         $requestColumn = new Column('clientName', 'clientName', true, true, columnControl: $columnControl);
         $request       = new DataTableRequest(1, new Columns(['clientName' => $requestColumn]));
-        $context       = new QueryFilterContext($request, [$column], 'e');
+        $context       = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }
