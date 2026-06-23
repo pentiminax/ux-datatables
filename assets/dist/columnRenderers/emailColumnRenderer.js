@@ -17,6 +17,7 @@ export const emailColumnRenderer = {
         const customOptions = (column.customOptions ?? {});
         const shouldObfuscate = true === customOptions.obfuscate;
         const shouldMask = true === customOptions.mask;
+        const shouldRenderAsText = true === customOptions.renderAsText;
         const displayValue = typeof customOptions.displayValue === 'string' ? customOptions.displayValue : null;
         column.render = (data, type, _row) => {
             if (type !== 'display') {
@@ -26,9 +27,6 @@ export const emailColumnRenderer = {
             if (!email) {
                 return '';
             }
-            const href = shouldObfuscate
-                ? `mailto:${escapeHtml(obfuscateMailto(email))}`
-                : `mailto:${escapeHtml(email)}`;
             let text;
             if (displayValue !== null) {
                 text = escapeHtml(displayValue);
@@ -39,6 +37,12 @@ export const emailColumnRenderer = {
             else {
                 text = escapeHtml(email);
             }
+            if (shouldRenderAsText) {
+                return text;
+            }
+            const href = shouldObfuscate
+                ? `mailto:${escapeHtml(obfuscateMailto(email))}`
+                : `mailto:${escapeHtml(email)}`;
             return `<a href="${href}">${text}</a>`;
         };
     },

@@ -50,6 +50,7 @@ export interface EmailCustomOptions {
     obfuscate?: boolean
     mask?: boolean
     displayValue?: string
+    renderAsText?: boolean
 }
 
 export interface UrlCustomOptions {
