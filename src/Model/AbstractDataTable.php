@@ -38,6 +38,8 @@ abstract class AbstractDataTable
      */
     private array $columns;
 
+    private Filters $filters;
+
     private ?RowMapperInterface $defaultRowMapper = null;
 
     private ?AsDataTable $asDataTable = null;
@@ -93,6 +95,9 @@ abstract class AbstractDataTable
         $this->columns = $columnResolver->filterStaticPermissions($this->columns);
 
         $this->table->columns($this->columns);
+
+        $this->filters = $this->configureFilters(new Filters());
+        $this->table->setFilters($this->filters);
 
         $this->table->setExtensions(
             $this->configureExtensions(new DataTableExtensions())
@@ -202,6 +207,17 @@ abstract class AbstractDataTable
         return $extensions;
     }
 
+    /**
+     * Declare user-facing filters rendered above the table.
+     *
+     * Override to add TextFilter, ChoiceFilter, TernaryFilter, DateRangeFilter
+     * or a generic Filter with a query() closure.
+     */
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters;
+    }
+
     public function fetchData(DataTableRequest $request): DataTableResult
     {
         return $this->runtime()->fetchData($request);
@@ -282,7 +298,28 @@ abstract class AbstractDataTable
 
         $registry = $this->createSearchStrategyRegistry();
 
-        return QueryFilterChain::createDefault($registry)->apply($qb, $context);
+        $qb = QueryFilterChain::createDefault($registry)->apply($qb, $context);
+
+        $this->applyConfiguredFilters($qb, $request);
+
+        return $qb;
+    }
+
+    private function applyConfiguredFilters(QueryBuilder $qb, DataTableRequest $request): void
+    {
+        if (!isset($this->filters) || $this->filters->isEmpty()) {
+            return;
+        }
+
+        foreach ($this->filters->getFilters() as $filter) {
+            $value = $request->filters[$filter->getName()] ?? null;
+
+            if (null === $value || '' === $value || [] === $value) {
+                continue;
+            }
+
+            $filter->apply($qb, $value, 'e');
+        }
     }
 
     protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder

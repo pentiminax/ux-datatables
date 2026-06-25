@@ -10,10 +10,13 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterfa
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
+use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -22,7 +25,18 @@ use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
+
+enum RenderingPreparerRole: string implements TranslatableInterface
+{
+    case Admin = 'admin';
+
+    public function trans(TranslatorInterface $translator, ?string $locale = null): string
+    {
+        return $translator->trans('role.'.$this->value, [], null, $locale);
+    }
+}
 
 /**
  * @internal
@@ -605,5 +619,54 @@ final class RenderingPreparerTest extends TestCase
 
         $this->assertSame('Statut', $table->getColumns()['status']->getTitle());
         $this->assertSame('Statut', $table->getOptions()['columns'][0]['title']);
+    }
+
+    #[Test]
+    public function it_translates_translatable_filter_option_labels(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->method('trans')
+            ->willReturnMap([
+                ['role.admin', [], null, null, 'Administrateur'],
+            ]);
+
+        $filters = (new Filters())->add(
+            ChoiceFilter::new('role')->options(RenderingPreparerRole::class),
+        );
+        $table = (new DataTable('Test'))->setFilters($filters);
+
+        $preparer = new RenderingPreparer(translator: $translator);
+        $preparer->prepare($table, null);
+
+        $this->assertSame(
+            ['admin' => 'Administrateur'],
+            $table->getOptions()['filters'][0]['options'],
+        );
+    }
+
+    #[Test]
+    public function it_translates_filter_bar_labels(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->method('trans')
+            ->willReturnMap([
+                ['filter.title', [], null, null, 'Filtres'],
+                ['filter.apply', [], null, null, 'Appliquer'],
+            ]);
+
+        $filters = (new Filters())
+            ->labels(title: 'filter.title', apply: 'filter.apply')
+            ->add(TextFilter::new('name'));
+        $table = (new DataTable('Test'))->setFilters($filters);
+
+        $preparer = new RenderingPreparer(translator: $translator);
+        $preparer->prepare($table, null);
+
+        $this->assertSame(
+            ['title' => 'Filtres', 'apply' => 'Appliquer'],
+            $table->getOptions()['filterLabels'],
+        );
     }
 }

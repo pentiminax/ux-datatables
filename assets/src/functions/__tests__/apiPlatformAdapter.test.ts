@@ -45,10 +45,7 @@ describe('ApiPlatformAdapter', () => {
             adapter.buildRequestParams({
                 start: 0,
                 length: 25,
-                columns: [
-                    { search: { value: '' } },
-                    { search: { value: 'admin@example.com' } },
-                ],
+                columns: [{ search: { value: '' } }, { search: { value: 'admin@example.com' } }],
             })
         ).toMatchObject({
             email: 'admin@example.com',

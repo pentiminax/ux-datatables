@@ -23,6 +23,8 @@ class DataTable
 
     private DataTableExtensions $extensions;
 
+    private ?Filters $filters = null;
+
     private bool $templateColumnsRendered = false;
 
     private ?MercureConfig $mercureConfig = null;
@@ -69,6 +71,15 @@ class DataTable
 
         if (null !== $this->mercureConfig) {
             $options['mercure'] = $this->mercureConfig->jsonSerialize();
+        }
+
+        if (null !== $this->filters && !$this->filters->isEmpty()) {
+            $options['filters'] = $this->filters->jsonSerialize();
+
+            $labels = $this->filters->getLabels();
+            if (null !== $labels && !$labels->isEmpty()) {
+                $options['filterLabels'] = $labels->jsonSerialize();
+            }
         }
 
         return $options;
@@ -540,6 +551,18 @@ class DataTable
         $this->extensions = $extensions;
 
         return $this;
+    }
+
+    public function setFilters(Filters $filters): static
+    {
+        $this->filters = $filters;
+
+        return $this;
+    }
+
+    public function getFilters(): ?Filters
+    {
+        return $this->filters;
     }
 
     public function language(Language $language): static

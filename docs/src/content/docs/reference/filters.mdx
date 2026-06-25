@@ -1,0 +1,143 @@
+---
+title: Filters
+description: Declarative filter bar inspired by Filament and EasyAdmin
+---
+
+# Filters
+
+Filters add a declarative filter popover to a server-side table, inspired by
+[Filament](https://filamentphp.com/docs/3.x/tables/filters/getting-started) and
+EasyAdmin. Declare them in `configureFilters()`; the Stimulus controller renders
+a funnel toggle (with an active-count badge) next to the search box, opening a
+popover that holds the controls plus **Apply filters** and **Reset** actions.
+The table reloads over AJAX when filters are applied, and each filter applies a
+Doctrine condition server-side.
+
+> Filters target **server-side** (Doctrine) tables. They have no effect on
+> client-side data tables in this version.
+
+## Quick start
+
+```php
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Filter\{DateRangeFilter, Filter, SelectFilter, TernaryFilter, TextFilter};
+use Pentiminax\UX\DataTables\Model\Filters;
+
+public function configureFilters(Filters $filters): Filters
+{
+    return $filters
+        ->add(TextFilter::new('name')->label('Name'))
+        ->add(SelectFilter::new('status')
+            ->label('Status')
+            ->options(['Draft' => 'draft', 'Published' => 'published']))
+        ->add(TernaryFilter::new('verified')
+            ->field('emailVerifiedAt')
+            ->trueLabel('Verified')
+            ->falseLabel('Not verified'))
+        ->add(DateRangeFilter::new('createdAt')->label('Created'))
+        ->add(Filter::new('vip')->label('VIP only')->query(
+            fn (QueryBuilder $qb, mixed $value, string $alias) =>
+                $qb->andWhere("$alias.score > :vip")->setParameter('vip', 100)
+        ));
+}
+```
+
+## Conventions
+
+Every filter is created with `::new(string $name)`. The name is the AJAX payload
+key (`filters[name]`).
+
+| Method | Description |
+|--------|-------------|
+| `label(string)` | Control label (defaults to a humanized name) |
+| `field(string)` | Doctrine field path (defaults to the name). Supports relations, e.g. `author.name` |
+| `placeholder(string)` | Control placeholder / empty option label |
+| `query(Closure)` | Override the default condition: `fn (QueryBuilder $qb, mixed $value, string $alias)` |
+
+A `query()` closure fully replaces the default behaviour of the filter type.
+
+## Filter types
+
+### TextFilter
+
+Case-insensitive `LIKE %value%` on the target field.
+
+```php
+TextFilter::new('name')->label('Name');
+```
+
+### SelectFilter
+
+Exact match, or `IN (...)` when `multiple()` is enabled. `options()` accepts the
+`[label => value]` convention, a list of `BackedEnum` cases, or a `BackedEnum`
+class-string.
+
+```php
+SelectFilter::new('status')->options(['Draft' => 'draft', 'Published' => 'published']);
+SelectFilter::new('roles')->multiple()->options(Role::class);
+```
+
+### TernaryFilter
+
+Three states (all / true / false). By default the true state matches
+`field IS NOT NULL` and the false state `field IS NULL`. Use `values()` to
+compare against concrete values instead (e.g. a boolean column).
+
+```php
+TernaryFilter::new('verified')->field('emailVerifiedAt')
+    ->trueLabel('Verified')->falseLabel('Not verified');
+
+TernaryFilter::new('active')->values(true, false);
+```
+
+### DateRangeFilter
+
+Two optional bounds (`from` / `to`) applied independently as `>=` and `<=`.
+
+```php
+DateRangeFilter::new('createdAt')->label('Created');
+```
+
+### Filter (generic)
+
+A checkbox driven entirely by a `query()` closure, executed only when checked.
+
+```php
+Filter::new('vip')->query(
+    fn (QueryBuilder $qb, mixed $value, string $alias) =>
+        $qb->andWhere("$alias.score > :vip")->setParameter('vip', 100)
+);
+```
+
+## How it works
+
+1. `configureFilters()` builds a `Filters` collection, serialized into the
+   Stimulus `view` payload under the `filters` key.
+2. The controller registers a custom DataTables `filters`
+   [feature](https://datatables.net/reference/feature/) and places it in the
+   [`layout`](https://datatables.net/reference/option/layout) — by default in
+   `topEnd`, right after the built-in `search` box. Clicking the funnel toggle
+   opens the popover; applying merges the committed values into `ajax.data` as
+   `filters[name]`, preserving any existing static AJAX data.
+3. On **Apply filters** (or **Reset**), the table reloads. Server-side,
+   `DataTableRequest::filters` carries the submitted values and each filter
+   applies its condition after the standard search/order chain, so both the
+   filtered count and the page reflect the filters.
+
+Empty or irrelevant values are ignored (no-op).
+
+## Positioning the filter button
+
+By default the funnel toggle sits in `topEnd`, just after the search box. To put
+it elsewhere, reference the `filters` feature in the table `layout` with
+`Feature::FILTERS`; the controller injects the live filter instance at that
+position instead of appending it:
+
+```php
+use Pentiminax\UX\DataTables\Enum\Feature;
+
+$dataTable->layout([
+    'topStart' => [Feature::FILTERS, Feature::PAGE_LENGTH],
+    'topEnd'   => Feature::SEARCH,
+]);
+```

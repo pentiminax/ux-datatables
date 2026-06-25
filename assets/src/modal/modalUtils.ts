@@ -5,7 +5,9 @@ export function createModalRoot(html: string): HTMLElement | null {
     const modalRoot = template.content.querySelector<HTMLElement>('[data-ux-datatables-modal]')
 
     if (!modalRoot) {
-        console.error('[ux-datatables] Edit modal template must include [data-ux-datatables-modal].')
+        console.error(
+            '[ux-datatables] Edit modal template must include [data-ux-datatables-modal].'
+        )
 
         return null
     }
