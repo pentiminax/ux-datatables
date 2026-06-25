@@ -8,11 +8,12 @@ export const imageColumnRenderer: ColumnRenderer = {
 
     configure(column: Record<string, any>): void {
         const customOptions = (column.customOptions ?? {}) as ImageCustomOptions
-        const imageWidth = typeof customOptions.imageWidth === 'number' ? customOptions.imageWidth : null
+        const imageWidth =
+            typeof customOptions.imageWidth === 'number' ? customOptions.imageWidth : null
         const imageHeight =
             typeof customOptions.imageHeight === 'number' ? customOptions.imageHeight : null
         const alt = typeof customOptions.alt === 'string' ? customOptions.alt : ''
-        const lazy = true !== (customOptions.lazy === false)
+        const lazy = !(customOptions.lazy === false)
         const rounded = true === customOptions.rounded
         const placeholder =
             typeof customOptions.placeholder === 'string' ? customOptions.placeholder : null

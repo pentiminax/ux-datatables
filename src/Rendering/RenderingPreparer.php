@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\TranslatableFilterInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
@@ -45,6 +46,7 @@ final class RenderingPreparer
         $this->configureForwardedQueryParameters($table);
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
+        $this->translateFilterLabels($table);
     }
 
     public function prepareAfterDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
@@ -284,5 +286,25 @@ final class RenderingPreparer
             $title = $column->getTitle();
             $column->setTitle($this->translator->trans($title));
         }
+    }
+
+    private function translateFilterLabels(DataTable $table): void
+    {
+        if (null === $this->translator) {
+            return;
+        }
+
+        $filters = $table->getFilters();
+        if (null === $filters) {
+            return;
+        }
+
+        foreach ($filters->getFilters() as $filter) {
+            if ($filter instanceof TranslatableFilterInterface) {
+                $filter->translateLabels($this->translator);
+            }
+        }
+
+        $filters->getLabels()?->translate($this->translator);
     }
 }

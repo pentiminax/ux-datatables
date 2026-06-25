@@ -77,7 +77,10 @@ function buildOrderEntries(table: any): OrderEntry[] {
     })
 }
 
-export function readUrlState(cfg: UrlStateConfig, search = window.location.search): UrlStateSnapshot {
+export function readUrlState(
+    cfg: UrlStateConfig,
+    search = window.location.search
+): UrlStateSnapshot {
     const params = new URLSearchParams(search)
     const out: UrlStateSnapshot = {}
 

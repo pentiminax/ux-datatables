@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { ModalAdapterRegistry } from '../ModalAdapterRegistry.js'
 import type { ModalAdapter } from '../ModalAdapter.js'
+import { ModalAdapterRegistry } from '../ModalAdapterRegistry.js'
 
 describe('ModalAdapterRegistry', () => {
     it('registers and returns factories', async () => {

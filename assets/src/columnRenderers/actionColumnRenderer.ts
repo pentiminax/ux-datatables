@@ -3,8 +3,7 @@ import type { ActionConfig, ActionRowData, ColumnRenderer } from './types.js'
 
 const SAFE_ATTRIBUTE_NAME_PATTERN = /^[a-zA-Z_:][a-zA-Z0-9:._-]*$/
 
-const DEFAULT_COLLAPSIBLE_ICON =
-    '<span class="dtr-control-icon" aria-hidden="true">&#9656;</span> '
+const DEFAULT_COLLAPSIBLE_ICON = '<span class="dtr-control-icon" aria-hidden="true">&#9656;</span> '
 
 export const actionColumnRenderer: ColumnRenderer = {
     matches(column: Record<string, any>): boolean {

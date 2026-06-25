@@ -4,9 +4,9 @@ import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js'
+import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js'
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js'
 import type { ColumnRenderer } from './columnRenderers/types.js'
-import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 import { ApiPlatformAdapter, type ColumnConfig } from './functions/apiPlatformAdapter.js'
 import { normalizeDisabledColumnControls } from './functions/columnControl.js'
@@ -15,18 +15,21 @@ import { detectStyleFramework } from './functions/detectStyleFramework.js'
 import { ExtensionRegistry } from './functions/extensionRegistry.js'
 import { fetchDetailRow } from './functions/fetchDetailRow.js'
 import { fetchEditForm } from './functions/fetchEditForm.js'
+import { registerFilterFeature } from './functions/filterFeature.js'
+import { applyFilterLayout } from './functions/filterLayout.js'
+import { FilterBar, hasFilters } from './functions/filters.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
 import { submitEditForm } from './functions/submitEditForm.js'
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js'
-import { resolveModalAdapter } from './modal/resolveModalAdapter.js'
-import type { StyleFramework } from './types/styleFramework.js'
 import {
     applyUrlStateToPayload,
     isUrlStateEnabled,
     readUrlState,
-    writeUrlState,
     type UrlStateConfig,
+    writeUrlState,
 } from './functions/urlState.js'
+import { resolveModalAdapter } from './modal/resolveModalAdapter.js'
+import type { StyleFramework } from './types/styleFramework.js'
 
 /**
  * Maps DataTables payload property keys to their corresponding extension names
@@ -78,6 +81,7 @@ export default class extends Controller {
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)
+        registerFilterFeature(DataTable)
 
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true
@@ -98,6 +102,12 @@ export default class extends Controller {
         const urlStateCfg = isUrlStateEnabled(payload)
         if (urlStateCfg) {
             applyUrlStateToPayload(payload, readUrlState(urlStateCfg))
+        }
+
+        if (hasFilters(payload)) {
+            const filterBar = new FilterBar(payload, framework)
+            filterBar.attachToPayload(payload)
+            applyFilterLayout(payload, filterBar)
         }
 
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
@@ -434,6 +444,7 @@ type DataTableWithAjax = DataTable<any> & {
         reload: (callback?: null, resetPaging?: boolean) => void
     }
     on: (event: string, callback: (...args: any[]) => void) => DataTableWithAjax
+    table?: () => { container: () => HTMLElement | null }
     search: (input: string) => DataTableWithAjax
     order: (order: any) => DataTableWithAjax
     page: ((page?: number) => DataTableWithAjax) & { len: (len?: number) => number }
