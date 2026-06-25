@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Filter;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Contracts\TranslatableFilterInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Three-state filter (true / false / blank).
@@ -13,7 +15,7 @@ use Doctrine\ORM\QueryBuilder;
  * "field IS NULL". Provide explicit scalar values via trueValue()/falseValue()
  * to compare against a concrete value (e.g. a boolean column) instead.
  */
-final class TernaryFilter extends AbstractFilter
+final class TernaryFilter extends AbstractFilter implements TranslatableFilterInterface
 {
     private ?string $trueLabel = null;
 
@@ -49,6 +51,16 @@ final class TernaryFilter extends AbstractFilter
         $this->usesValues = true;
 
         return $this;
+    }
+
+    /**
+     * Translate the true/false labels at render time, falling back to the
+     * built-in "Yes"/"No" defaults when none were set via trueLabel()/falseLabel().
+     */
+    public function translateLabels(TranslatorInterface $translator, ?string $locale = null): void
+    {
+        $this->trueLabel  = $translator->trans($this->trueLabel ?? 'Yes', locale: $locale);
+        $this->falseLabel = $translator->trans($this->falseLabel ?? 'No', locale: $locale);
     }
 
     public function jsonSerialize(): array

@@ -14,6 +14,30 @@ final class Filters implements \JsonSerializable
     /** @var array<string, FilterInterface> */
     private array $filters = [];
 
+    private ?FilterLabels $labels = null;
+
+    /**
+     * Override the filter bar chrome strings (toggle title, reset/apply buttons,
+     * empty-select placeholder). Values may be plain strings or translation keys;
+     * the RenderingPreparer passes them through the translator at render time.
+     * Any argument left null keeps the frontend's built-in English default.
+     */
+    public function labels(
+        ?string $title = null,
+        ?string $reset = null,
+        ?string $apply = null,
+        ?string $all = null,
+    ): self {
+        $this->labels = new FilterLabels($title, $reset, $apply, $all);
+
+        return $this;
+    }
+
+    public function getLabels(): ?FilterLabels
+    {
+        return $this->labels;
+    }
+
     public function add(FilterInterface $filter): self
     {
         $this->filters[$filter->getName()] = $filter;
