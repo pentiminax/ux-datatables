@@ -304,5 +304,7 @@ final class RenderingPreparer
                 $filter->translateLabels($this->translator);
             }
         }
+
+        $filters->getLabels()?->translate($this->translator);
     }
 }

@@ -15,6 +15,18 @@ export interface FilterDefinition {
 
 export type FilterValue = string | string[] | { from?: string; to?: string }
 
+/**
+ * Optional overrides for the filter bar chrome strings. Sourced from the PHP
+ * `Filters::labels()` config (already translated server-side) via
+ * `payload.filterLabels`. Each falls back to a built-in English default.
+ */
+export interface FilterBarLabels {
+    title?: string
+    reset?: string
+    apply?: string
+    all?: string
+}
+
 interface FilterControl {
     definition: FilterDefinition
     getValue: () => FilterValue | null
@@ -61,6 +73,7 @@ const FUNNEL_ICON =
 
 export class FilterBar {
     private readonly definitions: FilterDefinition[]
+    private readonly labels: FilterBarLabels
     private readonly controls: FilterControl[] = []
     private readonly wrapper: HTMLDivElement
     private readonly popover: HTMLDivElement
@@ -75,6 +88,7 @@ export class FilterBar {
         private readonly framework: StyleFramework
     ) {
         this.definitions = (payload.filters as FilterDefinition[]) ?? []
+        this.labels = (payload.filterLabels as FilterBarLabels) ?? {}
 
         this.wrapper = document.createElement('div')
         this.wrapper.className = 'dt-filters'
@@ -83,7 +97,7 @@ export class FilterBar {
         this.toggle.type = 'button'
         this.toggle.className = 'dt-filters-toggle'
         this.toggle.setAttribute('aria-expanded', 'false')
-        this.toggle.setAttribute('aria-label', 'Filters')
+        this.toggle.setAttribute('aria-label', this.labels.title ?? 'Filters')
         this.toggle.innerHTML = FUNNEL_ICON
 
         this.badge = document.createElement('span')
@@ -166,12 +180,12 @@ export class FilterBar {
 
         const title = document.createElement('span')
         title.className = 'dt-filters-popover__title'
-        title.textContent = 'Filters'
+        title.textContent = this.labels.title ?? 'Filters'
 
         const reset = document.createElement('button')
         reset.type = 'button'
         reset.className = 'dt-filters-reset'
-        reset.textContent = 'Reset'
+        reset.textContent = this.labels.reset ?? 'Reset'
         reset.addEventListener('click', () => this.resetFilters())
 
         header.appendChild(title)
@@ -186,7 +200,7 @@ export class FilterBar {
         const apply = document.createElement('button')
         apply.type = 'button'
         apply.className = 'dt-filters-apply'
-        apply.textContent = 'Apply filters'
+        apply.textContent = this.labels.apply ?? 'Apply filters'
         apply.addEventListener('click', () => this.applyFilters())
 
         footer.appendChild(apply)
@@ -304,7 +318,7 @@ export class FilterBar {
         if (!select.multiple) {
             const empty = document.createElement('option')
             empty.value = ''
-            empty.textContent = definition.placeholder ?? 'All'
+            empty.textContent = definition.placeholder ?? this.labels.all ?? 'All'
             select.appendChild(empty)
         }
 
@@ -335,7 +349,7 @@ export class FilterBar {
         select.name = `filters[${definition.name}]`
 
         const optionsMap: Array<[string, string]> = [
-            ['', definition.placeholder ?? 'All'],
+            ['', definition.placeholder ?? this.labels.all ?? 'All'],
             ['true', definition.trueLabel ?? 'Yes'],
             ['false', definition.falseLabel ?? 'No'],
         ]

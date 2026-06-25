@@ -40,13 +40,14 @@ export class FilterBar {
         this.reload = () => { };
         this.documentClickHandler = null;
         this.definitions = payload.filters ?? [];
+        this.labels = payload.filterLabels ?? {};
         this.wrapper = document.createElement('div');
         this.wrapper.className = 'dt-filters';
         this.toggle = document.createElement('button');
         this.toggle.type = 'button';
         this.toggle.className = 'dt-filters-toggle';
         this.toggle.setAttribute('aria-expanded', 'false');
-        this.toggle.setAttribute('aria-label', 'Filters');
+        this.toggle.setAttribute('aria-label', this.labels.title ?? 'Filters');
         this.toggle.innerHTML = FUNNEL_ICON;
         this.badge = document.createElement('span');
         this.badge.className = 'dt-filters-badge';
@@ -104,11 +105,11 @@ export class FilterBar {
         header.className = 'dt-filters-popover__header';
         const title = document.createElement('span');
         title.className = 'dt-filters-popover__title';
-        title.textContent = 'Filters';
+        title.textContent = this.labels.title ?? 'Filters';
         const reset = document.createElement('button');
         reset.type = 'button';
         reset.className = 'dt-filters-reset';
-        reset.textContent = 'Reset';
+        reset.textContent = this.labels.reset ?? 'Reset';
         reset.addEventListener('click', () => this.resetFilters());
         header.appendChild(title);
         header.appendChild(reset);
@@ -120,7 +121,7 @@ export class FilterBar {
         const apply = document.createElement('button');
         apply.type = 'button';
         apply.className = 'dt-filters-apply';
-        apply.textContent = 'Apply filters';
+        apply.textContent = this.labels.apply ?? 'Apply filters';
         apply.addEventListener('click', () => this.applyFilters());
         footer.appendChild(apply);
         return footer;
@@ -219,7 +220,7 @@ export class FilterBar {
         if (!select.multiple) {
             const empty = document.createElement('option');
             empty.value = '';
-            empty.textContent = definition.placeholder ?? 'All';
+            empty.textContent = definition.placeholder ?? this.labels.all ?? 'All';
             select.appendChild(empty);
         }
         for (const [value, optLabel] of Object.entries(definition.options ?? {})) {
@@ -244,7 +245,7 @@ export class FilterBar {
         select.className = selectClass(this.framework);
         select.name = `filters[${definition.name}]`;
         const optionsMap = [
-            ['', definition.placeholder ?? 'All'],
+            ['', definition.placeholder ?? this.labels.all ?? 'All'],
             ['true', definition.trueLabel ?? 'Yes'],
             ['false', definition.falseLabel ?? 'No'],
         ];

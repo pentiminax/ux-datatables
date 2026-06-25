@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Filter\TernaryFilter;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @internal
@@ -32,6 +33,28 @@ final class TernaryFilterTest extends TestCase
             'trueLabel'  => 'Verified',
             'falseLabel' => 'Not verified',
         ], $filter->jsonSerialize());
+    }
+
+    #[Test]
+    public function it_translates_state_labels_falling_back_to_defaults(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->method('trans')
+            ->willReturnMap([
+                ['Yes', [], null, null, 'Oui'],
+                ['filter.verified.no', [], null, null, 'Non vérifié'],
+            ]);
+
+        $filter = TernaryFilter::new('verified')
+            ->field('emailVerifiedAt')
+            ->falseLabel('filter.verified.no');
+
+        $filter->translateLabels($translator);
+
+        $serialized = $filter->jsonSerialize();
+        $this->assertSame('Oui', $serialized['trueLabel']);
+        $this->assertSame('Non vérifié', $serialized['falseLabel']);
     }
 
     #[Test]

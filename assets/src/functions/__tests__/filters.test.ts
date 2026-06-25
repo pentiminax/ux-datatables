@@ -44,6 +44,38 @@ describe('FilterBar', () => {
         expect(wrapper.querySelectorAll('.dt-filters-popover__body .dt-filter')).toHaveLength(5)
     })
 
+    it('uses built-in English defaults for the chrome strings', () => {
+        const { bar } = makeBar([{ name: 'status', type: 'select', options: { draft: 'Draft' } }])
+        const wrapper = bar.render(vi.fn())
+
+        expect(wrapper.querySelector('.dt-filters-popover__title')?.textContent).toBe('Filters')
+        expect(wrapper.querySelector('.dt-filters-reset')?.textContent).toBe('Reset')
+        expect(wrapper.querySelector('.dt-filters-apply')?.textContent).toBe('Apply filters')
+        expect(wrapper.querySelector('.dt-filters-toggle')?.getAttribute('aria-label')).toBe('Filters')
+        expect((wrapper.querySelector('select > option') as HTMLOptionElement).textContent).toBe('All')
+    })
+
+    it('applies filterLabels overrides to the chrome strings', () => {
+        const payload: Record<string, any> = {
+            filters: [{ name: 'status', type: 'select', options: { draft: 'Draft' } }],
+            filterLabels: {
+                title: 'Filtres',
+                reset: 'Réinitialiser',
+                apply: 'Appliquer',
+                all: 'Tous',
+            },
+            ajax: { url: '/data' },
+        }
+        const bar = new FilterBar(payload, 'dt')
+        const wrapper = bar.render(vi.fn())
+
+        expect(wrapper.querySelector('.dt-filters-popover__title')?.textContent).toBe('Filtres')
+        expect(wrapper.querySelector('.dt-filters-reset')?.textContent).toBe('Réinitialiser')
+        expect(wrapper.querySelector('.dt-filters-apply')?.textContent).toBe('Appliquer')
+        expect(wrapper.querySelector('.dt-filters-toggle')?.getAttribute('aria-label')).toBe('Filtres')
+        expect((wrapper.querySelector('select > option') as HTMLOptionElement).textContent).toBe('Tous')
+    })
+
     it('does not apply values until "Apply filters" is clicked', () => {
         const reload = vi.fn()
         const { bar } = makeBar([{ name: 'name', type: 'text' }])

@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
+use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
@@ -641,6 +642,31 @@ final class RenderingPreparerTest extends TestCase
         $this->assertSame(
             ['admin' => 'Administrateur'],
             $table->getOptions()['filters'][0]['options'],
+        );
+    }
+
+    #[Test]
+    public function it_translates_filter_bar_labels(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->method('trans')
+            ->willReturnMap([
+                ['filter.title', [], null, null, 'Filtres'],
+                ['filter.apply', [], null, null, 'Appliquer'],
+            ]);
+
+        $filters = (new Filters())
+            ->labels(title: 'filter.title', apply: 'filter.apply')
+            ->add(TextFilter::new('name'));
+        $table = (new DataTable('Test'))->setFilters($filters);
+
+        $preparer = new RenderingPreparer(translator: $translator);
+        $preparer->prepare($table, null);
+
+        $this->assertSame(
+            ['title' => 'Filtres', 'apply' => 'Appliquer'],
+            $table->getOptions()['filterLabels'],
         );
     }
 }
