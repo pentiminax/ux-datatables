@@ -20,7 +20,8 @@ final class Filters implements \JsonSerializable
      * Override the filter bar chrome strings (toggle title, reset/apply buttons,
      * empty-select placeholder). Values may be plain strings or translation keys;
      * the RenderingPreparer passes them through the translator at render time.
-     * Any argument left null keeps the frontend's built-in English default.
+     * Any argument left null falls back to the bundle's built-in localized default
+     * (see FilterLabels).
      */
     public function labels(
         ?string $title = null,
@@ -33,9 +34,13 @@ final class Filters implements \JsonSerializable
         return $this;
     }
 
-    public function getLabels(): ?FilterLabels
+    /**
+     * Always returns a FilterLabels instance: even without an explicit labels()
+     * call, the RenderingPreparer can resolve the built-in localized defaults.
+     */
+    public function getLabels(): FilterLabels
     {
-        return $this->labels;
+        return $this->labels ??= new FilterLabels();
     }
 
     public function add(FilterInterface $filter): self

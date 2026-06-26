@@ -138,6 +138,35 @@ Filter::new('vip')->query(
 
 Empty or irrelevant values are ignored (no-op).
 
+## Localizing the filter bar
+
+The filter bar chrome strings — the **Filters** toggle, the **Reset** and
+**Apply filters** buttons, and the **All** placeholder of empty select filters —
+are translated automatically based on the active locale. The bundle ships a
+`DataTables` translation domain (English and French out of the box); add a
+`DataTables.<locale>.xlf` catalog in your app to cover more languages.
+
+Override any string per table with `Filters::labels()`. Values may be plain
+strings or your own translation keys (resolved in the default domain):
+
+```php
+protected function configureFilters(Filters $filters): void
+{
+    $filters
+        ->labels(
+            title: 'datatable.filters',       // translation key or literal
+            reset: 'datatable.reset',
+            apply: 'datatable.apply',
+            all:   'datatable.all',           // the "All" placeholder
+        )
+        ->add(ChoiceFilter::new('status')->options(Status::class));
+}
+```
+
+Any argument left out keeps the bundle's built-in localized default. To change a
+single placeholder for one filter only, use `placeholder()` on that filter — it
+takes precedence over the shared `all` label.
+
 ## Positioning the filter button
 
 By default the funnel toggle sits in `topEnd`, just after the search box. To put

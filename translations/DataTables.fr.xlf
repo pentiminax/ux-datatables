@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+    <file source-language="en" target-language="fr" datatype="plaintext" original="DataTables">
+        <body>
+            <trans-unit id="filter.bar.title">
+                <source>filter.bar.title</source>
+                <target>Filtres</target>
+            </trans-unit>
+            <trans-unit id="filter.bar.reset">
+                <source>filter.bar.reset</source>
+                <target>Réinitialiser</target>
+            </trans-unit>
+            <trans-unit id="filter.bar.apply">
+                <source>filter.bar.apply</source>
+                <target>Appliquer les filtres</target>
+            </trans-unit>
+            <trans-unit id="filter.bar.all">
+                <source>filter.bar.all</source>
+                <target>Tous</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>
