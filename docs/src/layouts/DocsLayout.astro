@@ -109,6 +109,27 @@ const pathname = Astro.url.pathname
   .prose a {
     @apply text-blue-400 underline decoration-slate-700 underline-offset-4 transition-all hover:text-blue-300 hover:decoration-blue-400;
   }
+  .prose table {
+    @apply my-6 w-full text-left text-sm;
+    border-collapse: collapse;
+    display: block;
+    overflow-x: auto;
+  }
+  .prose thead tr {
+    @apply bg-slate-900/70;
+  }
+  .prose th {
+    @apply border-b border-slate-700 px-4 py-3 font-semibold text-slate-100;
+  }
+  .prose td {
+    @apply border-b border-slate-800 px-4 py-3 align-top text-slate-300;
+  }
+  .prose tbody tr:nth-child(even) {
+    @apply bg-slate-900/30;
+  }
+  .prose tbody tr:hover {
+    @apply bg-blue-500/10;
+  }
 
   /* Sidebar scrollbar */
   aside nav::-webkit-scrollbar {
