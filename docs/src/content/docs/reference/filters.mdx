@@ -59,12 +59,12 @@ public function configureFilters(Filters $filters): Filters
 Every filter is created with `::new(string $name)`. The name is the AJAX payload
 key (`filters[name]`).
 
-| Method | Description |
-|--------|-------------|
-| `label(string)` | Control label (defaults to a humanized name) |
-| `field(string)` | Doctrine field path (defaults to the name). Supports relations, e.g. `author.name` |
-| `placeholder(string)` | Control placeholder / empty option label |
-| `query(Closure)` | Override the default condition: `fn (QueryBuilder $qb, mixed $value, string $alias)` |
+| Method                | Description                                                                          |
+|-----------------------|--------------------------------------------------------------------------------------|
+| `label(string)`       | Control label (defaults to a humanized name)                                         |
+| `field(string)`       | Doctrine field path (defaults to the name). Supports relations, e.g. `author.name`   |
+| `placeholder(string)` | Control placeholder / empty option label                                             |
+| `query(Closure)`      | Override the default condition: `fn (QueryBuilder $qb, mixed $value, string $alias)` |
 
 A `query()` closure fully replaces the default behaviour of the filter type.
 
