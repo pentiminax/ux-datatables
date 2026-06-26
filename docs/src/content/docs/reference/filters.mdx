@@ -20,25 +20,37 @@ Doctrine condition server-side.
 
 ```php
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Filter\{DateRangeFilter, Filter, SelectFilter, TernaryFilter, TextFilter};
+use Pentiminax\UX\DataTables\Filter\{ChoiceFilter, DateRangeFilter, Filter, TernaryFilter, TextFilter};
 use Pentiminax\UX\DataTables\Model\Filters;
 
 public function configureFilters(Filters $filters): Filters
 {
+    $nameFilter = TextFilter::new('name')->label('Name');
+
+    $statusFilter = ChoiceFilter::new('status')
+        ->label('Status')
+        ->options(['Draft' => 'draft', 'Published' => 'published']);
+
+    $verifiedFilter = TernaryFilter::new('verified')
+        ->field('emailVerifiedAt')
+        ->trueLabel('Verified')
+        ->falseLabel('Not verified');
+
+    $createdAtFilter = DateRangeFilter::new('createdAt')
+        ->label('Created');
+
+    $vipFilter = Filter::new('vip')
+    ->label('VIP only')
+    ->query(
+        fn (QueryBuilder $qb, mixed $value, string $alias) => $qb->andWhere("$alias.score > :vip")->setParameter('vip', 100)
+    )
+
     return $filters
-        ->add(TextFilter::new('name')->label('Name'))
-        ->add(SelectFilter::new('status')
-            ->label('Status')
-            ->options(['Draft' => 'draft', 'Published' => 'published']))
-        ->add(TernaryFilter::new('verified')
-            ->field('emailVerifiedAt')
-            ->trueLabel('Verified')
-            ->falseLabel('Not verified'))
-        ->add(DateRangeFilter::new('createdAt')->label('Created'))
-        ->add(Filter::new('vip')->label('VIP only')->query(
-            fn (QueryBuilder $qb, mixed $value, string $alias) =>
-                $qb->andWhere("$alias.score > :vip")->setParameter('vip', 100)
-        ));
+        ->add($nameFilter)
+        ->add($statusFilter)
+        ->add($verifiedFilter)
+        ->add($createdAtFilter)
+        ->add($vipFilter);
 }
 ```
 
@@ -66,15 +78,15 @@ Case-insensitive `LIKE %value%` on the target field.
 TextFilter::new('name')->label('Name');
 ```
 
-### SelectFilter
+### ChoiceFilter
 
 Exact match, or `IN (...)` when `multiple()` is enabled. `options()` accepts the
 `[label => value]` convention, a list of `BackedEnum` cases, or a `BackedEnum`
 class-string.
 
 ```php
-SelectFilter::new('status')->options(['Draft' => 'draft', 'Published' => 'published']);
-SelectFilter::new('roles')->multiple()->options(Role::class);
+ChoiceFilter::new('status')->options(['Draft' => 'draft', 'Published' => 'published']);
+ChoiceFilter::new('roles')->multiple()->options(Role::class);
 ```
 
 ### TernaryFilter
