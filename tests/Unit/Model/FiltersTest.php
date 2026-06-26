@@ -47,11 +47,13 @@ final class FiltersTest extends TestCase
     }
 
     #[Test]
-    public function it_has_no_bar_labels_by_default(): void
+    public function it_has_empty_bar_labels_by_default(): void
     {
         $filters = new Filters();
 
-        $this->assertNull($filters->getLabels());
+        $labels = $filters->getLabels();
+        $this->assertTrue($labels->isEmpty());
+        $this->assertSame([], $labels->jsonSerialize());
     }
 
     #[Test]

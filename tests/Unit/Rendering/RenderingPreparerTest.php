@@ -16,6 +16,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -629,6 +630,10 @@ final class RenderingPreparerTest extends TestCase
             ->method('trans')
             ->willReturnMap([
                 ['role.admin', [], null, null, 'Administrateur'],
+                ['filter.bar.title', [], FilterLabels::DOMAIN, null, 'Filtres'],
+                ['filter.bar.reset', [], FilterLabels::DOMAIN, null, 'Réinitialiser'],
+                ['filter.bar.apply', [], FilterLabels::DOMAIN, null, 'Appliquer les filtres'],
+                ['filter.bar.all', [], FilterLabels::DOMAIN, null, 'Tous'],
             ]);
 
         $filters = (new Filters())->add(
@@ -646,14 +651,18 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
-    public function it_translates_filter_bar_labels(): void
+    public function it_translates_overridden_filter_bar_labels_and_fills_remaining_with_defaults(): void
     {
         $translator = $this->createMock(TranslatorInterface::class);
         $translator
             ->method('trans')
             ->willReturnMap([
+                // Developer overrides are translated in the default domain.
                 ['filter.title', [], null, null, 'Filtres'],
                 ['filter.apply', [], null, null, 'Appliquer'],
+                // Untouched labels fall back to the bundle defaults (DataTables domain).
+                ['filter.bar.reset', [], FilterLabels::DOMAIN, null, 'Réinitialiser'],
+                ['filter.bar.all', [], FilterLabels::DOMAIN, null, 'Tous'],
             ]);
 
         $filters = (new Filters())
@@ -665,7 +674,42 @@ final class RenderingPreparerTest extends TestCase
         $preparer->prepare($table, null);
 
         $this->assertSame(
-            ['title' => 'Filtres', 'apply' => 'Appliquer'],
+            [
+                'title' => 'Filtres',
+                'reset' => 'Réinitialiser',
+                'apply' => 'Appliquer',
+                'all'   => 'Tous',
+            ],
+            $table->getOptions()['filterLabels'],
+        );
+    }
+
+    #[Test]
+    public function it_provides_localized_default_filter_bar_labels_without_overrides(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->method('trans')
+            ->willReturnMap([
+                ['filter.bar.title', [], FilterLabels::DOMAIN, null, 'Filtres'],
+                ['filter.bar.reset', [], FilterLabels::DOMAIN, null, 'Réinitialiser'],
+                ['filter.bar.apply', [], FilterLabels::DOMAIN, null, 'Appliquer les filtres'],
+                ['filter.bar.all', [], FilterLabels::DOMAIN, null, 'Tous'],
+            ]);
+
+        $filters = (new Filters())->add(TextFilter::new('name'));
+        $table   = (new DataTable('Test'))->setFilters($filters);
+
+        $preparer = new RenderingPreparer(translator: $translator);
+        $preparer->prepare($table, null);
+
+        $this->assertSame(
+            [
+                'title' => 'Filtres',
+                'reset' => 'Réinitialiser',
+                'apply' => 'Appliquer les filtres',
+                'all'   => 'Tous',
+            ],
             $table->getOptions()['filterLabels'],
         );
     }

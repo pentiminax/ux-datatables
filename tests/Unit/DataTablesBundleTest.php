@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit;
 
 use Pentiminax\UX\DataTables\DataTablesBundle;
+use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @internal
@@ -40,6 +42,21 @@ final class DataTablesBundleTest extends TestCase
 
         self::assertInstanceOf(DataTableInfrastructure::class, $infrastructure);
         self::assertInstanceOf(DefaultDataTableQueryIntentFactory::class, $infrastructure->queryIntentFactory());
+
+        $kernel->shutdown();
+    }
+
+    #[Test]
+    public function it_registers_the_filter_bar_translation_catalog(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+
+        /** @var TranslatorInterface $translator */
+        $translator = $kernel->getContainer()->get('translator');
+
+        self::assertSame('All', $translator->trans('filter.bar.all', [], FilterLabels::DOMAIN, 'en'));
+        self::assertSame('Tous', $translator->trans('filter.bar.all', [], FilterLabels::DOMAIN, 'fr'));
 
         $kernel->shutdown();
     }

@@ -44,7 +44,7 @@
     "symfony/form": "To enable inline edit modal with auto-generated forms.",
     "symfony/mercure-bundle": "To enable real-time DataTable updates via Mercure SSE.",
     "symfony/twig-bundle": "To render edit form and TwigColumn",
-    "symfony/translation": "To enable translation of DataTable column titles."
+    "symfony/translation": "To translate DataTable column titles and the filter bar labels (Filters/Reset/Apply/All)."
   },
   "conflict": {
     "symfony/flex": "<1.13"

@@ -77,7 +77,7 @@ class DataTable
             $options['filters'] = $this->filters->jsonSerialize();
 
             $labels = $this->filters->getLabels();
-            if (null !== $labels && !$labels->isEmpty()) {
+            if (!$labels->isEmpty()) {
                 $options['filterLabels'] = $labels->jsonSerialize();
             }
         }
