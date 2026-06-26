@@ -1,6 +1,6 @@
 # Filters
 
-Declarative filter popover (server-side Doctrine only), inspired by Filament and EasyAdmin. Declare filters in `configureFilters()`; the Stimulus controller renders a funnel toggle + badge next to the search box, opening a popover with the controls plus Apply/Reset; the table reloads over AJAX on apply, and each filter applies a Doctrine condition.
+Declarative filter popover (server-side Doctrine only). Declare filters in `configureFilters()`; the Stimulus controller renders a funnel toggle + badge next to the search box, opening a popover with the controls plus Apply/Reset; the table reloads over AJAX on apply, and each filter applies a Doctrine condition.
 
 ```php
 use Doctrine\ORM\QueryBuilder;
