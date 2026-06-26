@@ -40,10 +40,10 @@ public function configureFilters(Filters $filters): Filters
         ->label('Created');
 
     $vipFilter = Filter::new('vip')
-    ->label('VIP only')
-    ->query(
-        fn (QueryBuilder $qb, mixed $value, string $alias) => $qb->andWhere("$alias.score > :vip")->setParameter('vip', 100)
-    )
+        ->label('VIP only')
+        ->query(
+            fn (QueryBuilder $qb, mixed $value, string $alias) => $qb->andWhere("$alias.score > :vip")->setParameter('vip', 100)
+        )
 
     return $filters
         ->add($nameFilter)
