@@ -100,6 +100,28 @@ class ActionsTest extends TestCase
         $this->assertSame('Second', $actions->getActions()[0]->jsonSerialize()['label']);
     }
 
+    public function test_custom_actions_with_distinct_names_coexist(): void
+    {
+        $actions = new Actions();
+        $actions->add(Action::new('view', 'View')->linkToUrl('/invoices/1'));
+        $actions->add(Action::new('download', 'Download')->linkToUrl('/invoices/1/download'));
+
+        $this->assertSame(2, $actions->count());
+
+        $labels = array_map(static fn (Action $a) => $a->jsonSerialize()['label'], $actions->getActions());
+        $this->assertSame(['View', 'Download'], $labels);
+    }
+
+    public function test_add_replaces_custom_action_with_same_name(): void
+    {
+        $actions = new Actions();
+        $actions->add(Action::new('view', 'First'));
+        $actions->add(Action::new('view', 'Second'));
+
+        $this->assertSame(1, $actions->count());
+        $this->assertSame('Second', $actions->getActions()[0]->jsonSerialize()['label']);
+    }
+
     public function test_filter_static_permissions_removes_denied_actions(): void
     {
         $actions = new Actions();

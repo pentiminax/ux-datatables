@@ -16,10 +16,11 @@ class ActionTypeTest extends TestCase
     {
         $cases = ActionType::cases();
 
-        $this->assertCount(3, $cases);
+        $this->assertCount(4, $cases);
         $this->assertContains(ActionType::Delete, $cases);
         $this->assertContains(ActionType::Detail, $cases);
         $this->assertContains(ActionType::Edit, $cases);
+        $this->assertContains(ActionType::Custom, $cases);
     }
 
     public function test_case_values(): void
@@ -27,6 +28,7 @@ class ActionTypeTest extends TestCase
         $this->assertSame('DELETE', ActionType::Delete->value);
         $this->assertSame('DETAIL', ActionType::Detail->value);
         $this->assertSame('EDIT', ActionType::Edit->value);
+        $this->assertSame('CUSTOM', ActionType::Custom->value);
     }
 
     public function test_from_string(): void

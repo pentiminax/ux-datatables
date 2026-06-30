@@ -52,6 +52,26 @@ final class ActionRowDataResolverTest extends TestCase
     }
 
     #[Test]
+    public function custom_actions_are_keyed_by_name_with_url_only(): void
+    {
+        $actions = new Actions();
+        $actions->add(Action::new('view', 'View')->linkToUrl(static fn (object $r) => '/invoices/'.$r->id));
+        $actions->add(Action::new('download', 'Download')->linkToUrl(static fn (object $r) => '/invoices/'.$r->id.'/download'));
+
+        $column = ActionColumn::fromActions('actions', '', $actions);
+
+        $result = (new ActionRowDataResolver())->resolveRow(['id' => 7], (object) ['id' => 7], [$column]);
+
+        $this->assertSame(
+            [
+                'view'     => ['url' => '/invoices/7'],
+                'download' => ['url' => '/invoices/7/download'],
+            ],
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
+        );
+    }
+
+    #[Test]
     public function resolves_id_for_collapsible_detail_action(): void
     {
         $actions = new Actions();

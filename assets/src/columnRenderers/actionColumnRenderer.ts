@@ -62,7 +62,7 @@ export const actionColumnRenderer: ColumnRenderer = {
                         return `<button ${attrs.join(' ')}>${iconMarkup}${escapedLabel}</button>`
                     }
 
-                    if (action.type === 'DETAIL') {
+                    if (action.type === 'DETAIL' || action.type === 'CUSTOM') {
                         const href = resolveActionUrl(action, row as ActionRowData)
 
                         if (!href || isUnsafeUrl(href)) {
@@ -123,7 +123,7 @@ function resolveActionId(action: ActionConfig, row: ActionRowData): string | num
         return rowId
     }
 
-    const resolvedId = row.__ux_datatables_actions?.[action.type]?.id
+    const resolvedId = row.__ux_datatables_actions?.[action.name]?.id
 
     return isUsableActionId(resolvedId) ? resolvedId : null
 }
@@ -137,7 +137,7 @@ function isUsableActionId(value: unknown): value is string | number {
 }
 
 function resolveActionUrl(action: ActionConfig, row: ActionRowData): string | null {
-    const resolvedUrl = row.__ux_datatables_actions?.[action.type]?.url
+    const resolvedUrl = row.__ux_datatables_actions?.[action.name]?.url
 
     if (typeof resolvedUrl === 'string' && resolvedUrl.trim().length > 0) {
         return resolvedUrl

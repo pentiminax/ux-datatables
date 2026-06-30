@@ -75,6 +75,7 @@ export interface ImageCustomOptions {
 
 export interface ActionConfig {
     type: string
+    name: string
     label: string
     className: string
     icon?: string
