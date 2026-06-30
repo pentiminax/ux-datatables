@@ -197,6 +197,7 @@ describe('actionColumnRenderer', () => {
         actions: [
           {
             type: 'DETAIL',
+            name: 'DETAIL',
             label: 'View',
             className: 'btn btn-primary',
             idField: 'id',
@@ -218,11 +219,50 @@ describe('actionColumnRenderer', () => {
       expect(html).toContain('href="/books/42"')
     })
 
+    it('renders a custom action as a link from per-row resolved url', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'CUSTOM',
+            name: 'download',
+            label: 'Download',
+            className: '',
+            idField: 'id',
+          },
+          {
+            type: 'CUSTOM',
+            name: 'view',
+            label: 'View',
+            className: '',
+            idField: 'id',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', {
+        id: 42,
+        __ux_datatables_actions: {
+          download: { url: '/invoices/42/download' },
+          view: { url: '/invoices/42' },
+        },
+      })
+
+      expect(html).toContain('<a ')
+      expect(html).toContain('href="/invoices/42/download"')
+      expect(html).toContain('Download')
+      expect(html).toContain('href="/invoices/42"')
+      expect(html).toContain('View')
+      expect(html).toContain('data-action-type="CUSTOM"')
+    })
+
     it('renders button id from row-resolved action metadata when row id is missing', () => {
       const column: Record<string, any> = {
         actions: [
           {
             type: 'EDIT',
+            name: 'EDIT',
             label: 'Edit',
             className: 'btn btn-warning',
             entityClass: 'App\\Entity\\User',
@@ -278,6 +318,7 @@ describe('actionColumnRenderer', () => {
         actions: [
           {
             type: 'EDIT',
+            name: 'EDIT',
             label: 'Edit',
             className: 'btn btn-warning',
             entityClass: 'App\\Entity\\User',
@@ -321,6 +362,7 @@ describe('actionColumnRenderer', () => {
         actions: [
           {
             type: 'DETAIL',
+            name: 'DETAIL',
             label: 'View',
             className: 'btn btn-primary',
             idField: 'id',

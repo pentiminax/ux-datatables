@@ -65,7 +65,7 @@ final class ActionRowDataResolver
                     continue;
                 }
 
-                $actions[$action->getType()->value] = $actionData;
+                $actions[$action->getName()] = $actionData;
             }
         }
 
@@ -90,7 +90,7 @@ final class ActionRowDataResolver
             $data['url'] = $url;
         }
 
-        if (ActionType::Detail !== $action->getType() || $action->isCollapsible()) {
+        if (!\in_array($action->getType(), [ActionType::Detail, ActionType::Custom], true) || $action->isCollapsible()) {
             $id = $this->resolveId($sourceRow, $action->getIdField());
 
             if (null !== $id) {

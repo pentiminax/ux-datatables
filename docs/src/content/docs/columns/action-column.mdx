@@ -75,6 +75,7 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
     ["``Action::delete($label = 'Delete', $className = 'btn btn-danger')``", 'Create the built-in delete action'],
     ["``Action::detail($label = 'Detail', $className = 'btn btn-primary')``", 'Create a link action to a detail page'],
     ["``Action::edit($label = 'Edit', $className = 'btn btn-warning')``", 'Create an inline edit action (opens the configured edit modal)'],
+    ["``Action::new($name, $label = '', $className = '')``", 'Create a custom link action identified by a unique `$name`. Unlike the built-in factories (one per type), several custom actions coexist as long as their names differ. Provide the destination with `linkToUrl()`'],
   ]}
 />
 
@@ -103,6 +104,42 @@ When `linkToUrl()` receives a callable, the argument depends on how the row was 
 - `AbstractDataTable` + provider or `setData($objects)`: the callable receives the original source object
 - manual `DataTable::data([...])` inline rows: the callable receives the row array
 
+### Custom Link Actions
+
+The built-in factories store **one action per type**, so adding two `Action::detail()` would
+overwrite the first. To render several independent link actions in the same column, use
+`Action::new()` with a unique `$name` for each. Custom actions are rendered as `<a href>`
+links and support `icon()`, `askConfirmation()`, `displayIf()`, `htmlAttributes()`,
+`permission()`, and `position()` like any other action.
+
+```php
+use App\Entity\Invoice;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
+use Symfony\Component\Routing\RouterInterface;
+
+public function configureActions(Actions $actions): Actions
+{
+    return $actions
+        ->add(
+            Action::new('view', 'View')
+                ->icon('bi bi-eye')
+                ->linkToUrl(fn (Invoice $invoice): string => $this->router->generate('invoice_view', ['id' => $invoice->getId()]))
+        )
+        ->add(
+            Action::new('download', 'Download')
+                ->icon('bi bi-download')
+                ->linkToUrl(fn (Invoice $invoice): string => $this->router->generate('invoice_download', ['id' => $invoice->getId()]))
+        );
+}
+```
+
+<Aside type="note">
+  Custom actions are pure links: they resolve a URL per row and are **not** wired to any
+  built-in Stimulus handler (no delete/edit/collapse behavior). The unique `$name` is what keeps
+  them from colliding both in the `Actions` collection and in the per-row URL metadata.
+</Aside>
+
 ## `Actions` API
 
 <Table
@@ -116,7 +153,12 @@ When `linkToUrl()` receives a callable, the argument depends on how the row was 
   ]}
 />
 
-`Actions` stores one action per `ActionType`. The public enum values are:
+`Actions` stores actions keyed by a unique **name**. The built-in factories use their
+`ActionType` value as the name, so there can be only one `delete`, one `detail`, and one `edit`
+action per collection. Custom actions created with `Action::new($name, ...)` use the `$name` you
+provide, so any number of them can coexist as long as the names differ.
+
+The public enum values are:
 
 ```php
 use Pentiminax\UX\DataTables\Enum\ActionType;
@@ -124,6 +166,7 @@ use Pentiminax\UX\DataTables\Enum\ActionType;
 ActionType::Delete; // value: DELETE
 ActionType::Detail; // value: DETAIL
 ActionType::Edit;   // value: EDIT
+ActionType::Custom; // value: CUSTOM (used by Action::new())
 ```
 
 ## Column Position & Alignment

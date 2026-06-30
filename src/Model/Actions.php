@@ -24,7 +24,7 @@ final class Actions implements \JsonSerializable
 
     public function add(Action $action): self
     {
-        $this->actions[$action->getType()->value] = $action;
+        $this->actions[$action->getName()] = $action;
 
         return $this;
     }

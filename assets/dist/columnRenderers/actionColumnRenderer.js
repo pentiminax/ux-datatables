@@ -47,7 +47,7 @@ export const actionColumnRenderer = {
                     ];
                     return `<button ${attrs.join(' ')}>${iconMarkup}${escapedLabel}</button>`;
                 }
-                if (action.type === 'DETAIL') {
+                if (action.type === 'DETAIL' || action.type === 'CUSTOM') {
                     const href = resolveActionUrl(action, row);
                     if (!href || isUnsafeUrl(href)) {
                         return '';
@@ -92,7 +92,7 @@ function resolveActionId(action, row) {
     if (isUsableActionId(rowId)) {
         return rowId;
     }
-    const resolvedId = row.__ux_datatables_actions?.[action.type]?.id;
+    const resolvedId = row.__ux_datatables_actions?.[action.name]?.id;
     return isUsableActionId(resolvedId) ? resolvedId : null;
 }
 function isUsableActionId(value) {
@@ -102,7 +102,7 @@ function isUsableActionId(value) {
     return typeof value === 'string' && value.trim().length > 0;
 }
 function resolveActionUrl(action, row) {
-    const resolvedUrl = row.__ux_datatables_actions?.[action.type]?.url;
+    const resolvedUrl = row.__ux_datatables_actions?.[action.name]?.url;
     if (typeof resolvedUrl === 'string' && resolvedUrl.trim().length > 0) {
         return resolvedUrl;
     }

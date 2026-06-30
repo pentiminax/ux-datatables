@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Enum\ActionType;
 final class Action implements \JsonSerializable
 {
     private ActionType $type;
+    private string $name;
     private string $label;
     private string $className;
     private ?string $icon                        = null;
@@ -26,31 +27,45 @@ final class Action implements \JsonSerializable
     private array $collapsibleParameters         = [];
     private ?ActionsPosition $position           = null;
 
-    private function __construct(ActionType $type, string $label, string $className)
+    private function __construct(ActionType $type, string $name, string $label, string $className)
     {
         $this->type      = $type;
+        $this->name      = $name;
         $this->label     = $label;
         $this->className = $className;
     }
 
     public static function delete(string $label = 'Delete', string $className = 'btn btn-danger'): self
     {
-        return new self(ActionType::Delete, $label, $className);
+        return new self(ActionType::Delete, ActionType::Delete->value, $label, $className);
     }
 
     public static function detail(string $label = 'Detail', string $className = 'btn btn-primary'): self
     {
-        return new self(ActionType::Detail, $label, $className);
+        return new self(ActionType::Detail, ActionType::Detail->value, $label, $className);
     }
 
     public static function edit(string $label = 'Edit', string $className = 'btn btn-warning'): self
     {
-        return new self(ActionType::Edit, $label, $className);
+        return new self(ActionType::Edit, ActionType::Edit->value, $label, $className);
+    }
+
+    /**
+     * Create a custom action rendered as a link, identified by a unique name.
+     */
+    public static function new(string $name, string $label = '', string $className = ''): self
+    {
+        return new self(ActionType::Custom, $name, $label, $className);
     }
 
     public function getType(): ActionType
     {
         return $this->type;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
     }
 
     public function label(string $label): self
@@ -247,6 +262,7 @@ final class Action implements \JsonSerializable
     {
         $data = [
             'type'      => $this->type->value,
+            'name'      => $this->name,
             'label'     => $this->label,
             'className' => $this->className,
             'idField'   => $this->idField,

@@ -33,6 +33,29 @@ class ActionTest extends TestCase
         $this->assertArrayNotHasKey('entityClass', $json);
     }
 
+    public function test_new_factory_creates_custom_action_with_name(): void
+    {
+        $action = Action::new('download', 'Download', 'btn btn-link');
+
+        $this->assertSame(ActionType::Custom, $action->getType());
+        $this->assertSame('download', $action->getName());
+
+        $json = $action->jsonSerialize();
+
+        $this->assertSame('CUSTOM', $json['type']);
+        $this->assertSame('download', $json['name']);
+        $this->assertSame('Download', $json['label']);
+        $this->assertSame('btn btn-link', $json['className']);
+    }
+
+    public function test_builtin_factory_name_matches_type_value(): void
+    {
+        $this->assertSame('DELETE', Action::delete()->getName());
+        $this->assertSame('DELETE', Action::delete()->jsonSerialize()['name']);
+        $this->assertSame('DETAIL', Action::detail()->getName());
+        $this->assertSame('EDIT', Action::edit()->getName());
+    }
+
     public function test_detail_factory_creates_action_with_default_values(): void
     {
         $action = Action::detail();
