@@ -6,8 +6,10 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Mutation;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -91,6 +93,26 @@ final class EntityMutatorTest extends TestCase
     }
 
     #[Test]
+    public function it_throws_and_does_not_flush_when_the_field_is_not_a_mapped_boolean(): void
+    {
+        $entity = new EntityMutatorFixture();
+
+        $manager = $this->managerReturning($entity, 5);
+        $manager->expects($this->never())->method('flush');
+
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->expects($this->never())->method('setValue');
+
+        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher->expects($this->never())->method('publish');
+
+        $mutator = new EntityMutator(new EntityLocator($this->registry($manager)), $accessor, $publisher);
+
+        $this->expectException(FieldNotToggleableException::class);
+        $mutator->setProperty(EntityMutatorFixture::class, 5, 'admin', true, ['/topic/5']);
+    }
+
+    #[Test]
     public function it_propagates_not_found_from_the_locator_on_delete(): void
     {
         $manager    = $this->createMock(EntityManagerInterface::class);
@@ -119,8 +141,18 @@ final class EntityMutatorTest extends TestCase
 
         $manager = $this->createMock(EntityManagerInterface::class);
         $manager->method('getRepository')->with(EntityMutatorFixture::class)->willReturn($repository);
+        $manager->method('getClassMetadata')->willReturn($this->booleanFieldMetadata('enabled'));
 
         return $manager;
+    }
+
+    private function booleanFieldMetadata(string $field): ClassMetadata
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasField')->willReturnCallback(static fn (string $name): bool => $name === $field);
+        $metadata->method('getTypeOfField')->willReturnCallback(static fn (string $name): ?string => $name === $field ? 'boolean' : null);
+
+        return $metadata;
     }
 
     private function registry(EntityManagerInterface $manager): ManagerRegistry
