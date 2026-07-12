@@ -12,14 +12,19 @@ use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
+use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
  * @internal
@@ -38,7 +43,7 @@ final class AjaxEditControllerTest extends TestCase
 
         $controller = $this->controller($entity, 799, $accessor, expectFlush: true);
 
-        $response = $controller(new AjaxEditRequestDto(
+        $response = $controller(new Request(), new AjaxEditRequestDto(
             entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
@@ -60,7 +65,7 @@ final class AjaxEditControllerTest extends TestCase
 
         $controller = $this->controller($entity, 799, $accessor, expectFlush: true);
 
-        $response = $controller(new AjaxEditRequestDto(
+        $response = $controller(new Request(), new AjaxEditRequestDto(
             entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
@@ -69,6 +74,59 @@ final class AjaxEditControllerTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('1', (string) $response->getContent());
+    }
+
+    #[Test]
+    public function it_updates_the_field_when_the_csrf_token_is_valid(): void
+    {
+        $entity = new ToggleBooleanEntityFixture();
+
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
+        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', true);
+
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')
+            ->with(new CsrfToken(MutationTokenValidator::TOKEN_ID, 'valid-token'))
+            ->willReturn(true);
+
+        $controller = $this->controller($entity, 799, $accessor, expectFlush: true, csrfTokenManager: $csrfTokenManager);
+
+        $request = new Request();
+        $request->headers->set(MutationTokenValidator::HEADER, 'valid-token');
+
+        $response = $controller($request, new AjaxEditRequestDto(
+            entity: ToggleBooleanEntityFixture::class,
+            field: 'isEmailAuthEnabled',
+            id: 799,
+            newValue: true,
+        ));
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('1', (string) $response->getContent());
+    }
+
+    #[Test]
+    public function it_rejects_the_request_and_does_not_update_when_the_csrf_token_is_invalid(): void
+    {
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->expects($this->never())->method('setValue');
+
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(false);
+
+        $controller = $this->controller(null, 799, $accessor, expectFlush: false, csrfTokenManager: $csrfTokenManager);
+
+        $request = new Request();
+        $request->headers->set(MutationTokenValidator::HEADER, 'wrong-token');
+
+        $this->expectException(InvalidCsrfTokenException::class);
+        $controller($request, new AjaxEditRequestDto(
+            entity: ToggleBooleanEntityFixture::class,
+            field: 'isEmailAuthEnabled',
+            id: 799,
+            newValue: true,
+        ));
     }
 
     #[Test]
@@ -83,7 +141,7 @@ final class AjaxEditControllerTest extends TestCase
         $controller = $this->controller($entity, 799, $accessor, expectFlush: false);
 
         $this->expectException(PropertyNotWritableException::class);
-        $controller(new AjaxEditRequestDto(
+        $controller(new Request(), new AjaxEditRequestDto(
             entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
@@ -102,7 +160,7 @@ final class AjaxEditControllerTest extends TestCase
         $controller = $this->controller($entity, 799, $accessor, expectFlush: false);
 
         $this->expectException(FieldNotToggleableException::class);
-        $controller(new AjaxEditRequestDto(
+        $controller(new Request(), new AjaxEditRequestDto(
             entity: ToggleBooleanEntityFixture::class,
             field: 'admin',
             id: 799,
@@ -119,7 +177,7 @@ final class AjaxEditControllerTest extends TestCase
         $controller = $this->controller(null, 799, $accessor, expectFlush: false);
 
         $this->expectException(EntityNotFoundException::class);
-        $controller(new AjaxEditRequestDto(
+        $controller(new Request(), new AjaxEditRequestDto(
             entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
@@ -132,6 +190,7 @@ final class AjaxEditControllerTest extends TestCase
         int|string $id,
         PropertyAccessorInterface $accessor,
         bool $expectFlush,
+        ?CsrfTokenManagerInterface $csrfTokenManager = null,
     ): AjaxEditController {
         $repository = $this->createMock(EntityRepository::class);
         $repository->method('find')->with($id)->willReturn($entity);
@@ -150,7 +209,7 @@ final class AjaxEditControllerTest extends TestCase
 
         $mutator = new EntityMutator(new EntityLocator($registry), $accessor, new NullMercurePublisher());
 
-        return new AjaxEditController($mutator);
+        return new AjaxEditController($mutator, new MutationTokenValidator($csrfTokenManager));
     }
 }
 
