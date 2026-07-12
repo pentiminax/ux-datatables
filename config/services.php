@@ -34,6 +34,7 @@ use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -43,6 +44,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_locator;
 
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 return static function (ContainerConfigurator $container): void {
@@ -74,6 +76,13 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, param('kernel.secret'))
         ->private();
 
+    $services->set('datatables.security.mutation_token_validator', MutationTokenValidator::class)
+        ->arg(0, service(CsrfTokenManagerInterface::class)->nullOnInvalid())
+        ->private();
+
+    $services->alias(MutationTokenValidator::class, 'datatables.security.mutation_token_validator')
+        ->private();
+
     $services->set('datatables.column.template_column_renderer', TemplateColumnRenderer::class)
         ->arg(0, service('twig')->nullOnInvalid())
         ->private();
@@ -95,6 +104,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(2, service('datatables.column.action_row_data_resolver'))
         ->arg(3, service('datatables.column.resolver'))
         ->arg(4, service('request_stack'))
+        ->arg(5, service(CsrfTokenManagerInterface::class)->nullOnInvalid())
         ->tag('twig.extension')
         ->private();
 
@@ -121,11 +131,13 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_edit', AjaxEditController::class)
         ->arg(0, service('datatables.mutation.mutator'))
+        ->arg(1, service('datatables.security.mutation_token_validator'))
         ->tag('controller.service_arguments')
         ->public();
 
     $services->set('datatables.controller.ajax_delete', AjaxDeleteController::class)
         ->arg(0, service('datatables.mutation.mutator'))
+        ->arg(1, service('datatables.security.mutation_token_validator'))
         ->tag('controller.service_arguments')
         ->public();
 

@@ -18,6 +18,7 @@ use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -37,7 +38,7 @@ final class MutationExceptionHandlingTest extends TestCase
         $mutator = $this->mutatorReturning(null);
 
         $response = $this->handleControllerException(
-            fn () => (new AjaxDeleteController($mutator))(new AjaxDeleteRequestDto(
+            fn () => (new AjaxDeleteController($mutator, new MutationTokenValidator()))(new Request(), new AjaxDeleteRequestDto(
                 entity: MutationExceptionHandlingFixture::class,
                 id: 404,
             )),
@@ -64,7 +65,7 @@ final class MutationExceptionHandlingTest extends TestCase
         );
 
         $response = $this->handleControllerException(
-            fn () => (new AjaxEditController($mutator))(new AjaxEditRequestDto(
+            fn () => (new AjaxEditController($mutator, new MutationTokenValidator()))(new Request(), new AjaxEditRequestDto(
                 entity: MutationExceptionHandlingFixture::class,
                 field: 'enabled',
                 id: 5,

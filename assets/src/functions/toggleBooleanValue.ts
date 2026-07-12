@@ -6,6 +6,7 @@ type ToggleBooleanPayload = {
     url: string
     method?: string
     topics?: string[]
+    csrfToken?: string
 }
 
 export async function toggleBooleanValue({
@@ -16,6 +17,7 @@ export async function toggleBooleanValue({
     url,
     method = 'PATCH',
     topics,
+    csrfToken,
 }: ToggleBooleanPayload): Promise<Response> {
     const numericId = Number(id)
     const body: Record<string, unknown> = {
@@ -29,12 +31,18 @@ export async function toggleBooleanValue({
         body.topics = topics
     }
 
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+    }
+
+    if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken
+    }
+
     return await fetch(url, {
         method,
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-        },
+        headers,
         body: JSON.stringify(body),
     })
 }
