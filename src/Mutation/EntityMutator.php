@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Mutation;
 
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
@@ -42,11 +43,18 @@ final class EntityMutator
      * @param string|string[] $topics
      *
      * @throws EntityNotFoundException
+     * @throws FieldNotToggleableException
      * @throws PropertyNotWritableException
      */
     public function setProperty(string $entityClass, int|string $id, string $field, bool $value, string|array $topics = []): void
     {
         $context = $this->locator->locate($entityClass, $id);
+
+        $metadata = $context->manager->getClassMetadata($entityClass);
+
+        if (!$metadata->hasField($field) || 'boolean' !== $metadata->getTypeOfField($field)) {
+            throw new FieldNotToggleableException($field);
+        }
 
         if (!$this->propertyAccessor->isWritable($context->entity, $field)) {
             throw new PropertyNotWritableException($field);
