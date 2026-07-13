@@ -1,4 +1,4 @@
-export async function toggleBooleanValue({ id, entity, field, newValue, url, method = 'PATCH', topics, }) {
+export async function toggleBooleanValue({ id, entity, field, newValue, url, method = 'PATCH', }) {
     const numericId = Number(id);
     const body = {
         id: id.trim() !== '' && Number.isFinite(numericId) ? numericId : id,
@@ -6,9 +6,6 @@ export async function toggleBooleanValue({ id, entity, field, newValue, url, met
         field,
         newValue,
     };
-    if (Array.isArray(topics) && topics.length > 0) {
-        body.topics = topics;
-    }
     return await fetch(url, {
         method,
         headers: {

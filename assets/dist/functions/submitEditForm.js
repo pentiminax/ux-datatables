@@ -9,7 +9,6 @@ export async function submitEditForm(payload) {
             entity: payload.entity,
             id: payload.id,
             formData: payload.formData,
-            topics: payload.topics ?? [],
             dataTableClass: payload.dataTableClass,
         }),
     });
