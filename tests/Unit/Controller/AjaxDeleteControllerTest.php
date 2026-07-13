@@ -51,10 +51,17 @@ final class AjaxDeleteControllerTest extends TestCase
             ->method('publish')
             ->with(['/topic/12'], ['type' => 'delete', 'id' => 12]);
 
-        $mutator    = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher);
-        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator());
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher);
 
-        $response = $controller(new Request(), new AjaxDeleteRequestDto(
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+
+        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager));
+
+        $request = new Request();
+        $request->headers->set(MutationTokenValidator::HEADER, 'valid-token');
+
+        $response = $controller($request, new AjaxDeleteRequestDto(
             entity: DeletableEntityFixture::class,
             id: 12,
             topics: ['/topic/12'],
@@ -123,6 +130,23 @@ final class AjaxDeleteControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_the_request_and_does_not_delete_when_no_csrf_manager_is_configured(): void
+    {
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->expects($this->never())->method('remove');
+        $manager->expects($this->never())->method('flush');
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManagerForClass');
+
+        $mutator    = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher());
+        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator());
+
+        $this->expectException(InvalidCsrfTokenException::class);
+        $controller(new Request(), new AjaxDeleteRequestDto(entity: DeletableEntityFixture::class, id: 12));
+    }
+
+    #[Test]
     public function it_lets_a_missing_entity_bubble_as_an_exception(): void
     {
         $repository = $this->createMock(EntityRepository::class);
@@ -136,11 +160,18 @@ final class AjaxDeleteControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($manager);
 
-        $mutator    = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher());
-        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator());
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher());
+
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+
+        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager));
+
+        $request = new Request();
+        $request->headers->set(MutationTokenValidator::HEADER, 'valid-token');
 
         $this->expectException(EntityNotFoundException::class);
-        $controller(new Request(), new AjaxDeleteRequestDto(entity: DeletableEntityFixture::class, id: 404));
+        $controller($request, new AjaxDeleteRequestDto(entity: DeletableEntityFixture::class, id: 404));
     }
 }
 
