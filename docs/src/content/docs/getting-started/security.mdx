@@ -182,12 +182,16 @@ final class ProductVoter extends Voter
         }
 
         return match ($attribute) {
-            self::EDIT, self::DELETE => $subject->getOwner() === $user,
+            self::EDIT, self::DELETE => $subject->getOwner()?->getId() === $user->getId(),
             default => false,
         };
     }
 }
 ```
+
+The comparison uses `getId()` rather than `===` on the two objects: Doctrine may hand you a
+lazy-loading proxy for `getOwner()` while `$user` is the fully-hydrated object from the token (or the
+reverse), and those are never `===`-identical even when they represent the same row.
 
 <Aside type="tip">
   With Symfony's default `autoconfigure: true`, this voter is picked up automatically as soon as it
