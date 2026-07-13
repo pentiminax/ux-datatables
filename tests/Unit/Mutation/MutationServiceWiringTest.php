@@ -9,11 +9,13 @@ use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
  * @internal
@@ -66,6 +68,25 @@ final class MutationServiceWiringTest extends TestCase
         }
 
         $this->assertTrue($listenerFound, 'MutationExceptionListener must be registered on kernel.exception.');
+
+        $kernel->shutdown();
+    }
+
+    #[Test]
+    public function it_always_wires_the_mutation_token_validator_with_a_csrf_token_manager(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+
+        $validator = $kernel->getContainer()->get('test.datatables.security.mutation_token_validator');
+
+        $this->assertInstanceOf(MutationTokenValidator::class, $validator);
+
+        // The guard must never be left without a manager, even when the application
+        // has no CSRF component configured: otherwise every mutation would be rejected.
+        $manager = $this->readPrivateProperty($validator, 'csrfTokenManager');
+
+        $this->assertInstanceOf(CsrfTokenManagerInterface::class, $manager);
 
         $kernel->shutdown();
     }

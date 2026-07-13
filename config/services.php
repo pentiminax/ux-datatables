@@ -39,12 +39,15 @@ use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
+use function Symfony\Component\DependencyInjection\Loader\Configurator\inline_service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_locator;
 
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\Security\Csrf\CsrfTokenManager;
+use Symfony\Component\Security\Csrf\TokenGenerator\UriSafeTokenGenerator;
+use Symfony\Component\Security\Csrf\TokenStorage\SessionTokenStorage;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 return static function (ContainerConfigurator $container): void {
@@ -76,8 +79,17 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, param('kernel.secret'))
         ->private();
 
+    // Bundle-owned CSRF token manager guaranteeing the mutation guard always has a
+    // manager to check against. CsrfTokenManagerPass swaps this for the application's
+    // own manager when one is configured; otherwise this session-backed default keeps
+    // the delete/toggle endpoints protected and working out of the box.
+    $services->set('datatables.security.csrf_token_manager', CsrfTokenManager::class)
+        ->arg(0, inline_service(UriSafeTokenGenerator::class))
+        ->arg(1, inline_service(SessionTokenStorage::class)->arg(0, service('request_stack')))
+        ->private();
+
     $services->set('datatables.security.mutation_token_validator', MutationTokenValidator::class)
-        ->arg(0, service(CsrfTokenManagerInterface::class)->nullOnInvalid())
+        ->arg(0, service('datatables.security.csrf_token_manager'))
         ->private();
 
     $services->alias(MutationTokenValidator::class, 'datatables.security.mutation_token_validator')
@@ -104,7 +116,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(2, service('datatables.column.action_row_data_resolver'))
         ->arg(3, service('datatables.column.resolver'))
         ->arg(4, service('request_stack'))
-        ->arg(5, service(CsrfTokenManagerInterface::class)->nullOnInvalid())
+        ->arg(5, service('datatables.security.csrf_token_manager'))
         ->tag('twig.extension')
         ->private();
 
