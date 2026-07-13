@@ -13,9 +13,10 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  * Validates the CSRF token protecting the delete and boolean-toggle mutation endpoints.
  *
  * The token travels in the `X-CSRF-Token` request header so the JSON body DTOs stay
- * untouched. The guard fails closed: if no CSRF token manager is wired, the request is
- * rejected rather than let through, since a missing manager means no token could ever
- * have been generated or checked.
+ * untouched. The guard fails closed: a request carrying no token, or an invalid one, is
+ * rejected. A token manager is always injected (the bundle provides a session-backed
+ * default when the application has none), so the mutation endpoints stay protected while
+ * still working out of the box.
  */
 final class MutationTokenValidator
 {
@@ -24,7 +25,7 @@ final class MutationTokenValidator
     public const HEADER = 'X-CSRF-Token';
 
     public function __construct(
-        private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
+        private readonly CsrfTokenManagerInterface $csrfTokenManager,
     ) {
     }
 
@@ -32,9 +33,7 @@ final class MutationTokenValidator
     {
         $value = $request->headers->get(self::HEADER);
 
-        if (null    === $this->csrfTokenManager
-            || null === $value
-            || !$this->csrfTokenManager->isTokenValid(new CsrfToken(self::TOKEN_ID, $value))) {
+        if (null === $value || !$this->csrfTokenManager->isTokenValid(new CsrfToken(self::TOKEN_ID, $value))) {
             throw new InvalidCsrfTokenException();
         }
     }

@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
+use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
@@ -83,7 +84,12 @@ class DataTablesExtension extends AbstractExtension
         }
 
         if (null !== $this->csrfTokenManager) {
-            $view['csrfToken'] = $this->csrfTokenManager->getToken(MutationTokenValidator::TOKEN_ID)->getValue();
+            try {
+                $view['csrfToken'] = $this->csrfTokenManager->getToken(MutationTokenValidator::TOKEN_ID)->getValue();
+            } catch (SessionNotFoundException) {
+                // No session (non-web or stateless context): there is no CSRF context to
+                // expose. The mutation endpoints are only reachable with an active session.
+            }
         }
 
         $controllers['@pentiminax/ux-datatables/datatable'] = [

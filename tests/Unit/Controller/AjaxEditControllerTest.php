@@ -208,12 +208,15 @@ final class AjaxEditControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_rejects_the_request_and_does_not_update_when_no_csrf_manager_is_configured(): void
+    public function it_rejects_the_request_and_does_not_update_when_the_token_header_is_missing(): void
     {
         $accessor = $this->createMock(PropertyAccessorInterface::class);
         $accessor->expects($this->never())->method('setValue');
 
-        $controller = $this->controller(new ToggleBooleanEntityFixture(), 799, $accessor, expectFlush: false, withCsrfManager: false);
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->expects($this->never())->method('isTokenValid');
+
+        $controller = $this->controller(new ToggleBooleanEntityFixture(), 799, $accessor, expectFlush: false, csrfTokenManager: $csrfTokenManager);
 
         $this->expectException(InvalidCsrfTokenException::class);
         $controller(new Request(), new AjaxEditRequestDto(
@@ -230,7 +233,6 @@ final class AjaxEditControllerTest extends TestCase
         PropertyAccessorInterface $accessor,
         bool $expectFlush,
         ?CsrfTokenManagerInterface $csrfTokenManager = null,
-        bool $withCsrfManager = true,
     ): AjaxEditController {
         $repository = $this->createMock(EntityRepository::class);
         $repository->method('find')->with($id)->willReturn($entity);
@@ -249,7 +251,7 @@ final class AjaxEditControllerTest extends TestCase
 
         $mutator = new EntityMutator(new EntityLocator($registry), $accessor, new NullMercurePublisher());
 
-        if (null === $csrfTokenManager && $withCsrfManager) {
+        if (null === $csrfTokenManager) {
             $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
             $csrfTokenManager->method('isTokenValid')->willReturn(true);
         }

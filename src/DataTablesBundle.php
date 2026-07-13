@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables;
 
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
+use Pentiminax\UX\DataTables\DependencyInjection\Compiler\CsrfTokenManagerPass;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\DataTableRegistryPass;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Symfony\Bundle\MakerBundle\Maker\AbstractMaker;
@@ -24,6 +25,7 @@ class DataTablesBundle extends AbstractBundle
         parent::build($container);
 
         $container->addCompilerPass(new DataTableRegistryPass());
+        $container->addCompilerPass(new CsrfTokenManagerPass());
     }
 
     public function configure(DefinitionConfigurator $definition): void

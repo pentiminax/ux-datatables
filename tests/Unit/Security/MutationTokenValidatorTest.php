@@ -20,15 +20,6 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class MutationTokenValidatorTest extends TestCase
 {
     #[Test]
-    public function it_rejects_a_request_when_no_csrf_token_manager_is_configured(): void
-    {
-        $validator = new MutationTokenValidator(null);
-
-        $this->expectException(InvalidCsrfTokenException::class);
-        $validator->validate(new Request());
-    }
-
-    #[Test]
     public function it_accepts_a_request_carrying_a_valid_token(): void
     {
         $manager = $this->createMock(CsrfTokenManagerInterface::class);
