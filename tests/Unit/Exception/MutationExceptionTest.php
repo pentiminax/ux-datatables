@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Exception;
 
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\MutationException;
+use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -16,6 +17,7 @@ use PHPUnit\Framework\TestCase;
  */
 #[CoversClass(MutationException::class)]
 #[CoversClass(EntityNotFoundException::class)]
+#[CoversClass(MutationNotAllowedException::class)]
 #[CoversClass(PropertyNotWritableException::class)]
 final class MutationExceptionTest extends TestCase
 {
@@ -37,5 +39,15 @@ final class MutationExceptionTest extends TestCase
         $this->assertInstanceOf(MutationException::class, $exception);
         $this->assertSame(400, $exception->getStatusCode());
         $this->assertSame('Unable to write "isEnabled" on the entity.', $exception->getClientMessage());
+    }
+
+    #[Test]
+    public function mutation_not_allowed_maps_to_403_with_default_message(): void
+    {
+        $exception = new MutationNotAllowedException();
+
+        $this->assertInstanceOf(MutationException::class, $exception);
+        $this->assertSame(403, $exception->getStatusCode());
+        $this->assertSame('You are not allowed to perform this action.', $exception->getClientMessage());
     }
 }
