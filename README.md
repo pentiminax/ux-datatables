@@ -94,5 +94,29 @@ public function index(UserDataTable $table, Request $request): Response
 
 > Tip: run `php bin/console make:datatable` to scaffold a DataTable class from any Doctrine entity.
 
+## Security
+
+The bundle auto-registers a set of Ajax routes under `/datatables/ajax/*` (`ux_datatables_ajax_data`,
+`ux_datatables_ajax_delete`, `ux_datatables_ajax_edit`, `ux_datatables_ajax_edit_form`,
+`ux_datatables_ajax_edit_form_submit`, `ux_datatables_ajax_detail`, `ux_datatables_ajax_templates`).
+
+The table token embedded in the rendered HTML identifies **which** table is requested, not **who** is
+requesting it — it is **not** a user-authentication or per-user authorization mechanism. If a table is
+displayed behind a firewall but these routes are left unprotected, the underlying data (and the
+edit/delete actions) can be reached by anyone holding the token.
+
+Protect the routes with an `access_control` rule that matches the pages rendering your tables:
+
+```yaml
+# config/packages/security.yaml
+security:
+    access_control:
+        # access_control is first-match-wins; place this before any broader rule.
+        - { path: ^/datatables/ajax, roles: ROLE_ADMIN }
+```
+
+See [Securing Ajax Routes](https://pentiminax.github.io/ux-datatables/getting-started/security/) for
+details.
+
 ## Documentation
 - [Online documentation](https://pentiminax.github.io/ux-datatables/)
