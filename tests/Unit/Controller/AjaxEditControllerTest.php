@@ -6,10 +6,12 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -90,6 +92,25 @@ final class AjaxEditControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_a_field_that_is_not_a_mapped_boolean(): void
+    {
+        $entity = new ToggleBooleanEntityFixture();
+
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->expects($this->never())->method('setValue');
+
+        $controller = $this->controller($entity, 799, $accessor, expectFlush: false);
+
+        $this->expectException(FieldNotToggleableException::class);
+        $controller(new AjaxEditRequestDto(
+            entity: ToggleBooleanEntityFixture::class,
+            field: 'admin',
+            id: 799,
+            newValue: true,
+        ));
+    }
+
+    #[Test]
     public function it_lets_a_missing_entity_bubble_as_an_exception(): void
     {
         $accessor = $this->createMock(PropertyAccessorInterface::class);
@@ -115,8 +136,13 @@ final class AjaxEditControllerTest extends TestCase
         $repository = $this->createMock(EntityRepository::class);
         $repository->method('find')->with($id)->willReturn($entity);
 
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasField')->willReturnCallback(static fn (string $name): bool => 'isEmailAuthEnabled' === $name);
+        $metadata->method('getTypeOfField')->willReturnCallback(static fn (string $name): ?string => 'isEmailAuthEnabled' === $name ? 'boolean' : null);
+
         $manager = $this->createMock(EntityManagerInterface::class);
         $manager->method('getRepository')->with(ToggleBooleanEntityFixture::class)->willReturn($repository);
+        $manager->method('getClassMetadata')->willReturn($metadata);
         $manager->expects($expectFlush ? $this->once() : $this->never())->method('flush');
 
         $registry = $this->createMock(ManagerRegistry::class);
