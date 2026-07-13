@@ -218,6 +218,7 @@ class default_1 extends Controller {
                     entity,
                     id,
                     topics: this.getMercureTopics(payload),
+                    csrfToken: this.getCsrfToken(payload),
                 });
                 if (response.ok) {
                     this.table?.ajax?.reload(null, false);
@@ -290,6 +291,7 @@ class default_1 extends Controller {
                     newValue: target.checked,
                     method,
                     topics: this.getMercureTopics(payload),
+                    csrfToken: this.getCsrfToken(payload),
                 });
                 if (!response.ok) {
                     target.checked = previousState;
@@ -337,6 +339,10 @@ class default_1 extends Controller {
     }
     isMercureEnabled(payload) {
         return !!payload?.mercure?.hubUrl && this.getMercureTopics(payload).length > 0;
+    }
+    getCsrfToken(payload) {
+        const token = payload?.csrfToken;
+        return typeof token === 'string' && token.length > 0 ? token : undefined;
     }
     getMercureTopics(payload) {
         const topics = payload?.mercure?.topics;
