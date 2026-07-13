@@ -6,8 +6,10 @@ namespace Pentiminax\UX\DataTables\Mutation;
 
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
+use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 final class EntityMutator
@@ -16,6 +18,7 @@ final class EntityMutator
         private readonly EntityLocator $locator,
         private readonly PropertyAccessorInterface $propertyAccessor,
         private readonly MercurePublisherInterface $publisher,
+        private readonly PermissionChecker $permissionChecker = new PermissionChecker(),
     ) {
     }
 
@@ -23,10 +26,15 @@ final class EntityMutator
      * @param string|string[] $topics
      *
      * @throws EntityNotFoundException
+     * @throws MutationNotAllowedException
      */
     public function delete(string $entityClass, int|string $id, string|array $topics = []): void
     {
         $context = $this->locator->locate($entityClass, $id);
+
+        if (!$this->permissionChecker->isGranted('DELETE', $context->entity)) {
+            throw new MutationNotAllowedException();
+        }
 
         $context->manager->remove($context->entity);
         $context->manager->flush();
@@ -44,11 +52,16 @@ final class EntityMutator
      *
      * @throws EntityNotFoundException
      * @throws FieldNotToggleableException
+     * @throws MutationNotAllowedException
      * @throws PropertyNotWritableException
      */
     public function setProperty(string $entityClass, int|string $id, string $field, bool $value, string|array $topics = []): void
     {
         $context = $this->locator->locate($entityClass, $id);
+
+        if (!$this->permissionChecker->isGranted('EDIT', $context->entity)) {
+            throw new MutationNotAllowedException();
+        }
 
         $metadata = $context->manager->getClassMetadata($entityClass);
 

@@ -112,6 +112,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('property_accessor'))
         ->arg(2, service(MercurePublisherInterface::class))
+        ->arg(3, service('datatables.security.permission_checker'))
         ->private();
 
     $services->set('datatables.event_listener.mutation_exception', MutationExceptionListener::class)
