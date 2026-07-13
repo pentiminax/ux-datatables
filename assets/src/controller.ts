@@ -283,6 +283,7 @@ export default class extends Controller {
                         entity,
                         id,
                         topics: this.getMercureTopics(payload),
+                        csrfToken: this.getCsrfToken(payload),
                     })
 
                     if (response.ok) {
@@ -372,6 +373,7 @@ export default class extends Controller {
                     newValue: target.checked,
                     method,
                     topics: this.getMercureTopics(payload),
+                    csrfToken: this.getCsrfToken(payload),
                 })
 
                 if (!response.ok) {
@@ -424,6 +426,11 @@ export default class extends Controller {
 
     private isMercureEnabled(payload: Record<string, any>): boolean {
         return !!payload?.mercure?.hubUrl && this.getMercureTopics(payload).length > 0
+    }
+
+    private getCsrfToken(payload: Record<string, any>): string | undefined {
+        const token = payload?.csrfToken
+        return typeof token === 'string' && token.length > 0 ? token : undefined
     }
 
     private getMercureTopics(payload: Record<string, any>): string[] {

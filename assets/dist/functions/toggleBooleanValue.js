@@ -1,4 +1,4 @@
-export async function toggleBooleanValue({ id, entity, field, newValue, url, method = 'PATCH', topics, }) {
+export async function toggleBooleanValue({ id, entity, field, newValue, url, method = 'PATCH', topics, csrfToken, }) {
     const numericId = Number(id);
     const body = {
         id: id.trim() !== '' && Number.isFinite(numericId) ? numericId : id,
@@ -9,12 +9,16 @@ export async function toggleBooleanValue({ id, entity, field, newValue, url, met
     if (Array.isArray(topics) && topics.length > 0) {
         body.topics = topics;
     }
+    const headers = {
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+    };
+    if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+    }
     return await fetch(url, {
         method,
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-        },
+        headers,
         body: JSON.stringify(body),
     });
 }
