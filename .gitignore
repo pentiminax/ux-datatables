@@ -19,6 +19,7 @@ node_modules/.vite/
 composer.lock
 _bmad/
 _bmad-output/
+config/reference.php
 
 /docs/superpowers/*
 .omx/
