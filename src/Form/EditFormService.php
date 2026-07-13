@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\Form\FormInterface;
 
 final class EditFormService
@@ -24,6 +25,7 @@ final class EditFormService
         private readonly EditModalTemplateResolverInterface $templateResolver,
         private readonly MercurePublisherInterface $publisher,
         private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
+        private readonly ?ContainerInterface $dataTables = null,
     ) {
     }
 
@@ -90,7 +92,7 @@ final class EditFormService
 
         $context->manager->flush();
 
-        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $payload->entity), [
+        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $payload->entity, $this->dataTables, $payload->dataTableClass), [
             'type' => 'edit',
             'id'   => $payload->id,
         ]);

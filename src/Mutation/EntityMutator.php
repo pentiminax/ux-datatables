@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 final class EntityMutator
@@ -22,6 +23,7 @@ final class EntityMutator
         private readonly MercurePublisherInterface $publisher,
         private readonly PermissionChecker $permissionChecker = new PermissionChecker(),
         private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
+        private readonly ?ContainerInterface $dataTables = null,
     ) {
     }
 
@@ -29,7 +31,7 @@ final class EntityMutator
      * @throws EntityNotFoundException
      * @throws MutationNotAllowedException
      */
-    public function delete(string $entityClass, int|string $id): void
+    public function delete(string $entityClass, int|string $id, ?string $dataTableClass = null): void
     {
         $context = $this->locator->locate($entityClass, $id);
 
@@ -40,7 +42,7 @@ final class EntityMutator
         $context->manager->remove($context->entity);
         $context->manager->flush();
 
-        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $entityClass), [
+        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $entityClass, $this->dataTables, $dataTableClass), [
             'type' => 'delete',
             'id'   => $id,
         ]);
@@ -54,7 +56,7 @@ final class EntityMutator
      * @throws MutationNotAllowedException
      * @throws PropertyNotWritableException
      */
-    public function setProperty(string $entityClass, int|string $id, string $field, bool $value): void
+    public function setProperty(string $entityClass, int|string $id, string $field, bool $value, ?string $dataTableClass = null): void
     {
         $context = $this->locator->locate($entityClass, $id);
 
@@ -75,7 +77,7 @@ final class EntityMutator
         $this->propertyAccessor->setValue($context->entity, $field, $value);
         $context->manager->flush();
 
-        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $entityClass), [
+        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $entityClass, $this->dataTables, $dataTableClass), [
             'type'  => 'edit',
             'id'    => $id,
             'field' => $field,

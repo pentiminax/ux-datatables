@@ -19,7 +19,7 @@ final class AjaxDeleteController
 
     public function __invoke(#[MapRequestPayload] AjaxDeleteRequestDto $payload): Response
     {
-        $this->mutator->delete($payload->entity, $payload->id);
+        $this->mutator->delete($payload->entity, $payload->id, $payload->dataTableClass);
 
         return new JsonResponse(['success' => true]);
     }

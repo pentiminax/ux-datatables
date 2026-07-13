@@ -8,17 +8,27 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 /**
@@ -149,6 +159,66 @@ final class AjaxEditControllerTest extends TestCase
         ));
     }
 
+    #[Test]
+    public function it_forwards_the_data_table_class_from_the_payload_and_publishes_its_own_mercure_topics(): void
+    {
+        $entity = new ToggleBooleanEntityFixture();
+
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
+        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', true);
+
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->method('find')->with(799)->willReturn($entity);
+
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasField')->willReturnCallback(static fn (string $name): bool => 'isEmailAuthEnabled' === $name);
+        $metadata->method('getTypeOfField')->willReturnCallback(static fn (string $name): ?string => 'isEmailAuthEnabled' === $name ? 'boolean' : null);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('getRepository')->with(ToggleBooleanEntityFixture::class)->willReturn($repository);
+        $manager->method('getClassMetadata')->willReturn($metadata);
+        $manager->expects($this->once())->method('flush');
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($manager);
+
+        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher->expects($this->once())
+            ->method('publish')
+            ->with(['/manual/toggle-boolean-entity-fixtures'], ['type' => 'edit', 'id' => 799, 'field' => 'isEmailAuthEnabled']);
+
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver->expects($this->never())->method('resolveMercureConfig');
+
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
+
+        $dataTable = new ToggleBooleanEntityFixtureDataTable($hubUrlResolver);
+
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with(ToggleBooleanEntityFixtureDataTable::class)->willReturn(true);
+        $dataTables->method('get')->with(ToggleBooleanEntityFixtureDataTable::class)->willReturn($dataTable);
+
+        $mutator = new EntityMutator(
+            new EntityLocator($registry),
+            $accessor,
+            $publisher,
+            mercureConfigResolver: $resolver,
+            dataTables: $dataTables,
+        );
+
+        $controller = new AjaxEditController($mutator);
+
+        $controller(new AjaxEditRequestDto(
+            entity: ToggleBooleanEntityFixture::class,
+            field: 'isEmailAuthEnabled',
+            id: 799,
+            newValue: true,
+            dataTableClass: ToggleBooleanEntityFixtureDataTable::class,
+        ));
+    }
+
     private function controller(
         ?object $entity,
         int|string $id,
@@ -188,5 +258,32 @@ final class ToggleBooleanEntityFixture
     public function isEmailAuthEnabled(): bool
     {
         return $this->isEmailAuthEnabled;
+    }
+}
+
+#[AsDataTable(entityClass: ToggleBooleanEntityFixture::class, mercure: true)]
+final class ToggleBooleanEntityFixtureDataTable extends AbstractDataTable
+{
+    public function __construct(
+        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+    ) {
+        parent::__construct();
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            renderingPreparer: new RenderingPreparer(
+                mercureHubUrlResolver: $this->mercureHubUrlResolver,
+            )
+        ));
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->serverSide()
+            ->mercure(topics: ['/manual/toggle-boolean-entity-fixtures']);
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
     }
 }
