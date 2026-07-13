@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Security;
 
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
+use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
@@ -33,7 +34,19 @@ final class MutationTokenValidator
     {
         $value = $request->headers->get(self::HEADER);
 
-        if (null === $value || !$this->csrfTokenManager->isTokenValid(new CsrfToken(self::TOKEN_ID, $value))) {
+        if (null === $value) {
+            throw new InvalidCsrfTokenException();
+        }
+
+        try {
+            $isValid = $this->csrfTokenManager->isTokenValid(new CsrfToken(self::TOKEN_ID, $value));
+        } catch (SessionNotFoundException) {
+            // Session-backed managers throw when no session is active. Treat it as a
+            // failed check so the guard still fails closed with a clean JSON 403.
+            throw new InvalidCsrfTokenException();
+        }
+
+        if (!$isValid) {
             throw new InvalidCsrfTokenException();
         }
     }
