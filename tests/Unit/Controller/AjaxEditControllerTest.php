@@ -107,6 +107,28 @@ final class AjaxEditControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_returns_one_when_updating_boolean_field_to_true_with_a_string_id(): void
+    {
+        $entity = new ToggleBooleanEntityFixture();
+
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
+        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', true);
+
+        $controller = $this->controller($entity, '018f2c3e-1234-7abc-9def-0123456789ab', $accessor, expectFlush: true);
+
+        $response = $controller($this->validTokenRequest(), new AjaxEditRequestDto(
+            entity: ToggleBooleanEntityFixture::class,
+            field: 'isEmailAuthEnabled',
+            id: '018f2c3e-1234-7abc-9def-0123456789ab',
+            newValue: true,
+        ));
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('1', (string) $response->getContent());
+    }
+
+    #[Test]
     public function it_rejects_the_request_and_does_not_update_when_the_csrf_token_is_invalid(): void
     {
         $accessor = $this->createMock(PropertyAccessorInterface::class);
