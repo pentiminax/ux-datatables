@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Mutation;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
@@ -117,8 +118,13 @@ final class MutationExceptionHandlingTest extends TestCase
         $repository = $this->createMock(EntityRepository::class);
         $repository->method('find')->willReturn($entity);
 
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasField')->willReturnCallback(static fn (string $name): bool => 'enabled' === $name);
+        $metadata->method('getTypeOfField')->willReturnCallback(static fn (string $name): ?string => 'enabled' === $name ? 'boolean' : null);
+
         $manager = $this->createMock(EntityManagerInterface::class);
         $manager->method('getRepository')->with(MutationExceptionHandlingFixture::class)->willReturn($repository);
+        $manager->method('getClassMetadata')->willReturn($metadata);
 
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->with(MutationExceptionHandlingFixture::class)->willReturn($manager);
