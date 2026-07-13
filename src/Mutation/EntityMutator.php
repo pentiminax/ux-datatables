@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
@@ -39,7 +40,7 @@ final class EntityMutator
         $context->manager->remove($context->entity);
         $context->manager->flush();
 
-        $this->publisher->publish($this->resolveTopics($entityClass), [
+        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $entityClass), [
             'type' => 'delete',
             'id'   => $id,
         ]);
@@ -74,23 +75,10 @@ final class EntityMutator
         $this->propertyAccessor->setValue($context->entity, $field, $value);
         $context->manager->flush();
 
-        $this->publisher->publish($this->resolveTopics($entityClass), [
+        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $entityClass), [
             'type'  => 'edit',
             'id'    => $id,
             'field' => $field,
         ]);
-    }
-
-    /**
-     * Resolves the authoritative Mercure topics for the target entity server-side.
-     *
-     * Topics are never taken from the client request: they are derived from the
-     * entity configuration through the same resolver used by the render path.
-     *
-     * @return string[]
-     */
-    private function resolveTopics(string $entityClass): array
-    {
-        return $this->mercureConfigResolver?->resolveMercureConfig($entityClass)?->topics ?? [];
     }
 }
