@@ -118,6 +118,13 @@ See [Styling](../styling/) for the full setup guide.
   ]}
 />
 
+<Aside type="danger" title="Secure the Ajax routes before production">
+  The bundle auto-registers the `/datatables/ajax/*` routes. The table token they use identifies
+  **which** table is requested, not **who** is requesting it, so it is not a substitute for
+  authentication. Protect these routes with your application's `security.access_control` to match the
+  pages that render your tables. See [Securing Ajax Routes](../security/).
+</Aside>
+
 <Aside type="tip">
   You're all set! Continue to the [Quick Start](../quick-start/) guide to create your first table.
 </Aside>

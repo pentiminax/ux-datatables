@@ -38,6 +38,13 @@ return static function (RoutingConfigurator $routes): void {
 };
 ```
 
+<Aside type="danger" title="Protect these routes">
+  The table token in the request identifies **which** table is requested, not **who** is requesting
+  it — it is not a user-authentication mechanism. If a table sits behind a firewall, you must also
+  cover the `^/datatables/ajax` routes with a matching `access_control` rule, or the data can be
+  fetched by anyone holding the token. See [Securing Ajax Routes](../../getting-started/security/).
+</Aside>
+
 Use an explicit `ajax()` URL when the endpoint is not an `AbstractDataTable` service, when you want a
 custom route, or when you are using a plain `DataTable` instance:
 
