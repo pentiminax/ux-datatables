@@ -12,6 +12,8 @@ use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
@@ -40,7 +42,57 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->once())
             ->method('publish')
-            ->with(['/topic/5'], ['type' => 'delete', 'id' => 5]);
+            ->with(['/server/entity-mutator-fixtures/{id}'], ['type' => 'delete', 'id' => 5]);
+
+        $mutator = new EntityMutator(
+            new EntityLocator($this->registry($manager)),
+            $this->createMock(PropertyAccessorInterface::class),
+            $publisher,
+            $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
+        );
+
+        $mutator->delete(EntityMutatorFixture::class, 5);
+    }
+
+    #[Test]
+    public function it_publishes_only_the_server_resolved_topics_and_never_client_input(): void
+    {
+        $entity = new EntityMutatorFixture();
+
+        $manager = $this->managerReturning($entity, 5);
+        $manager->expects($this->once())->method('remove')->with($entity);
+        $manager->expects($this->once())->method('flush');
+
+        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher->expects($this->once())
+            ->method('publish')
+            ->with(['/server/only'], ['type' => 'delete', 'id' => 5]);
+
+        $mutator = new EntityMutator(
+            new EntityLocator($this->registry($manager)),
+            $this->createMock(PropertyAccessorInterface::class),
+            $publisher,
+            $this->resolverReturning(['/server/only']),
+        );
+
+        // The delete() signature no longer accepts client topics: the only
+        // possible publish target is the server-resolved configuration.
+        $mutator->delete(EntityMutatorFixture::class, 5);
+    }
+
+    #[Test]
+    public function it_does_not_publish_when_no_mercure_resolver_is_available(): void
+    {
+        $entity = new EntityMutatorFixture();
+
+        $manager = $this->managerReturning($entity, 5);
+        $manager->expects($this->once())->method('remove')->with($entity);
+        $manager->expects($this->once())->method('flush');
+
+        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher->expects($this->once())
+            ->method('publish')
+            ->with([], ['type' => 'delete', 'id' => 5]);
 
         $mutator = new EntityMutator(
             new EntityLocator($this->registry($manager)),
@@ -48,7 +100,7 @@ final class EntityMutatorTest extends TestCase
             $publisher,
         );
 
-        $mutator->delete(EntityMutatorFixture::class, 5, ['/topic/5']);
+        $mutator->delete(EntityMutatorFixture::class, 5);
     }
 
     #[Test]
@@ -67,11 +119,16 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->once())
             ->method('publish')
-            ->with(['/topic/5'], ['type' => 'edit', 'id' => 5, 'field' => 'enabled']);
+            ->with(['/server/entity-mutator-fixtures/{id}'], ['type' => 'edit', 'id' => 5, 'field' => 'enabled']);
 
-        $mutator = new EntityMutator(new EntityLocator($this->registry($manager)), $accessor, $publisher);
+        $mutator = new EntityMutator(
+            new EntityLocator($this->registry($manager)),
+            $accessor,
+            $publisher,
+            $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
+        );
 
-        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, ['/topic/5']);
+        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
     }
 
     #[Test]
@@ -92,7 +149,7 @@ final class EntityMutatorTest extends TestCase
         $mutator = new EntityMutator(new EntityLocator($this->registry($manager)), $accessor, $publisher);
 
         $this->expectException(PropertyNotWritableException::class);
-        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, ['/topic/5']);
+        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
     }
 
     #[Test]
@@ -112,7 +169,7 @@ final class EntityMutatorTest extends TestCase
         $mutator = new EntityMutator(new EntityLocator($this->registry($manager)), $accessor, $publisher);
 
         $this->expectException(FieldNotToggleableException::class);
-        $mutator->setProperty(EntityMutatorFixture::class, 5, 'admin', true, ['/topic/5']);
+        $mutator->setProperty(EntityMutatorFixture::class, 5, 'admin', true);
     }
 
     #[Test]
@@ -137,7 +194,7 @@ final class EntityMutatorTest extends TestCase
         $this->expectException(MutationNotAllowedException::class);
 
         try {
-            $mutator->delete(EntityMutatorFixture::class, 5, ['/topic/5']);
+            $mutator->delete(EntityMutatorFixture::class, 5);
         } catch (MutationNotAllowedException $exception) {
             $this->assertSame(403, $exception->getStatusCode());
 
@@ -170,7 +227,7 @@ final class EntityMutatorTest extends TestCase
         $this->expectException(MutationNotAllowedException::class);
 
         try {
-            $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, ['/topic/5']);
+            $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
         } catch (MutationNotAllowedException $exception) {
             $this->assertSame(403, $exception->getStatusCode());
 
@@ -197,7 +254,7 @@ final class EntityMutatorTest extends TestCase
         );
 
         $this->expectException(EntityNotFoundException::class);
-        $mutator->delete(EntityMutatorFixture::class, 404, ['/topic/x']);
+        $mutator->delete(EntityMutatorFixture::class, 404);
     }
 
     private function managerReturning(object $entity, int|string $id): EntityManagerInterface
@@ -235,6 +292,19 @@ final class EntityMutatorTest extends TestCase
         $checker->method('isGranted')->with($attribute, $subject)->willReturn(false);
 
         return new PermissionChecker($checker);
+    }
+
+    /**
+     * @param string[] $topics
+     */
+    private function resolverReturning(array $topics): MercureConfigResolverInterface
+    {
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver->method('resolveMercureConfig')
+            ->with(EntityMutatorFixture::class)
+            ->willReturn(new MercureConfig(topics: $topics, hubUrl: 'https://hub.example/.well-known/mercure'));
+
+        return $resolver;
     }
 }
 

@@ -17,6 +17,8 @@ use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalRenderRequest;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -255,13 +257,13 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $templateResolver,
             new MercureUpdatePublisher($hub),
+            $this->resolverReturning(['/topic/42']),
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
             entity: EditFormServiceFixture::class,
             id: 42,
             formData: ['name' => 'Alice'],
-            topics: ['/topic/42'],
             dataTableClass: EditFormServiceFixtureDataTable::class,
         ));
 
@@ -305,13 +307,13 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $templateResolver,
             new MercureUpdatePublisher($hub, $logger),
+            $this->resolverReturning(['/topic/42']),
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
             entity: EditFormServiceFixture::class,
             id: 42,
             formData: ['name' => 'Alice'],
-            topics: ['/topic/42'],
             dataTableClass: EditFormServiceFixtureDataTable::class,
         ));
 
@@ -388,6 +390,19 @@ final class EditFormServiceTest extends TestCase
             ->willReturn($entityManager);
 
         return $registry;
+    }
+
+    /**
+     * @param string[] $topics
+     */
+    private function resolverReturning(array $topics): MercureConfigResolverInterface
+    {
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver->method('resolveMercureConfig')
+            ->with(EditFormServiceFixture::class)
+            ->willReturn(new MercureConfig(topics: $topics, hubUrl: 'https://hub.example/.well-known/mercure'));
+
+        return $resolver;
     }
 
     private function createEntityManagerWithEntity(object $entity, int|string $id): EntityManagerInterface
