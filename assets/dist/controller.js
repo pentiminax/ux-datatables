@@ -217,7 +217,6 @@ class default_1 extends Controller {
                 const response = await deleteEntity({
                     entity,
                     id,
-                    topics: this.getMercureTopics(payload),
                 });
                 if (response.ok) {
                     this.table?.ajax?.reload(null, false);
@@ -241,7 +240,6 @@ class default_1 extends Controller {
                                 entity,
                                 id,
                                 formData,
-                                topics: this.getMercureTopics(payload),
                                 dataTableClass: payload.dataTableClass ?? null,
                             });
                             if (submitResult.success) {
@@ -289,7 +287,6 @@ class default_1 extends Controller {
                     entity,
                     newValue: target.checked,
                     method,
-                    topics: this.getMercureTopics(payload),
                 });
                 if (!response.ok) {
                     target.checked = previousState;
