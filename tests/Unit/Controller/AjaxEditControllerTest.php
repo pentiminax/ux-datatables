@@ -72,6 +72,28 @@ final class AjaxEditControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_returns_one_when_updating_boolean_field_to_true_with_a_string_id(): void
+    {
+        $entity = new ToggleBooleanEntityFixture();
+
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
+        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', true);
+
+        $controller = $this->controller($entity, '018f2c3e-1234-7abc-9def-0123456789ab', $accessor, expectFlush: true);
+
+        $response = $controller(new AjaxEditRequestDto(
+            entity: ToggleBooleanEntityFixture::class,
+            field: 'isEmailAuthEnabled',
+            id: '018f2c3e-1234-7abc-9def-0123456789ab',
+            newValue: true,
+        ));
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('1', (string) $response->getContent());
+    }
+
+    #[Test]
     public function it_lets_a_not_writable_field_bubble_as_an_exception(): void
     {
         $entity = new ToggleBooleanEntityFixture();
