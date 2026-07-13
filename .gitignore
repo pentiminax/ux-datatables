@@ -10,6 +10,7 @@ vendor/
 .phpunit.cache/
 .phpunit.result.cache
 .php_cs.cache
+config/reference.php
 
 assets/package-lock.json
 assets/node_modules/
