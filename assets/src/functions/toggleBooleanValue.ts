@@ -5,7 +5,6 @@ type ToggleBooleanPayload = {
     newValue: boolean
     url: string
     method?: string
-    topics?: string[]
 }
 
 export async function toggleBooleanValue({
@@ -15,7 +14,6 @@ export async function toggleBooleanValue({
     newValue,
     url,
     method = 'PATCH',
-    topics,
 }: ToggleBooleanPayload): Promise<Response> {
     const numericId = Number(id)
     const body: Record<string, unknown> = {
@@ -23,10 +21,6 @@ export async function toggleBooleanValue({
         entity,
         field,
         newValue,
-    }
-
-    if (Array.isArray(topics) && topics.length > 0) {
-        body.topics = topics
     }
 
     return await fetch(url, {

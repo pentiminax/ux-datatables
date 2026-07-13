@@ -113,6 +113,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(1, service('property_accessor'))
         ->arg(2, service(MercurePublisherInterface::class))
         ->arg(3, service('datatables.security.permission_checker'))
+        ->arg(4, service(MercureConfigResolverInterface::class)->nullOnInvalid())
         ->private();
 
     $services->set('datatables.event_listener.mutation_exception', MutationExceptionListener::class)

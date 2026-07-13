@@ -2,7 +2,6 @@ type SubmitEditFormPayload = {
     entity: string
     id: string
     formData: Record<string, any>
-    topics?: string[]
     dataTableClass: string | null
 }
 
@@ -24,7 +23,6 @@ export async function submitEditForm(
             entity: payload.entity,
             id: payload.id,
             formData: payload.formData,
-            topics: payload.topics ?? [],
             dataTableClass: payload.dataTableClass,
         }),
     })
