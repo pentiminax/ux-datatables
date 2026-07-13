@@ -16,6 +16,8 @@ use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -113,57 +115,37 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_only_publishes_mercure_updates_when_topics_are_provided(): void
+    public function it_publishes_to_the_server_resolved_topics_ignoring_the_client(): void
     {
-        $entityManager = $this->createEntityManagerWithEntity(new AjaxEditFormSubmitControllerFixture(), 2);
-        $entityManager->expects($this->exactly(2))->method('flush');
+        $entityManager = $this->createEntityManagerWithEntity(new AjaxEditFormSubmitControllerFixture(), 1);
+        $entityManager->expects($this->once())->method('flush');
 
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->exactly(2))
-            ->method('getManagerForClass')
-            ->with(AjaxEditFormSubmitControllerFixture::class)
-            ->willReturn($entityManager);
+        $registry = $this->createRegistry($entityManager);
 
         $hub = $this->createMock(HubInterface::class);
         $hub->expects($this->once())
             ->method('publish')
             ->with($this->callback(function (Update $update) {
-                return ['/topic/42']             === $update->getTopics()
+                return ['/server/topic/42']      === $update->getTopics()
                     && '{"type":"edit","id":42}' === $update->getData();
             }))
             ->willReturn('urn:uuid:published');
 
-        $forms = [
+        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver(
             $this->createValidFormMock(),
-            $this->createValidFormMock(),
-        ];
+            '',
+            1,
+            false,
+            'SomeDataTable',
+        );
 
-        $formBuilder = $this->createMock(FormBuilderInterface::class);
-        $formBuilder->expects($this->exactly(2))
-            ->method('add')
-            ->with('name', $this->isType('string'), $this->isType('array'))
-            ->willReturnSelf();
-        $formBuilder->expects($this->exactly(2))
-            ->method('getForm')
-            ->willReturnOnConsecutiveCalls(...$forms);
-
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-        $formFactory->expects($this->exactly(2))
-            ->method('createBuilder')
-            ->with($this->isType('string'), $this->isType('object'))
-            ->willReturn($formBuilder);
-
-        $renderer = $this->createMock(EditModalRenderer::class);
-        $renderer->expects($this->never())->method('render');
-        $renderer->expects($this->never())->method('renderBody');
-
-        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
-        $templateResolver->expects($this->never())->method('resolveChromeTemplate');
-        $templateResolver->expects($this->never())->method('resolveBodyTemplate');
-        $templateResolver->expects($this->exactly(2))
-            ->method('resolveColumns')
-            ->with('SomeDataTable')
-            ->willReturn([TextColumn::new('name', 'Name')]);
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver->method('resolveMercureConfig')
+            ->with(AjaxEditFormSubmitControllerFixture::class)
+            ->willReturn(new MercureConfig(
+                topics: ['/server/topic/42'],
+                hubUrl: 'https://hub.example/.well-known/mercure',
+            ));
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
             new EntityLocator($registry),
@@ -171,28 +153,66 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new MercureUpdatePublisher($hub),
+            $resolver,
         ));
 
-        $responseWithoutTopics = $controller(new AjaxEditFormRequestDto(
+        // The DTO no longer carries a topics field, so the client cannot influence
+        // the publish target: only the server-resolved topic is ever used.
+        $response = $controller(new AjaxEditFormRequestDto(
             entity: AjaxEditFormSubmitControllerFixture::class,
             id: 42,
             formData: ['name' => 'Alice'],
             dataTableClass: 'SomeDataTable',
         ));
 
-        $responseWithTopics = $controller(new AjaxEditFormRequestDto(
+        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
+
+        $this->assertTrue($payload['success']);
+    }
+
+    #[Test]
+    public function it_does_not_publish_when_no_mercure_config_is_resolved(): void
+    {
+        $entityManager = $this->createEntityManagerWithEntity(new AjaxEditFormSubmitControllerFixture(), 1);
+        $entityManager->expects($this->once())->method('flush');
+
+        $registry = $this->createRegistry($entityManager);
+
+        $hub = $this->createMock(HubInterface::class);
+        $hub->expects($this->never())->method('publish');
+
+        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver(
+            $this->createValidFormMock(),
+            '',
+            1,
+            false,
+            'SomeDataTable',
+        );
+
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver->method('resolveMercureConfig')
+            ->with(AjaxEditFormSubmitControllerFixture::class)
+            ->willReturn(null);
+
+        $controller = new AjaxEditFormSubmitController(new EditFormService(
+            new EntityLocator($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+            new MercureUpdatePublisher($hub),
+            $resolver,
+        ));
+
+        $response = $controller(new AjaxEditFormRequestDto(
             entity: AjaxEditFormSubmitControllerFixture::class,
             id: 42,
             formData: ['name' => 'Alice'],
-            topics: ['/topic/42'],
             dataTableClass: 'SomeDataTable',
         ));
 
-        $payloadWithoutTopics = json_decode((string) $responseWithoutTopics->getContent(), true, 512, \JSON_THROW_ON_ERROR);
-        $payloadWithTopics    = json_decode((string) $responseWithTopics->getContent(), true, 512, \JSON_THROW_ON_ERROR);
+        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
-        $this->assertTrue($payloadWithoutTopics['success']);
-        $this->assertTrue($payloadWithTopics['success']);
+        $this->assertTrue($payload['success']);
     }
 
     private function createRegistry(EntityManagerInterface $entityManager): ManagerRegistry

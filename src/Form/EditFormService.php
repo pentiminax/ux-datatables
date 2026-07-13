@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
@@ -21,6 +22,7 @@ final class EditFormService
         private readonly EditModalRenderer $renderer,
         private readonly EditModalTemplateResolverInterface $templateResolver,
         private readonly MercurePublisherInterface $publisher,
+        private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
     ) {
     }
 
@@ -87,7 +89,7 @@ final class EditFormService
 
         $context->manager->flush();
 
-        $this->publisher->publish($payload->topics, [
+        $this->publisher->publish($this->resolveTopics($payload->entity), [
             'type' => 'edit',
             'id'   => $payload->id,
         ]);
@@ -101,6 +103,19 @@ final class EditFormService
     private function identifierFields(MutationContext $context, string $entityClass): array
     {
         return $context->manager->getClassMetadata($entityClass)->getIdentifierFieldNames();
+    }
+
+    /**
+     * Resolves the authoritative Mercure topics for the target entity server-side.
+     *
+     * Topics are never taken from the client request: they are derived from the
+     * entity configuration through the same resolver used by the render path.
+     *
+     * @return string[]
+     */
+    private function resolveTopics(string $entityClass): array
+    {
+        return $this->mercureConfigResolver?->resolveMercureConfig($entityClass)?->topics ?? [];
     }
 
     private function createRenderRequest(
