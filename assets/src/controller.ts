@@ -282,6 +282,7 @@ export default class extends Controller {
                     const response = await deleteEntity({
                         entity,
                         id,
+                        dataTableClass: payload.dataTableClass ?? null,
                     })
 
                     if (response.ok) {
@@ -369,6 +370,7 @@ export default class extends Controller {
                     entity,
                     newValue: target.checked,
                     method,
+                    dataTableClass: payload.dataTableClass ?? null,
                 })
 
                 if (!response.ok) {

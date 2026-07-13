@@ -217,6 +217,7 @@ class default_1 extends Controller {
                 const response = await deleteEntity({
                     entity,
                     id,
+                    dataTableClass: payload.dataTableClass ?? null,
                 });
                 if (response.ok) {
                     this.table?.ajax?.reload(null, false);
@@ -287,6 +288,7 @@ class default_1 extends Controller {
                     entity,
                     newValue: target.checked,
                     method,
+                    dataTableClass: payload.dataTableClass ?? null,
                 });
                 if (!response.ok) {
                     target.checked = previousState;
