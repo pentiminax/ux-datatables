@@ -16,8 +16,7 @@ use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
-use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -139,13 +138,10 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             'SomeDataTable',
         );
 
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
-        $resolver->method('resolveMercureConfig')
-            ->with(AjaxEditFormSubmitControllerFixture::class)
-            ->willReturn(new MercureConfig(
-                topics: ['/server/topic/42'],
-                hubUrl: 'https://hub.example/.well-known/mercure',
-            ));
+        $resolver = $this->createMock(MercureTopicResolverInterface::class);
+        $resolver->method('resolve')
+            ->with(AjaxEditFormSubmitControllerFixture::class, 'SomeDataTable')
+            ->willReturn(['/server/topic/42']);
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
             new EntityLocator($registry),
@@ -189,10 +185,10 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             'SomeDataTable',
         );
 
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
-        $resolver->method('resolveMercureConfig')
-            ->with(AjaxEditFormSubmitControllerFixture::class)
-            ->willReturn(null);
+        $resolver = $this->createMock(MercureTopicResolverInterface::class);
+        $resolver->method('resolve')
+            ->with(AjaxEditFormSubmitControllerFixture::class, 'SomeDataTable')
+            ->willReturn([]);
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
             new EntityLocator($registry),

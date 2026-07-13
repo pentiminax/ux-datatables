@@ -25,6 +25,7 @@ use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
@@ -112,7 +113,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('property_accessor'))
         ->arg(2, service(MercurePublisherInterface::class))
-        ->arg(3, service(MercureConfigResolverInterface::class)->nullOnInvalid())
+        ->arg(3, service(MercureTopicResolverInterface::class)->nullOnInvalid())
         ->private();
 
     $services->set('datatables.event_listener.mutation_exception', MutationExceptionListener::class)

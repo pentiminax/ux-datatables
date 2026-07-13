@@ -9,9 +9,8 @@ use Doctrine\ORM\EntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
-use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolverInterface;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -191,12 +190,12 @@ final class EntityMutatorTest extends TestCase
     /**
      * @param string[] $topics
      */
-    private function resolverReturning(array $topics): MercureConfigResolverInterface
+    private function resolverReturning(array $topics): MercureTopicResolverInterface
     {
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
-        $resolver->method('resolveMercureConfig')
-            ->with(EntityMutatorFixture::class)
-            ->willReturn(new MercureConfig(topics: $topics, hubUrl: 'https://hub.example/.well-known/mercure'));
+        $resolver = $this->createMock(MercureTopicResolverInterface::class);
+        $resolver->method('resolve')
+            ->with(EntityMutatorFixture::class, null)
+            ->willReturn($topics);
 
         return $resolver;
     }

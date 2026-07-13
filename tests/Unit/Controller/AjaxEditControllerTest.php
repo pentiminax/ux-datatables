@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
@@ -86,6 +87,42 @@ final class AjaxEditControllerTest extends TestCase
             field: 'isEmailAuthEnabled',
             id: 799,
             newValue: false,
+        ));
+    }
+
+    #[Test]
+    public function it_forwards_the_data_table_class_to_the_topic_resolver(): void
+    {
+        $entity = new ToggleBooleanEntityFixture();
+
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
+
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->method('find')->with(799)->willReturn($entity);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('getRepository')->with(ToggleBooleanEntityFixture::class)->willReturn($repository);
+        $manager->expects($this->once())->method('flush');
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($manager);
+
+        $resolver = $this->createMock(MercureTopicResolverInterface::class);
+        $resolver->expects($this->once())
+            ->method('resolve')
+            ->with(ToggleBooleanEntityFixture::class, 'SomeDataTable')
+            ->willReturn([]);
+
+        $mutator    = new EntityMutator(new EntityLocator($registry), $accessor, new NullMercurePublisher(), $resolver);
+        $controller = new AjaxEditController($mutator);
+
+        $controller(new AjaxEditRequestDto(
+            entity: ToggleBooleanEntityFixture::class,
+            field: 'isEmailAuthEnabled',
+            id: 799,
+            newValue: false,
+            dataTableClass: 'SomeDataTable',
         ));
     }
 

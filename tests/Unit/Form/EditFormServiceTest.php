@@ -17,8 +17,7 @@ use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalRenderRequest;
-use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -395,12 +394,12 @@ final class EditFormServiceTest extends TestCase
     /**
      * @param string[] $topics
      */
-    private function resolverReturning(array $topics): MercureConfigResolverInterface
+    private function resolverReturning(array $topics): MercureTopicResolverInterface
     {
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
-        $resolver->method('resolveMercureConfig')
-            ->with(EditFormServiceFixture::class)
-            ->willReturn(new MercureConfig(topics: $topics, hubUrl: 'https://hub.example/.well-known/mercure'));
+        $resolver = $this->createMock(MercureTopicResolverInterface::class);
+        $resolver->method('resolve')
+            ->with(EditFormServiceFixture::class, EditFormServiceFixtureDataTable::class)
+            ->willReturn($topics);
 
         return $resolver;
     }

@@ -172,6 +172,13 @@ abstract class AbstractDataTable
         return $this->asDataTable?->entityClass;
     }
 
+    final public function getAsDataTableAttribute(): ?AsDataTable
+    {
+        $this->initialize();
+
+        return $this->asDataTable;
+    }
+
     /**
      * @return iterable<ColumnInterface>
      */

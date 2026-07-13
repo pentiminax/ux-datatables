@@ -10,9 +10,8 @@ use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Dto\AjaxDeleteRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
-use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
@@ -48,13 +47,10 @@ final class AjaxDeleteControllerTest extends TestCase
             ->method('publish')
             ->with(['/server/deletable-entity-fixtures/{id}'], ['type' => 'delete', 'id' => 12]);
 
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
-        $resolver->method('resolveMercureConfig')
-            ->with(DeletableEntityFixture::class)
-            ->willReturn(new MercureConfig(
-                topics: ['/server/deletable-entity-fixtures/{id}'],
-                hubUrl: 'https://hub.example/.well-known/mercure',
-            ));
+        $resolver = $this->createMock(MercureTopicResolverInterface::class);
+        $resolver->method('resolve')
+            ->with(DeletableEntityFixture::class, null)
+            ->willReturn(['/server/deletable-entity-fixtures/{id}']);
 
         $mutator    = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, $resolver);
         $controller = new AjaxDeleteController($mutator);
@@ -67,6 +63,38 @@ final class AjaxDeleteControllerTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
         $this->assertTrue($payload['success']);
+    }
+
+    #[Test]
+    public function it_forwards_the_data_table_class_to_the_topic_resolver(): void
+    {
+        $entity = new DeletableEntityFixture();
+
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->method('find')->with(12)->willReturn($entity);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('getRepository')->with(DeletableEntityFixture::class)->willReturn($repository);
+        $manager->expects($this->once())->method('remove')->with($entity);
+        $manager->expects($this->once())->method('flush');
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->with(DeletableEntityFixture::class)->willReturn($manager);
+
+        $resolver = $this->createMock(MercureTopicResolverInterface::class);
+        $resolver->expects($this->once())
+            ->method('resolve')
+            ->with(DeletableEntityFixture::class, 'SomeDataTable')
+            ->willReturn([]);
+
+        $mutator    = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher(), $resolver);
+        $controller = new AjaxDeleteController($mutator);
+
+        $controller(new AjaxDeleteRequestDto(
+            entity: DeletableEntityFixture::class,
+            id: 12,
+            dataTableClass: 'SomeDataTable',
+        ));
     }
 
     #[Test]
