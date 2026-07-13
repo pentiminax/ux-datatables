@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
@@ -19,12 +20,18 @@ use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalRenderRequest;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
@@ -323,6 +330,128 @@ final class EditFormServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_publishes_the_datatables_own_mercure_topics_instead_of_the_bare_resolver_ones(): void
+    {
+        $entityManager = $this->createEntityManagerWithEntity(new EditFormServiceFixture(), 42);
+        $entityManager->expects($this->once())->method('flush');
+
+        $registry = $this->createRegistry($entityManager);
+
+        $form = $this->createMock(FormInterface::class);
+        $form->expects($this->once())->method('submit')->with(['name' => 'Alice']);
+        $form->expects($this->once())->method('isValid')->willReturn(true);
+        $form->expects($this->never())->method('createView');
+
+        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver(
+            form: $form,
+            entity: new EditFormServiceFixture(),
+            renderedHtml: '',
+            expectRenderRequest: false,
+            dataTableClass: EditFormServiceMercureFixtureDataTable::class,
+        );
+
+        $hub = $this->createMock(HubInterface::class);
+        $hub->expects($this->once())
+            ->method('publish')
+            ->with($this->callback(function (Update $update) {
+                return ['/datatable-instance/topic'] === $update->getTopics()
+                    && '{"type":"edit","id":42}'     === $update->getData();
+            }))
+            ->willReturn('urn:uuid:edit');
+
+        // The bare entity-class resolver would publish a *different* topic;
+        // it must not be consulted once the DataTable instance resolves.
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver->expects($this->never())->method('resolveMercureConfig');
+
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
+
+        $dataTable = new EditFormServiceMercureFixtureDataTable($hubUrlResolver);
+
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with(EditFormServiceMercureFixtureDataTable::class)->willReturn(true);
+        $dataTables->method('get')->with(EditFormServiceMercureFixtureDataTable::class)->willReturn($dataTable);
+
+        $service = new EditFormService(
+            new EntityLocator($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+            new MercureUpdatePublisher($hub),
+            $resolver,
+            $dataTables,
+        );
+
+        $result = $service->handleSubmit(new AjaxEditFormRequestDto(
+            entity: EditFormServiceFixture::class,
+            id: 42,
+            formData: ['name' => 'Alice'],
+            dataTableClass: EditFormServiceMercureFixtureDataTable::class,
+        ));
+
+        $this->assertTrue($result->success);
+        $this->assertNull($result->html);
+        $this->assertSame('', $result->message);
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_bare_resolver_when_the_datatable_class_is_not_registered(): void
+    {
+        $entityManager = $this->createEntityManagerWithEntity(new EditFormServiceFixture(), 42);
+        $entityManager->expects($this->once())->method('flush');
+
+        $registry = $this->createRegistry($entityManager);
+
+        $form = $this->createMock(FormInterface::class);
+        $form->expects($this->once())->method('submit')->with(['name' => 'Alice']);
+        $form->expects($this->once())->method('isValid')->willReturn(true);
+        $form->expects($this->never())->method('createView');
+
+        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver(
+            form: $form,
+            entity: new EditFormServiceFixture(),
+            renderedHtml: '',
+            expectRenderRequest: false,
+            dataTableClass: EditFormServiceFixtureDataTable::class,
+        );
+
+        $hub = $this->createMock(HubInterface::class);
+        $hub->expects($this->once())
+            ->method('publish')
+            ->with($this->callback(function (Update $update) {
+                return ['/topic/42']             === $update->getTopics()
+                    && '{"type":"edit","id":42}' === $update->getData();
+            }))
+            ->willReturn('urn:uuid:edit');
+
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with(EditFormServiceFixtureDataTable::class)->willReturn(false);
+        $dataTables->expects($this->never())->method('get');
+
+        $service = new EditFormService(
+            new EntityLocator($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+            new MercureUpdatePublisher($hub),
+            $this->resolverReturning(['/topic/42']),
+            $dataTables,
+        );
+
+        $result = $service->handleSubmit(new AjaxEditFormRequestDto(
+            entity: EditFormServiceFixture::class,
+            id: 42,
+            formData: ['name' => 'Alice'],
+            dataTableClass: EditFormServiceFixtureDataTable::class,
+        ));
+
+        $this->assertTrue($result->success);
+        $this->assertNull($result->html);
+        $this->assertSame('', $result->message);
+    }
+
+    #[Test]
     public function it_returns_bad_request_when_data_table_class_is_missing_on_view(): void
     {
         $registry = $this->createMock(ManagerRegistry::class);
@@ -502,4 +631,31 @@ final class EditFormServiceFixture
 
 final class EditFormServiceFixtureDataTable
 {
+}
+
+#[AsDataTable(entityClass: EditFormServiceFixture::class, mercure: true)]
+final class EditFormServiceMercureFixtureDataTable extends AbstractDataTable
+{
+    public function __construct(
+        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+    ) {
+        parent::__construct();
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            renderingPreparer: new RenderingPreparer(
+                mercureHubUrlResolver: $this->mercureHubUrlResolver,
+            )
+        ));
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->serverSide()
+            ->mercure(topics: ['/datatable-instance/topic']);
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
 }

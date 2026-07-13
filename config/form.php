@@ -50,6 +50,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(3, service('datatables.form.edit_modal_template_resolver'))
         ->arg(4, service(MercurePublisherInterface::class))
         ->arg(5, service(MercureConfigResolverInterface::class)->nullOnInvalid())
+        ->arg(6, tagged_locator('datatables.data_table'))
         ->private();
 
     $services->set('datatables.controller.ajax_edit_form', AjaxEditFormController::class)
