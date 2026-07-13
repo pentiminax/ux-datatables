@@ -94,3 +94,117 @@ php bin/console debug:firewall
 Then, as an unauthenticated (or under-privileged) user, request
 `/datatables/ajax/data` directly and confirm the firewall responds with a redirect to login or a
 `403`/`401` instead of returning table data.
+
+## Restricting mutations with a Voter
+
+`access_control` protects the *route* — it decides who may call `/datatables/ajax/*` at all. It does
+not know anything about the specific row a delete or edit request targets. To close that gap, the
+bundle's `EntityMutator` calls into Symfony's authorization layer before mutating anything:
+
+- `delete()` checks `isGranted('DELETE', $entity)` before removing the entity.
+- `setProperty()` (the inline boolean toggle) checks `isGranted('EDIT', $entity)` before writing the
+  field.
+
+If either check is denied, the mutation is rejected and the Ajax endpoint responds with `403`
+instead of touching the database.
+
+<Aside type="caution" title="'DELETE' and 'EDIT' are not built-in Symfony attributes">
+  Unlike `ROLE_ADMIN` or `IS_AUTHENTICATED_FULLY`, the strings `'DELETE'` and `'EDIT'` are attributes
+  defined by this bundle, not by the Symfony Security component. Symfony's access decision manager
+  denies **any** attribute it has no voter for. That means, until you register a voter that supports
+  `DELETE` and `EDIT` for your entity, these checks deny every mutation for every user — including
+  legitimate ones.
+</Aside>
+
+### Why nothing gets denied without a security firewall
+
+The check is performed through a small internal wrapper, `PermissionChecker`, which only grants
+everything automatically when **no security stack is configured at all** — for example in the CLI,
+in a unit test, or in an application that never installed `symfony/security-bundle`. As soon as a
+real `AuthorizationCheckerInterface` is available (i.e. your application has a firewall), the
+wrapper defers entirely to Symfony's normal voting process. With a firewall active but no voter
+registered for `DELETE`/`EDIT` on your entity, access is denied by default — the safe posture, but
+one that also blocks the people who *should* be allowed to edit or delete. Registering a voter is
+what makes the feature usable again for those users, not just a way to lock out attackers.
+
+### Writing a Voter
+
+Implement a [Symfony Voter](https://symfony.com/doc/current/security/voters.html) that supports the
+`EDIT` and `DELETE` attributes for each entity exposed through an editable or deletable
+[Action Column](../../columns/action-column/). For example, an entity where only its owner or an
+administrator may edit or delete it:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Security\Voter;
+
+use App\Entity\Product;
+use App\Entity\User;
+use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+
+/**
+ * @extends Voter<string, Product>
+ */
+final class ProductVoter extends Voter
+{
+    public const EDIT = 'EDIT';
+    public const DELETE = 'DELETE';
+
+    public function __construct(
+        private readonly Security $security,
+    ) {
+    }
+
+    protected function supports(string $attribute, mixed $subject): bool
+    {
+        return \in_array($attribute, [self::EDIT, self::DELETE], true)
+            && $subject instanceof Product;
+    }
+
+    /**
+     * @param Product $subject
+     */
+    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
+    {
+        $user = $token->getUser();
+
+        if (!$user instanceof User) {
+            return false;
+        }
+
+        if ($this->security->isGranted('ROLE_ADMIN')) {
+            return true;
+        }
+
+        return match ($attribute) {
+            self::EDIT, self::DELETE => $subject->getOwner() === $user,
+            default => false,
+        };
+    }
+}
+```
+
+<Aside type="tip">
+  With Symfony's default `autoconfigure: true`, this voter is picked up automatically as soon as it
+  is registered in the container — there is no manual service tagging to add. Just place the class
+  under `src/Security/Voter/` (or wherever your `services.yaml` autowires from).
+</Aside>
+
+### Voters and `access_control` are complementary, not alternatives
+
+Keep both layers in place:
+
+- **`access_control`** (see above) gates the Ajax *routes* — it is your coarse-grained, per-request
+  perimeter.
+- **Voters** gate individual *entities* — they close [insecure direct object reference
+  (IDOR)](https://owasp.org/www-community/attacks/Insecure_Direct_Object_Reference) style issues,
+  where an authenticated, otherwise-authorized user tries to edit or delete a row they don't own by
+  guessing or tampering with its identifier.
+
+A firewall rule alone would let any authenticated admin-area user delete *any* row reachable through
+the table; the voter is what scopes that down to the rows they're actually allowed to touch.
