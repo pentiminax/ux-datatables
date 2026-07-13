@@ -48,7 +48,7 @@ final class EntityMutatorTest extends TestCase
             new EntityLocator($this->registry($manager)),
             $this->createMock(PropertyAccessorInterface::class),
             $publisher,
-            $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
+            mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
         );
 
         $mutator->delete(EntityMutatorFixture::class, 5);
@@ -72,7 +72,7 @@ final class EntityMutatorTest extends TestCase
             new EntityLocator($this->registry($manager)),
             $this->createMock(PropertyAccessorInterface::class),
             $publisher,
-            $this->resolverReturning(['/server/only']),
+            mercureConfigResolver: $this->resolverReturning(['/server/only']),
         );
 
         // The delete() signature no longer accepts client topics: the only
@@ -125,7 +125,7 @@ final class EntityMutatorTest extends TestCase
             new EntityLocator($this->registry($manager)),
             $accessor,
             $publisher,
-            $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
+            mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
         );
 
         $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
