@@ -24,9 +24,34 @@ final class Actions implements \JsonSerializable
 
     public function add(Action $action): self
     {
-        $this->actions[$action->getName()] = $action;
+        $name = $action->getName();
+
+        if ('' === trim($name)) {
+            throw new \InvalidArgumentException('Action name must not be empty.');
+        }
+
+        if (ActionType::Custom === $action->getType() && $this->isReservedName($name)) {
+            throw new \InvalidArgumentException(\sprintf('Custom action name "%s" is reserved.', $name));
+        }
+
+        if (isset($this->actions[$name])) {
+            throw new \InvalidArgumentException(\sprintf('Action name "%s" is already used.', $name));
+        }
+
+        $this->actions[$name] = $action;
 
         return $this;
+    }
+
+    private function isReservedName(string $name): bool
+    {
+        foreach (ActionType::cases() as $type) {
+            if (0 === strcasecmp($name, $type->value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function remove(ActionType $type): self

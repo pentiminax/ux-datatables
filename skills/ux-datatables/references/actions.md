@@ -27,8 +27,11 @@ public function configureActions(Actions $actions): Actions
 | `Action::edit($label='Edit', $class='btn btn-warning')` | Edit | warning | opens the inline edit modal (zero-config with `symfony/form`, no Bootstrap required) |
 | `Action::delete($label='Delete', $class='btn btn-danger')` | Delete | danger | deletes the row via Ajax |
 | `Action::detail($label='Detail', $class='btn btn-primary')` | Detail | primary | links to a detail page, or expands a collapsible child row (see below) |
+| `Action::new($name, $label='', $class='')` | — | — | renders a custom link action |
 
-Only one action per type is kept (`Actions::add()` keys by type).
+Every action name must be non-empty and unique within the collection. Custom names cannot use the
+reserved native names `DELETE`, `DETAIL`, `EDIT`, or `CUSTOM` (case-insensitive). Invalid or duplicate
+names throw `InvalidArgumentException` while configuring the table.
 
 ## Fluent configuration
 
@@ -58,6 +61,10 @@ Action::detail()
 - **Per-row** (with resolver) — evaluated per row; the resolver receives the raw row and returns the voter subject: `->permission('EDIT', fn ($row) => $row)`.
 
 Same model applies to columns (`AbstractColumn::permission()`), but columns only support the static form.
+
+Delete actions and inline boolean toggles require an active session for CSRF protection. In a
+stateless or session-less rendering context, the payload exposes `mutationsEnabled: false` and the
+corresponding controls are disabled.
 
 ## Collapsible detail rows
 

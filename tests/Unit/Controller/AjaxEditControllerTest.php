@@ -18,6 +18,7 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -249,7 +250,7 @@ final class AjaxEditControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($manager);
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $accessor, new NullMercurePublisher());
+        $mutator = new EntityMutator(new EntityLocator($registry), $accessor, new NullMercurePublisher(), new PermissionChecker());
 
         if (null === $csrfTokenManager) {
             $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);

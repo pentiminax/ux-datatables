@@ -18,7 +18,7 @@ final class EntityMutator
         private readonly EntityLocator $locator,
         private readonly PropertyAccessorInterface $propertyAccessor,
         private readonly MercurePublisherInterface $publisher,
-        private readonly PermissionChecker $permissionChecker = new PermissionChecker(),
+        private readonly PermissionChecker $permissionChecker,
     ) {
     }
 

@@ -90,7 +90,7 @@ final class ActionRowDataResolver
             $data['url'] = $url;
         }
 
-        if (!\in_array($action->getType(), [ActionType::Detail, ActionType::Custom], true) || $action->isCollapsible()) {
+        if ($this->shouldExposeRowId($action)) {
             $id = $this->resolveId($sourceRow, $action->getIdField());
 
             if (null !== $id) {
@@ -99,6 +99,12 @@ final class ActionRowDataResolver
         }
 
         return $data;
+    }
+
+    private function shouldExposeRowId(Action $action): bool
+    {
+        return $action->isCollapsible()
+            || !\in_array($action->getType(), [ActionType::Detail, ActionType::Custom], true);
     }
 
     private function resolveId(mixed $sourceRow, string $idField): mixed

@@ -21,7 +21,10 @@ describe('booleanColumnRenderer', () => {
 
     it('does not override an existing column type', () => {
       const renderer = createBooleanColumnRenderer(TOGGLE_URL)
-      const column: Record<string, any> = { customOptions: { renderAsSwitch: true }, type: 'string' }
+      const column: Record<string, any> = {
+        customOptions: { renderAsSwitch: true },
+        type: 'string',
+      }
       renderer.configure(column)
       expect(column.type).toBe('string')
     })
@@ -93,6 +96,19 @@ describe('booleanColumnRenderer', () => {
     it('renders a disabled switch when entity class is empty', () => {
       const renderer = createBooleanColumnRenderer(TOGGLE_URL)
       const column: Record<string, any> = { customOptions: { renderAsSwitch: true } }
+      renderer.configure(column)
+      const html = column.render(true, 'display', { id: 1 })
+      expect(html).toContain('disabled')
+    })
+
+    it('renders a disabled switch when mutations are unavailable', () => {
+      const renderer = createBooleanColumnRenderer(TOGGLE_URL, false)
+      const column: Record<string, any> = {
+        customOptions: {
+          renderAsSwitch: true,
+          entityClass: 'App\\Entity\\User',
+        },
+      }
       renderer.configure(column)
       const html = column.render(true, 'display', { id: 1 })
       expect(html).toContain('disabled')
