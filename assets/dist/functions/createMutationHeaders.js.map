@@ -1,0 +1,1 @@
+{"version":3,"file":"createMutationHeaders.js","sourceRoot":"","sources":["../../src/functions/createMutationHeaders.ts"],"names":[],"mappings":"AAAA,MAAM,UAAU,qBAAqB,CAAC,SAAkB;IACpD,MAAM,OAAO,GAA2B;QACpC,cAAc,EAAE,kBAAkB;QAClC,kBAAkB,EAAE,gBAAgB;KACvC,CAAA;IAED,IAAI,SAAS,EAAE,CAAC;QACZ,OAAO,CAAC,cAAc,CAAC,GAAG,SAAS,CAAA;IACvC,CAAC;IAED,OAAO,OAAO,CAAA;AAClB,CAAC"}
