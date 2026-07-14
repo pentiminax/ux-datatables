@@ -115,6 +115,10 @@ security:
         - { path: ^/datatables/ajax, roles: ROLE_ADMIN }
 ```
 
+Delete actions and inline boolean toggles additionally require an active session for CSRF
+protection. Without one, their controls are rendered disabled (`mutationsEnabled: false` in the
+table payload).
+
 See [Securing Ajax Routes](https://pentiminax.github.io/ux-datatables/getting-started/security/) for
 details.
 

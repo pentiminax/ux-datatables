@@ -90,14 +90,15 @@ class ActionsTest extends TestCase
         $this->assertSame('Ops', $actions->getColumnLabel());
     }
 
-    public function test_add_replaces_action_of_same_type(): void
+    public function test_add_rejects_a_duplicate_native_action_name(): void
     {
         $actions = new Actions();
         $actions->add(Action::delete()->label('First'));
-        $actions->add(Action::delete()->label('Second'));
 
-        $this->assertSame(1, $actions->count());
-        $this->assertSame('Second', $actions->getActions()[0]->jsonSerialize()['label']);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Action name "DELETE" is already used.');
+
+        $actions->add(Action::delete()->label('Second'));
     }
 
     public function test_custom_actions_with_distinct_names_coexist(): void
@@ -112,14 +113,31 @@ class ActionsTest extends TestCase
         $this->assertSame(['View', 'Download'], $labels);
     }
 
-    public function test_add_replaces_custom_action_with_same_name(): void
+    public function test_add_rejects_a_duplicate_custom_action_name(): void
     {
         $actions = new Actions();
         $actions->add(Action::new('view', 'First'));
-        $actions->add(Action::new('view', 'Second'));
 
-        $this->assertSame(1, $actions->count());
-        $this->assertSame('Second', $actions->getActions()[0]->jsonSerialize()['label']);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Action name "view" is already used.');
+
+        $actions->add(Action::new('view', 'Second'));
+    }
+
+    public function test_add_rejects_an_empty_custom_action_name(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Action name must not be empty.');
+
+        (new Actions())->add(Action::new('   '));
+    }
+
+    public function test_add_rejects_custom_names_reserved_for_native_actions(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Custom action name "delete" is reserved.');
+
+        (new Actions())->add(Action::new('delete'));
     }
 
     public function test_filter_static_permissions_removes_denied_actions(): void

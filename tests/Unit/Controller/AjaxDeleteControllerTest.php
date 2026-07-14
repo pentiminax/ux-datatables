@@ -16,6 +16,7 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -51,7 +52,7 @@ final class AjaxDeleteControllerTest extends TestCase
             ->method('publish')
             ->with(['/topic/12'], ['type' => 'delete', 'id' => 12]);
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher);
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, new PermissionChecker());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
@@ -88,7 +89,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->with(DeletableEntityFixture::class)->willReturn($manager);
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher());
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher(), new PermissionChecker());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')
@@ -115,7 +116,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->expects($this->never())->method('getManagerForClass');
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher());
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher(), new PermissionChecker());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(false);
@@ -139,7 +140,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->expects($this->never())->method('getManagerForClass');
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher());
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher(), new PermissionChecker());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->expects($this->never())->method('isTokenValid');
@@ -164,7 +165,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($manager);
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher());
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher(), new PermissionChecker());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
