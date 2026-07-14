@@ -437,7 +437,7 @@ export default class extends Controller {
     }
 
     private areMutationsEnabled(payload: Record<string, any>): boolean {
-        return false !== payload?.mutationsEnabled
+        return payload?.mutationsEnabled === true
     }
 
     private getMercureTopics(payload: Record<string, any>): string[] {
