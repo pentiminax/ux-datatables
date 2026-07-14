@@ -50,9 +50,6 @@ final class Action implements \JsonSerializable
         return new self(ActionType::Edit, ActionType::Edit->value, $label, $className);
     }
 
-    /**
-     * Create a custom action rendered as a link, identified by a unique name.
-     */
     public static function new(string $name, string $label = '', string $className = ''): self
     {
         return new self(ActionType::Custom, $name, $label, $className);

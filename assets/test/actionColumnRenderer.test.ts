@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { actionColumnRenderer } from '../src/columnRenderers/actionColumnRenderer'
+import {
+  actionColumnRenderer,
+  createActionColumnRenderer,
+} from '../src/columnRenderers/actionColumnRenderer'
 
 describe('actionColumnRenderer', () => {
   it('matches columns with actions array', () => {
@@ -35,6 +38,28 @@ describe('actionColumnRenderer', () => {
       expect(html).toContain('data-id="42"')
       expect(html).toContain('Delete')
       expect(html).toContain('btn btn-danger')
+    })
+
+    it('disables delete buttons when mutations are unavailable', () => {
+      const renderer = createActionColumnRenderer(false)
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DELETE',
+            name: 'DELETE',
+            label: 'Delete',
+            className: 'btn btn-danger',
+            entityClass: 'App\\Entity\\User',
+            idField: 'id',
+          },
+        ],
+      }
+
+      renderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 42 })
+      expect(html).toContain('disabled')
+      expect(html).toContain('aria-disabled="true"')
     })
 
     it('returns empty string for non-display types', () => {

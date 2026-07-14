@@ -97,6 +97,15 @@ Then, as an unauthenticated (or under-privileged) user, request
 
 ## Restricting mutations with a Voter
 
+Delete actions and inline boolean toggles also require an active session so the bundle can create
+and validate a CSRF token. When rendering happens without a session (for example behind a stateless
+firewall), the table payload exposes `mutationsEnabled: false`; delete buttons and boolean switches
+are rendered disabled instead of sending requests that can only fail with `403`.
+
+Use these mutation controls only on session-backed pages. A stateless application should provide
+its own authenticated mutation endpoints and controls rather than relying on the bundle's
+session-backed delete and toggle endpoints.
+
 `access_control` protects the *route* — it decides who may call `/datatables/ajax/*` at all. It does
 not know anything about the specific row a delete or edit request targets. To close that gap, the
 bundle's `EntityMutator` calls into Symfony's authorization layer before mutating anything:
