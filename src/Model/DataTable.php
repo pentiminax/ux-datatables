@@ -9,10 +9,10 @@ use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicFactory;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
-use Symfony\Component\String\Inflector\EnglishInflector;
 
 class DataTable
 {
@@ -378,7 +378,7 @@ class DataTable
         ?int $debounceMs = null,
     ): static {
         $this->mercureConfig = new MercureConfig(
-            topics: [] !== $topics ? $topics : [$this->buildFallbackMercureTopic()],
+            topics: [] !== $topics ? $topics : [MercureTopicFactory::fallbackTopic($this->id)],
             withCredentials: $withCredentials,
             debounceMs: $debounceMs,
         );
@@ -709,17 +709,5 @@ class DataTable
                 }
             }
         }
-    }
-
-    private function buildFallbackMercureTopic(): string
-    {
-        $slug = strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $this->id));
-
-        return '/datatables/'.$this->pluralize($slug).'/{id}';
-    }
-
-    private function pluralize(string $value): string
-    {
-        return (new EnglishInflector())->pluralize($value)[0];
     }
 }
