@@ -68,6 +68,26 @@ final class QueryFilterPipelineTest extends TestCase
     }
 
     #[Test]
+    public function it_normalizes_name_keyed_columns_to_a_list(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+
+        // Name-keyed columns (as produced after permission filtering) must not
+        // break the intent factory, which requires a positional list.
+        $columns = ['name' => TextColumn::new('name', 'Name')->setField('name')];
+
+        $result = $this->pipeline()->apply(
+            qb: $qb,
+            request: $this->request(),
+            columns: $columns,
+            filters: null,
+            registry: new DefaultSearchStrategyRegistry(),
+        );
+
+        $this->assertSame($qb, $result);
+    }
+
+    #[Test]
     public function it_is_a_no_op_on_configured_filters_when_none_are_declared(): void
     {
         $qb = $this->createMock(QueryBuilder::class);

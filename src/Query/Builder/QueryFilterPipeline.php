@@ -32,7 +32,8 @@ final class QueryFilterPipeline
     }
 
     /**
-     * @param list<ColumnInterface> $columns Configured, permission-filtered columns in display order
+     * @param array<ColumnInterface> $columns Configured, permission-filtered columns in display order;
+     *                                        may be name-keyed — normalized to a list internally
      */
     public function apply(
         QueryBuilder $qb,
