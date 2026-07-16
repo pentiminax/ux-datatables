@@ -319,7 +319,7 @@ abstract class AbstractDataTable
         return $this->infrastructure()->queryFilterPipeline()->apply(
             qb: $qb,
             request: $request,
-            columns: array_values($this->columns),
+            columns: $this->columns,
             filters: $this->filters ?? null,
             registry: $this->createSearchStrategyRegistry(),
         );
