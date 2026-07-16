@@ -17,7 +17,6 @@ class DefaultSearchStrategyRegistry extends SearchStrategyRegistry
             new ComparisonSearchStrategy(ColumnControlLogic::Equal),
             new ComparisonSearchStrategy(ColumnControlLogic::Greater),
             new ComparisonSearchStrategy(ColumnControlLogic::GreaterOrEqual),
-            new InListSearchStrategy(),
             new ComparisonSearchStrategy(ColumnControlLogic::Less),
             new ComparisonSearchStrategy(ColumnControlLogic::LessOrEqual),
             new ComparisonSearchStrategy(ColumnControlLogic::NotContains),
