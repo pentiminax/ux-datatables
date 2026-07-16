@@ -15,8 +15,6 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
-use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
@@ -318,43 +316,13 @@ abstract class AbstractDataTable
     {
         $qb = $this->customizeQueryBuilder($qb, $request);
 
-        $intent = $this->infrastructure()->queryIntentFactory()->create($request, array_values($this->columns));
-
-        $columnsByName = [];
-        foreach ($this->columns as $column) {
-            $columnsByName[$column->getName()] = $column;
-        }
-
-        $context = new QueryFilterContext(
-            intent: $intent,
-            columns: $columnsByName,
-            alias: 'e'
+        return $this->infrastructure()->queryFilterPipeline()->apply(
+            qb: $qb,
+            request: $request,
+            columns: $this->columns,
+            filters: $this->filters ?? null,
+            registry: $this->createSearchStrategyRegistry(),
         );
-
-        $registry = $this->createSearchStrategyRegistry();
-
-        $qb = QueryFilterChain::createDefault($registry)->apply($qb, $context);
-
-        $this->applyConfiguredFilters($qb, $request);
-
-        return $qb;
-    }
-
-    private function applyConfiguredFilters(QueryBuilder $qb, DataTableRequest $request): void
-    {
-        if (!isset($this->filters) || $this->filters->isEmpty()) {
-            return;
-        }
-
-        foreach ($this->filters->getFilters() as $filter) {
-            $value = $request->filters[$filter->getName()] ?? null;
-
-            if (null === $value || '' === $value || [] === $value) {
-                continue;
-            }
-
-            $filter->apply($qb, $value, 'e');
-        }
     }
 
     protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder

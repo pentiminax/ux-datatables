@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Mercure;
 
-use Symfony\Component\String\Inflector\EnglishInflector;
-
 final class MercureConfigResolver implements MercureConfigResolverInterface
 {
     public function __construct(
@@ -35,10 +33,7 @@ final class MercureConfigResolver implements MercureConfigResolverInterface
 
     private function buildFallbackTopic(string $entityClass): string
     {
-        $resourceName = $this->extractShortName($entityClass);
-        $slug         = strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $resourceName));
-
-        return '/datatables/'.$this->pluralize($slug).'/{id}';
+        return MercureTopicFactory::fallbackTopic($this->extractShortName($entityClass));
     }
 
     private function extractShortName(string $entityClass): string
@@ -46,10 +41,5 @@ final class MercureConfigResolver implements MercureConfigResolverInterface
         $parts = explode('\\', $entityClass);
 
         return end($parts) ?: $entityClass;
-    }
-
-    private function pluralize(string $value): string
-    {
-        return (new EnglishInflector())->pluralize($value)[0];
     }
 }
