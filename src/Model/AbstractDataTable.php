@@ -197,9 +197,7 @@ abstract class AbstractDataTable
             return null;
         }
 
-        return $this->infrastructure()
-            ->renderingPreparer()
-            ->resolveMercureConfig($this->table, $this->asDataTable);
+        return $this->infrastructure()->renderingPreparer()->resolveMercureConfig($this->table, $this->asDataTable);
     }
 
     final public function getEntityClass(): ?string
