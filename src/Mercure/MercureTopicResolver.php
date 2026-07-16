@@ -33,7 +33,17 @@ final class MercureTopicResolver
             $dataTable = $dataTables->get($dataTableClass);
 
             if ($dataTable instanceof AbstractDataTable && $dataTable->getEntityClass() === $entityClass) {
-                $topics = $dataTable->getDataTable()->getMercureConfig()?->topics;
+                try {
+                    // Resolve the topics the render path serialized to the browser
+                    // WITHOUT hydrating client-side data: no data-provider / DB
+                    // query is triggered as a side effect of the mutation.
+                    $topics = $dataTable->resolveMercureConfigWithoutHydration()?->topics;
+                } catch (\Throwable) {
+                    // Topic resolution must never fail a mutation that has already
+                    // committed (e.g. an unresolvable Mercure hub URL throws a
+                    // LogicException). Fall through to the bare entity-class resolver.
+                    $topics = null;
+                }
 
                 if (null !== $topics) {
                     return $topics;
