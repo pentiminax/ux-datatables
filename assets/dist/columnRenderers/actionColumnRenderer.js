@@ -65,11 +65,13 @@ export function createActionColumnRenderer(mutationsEnabled = true) {
                         return `<a ${attrs.join(' ')}>${iconHtml}${escapedLabel}</a>`;
                     }
                     const attrs = [
+                        `type="button"`,
                         `class="${escapedClassName}"`,
                         `data-action-type="${escapedType}"`,
                         `data-entity="${escapedEntity}"`,
                         `data-id="${escapedId}"`,
                         ...serializeHtmlAttributes(action.htmlAttributes, new Set([
+                            'type',
                             'class',
                             'data-action-type',
                             'data-entity',
