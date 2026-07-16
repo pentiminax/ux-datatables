@@ -168,15 +168,16 @@ abstract class AbstractDataTable
 
     /**
      * Resolve the Mercure configuration exactly as the render path would
-     * serialize it to the browser, WITHOUT hydrating client-side data.
+     * serialize it to the browser, WITHOUT hydrating client-side data and
+     * WITHOUT mutating this container-shared instance.
      *
-     * Runs initialize() and the non-data-fetching rendering steps
-     * (prepareBeforeDataHydration + the Mercure resolution of
-     * prepareAfterDataHydration) but deliberately skips hydrateClientSideData()
-     * so resolving topics for a mutation never triggers a data-provider / DB
-     * query as a side effect. When the render path would embed static
-     * client-side data — which disables Mercure live updates — this returns
-     * null, mirroring RenderingPreparer::configureMercure().
+     * Delegates to the same pure RenderingPreparer::resolveMercureConfig() the
+     * render path uses, so published topics always match the ones the client
+     * subscribed to, but deliberately skips hydrateClientSideData() so resolving
+     * topics for a mutation never triggers a data-provider / DB query as a side
+     * effect. When the render path would embed static client-side data — which
+     * disables Mercure live updates — this returns null, mirroring
+     * RenderingPreparer::configureMercure().
      *
      * Callers that must not fail (e.g. after a committed mutation) should guard
      * against the LogicException that Mercure hub-URL resolution can throw.
@@ -187,9 +188,6 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
-        $renderingPreparer = $this->infrastructure()->renderingPreparer();
-        $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable);
-
         // A client-side table embeds its rows at render time, and
         // configureMercure() suppresses attribute/auto-resolved live updates once
         // inline data is present. Manual ->mercure() config is always serialized,
@@ -199,9 +197,9 @@ abstract class AbstractDataTable
             return null;
         }
 
-        $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable);
-
-        return $this->table->getMercureConfig();
+        return $this->infrastructure()
+            ->renderingPreparer()
+            ->resolveMercureConfig($this->table, $this->asDataTable);
     }
 
     final public function getEntityClass(): ?string

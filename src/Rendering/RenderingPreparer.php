@@ -186,41 +186,44 @@ final class RenderingPreparer
 
     private function configureMercure(DataTable $table, ?AsDataTable $asDataTable): void
     {
+        $config = $this->resolveMercureConfig($table, $asDataTable);
+
+        if (null !== $config) {
+            $table->setMercureConfig($config);
+        }
+    }
+
+    /**
+     * Resolve the Mercure configuration a table serializes to the browser,
+     * WITHOUT mutating the table.
+     *
+     * Single source of truth for the topic precedence — manual ->mercure() >
+     * explicit #[AsDataTable(mercure: [...])] > entity-class auto-resolver —
+     * so the server-side publish path can reuse it and always publish to the
+     * exact topics the client subscribed to. Returns null when the table
+     * exposes no live Mercure config.
+     */
+    public function resolveMercureConfig(DataTable $table, ?AsDataTable $asDataTable): ?MercureConfig
+    {
         $manualConfig = $table->getMercureConfig();
-
         if (null !== $manualConfig) {
-            $table->setMercureConfig(
-                $manualConfig->withHubUrl($this->resolveHubUrlOrThrow())
-            );
-
-            return;
+            return $manualConfig->withHubUrl($this->resolveHubUrlOrThrow());
         }
 
         if (null === $asDataTable || false === $asDataTable->mercure) {
-            return;
+            return null;
         }
 
         if (null !== $table->getOption('data') && null === $table->getOption('ajax')) {
-            return;
+            return null;
         }
 
         $explicitConfig = $this->createExplicitMercureConfig($asDataTable);
         if (null !== $explicitConfig) {
-            $table->setMercureConfig($explicitConfig);
-
-            return;
+            return $explicitConfig;
         }
 
-        if (null === $this->mercureResolver) {
-            return;
-        }
-
-        $mercureConfig = $this->mercureResolver->resolveMercureConfig($asDataTable->entityClass);
-        if (null === $mercureConfig) {
-            return;
-        }
-
-        $table->setMercureConfig($mercureConfig);
+        return $this->mercureResolver?->resolveMercureConfig($asDataTable->entityClass);
     }
 
     private function createExplicitMercureConfig(AsDataTable $asDataTable): ?MercureConfig

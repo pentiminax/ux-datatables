@@ -249,6 +249,30 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
+    public function it_resolves_mercure_config_without_mutating_the_table(): void
+    {
+        $mercureConfig = (new MercureConfig(topics: ['/products/{id}']))
+            ->withHubUrl('/.well-known/mercure');
+
+        $mercureResolver = $this->createMock(MercureConfigResolverInterface::class);
+        $mercureResolver->method('resolveMercureConfig')
+            ->with(\stdClass::class)
+            ->willReturn($mercureConfig);
+
+        $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
+        $table    = new DataTable('Test');
+
+        $resolved = $preparer->resolveMercureConfig($table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
+
+        // The pure resolver returns the config the render path would serialize
+        // but must never write it back onto the (container-shared) table — that
+        // is configureMercure()'s job. This is what lets the server-side publish
+        // path reuse it during a mutation without polluting the shared instance.
+        $this->assertSame($mercureConfig, $resolved);
+        $this->assertNull($table->getMercureConfig());
+    }
+
+    #[Test]
     public function it_configures_explicit_mercure_topics_from_attribute(): void
     {
         $mercureResolver = $this->createMock(MercureConfigResolverInterface::class);
