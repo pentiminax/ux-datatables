@@ -88,6 +88,7 @@ export function createActionColumnRenderer(mutationsEnabled = true): ColumnRende
                         }
 
                         const attrs = [
+                            `type="button"`,
                             `class="${escapedClassName}"`,
                             `data-action-type="${escapedType}"`,
                             `data-entity="${escapedEntity}"`,
@@ -95,6 +96,7 @@ export function createActionColumnRenderer(mutationsEnabled = true): ColumnRende
                             ...serializeHtmlAttributes(
                                 action.htmlAttributes,
                                 new Set([
+                                    'type',
                                     'class',
                                     'data-action-type',
                                     'data-entity',
