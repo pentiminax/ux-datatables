@@ -8,13 +8,6 @@ use Symfony\Component\String\Inflector\EnglishInflector;
 
 /**
  * Builds the default Mercure topic for a DataTable resource.
- *
- * Single source of truth for the fallback-topic convention shared by
- * {@see \Pentiminax\UX\DataTables\Model\DataTable::mercure()} (which passes the
- * table's short id) and {@see MercureConfigResolver} (which passes the entity's
- * short name). Both feed a short resource name through the same slug +
- * pluralization algorithm, so the topic a client subscribes to always matches
- * the one the server publishes to.
  */
 final class MercureTopicFactory
 {
