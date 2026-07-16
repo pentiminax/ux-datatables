@@ -38,6 +38,25 @@ describe('actionColumnRenderer', () => {
       expect(html).toContain('data-id="42"')
       expect(html).toContain('Delete')
       expect(html).toContain('btn btn-danger')
+      expect(html).toContain('type="button"')
+    })
+
+    it('sets type="button" on non-DETAIL action buttons to avoid implicit form submission', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'EDIT',
+            label: 'Edit',
+            className: 'btn btn-primary',
+            idField: 'id',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 1 })
+      expect(html).toMatch(/<button type="button"/)
     })
 
     it('disables delete buttons when mutations are unavailable', () => {
