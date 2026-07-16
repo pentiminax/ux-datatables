@@ -1,5 +1,5 @@
 import { createMutationHeaders } from './createMutationHeaders.js';
-export async function toggleBooleanValue({ id, entity, field, newValue, url, method = 'PATCH', topics, csrfToken, }) {
+export async function toggleBooleanValue({ id, entity, field, newValue, url, method = 'PATCH', dataTableClass, csrfToken, }) {
     const numericId = Number(id);
     const body = {
         id: id.trim() !== '' && Number.isFinite(numericId) ? numericId : id,
@@ -7,8 +7,8 @@ export async function toggleBooleanValue({ id, entity, field, newValue, url, met
         field,
         newValue,
     };
-    if (Array.isArray(topics) && topics.length > 0) {
-        body.topics = topics;
+    if (dataTableClass) {
+        body.dataTableClass = dataTableClass;
     }
     return await fetch(url, {
         method,

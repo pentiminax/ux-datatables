@@ -7,19 +7,29 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Controller;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Dto\AjaxDeleteRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 use Symfony\Component\Security\Csrf\CsrfToken;
@@ -50,9 +60,17 @@ final class AjaxDeleteControllerTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->once())
             ->method('publish')
-            ->with(['/topic/12'], ['type' => 'delete', 'id' => 12]);
+            ->with(['/server/deletable-entity-fixtures/{id}'], ['type' => 'delete', 'id' => 12]);
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, new PermissionChecker());
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver->method('resolveMercureConfig')
+            ->with(DeletableEntityFixture::class)
+            ->willReturn(new MercureConfig(
+                topics: ['/server/deletable-entity-fixtures/{id}'],
+                hubUrl: 'https://hub.example/.well-known/mercure',
+            ));
+
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, new PermissionChecker(), mercureConfigResolver: $resolver);
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
@@ -65,12 +83,70 @@ final class AjaxDeleteControllerTest extends TestCase
         $response = $controller($request, new AjaxDeleteRequestDto(
             entity: DeletableEntityFixture::class,
             id: 12,
-            topics: ['/topic/12'],
         ));
 
         $this->assertSame(200, $response->getStatusCode());
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
         $this->assertTrue($payload['success']);
+    }
+
+    #[Test]
+    public function it_forwards_the_data_table_class_from_the_payload_and_publishes_its_own_mercure_topics(): void
+    {
+        $entity = new DeletableEntityFixture();
+
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->method('find')->with(12)->willReturn($entity);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('getRepository')->with(DeletableEntityFixture::class)->willReturn($repository);
+        $manager->expects($this->once())->method('remove')->with($entity);
+        $manager->expects($this->once())->method('flush');
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->with(DeletableEntityFixture::class)->willReturn($manager);
+
+        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher->expects($this->once())
+            ->method('publish')
+            ->with(['/manual/deletable-entity-fixtures'], ['type' => 'delete', 'id' => 12]);
+
+        // The bare entity-class resolver would publish a *different* topic;
+        // it must not be consulted once the payload's dataTableClass resolves.
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver->expects($this->never())->method('resolveMercureConfig');
+
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
+
+        $dataTable = new DeletableEntityFixtureDataTable($hubUrlResolver);
+
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with(DeletableEntityFixtureDataTable::class)->willReturn(true);
+        $dataTables->method('get')->with(DeletableEntityFixtureDataTable::class)->willReturn($dataTable);
+
+        $mutator = new EntityMutator(
+            new EntityLocator($registry),
+            $this->createMock(PropertyAccessorInterface::class),
+            $publisher,
+            new PermissionChecker(),
+            mercureConfigResolver: $resolver,
+            dataTables: $dataTables,
+        );
+
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+
+        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager));
+
+        $request = new Request();
+        $request->headers->set(MutationTokenValidator::HEADER, 'valid-token');
+
+        $controller($request, new AjaxDeleteRequestDto(
+            entity: DeletableEntityFixture::class,
+            id: 12,
+            dataTableClass: DeletableEntityFixtureDataTable::class,
+        ));
     }
 
     #[Test]
@@ -182,4 +258,31 @@ final class AjaxDeleteControllerTest extends TestCase
 
 final class DeletableEntityFixture
 {
+}
+
+#[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
+final class DeletableEntityFixtureDataTable extends AbstractDataTable
+{
+    public function __construct(
+        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+    ) {
+        parent::__construct();
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            renderingPreparer: new RenderingPreparer(
+                mercureHubUrlResolver: $this->mercureHubUrlResolver,
+            )
+        ));
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->serverSide()
+            ->mercure(topics: ['/manual/deletable-entity-fixtures']);
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
 }

@@ -7,7 +7,7 @@ type ToggleBooleanPayload = {
     newValue: boolean
     url: string
     method?: string
-    topics?: string[]
+    dataTableClass?: string | null
     csrfToken?: string
 }
 
@@ -18,7 +18,7 @@ export async function toggleBooleanValue({
     newValue,
     url,
     method = 'PATCH',
-    topics,
+    dataTableClass,
     csrfToken,
 }: ToggleBooleanPayload): Promise<Response> {
     const numericId = Number(id)
@@ -29,8 +29,8 @@ export async function toggleBooleanValue({
         newValue,
     }
 
-    if (Array.isArray(topics) && topics.length > 0) {
-        body.topics = topics
+    if (dataTableClass) {
+        body.dataTableClass = dataTableClass
     }
 
     return await fetch(url, {

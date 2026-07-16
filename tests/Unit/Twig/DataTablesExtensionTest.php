@@ -104,8 +104,8 @@ final class DataTablesExtensionTest extends TestCase
                 ['firstColumn' => 'Row 1 Column 1', 'secondColumn' => 'Row 1 Column 2'],
                 ['firstColumn' => 'Row 2 Column 1', 'secondColumn' => 'Row 2 Column 2'],
             ],
-            'dataTableClass'   => null,
-            'editModal'        => [
+            'dataTableClass' => null,
+            'editModal'      => [
                 'adapter' => null,
             ],
             'mutationsEnabled' => false,
