@@ -30,6 +30,8 @@ use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntentFactoryInterface;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
+use Pentiminax\UX\DataTables\Rehydration\RowIdentifierExtractor;
+use Pentiminax\UX\DataTables\Rehydration\SourceRowResolver;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
@@ -166,10 +168,18 @@ return static function (ContainerConfigurator $container): void {
         ->tag('controller.service_arguments')
         ->public();
 
+    $services->set('datatables.rehydration.identifier_extractor', RowIdentifierExtractor::class)
+        ->private();
+
+    $services->set('datatables.rehydration.source_row_resolver', SourceRowResolver::class)
+        ->arg(0, service('datatables.rehydration.identifier_extractor'))
+        ->arg(1, service('doctrine')->nullOnInvalid())
+        ->private();
+
     $services->set('datatables.controller.ajax_templates', AjaxTemplateRenderController::class)
         ->arg(0, service('datatables.ajax.registry'))
         ->arg(1, service('datatables.runtime.factory'))
-        ->arg(2, service('doctrine')->nullOnInvalid())
+        ->arg(2, service('datatables.rehydration.source_row_resolver'))
         ->tag('controller.service_arguments')
         ->public();
 
