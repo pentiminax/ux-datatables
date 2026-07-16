@@ -14,13 +14,6 @@ use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 
 /**
  * Assembles and runs the server-side query pipeline for a DataTable request.
- *
- * Extracted from AbstractDataTable so the mechanical wiring — building the
- * normalized query intent, indexing columns by name, running the default
- * {@see QueryFilterChain} and applying user-declared {@see Filters} — lives in
- * one collaborator that can be unit-tested in isolation. AbstractDataTable keeps
- * only its user-facing override hooks (customizeQueryBuilder, the search-strategy
- * registry) and delegates the assembly here.
  */
 final class QueryFilterPipeline
 {
