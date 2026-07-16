@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js';
+import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js';
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js';
@@ -143,13 +143,13 @@ class default_1 extends Controller {
     configureColumns(payload) {
         normalizeDisabledColumnControls(payload);
         const columnRenderers = [
-            createBooleanColumnRenderer(this.getBooleanToggleUrl()),
+            createBooleanColumnRenderer(this.getBooleanToggleUrl(), this.areMutationsEnabled(payload)),
             choiceColumnRenderer,
             emailColumnRenderer,
             moneyColumnRenderer,
             imageColumnRenderer,
             urlColumnRenderer,
-            actionColumnRenderer,
+            createActionColumnRenderer(this.areMutationsEnabled(payload)),
         ];
         payload.columns.forEach((column) => {
             for (const renderer of columnRenderers) {
@@ -342,6 +342,9 @@ class default_1 extends Controller {
     getCsrfToken(payload) {
         const token = payload?.csrfToken;
         return typeof token === 'string' && token.length > 0 ? token : undefined;
+    }
+    areMutationsEnabled(payload) {
+        return payload?.mutationsEnabled === true;
     }
     getMercureTopics(payload) {
         const topics = payload?.mercure?.topics;

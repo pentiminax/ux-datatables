@@ -1,5 +1,5 @@
 import { escapeHtml, parseBooleanValue } from '../functions/htmlUtils.js';
-export function createBooleanColumnRenderer(toggleUrl) {
+export function createBooleanColumnRenderer(toggleUrl, mutationsEnabled = true) {
     return {
         matches(column) {
             return true === column?.customOptions?.renderAsSwitch;
@@ -24,7 +24,7 @@ export function createBooleanColumnRenderer(toggleUrl) {
                 }
                 const rowId = row?.[toggleIdField];
                 const checked = boolValue ? ' checked' : '';
-                const disabled = entityClass === '' ? ' disabled' : '';
+                const disabled = entityClass === '' || !mutationsEnabled ? ' disabled' : '';
                 const escapedId = escapeHtml(String(rowId ?? ''));
                 const escapedUrl = escapeHtml(toggleUrl);
                 const escapedField = escapeHtml(customOptions.toggleField ?? column.field ?? column.data ?? column.name ?? '');

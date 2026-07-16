@@ -25,6 +25,9 @@ class DataTable
 
     private ?Filters $filters = null;
 
+    /** @var array<string, string>|null */
+    private ?array $preparedFilterLabels = null;
+
     private bool $templateColumnsRendered = false;
 
     private ?MercureConfig $mercureConfig = null;
@@ -76,9 +79,10 @@ class DataTable
         if (null !== $this->filters && !$this->filters->isEmpty()) {
             $options['filters'] = $this->filters->jsonSerialize();
 
-            $labels = $this->filters->getLabels();
-            if (!$labels->isEmpty()) {
-                $options['filterLabels'] = $labels->jsonSerialize();
+            if (null !== $this->preparedFilterLabels) {
+                $options['filterLabels'] = $this->preparedFilterLabels;
+            } elseif (!$this->filters->getLabels()->isEmpty()) {
+                $options['filterLabels'] = $this->filters->getLabels()->jsonSerialize();
             }
         }
 
@@ -555,7 +559,18 @@ class DataTable
 
     public function setFilters(Filters $filters): static
     {
-        $this->filters = $filters;
+        $this->filters              = $filters;
+        $this->preparedFilterLabels = null;
+
+        return $this;
+    }
+
+    /**
+     * @param array<string, string> $labels
+     */
+    public function setPreparedFilterLabels(array $labels): static
+    {
+        $this->preparedFilterLabels = $labels;
 
         return $this;
     }

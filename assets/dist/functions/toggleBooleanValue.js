@@ -1,3 +1,4 @@
+import { createMutationHeaders } from './createMutationHeaders.js';
 export async function toggleBooleanValue({ id, entity, field, newValue, url, method = 'PATCH', dataTableClass, csrfToken, }) {
     const numericId = Number(id);
     const body = {
@@ -9,16 +10,9 @@ export async function toggleBooleanValue({ id, entity, field, newValue, url, met
     if (dataTableClass) {
         body.dataTableClass = dataTableClass;
     }
-    const headers = {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-    };
-    if (csrfToken) {
-        headers['X-CSRF-Token'] = csrfToken;
-    }
     return await fetch(url, {
         method,
-        headers,
+        headers: createMutationHeaders(csrfToken),
         body: JSON.stringify(body),
     });
 }

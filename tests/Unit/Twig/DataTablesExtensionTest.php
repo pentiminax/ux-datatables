@@ -21,7 +21,10 @@ use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
@@ -101,10 +104,11 @@ final class DataTablesExtensionTest extends TestCase
                 ['firstColumn' => 'Row 1 Column 1', 'secondColumn' => 'Row 1 Column 2'],
                 ['firstColumn' => 'Row 2 Column 1', 'secondColumn' => 'Row 2 Column 2'],
             ],
-            'dataTableClass' => null,
-            'editModal'      => [
+            'dataTableClass'   => null,
+            'editModal'        => [
                 'adapter' => null,
             ],
+            'mutationsEnabled' => false,
         ];
 
         $this->assertSame($expected, $actual);
@@ -157,6 +161,26 @@ final class DataTablesExtensionTest extends TestCase
         $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
 
         $this->assertSame('fr_FR', $actual['locale']);
+    }
+
+    #[Test]
+    public function it_enables_mutations_when_a_csrf_token_can_be_stored_in_the_session(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        $request = Request::create('/products');
+        $request->setSession(new Session(new MockArraySessionStorage()));
+        $container->get('request_stack')->push($request);
+
+        $actual = $this->renderPayloadFromContainer(
+            $container,
+            (new DataTable('products'))->columns([TextColumn::new('name')]),
+        );
+
+        $this->assertTrue($actual['mutationsEnabled']);
+        $this->assertNotSame('', $actual['csrfToken']);
     }
 
     #[Test]
@@ -574,6 +598,11 @@ final class DataTablesExtensionTest extends TestCase
         $kernel->boot();
         $container = $kernel->getContainer()->get('test.service_container');
 
+        return $this->renderPayloadFromContainer($container, $table);
+    }
+
+    private function renderPayloadFromContainer(ContainerInterface $container, AbstractDataTable|DataTable $table): array
+    {
         $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
 
         $dom = new \DOMDocument();

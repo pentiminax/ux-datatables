@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -63,6 +64,7 @@ final class MutationExceptionHandlingTest extends TestCase
             new EntityLocator($this->registryReturning($entity)),
             $accessor,
             new NullMercurePublisher(),
+            new PermissionChecker(),
         );
 
         $response = $this->handleControllerException(
@@ -112,6 +114,7 @@ final class MutationExceptionHandlingTest extends TestCase
             new EntityLocator($this->registryReturning($entity)),
             $this->createMock(PropertyAccessorInterface::class),
             new NullMercurePublisher(),
+            new PermissionChecker(),
         );
     }
 
