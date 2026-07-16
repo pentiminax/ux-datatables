@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Controller;
 
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\Mapping\ClassMetadata;
+use Doctrine\Persistence\ObjectManager;
 use Doctrine\Persistence\ObjectRepository;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
@@ -19,6 +21,8 @@ use Pentiminax\UX\DataTables\Controller\AjaxTemplateRenderController;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Rehydration\RowIdentifierExtractor;
+use Pentiminax\UX\DataTables\Rehydration\SourceRowResolver;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -50,6 +54,7 @@ final class AjaxTemplateRenderControllerTest extends TestCase
                     'user.html.twig' => '<span>{{ row.email }}:{{ data }}</span>',
                 ]))),
             ),
+            new SourceRowResolver(new RowIdentifierExtractor()),
         );
 
         $response = $controller(new Request(content: json_encode([
@@ -79,22 +84,32 @@ final class AjaxTemplateRenderControllerTest extends TestCase
         $registry = $this->createRegistry($table);
         $token    = $registry->getToken(TemplateRenderActionDataTableFixture::class);
 
+        $user = new TemplateRenderUserFixture(7);
+
         $repository = $this->createMock(ObjectRepository::class);
         $repository->expects($this->once())
-            ->method('find')
-            ->with(7)
-            ->willReturn(new TemplateRenderUserFixture(7));
+            ->method('findBy')
+            ->with(['id' => [7]])
+            ->willReturn([$user]);
+
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('getIdentifierFieldNames')->willReturn(['id']);
+        $metadata->method('getIdentifierValues')->with($user)->willReturn(['id' => 7]);
+
+        $manager = $this->createMock(ObjectManager::class);
+        $manager->method('getRepository')->with(TemplateRenderUserFixture::class)->willReturn($repository);
+        $manager->method('getClassMetadata')->with(TemplateRenderUserFixture::class)->willReturn($metadata);
 
         $doctrine = $this->createMock(ManagerRegistry::class);
         $doctrine->expects($this->once())
-            ->method('getRepository')
+            ->method('getManagerForClass')
             ->with(TemplateRenderUserFixture::class)
-            ->willReturn($repository);
+            ->willReturn($manager);
 
         $controller = new AjaxTemplateRenderController(
             $registry,
             new DataTableRuntimeFactory(actionRowDataResolver: new ActionRowDataResolver()),
-            $doctrine,
+            new SourceRowResolver(new RowIdentifierExtractor(), $doctrine),
         );
 
         $response = $controller(new Request(content: json_encode([
@@ -117,15 +132,25 @@ final class AjaxTemplateRenderControllerTest extends TestCase
         $registry = $this->createRegistry($table);
         $token    = $registry->getToken(TemplateRenderUrlDataTableFixture::class);
 
+        $user = new TemplateRenderUserFixture(7);
+
         $repository = $this->createMock(ObjectRepository::class);
-        $repository->method('find')
-            ->with(7)
-            ->willReturn(new TemplateRenderUserFixture(7));
+        $repository->method('findBy')
+            ->with(['id' => [7]])
+            ->willReturn([$user]);
+
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('getIdentifierFieldNames')->willReturn(['id']);
+        $metadata->method('getIdentifierValues')->with($user)->willReturn(['id' => 7]);
+
+        $manager = $this->createMock(ObjectManager::class);
+        $manager->method('getRepository')->with(TemplateRenderUserFixture::class)->willReturn($repository);
+        $manager->method('getClassMetadata')->with(TemplateRenderUserFixture::class)->willReturn($metadata);
 
         $doctrine = $this->createMock(ManagerRegistry::class);
-        $doctrine->method('getRepository')
+        $doctrine->method('getManagerForClass')
             ->with(TemplateRenderUserFixture::class)
-            ->willReturn($repository);
+            ->willReturn($manager);
 
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $urlGenerator->expects($this->once())
@@ -136,7 +161,7 @@ final class AjaxTemplateRenderControllerTest extends TestCase
         $controller = new AjaxTemplateRenderController(
             $registry,
             new DataTableRuntimeFactory(urlColumnDataResolver: new UrlColumnDataResolver($urlGenerator)),
-            $doctrine,
+            new SourceRowResolver(new RowIdentifierExtractor(), $doctrine),
         );
 
         $response = $controller(new Request(content: json_encode([
@@ -158,6 +183,7 @@ final class AjaxTemplateRenderControllerTest extends TestCase
         $controller = new AjaxTemplateRenderController(
             $this->createRegistry(),
             new DataTableRuntimeFactory(),
+            new SourceRowResolver(new RowIdentifierExtractor()),
         );
 
         $this->expectException(NotFoundHttpException::class);
@@ -174,6 +200,7 @@ final class AjaxTemplateRenderControllerTest extends TestCase
         $controller = new AjaxTemplateRenderController(
             $registry,
             new DataTableRuntimeFactory(),
+            new SourceRowResolver(new RowIdentifierExtractor()),
         );
 
         $this->expectException(BadRequestHttpException::class);
