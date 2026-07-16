@@ -28,6 +28,7 @@ use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntentFactoryInterface;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Rehydration\RowIdentifierExtractor;
@@ -68,6 +69,13 @@ return static function (ContainerConfigurator $container): void {
         ->private();
 
     $services->alias(DataTableQueryIntentFactoryInterface::class, 'datatables.query.intent_factory')
+        ->private();
+
+    $services->set('datatables.query.filter_pipeline', QueryFilterPipeline::class)
+        ->arg(0, service('datatables.query.intent_factory'))
+        ->private();
+
+    $services->alias(QueryFilterPipeline::class, 'datatables.query.filter_pipeline')
         ->private();
 
     $services->set('datatables.security.permission_checker', PermissionChecker::class)
@@ -255,6 +263,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(1, service('datatables.rendering.preparer'))
         ->arg(2, service('datatables.runtime.factory'))
         ->arg(3, service('datatables.query.intent_factory'))
+        ->arg(4, service('datatables.query.filter_pipeline'))
         ->private();
 
     $services->alias(DataTableInfrastructure::class, 'datatables.infrastructure')
