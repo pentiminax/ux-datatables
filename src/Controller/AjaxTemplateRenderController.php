@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Controller;
 
-use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Rehydration\SourceRowResolver;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,7 +18,7 @@ final class AjaxTemplateRenderController
     public function __construct(
         private readonly AjaxDataTableRegistry $registry,
         private readonly DataTableRuntimeFactory $runtimeFactory,
-        private readonly ?ManagerRegistry $doctrine = null,
+        private readonly SourceRowResolver $sourceRowResolver,
     ) {
     }
 
@@ -43,19 +43,24 @@ final class AjaxTemplateRenderController
             throw new BadRequestHttpException('No rows provided.');
         }
 
-        return new JsonResponse([
-            'data' => array_map(fn (mixed $row): mixed => $this->renderRow($row, $table), $rows),
-        ]);
+        $sourceRows = $this->sourceRowResolver->resolve($table->getEntityClass(), $rows);
+
+        $data = [];
+        foreach ($rows as $key => $row) {
+            $data[] = $this->renderRow($row, $table, $sourceRows[$key] ?? null);
+        }
+
+        return new JsonResponse(['data' => $data]);
     }
 
-    private function renderRow(mixed $row, AbstractDataTable $table): mixed
+    private function renderRow(mixed $row, AbstractDataTable $table, ?object $sourceRow): mixed
     {
         if (!\is_array($row)) {
             return $row;
         }
 
-        $sourceRow = $this->resolveSourceRow($row, $table) ?? $row;
-        $columns   = $table->getConfiguredDataTable()->getColumns();
+        $sourceRow ??= $row;
+        $columns = $table->getConfiguredDataTable()->getColumns();
 
         return $this->runtimeFactory
             ->createRowMapper(
@@ -63,43 +68,5 @@ final class AjaxTemplateRenderController
                 columns: $columns,
             )
             ->map($sourceRow);
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function resolveSourceRow(array $row, AbstractDataTable $table): ?object
-    {
-        $entityClass = $table->getEntityClass();
-        if (null === $entityClass || null === $this->doctrine) {
-            return null;
-        }
-
-        $id = $this->resolveIdentifier($row);
-        if (null === $id) {
-            return null;
-        }
-
-        return $this->doctrine->getRepository($entityClass)->find($id);
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function resolveIdentifier(array $row): string|int|null
-    {
-        $id = $row['id'] ?? null;
-        if (\is_string($id) || \is_int($id)) {
-            return $id;
-        }
-
-        $iri = $row['@id'] ?? null;
-        if (!\is_string($iri) || '' === trim($iri)) {
-            return null;
-        }
-
-        $lastSegment = basename(parse_url($iri, \PHP_URL_PATH) ?: '');
-
-        return '' === $lastSegment ? null : $lastSegment;
     }
 }
