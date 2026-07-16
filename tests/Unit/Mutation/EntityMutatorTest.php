@@ -230,6 +230,90 @@ final class EntityMutatorTest extends TestCase
     }
 
     #[Test]
+    public function it_resolves_client_side_datatable_topics_without_hydrating_data(): void
+    {
+        $entity = new EntityMutatorFixture();
+
+        $manager = $this->managerReturning($entity, 5);
+        $manager->expects($this->once())->method('remove')->with($entity);
+        $manager->expects($this->once())->method('flush');
+
+        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher->expects($this->once())
+            ->method('publish')
+            ->with(['/client-side/topic'], ['type' => 'delete', 'id' => 5]);
+
+        // The bare resolver must never be consulted once the DataTable resolves.
+        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver->expects($this->never())->method('resolveMercureConfig');
+
+        // A client-side table would hydrate its rows through this provider at
+        // render time. Resolving topics for the mutation must not touch it.
+        $dataProviderSpy = $this->createMock(DataProviderInterface::class);
+        $dataProviderSpy->expects($this->never())->method('fetchData');
+
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
+
+        $dataTable = new EntityMutatorClientSideFixtureDataTable($hubUrlResolver, $dataProviderSpy);
+
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with(EntityMutatorClientSideFixtureDataTable::class)->willReturn(true);
+        $dataTables->method('get')->with(EntityMutatorClientSideFixtureDataTable::class)->willReturn($dataTable);
+
+        $mutator = new EntityMutator(
+            new EntityLocator($this->registry($manager)),
+            $this->createMock(PropertyAccessorInterface::class),
+            $publisher,
+            new PermissionChecker(),
+            mercureConfigResolver: $resolver,
+            dataTables: $dataTables,
+        );
+
+        $mutator->delete(EntityMutatorFixture::class, 5, EntityMutatorClientSideFixtureDataTable::class);
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_bare_resolver_when_the_datatable_mercure_hub_url_is_unresolvable(): void
+    {
+        $entity = new EntityMutatorFixture();
+
+        $manager = $this->managerReturning($entity, 5);
+        $manager->expects($this->once())->method('remove')->with($entity);
+        $manager->expects($this->once())->method('flush');
+
+        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher->expects($this->once())
+            ->method('publish')
+            ->with(['/server/entity-mutator-fixtures/{id}'], ['type' => 'delete', 'id' => 5]);
+
+        // The DataTable's own resolution throws (unresolvable hub URL). Because
+        // this runs AFTER flush(), it must never bubble up and turn an
+        // already-committed mutation into a 500 — it degrades to the bare resolver.
+        $resolver = $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']);
+
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn(null);
+
+        $dataTable = new EntityMutatorUnresolvableHubFixtureDataTable($hubUrlResolver);
+
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with(EntityMutatorUnresolvableHubFixtureDataTable::class)->willReturn(true);
+        $dataTables->method('get')->with(EntityMutatorUnresolvableHubFixtureDataTable::class)->willReturn($dataTable);
+
+        $mutator = new EntityMutator(
+            new EntityLocator($this->registry($manager)),
+            $this->createMock(PropertyAccessorInterface::class),
+            $publisher,
+            new PermissionChecker(),
+            mercureConfigResolver: $resolver,
+            dataTables: $dataTables,
+        );
+
+        $mutator->delete(EntityMutatorFixture::class, 5, EntityMutatorUnresolvableHubFixtureDataTable::class);
+    }
+
+    #[Test]
     public function it_sets_a_property_flushes_and_publishes(): void
     {
         $entity = new EntityMutatorFixture();
@@ -502,6 +586,75 @@ final class EntityMutatorMismatchedFixtureDataTable extends AbstractDataTable
         return $table
             ->serverSide()
             ->mercure(topics: ['/mismatched/topic']);
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+}
+
+/**
+ * A client-side (NOT server-side) DataTable with a manual Mercure
+ * configuration. Rendering it would hydrate rows through the data provider;
+ * resolving topics for a mutation must NOT — the resolver skips hydration.
+ */
+#[AsDataTable(entityClass: EntityMutatorFixture::class, mercure: true)]
+final class EntityMutatorClientSideFixtureDataTable extends AbstractDataTable
+{
+    public function __construct(
+        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?DataProviderInterface $dataProviderSpy = null,
+    ) {
+        parent::__construct();
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            renderingPreparer: new RenderingPreparer(
+                mercureHubUrlResolver: $this->mercureHubUrlResolver,
+            )
+        ));
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->mercure(topics: ['/client-side/topic']);
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+
+    protected function createDataProvider(): ?DataProviderInterface
+    {
+        return $this->dataProviderSpy;
+    }
+}
+
+/**
+ * A DataTable whose Mercure hub URL cannot be resolved: configureMercure()
+ * throws a LogicException while resolving topics. The resolver must swallow it
+ * and fall back to the bare entity-class resolver rather than bubbling up.
+ */
+#[AsDataTable(entityClass: EntityMutatorFixture::class, mercure: true)]
+final class EntityMutatorUnresolvableHubFixtureDataTable extends AbstractDataTable
+{
+    public function __construct(
+        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+    ) {
+        parent::__construct();
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            renderingPreparer: new RenderingPreparer(
+                mercureHubUrlResolver: $this->mercureHubUrlResolver,
+            )
+        ));
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->serverSide()
+            ->mercure(topics: ['/datatable-instance/topic']);
     }
 
     public function configureColumns(): iterable
