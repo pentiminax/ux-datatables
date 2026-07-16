@@ -57,4 +57,59 @@ describe('toggleBooleanValue', () => {
       })
     )
   })
+
+  it('includes dataTableClass in the body when provided', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await toggleBooleanValue({
+      id: '42',
+      entity: 'App\\Entity\\User',
+      field: 'enabled',
+      newValue: true,
+      url: '/datatables/ajax/edit',
+      dataTableClass: 'App\\DataTable\\UserDataTable',
+    })
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/datatables/ajax/edit',
+      expect.objectContaining({
+        body: JSON.stringify({
+          id: 42,
+          entity: 'App\\Entity\\User',
+          field: 'enabled',
+          newValue: true,
+          dataTableClass: 'App\\DataTable\\UserDataTable',
+        }),
+      })
+    )
+  })
+
+  it('omits dataTableClass from the body when null', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await toggleBooleanValue({
+      id: '42',
+      entity: 'App\\Entity\\User',
+      field: 'enabled',
+      newValue: true,
+      url: '/datatables/ajax/edit',
+      dataTableClass: null,
+    })
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/datatables/ajax/edit',
+      expect.objectContaining({
+        body: JSON.stringify({
+          id: 42,
+          entity: 'App\\Entity\\User',
+          field: 'enabled',
+          newValue: true,
+        }),
+      })
+    )
+  })
 })

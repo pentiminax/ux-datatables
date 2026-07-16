@@ -285,7 +285,7 @@ export default class extends Controller {
                     const response = await deleteEntity({
                         entity,
                         id,
-                        topics: this.getMercureTopics(payload),
+                        dataTableClass: payload.dataTableClass ?? null,
                         csrfToken: this.getCsrfToken(payload),
                     })
 
@@ -316,7 +316,6 @@ export default class extends Controller {
                                     entity,
                                     id,
                                     formData,
-                                    topics: this.getMercureTopics(payload),
                                     dataTableClass: payload.dataTableClass ?? null,
                                 })
 
@@ -375,7 +374,7 @@ export default class extends Controller {
                     entity,
                     newValue: target.checked,
                     method,
-                    topics: this.getMercureTopics(payload),
+                    dataTableClass: payload.dataTableClass ?? null,
                     csrfToken: this.getCsrfToken(payload),
                 })
 

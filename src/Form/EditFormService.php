@@ -8,9 +8,12 @@ use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\Form\FormInterface;
 
 final class EditFormService
@@ -21,6 +24,8 @@ final class EditFormService
         private readonly EditModalRenderer $renderer,
         private readonly EditModalTemplateResolverInterface $templateResolver,
         private readonly MercurePublisherInterface $publisher,
+        private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
+        private readonly ?ContainerInterface $dataTables = null,
     ) {
     }
 
@@ -87,7 +92,7 @@ final class EditFormService
 
         $context->manager->flush();
 
-        $this->publisher->publish($payload->topics, [
+        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $payload->entity, $this->dataTables, $payload->dataTableClass), [
             'type' => 'edit',
             'id'   => $payload->id,
         ]);

@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
@@ -163,6 +164,40 @@ abstract class AbstractDataTable
         $this->initialize();
 
         return $this->table;
+    }
+
+    /**
+     * Resolve the Mercure configuration exactly as the render path would
+     * serialize it to the browser, WITHOUT hydrating client-side data and
+     * WITHOUT mutating this container-shared instance.
+     *
+     * Delegates to the same pure RenderingPreparer::resolveMercureConfig() the
+     * render path uses, so published topics always match the ones the client
+     * subscribed to, but deliberately skips hydrateClientSideData() so resolving
+     * topics for a mutation never triggers a data-provider / DB query as a side
+     * effect. When the render path would embed static client-side data — which
+     * disables Mercure live updates — this returns null, mirroring
+     * RenderingPreparer::configureMercure().
+     *
+     * Callers that must not fail (e.g. after a committed mutation) should guard
+     * against the LogicException that Mercure hub-URL resolution can throw.
+     *
+     * @throws \LogicException if Mercure is enabled but the hub URL cannot be resolved
+     */
+    public function resolveMercureConfigWithoutHydration(): ?MercureConfig
+    {
+        $this->initialize();
+
+        // A client-side table embeds its rows at render time, and
+        // configureMercure() suppresses attribute/auto-resolved live updates once
+        // inline data is present. Manual ->mercure() config is always serialized,
+        // so only short-circuit when there is no manual config to preserve.
+        // Reproduce that suppression here WITHOUT performing the data fetch.
+        if (null === $this->table->getMercureConfig() && $this->shouldHydrateClientSideData()) {
+            return null;
+        }
+
+        return $this->infrastructure()->renderingPreparer()->resolveMercureConfig($this->table, $this->asDataTable);
     }
 
     final public function getEntityClass(): ?string

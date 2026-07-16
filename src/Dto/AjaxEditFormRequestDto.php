@@ -10,7 +10,6 @@ final readonly class AjaxEditFormRequestDto
         public string $entity,
         public int|string $id,
         public array $formData = [],
-        public array $topics = [],
         public ?string $dataTableClass = null,
     ) {
     }

@@ -217,7 +217,7 @@ class default_1 extends Controller {
                 const response = await deleteEntity({
                     entity,
                     id,
-                    topics: this.getMercureTopics(payload),
+                    dataTableClass: payload.dataTableClass ?? null,
                     csrfToken: this.getCsrfToken(payload),
                 });
                 if (response.ok) {
@@ -242,7 +242,6 @@ class default_1 extends Controller {
                                 entity,
                                 id,
                                 formData,
-                                topics: this.getMercureTopics(payload),
                                 dataTableClass: payload.dataTableClass ?? null,
                             });
                             if (submitResult.success) {
@@ -290,7 +289,7 @@ class default_1 extends Controller {
                     entity,
                     newValue: target.checked,
                     method,
-                    topics: this.getMercureTopics(payload),
+                    dataTableClass: payload.dataTableClass ?? null,
                     csrfToken: this.getCsrfToken(payload),
                 });
                 if (!response.ok) {
@@ -345,7 +344,7 @@ class default_1 extends Controller {
         return typeof token === 'string' && token.length > 0 ? token : undefined;
     }
     areMutationsEnabled(payload) {
-        return false !== payload?.mutationsEnabled;
+        return payload?.mutationsEnabled === true;
     }
     getMercureTopics(payload) {
         const topics = payload?.mercure?.topics;

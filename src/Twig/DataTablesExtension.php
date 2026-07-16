@@ -73,8 +73,8 @@ class DataTablesExtension extends AbstractExtension
         }
 
         $view = array_merge($options, $table->getExtensions(), [
-            'dataTableClass'   => $dataTableClass,
-            'editModal'        => [
+            'dataTableClass' => $dataTableClass,
+            'editModal'      => [
                 'adapter' => $table->getEditModalAdapter(),
             ],
             'mutationsEnabled' => false,

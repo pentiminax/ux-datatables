@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -48,6 +49,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg(2, service('datatables.form.edit_modal_renderer'))
         ->arg(3, service('datatables.form.edit_modal_template_resolver'))
         ->arg(4, service(MercurePublisherInterface::class))
+        ->arg(5, service(MercureConfigResolverInterface::class)->nullOnInvalid())
+        ->arg(6, tagged_locator('datatables.data_table'))
         ->private();
 
     $services->set('datatables.controller.ajax_edit_form', AjaxEditFormController::class)
