@@ -47,46 +47,101 @@ final class SourceRowResolverTest extends TestCase
 
         $resolver = new SourceRowResolver(new RowIdentifierExtractor(), $doctrine);
 
-        $map = $resolver->resolve(SourceRowResolverUserFixture::class, [
+        $resolved = $resolver->resolve(SourceRowResolverUserFixture::class, [
             ['id' => 7],
             ['id' => 9],
         ]);
 
-        $this->assertSame($seven, $map->sourceFor(['id' => 7]));
-        $this->assertSame($nine, $map->sourceFor(['id' => 9]));
+        $this->assertSame([0 => $seven, 1 => $nine], $resolved);
     }
 
     #[Test]
-    public function it_returns_an_empty_map_when_the_entity_class_is_null(): void
+    public function it_aligns_resolved_entities_with_their_original_row_keys(): void
+    {
+        $nine = new SourceRowResolverUserFixture(9);
+
+        $repository = $this->createMock(ObjectRepository::class);
+        $repository->method('findBy')->with(['id' => [9]])->willReturn([$nine]);
+
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('getIdentifierFieldNames')->willReturn(['id']);
+        $metadata->method('getIdentifierValues')->willReturnCallback(
+            static fn (object $entity): array => ['id' => $entity->getId()],
+        );
+
+        $manager = $this->createMock(ObjectManager::class);
+        $manager->method('getRepository')->with(SourceRowResolverUserFixture::class)->willReturn($repository);
+        $manager->method('getClassMetadata')->with(SourceRowResolverUserFixture::class)->willReturn($metadata);
+
+        $doctrine = $this->createMock(ManagerRegistry::class);
+        $doctrine->method('getManagerForClass')->with(SourceRowResolverUserFixture::class)->willReturn($manager);
+
+        $resolved = (new SourceRowResolver(new RowIdentifierExtractor(), $doctrine))->resolve(
+            SourceRowResolverUserFixture::class,
+            [
+                ['email' => 'no-id@example.com'],
+                ['id' => 9],
+            ],
+        );
+
+        $this->assertSame([0 => null, 1 => $nine], $resolved);
+    }
+
+    #[Test]
+    public function it_returns_all_null_when_the_entity_class_is_null(): void
     {
         $doctrine = $this->createMock(ManagerRegistry::class);
         $doctrine->expects($this->never())->method('getManagerForClass');
 
-        $map = (new SourceRowResolver(new RowIdentifierExtractor(), $doctrine))->resolve(null, [['id' => 7]]);
+        $resolved = (new SourceRowResolver(new RowIdentifierExtractor(), $doctrine))->resolve(null, [['id' => 7]]);
 
-        $this->assertNull($map->sourceFor(['id' => 7]));
+        $this->assertSame([0 => null], $resolved);
     }
 
     #[Test]
-    public function it_returns_an_empty_map_when_doctrine_is_unavailable(): void
+    public function it_returns_all_null_when_doctrine_is_unavailable(): void
     {
-        $map = (new SourceRowResolver(new RowIdentifierExtractor()))->resolve(SourceRowResolverUserFixture::class, [['id' => 7]]);
+        $resolved = (new SourceRowResolver(new RowIdentifierExtractor()))->resolve(SourceRowResolverUserFixture::class, [['id' => 7]]);
 
-        $this->assertNull($map->sourceFor(['id' => 7]));
+        $this->assertSame([0 => null], $resolved);
     }
 
     #[Test]
-    public function it_returns_an_empty_map_when_no_identifier_can_be_resolved(): void
+    public function it_returns_all_null_when_no_identifier_can_be_resolved(): void
     {
         $doctrine = $this->createMock(ManagerRegistry::class);
         $doctrine->expects($this->never())->method('getManagerForClass');
 
-        $map = (new SourceRowResolver(new RowIdentifierExtractor(), $doctrine))->resolve(
+        $resolved = (new SourceRowResolver(new RowIdentifierExtractor(), $doctrine))->resolve(
             SourceRowResolverUserFixture::class,
             [['email' => 'user@example.com']],
         );
 
-        $this->assertNull($map->sourceFor(['email' => 'user@example.com']));
+        $this->assertSame([0 => null], $resolved);
+    }
+
+    #[Test]
+    public function it_skips_rehydration_for_composite_key_entities(): void
+    {
+        $repository = $this->createMock(ObjectRepository::class);
+        $repository->expects($this->never())->method('findBy');
+
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('getIdentifierFieldNames')->willReturn(['user_id', 'role_id']);
+
+        $manager = $this->createMock(ObjectManager::class);
+        $manager->method('getClassMetadata')->with(SourceRowResolverUserFixture::class)->willReturn($metadata);
+        $manager->method('getRepository')->with(SourceRowResolverUserFixture::class)->willReturn($repository);
+
+        $doctrine = $this->createMock(ManagerRegistry::class);
+        $doctrine->method('getManagerForClass')->with(SourceRowResolverUserFixture::class)->willReturn($manager);
+
+        $resolved = (new SourceRowResolver(new RowIdentifierExtractor(), $doctrine))->resolve(
+            SourceRowResolverUserFixture::class,
+            [['id' => 7]],
+        );
+
+        $this->assertSame([0 => null], $resolved);
     }
 }
 
