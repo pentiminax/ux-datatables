@@ -73,23 +73,20 @@ class DataTablesExtension extends AbstractExtension
         }
 
         $view = array_merge($options, $table->getExtensions(), [
-            'dataTableClass' => $dataTableClass,
-            'editModal'      => [
+            'dataTableClass'   => $dataTableClass,
+            'editModal'        => [
                 'adapter' => $table->getEditModalAdapter(),
             ],
+            'mutationsEnabled' => false,
         ]);
 
         if (null !== $locale = $this->requestStack?->getCurrentRequest()?->getLocale()) {
             $view['locale'] = $locale;
         }
 
-        if (null !== $this->csrfTokenManager) {
-            try {
-                $view['csrfToken'] = $this->csrfTokenManager->getToken(MutationTokenValidator::TOKEN_ID)->getValue();
-            } catch (SessionNotFoundException) {
-                // No session (non-web or stateless context): there is no CSRF context to
-                // expose. The mutation endpoints are only reachable with an active session.
-            }
+        if (null !== $csrfToken = $this->getMutationToken()) {
+            $view['csrfToken']        = $csrfToken;
+            $view['mutationsEnabled'] = true;
         }
 
         $controllers['@pentiminax/ux-datatables/datatable'] = [
@@ -114,5 +111,18 @@ class DataTablesExtension extends AbstractExtension
         }
 
         return \sprintf('<table id="%s" %s></table>', $table->getId(), $stimulusAttributes);
+    }
+
+    private function getMutationToken(): ?string
+    {
+        if (null === $this->csrfTokenManager) {
+            return null;
+        }
+
+        try {
+            return $this->csrfTokenManager->getToken(MutationTokenValidator::TOKEN_ID)->getValue();
+        } catch (SessionNotFoundException) {
+            return null;
+        }
     }
 }

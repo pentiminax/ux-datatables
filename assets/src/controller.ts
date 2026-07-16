@@ -1,6 +1,6 @@
 import { Controller } from '@hotwired/stimulus'
 import type DataTable from 'datatables.net/types/types'
-import { actionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
+import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js'
@@ -193,13 +193,16 @@ export default class extends Controller {
         normalizeDisabledColumnControls(payload)
 
         const columnRenderers: ColumnRenderer[] = [
-            createBooleanColumnRenderer(this.getBooleanToggleUrl()),
+            createBooleanColumnRenderer(
+                this.getBooleanToggleUrl(),
+                this.areMutationsEnabled(payload)
+            ),
             choiceColumnRenderer,
             emailColumnRenderer,
             moneyColumnRenderer,
             imageColumnRenderer,
             urlColumnRenderer,
-            actionColumnRenderer,
+            createActionColumnRenderer(this.areMutationsEnabled(payload)),
         ]
 
         payload.columns.forEach((column: any): void => {
@@ -430,6 +433,10 @@ export default class extends Controller {
     private getCsrfToken(payload: Record<string, any>): string | undefined {
         const token = payload?.csrfToken
         return typeof token === 'string' && token.length > 0 ? token : undefined
+    }
+
+    private areMutationsEnabled(payload: Record<string, any>): boolean {
+        return payload?.mutationsEnabled === true
     }
 
     private getMercureTopics(payload: Record<string, any>): string[] {

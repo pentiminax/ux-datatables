@@ -26,7 +26,6 @@ final class FilterLabelsDefaultCatalogTest extends TestCase
         $translator = $this->buildTranslator('fr');
 
         $labels = new FilterLabels();
-        $labels->translate($translator, 'fr');
 
         $this->assertSame(
             [
@@ -35,8 +34,9 @@ final class FilterLabelsDefaultCatalogTest extends TestCase
                 'apply' => 'Appliquer les filtres',
                 'all'   => 'Tous',
             ],
-            $labels->jsonSerialize(),
+            $labels->toTranslatedArray($translator, 'fr'),
         );
+        $this->assertSame([], $labels->jsonSerialize());
     }
 
     #[Test]
@@ -45,7 +45,6 @@ final class FilterLabelsDefaultCatalogTest extends TestCase
         $translator = $this->buildTranslator('en');
 
         $labels = new FilterLabels();
-        $labels->translate($translator, 'en');
 
         $this->assertSame(
             [
@@ -54,8 +53,9 @@ final class FilterLabelsDefaultCatalogTest extends TestCase
                 'apply' => 'Apply filters',
                 'all'   => 'All',
             ],
-            $labels->jsonSerialize(),
+            $labels->toTranslatedArray($translator, 'en'),
         );
+        $this->assertSame([], $labels->jsonSerialize());
     }
 
     private function buildTranslator(string $locale): Translator

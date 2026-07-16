@@ -1,3 +1,5 @@
+import { createMutationHeaders } from './createMutationHeaders.js'
+
 type ToggleBooleanPayload = {
     id: string
     entity: string
@@ -31,18 +33,9 @@ export async function toggleBooleanValue({
         body.dataTableClass = dataTableClass
     }
 
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-    }
-
-    if (csrfToken) {
-        headers['X-CSRF-Token'] = csrfToken
-    }
-
     return await fetch(url, {
         method,
-        headers,
+        headers: createMutationHeaders(csrfToken),
         body: JSON.stringify(body),
     })
 }

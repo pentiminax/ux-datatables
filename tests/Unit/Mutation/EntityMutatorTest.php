@@ -57,6 +57,7 @@ final class EntityMutatorTest extends TestCase
             new EntityLocator($this->registry($manager)),
             $this->createMock(PropertyAccessorInterface::class),
             $publisher,
+            new PermissionChecker(),
             mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
         );
 
@@ -81,6 +82,7 @@ final class EntityMutatorTest extends TestCase
             new EntityLocator($this->registry($manager)),
             $this->createMock(PropertyAccessorInterface::class),
             $publisher,
+            new PermissionChecker(),
             mercureConfigResolver: $this->resolverReturning(['/server/only']),
         );
 
@@ -107,6 +109,7 @@ final class EntityMutatorTest extends TestCase
             new EntityLocator($this->registry($manager)),
             $this->createMock(PropertyAccessorInterface::class),
             $publisher,
+            new PermissionChecker(),
         );
 
         $mutator->delete(EntityMutatorFixture::class, 5);
@@ -147,6 +150,7 @@ final class EntityMutatorTest extends TestCase
             new EntityLocator($this->registry($manager)),
             $this->createMock(PropertyAccessorInterface::class),
             $publisher,
+            new PermissionChecker(),
             mercureConfigResolver: $resolver,
             dataTables: $dataTables,
         );
@@ -185,6 +189,7 @@ final class EntityMutatorTest extends TestCase
             new EntityLocator($this->registry($manager)),
             $this->createMock(PropertyAccessorInterface::class),
             $publisher,
+            new PermissionChecker(),
             mercureConfigResolver: $resolver,
             dataTables: $dataTables,
         );
@@ -216,6 +221,7 @@ final class EntityMutatorTest extends TestCase
             new EntityLocator($this->registry($manager)),
             $this->createMock(PropertyAccessorInterface::class),
             $publisher,
+            new PermissionChecker(),
             mercureConfigResolver: $resolver,
             dataTables: $dataTables,
         );
@@ -245,6 +251,7 @@ final class EntityMutatorTest extends TestCase
             new EntityLocator($this->registry($manager)),
             $accessor,
             $publisher,
+            new PermissionChecker(),
             mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
         );
 
@@ -266,7 +273,7 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->never())->method('publish');
 
-        $mutator = new EntityMutator(new EntityLocator($this->registry($manager)), $accessor, $publisher);
+        $mutator = new EntityMutator(new EntityLocator($this->registry($manager)), $accessor, $publisher, new PermissionChecker());
 
         $this->expectException(PropertyNotWritableException::class);
         $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
@@ -286,7 +293,7 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->never())->method('publish');
 
-        $mutator = new EntityMutator(new EntityLocator($this->registry($manager)), $accessor, $publisher);
+        $mutator = new EntityMutator(new EntityLocator($this->registry($manager)), $accessor, $publisher, new PermissionChecker());
 
         $this->expectException(FieldNotToggleableException::class);
         $mutator->setProperty(EntityMutatorFixture::class, 5, 'admin', true);
@@ -371,6 +378,7 @@ final class EntityMutatorTest extends TestCase
             new EntityLocator($this->registry($manager)),
             $this->createMock(PropertyAccessorInterface::class),
             $publisher,
+            new PermissionChecker(),
         );
 
         $this->expectException(EntityNotFoundException::class);

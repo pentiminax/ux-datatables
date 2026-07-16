@@ -1,7 +1,10 @@
 import { escapeHtml, parseBooleanValue } from '../functions/htmlUtils.js'
 import type { BooleanCustomOptions, ColumnRenderer } from './types.js'
 
-export function createBooleanColumnRenderer(toggleUrl: string): ColumnRenderer {
+export function createBooleanColumnRenderer(
+    toggleUrl: string,
+    mutationsEnabled = true
+): ColumnRenderer {
     return {
         matches(column: Record<string, any>): boolean {
             return true === column?.customOptions?.renderAsSwitch
@@ -34,7 +37,7 @@ export function createBooleanColumnRenderer(toggleUrl: string): ColumnRenderer {
 
                 const rowId = row?.[toggleIdField]
                 const checked = boolValue ? ' checked' : ''
-                const disabled = entityClass === '' ? ' disabled' : ''
+                const disabled = entityClass === '' || !mutationsEnabled ? ' disabled' : ''
                 const escapedId = escapeHtml(String(rowId ?? ''))
                 const escapedUrl = escapeHtml(toggleUrl)
                 const escapedField = escapeHtml(

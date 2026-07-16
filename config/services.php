@@ -79,10 +79,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, param('kernel.secret'))
         ->private();
 
-    // Bundle-owned CSRF token manager guaranteeing the mutation guard always has a
-    // manager to check against. CsrfTokenManagerPass swaps this for the application's
-    // own manager when one is configured; otherwise this session-backed default keeps
-    // the delete/toggle endpoints protected and working out of the box.
+    // Session-backed fallback when the application has no CSRF token manager.
     $services->set('datatables.security.csrf_token_manager', CsrfTokenManager::class)
         ->arg(0, inline_service(UriSafeTokenGenerator::class))
         ->arg(1, inline_service(SessionTokenStorage::class)->arg(0, service('request_stack')))

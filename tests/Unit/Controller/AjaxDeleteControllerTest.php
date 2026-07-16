@@ -25,6 +25,7 @@ use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -69,7 +70,7 @@ final class AjaxDeleteControllerTest extends TestCase
                 hubUrl: 'https://hub.example/.well-known/mercure',
             ));
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, mercureConfigResolver: $resolver);
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, new PermissionChecker(), mercureConfigResolver: $resolver);
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
@@ -128,6 +129,7 @@ final class AjaxDeleteControllerTest extends TestCase
             new EntityLocator($registry),
             $this->createMock(PropertyAccessorInterface::class),
             $publisher,
+            new PermissionChecker(),
             mercureConfigResolver: $resolver,
             dataTables: $dataTables,
         );
@@ -163,7 +165,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->with(DeletableEntityFixture::class)->willReturn($manager);
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher());
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher(), new PermissionChecker());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')
@@ -190,7 +192,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->expects($this->never())->method('getManagerForClass');
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher());
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher(), new PermissionChecker());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(false);
@@ -214,7 +216,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->expects($this->never())->method('getManagerForClass');
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher());
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher(), new PermissionChecker());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->expects($this->never())->method('isTokenValid');
@@ -239,7 +241,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($manager);
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher());
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), new NullMercurePublisher(), new PermissionChecker());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
