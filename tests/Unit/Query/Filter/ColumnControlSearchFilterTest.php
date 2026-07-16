@@ -16,7 +16,6 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnControlSearchFilter;
-use Pentiminax\UX\DataTables\Query\Strategy\InListSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -53,7 +52,7 @@ final class ColumnControlSearchFilterTest extends TestCase
     #[Test]
     public function it_skips_list_search_when_field_requires_an_explicit_scalar_path(): void
     {
-        $filter = new ColumnControlSearchFilter(new SearchStrategyRegistry([new InListSearchStrategy()]));
+        $filter = new ColumnControlSearchFilter(new SearchStrategyRegistry([]));
         $qb     = $this->createAssociationFieldQueryBuilder('client');
 
         $qb->expects($this->never())->method('andWhere');
