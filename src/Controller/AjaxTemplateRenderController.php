@@ -6,7 +6,6 @@ namespace Pentiminax\UX\DataTables\Controller;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Rehydration\SourceRowMap;
 use Pentiminax\UX\DataTables\Rehydration\SourceRowResolver;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -46,19 +45,22 @@ final class AjaxTemplateRenderController
 
         $sourceRows = $this->sourceRowResolver->resolve($table->getEntityClass(), $rows);
 
-        return new JsonResponse([
-            'data' => array_map(fn (mixed $row): mixed => $this->renderRow($row, $table, $sourceRows), $rows),
-        ]);
+        $data = [];
+        foreach ($rows as $key => $row) {
+            $data[] = $this->renderRow($row, $table, $sourceRows[$key] ?? null);
+        }
+
+        return new JsonResponse(['data' => $data]);
     }
 
-    private function renderRow(mixed $row, AbstractDataTable $table, SourceRowMap $sourceRows): mixed
+    private function renderRow(mixed $row, AbstractDataTable $table, ?object $sourceRow): mixed
     {
         if (!\is_array($row)) {
             return $row;
         }
 
-        $sourceRow = $sourceRows->sourceFor($row) ?? $row;
-        $columns   = $table->getConfiguredDataTable()->getColumns();
+        $sourceRow ??= $row;
+        $columns = $table->getConfiguredDataTable()->getColumns();
 
         return $this->runtimeFactory
             ->createRowMapper(

@@ -16,36 +16,55 @@ final class SourceRowResolver
     }
 
     /**
-     * @param list<mixed> $rows
+     * Batch-rehydrate the source entity backing each row in a single query.
+     *
+     * The returned array preserves the keys of $rows: each entry holds the
+     * resolved entity, or null when the row carries no resolvable identifier
+     * or no matching entity exists. The identifier is extracted exactly once
+     * per row.
+     *
+     * @param array<array-key, mixed> $rows
+     *
+     * @return array<array-key, object|null>
      */
-    public function resolve(?string $entityClass, array $rows): SourceRowMap
+    public function resolve(?string $entityClass, array $rows): array
     {
+        $resolved = array_fill_keys(array_keys($rows), null);
+
         if (null === $entityClass || null === $this->doctrine) {
-            return SourceRowMap::empty($this->identifierExtractor);
+            return $resolved;
         }
 
-        $ids = [];
-        foreach ($rows as $row) {
+        $idByRowKey = [];
+        $ids        = [];
+        foreach ($rows as $key => $row) {
             if (\is_array($row) && null !== ($id = $this->identifierExtractor->extract($row))) {
+                $idByRowKey[$key]  = (string) $id;
                 $ids[(string) $id] = $id;
             }
         }
 
         if ([] === $ids) {
-            return SourceRowMap::empty($this->identifierExtractor);
+            return $resolved;
         }
 
         $manager = $this->doctrine->getManagerForClass($entityClass);
 
         if (!$manager instanceof ObjectManager) {
-            return SourceRowMap::empty($this->identifierExtractor);
+            return $resolved;
         }
 
-        $metadata = $manager->getClassMetadata($entityClass);
-        $idField  = $metadata->getIdentifierFieldNames()[0] ?? 'id';
+        $metadata         = $manager->getClassMetadata($entityClass);
+        $identifierFields = $metadata->getIdentifierFieldNames();
+
+        // Rows carry a single scalar identifier, so composite keys cannot be
+        // matched reliably; skip rehydration rather than silently mismatch rows.
+        if (1 !== \count($identifierFields)) {
+            return $resolved;
+        }
 
         $entities = [];
-        foreach ($manager->getRepository($entityClass)->findBy([$idField => array_values($ids)]) as $entity) {
+        foreach ($manager->getRepository($entityClass)->findBy([$identifierFields[0] => array_values($ids)]) as $entity) {
             $identifierValues = $metadata->getIdentifierValues($entity);
             $identifier       = reset($identifierValues);
             if (false !== $identifier) {
@@ -53,6 +72,10 @@ final class SourceRowResolver
             }
         }
 
-        return new SourceRowMap($entities, $this->identifierExtractor);
+        foreach ($idByRowKey as $key => $id) {
+            $resolved[$key] = $entities[$id] ?? null;
+        }
+
+        return $resolved;
     }
 }
