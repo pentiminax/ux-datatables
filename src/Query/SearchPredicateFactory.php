@@ -12,6 +12,9 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
  *
  * For numeric columns: exact match when the value is numeric, null otherwise.
  * For other columns: LIKE %value% when the field supports search filtering, null otherwise.
+ *
+ * A column is treated as numeric when {@see ColumnInterface::isNumber()} is true or when
+ * the caller forces numeric handling via $forceNumeric (e.g. based on an external type hint).
  */
 final class SearchPredicateFactory
 {
@@ -22,8 +25,9 @@ final class SearchPredicateFactory
         string $field,
         string $value,
         string $paramName,
+        bool $forceNumeric = false,
     ): ?string {
-        if ($column->isNumber()) {
+        if ($column->isNumber() || $forceNumeric) {
             if (!is_numeric($value)) {
                 return null;
             }
