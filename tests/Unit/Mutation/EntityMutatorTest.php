@@ -474,14 +474,10 @@ final class EntityMutatorTest extends TestCase
             mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
         );
 
-        try {
-            $mutator->delete(EntityMutatorFixture::class, 5);
-            $this->fail('Expected a MutationPersistenceException to be thrown.');
-        } catch (MutationPersistenceException $exception) {
-            $this->assertSame(409, $exception->getStatusCode());
-            $this->assertSame('The operation could not be completed due to a data conflict.', $exception->getClientMessage());
-            $this->assertSame($dbalException, $exception->getPrevious());
-        }
+        $this->assertMapsToPersistenceException(
+            fn () => $mutator->delete(EntityMutatorFixture::class, 5),
+            $dbalException,
+        );
     }
 
     #[Test]
@@ -509,14 +505,10 @@ final class EntityMutatorTest extends TestCase
             mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
         );
 
-        try {
-            $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
-            $this->fail('Expected a MutationPersistenceException to be thrown.');
-        } catch (MutationPersistenceException $exception) {
-            $this->assertSame(409, $exception->getStatusCode());
-            $this->assertSame('The operation could not be completed due to a data conflict.', $exception->getClientMessage());
-            $this->assertSame($dbalException, $exception->getPrevious());
-        }
+        $this->assertMapsToPersistenceException(
+            fn () => $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true),
+            $dbalException,
+        );
     }
 
     #[Test]
@@ -543,14 +535,10 @@ final class EntityMutatorTest extends TestCase
             mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
         );
 
-        try {
-            $mutator->delete(EntityMutatorFixture::class, 5);
-            $this->fail('Expected a MutationPersistenceException to be thrown.');
-        } catch (MutationPersistenceException $exception) {
-            $this->assertSame(409, $exception->getStatusCode());
-            $this->assertSame('The operation could not be completed due to a data conflict.', $exception->getClientMessage());
-            $this->assertSame($lockException, $exception->getPrevious());
-        }
+        $this->assertMapsToPersistenceException(
+            fn () => $mutator->delete(EntityMutatorFixture::class, 5),
+            $lockException,
+        );
     }
 
     #[Test]
@@ -574,6 +562,26 @@ final class EntityMutatorTest extends TestCase
 
         $this->expectException(EntityNotFoundException::class);
         $mutator->delete(EntityMutatorFixture::class, 404);
+    }
+
+    /**
+     * Asserts that running $act maps its underlying failure to a 409
+     * MutationPersistenceException wrapping $expectedPrevious.
+     */
+    private function assertMapsToPersistenceException(callable $act, \Throwable $expectedPrevious): void
+    {
+        $caught = null;
+
+        try {
+            $act();
+        } catch (MutationPersistenceException $exception) {
+            $caught = $exception;
+        }
+
+        $this->assertInstanceOf(MutationPersistenceException::class, $caught);
+        $this->assertSame(409, $caught->getStatusCode());
+        $this->assertSame('The operation could not be completed due to a data conflict.', $caught->getClientMessage());
+        $this->assertSame($expectedPrevious, $caught->getPrevious());
     }
 
     private function dbalException(): DBALException
