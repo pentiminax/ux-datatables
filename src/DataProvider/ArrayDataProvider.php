@@ -29,15 +29,20 @@ final class ArrayDataProvider implements DataProviderInterface
 
         $recordsTotal = \count($all);
 
+        // An empty search value (the default sent on every unfiltered page load)
+        // matches every row, so it is treated as "no search" to avoid mapping
+        // out-of-page rows. Whitespace is preserved: only '' short-circuits.
+        $term = $request->search?->value ?? '';
+
         // With an active search every element must be mapped to be searchable.
         // Map each element exactly once, then reuse those mapped rows for output.
-        if (null !== $request->search) {
-            $matched = $this->filterBySearch($all, mb_strtolower((string) $request->search->value));
+        if ('' !== $term) {
+            $matched = $this->filterBySearch($all, mb_strtolower($term));
 
             return new DataTableResult(
                 recordsTotal: $recordsTotal,
                 recordsFiltered: \count($matched),
-                data: $this->yieldRows($this->slice($matched, $request)),
+                data: $this->slice($matched, $request),
             );
         }
 
@@ -103,16 +108,6 @@ final class ArrayDataProvider implements DataProviderInterface
         foreach ($items as $item) {
             yield $this->rowMapper->map($this->normalize($item));
         }
-    }
-
-    /**
-     * @param list<array> $rows already-mapped rows, yielded as-is without remapping
-     *
-     * @return \Generator<array>
-     */
-    private function yieldRows(array $rows): \Generator
-    {
-        yield from $rows;
     }
 
     private function normalize(mixed $item): object
