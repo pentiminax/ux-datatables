@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Mutation;
 
+use Doctrine\DBAL\Exception as DBALException;
+use Doctrine\ORM\OptimisticLockException;
+use Doctrine\Persistence\ObjectManager;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
+use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
@@ -30,6 +34,7 @@ final class EntityMutator
     /**
      * @throws EntityNotFoundException
      * @throws MutationNotAllowedException
+     * @throws MutationPersistenceException
      */
     public function delete(string $entityClass, int|string $id, ?string $dataTableClass = null): void
     {
@@ -40,7 +45,7 @@ final class EntityMutator
         }
 
         $context->manager->remove($context->entity);
-        $context->manager->flush();
+        $this->flush($context->manager);
 
         $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $entityClass, $this->dataTables, $dataTableClass), [
             'type' => 'delete',
@@ -54,6 +59,7 @@ final class EntityMutator
      * @throws EntityNotFoundException
      * @throws FieldNotToggleableException
      * @throws MutationNotAllowedException
+     * @throws MutationPersistenceException
      * @throws PropertyNotWritableException
      */
     public function setProperty(string $entityClass, int|string $id, string $field, bool $value, ?string $dataTableClass = null): void
@@ -75,12 +81,28 @@ final class EntityMutator
         }
 
         $this->propertyAccessor->setValue($context->entity, $field, $value);
-        $context->manager->flush();
+        $this->flush($context->manager);
 
         $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $entityClass, $this->dataTables, $dataTableClass), [
             'type'  => 'edit',
             'id'    => $id,
             'field' => $field,
         ]);
+    }
+
+    /**
+     * @throws MutationPersistenceException when the underlying persistence layer rejects the flush
+     */
+    private function flush(ObjectManager $manager): void
+    {
+        try {
+            $manager->flush();
+        } catch (DBALException|OptimisticLockException $exception) {
+            // The 409 primarily targets constraint/conflict cases — a unique
+            // violation or an optimistic-lock version mismatch. Broader DBAL
+            // failures (e.g. a lost connection) are deliberately mapped here
+            // too rather than leaking as a raw 500.
+            throw new MutationPersistenceException(previous: $exception);
+        }
     }
 }
