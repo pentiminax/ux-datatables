@@ -27,12 +27,11 @@ class DoctrineDataProvider implements DataProviderInterface
 
     public function fetchData(DataTableRequest $request): DataTableResult
     {
-        $alias     = 'e';
-        $countExpr = "COUNT($alias)";
+        $alias = 'e';
 
         $countQb = $this->em
             ->createQueryBuilder()
-            ->select($countExpr)
+            ->select("COUNT($alias)")
             ->from($this->entityClass, $alias);
 
         $recordsTotal = (int) $countQb->getQuery()->getSingleScalarResult();
@@ -46,9 +45,16 @@ class DoctrineDataProvider implements DataProviderInterface
             $qb = ($this->configureQueryBuilder)($qb, $request);
         }
 
+        // Filters supplied by configureQueryBuilder may add joins (e.g. searching over a
+        // relation). When such a join traverses a to-many association, a plain COUNT(e) is
+        // inflated by row multiplication. COUNT(DISTINCT e) counts distinct root entities, so
+        // recordsFiltered stays correct and pagination does not break.
+        // Note: this assumes a single-column primary key (Doctrine resolves COUNT(DISTINCT e) to
+        // the first identifier column); entities with composite keys would need a subquery over
+        // the identifiers instead.
         $filteredCountQb = clone $qb;
         $filteredCount   = (int) $filteredCountQb
-            ->select($countExpr)
+            ->select("COUNT(DISTINCT $alias)")
             ->resetDQLPart('orderBy')
             ->getQuery()
             ->getSingleScalarResult();
