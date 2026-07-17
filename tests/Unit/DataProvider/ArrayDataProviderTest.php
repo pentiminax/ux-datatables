@@ -123,6 +123,44 @@ final class ArrayDataProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_applies_pagination_to_the_matched_rows_when_a_search_is_active(): void
+    {
+        $mapper = new CountingRowMapper();
+
+        $provider = new ArrayDataProvider(
+            [
+                ['id' => 1, 'name' => 'Alice'],
+                ['id' => 2, 'name' => 'Bob'],
+                ['id' => 3, 'name' => 'Alicia'],
+                ['id' => 4, 'name' => 'Carol'],
+                ['id' => 5, 'name' => 'Alina'],
+            ],
+            $mapper,
+        );
+
+        // Three rows match 'ali'; the page boundary must apply to the matched set.
+        $result = $provider->fetchData(new DataTableRequest(
+            draw: 1,
+            columns: new Columns([]),
+            start: 1,
+            length: 1,
+            search: new Search('ali', false),
+        ));
+
+        $data = iterator_to_array($result->data);
+
+        $this->assertSame(5, $result->recordsTotal);
+        $this->assertSame(3, $result->recordsFiltered);
+        // start: 1, length: 1 selects the second match (Alicia), not the first or all.
+        $this->assertSame([
+            ['id' => 3, 'name' => 'Alicia'],
+        ], $data);
+
+        // Every element is still mapped exactly once, even though only one is returned.
+        $this->assertSame(5, $mapper->calls);
+    }
+
+    #[Test]
     public function it_treats_an_empty_search_value_as_no_search_and_maps_only_the_slice(): void
     {
         $mapper = new CountingRowMapper();
