@@ -81,6 +81,31 @@ final class SearchPredicateFactoryTest extends TestCase
     }
 
     #[Test]
+    public function it_returns_exact_condition_for_non_numeric_column_when_forcing_numeric(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+        $qb->expects($this->once())->method('setParameter')->with('p_0', '42');
+
+        $column = TextColumn::new('score', 'Score')->setField('score');
+        $result = SearchPredicateFactory::build($qb, $column, 'e', 'score', '42', 'p_0', true);
+
+        $this->assertSame('e.score = :p_0', $result);
+    }
+
+    #[Test]
+    public function it_returns_null_when_forcing_numeric_with_non_numeric_value(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->expects($this->never())->method('setParameter');
+
+        $column = TextColumn::new('score', 'Score')->setField('score');
+        $result = SearchPredicateFactory::build($qb, $column, 'e', 'score', 'abc', 'p_0', true);
+
+        $this->assertNull($result);
+    }
+
+    #[Test]
     public function it_returns_null_for_non_text_field(): void
     {
         $metadata = $this->createMock(ClassMetadata::class);
