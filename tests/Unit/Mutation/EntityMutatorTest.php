@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Mutation;
 
+use Doctrine\DBAL\Exception as DBALException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
@@ -14,6 +15,7 @@ use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
+use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
@@ -447,6 +449,74 @@ final class EntityMutatorTest extends TestCase
     }
 
     #[Test]
+    public function it_maps_a_flush_failure_to_a_persistence_exception_on_delete(): void
+    {
+        $entity = new EntityMutatorFixture();
+
+        $dbalException = $this->dbalException();
+
+        $manager = $this->managerReturning($entity, 5);
+        $manager->expects($this->once())->method('remove')->with($entity);
+        $manager->expects($this->once())->method('flush')->willThrowException($dbalException);
+
+        // A failed persistence must never surface as a published mutation event.
+        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher->expects($this->never())->method('publish');
+
+        $mutator = new EntityMutator(
+            new EntityLocator($this->registry($manager)),
+            $this->createMock(PropertyAccessorInterface::class),
+            $publisher,
+            new PermissionChecker(),
+            mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
+        );
+
+        try {
+            $mutator->delete(EntityMutatorFixture::class, 5);
+            $this->fail('Expected a MutationPersistenceException to be thrown.');
+        } catch (MutationPersistenceException $exception) {
+            $this->assertSame(409, $exception->getStatusCode());
+            $this->assertSame('The operation could not be completed due to a data conflict.', $exception->getClientMessage());
+            $this->assertSame($dbalException, $exception->getPrevious());
+        }
+    }
+
+    #[Test]
+    public function it_maps_a_flush_failure_to_a_persistence_exception_on_set_property(): void
+    {
+        $entity = new EntityMutatorFixture();
+
+        $dbalException = $this->dbalException();
+
+        $manager = $this->managerReturning($entity, 5);
+        $manager->expects($this->once())->method('flush')->willThrowException($dbalException);
+
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->method('isWritable')->with($entity, 'enabled')->willReturn(true);
+        $accessor->expects($this->once())->method('setValue')->with($entity, 'enabled', true);
+
+        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher->expects($this->never())->method('publish');
+
+        $mutator = new EntityMutator(
+            new EntityLocator($this->registry($manager)),
+            $accessor,
+            $publisher,
+            new PermissionChecker(),
+            mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
+        );
+
+        try {
+            $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
+            $this->fail('Expected a MutationPersistenceException to be thrown.');
+        } catch (MutationPersistenceException $exception) {
+            $this->assertSame(409, $exception->getStatusCode());
+            $this->assertSame('The operation could not be completed due to a data conflict.', $exception->getClientMessage());
+            $this->assertSame($dbalException, $exception->getPrevious());
+        }
+    }
+
+    #[Test]
     public function it_propagates_not_found_from_the_locator_on_delete(): void
     {
         $manager    = $this->createMock(EntityManagerInterface::class);
@@ -467,6 +537,11 @@ final class EntityMutatorTest extends TestCase
 
         $this->expectException(EntityNotFoundException::class);
         $mutator->delete(EntityMutatorFixture::class, 404);
+    }
+
+    private function dbalException(): DBALException
+    {
+        return new class('constraint violation') extends \RuntimeException implements DBALException {};
     }
 
     private function managerReturning(object $entity, int|string $id): EntityManagerInterface
