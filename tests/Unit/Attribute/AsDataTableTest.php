@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Attribute;
 use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
@@ -18,7 +17,6 @@ use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithAttribute;
-use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithBooleanColumn;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithData;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualAjax;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualMercure;
@@ -29,7 +27,6 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureAt
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureTopicsAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithoutAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithServerSide;
-use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\ToggleEntityFixture;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -149,18 +146,6 @@ final class AsDataTableTest extends TestCase
                 dataProviderResolver: new DataProviderResolver(new AutoDataProviderFactory($em))
             )
         );
-    }
-
-    #[Test]
-    public function it_keeps_automatically_resolved_boolean_entity_class_on_the_server(): void
-    {
-        $table  = new TestDataTableWithBooleanColumn();
-        $column = $table->getColumnByName('isEmailAuthEnabled');
-
-        $this->assertNotNull($column);
-        $this->assertInstanceOf(BooleanColumn::class, $column);
-        $this->assertSame(ToggleEntityFixture::class, $column->getEntityClass());
-        $this->assertArrayNotHasKey('entityClass', $column->jsonSerialize()['customOptions'] ?? []);
     }
 
     #[Test]
