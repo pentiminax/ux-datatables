@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Controller;
 
 use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
+use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,6 +17,7 @@ final class AjaxEditController
     public function __construct(
         private readonly EntityMutator $mutator,
         private readonly MutationTokenValidator $tokenValidator,
+        private readonly BooleanMutationContextResolver $contextResolver,
     ) {
     }
 
@@ -23,12 +25,14 @@ final class AjaxEditController
     {
         $this->tokenValidator->validate($request);
 
+        $context = $this->contextResolver->resolve($payload->dataTable, $payload->field);
+
         $this->mutator->setProperty(
-            entityClass: $payload->entity,
+            entityClass: $context->entityClass,
             id: $payload->id,
-            field: $payload->field,
+            field: $context->field,
             value: $payload->newValue,
-            dataTableClass: $payload->dataTableClass,
+            dataTableClass: $context->dataTableClass,
         );
 
         return new Response($payload->newValue ? '1' : '0');

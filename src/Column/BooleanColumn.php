@@ -62,4 +62,19 @@ class BooleanColumn extends AbstractColumn
     {
         return $this->getCustomOption(self::OPTION_TOGGLE_FIELD);
     }
+
+    public function jsonSerialize(): array
+    {
+        $options = parent::jsonSerialize();
+
+        if (isset($options['customOptions']) && \is_array($options['customOptions'])) {
+            unset($options['customOptions'][self::OPTION_ENTITY_CLASS]);
+
+            if ([] === $options['customOptions']) {
+                unset($options['customOptions']);
+            }
+        }
+
+        return $options;
+    }
 }

@@ -143,7 +143,9 @@ class default_1 extends Controller {
     configureColumns(payload) {
         normalizeDisabledColumnControls(payload);
         const columnRenderers = [
-            createBooleanColumnRenderer(this.getBooleanToggleUrl(), this.areMutationsEnabled(payload)),
+            createBooleanColumnRenderer(this.getBooleanToggleUrl(), this.areMutationsEnabled(payload) &&
+                typeof payload.dataTable === 'string' &&
+                payload.dataTable.length > 0),
             choiceColumnRenderer,
             emailColumnRenderer,
             moneyColumnRenderer,
@@ -267,16 +269,16 @@ class default_1 extends Controller {
             const url = target.dataset.url;
             const id = target.dataset.id;
             const field = target.dataset.field;
-            const entity = target.dataset.entity;
             const method = target.dataset.method ?? 'PATCH';
+            const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : '';
             if (!id || !field) {
                 target.checked = !target.checked;
                 console.error('Missing ID or field for boolean switch update');
                 return;
             }
-            if (!entity) {
+            if (!dataTable) {
                 target.checked = !target.checked;
-                console.error('Missing entity for boolean toggle endpoint');
+                console.error('Missing DataTable token for boolean toggle endpoint');
                 return;
             }
             const previousState = !target.checked;
@@ -286,10 +288,9 @@ class default_1 extends Controller {
                     url: url ?? this.getBooleanToggleUrl(),
                     id,
                     field,
-                    entity,
                     newValue: target.checked,
                     method,
-                    dataTableClass: payload.dataTableClass ?? null,
+                    dataTable,
                     csrfToken: this.getCsrfToken(payload),
                 });
                 if (!response.ok) {

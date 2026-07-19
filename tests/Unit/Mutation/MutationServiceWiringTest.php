@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Mutation;
 
+use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\DataTablesBundle;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
@@ -100,6 +102,20 @@ final class MutationServiceWiringTest extends TestCase
         $publisher = $kernel->getContainer()->get('test.datatables.mercure.null_publisher');
 
         $this->assertInstanceOf(NullMercurePublisher::class, $publisher);
+
+        $kernel->shutdown();
+    }
+
+    #[Test]
+    public function it_wires_the_ajax_edit_controller_with_the_boolean_mutation_context_resolver(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+
+        $controller = $kernel->getContainer()->get('datatables.controller.ajax_edit');
+
+        $this->assertInstanceOf(AjaxEditController::class, $controller);
+        $this->assertInstanceOf(BooleanMutationContextResolver::class, $this->readPrivateProperty($controller, 'contextResolver'));
 
         $kernel->shutdown();
     }

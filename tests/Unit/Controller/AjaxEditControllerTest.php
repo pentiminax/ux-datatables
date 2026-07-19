@@ -8,12 +8,15 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
-use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
+use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
@@ -22,6 +25,7 @@ use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
@@ -43,6 +47,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(AjaxEditController::class)]
 final class AjaxEditControllerTest extends TestCase
 {
+    private const string TOKEN_SECRET = 'test-secret';
+
     #[Test]
     public function it_returns_zero_when_updating_boolean_field_to_false(): void
     {
@@ -55,10 +61,10 @@ final class AjaxEditControllerTest extends TestCase
         $controller = $this->controller($entity, 799, $accessor, expectFlush: true);
 
         $response = $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
             newValue: false,
+            dataTable: $this->dataTableToken(),
         ));
 
         $this->assertSame(200, $response->getStatusCode());
@@ -77,10 +83,10 @@ final class AjaxEditControllerTest extends TestCase
         $controller = $this->controller($entity, 799, $accessor, expectFlush: true);
 
         $response = $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
             newValue: true,
+            dataTable: $this->dataTableToken(),
         ));
 
         $this->assertSame(200, $response->getStatusCode());
@@ -107,10 +113,10 @@ final class AjaxEditControllerTest extends TestCase
         $request->headers->set(MutationTokenValidator::HEADER, 'valid-token');
 
         $response = $controller($request, new AjaxEditRequestDto(
-            entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
             newValue: true,
+            dataTable: $this->dataTableToken(),
         ));
 
         $this->assertSame(200, $response->getStatusCode());
@@ -129,10 +135,10 @@ final class AjaxEditControllerTest extends TestCase
         $controller = $this->controller($entity, '018f2c3e-1234-7abc-9def-0123456789ab', $accessor, expectFlush: true);
 
         $response = $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: '018f2c3e-1234-7abc-9def-0123456789ab',
             newValue: true,
+            dataTable: $this->dataTableToken(),
         ));
 
         $this->assertSame(200, $response->getStatusCode());
@@ -155,10 +161,10 @@ final class AjaxEditControllerTest extends TestCase
 
         $this->expectException(InvalidCsrfTokenException::class);
         $controller($request, new AjaxEditRequestDto(
-            entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
             newValue: true,
+            dataTable: $this->dataTableToken(),
         ));
     }
 
@@ -175,10 +181,10 @@ final class AjaxEditControllerTest extends TestCase
 
         $this->expectException(PropertyNotWritableException::class);
         $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
             newValue: false,
+            dataTable: $this->dataTableToken(),
         ));
     }
 
@@ -192,12 +198,12 @@ final class AjaxEditControllerTest extends TestCase
 
         $controller = $this->controller($entity, 799, $accessor, expectFlush: false);
 
-        $this->expectException(FieldNotToggleableException::class);
+        $this->expectException(InvalidBooleanMutationContextException::class);
         $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            entity: ToggleBooleanEntityFixture::class,
             field: 'admin',
             id: 799,
             newValue: true,
+            dataTable: $this->dataTableToken(),
         ));
     }
 
@@ -211,10 +217,10 @@ final class AjaxEditControllerTest extends TestCase
 
         $this->expectException(EntityNotFoundException::class);
         $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
             newValue: false,
+            dataTable: $this->dataTableToken(),
         ));
     }
 
@@ -231,10 +237,10 @@ final class AjaxEditControllerTest extends TestCase
 
         $this->expectException(InvalidCsrfTokenException::class);
         $controller(new Request(), new AjaxEditRequestDto(
-            entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
             newValue: false,
+            dataTable: $this->dataTableToken(),
         ));
     }
 
@@ -291,14 +297,13 @@ final class AjaxEditControllerTest extends TestCase
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
 
-        $controller = new AjaxEditController($mutator, new MutationTokenValidator($csrfTokenManager));
+        $controller = new AjaxEditController($mutator, new MutationTokenValidator($csrfTokenManager), $this->contextResolver($dataTable));
 
         $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            entity: ToggleBooleanEntityFixture::class,
             field: 'isEmailAuthEnabled',
             id: 799,
             newValue: true,
-            dataTableClass: ToggleBooleanEntityFixtureDataTable::class,
+            dataTable: $this->dataTableToken(),
         ));
     }
 
@@ -331,7 +336,34 @@ final class AjaxEditControllerTest extends TestCase
             $csrfTokenManager->method('isTokenValid')->willReturn(true);
         }
 
-        return new AjaxEditController($mutator, new MutationTokenValidator($csrfTokenManager));
+        return new AjaxEditController($mutator, new MutationTokenValidator($csrfTokenManager), $this->contextResolver());
+    }
+
+    private function contextResolver(?AbstractDataTable $dataTable = null): BooleanMutationContextResolver
+    {
+        return new BooleanMutationContextResolver($this->registry($dataTable ?? new ToggleBooleanEntityFixtureDataTable()));
+    }
+
+    private function registry(AbstractDataTable $dataTable): AjaxDataTableRegistry
+    {
+        $locator = $this->createMock(ContainerInterface::class);
+        $locator->method('get')->with('toggle_table')->willReturn($dataTable);
+
+        return new AjaxDataTableRegistry(
+            $locator,
+            new AjaxDataTableTokenManager(self::TOKEN_SECRET),
+            [ToggleBooleanEntityFixtureDataTable::class => 'toggle_table'],
+        );
+    }
+
+    private function dataTableToken(): string
+    {
+        $token = $this->registry(new ToggleBooleanEntityFixtureDataTable())
+            ->getBooleanMutationToken(ToggleBooleanEntityFixtureDataTable::class);
+
+        $this->assertNotNull($token);
+
+        return $token;
     }
 
     private function validTokenRequest(): Request
@@ -382,5 +414,6 @@ final class ToggleBooleanEntityFixtureDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');
+        yield BooleanColumn::new('isEmailAuthEnabled')->renderAsSwitch();
     }
 }
