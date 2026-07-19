@@ -358,7 +358,12 @@ final class AjaxEditControllerTest extends TestCase
 
     private function dataTableToken(): string
     {
-        return (new AjaxDataTableTokenManager(self::TOKEN_SECRET))->generateHmacSignature(ToggleBooleanEntityFixtureDataTable::class);
+        $token = $this->registry(new ToggleBooleanEntityFixtureDataTable())
+            ->getBooleanMutationToken(ToggleBooleanEntityFixtureDataTable::class);
+
+        $this->assertNotNull($token);
+
+        return $token;
     }
 
     private function validTokenRequest(): Request

@@ -84,6 +84,15 @@ final class BooleanMutationContextResolverTest extends TestCase
         $this->assertSame('isEnabled', $context->field);
     }
 
+    #[Test]
+    public function it_falls_back_to_the_column_field_when_toggle_field_is_empty(): void
+    {
+        $context = $this->resolver(new EmptyToggleFieldDataTableFixture(), EmptyToggleFieldDataTableFixture::class)
+            ->resolve($this->token(EmptyToggleFieldDataTableFixture::class), 'enabled');
+
+        $this->assertSame('enabled', $context->field);
+    }
+
     /**
      * @param class-string<AbstractDataTable>|null $dataTableClass
      */
@@ -106,7 +115,15 @@ final class BooleanMutationContextResolverTest extends TestCase
      */
     private function token(string $dataTableClass): string
     {
-        return (new AjaxDataTableTokenManager(self::TOKEN_SECRET))->generateHmacSignature($dataTableClass);
+        $token = (new AjaxDataTableRegistry(
+            $this->createStub(ContainerInterface::class),
+            new AjaxDataTableTokenManager(self::TOKEN_SECRET),
+            [$dataTableClass => 'table'],
+        ))->getBooleanMutationToken($dataTableClass);
+
+        $this->assertNotNull($token);
+
+        return $token;
     }
 }
 
@@ -156,6 +173,17 @@ final class ToggleFieldDataTableFixture extends AbstractDataTable
     {
         yield BooleanColumn::new('enabled')
             ->setCustomOption(BooleanColumn::OPTION_TOGGLE_FIELD, 'isEnabled')
+            ->renderAsSwitch();
+    }
+}
+
+#[AsDataTable(entityClass: BooleanMutationEntityFixture::class)]
+final class EmptyToggleFieldDataTableFixture extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield BooleanColumn::new('enabled')
+            ->setCustomOption(BooleanColumn::OPTION_TOGGLE_FIELD, '')
             ->renderAsSwitch();
     }
 }

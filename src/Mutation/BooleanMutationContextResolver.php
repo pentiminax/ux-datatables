@@ -17,7 +17,7 @@ final readonly class BooleanMutationContextResolver
 
     public function resolve(string $dataTableToken, string $field): BooleanMutationContext
     {
-        $dataTable = $this->registry->get($dataTableToken);
+        $dataTable = $this->registry->getForBooleanMutation($dataTableToken);
 
         if (null === $dataTable) {
             throw InvalidBooleanMutationContextException::invalidDataTableToken();
@@ -50,9 +50,12 @@ final readonly class BooleanMutationContextResolver
 
     private function resolveEffectiveField(BooleanColumn $column): string
     {
-        return $column->getToggleField()
-            ?? $column->getField()
-            ?? $column->getData()
-            ?? $column->getName();
+        foreach ([$column->getToggleField(), $column->getField(), $column->getData(), $column->getName()] as $field) {
+            if (\is_string($field) && '' !== $field) {
+                return $field;
+            }
+        }
+
+        return '';
     }
 }

@@ -138,7 +138,7 @@ final class BooleanSwitchMetadataStageTest extends TestCase
 
         $result = $stage->process(
             [
-                'active' => true,
+                'active'                           => true,
                 '__ux_datatables_boolean_switches' => [
                     'verified' => 7,
                     ''         => 8,
