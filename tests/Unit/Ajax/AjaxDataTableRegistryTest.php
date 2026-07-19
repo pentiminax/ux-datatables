@@ -65,6 +65,22 @@ final class AjaxDataTableRegistryTest extends TestCase
         $this->assertNull($registry->getForBooleanMutation($ajaxToken));
     }
 
+    #[Test]
+    public function it_rejects_a_non_datatable_service_for_boolean_mutations(): void
+    {
+        $registry = $this->createRegistry(['invalid.service' => new \stdClass()], [
+            'App\\DataTable\\InvalidDataTable' => 'invalid.service',
+        ]);
+
+        $token = $registry->getBooleanMutationToken('App\\DataTable\\InvalidDataTable');
+        $this->assertNotNull($token);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Service "invalid.service" must be an instance of');
+
+        $registry->getForBooleanMutation($token);
+    }
+
     private function createRegistry(array $services, array $serviceIdsByClass): AjaxDataTableRegistry
     {
         return new AjaxDataTableRegistry(
