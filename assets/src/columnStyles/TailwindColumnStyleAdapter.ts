@@ -1,8 +1,7 @@
 import { escapeHtml } from '../functions/htmlUtils.js'
 import type { ColumnStyleAdapter, SwitchRenderOptions } from './ColumnStyleAdapter.js'
 
-const BADGE_BASE_CLASSES =
-    'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium'
+const BADGE_BASE_CLASSES = 'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium'
 
 const BADGE_VARIANT_CLASSES: Record<string, string> = {
     success: 'bg-green-100 text-green-800',
@@ -17,7 +16,7 @@ const BADGE_VARIANT_CLASSES: Record<string, string> = {
 
 const SWITCH_TRACK_CLASSES =
     'relative h-6 w-11 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] ' +
-    "after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white " +
+    'after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white ' +
     "after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full " +
     'peer-checked:after:border-white peer-disabled:cursor-not-allowed peer-disabled:opacity-50'
 

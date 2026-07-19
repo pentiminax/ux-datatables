@@ -189,6 +189,41 @@ Or per table in Twig:
 {{ render_datatable(table, {'class': 'table table-bordered table-sm'}) }}
 ```
 
+## Column Chrome (Badges & Switches)
+
+`ChoiceColumn` badges and `BooleanColumn` switches do not hard-code a single CSS framework. The Stimulus controller resolves a **column style adapter** from the same detected DataTables stylesheet used for the core library:
+
+| Detected framework | Adapter | Badge / switch styling |
+|--------------------|---------|------------------------|
+| `bs`, `bs4`, `bs5` | Bootstrap | `badge text-bg-*`, `form-check form-switch` |
+| `dt` and other non-Bootstrap keys | Tailwind | Utility classes (`bg-green-100`, peer toggle, …) |
+
+PHP APIs stay framework-agnostic: pass semantic variants such as `success` or `danger` to `renderAsBadges()`. The adapter maps them to the appropriate classes at render time.
+
+### Tailwind apps
+
+1. Keep the DataTables default CSS enabled (`datatables.net-dt`) — there is no official DataTables Tailwind package yet.
+2. Ensure Tailwind scans the compiled Stimulus bundle (or safelist the utilities) so badge/switch classes are not purged. With Tailwind v4 you can add something like:
+
+```css
+@source "../../vendor/pentiminax/ux-datatables/assets/dist/**/*.js";
+```
+
+3. Semantic variants map as follows:
+
+| Variant | Tailwind utilities |
+|---------|--------------------|
+| `success` | `bg-green-100 text-green-800` |
+| `warning` | `bg-yellow-100 text-yellow-800` |
+| `danger` | `bg-red-100 text-red-800` |
+| `info` | `bg-sky-100 text-sky-800` |
+| `primary` | `bg-blue-100 text-blue-800` |
+| `secondary` | `bg-gray-100 text-gray-800` |
+| `light` | `bg-gray-50 text-gray-700` |
+| `dark` | `bg-gray-800 text-gray-100` |
+
+The adapter registry is extensible — custom adapters can be registered for other themes later. The edit modal uses a separate adapter system and is not covered by this column chrome layer.
+
 ## Troubleshooting
 
 ### "No DataTables stylesheet detected"
@@ -212,5 +247,5 @@ Common causes:
 Each extension must use its framework-specific package. If the extension JS and CSS packages don't match your active framework, you'll see styling inconsistencies. Re-run `importmap:require` for the correct `-{key}` variants.
 
 <Aside type="note">
-  Tailwind CSS is not yet supported — DataTables.net has not published official npm packages for it. The codebase is ready to support it as soon as packages are available.
+  DataTables.net has not published official Tailwind CSS packages. Use the default `dt` theme for the table chrome, and rely on the [column style adapters](#column-chrome-badges--switches) for `ChoiceColumn` badges and `BooleanColumn` switches. Full DataTables Tailwind theming remains unsupported until upstream packages exist.
 </Aside>

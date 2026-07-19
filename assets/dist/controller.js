@@ -1,11 +1,12 @@
 import { Controller } from '@hotwired/stimulus';
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js';
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
-import { choiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
+import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js';
 import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js';
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
+import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
 import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
 import { deleteEntity } from './functions/deleteEntity.js';
@@ -142,11 +143,12 @@ class default_1 extends Controller {
     }
     configureColumns(payload) {
         normalizeDisabledColumnControls(payload);
+        const style = resolveColumnStyleAdapter(this.framework);
         const columnRenderers = [
             createBooleanColumnRenderer(this.getBooleanToggleUrl(), this.areMutationsEnabled(payload) &&
                 typeof payload.dataTable === 'string' &&
-                payload.dataTable.length > 0),
-            choiceColumnRenderer,
+                payload.dataTable.length > 0, style),
+            createChoiceColumnRenderer(style),
             emailColumnRenderer,
             moneyColumnRenderer,
             imageColumnRenderer,

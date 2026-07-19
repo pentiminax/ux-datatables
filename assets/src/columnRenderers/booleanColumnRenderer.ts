@@ -1,3 +1,4 @@
+import type { ColumnStyleAdapter } from '../columnStyles/ColumnStyleAdapter.js'
 import { escapeHtml, parseBooleanValue } from '../functions/htmlUtils.js'
 import type { BooleanCustomOptions, BooleanSwitchRowData, ColumnRenderer } from './types.js'
 
@@ -5,7 +6,8 @@ type BooleanSwitchRow = BooleanSwitchRowData & Record<string, unknown>
 
 export function createBooleanColumnRenderer(
     toggleUrl: string,
-    mutationsEnabled = true
+    mutationsEnabled = true,
+    style: ColumnStyleAdapter
 ): ColumnRenderer {
     return {
         matches(column: Record<string, any>): boolean {
@@ -48,17 +50,18 @@ export function createBooleanColumnRenderer(
                     metadataId !== null && metadataId !== undefined && metadataId !== ''
                         ? metadataId
                         : row?.[toggleIdField]
-                const checked = boolValue ? ' checked' : ''
                 const disabled =
                     !mutationsEnabled || rowId === null || rowId === undefined || rowId === ''
-                        ? ' disabled'
-                        : ''
-                const escapedId = escapeHtml(String(rowId ?? ''))
-                const escapedUrl = escapeHtml(toggleUrl)
-                const escapedField = escapeHtml(effectiveField)
-                const escapedMethod = escapeHtml(toggleMethod.toUpperCase())
 
-                return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-method="${escapedMethod}"${checked}${disabled}></div>`
+                return style.renderSwitch({
+                    checked: boolValue,
+                    disabled,
+                    ariaLabel: boolValue ? 'ON' : 'OFF',
+                    dataId: escapeHtml(String(rowId ?? '')),
+                    dataUrl: escapeHtml(toggleUrl),
+                    dataField: escapeHtml(effectiveField),
+                    dataMethod: escapeHtml(toggleMethod.toUpperCase()),
+                })
             }
         },
     }
