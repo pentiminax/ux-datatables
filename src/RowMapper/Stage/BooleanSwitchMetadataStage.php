@@ -59,7 +59,7 @@ final class BooleanSwitchMetadataStage implements RowStageInterface
             $metadata,
             static fn (mixed $value, mixed $field): bool => \is_string($field)
                 && '' !== $field
-                && (\is_int($value) || \is_string($value)),
+                && (\is_int($value) || (\is_string($value) && '' !== $value)),
             \ARRAY_FILTER_USE_BOTH,
         ) : [];
     }
@@ -73,12 +73,18 @@ final class BooleanSwitchMetadataStage implements RowStageInterface
 
         $id = PropertyReader::readPath($source, $idField);
 
-        if (\is_int($id) || \is_string($id)) {
+        if (\is_int($id)) {
+            return $id;
+        }
+
+        if (\is_string($id) && '' !== $id) {
             return $id;
         }
 
         if ($id instanceof \Stringable) {
-            return (string) $id;
+            $stringId = (string) $id;
+
+            return '' !== $stringId ? $stringId : null;
         }
 
         return null;

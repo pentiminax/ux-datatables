@@ -22,7 +22,10 @@ export function createBooleanColumnRenderer(toggleUrl, mutationsEnabled = true) 
                 if (type !== 'display') {
                     return boolValue ? 'ON' : 'OFF';
                 }
-                const rowId = row?.__ux_datatables_boolean_switches?.[effectiveField] ?? row?.[toggleIdField];
+                const metadataId = row?.__ux_datatables_boolean_switches?.[effectiveField];
+                const rowId = metadataId !== null && metadataId !== undefined && metadataId !== ''
+                    ? metadataId
+                    : row?.[toggleIdField];
                 const checked = boolValue ? ' checked' : '';
                 const disabled = !mutationsEnabled || rowId === null || rowId === undefined || rowId === ''
                     ? ' disabled'
