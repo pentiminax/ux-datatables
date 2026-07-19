@@ -148,6 +148,26 @@ describe('booleanColumnRenderer', () => {
       expect(html).toContain('data-id="user-uuid-42"')
     })
 
+    it('falls back to toggle id field when metadata id is an empty string', () => {
+      const renderer = createBooleanColumnRenderer(TOGGLE_URL)
+      const column: Record<string, any> = {
+        customOptions: {
+          renderAsSwitch: true,
+          toggleIdField: 'uuid',
+        },
+        data: 'active',
+      }
+      renderer.configure(column)
+      const html = column.render(true, 'display', {
+        uuid: 'user-uuid-42',
+        __ux_datatables_boolean_switches: {
+          active: '',
+        },
+      })
+      expect(html).toContain('data-id="user-uuid-42"')
+      expect(html).not.toContain('disabled')
+    })
+
     it('uses toggleField as switch metadata key and submitted field', () => {
       const renderer = createBooleanColumnRenderer(TOGGLE_URL)
       const column: Record<string, any> = {

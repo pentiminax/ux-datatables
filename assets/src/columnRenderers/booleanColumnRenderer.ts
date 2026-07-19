@@ -43,8 +43,11 @@ export function createBooleanColumnRenderer(
                     return boolValue ? 'ON' : 'OFF'
                 }
 
+                const metadataId = row?.__ux_datatables_boolean_switches?.[effectiveField]
                 const rowId =
-                    row?.__ux_datatables_boolean_switches?.[effectiveField] ?? row?.[toggleIdField]
+                    metadataId !== null && metadataId !== undefined && metadataId !== ''
+                        ? metadataId
+                        : row?.[toggleIdField]
                 const checked = boolValue ? ' checked' : ''
                 const disabled =
                     !mutationsEnabled || rowId === null || rowId === undefined || rowId === ''

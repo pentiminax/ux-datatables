@@ -110,8 +110,15 @@ final class BooleanSwitchMetadataStageTest extends TestCase
             [BooleanColumn::new('active')->renderAsSwitch()],
         );
 
+        $empty = $stage->process(
+            ['active' => true],
+            ['id' => ''],
+            [BooleanColumn::new('active')->renderAsSwitch()],
+        );
+
         $this->assertArrayNotHasKey('__ux_datatables_boolean_switches', $missing);
         $this->assertArrayNotHasKey('__ux_datatables_boolean_switches', $invalid);
+        $this->assertArrayNotHasKey('__ux_datatables_boolean_switches', $empty);
     }
 
     #[Test]
@@ -175,6 +182,7 @@ final class BooleanSwitchMetadataStageTest extends TestCase
                 'active'                           => true,
                 '__ux_datatables_boolean_switches' => [
                     'verified' => 7,
+                    'stale'    => '',
                     ''         => 8,
                     0          => 9,
                 ],
