@@ -40,7 +40,45 @@ final class AjaxDataTableRegistryTest extends TestCase
         $registry = $this->createRegistry([], []);
 
         $this->assertNull($registry->getToken('App\\DataTable\\UnknownDataTable'));
+        $this->assertNull($registry->getBooleanMutationToken('App\\DataTable\\UnknownDataTable'));
         $this->assertNull($registry->get('unknown-token'));
+        $this->assertNull($registry->getForBooleanMutation('unknown-token'));
+    }
+
+    #[Test]
+    public function it_uses_purpose_bound_tokens_for_boolean_mutations(): void
+    {
+        $table = $this->createMock(AbstractDataTable::class);
+
+        $registry = $this->createRegistry(['custom.service_id' => $table], [
+            'App\\DataTable\\UserDataTable' => 'custom.service_id',
+        ]);
+
+        $ajaxToken     = $registry->getToken('App\\DataTable\\UserDataTable');
+        $mutationToken = $registry->getBooleanMutationToken('App\\DataTable\\UserDataTable');
+
+        $this->assertIsString($ajaxToken);
+        $this->assertIsString($mutationToken);
+        $this->assertNotSame($ajaxToken, $mutationToken);
+        $this->assertSame($table, $registry->getForBooleanMutation($mutationToken));
+        $this->assertNull($registry->get($mutationToken));
+        $this->assertNull($registry->getForBooleanMutation($ajaxToken));
+    }
+
+    #[Test]
+    public function it_rejects_a_non_datatable_service_for_boolean_mutations(): void
+    {
+        $registry = $this->createRegistry(['invalid.service' => new \stdClass()], [
+            'App\\DataTable\\InvalidDataTable' => 'invalid.service',
+        ]);
+
+        $token = $registry->getBooleanMutationToken('App\\DataTable\\InvalidDataTable');
+        $this->assertNotNull($token);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Service "invalid.service" must be an instance of');
+
+        $registry->getForBooleanMutation($token);
     }
 
     private function createRegistry(array $services, array $serviceIdsByClass): AjaxDataTableRegistry

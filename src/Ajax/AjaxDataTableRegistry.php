@@ -9,6 +9,8 @@ use Psr\Container\ContainerInterface;
 
 final class AjaxDataTableRegistry
 {
+    private const string BOOLEAN_MUTATION_TOKEN_PREFIX = 'boolean-mutation:';
+
     /**
      * @param array<class-string<AbstractDataTable>, string> $serviceIdsByClass
      */
@@ -34,6 +36,37 @@ final class AjaxDataTableRegistry
     {
         foreach ($this->serviceIdsByClass as $dataTableClass => $serviceId) {
             $generatedSignature = $this->tokenManager->generateHmacSignature($dataTableClass);
+            if (!$this->validateSignature($generatedSignature, $token)) {
+                continue;
+            }
+
+            $table = $this->locator->get($serviceId);
+
+            if (!$table instanceof AbstractDataTable) {
+                throw new \LogicException(\sprintf('Service "%s" must be an instance of "%s".', $serviceId, AbstractDataTable::class));
+            }
+
+            return $table;
+        }
+
+        return null;
+    }
+
+    public function getBooleanMutationToken(string $dataTableClass): ?string
+    {
+        $dataTableClass = ltrim($dataTableClass, '\\');
+
+        if (!isset($this->serviceIdsByClass[$dataTableClass])) {
+            return null;
+        }
+
+        return $this->tokenManager->generateHmacSignature(self::BOOLEAN_MUTATION_TOKEN_PREFIX.$dataTableClass);
+    }
+
+    public function getForBooleanMutation(string $token): ?AbstractDataTable
+    {
+        foreach ($this->serviceIdsByClass as $dataTableClass => $serviceId) {
+            $generatedSignature = $this->tokenManager->generateHmacSignature(self::BOOLEAN_MUTATION_TOKEN_PREFIX.$dataTableClass);
             if (!$this->validateSignature($generatedSignature, $token)) {
                 continue;
             }

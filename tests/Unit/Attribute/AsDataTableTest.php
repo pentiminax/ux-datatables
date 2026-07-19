@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Attribute;
 use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
@@ -151,16 +152,15 @@ final class AsDataTableTest extends TestCase
     }
 
     #[Test]
-    public function it_automatically_sets_entity_class_on_boolean_column(): void
+    public function it_keeps_automatically_resolved_boolean_entity_class_on_the_server(): void
     {
         $table  = new TestDataTableWithBooleanColumn();
         $column = $table->getColumnByName('isEmailAuthEnabled');
 
         $this->assertNotNull($column);
-        $this->assertSame(
-            ToggleEntityFixture::class,
-            $column->jsonSerialize()['customOptions']['entityClass']
-        );
+        $this->assertInstanceOf(BooleanColumn::class, $column);
+        $this->assertSame(ToggleEntityFixture::class, $column->getEntityClass());
+        $this->assertArrayNotHasKey('entityClass', $column->jsonSerialize()['customOptions'] ?? []);
     }
 
     #[Test]

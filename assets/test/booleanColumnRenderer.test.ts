@@ -64,10 +64,7 @@ describe('booleanColumnRenderer', () => {
     it('renders a checked switch for display mode when value is true', () => {
       const renderer = createBooleanColumnRenderer(TOGGLE_URL)
       const column: Record<string, any> = {
-        customOptions: {
-          renderAsSwitch: true,
-          entityClass: 'App\\Entity\\User',
-        },
+        customOptions: { renderAsSwitch: true },
         data: 'active',
       }
       renderer.configure(column)
@@ -76,16 +73,32 @@ describe('booleanColumnRenderer', () => {
       expect(html).toContain('data-id="42"')
       expect(html).toContain(`data-url="${TOGGLE_URL}"`)
       expect(html).toContain('data-field="active"')
-      expect(html).toContain('data-entity="App\\Entity\\User"')
+      expect(html).not.toContain('data-entity=')
+    })
+
+    it('prefers row-resolved boolean switch metadata id over row id', () => {
+      const renderer = createBooleanColumnRenderer(TOGGLE_URL)
+      const column: Record<string, any> = {
+        customOptions: { renderAsSwitch: true },
+        data: 'active',
+      }
+      renderer.configure(column)
+      const html = column.render(true, 'display', {
+        id: 42,
+        __ux_datatables_boolean_switches: {
+          active: 'user-uuid-42',
+        },
+      })
+      expect(html).toContain('data-id="user-uuid-42"')
+      expect(html).not.toContain('data-id="42"')
+      expect(html).toContain('data-field="active"')
+      expect(html).not.toContain('data-entity=')
     })
 
     it('renders an unchecked switch for display mode when value is false', () => {
       const renderer = createBooleanColumnRenderer(TOGGLE_URL)
       const column: Record<string, any> = {
-        customOptions: {
-          renderAsSwitch: true,
-          entityClass: 'App\\Entity\\User',
-        },
+        customOptions: { renderAsSwitch: true },
         data: 'active',
       }
       renderer.configure(column)
@@ -93,25 +106,105 @@ describe('booleanColumnRenderer', () => {
       expect(html).not.toContain('checked')
     })
 
-    it('renders a disabled switch when entity class is empty', () => {
+    it('renders a disabled switch when row id is missing', () => {
       const renderer = createBooleanColumnRenderer(TOGGLE_URL)
       const column: Record<string, any> = { customOptions: { renderAsSwitch: true } }
       renderer.configure(column)
-      const html = column.render(true, 'display', { id: 1 })
+      const html = column.render(true, 'display', {})
+      expect(html).toContain('disabled')
+      expect(html).toContain('data-id=""')
+      expect(html).not.toContain('data-entity=')
+    })
+
+    it('renders a disabled switch when row id is an empty string', () => {
+      const renderer = createBooleanColumnRenderer(TOGGLE_URL)
+      const column: Record<string, any> = { customOptions: { renderAsSwitch: true } }
+      renderer.configure(column)
+      const html = column.render(true, 'display', { id: '' })
       expect(html).toContain('disabled')
     })
 
     it('renders a disabled switch when mutations are unavailable', () => {
       const renderer = createBooleanColumnRenderer(TOGGLE_URL, false)
       const column: Record<string, any> = {
-        customOptions: {
-          renderAsSwitch: true,
-          entityClass: 'App\\Entity\\User',
-        },
+        customOptions: { renderAsSwitch: true },
       }
       renderer.configure(column)
       const html = column.render(true, 'display', { id: 1 })
       expect(html).toContain('disabled')
+    })
+
+    it('uses custom toggle id field as fallback when metadata is unavailable', () => {
+      const renderer = createBooleanColumnRenderer(TOGGLE_URL)
+      const column: Record<string, any> = {
+        customOptions: {
+          renderAsSwitch: true,
+          toggleIdField: 'uuid',
+        },
+        data: 'active',
+      }
+      renderer.configure(column)
+      const html = column.render(true, 'display', { id: 42, uuid: 'user-uuid-42' })
+      expect(html).toContain('data-id="user-uuid-42"')
+    })
+
+    it('falls back to toggle id field when metadata id is an empty string', () => {
+      const renderer = createBooleanColumnRenderer(TOGGLE_URL)
+      const column: Record<string, any> = {
+        customOptions: {
+          renderAsSwitch: true,
+          toggleIdField: 'uuid',
+        },
+        data: 'active',
+      }
+      renderer.configure(column)
+      const html = column.render(true, 'display', {
+        uuid: 'user-uuid-42',
+        __ux_datatables_boolean_switches: {
+          active: '',
+        },
+      })
+      expect(html).toContain('data-id="user-uuid-42"')
+      expect(html).not.toContain('disabled')
+    })
+
+    it('uses toggleField as switch metadata key and submitted field', () => {
+      const renderer = createBooleanColumnRenderer(TOGGLE_URL)
+      const column: Record<string, any> = {
+        customOptions: {
+          renderAsSwitch: true,
+          toggleField: 'enabled',
+        },
+        data: 'active',
+      }
+      renderer.configure(column)
+      const html = column.render(true, 'display', {
+        id: 42,
+        __ux_datatables_boolean_switches: {
+          enabled: 'user-uuid-42',
+        },
+      })
+      expect(html).toContain('data-id="user-uuid-42"')
+      expect(html).toContain('data-field="enabled"')
+    })
+
+    it('falls back to the column field when toggleField is empty', () => {
+      const renderer = createBooleanColumnRenderer(TOGGLE_URL)
+      const column: Record<string, any> = {
+        customOptions: {
+          renderAsSwitch: true,
+          toggleField: '',
+        },
+        field: 'active',
+      }
+      renderer.configure(column)
+      const html = column.render(true, 'display', {
+        __ux_datatables_boolean_switches: {
+          active: 42,
+        },
+      })
+      expect(html).toContain('data-id="42"')
+      expect(html).toContain('data-field="active"')
     })
 
     it('uses defaultState as fallback for null data', () => {

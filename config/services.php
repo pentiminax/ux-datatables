@@ -26,6 +26,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
@@ -124,6 +125,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(3, service('datatables.column.resolver'))
         ->arg(4, service('request_stack'))
         ->arg(5, service('datatables.security.csrf_token_manager'))
+        ->arg(6, service('datatables.ajax.registry')->nullOnInvalid())
         ->tag('twig.extension')
         ->private();
 
@@ -146,6 +148,13 @@ return static function (ContainerConfigurator $container): void {
         ->arg(5, tagged_locator('datatables.data_table'))
         ->private();
 
+    $services->set('datatables.mutation.boolean_context_resolver', BooleanMutationContextResolver::class)
+        ->arg(0, service('datatables.ajax.registry'))
+        ->private();
+
+    $services->alias(BooleanMutationContextResolver::class, 'datatables.mutation.boolean_context_resolver')
+        ->private();
+
     $services->set('datatables.event_listener.mutation_exception', MutationExceptionListener::class)
         ->tag('kernel.event_listener', ['event' => 'kernel.exception', 'priority' => 10])
         ->private();
@@ -153,6 +162,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.controller.ajax_edit', AjaxEditController::class)
         ->arg(0, service('datatables.mutation.mutator'))
         ->arg(1, service('datatables.security.mutation_token_validator'))
+        ->arg(2, service('datatables.mutation.boolean_context_resolver'))
         ->tag('controller.service_arguments')
         ->public();
 

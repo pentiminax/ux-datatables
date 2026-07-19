@@ -1,5 +1,7 @@
 import { escapeHtml, parseBooleanValue } from '../functions/htmlUtils.js'
-import type { BooleanCustomOptions, ColumnRenderer } from './types.js'
+import type { BooleanCustomOptions, BooleanSwitchRowData, ColumnRenderer } from './types.js'
+
+type BooleanSwitchRow = BooleanSwitchRowData & Record<string, unknown>
 
 export function createBooleanColumnRenderer(
     toggleUrl: string,
@@ -15,12 +17,18 @@ export function createBooleanColumnRenderer(
             const defaultState = true === customOptions.defaultState
             const toggleMethod = customOptions.toggleMethod ?? 'PATCH'
             const toggleIdField = customOptions.toggleIdField ?? 'id'
-            const entityClass =
-                typeof customOptions.entityClass === 'string' ? customOptions.entityClass : ''
+            const effectiveField =
+                [customOptions.toggleField, column.field, column.data, column.name].find(
+                    (field): field is string => typeof field === 'string' && field.length > 0
+                ) ?? ''
 
             column.type ??= 'num'
 
-            column.render = (data: any, type: string, row: Record<string, any>): any => {
+            column.render = (
+                data: unknown,
+                type: string,
+                row: BooleanSwitchRow
+            ): string | number => {
                 const boolValue = parseBooleanValue(data, defaultState)
 
                 if (type === 'sort' || type === 'type') {
@@ -35,18 +43,22 @@ export function createBooleanColumnRenderer(
                     return boolValue ? 'ON' : 'OFF'
                 }
 
-                const rowId = row?.[toggleIdField]
+                const metadataId = row?.__ux_datatables_boolean_switches?.[effectiveField]
+                const rowId =
+                    metadataId !== null && metadataId !== undefined && metadataId !== ''
+                        ? metadataId
+                        : row?.[toggleIdField]
                 const checked = boolValue ? ' checked' : ''
-                const disabled = entityClass === '' || !mutationsEnabled ? ' disabled' : ''
+                const disabled =
+                    !mutationsEnabled || rowId === null || rowId === undefined || rowId === ''
+                        ? ' disabled'
+                        : ''
                 const escapedId = escapeHtml(String(rowId ?? ''))
                 const escapedUrl = escapeHtml(toggleUrl)
-                const escapedField = escapeHtml(
-                    customOptions.toggleField ?? column.field ?? column.data ?? column.name ?? ''
-                )
+                const escapedField = escapeHtml(effectiveField)
                 const escapedMethod = escapeHtml(toggleMethod.toUpperCase())
-                const escapedEntityClass = escapeHtml(entityClass)
 
-                return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-entity="${escapedEntityClass}" data-method="${escapedMethod}"${checked}${disabled}></div>`
+                return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-method="${escapedMethod}"${checked}${disabled}></div>`
             }
         },
     }

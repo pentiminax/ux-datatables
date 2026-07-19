@@ -48,13 +48,13 @@ final class BooleanColumnTest extends TestCase
     }
 
     #[Test]
-    public function it_can_configure_entity_class(): void
+    public function it_keeps_entity_class_server_side_without_serializing_it(): void
     {
-        $data = BooleanColumn::new('active')
-            ->setEntityClass('App\\Entity\\User')
-            ->jsonSerialize();
+        $column = BooleanColumn::new('active')
+            ->setEntityClass('App\\Entity\\User');
 
-        $this->assertSame('App\\Entity\\User', $data['customOptions']['entityClass']);
+        $this->assertSame('App\\Entity\\User', $column->getEntityClass());
+        $this->assertArrayNotHasKey('entityClass', $column->jsonSerialize()['customOptions'] ?? []);
     }
 
     #[Test]

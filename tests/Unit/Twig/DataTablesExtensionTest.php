@@ -105,6 +105,7 @@ final class DataTablesExtensionTest extends TestCase
                 ['firstColumn' => 'Row 2 Column 1', 'secondColumn' => 'Row 2 Column 2'],
             ],
             'dataTableClass' => null,
+            'dataTable'      => null,
             'editModal'      => [
                 'adapter' => null,
             ],
@@ -134,6 +135,49 @@ final class DataTablesExtensionTest extends TestCase
 
         $this->assertSame('tw', $actual['editModal']['adapter']);
         $this->assertSame($table::class, $actual['dataTableClass']);
+        $this->assertNull($actual['dataTable']);
+    }
+
+    #[Test]
+    public function it_exposes_an_opaque_datatable_token_for_registered_abstract_datatables(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        /** @var AbstractDataTable $table */
+        $table = $container->get('test.datatables.auto_ajax_server_side');
+
+        $actual = $this->renderPayloadFromContainer($container, $table);
+
+        $this->assertSame($table::class, $actual['dataTableClass']);
+        $this->assertIsString($actual['dataTable']);
+        $this->assertNotSame('', $actual['dataTable']);
+        $this->assertStringNotContainsString('AutoAjaxServerSideDataTable', $actual['dataTable']);
+
+        $kernel->shutdown();
+    }
+
+    #[Test]
+    public function it_exposes_a_boolean_mutation_token_for_a_raw_datatable_with_a_registered_class(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        $table = (new DataTable('products'))
+            ->setDataTableClass(AutoAjaxServerSideDataTable::class);
+
+        $actual    = $this->renderPayloadFromContainer($container, $table);
+        $ajaxToken = $container->get('datatables.ajax.registry')
+            ->getToken(AutoAjaxServerSideDataTable::class);
+
+        $this->assertSame(AutoAjaxServerSideDataTable::class, $actual['dataTableClass']);
+        $this->assertIsString($actual['dataTable']);
+        $this->assertNotSame('', $actual['dataTable']);
+        $this->assertNotSame($ajaxToken, $actual['dataTable']);
+
+        $kernel->shutdown();
     }
 
     #[Test]
