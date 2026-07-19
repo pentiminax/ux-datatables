@@ -1,11 +1,13 @@
 ---
 title: Choice Column
-description: Map finite value sets (enums, statuses) to human-readable labels with optional Bootstrap badge rendering
+description: Map finite value sets (enums, statuses) to human-readable labels with optional badge rendering
 ---
 
 # Choice Column
 
-The `ChoiceColumn` maps a field's raw value to a human-readable label. It optionally renders the label as a Bootstrap badge with a per-value color variant. PHP 8.1 `BackedEnum` classes are supported natively.
+The `ChoiceColumn` maps a field's raw value to a human-readable label. It optionally renders the label as a colored badge with a per-value semantic variant. PHP 8.1 `BackedEnum` classes are supported natively.
+
+Badge markup is produced by a frontend [column style adapter](/ux-datatables/guide/styling/#column-chrome-badges--switches): Bootstrap 5 classes when a Bootstrap DataTables stylesheet is detected, Tailwind utilities otherwise (including the default `dt` theme).
 
 ## Basic Usage
 
@@ -37,9 +39,9 @@ ChoiceColumn::new('status', 'Status')
 // Generates: ['active' => 'Active', 'inactive' => 'Inactive', 'pending' => 'Pending']
 ```
 
-## Rendering as Bootstrap Badges
+## Rendering as Badges
 
-Use `renderAsBadges()` to wrap each label in a `<span class="badge text-bg-{variant}">` element. Map individual values to Bootstrap color variants, and provide a fallback for unmapped values.
+Use `renderAsBadges()` to wrap each label in a badge. Map individual values to **semantic** color variants (`success`, `danger`, `warning`, `info`, `primary`, `secondary`, `light`, `dark`), and provide a fallback for unmapped values.
 
 ```php
 ChoiceColumn::new('status', 'Status')
@@ -53,6 +55,8 @@ ChoiceColumn::new('status', 'Status')
         defaultVariant: 'secondary',
     );
 ```
+
+The same PHP configuration works with Bootstrap 5 and Tailwind — only the generated HTML classes change based on the detected DataTables CSS framework.
 
 ## Default Badge Variant
 
@@ -79,7 +83,7 @@ ChoiceColumn::new('category', 'Category')
     ],
     [
       "`renderAsBadges(array|bool $badgeSelector = [], string $defaultVariant = 'secondary')`",
-      'Enables badge rendering with per-value Bootstrap color variants',
+      'Enables badge rendering with per-value semantic color variants',
     ],
   ]}
 />
