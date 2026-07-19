@@ -195,7 +195,9 @@ export default class extends Controller {
         const columnRenderers: ColumnRenderer[] = [
             createBooleanColumnRenderer(
                 this.getBooleanToggleUrl(),
-                this.areMutationsEnabled(payload)
+                this.areMutationsEnabled(payload) &&
+                    typeof payload.dataTable === 'string' &&
+                    payload.dataTable.length > 0
             ),
             choiceColumnRenderer,
             emailColumnRenderer,
@@ -346,8 +348,8 @@ export default class extends Controller {
             const url = target.dataset.url
             const id = target.dataset.id
             const field = target.dataset.field
-            const entity = target.dataset.entity
             const method = target.dataset.method ?? 'PATCH'
+            const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : ''
 
             if (!id || !field) {
                 target.checked = !target.checked
@@ -355,9 +357,9 @@ export default class extends Controller {
                 return
             }
 
-            if (!entity) {
+            if (!dataTable) {
                 target.checked = !target.checked
-                console.error('Missing entity for boolean toggle endpoint')
+                console.error('Missing DataTable token for boolean toggle endpoint')
 
                 return
             }
@@ -371,10 +373,9 @@ export default class extends Controller {
                     url: url ?? this.getBooleanToggleUrl(),
                     id,
                     field,
-                    entity,
                     newValue: target.checked,
                     method,
-                    dataTableClass: payload.dataTableClass ?? null,
+                    dataTable,
                     csrfToken: this.getCsrfToken(payload),
                 })
 
