@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
@@ -47,6 +48,22 @@ final class DataTableRuntimeFactoryTest extends TestCase
         $mapper = $factory->createRowMapper($baseMapper, []);
 
         $this->assertSame(['value' => 10], $mapper->map(5));
+    }
+
+    #[Test]
+    public function create_row_mapper_adds_boolean_switch_metadata(): void
+    {
+        $factory    = new DataTableRuntimeFactory();
+        $baseMapper = static fn (mixed $row): array => ['active' => true];
+
+        $mapper = $factory->createRowMapper($baseMapper, [
+            BooleanColumn::new('active')->renderAsSwitch(),
+        ]);
+
+        $this->assertSame([
+            'active'                           => true,
+            '__ux_datatables_boolean_switches' => ['active' => 42],
+        ], $mapper->map(new DataTableRuntimeFactoryBooleanSwitchFixture(42)));
     }
 
     #[Test]
@@ -154,5 +171,18 @@ final class DataTableRuntimeFactoryTest extends TestCase
         );
 
         $this->assertInstanceOf(DataProviderInterface::class, $runtime->getDataProvider());
+    }
+}
+
+final class DataTableRuntimeFactoryBooleanSwitchFixture
+{
+    public function __construct(
+        private readonly int $id,
+    ) {
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
     }
 }

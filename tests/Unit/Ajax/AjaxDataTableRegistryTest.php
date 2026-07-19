@@ -40,7 +40,29 @@ final class AjaxDataTableRegistryTest extends TestCase
         $registry = $this->createRegistry([], []);
 
         $this->assertNull($registry->getToken('App\\DataTable\\UnknownDataTable'));
+        $this->assertNull($registry->getBooleanMutationToken('App\\DataTable\\UnknownDataTable'));
         $this->assertNull($registry->get('unknown-token'));
+        $this->assertNull($registry->getForBooleanMutation('unknown-token'));
+    }
+
+    #[Test]
+    public function it_uses_purpose_bound_tokens_for_boolean_mutations(): void
+    {
+        $table = $this->createMock(AbstractDataTable::class);
+
+        $registry = $this->createRegistry(['custom.service_id' => $table], [
+            'App\\DataTable\\UserDataTable' => 'custom.service_id',
+        ]);
+
+        $ajaxToken     = $registry->getToken('App\\DataTable\\UserDataTable');
+        $mutationToken = $registry->getBooleanMutationToken('App\\DataTable\\UserDataTable');
+
+        $this->assertIsString($ajaxToken);
+        $this->assertIsString($mutationToken);
+        $this->assertNotSame($ajaxToken, $mutationToken);
+        $this->assertSame($table, $registry->getForBooleanMutation($mutationToken));
+        $this->assertNull($registry->get($mutationToken));
+        $this->assertNull($registry->getForBooleanMutation($ajaxToken));
     }
 
     private function createRegistry(array $services, array $serviceIdsByClass): AjaxDataTableRegistry

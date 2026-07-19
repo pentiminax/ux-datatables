@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Twig;
 
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
@@ -26,6 +27,7 @@ class DataTablesExtension extends AbstractExtension
         private readonly ColumnResolver $columnResolver,
         private readonly ?RequestStack $requestStack = null,
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
+        private readonly ?AjaxDataTableRegistry $ajaxRegistry = null,
     ) {
     }
 
@@ -74,6 +76,7 @@ class DataTablesExtension extends AbstractExtension
 
         $view = array_merge($options, $table->getExtensions(), [
             'dataTableClass' => $dataTableClass,
+            'dataTable'      => null !== $dataTableClass ? $this->ajaxRegistry?->getToken($dataTableClass) : null,
             'editModal'      => [
                 'adapter' => $table->getEditModalAdapter(),
             ],

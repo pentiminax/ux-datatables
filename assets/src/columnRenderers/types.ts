@@ -26,7 +26,6 @@ export interface BooleanCustomOptions {
     defaultState?: boolean
     toggleMethod?: string
     toggleIdField?: string
-    entityClass?: string
     toggleField?: string
 }
 
@@ -99,4 +98,8 @@ export interface ActionRowData {
 
 export interface UrlRowData {
     __ux_datatables_urls?: Record<string, string>
+}
+
+export interface BooleanSwitchRowData {
+    __ux_datatables_boolean_switches?: Record<string, string | number | null | undefined>
 }

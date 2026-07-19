@@ -34,9 +34,9 @@ describe('mutation CSRF header', () => {
         await toggleBooleanValue({
             url: '/datatables/ajax/edit',
             id: '5',
-            entity: 'App\\Entity\\User',
             field: 'active',
             newValue: true,
+            dataTable: 'signed-token',
             csrfToken: 'tok-456',
         })
 
@@ -48,9 +48,9 @@ describe('mutation CSRF header', () => {
         await toggleBooleanValue({
             url: '/datatables/ajax/edit',
             id: '5',
-            entity: 'App\\Entity\\User',
             field: 'active',
             newValue: true,
+            dataTable: 'signed-token',
         })
 
         const headers = headersOf((fetch as any).mock.calls[0])
