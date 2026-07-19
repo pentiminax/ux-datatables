@@ -1,6 +1,5 @@
 import type { FilterBar } from './filters.js'
 
-
 export interface FilterLayoutEntry {
     filters: { instance: FilterBar }
 }
@@ -15,11 +14,6 @@ function isFiltersMarker(value: unknown): boolean {
     return false
 }
 
-/**
- * Swap any `filters` marker the user placed in `layout` (via PHP, e.g.
- * `->layout(['topEnd' => [Feature::SEARCH, Feature::FILTERS]])`) for the runtime
- * entry carrying the live instance. Returns true when a marker was replaced.
- */
 function replaceMarker(layout: Record<string, unknown>, entry: FilterLayoutEntry): boolean {
     let replaced = false
 

@@ -20,6 +20,12 @@ class BooleanColumn extends AbstractColumn
         return static::createWithType($name, $title, ColumnType::NUM);
     }
 
+    /**
+     * Enable interactive switch rendering for boolean values.
+     *
+     * The Stimulus controller renders a Bootstrap 5 form switch or a Tailwind
+     * toggle according to the detected DataTables style framework.
+     */
     public function renderAsSwitch(bool $defaultState = false): self
     {
         $this->setCustomOption(self::OPTION_RENDER_AS_SWITCH, true);

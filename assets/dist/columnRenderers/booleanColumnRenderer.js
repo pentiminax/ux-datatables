@@ -1,5 +1,5 @@
 import { escapeHtml, parseBooleanValue } from '../functions/htmlUtils.js';
-export function createBooleanColumnRenderer(toggleUrl, mutationsEnabled = true) {
+export function createBooleanColumnRenderer(toggleUrl, mutationsEnabled = true, style) {
     return {
         matches(column) {
             return true === column?.customOptions?.renderAsSwitch;
@@ -26,15 +26,16 @@ export function createBooleanColumnRenderer(toggleUrl, mutationsEnabled = true) 
                 const rowId = metadataId !== null && metadataId !== undefined && metadataId !== ''
                     ? metadataId
                     : row?.[toggleIdField];
-                const checked = boolValue ? ' checked' : '';
-                const disabled = !mutationsEnabled || rowId === null || rowId === undefined || rowId === ''
-                    ? ' disabled'
-                    : '';
-                const escapedId = escapeHtml(String(rowId ?? ''));
-                const escapedUrl = escapeHtml(toggleUrl);
-                const escapedField = escapeHtml(effectiveField);
-                const escapedMethod = escapeHtml(toggleMethod.toUpperCase());
-                return `<div class="form-check form-switch m-0"><input class="form-check-input boolean-switch-action" type="checkbox" role="switch" aria-label="${boolValue ? 'ON' : 'OFF'}" data-id="${escapedId}" data-url="${escapedUrl}" data-field="${escapedField}" data-method="${escapedMethod}"${checked}${disabled}></div>`;
+                const disabled = !mutationsEnabled || rowId === null || rowId === undefined || rowId === '';
+                return style.renderSwitch({
+                    checked: boolValue,
+                    disabled,
+                    ariaLabel: boolValue ? 'ON' : 'OFF',
+                    dataId: escapeHtml(String(rowId ?? '')),
+                    dataUrl: escapeHtml(toggleUrl),
+                    dataField: escapeHtml(effectiveField),
+                    dataMethod: escapeHtml(toggleMethod.toUpperCase()),
+                });
             };
         },
     };

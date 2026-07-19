@@ -12,6 +12,12 @@ class ChoiceColumn extends AbstractColumn
     public const string OPTION_RENDER_AS_BADGES      = 'renderAsBadges';
     public const string OPTION_DEFAULT_BADGE_VARIANT = 'defaultBadgeVariant';
 
+    /**
+     * Semantic badge color variants mapped by the frontend column style adapters
+     * (Bootstrap 5 or Tailwind utilities depending on the detected DataTables CSS framework).
+     *
+     * @var list<string>
+     */
     public const array VALID_BADGE_TYPES = ['success', 'warning', 'danger', 'info', 'primary', 'secondary', 'light', 'dark'];
 
     public static function new(string $name, string $title = ''): static
@@ -58,6 +64,16 @@ class ChoiceColumn extends AbstractColumn
         return $this;
     }
 
+    /**
+     * Enable badge rendering for choice labels.
+     *
+     * Variants are semantic names (`success`, `danger`, …) from {@see VALID_BADGE_TYPES}.
+     * The Stimulus controller maps them to Bootstrap 5 or Tailwind classes via the
+     * detected DataTables style framework — no Bootstrap-specific markup is required
+     * in PHP.
+     *
+     * @param array<string, string>|bool $badgeSelector Per-value variant map, `true` to enable with defaults, or `false` to disable
+     */
     public function renderAsBadges(array|bool $badgeSelector = [], string $defaultVariant = 'secondary'): self
     {
         if (false === $badgeSelector) {
