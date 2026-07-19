@@ -132,45 +132,6 @@ final class ColumnResolverTest extends TestCase
     }
 
     #[Test]
-    public function configure_boolean_columns_sets_entity_class(): void
-    {
-        $resolver = new ColumnResolver();
-        $attr     = new AsDataTable(entityClass: 'App\\Entity\\Product');
-
-        $boolCol = BooleanColumn::new('active', 'Active');
-        $textCol = TextColumn::new('name', 'Name');
-
-        $resolver->configureBooleanColumns([$boolCol, $textCol], $attr);
-
-        $this->assertSame('App\\Entity\\Product', $boolCol->getEntityClass());
-    }
-
-    #[Test]
-    public function configure_boolean_columns_skips_when_entity_class_already_set(): void
-    {
-        $resolver = new ColumnResolver();
-        $attr     = new AsDataTable(entityClass: 'App\\Entity\\Product');
-
-        $boolCol = BooleanColumn::new('active', 'Active');
-        $boolCol->setEntityClass('App\\Entity\\Order');
-
-        $resolver->configureBooleanColumns([$boolCol], $attr);
-
-        $this->assertSame('App\\Entity\\Order', $boolCol->getEntityClass());
-    }
-
-    #[Test]
-    public function configure_boolean_columns_noop_when_no_attribute(): void
-    {
-        $resolver = new ColumnResolver();
-        $boolCol  = BooleanColumn::new('active', 'Active');
-
-        $resolver->configureBooleanColumns([$boolCol], null);
-
-        $this->assertNull($boolCol->getEntityClass());
-    }
-
-    #[Test]
     public function configure_action_entity_class_sets_entity_on_actions(): void
     {
         $resolver = new ColumnResolver();

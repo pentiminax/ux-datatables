@@ -82,8 +82,6 @@ abstract class AbstractDataTable
 
         $columnResolver = $this->infrastructure()->columnResolver();
 
-        $columnResolver->configureBooleanColumns($this->columns, $this->asDataTable);
-
         $actions = $this->configureActions(new Actions());
 
         $columnResolver->configureActionEntityClass($actions, $this->asDataTable);

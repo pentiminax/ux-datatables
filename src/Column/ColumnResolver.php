@@ -89,30 +89,6 @@ final class ColumnResolver
     }
 
     /**
-     * Set entity class on BooleanColumns that don't have one yet.
-     *
-     * @param ColumnInterface[] $columns
-     */
-    public function configureBooleanColumns(array $columns, ?AsDataTable $asDataTable): void
-    {
-        if (null === $asDataTable) {
-            return;
-        }
-
-        foreach ($columns as $column) {
-            if (!$column instanceof BooleanColumn) {
-                continue;
-            }
-
-            if (null !== $column->getEntityClass()) {
-                continue;
-            }
-
-            $column->setEntityClass($asDataTable->entityClass);
-        }
-    }
-
-    /**
      * Filter columns whose static permission is not granted, and filter actions
      * with static permissions inside any remaining ActionColumn.
      *
