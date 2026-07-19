@@ -51,8 +51,12 @@ describe('FilterBar', () => {
         expect(wrapper.querySelector('.dt-filters-popover__title')?.textContent).toBe('Filters')
         expect(wrapper.querySelector('.dt-filters-reset')?.textContent).toBe('Reset')
         expect(wrapper.querySelector('.dt-filters-apply')?.textContent).toBe('Apply filters')
-        expect(wrapper.querySelector('.dt-filters-toggle')?.getAttribute('aria-label')).toBe('Filters')
-        expect((wrapper.querySelector('select > option') as HTMLOptionElement).textContent).toBe('All')
+        expect(wrapper.querySelector('.dt-filters-toggle')?.getAttribute('aria-label')).toBe(
+            'Filters'
+        )
+        expect((wrapper.querySelector('select > option') as HTMLOptionElement).textContent).toBe(
+            'All'
+        )
     })
 
     it('applies filterLabels overrides to the chrome strings', () => {
@@ -72,8 +76,12 @@ describe('FilterBar', () => {
         expect(wrapper.querySelector('.dt-filters-popover__title')?.textContent).toBe('Filtres')
         expect(wrapper.querySelector('.dt-filters-reset')?.textContent).toBe('Réinitialiser')
         expect(wrapper.querySelector('.dt-filters-apply')?.textContent).toBe('Appliquer')
-        expect(wrapper.querySelector('.dt-filters-toggle')?.getAttribute('aria-label')).toBe('Filtres')
-        expect((wrapper.querySelector('select > option') as HTMLOptionElement).textContent).toBe('Tous')
+        expect(wrapper.querySelector('.dt-filters-toggle')?.getAttribute('aria-label')).toBe(
+            'Filtres'
+        )
+        expect((wrapper.querySelector('select > option') as HTMLOptionElement).textContent).toBe(
+            'Tous'
+        )
     })
 
     it('does not apply values until "Apply filters" is clicked', () => {

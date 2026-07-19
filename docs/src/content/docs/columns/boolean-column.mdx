@@ -1,11 +1,13 @@
 ---
 title: Boolean Column
-description: Render boolean values as Bootstrap toggle switches with optional AJAX update support
+description: Render boolean values as toggle switches with optional AJAX update support
 ---
 
 # Boolean Column
 
-`BooleanColumn` renders a `true`/`false` (or `1`/`0`) field as a Bootstrap form switch. When combined with `renderAsSwitch()`, toggling the switch sends an AJAX request to update the field server-side.
+`BooleanColumn` renders a `true`/`false` (or `1`/`0`) field as text by default. When combined with `renderAsSwitch()`, the cell becomes an interactive toggle switch and toggling it sends an AJAX request to update the field server-side.
+
+Switch markup is produced by a frontend [column style adapter](/ux-datatables/guide/styling/#column-chrome-badges--switches): a Bootstrap 5 form switch when a Bootstrap DataTables stylesheet is detected, or a Tailwind toggle otherwise (including the default `dt` theme).
 
 ## Basic Usage
 
@@ -19,7 +21,7 @@ Renders the raw boolean value as text. Not interactive.
 
 ## Interactive Toggle Switch
 
-`renderAsSwitch()` turns the cell into a live Bootstrap switch. Clicking it sends an AJAX `PATCH` request to update the field.
+`renderAsSwitch()` turns the cell into a live switch. Clicking it sends an AJAX `PATCH` request to update the field.
 
 ```php
 BooleanColumn::new('active', 'Status')
@@ -74,7 +76,7 @@ return static function (RoutingConfigurator $routes): void {
   headers={['Method', 'Description']}
   rows={[
     ["`BooleanColumn::new(string $name, string $title = '')`", 'Creates a new BooleanColumn (type: `num`)'],
-    ['`renderAsSwitch(bool $defaultState = false)`', 'Enable Bootstrap switch rendering with AJAX toggle'],
+    ['`renderAsSwitch(bool $defaultState = false)`', 'Enable switch rendering with AJAX toggle'],
     ['`setEntityClass(string $class)`', 'Set the Doctrine entity class for the AJAX request (auto-injected when using `#[AsDataTable]`)'],
     ['`setToggleAjax(string $idField = \'id\', string $method = \'PATCH\')`', 'Customize the identifier field and HTTP method for the toggle request'],
     ['`getDefaultState(): bool`', 'Returns the configured default switch state'],
