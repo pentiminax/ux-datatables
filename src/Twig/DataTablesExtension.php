@@ -40,7 +40,7 @@ class DataTablesExtension extends AbstractExtension
 
     public function renderDataTable(AbstractDataTable|DataTable $table, array $attributes = []): string
     {
-        $dataTableClass = $table instanceof AbstractDataTable ? $table::class : null;
+        $dataTableClass = $table instanceof AbstractDataTable ? $table::class : $table->getDataTableClass();
 
         if ($table instanceof AbstractDataTable) {
             $table = $table->getDataTable();
@@ -76,7 +76,7 @@ class DataTablesExtension extends AbstractExtension
 
         $view = array_merge($options, $table->getExtensions(), [
             'dataTableClass' => $dataTableClass,
-            'dataTable'      => null !== $dataTableClass ? $this->ajaxRegistry?->getToken($dataTableClass) : null,
+            'dataTable'      => null !== $dataTableClass ? $this->ajaxRegistry?->getBooleanMutationToken($dataTableClass) : null,
             'editModal'      => [
                 'adapter' => $table->getEditModalAdapter(),
             ],

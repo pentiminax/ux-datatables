@@ -17,11 +17,18 @@ export function createBooleanColumnRenderer(
             const defaultState = true === customOptions.defaultState
             const toggleMethod = customOptions.toggleMethod ?? 'PATCH'
             const toggleIdField = customOptions.toggleIdField ?? 'id'
-            const effectiveField = customOptions.toggleField ?? column.field ?? column.data ?? column.name ?? ''
+            const effectiveField =
+                [customOptions.toggleField, column.field, column.data, column.name].find(
+                    (field): field is string => typeof field === 'string' && field.length > 0
+                ) ?? ''
 
             column.type ??= 'num'
 
-            column.render = (data: unknown, type: string, row: BooleanSwitchRow): string | number => {
+            column.render = (
+                data: unknown,
+                type: string,
+                row: BooleanSwitchRow
+            ): string | number => {
                 const boolValue = parseBooleanValue(data, defaultState)
 
                 if (type === 'sort' || type === 'type') {

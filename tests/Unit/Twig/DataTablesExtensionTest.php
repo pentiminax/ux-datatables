@@ -159,6 +159,28 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
+    public function it_exposes_a_boolean_mutation_token_for_a_raw_datatable_with_a_registered_class(): void
+    {
+        $kernel = new TwigAppKernel('test', true);
+        $kernel->boot();
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        $table = (new DataTable('products'))
+            ->setDataTableClass(AutoAjaxServerSideDataTable::class);
+
+        $actual    = $this->renderPayloadFromContainer($container, $table);
+        $ajaxToken = $container->get('datatables.ajax.registry')
+            ->getToken(AutoAjaxServerSideDataTable::class);
+
+        $this->assertSame(AutoAjaxServerSideDataTable::class, $actual['dataTableClass']);
+        $this->assertIsString($actual['dataTable']);
+        $this->assertNotSame('', $actual['dataTable']);
+        $this->assertNotSame($ajaxToken, $actual['dataTable']);
+
+        $kernel->shutdown();
+    }
+
+    #[Test]
     public function it_exposes_the_current_request_locale(): void
     {
         $kernel = new TwigAppKernel('test', true);

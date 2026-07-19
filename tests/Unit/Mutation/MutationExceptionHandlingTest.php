@@ -195,7 +195,23 @@ final class MutationExceptionHandlingTest extends TestCase
 
     private function dataTableToken(): string
     {
-        return (new AjaxDataTableTokenManager(self::TOKEN_SECRET))->generateHmacSignature(MutationExceptionHandlingDataTableFixture::class);
+        $token = $this->dataTableRegistry()->getBooleanMutationToken(MutationExceptionHandlingDataTableFixture::class);
+
+        $this->assertNotNull($token);
+
+        return $token;
+    }
+
+    private function dataTableRegistry(): AjaxDataTableRegistry
+    {
+        $locator = $this->createMock(ContainerInterface::class);
+        $locator->method('get')->with('mutation_exception_table')->willReturn(new MutationExceptionHandlingDataTableFixture());
+
+        return new AjaxDataTableRegistry(
+            $locator,
+            new AjaxDataTableTokenManager(self::TOKEN_SECRET),
+            [MutationExceptionHandlingDataTableFixture::class => 'mutation_exception_table'],
+        );
     }
 }
 

@@ -168,6 +168,25 @@ describe('booleanColumnRenderer', () => {
       expect(html).toContain('data-field="enabled"')
     })
 
+    it('falls back to the column field when toggleField is empty', () => {
+      const renderer = createBooleanColumnRenderer(TOGGLE_URL)
+      const column: Record<string, any> = {
+        customOptions: {
+          renderAsSwitch: true,
+          toggleField: '',
+        },
+        field: 'active',
+      }
+      renderer.configure(column)
+      const html = column.render(true, 'display', {
+        __ux_datatables_boolean_switches: {
+          active: 42,
+        },
+      })
+      expect(html).toContain('data-id="42"')
+      expect(html).toContain('data-field="active"')
+    })
+
     it('uses defaultState as fallback for null data', () => {
       const renderer = createBooleanColumnRenderer(TOGGLE_URL)
       const column: Record<string, any> = {

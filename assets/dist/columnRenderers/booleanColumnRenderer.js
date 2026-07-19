@@ -9,7 +9,7 @@ export function createBooleanColumnRenderer(toggleUrl, mutationsEnabled = true) 
             const defaultState = true === customOptions.defaultState;
             const toggleMethod = customOptions.toggleMethod ?? 'PATCH';
             const toggleIdField = customOptions.toggleIdField ?? 'id';
-            const effectiveField = customOptions.toggleField ?? column.field ?? column.data ?? column.name ?? '';
+            const effectiveField = [customOptions.toggleField, column.field, column.data, column.name].find((field) => typeof field === 'string' && field.length > 0) ?? '';
             column.type ??= 'num';
             column.render = (data, type, row) => {
                 const boolValue = parseBooleanValue(data, defaultState);
