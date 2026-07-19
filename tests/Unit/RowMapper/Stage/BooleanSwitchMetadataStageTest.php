@@ -115,6 +115,40 @@ final class BooleanSwitchMetadataStageTest extends TestCase
     }
 
     #[Test]
+    public function it_uses_the_default_id_field_and_stringifies_stringable_ids(): void
+    {
+        $stage = new BooleanSwitchMetadataStage();
+        $id    = new class implements \Stringable {
+            public function __toString(): string
+            {
+                return 'stringable-id';
+            }
+        };
+
+        $result = $stage->process(
+            ['active' => true],
+            ['id' => $id],
+            [BooleanColumn::new('active')->renderAsSwitch()->setToggleAjax(idField: '')],
+        );
+
+        $this->assertSame(['active' => 'stringable-id'], $result['__ux_datatables_boolean_switches']);
+    }
+
+    #[Test]
+    public function it_omits_metadata_for_a_switch_without_an_effective_field(): void
+    {
+        $stage = new BooleanSwitchMetadataStage();
+
+        $result = $stage->process(
+            mappedRow: ['value' => true],
+            originalRow: ['id' => 42],
+            columns: [BooleanColumn::new('')->renderAsSwitch()],
+        );
+
+        $this->assertArrayNotHasKey('__ux_datatables_boolean_switches', $result);
+    }
+
+    #[Test]
     public function it_ignores_non_switch_boolean_columns_and_other_columns(): void
     {
         $stage = new BooleanSwitchMetadataStage();
@@ -153,6 +187,23 @@ final class BooleanSwitchMetadataStageTest extends TestCase
             'verified' => 7,
             'active'   => 42,
         ], $result['__ux_datatables_boolean_switches']);
+    }
+
+    #[Test]
+    public function it_replaces_non_array_existing_metadata(): void
+    {
+        $stage = new BooleanSwitchMetadataStage();
+
+        $result = $stage->process(
+            [
+                'active'                           => true,
+                '__ux_datatables_boolean_switches' => 'invalid',
+            ],
+            new BooleanSwitchMetadataFixture(42),
+            [BooleanColumn::new('active')->renderAsSwitch()],
+        );
+
+        $this->assertSame(['active' => 42], $result['__ux_datatables_boolean_switches']);
     }
 }
 

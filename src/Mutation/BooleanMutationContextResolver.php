@@ -23,19 +23,19 @@ final readonly class BooleanMutationContextResolver
             throw InvalidBooleanMutationContextException::invalidDataTableToken();
         }
 
-        $entityClass = $dataTable->getEntityClass();
-
-        if (null === $entityClass) {
-            throw InvalidBooleanMutationContextException::missingEntityClass($dataTable::class);
-        }
-
         foreach ($dataTable->getConfiguredDataTable()->getColumns() as $column) {
             if (!$column instanceof BooleanColumn || !$column->isRenderedAsSwitch()) {
                 continue;
             }
 
-            if ($field !== $this->resolveEffectiveField($column)) {
+            $effectiveField = $this->resolveEffectiveField($column);
+            if ('' === $effectiveField || $field !== $effectiveField) {
                 continue;
+            }
+
+            $entityClass = $column->getEntityClass() ?? $dataTable->getEntityClass();
+            if (null === $entityClass) {
+                throw InvalidBooleanMutationContextException::missingEntityClass($dataTable::class);
             }
 
             return new BooleanMutationContext(

@@ -37,6 +37,24 @@ final class BooleanMutationContextResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_prefers_the_boolean_column_entity_class_over_the_datatable_entity_class(): void
+    {
+        $context = $this->resolver(new ColumnEntityClassDataTableFixture())
+            ->resolve($this->token(ColumnEntityClassDataTableFixture::class), 'enabled');
+
+        $this->assertSame(BooleanMutationColumnEntityFixture::class, $context->entityClass);
+    }
+
+    #[Test]
+    public function it_supports_a_column_entity_class_when_the_datatable_has_none(): void
+    {
+        $context = $this->resolver(new ColumnOnlyEntityClassDataTableFixture())
+            ->resolve($this->token(ColumnOnlyEntityClassDataTableFixture::class), 'enabled');
+
+        $this->assertSame(BooleanMutationColumnEntityFixture::class, $context->entityClass);
+    }
+
+    #[Test]
     public function it_rejects_an_unknown_datatable_token_before_any_mutation_context_is_created(): void
     {
         $this->expectException(InvalidBooleanMutationContextException::class);
@@ -76,6 +94,16 @@ final class BooleanMutationContextResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_a_field_that_does_not_match_the_switchable_column(): void
+    {
+        $this->expectException(InvalidBooleanMutationContextException::class);
+        $this->expectExceptionMessage('is not a switchable boolean column');
+
+        $this->resolver(new SwitchableBooleanDataTableFixture())
+            ->resolve($this->token(SwitchableBooleanDataTableFixture::class), 'unknown');
+    }
+
+    #[Test]
     public function it_uses_the_effective_toggle_field_when_it_differs_from_the_column_name(): void
     {
         $context = $this->resolver(new ToggleFieldDataTableFixture(), ToggleFieldDataTableFixture::class)
@@ -91,6 +119,16 @@ final class BooleanMutationContextResolverTest extends TestCase
             ->resolve($this->token(EmptyToggleFieldDataTableFixture::class), 'enabled');
 
         $this->assertSame('enabled', $context->field);
+    }
+
+    #[Test]
+    public function it_rejects_a_switchable_column_without_an_effective_field(): void
+    {
+        $this->expectException(InvalidBooleanMutationContextException::class);
+        $this->expectExceptionMessage('is not a switchable boolean column');
+
+        $this->resolver(new MissingEffectiveFieldDataTableFixture())
+            ->resolve($this->token(MissingEffectiveFieldDataTableFixture::class), '');
     }
 
     /**
@@ -131,12 +169,37 @@ final class BooleanMutationEntityFixture
 {
 }
 
+final class BooleanMutationColumnEntityFixture
+{
+}
+
 #[AsDataTable(entityClass: BooleanMutationEntityFixture::class)]
 final class SwitchableBooleanDataTableFixture extends AbstractDataTable
 {
     public function configureColumns(): iterable
     {
         yield BooleanColumn::new('enabled')->renderAsSwitch();
+    }
+}
+
+#[AsDataTable(entityClass: BooleanMutationEntityFixture::class)]
+final class ColumnEntityClassDataTableFixture extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield BooleanColumn::new('enabled')
+            ->setEntityClass(BooleanMutationColumnEntityFixture::class)
+            ->renderAsSwitch();
+    }
+}
+
+final class ColumnOnlyEntityClassDataTableFixture extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield BooleanColumn::new('enabled')
+            ->setEntityClass(BooleanMutationColumnEntityFixture::class)
+            ->renderAsSwitch();
     }
 }
 
@@ -185,5 +248,14 @@ final class EmptyToggleFieldDataTableFixture extends AbstractDataTable
         yield BooleanColumn::new('enabled')
             ->setCustomOption(BooleanColumn::OPTION_TOGGLE_FIELD, '')
             ->renderAsSwitch();
+    }
+}
+
+#[AsDataTable(entityClass: BooleanMutationEntityFixture::class)]
+final class MissingEffectiveFieldDataTableFixture extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield BooleanColumn::new('')->renderAsSwitch();
     }
 }
