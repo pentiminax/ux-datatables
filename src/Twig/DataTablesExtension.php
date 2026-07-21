@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -28,6 +29,7 @@ class DataTablesExtension extends AbstractExtension
         private readonly ?RequestStack $requestStack = null,
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
         private readonly ?AjaxDataTableRegistry $ajaxRegistry = null,
+        private readonly ?DataTableProfiler $profiler = null,
     ) {
     }
 
@@ -112,6 +114,8 @@ class DataTablesExtension extends AbstractExtension
                 $stimulusAttributes->addAttribute($name, $value);
             }
         }
+
+        $this->profiler?->collectRenderedTable($dataTableClass ?? $table->getId(), $table);
 
         return \sprintf('<table id="%s" %s></table>', $table->getId(), $stimulusAttributes);
     }

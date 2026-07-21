@@ -18,6 +18,7 @@ use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Controller\AjaxTemplateRenderController;
+use Pentiminax\UX\DataTables\DataCollector\DataTableCollector;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\Detail\DetailRowService;
@@ -29,6 +30,7 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntentFactoryInterface;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
@@ -56,6 +58,18 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 return static function (ContainerConfigurator $container): void {
     $services = $container->services();
+
+    $services->set('datatables.profiler', DataTableProfiler::class)
+        ->tag('kernel.reset', ['method' => 'reset'])
+        ->private();
+
+    $services->set('datatables.data_collector', DataTableCollector::class)
+        ->arg(0, service('datatables.profiler'))
+        ->tag('data_collector', [
+            'id'       => 'datatables',
+            'template' => '@DataTables/Collector/data_collector.html.twig',
+        ])
+        ->private();
 
     $services->set('datatables.builder', DataTableBuilder::class)
         ->arg(0, param('datatables.options'))
@@ -126,6 +140,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(4, service('request_stack'))
         ->arg(5, service('datatables.security.csrf_token_manager'))
         ->arg(6, service('datatables.ajax.registry')->nullOnInvalid())
+        ->arg(7, service('datatables.profiler')->nullOnInvalid())
         ->tag('twig.extension')
         ->private();
 
@@ -174,6 +189,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_data', AjaxDataController::class)
         ->arg(0, service('datatables.ajax.registry'))
+        ->arg(1, service('datatables.profiler')->nullOnInvalid())
         ->tag('controller.service_arguments')
         ->public();
 

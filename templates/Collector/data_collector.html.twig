@@ -1,0 +1,80 @@
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% block toolbar %}
+    {% if collector.tableCount > 0 or collector.queryCount > 0 %}
+        {% set icon %}
+            {{ source('@DataTables/Collector/icon.svg') }}
+            <span class="sf-toolbar-value">{{ collector.tableCount }}</span>
+        {% endset %}
+
+        {% set text %}
+            <div class="sf-toolbar-info-piece">
+                <b class="sf-toolbar-label">Rendered tables</b>
+                <span class="sf-toolbar-status">{{ collector.tableCount }}</span>
+            </div>
+            <div class="sf-toolbar-info-piece">
+                <b class="sf-toolbar-label">AJAX queries</b>
+                <span class="sf-toolbar-status">{{ collector.queryCount }}</span>
+            </div>
+        {% endset %}
+
+        {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', { link: profiler_url }) }}
+    {% endif %}
+{% endblock %}
+
+{% block menu %}
+    <span class="label {{ collector.tableCount == 0 and collector.queryCount == 0 ? 'disabled' }}">
+        <span class="icon">{{ source('@DataTables/Collector/icon.svg') }}</span>
+        <strong>UX DataTables</strong>
+    </span>
+{% endblock %}
+
+{% block panel %}
+    <h2>Rendered DataTables</h2>
+    {% if collector.tables is empty %}
+        <div class="empty"><p>No DataTable was rendered on this page.</p></div>
+    {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Class</th>
+                    <th>Server side</th>
+                    <th>Columns</th>
+                    <th>Extensions</th>
+                    <th>Inline data</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for table in collector.tables %}
+                    <tr>
+                        <td>{{ table.id }}</td>
+                        <td><code>{{ table.class }}</code></td>
+                        <td>{{ table.serverSide ? 'yes' : 'no' }}</td>
+                        <td>{{ table.columnCount }}</td>
+                        <td>{{ table.extensions is empty ? '—' : table.extensions|join(', ') }}</td>
+                        <td>{{ table.hasData ? 'yes' : 'no' }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <h2>AJAX queries</h2>
+    {% if collector.queries is empty %}
+        <div class="empty"><p>No server-side AJAX query was handled during this request.</p></div>
+    {% else %}
+        {% for query in collector.queries %}
+            <h3>{{ query.class }}</h3>
+            <table>
+                <tbody>
+                    <tr><th>Token</th><td><code>{{ query.token }}</code></td></tr>
+                    <tr><th>Records total</th><td>{{ query.recordsTotal }}</td></tr>
+                    <tr><th>Records filtered</th><td>{{ query.recordsFiltered }}</td></tr>
+                    <tr><th>Duration</th><td>{{ query.durationMs|number_format(2) }} ms</td></tr>
+                    <tr><th>Request</th><td>{{ profiler_dump(query.request) }}</td></tr>
+                </tbody>
+            </table>
+        {% endfor %}
+    {% endif %}
+{% endblock %}
