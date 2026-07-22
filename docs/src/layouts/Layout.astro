@@ -20,8 +20,16 @@ const docsPages = (await getCollection('docs'))
 ---
 
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
+    <script is:inline>
+      // Set theme before paint to avoid flash of wrong theme.
+      ;(() => {
+        const stored = localStorage.getItem('theme')
+        const dark = stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+        document.documentElement.classList.toggle('dark', dark)
+      })()
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/ux-datatables/favicon.svg" />
@@ -39,10 +47,10 @@ const docsPages = (await getCollection('docs'))
     />
   </head>
   <body
-    class="flex min-h-screen flex-col bg-[#0a1628] font-['Inter',system-ui,sans-serif] text-white"
+    class="flex min-h-screen flex-col bg-white font-['Inter',system-ui,sans-serif] text-slate-900 dark:bg-[#0a1628] dark:text-white"
   >
     <nav
-      class="sticky top-0 z-40 w-full border-b border-slate-800 bg-[#0a1628]/80 backdrop-blur-md"
+      class="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-800 dark:bg-[#0a1628]/80"
     >
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 items-center justify-between">
@@ -57,17 +65,17 @@ const docsPages = (await getCollection('docs'))
               <div class="ml-10 flex items-baseline space-x-4">
                 <a
                   href="/ux-datatables/getting-started/introduction/"
-                  class="rounded-md px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white"
+                  class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                   >Documentation</a
                 >
                 <a
                   href="/ux-datatables/getting-started/installation/"
-                  class="rounded-md px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white"
+                  class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                   >Installation</a
                 >
                 <a
                   href="/ux-datatables/guide/configuration/"
-                  class="rounded-md px-3 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white"
+                  class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
                   >Configuration</a
                 >
               </div>
@@ -78,27 +86,63 @@ const docsPages = (await getCollection('docs'))
               <input
                 type="search"
                 aria-label="Search documentation"
-                class="w-full rounded-lg border border-slate-700 bg-slate-900/70 px-3 py-2 pr-16 text-sm text-slate-100 placeholder:text-slate-400 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 focus:outline-none"
+                class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 pr-16 text-sm text-slate-900 placeholder:text-slate-500 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 focus:outline-none dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:placeholder:text-slate-400"
                 placeholder="Search docs..."
                 data-doc-search-input
                 autocomplete="off"
               />
               <span
-                class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded border border-slate-600 px-1.5 py-0.5 text-[11px] text-slate-300"
+                class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded border border-slate-300 px-1.5 py-0.5 text-[11px] text-slate-500 dark:border-slate-600 dark:text-slate-300"
                 data-doc-search-shortcut>Ctrl+K</span
               >
               <div
-                class="absolute top-[calc(100%+0.5rem)] left-0 hidden w-full overflow-hidden rounded-lg border border-slate-700 bg-slate-900 shadow-xl"
+                class="absolute top-[calc(100%+0.5rem)] left-0 hidden w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
                 data-doc-search-results
               >
                 <ul class="max-h-80 overflow-y-auto py-1" data-doc-search-results-list></ul>
               </div>
             </div>
+            <button
+              type="button"
+              data-theme-toggle
+              class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-slate-100 text-slate-600 transition-colors hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:text-white"
+              aria-label="Toggle color theme"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="hidden h-5 w-5 dark:block"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="4"></circle>
+                <path
+                  d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+                ></path>
+              </svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="h-5 w-5 dark:hidden"
+                aria-hidden="true"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"></path>
+              </svg>
+            </button>
             <a
               href="https://github.com/pentiminax/ux-datatables"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-900/70 text-slate-300 transition-colors hover:text-white"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-slate-100 text-slate-600 transition-colors hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:text-white"
               aria-label="GitHub repository"
             >
               <svg
@@ -157,14 +201,14 @@ const docsPages = (await getCollection('docs'))
 
           if (matches.length === 0) {
             resultsList.innerHTML =
-              '<li class="px-3 py-2 text-sm text-slate-400">No results found.</li>'
+              '<li class="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">No results found.</li>'
             resultsContainer.classList.remove('hidden')
             return
           }
 
           for (const page of matches) {
             const item = document.createElement('li')
-            item.innerHTML = `<a href="${page.href}" class="block px-3 py-2 transition-colors hover:bg-slate-800"><p class="text-sm font-medium text-slate-100">${page.title}</p>${page.description ? `<p class="mt-0.5 text-xs text-slate-400">${page.description}</p>` : ''}</a>`
+            item.innerHTML = `<a href="${page.href}" class="block px-3 py-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"><p class="text-sm font-medium text-slate-900 dark:text-slate-100">${page.title}</p>${page.description ? `<p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">${page.description}</p>` : ''}</a>`
             resultsList.appendChild(item)
           }
 
@@ -193,11 +237,22 @@ const docsPages = (await getCollection('docs'))
         })
       })()
     </script>
+
+    <script is:inline>
+      ;(() => {
+        const toggle = document.querySelector('[data-theme-toggle]')
+        if (!toggle) return
+        toggle.addEventListener('click', () => {
+          const dark = document.documentElement.classList.toggle('dark')
+          localStorage.setItem('theme', dark ? 'dark' : 'light')
+        })
+      })()
+    </script>
   </body>
 </html>
 
 <style is:global>
-  @import 'tailwindcss';
+  @reference '../styles/global.css';
   :root {
     --accent: 49, 116, 199;
     --accent-light: 83, 184, 219;
@@ -220,13 +275,22 @@ const docsPages = (await getCollection('docs'))
     width: 10px;
   }
   ::-webkit-scrollbar-track {
-    background: #0a1628;
+    background: #f1f5f9;
   }
   ::-webkit-scrollbar-thumb {
-    background: #1e293b;
+    background: #cbd5e1;
     border-radius: 5px;
   }
   ::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+  .dark ::-webkit-scrollbar-track {
+    background: #0a1628;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #1e293b;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
     background: #334155;
   }
 
@@ -237,6 +301,6 @@ const docsPages = (await getCollection('docs'))
   h4,
   h5,
   h6 {
-    @apply font-bold tracking-tight text-white;
+    @apply font-bold tracking-tight text-slate-900 dark:text-white;
   }
 </style>
