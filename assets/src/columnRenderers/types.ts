@@ -63,10 +63,8 @@ export interface UrlCustomOptions {
 
 export interface IconCustomOptions {
     isIcon?: boolean
-    icons?: Record<string, string>
-    defaultIcon?: string
-    colors?: Record<string, string>
-    defaultColor?: string
+    icon?: string
+    color?: string
     size?: string
     tooltips?: Record<string, string>
     boolean?: boolean

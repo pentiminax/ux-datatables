@@ -45,41 +45,23 @@ final class IconColumnTest extends TestCase
     }
 
     #[Test]
-    public function it_stores_icons_map(): void
+    public function it_stores_static_icon(): void
     {
         $data = IconColumn::new('status')
-            ->icons(['active' => 'circle-check', 'pending' => 'clock'])
+            ->icon('circle-check')
             ->jsonSerialize();
 
-        $this->assertSame(
-            ['active' => 'circle-check', 'pending' => 'clock'],
-            $data['customOptions']['icons'],
-        );
+        $this->assertSame('circle-check', $data['customOptions']['icon']);
     }
 
     #[Test]
-    public function it_stores_default_icon(): void
+    public function it_stores_static_color(): void
     {
         $data = IconColumn::new('status')
-            ->defaultIcon('circle')
+            ->color('success')
             ->jsonSerialize();
 
-        $this->assertSame('circle', $data['customOptions']['defaultIcon']);
-    }
-
-    #[Test]
-    public function it_stores_colors_and_default_color(): void
-    {
-        $data = IconColumn::new('status')
-            ->colors(['active' => 'success', 'pending' => 'warning'])
-            ->defaultColor('gray')
-            ->jsonSerialize();
-
-        $this->assertSame(
-            ['active' => 'success', 'pending' => 'warning'],
-            $data['customOptions']['colors'],
-        );
-        $this->assertSame('gray', $data['customOptions']['defaultColor']);
+        $this->assertSame('success', $data['customOptions']['color']);
     }
 
     #[Test]
@@ -124,18 +106,33 @@ final class IconColumnTest extends TestCase
     public function it_accepts_icon_enum_equivalently_to_string(): void
     {
         $fromEnum = IconColumn::new('status')
-            ->icons(['active' => Icon::CircleCheck])
-            ->defaultIcon(Icon::Circle)
+            ->icon(Icon::CircleCheck)
             ->jsonSerialize();
 
         $fromString = IconColumn::new('status')
-            ->icons(['active' => 'circle-check'])
-            ->defaultIcon('circle')
+            ->icon('circle-check')
             ->jsonSerialize();
 
-        $this->assertSame('circle-check', $fromEnum['customOptions']['icons']['active']);
-        $this->assertSame('circle', $fromEnum['customOptions']['defaultIcon']);
+        $this->assertSame('circle-check', $fromEnum['customOptions']['icon']);
         $this->assertSame($fromString['customOptions'], $fromEnum['customOptions']);
+    }
+
+    #[Test]
+    public function it_resolves_icon_and_color_via_callable(): void
+    {
+        $col = IconColumn::new('status')
+            ->icon(static fn (string $s): Icon => match ($s) {
+                'draft' => Icon::PencilLine,
+                default => Icon::Circle,
+            })
+            ->color(static fn (string $s): string => 'draft' === $s ? 'warning' : 'secondary');
+
+        $this->assertTrue($col->hasResolvers());
+        $this->assertSame(['icon' => 'pencil-line', 'color' => 'warning'], $col->resolveIconData('draft'));
+
+        $customOptions = $col->jsonSerialize()['customOptions'];
+        $this->assertArrayNotHasKey('icon', $customOptions);
+        $this->assertArrayNotHasKey('color', $customOptions);
     }
 
     #[Test]
@@ -152,21 +149,16 @@ final class IconColumnTest extends TestCase
     public function it_serializes_full_configuration(): void
     {
         $data = IconColumn::new('status', 'Status')
-            ->icons(['active' => Icon::CircleCheck, 'archived' => 'archive'])
-            ->defaultIcon('circle')
-            ->colors(['active' => 'success', 'archived' => 'gray'])
-            ->defaultColor('secondary')
+            ->icon(Icon::CircleCheck)
+            ->color('success')
             ->size(IconSize::Large)
             ->tooltips(['active' => 'Compte actif'])
             ->jsonSerialize();
 
         $this->assertSame('html', $data['type']);
         $this->assertTrue($data['customOptions']['isIcon']);
-        $this->assertSame('circle-check', $data['customOptions']['icons']['active']);
-        $this->assertSame('archive', $data['customOptions']['icons']['archived']);
-        $this->assertSame('circle', $data['customOptions']['defaultIcon']);
-        $this->assertSame('success', $data['customOptions']['colors']['active']);
-        $this->assertSame('secondary', $data['customOptions']['defaultColor']);
+        $this->assertSame('circle-check', $data['customOptions']['icon']);
+        $this->assertSame('success', $data['customOptions']['color']);
         $this->assertSame('lg', $data['customOptions']['size']);
         $this->assertSame('Compte actif', $data['customOptions']['tooltips']['active']);
     }
