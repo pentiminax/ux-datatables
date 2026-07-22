@@ -39,7 +39,9 @@ class IconColumn extends AbstractColumn
     {
         if (!\is_string($icon) && !$icon instanceof Icon && \is_callable($icon)) {
             $this->iconResolver = $icon(...);
+            unset($this->customOptions[self::OPTION_ICON]);
         } else {
+            $this->iconResolver = null;
             $this->setCustomOption(self::OPTION_ICON, self::iconValue($icon));
         }
 
@@ -53,7 +55,9 @@ class IconColumn extends AbstractColumn
     {
         if (!\is_string($color) && \is_callable($color)) {
             $this->colorResolver = $color(...);
+            unset($this->customOptions[self::OPTION_COLOR]);
         } else {
+            $this->colorResolver = null;
             $this->setCustomOption(self::OPTION_COLOR, $color);
         }
 
@@ -65,8 +69,10 @@ class IconColumn extends AbstractColumn
      */
     public function resolveIconData(mixed $state): array
     {
+        $icon = null !== $this->iconResolver ? ($this->iconResolver)($state) : null;
+
         $data = [
-            'icon'  => null !== $this->iconResolver ? self::iconValue(($this->iconResolver)($state)) : null,
+            'icon'  => null !== $icon ? self::iconValue($icon) : null,
             'color' => null !== $this->colorResolver ? ($this->colorResolver)($state) : null,
         ];
 
