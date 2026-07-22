@@ -25,6 +25,24 @@ describe('BootstrapColumnStyleAdapter', () => {
         )
     })
 
+    it('renders an icon with a color class and tooltip', () => {
+        expect(adapter.renderIcon('<svg></svg>', 'success', 'Active')).toBe(
+            '<span class="ux-datatables-icon text-success" title="Active"><svg></svg></span>'
+        )
+    })
+
+    it('renders an icon without color or tooltip', () => {
+        expect(adapter.renderIcon('<svg></svg>', '', '')).toBe(
+            '<span class="ux-datatables-icon"><svg></svg></span>'
+        )
+    })
+
+    it('escapes the icon variant and tooltip', () => {
+        expect(adapter.renderIcon('<svg></svg>', 'x" onx="y', 'a<b>')).toBe(
+            '<span class="ux-datatables-icon text-x&quot; onx=&quot;y" title="a&lt;b&gt;"><svg></svg></span>'
+        )
+    })
+
     it('renders a checked switch with Bootstrap classes', () => {
         const html = adapter.renderSwitch({
             checked: true,

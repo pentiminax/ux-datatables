@@ -21,6 +21,7 @@ export interface SwitchRenderOptions {
 export interface ColumnStyleAdapter {
     renderBadge(label: string, variant: string): string
     renderSwitch(options: SwitchRenderOptions): string
+    renderIcon(iconSvg: string, variant: string, tooltip: string): string
 }
 
 export type ColumnStyleAdapterFactory = () => ColumnStyleAdapter

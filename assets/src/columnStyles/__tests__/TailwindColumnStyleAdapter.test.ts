@@ -31,6 +31,24 @@ describe('TailwindColumnStyleAdapter', () => {
         )
     })
 
+    it('renders an icon with the mapped color class and tooltip', () => {
+        expect(adapter.renderIcon('<svg></svg>', 'success', 'Active')).toBe(
+            '<span class="inline-flex text-green-600" title="Active"><svg></svg></span>'
+        )
+    })
+
+    it('falls back to secondary for unknown icon variants', () => {
+        expect(adapter.renderIcon('<svg></svg>', 'unknown', '')).toBe(
+            '<span class="inline-flex text-gray-600"><svg></svg></span>'
+        )
+    })
+
+    it('escapes the icon tooltip', () => {
+        expect(adapter.renderIcon('<svg></svg>', 'danger', 'a<b>')).toBe(
+            '<span class="inline-flex text-red-600" title="a&lt;b&gt;"><svg></svg></span>'
+        )
+    })
+
     it('renders a checked switch with Tailwind utilities and behavior class', () => {
         const html = adapter.renderSwitch({
             checked: true,
