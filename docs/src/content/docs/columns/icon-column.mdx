@@ -1,0 +1,185 @@
+---
+title: Icon Column
+description: Render a Lucide icon instead of text, driven by value→icon and value→color maps, with an optional boolean mode, sizes, and tooltips
+---
+
+# Icon Column
+
+The `IconColumn` renders a [Lucide](https://lucide.dev) icon instead of raw text. Because the bundle serializes each column to JSON and renders it client-side, icons are resolved through **value→icon** and **value→color** maps rather than closures.
+
+Icon names may be passed as plain kebab-case strings (`'circle-check'`) or as `Icon` enum cases (`Icon::CircleCheck`) — both serialize to the same value.
+
+## Basic Usage
+
+Map each cell value to an icon:
+
+```php
+use Pentiminax\UX\DataTables\Column\IconColumn;
+use Pentiminax\UX\DataTables\Enum\Icon;
+
+IconColumn::new('status', 'Status')
+    ->icons([
+        'active'   => Icon::CircleCheck,
+        'pending'  => Icon::Clock,
+        'archived' => Icon::Archive,
+    ])
+    ->defaultIcon(Icon::Circle);
+```
+
+Values with no entry in the map fall back to `defaultIcon()`. Without a default, an unmapped value renders nothing.
+
+## Colors
+
+Map values to semantic variants (`success`, `warning`, `danger`, `info`, `primary`, `secondary`, `light`, `dark`). Each adapter maps the variant to its own classes — `text-success` on Bootstrap, `text-green-600` on Tailwind.
+
+```php
+IconColumn::new('status', 'Status')
+    ->icons([
+        'active'   => Icon::CircleCheck,
+        'pending'  => Icon::Clock,
+        'archived' => Icon::Archive,
+    ])
+    ->colors([
+        'active'   => 'success',
+        'pending'  => 'warning',
+        'archived' => 'secondary',
+    ])
+    ->defaultColor('secondary');
+```
+
+## Boolean Mode
+
+`boolean()` switches to a true/false rendering driven by `trueIcon`/`falseIcon` and `trueColor`/`falseColor`:
+
+```php
+IconColumn::new('enabled', 'Enabled')
+    ->boolean()
+    ->trueIcon(Icon::CircleCheck)
+    ->falseIcon(Icon::CircleX)
+    ->trueColor('success')
+    ->falseColor('danger');
+```
+
+## Sizes
+
+`size()` accepts `xs | sm | md | lg | xl` (default `md`), as a string or an `IconSize` enum case:
+
+```php
+use Pentiminax\UX\DataTables\Enum\IconSize;
+
+IconColumn::new('status', 'Status')
+    ->icons(['active' => Icon::CircleCheck])
+    ->size(IconSize::Large);
+```
+
+Sizes map to pixel dimensions: `xs=12`, `sm=16`, `md=20`, `lg=24`, `xl=32`.
+
+## Tooltips
+
+Add a `title` attribute per value:
+
+```php
+IconColumn::new('status', 'Status')
+    ->icons(['active' => Icon::CircleCheck])
+    ->tooltips(['active' => 'Account is active']);
+```
+
+## API Reference
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    [
+      "`IconColumn::new(string $name, string $title = '')`",
+      'Creates a new IconColumn (type: `html`).',
+    ],
+    [
+      '`icons(array $icons)`',
+      'Map of cell value => icon name (`string` or `Icon`).',
+    ],
+    [
+      '`defaultIcon(string|Icon $icon)`',
+      'Fallback icon for values absent from the map.',
+    ],
+    [
+      '`colors(array $colors)`',
+      'Map of cell value => semantic variant.',
+    ],
+    [
+      '`defaultColor(string $color)`',
+      'Fallback variant for values absent from the color map.',
+    ],
+    [
+      '`size(string|IconSize $size)`',
+      'Icon size: `xs | sm | md | lg | xl` (default `md`).',
+    ],
+    [
+      '`tooltips(array $tooltips)`',
+      'Map of cell value => `title` attribute.',
+    ],
+    [
+      '`boolean(bool $boolean = true)`',
+      'Switch to true/false rendering.',
+    ],
+    [
+      '`trueIcon(string|Icon $icon)` / `falseIcon(string|Icon $icon)`',
+      'Icons used in boolean mode.',
+    ],
+    [
+      '`trueColor(string $color)` / `falseColor(string $color)`',
+      'Variants used in boolean mode.',
+    ],
+  ]}
+/>
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\IconColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Enum\Icon;
+use Pentiminax\UX\DataTables\Enum\IconSize;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('name', 'Name');
+        yield IconColumn::new('status', 'Status')
+            ->icons([
+                'active'   => Icon::CircleCheck,
+                'pending'  => Icon::Clock,
+                'archived' => Icon::Archive,
+            ])
+            ->colors([
+                'active'   => 'success',
+                'pending'  => 'warning',
+                'archived' => 'secondary',
+            ])
+            ->defaultIcon(Icon::Circle)
+            ->defaultColor('secondary')
+            ->size(IconSize::Large)
+            ->tooltips([
+                'active'   => 'Account is active',
+                'pending'  => 'Awaiting confirmation',
+                'archived' => 'No longer active',
+            ]);
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return [
+            'name'   => $item->getName(),
+            'status' => $item->getStatus(),
+        ];
+    }
+}
+```
+
+<Aside type="note">
+  Searching and sorting operate on the raw cell value, not the rendered icon. The icon
+  library is lazy-loaded in the browser only when at least one `IconColumn` is present.
+</Aside>

@@ -14,6 +14,18 @@ const BADGE_VARIANT_CLASSES: Record<string, string> = {
     dark: 'bg-gray-800 text-gray-100',
 }
 
+const ICON_VARIANT_CLASSES: Record<string, string> = {
+    success: 'text-green-600',
+    warning: 'text-yellow-600',
+    danger: 'text-red-600',
+    info: 'text-sky-600',
+    primary: 'text-blue-600',
+    secondary: 'text-gray-600',
+    gray: 'text-gray-500',
+    light: 'text-gray-400',
+    dark: 'text-gray-900',
+}
+
 const SWITCH_TRACK_CLASSES =
     'relative h-6 w-11 rounded-full bg-gray-200 after:absolute after:start-[2px] after:top-[2px] ' +
     'after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white ' +
@@ -26,6 +38,13 @@ export class TailwindColumnStyleAdapter implements ColumnStyleAdapter {
         const variantClasses = BADGE_VARIANT_CLASSES[variant] ?? BADGE_VARIANT_CLASSES.secondary
 
         return `<span class="${BADGE_BASE_CLASSES} ${variantClasses}">${escapedLabel}</span>`
+    }
+
+    renderIcon(iconSvg: string, variant: string, tooltip: string): string {
+        const colorClass = ICON_VARIANT_CLASSES[variant] ?? ICON_VARIANT_CLASSES.secondary
+        const title = tooltip ? ` title="${escapeHtml(tooltip)}"` : ''
+
+        return `<span class="inline-flex ${colorClass}"${title}>${iconSvg}</span>`
     }
 
     renderSwitch(options: SwitchRenderOptions): string {

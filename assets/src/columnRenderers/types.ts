@@ -61,6 +61,21 @@ export interface UrlCustomOptions {
     allowedProtocols?: string[]
 }
 
+export interface IconCustomOptions {
+    isIcon?: boolean
+    icons?: Record<string, string>
+    defaultIcon?: string
+    colors?: Record<string, string>
+    defaultColor?: string
+    size?: string
+    tooltips?: Record<string, string>
+    boolean?: boolean
+    trueIcon?: string
+    falseIcon?: string
+    trueColor?: string
+    falseColor?: string
+}
+
 export interface ImageCustomOptions {
     isImage?: boolean
     imageWidth?: number

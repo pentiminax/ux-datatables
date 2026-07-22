@@ -3,6 +3,7 @@ import { createActionColumnRenderer } from './columnRenderers/actionColumnRender
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js';
+import { createIconColumnRenderer, loadLucideIcons } from './columnRenderers/iconColumnRenderer.js';
 import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js';
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
@@ -67,6 +68,10 @@ class default_1 extends Controller {
             new ApiPlatformAdapter(columns).configure(payload);
         }
         this.configureColumns(payload);
+        if (Array.isArray(payload.columns) &&
+            payload.columns.some((column) => true === column?.customOptions?.isIcon)) {
+            await loadLucideIcons();
+        }
         const urlStateCfg = isUrlStateEnabled(payload);
         if (urlStateCfg) {
             applyUrlStateToPayload(payload, readUrlState(urlStateCfg));
@@ -153,6 +158,7 @@ class default_1 extends Controller {
             moneyColumnRenderer,
             imageColumnRenderer,
             urlColumnRenderer,
+            createIconColumnRenderer(style),
             createActionColumnRenderer(this.areMutationsEnabled(payload)),
         ];
         payload.columns.forEach((column) => {
