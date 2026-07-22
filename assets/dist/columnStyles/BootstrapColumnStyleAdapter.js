@@ -5,6 +5,11 @@ export class BootstrapColumnStyleAdapter {
         const escapedVariant = escapeHtml(variant);
         return `<span class="badge text-bg-${escapedVariant}">${escapedLabel}</span>`;
     }
+    renderIcon(iconSvg, variant, tooltip) {
+        const colorClass = variant ? ` text-${escapeHtml(variant)}` : '';
+        const title = tooltip ? ` title="${escapeHtml(tooltip)}"` : '';
+        return `<span class="ux-datatables-icon${colorClass}"${title}>${iconSvg}</span>`;
+    }
     renderSwitch(options) {
         const checked = options.checked ? ' checked' : '';
         const disabled = options.disabled ? ' disabled' : '';

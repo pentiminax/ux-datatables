@@ -17,6 +17,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
 use Pentiminax\UX\DataTables\RowMapper\Stage\ActionResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\BooleanSwitchMetadataStage;
+use Pentiminax\UX\DataTables\RowMapper\Stage\IconColumnResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\TemplateRenderingStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\UrlColumnResolutionStage;
@@ -39,6 +40,7 @@ final class DataTableRuntimeFactory
     {
         $pipeline = (new RowProcessingPipeline($baseMapper, $columns))
             ->add(new NormalizationStage())
+            ->add(new IconColumnResolutionStage())
             ->add(new BooleanSwitchMetadataStage());
 
         $pipeline->add(new UrlColumnResolutionStage($this->urlColumnDataResolver ?? new UrlColumnDataResolver()));
