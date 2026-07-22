@@ -1,55 +1,69 @@
 ---
 title: Icon Column
-description: Render a Lucide icon instead of text, driven by value→icon and value→color maps, with an optional boolean mode, sizes, and tooltips
+description: Render a Lucide icon instead of text, driven by a static value or a callable, with an optional boolean mode, sizes, and tooltips
 ---
 
 # Icon Column
 
-The `IconColumn` renders a [Lucide](https://lucide.dev) icon instead of raw text. Because the bundle serializes each column to JSON and renders it client-side, icons are resolved through **value→icon** and **value→color** maps rather than closures.
+The `IconColumn` renders a [Lucide](https://lucide.dev) icon instead of raw text. The icon and its
+color are set with `icon()` and `color()`, each accepting a **static value** (rendered client-side) or
+a **callable** that receives the cell state and is resolved server-side per row.
 
-Icon names may be passed as plain kebab-case strings (`'circle-check'`) or as `Icon` enum cases (`Icon::CircleCheck`) — both serialize to the same value.
+Icon names may be passed as plain kebab-case strings (`'circle-check'`) or as `Icon` enum cases
+(`Icon::CircleCheck`) — both serialize to the same value.
 
 ## Basic Usage
 
-Map each cell value to an icon:
+Set a single static icon for every cell:
 
 ```php
 use Pentiminax\UX\DataTables\Column\IconColumn;
 use Pentiminax\UX\DataTables\Enum\Icon;
 
 IconColumn::new('status', 'Status')
-    ->icons([
-        'active'   => Icon::CircleCheck,
-        'pending'  => Icon::Clock,
-        'archived' => Icon::Archive,
-    ])
-    ->defaultIcon(Icon::Circle);
+    ->icon(Icon::CircleCheck);
 ```
 
-Values with no entry in the map fall back to `defaultIcon()`. Without a default, an unmapped value renders nothing.
+## Dynamic Icon
 
-## Colors
-
-Map values to semantic variants (`success`, `warning`, `danger`, `info`, `primary`, `secondary`, `light`, `dark`). Each adapter maps the variant to its own classes — `text-success` on Bootstrap, `text-green-600` on Tailwind.
+Pass a callable to derive the icon from the cell value. The callable receives the (scalar) cell state:
 
 ```php
 IconColumn::new('status', 'Status')
-    ->icons([
-        'active'   => Icon::CircleCheck,
-        'pending'  => Icon::Clock,
-        'archived' => Icon::Archive,
-    ])
-    ->colors([
-        'active'   => 'success',
-        'pending'  => 'warning',
-        'archived' => 'secondary',
-    ])
-    ->defaultColor('secondary');
+    ->icon(fn (string $state): Icon => match ($state) {
+        'draft'     => Icon::PencilLine,
+        'reviewing' => Icon::Clock,
+        'published' => Icon::CircleCheck,
+        default     => Icon::Circle,
+    });
+```
+
+The callable runs server-side, once per row. It may return a `string` or an `Icon`.
+
+## Colors
+
+`color()` accepts a semantic variant (`success`, `warning`, `danger`, `info`, `primary`, `secondary`,
+`light`, `dark`) as a static string or a callable. Each adapter maps the variant to its own classes —
+`text-success` on Bootstrap, `text-green-600` on Tailwind.
+
+```php
+IconColumn::new('status', 'Status')
+    ->icon(fn (string $state): Icon => match ($state) {
+        'draft'     => Icon::PencilLine,
+        'published' => Icon::CircleCheck,
+        default     => Icon::Circle,
+    })
+    ->color(fn (string $state): string => match ($state) {
+        'draft'     => 'warning',
+        'published' => 'success',
+        default     => 'secondary',
+    });
 ```
 
 ## Boolean Mode
 
-`boolean()` switches to a true/false rendering driven by `trueIcon`/`falseIcon` and `trueColor`/`falseColor`:
+`boolean()` switches to a true/false rendering driven by `trueIcon`/`falseIcon` and
+`trueColor`/`falseColor`:
 
 ```php
 IconColumn::new('enabled', 'Enabled')
@@ -68,7 +82,7 @@ IconColumn::new('enabled', 'Enabled')
 use Pentiminax\UX\DataTables\Enum\IconSize;
 
 IconColumn::new('status', 'Status')
-    ->icons(['active' => Icon::CircleCheck])
+    ->icon(Icon::CircleCheck)
     ->size(IconSize::Large);
 ```
 
@@ -80,7 +94,7 @@ Add a `title` attribute per value:
 
 ```php
 IconColumn::new('status', 'Status')
-    ->icons(['active' => Icon::CircleCheck])
+    ->icon(Icon::CircleCheck)
     ->tooltips(['active' => 'Account is active']);
 ```
 
@@ -94,20 +108,12 @@ IconColumn::new('status', 'Status')
       'Creates a new IconColumn (type: `html`).',
     ],
     [
-      '`icons(array $icons)`',
-      'Map of cell value => icon name (`string` or `Icon`).',
+      '`icon(string|Icon|callable $icon)`',
+      'Icon name (`string`/`Icon`) rendered client-side, or a `fn ($state)` resolved server-side per row.',
     ],
     [
-      '`defaultIcon(string|Icon $icon)`',
-      'Fallback icon for values absent from the map.',
-    ],
-    [
-      '`colors(array $colors)`',
-      'Map of cell value => semantic variant.',
-    ],
-    [
-      '`defaultColor(string $color)`',
-      'Fallback variant for values absent from the color map.',
+      '`color(string|callable $color)`',
+      'Semantic variant (`string`) rendered client-side, or a `fn ($state)` resolved server-side per row.',
     ],
     [
       '`size(string|IconSize $size)`',
@@ -149,18 +155,17 @@ final class UsersDataTable extends AbstractDataTable
     {
         yield TextColumn::new('name', 'Name');
         yield IconColumn::new('status', 'Status')
-            ->icons([
+            ->icon(fn (string $state): Icon => match ($state) {
                 'active'   => Icon::CircleCheck,
                 'pending'  => Icon::Clock,
                 'archived' => Icon::Archive,
-            ])
-            ->colors([
+                default    => Icon::Circle,
+            })
+            ->color(fn (string $state): string => match ($state) {
                 'active'   => 'success',
                 'pending'  => 'warning',
-                'archived' => 'secondary',
-            ])
-            ->defaultIcon(Icon::Circle)
-            ->defaultColor('secondary')
+                default    => 'secondary',
+            })
             ->size(IconSize::Large)
             ->tooltips([
                 'active'   => 'Account is active',

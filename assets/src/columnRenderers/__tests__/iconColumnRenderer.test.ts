@@ -8,10 +8,13 @@ const style: ColumnStyleAdapter = {
     renderIcon: (svg, variant, tooltip) => `icon[${variant}|${tooltip}]${svg}`,
 }
 
-function configuredRender(customOptions: Record<string, unknown>) {
-    const column: Record<string, any> = { customOptions }
+function configuredRender(
+    customOptions: Record<string, unknown>,
+    column: Record<string, any> = {}
+) {
+    column.customOptions = customOptions
     createIconColumnRenderer(style).configure(column)
-    return column.render as (data: any, type: string) => any
+    return column.render as (data: any, type: string, row?: any) => any
 }
 
 describe('iconColumnRenderer', () => {
@@ -27,16 +30,16 @@ describe('iconColumnRenderer', () => {
     })
 
     it('returns the raw value for non-display types', () => {
-        const render = configuredRender({ isIcon: true, icons: { active: 'circle-check' } })
+        const render = configuredRender({ isIcon: true, icon: 'circle-check' })
         expect(render('active', 'sort')).toBe('active')
         expect(render('active', 'filter')).toBe('active')
     })
 
-    it('resolves an icon and color from the maps', () => {
+    it('renders the static icon and color', () => {
         const render = configuredRender({
             isIcon: true,
-            icons: { active: 'circle-check' },
-            colors: { active: 'success' },
+            icon: 'circle-check',
+            color: 'success',
             tooltips: { active: 'Active account' },
         })
         const html = render('active', 'display')
@@ -45,16 +48,16 @@ describe('iconColumnRenderer', () => {
         expect(html).toContain('<svg')
     })
 
-    it('falls back to the default icon/color for unmapped values', () => {
-        const render = configuredRender({
-            isIcon: true,
-            icons: { active: 'circle-check' },
-            defaultIcon: 'circle',
-            defaultColor: 'secondary',
+    it('lets dynamic icon/color from the row win over the static ones', () => {
+        const render = configuredRender(
+            { isIcon: true, icon: 'circle-check', color: 'success' },
+            { data: 'status' }
+        )
+        const html = render('draft', 'display', {
+            __ux_datatables_icons: { status: { icon: 'circle-x', color: 'danger' } },
         })
-        const html = render('unknown', 'display')
 
-        expect(html).toContain('icon[secondary|]')
+        expect(html).toContain('icon[danger|]')
         expect(html).toContain('<svg')
     })
 
@@ -75,7 +78,7 @@ describe('iconColumnRenderer', () => {
     it('returns an empty string for an unknown icon name', () => {
         const render = configuredRender({
             isIcon: true,
-            icons: { active: 'this-icon-does-not-exist-xyz' },
+            icon: 'this-icon-does-not-exist-xyz',
         })
         expect(render('active', 'display')).toBe('')
     })
@@ -83,7 +86,7 @@ describe('iconColumnRenderer', () => {
     it('applies the size to the svg dimensions', () => {
         const render = configuredRender({
             isIcon: true,
-            icons: { active: 'circle-check' },
+            icon: 'circle-check',
             size: 'lg',
         })
         const html = render('active', 'display')

@@ -10,18 +10,19 @@ use Pentiminax\UX\DataTables\Enum\IconSize;
 
 class IconColumn extends AbstractColumn
 {
-    public const string OPTION_IS_ICON       = 'isIcon';
-    public const string OPTION_ICONS         = 'icons';
-    public const string OPTION_DEFAULT_ICON  = 'defaultIcon';
-    public const string OPTION_COLORS        = 'colors';
-    public const string OPTION_DEFAULT_COLOR = 'defaultColor';
-    public const string OPTION_SIZE          = 'size';
-    public const string OPTION_TOOLTIPS      = 'tooltips';
-    public const string OPTION_BOOLEAN       = 'boolean';
-    public const string OPTION_TRUE_ICON     = 'trueIcon';
-    public const string OPTION_FALSE_ICON    = 'falseIcon';
-    public const string OPTION_TRUE_COLOR    = 'trueColor';
-    public const string OPTION_FALSE_COLOR   = 'falseColor';
+    public const string OPTION_IS_ICON     = 'isIcon';
+    public const string OPTION_ICON        = 'icon';
+    public const string OPTION_COLOR       = 'color';
+    public const string OPTION_SIZE        = 'size';
+    public const string OPTION_TOOLTIPS    = 'tooltips';
+    public const string OPTION_BOOLEAN     = 'boolean';
+    public const string OPTION_TRUE_ICON   = 'trueIcon';
+    public const string OPTION_FALSE_ICON  = 'falseIcon';
+    public const string OPTION_TRUE_COLOR  = 'trueColor';
+    public const string OPTION_FALSE_COLOR = 'falseColor';
+
+    private ?\Closure $iconResolver  = null;
+    private ?\Closure $colorResolver = null;
 
     public static function new(string $name, string $title = ''): static
     {
@@ -32,37 +33,49 @@ class IconColumn extends AbstractColumn
     }
 
     /**
-     * @param array<array-key, string|Icon> $icons map of cell value => icon name
+     * @param string|Icon|callable(mixed):(string|Icon) $icon
      */
-    public function icons(array $icons): static
+    public function icon(string|Icon|callable $icon): static
     {
-        $this->setCustomOption(self::OPTION_ICONS, array_map(self::iconValue(...), $icons));
-
-        return $this;
-    }
-
-    public function defaultIcon(string|Icon $icon): static
-    {
-        $this->setCustomOption(self::OPTION_DEFAULT_ICON, self::iconValue($icon));
+        if (!\is_string($icon) && !$icon instanceof Icon && \is_callable($icon)) {
+            $this->iconResolver = $icon(...);
+        } else {
+            $this->setCustomOption(self::OPTION_ICON, self::iconValue($icon));
+        }
 
         return $this;
     }
 
     /**
-     * @param array<array-key, string> $colors map of cell value => variant (success, warning, ...)
+     * @param string|callable(mixed):string $color
      */
-    public function colors(array $colors): static
+    public function color(string|callable $color): static
     {
-        $this->setCustomOption(self::OPTION_COLORS, $colors);
+        if (!\is_string($color) && \is_callable($color)) {
+            $this->colorResolver = $color(...);
+        } else {
+            $this->setCustomOption(self::OPTION_COLOR, $color);
+        }
 
         return $this;
     }
 
-    public function defaultColor(string $color): static
+    /**
+     * @return array{icon?: string, color?: string}
+     */
+    public function resolveIconData(mixed $state): array
     {
-        $this->setCustomOption(self::OPTION_DEFAULT_COLOR, $color);
+        $data = [
+            'icon'  => null !== $this->iconResolver ? self::iconValue(($this->iconResolver)($state)) : null,
+            'color' => null !== $this->colorResolver ? ($this->colorResolver)($state) : null,
+        ];
 
-        return $this;
+        return array_filter($data, static fn ($v): bool => null !== $v);
+    }
+
+    public function hasResolvers(): bool
+    {
+        return null !== $this->iconResolver || null !== $this->colorResolver;
     }
 
     public function size(string|IconSize $size): static

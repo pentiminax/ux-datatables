@@ -29,14 +29,13 @@ export function createIconColumnRenderer(style) {
         },
         configure(column) {
             const customOptions = (column.customOptions ?? {});
-            const icons = customOptions.icons ?? {};
-            const colors = customOptions.colors ?? {};
+            const columnKey = column.data ?? column.name;
             const tooltips = customOptions.tooltips ?? {};
-            const defaultIcon = customOptions.defaultIcon ?? '';
-            const defaultColor = customOptions.defaultColor ?? '';
+            const staticIcon = customOptions.icon ?? '';
+            const staticColor = customOptions.color ?? '';
             const sizePx = SIZE_PX[customOptions.size ?? 'md'] ?? SIZE_PX.md;
             const booleanMode = true === customOptions.boolean;
-            column.render = (data, type) => {
+            column.render = (data, type, row) => {
                 if (type !== 'display') {
                     return data;
                 }
@@ -45,17 +44,16 @@ export function createIconColumnRenderer(style) {
                 let tooltip;
                 if (booleanMode) {
                     const on = parseBooleanValue(data);
-                    iconName =
-                        (on ? customOptions.trueIcon : customOptions.falseIcon) ?? defaultIcon;
+                    iconName = (on ? customOptions.trueIcon : customOptions.falseIcon) ?? staticIcon;
                     variant =
-                        (on ? customOptions.trueColor : customOptions.falseColor) ?? defaultColor;
+                        (on ? customOptions.trueColor : customOptions.falseColor) ?? staticColor;
                     tooltip = '';
                 }
                 else {
-                    const key = String(data ?? '');
-                    iconName = icons[key] ?? defaultIcon;
-                    variant = colors[key] ?? defaultColor;
-                    tooltip = tooltips[key] ?? '';
+                    const resolved = row?.__ux_datatables_icons?.[columnKey];
+                    iconName = resolved?.icon ?? staticIcon;
+                    variant = resolved?.color ?? staticColor;
+                    tooltip = tooltips[String(data ?? '')] ?? '';
                 }
                 const svg = renderSvg(iconName, sizePx);
                 if (svg === null) {
