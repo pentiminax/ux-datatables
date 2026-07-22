@@ -189,7 +189,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_data', AjaxDataController::class)
         ->arg(0, service('datatables.ajax.registry'))
-        ->arg(1, service('datatables.profiler')->nullOnInvalid())
+        ->arg(1, service('datatables.profiler'))
         ->tag('controller.service_arguments')
         ->public();
 
