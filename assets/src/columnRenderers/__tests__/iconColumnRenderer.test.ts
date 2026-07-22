@@ -75,6 +75,13 @@ describe('iconColumnRenderer', () => {
         expect(render(false, 'display')).toContain('icon[danger|]')
     })
 
+    it('resolves acronym icons whose kebab value has adjacent capitals', () => {
+        const render = configuredRender({ isIcon: true, icon: 'arrow-down-az' })
+        const html = render('active', 'display')
+
+        expect(html).toContain('<svg')
+    })
+
     it('returns an empty string for an unknown icon name', () => {
         const render = configuredRender({
             isIcon: true,

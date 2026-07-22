@@ -1,22 +1,27 @@
 import { parseBooleanValue } from '../functions/htmlUtils.js';
 const SIZE_PX = { xs: 12, sm: 16, md: 20, lg: 24, xl: 32 };
 let lucide = null;
+let iconsByKebab = null;
+function pascalToKebab(name) {
+    return name
+        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+        .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+        .toLowerCase();
+}
 export async function loadLucideIcons() {
     if (lucide === null) {
         lucide = (await import('lucide'));
+        iconsByKebab = new Map();
+        for (const [pascal, node] of Object.entries(lucide.icons)) {
+            iconsByKebab.set(pascalToKebab(pascal), node);
+        }
     }
-}
-function kebabToPascal(name) {
-    return name
-        .split('-')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join('');
 }
 function renderSvg(iconName, sizePx) {
-    if (lucide === null || iconName.length === 0) {
+    if (lucide === null || iconsByKebab === null || iconName.length === 0) {
         return null;
     }
-    const iconNode = lucide.icons[kebabToPascal(iconName)];
+    const iconNode = iconsByKebab.get(iconName);
     if (iconNode === undefined) {
         return null;
     }

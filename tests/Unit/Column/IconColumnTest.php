@@ -136,6 +136,43 @@ final class IconColumnTest extends TestCase
     }
 
     #[Test]
+    public function it_clears_resolver_when_static_value_set_after_callable(): void
+    {
+        $col = IconColumn::new('status')
+            ->icon(static fn (string $s): Icon => Icon::Circle)
+            ->color(static fn (string $s): string => 'warning')
+            ->icon('circle-check')
+            ->color('success');
+
+        $this->assertFalse($col->hasResolvers());
+
+        $customOptions = $col->jsonSerialize()['customOptions'];
+        $this->assertSame('circle-check', $customOptions['icon']);
+        $this->assertSame('success', $customOptions['color']);
+    }
+
+    #[Test]
+    public function it_drops_static_option_when_callable_set_after_static(): void
+    {
+        $col = IconColumn::new('status')
+            ->icon('circle-check')
+            ->icon(static fn (string $s): Icon => Icon::Circle);
+
+        $this->assertTrue($col->hasResolvers());
+        $this->assertArrayNotHasKey('icon', $col->jsonSerialize()['customOptions']);
+    }
+
+    #[Test]
+    public function it_omits_icon_when_callable_returns_null(): void
+    {
+        $col = IconColumn::new('status')
+            ->icon(static fn (string $s): ?Icon => 'draft' === $s ? Icon::PencilLine : null)
+            ->color(static fn (string $s): string => 'secondary');
+
+        $this->assertSame(['color' => 'secondary'], $col->resolveIconData('published'));
+    }
+
+    #[Test]
     public function it_accepts_icon_size_enum(): void
     {
         $data = IconColumn::new('status')

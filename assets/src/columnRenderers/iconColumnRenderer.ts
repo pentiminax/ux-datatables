@@ -12,26 +12,34 @@ const SIZE_PX: Record<string, number> = { xs: 12, sm: 16, md: 20, lg: 24, xl: 32
 
 // Lazily loaded once, then read synchronously by DataTables' render callback.
 let lucide: LucideModule | null = null
+// Icon nodes keyed by kebab value, matching the PHP Icon enum's values.
+let iconsByKebab: Map<string, IconNode> | null = null
+
+// Mirror of the enum generator's pascalToKebab so acronym icons (ArrowDownAZ ->
+// arrow-down-az) resolve; a naive kebab->Pascal round-trip loses the casing.
+function pascalToKebab(name: string): string {
+    return name
+        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+        .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
+        .toLowerCase()
+}
 
 export async function loadLucideIcons(): Promise<void> {
     if (lucide === null) {
         lucide = (await import('lucide')) as unknown as LucideModule
+        iconsByKebab = new Map()
+        for (const [pascal, node] of Object.entries(lucide.icons)) {
+            iconsByKebab.set(pascalToKebab(pascal), node)
+        }
     }
-}
-
-function kebabToPascal(name: string): string {
-    return name
-        .split('-')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join('')
 }
 
 function renderSvg(iconName: string, sizePx: number): string | null {
-    if (lucide === null || iconName.length === 0) {
+    if (lucide === null || iconsByKebab === null || iconName.length === 0) {
         return null
     }
 
-    const iconNode = lucide.icons[kebabToPascal(iconName)]
+    const iconNode = iconsByKebab.get(iconName)
     if (iconNode === undefined) {
         return null
     }
