@@ -16,7 +16,7 @@ final class AjaxDataController
 {
     public function __construct(
         private readonly AjaxDataTableRegistry $registry,
-        private readonly ?DataTableProfiler $profiler = null,
+        private readonly DataTableProfiler $profiler,
     ) {
     }
 
@@ -51,10 +51,6 @@ final class AjaxDataController
 
     private function collect(AbstractDataTable $table, string $token, JsonResponse $response, float $start): void
     {
-        if (null === $this->profiler) {
-            return;
-        }
-
         $durationMs = (hrtime(true) - $start) / 1_000_000;
 
         $payload = json_decode((string) $response->getContent(), true);
