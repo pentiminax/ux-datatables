@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Controller\AjaxDataController;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -26,7 +27,7 @@ final class AjaxDataControllerTest extends TestCase
     #[Test]
     public function it_throws_404_when_table_field_is_missing(): void
     {
-        $controller = new AjaxDataController($this->createRegistry());
+        $controller = new AjaxDataController($this->createRegistry(), new DataTableProfiler());
         $request    = new Request();
 
         $this->expectException(NotFoundHttpException::class);
@@ -37,7 +38,7 @@ final class AjaxDataControllerTest extends TestCase
     #[Test]
     public function it_throws_404_when_table_token_is_unknown(): void
     {
-        $controller = new AjaxDataController($this->createRegistry());
+        $controller = new AjaxDataController($this->createRegistry(), new DataTableProfiler());
         $request    = new Request(query: ['table' => 'unknown-token']);
 
         $this->expectException(NotFoundHttpException::class);
@@ -58,7 +59,7 @@ final class AjaxDataControllerTest extends TestCase
         $registry = $this->createRegistry($dataTable);
         $token    = $registry->getToken('App\\UserDataTable');
 
-        $controller = new AjaxDataController($registry);
+        $controller = new AjaxDataController($registry, new DataTableProfiler());
         $response   = $controller(new Request(query: ['table' => $token, 'draw' => 1]));
 
         $this->assertSame($expectedResponse, $response);
@@ -75,7 +76,7 @@ final class AjaxDataControllerTest extends TestCase
         $registry = $this->createRegistry($dataTable);
         $token    = $registry->getToken('App\\UserDataTable');
 
-        $controller = new AjaxDataController($registry);
+        $controller = new AjaxDataController($registry, new DataTableProfiler());
 
         $this->expectException(BadRequestHttpException::class);
 
