@@ -10,6 +10,9 @@ export default defineConfig({
   base: '/ux-datatables',
   integrations: [sitemap(), mdx()],
   markdown: {
+    shikiConfig: {
+      theme: 'github-dark',
+    },
     processor: unified({
       rehypePlugins: [
         [
