@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Model;
 
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Enum\ActionType;
+use Pentiminax\UX\DataTables\Enum\Icon;
 
 final class Action implements \JsonSerializable
 {
@@ -14,6 +15,7 @@ final class Action implements \JsonSerializable
     private string $label;
     private string $className;
     private ?string $icon                        = null;
+    private ?string $lucideIcon                  = null;
     private ?string $confirmationButtonLabel     = null;
     private ?array $displayCondition             = null;
     private ?string $entityClass                 = null;
@@ -79,9 +81,17 @@ final class Action implements \JsonSerializable
         return $this;
     }
 
-    public function icon(string $icon): self
+    public function icon(string|Icon $icon): self
     {
-        $this->icon = $icon;
+        if ($icon instanceof Icon) {
+            $this->icon       = null;
+            $this->lucideIcon = $icon->value;
+
+            return $this;
+        }
+
+        $this->icon       = $icon;
+        $this->lucideIcon = null;
 
         return $this;
     }
@@ -267,6 +277,10 @@ final class Action implements \JsonSerializable
 
         if (null !== $this->icon) {
             $data['icon'] = $this->icon;
+        }
+
+        if (null !== $this->lucideIcon) {
+            $data['lucideIcon'] = $this->lucideIcon;
         }
 
         if (null !== $this->confirmationButtonLabel) {

@@ -1,4 +1,5 @@
 import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js';
+import { renderLucideIcon } from '../functions/lucideIcons.js';
 const SAFE_ATTRIBUTE_NAME_PATTERN = /^[a-zA-Z_:][a-zA-Z0-9:._-]*$/;
 const DEFAULT_COLLAPSIBLE_ICON = '<span class="dtr-control-icon" aria-hidden="true">&#9656;</span> ';
 export function createActionColumnRenderer(mutationsEnabled = true) {
@@ -27,9 +28,7 @@ export function createActionColumnRenderer(mutationsEnabled = true) {
                     const escapedLabel = escapeHtml(action.label);
                     const escapedClassName = escapeHtml(action.className);
                     const escapedType = escapeHtml(action.type);
-                    const iconHtml = action.icon
-                        ? `<i class="${escapeHtml(action.icon)}"></i> `
-                        : '';
+                    const iconHtml = renderActionIcon(action);
                     if (action.type === 'DETAIL' && action.collapsible) {
                         const iconMarkup = iconHtml || DEFAULT_COLLAPSIBLE_ICON;
                         const attrs = [
@@ -94,6 +93,17 @@ export function createActionColumnRenderer(mutationsEnabled = true) {
     };
 }
 export const actionColumnRenderer = createActionColumnRenderer();
+function renderActionIcon(action) {
+    if (action.lucideIcon) {
+        const icon = renderLucideIcon(action.lucideIcon, {
+            width: '1em',
+            height: '1em',
+            'aria-hidden': 'true',
+        });
+        return icon === null ? '' : `${icon} `;
+    }
+    return action.icon ? `<i class="${escapeHtml(action.icon)}"></i> ` : '';
+}
 function resolveActionId(action, row) {
     const idField = action.idField ?? 'id';
     const rowId = row[idField];

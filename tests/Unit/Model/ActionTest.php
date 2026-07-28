@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Enum\ActionType;
+use Pentiminax\UX\DataTables\Enum\Icon;
 use Pentiminax\UX\DataTables\Model\Action;
 use PHPUnit\Framework\TestCase;
 
@@ -28,6 +29,7 @@ class ActionTest extends TestCase
         $this->assertSame('id', $json['idField']);
         $this->assertSame([], $json['htmlAttributes']);
         $this->assertArrayNotHasKey('icon', $json);
+        $this->assertArrayNotHasKey('lucideIcon', $json);
         $this->assertArrayNotHasKey('confirm', $json);
         $this->assertArrayNotHasKey('displayCondition', $json);
         $this->assertArrayNotHasKey('entityClass', $json);
@@ -92,6 +94,35 @@ class ActionTest extends TestCase
         $this->assertSame('uuid', $json['idField']);
     }
 
+    public function test_icon_enum_serializes_as_lucide_icon(): void
+    {
+        $json = Action::edit()
+            ->icon(Icon::Pencil)
+            ->jsonSerialize();
+
+        $this->assertSame('pencil', $json['lucideIcon']);
+        $this->assertArrayNotHasKey('icon', $json);
+    }
+
+    public function test_last_icon_call_wins_between_css_and_lucide(): void
+    {
+        $lucide = Action::edit()
+            ->icon('bi bi-pencil')
+            ->icon(Icon::Pencil)
+            ->jsonSerialize();
+
+        $this->assertSame('pencil', $lucide['lucideIcon']);
+        $this->assertArrayNotHasKey('icon', $lucide);
+
+        $css = Action::edit()
+            ->icon(Icon::Pencil)
+            ->icon('bi bi-pencil')
+            ->jsonSerialize();
+
+        $this->assertSame('bi bi-pencil', $css['icon']);
+        $this->assertArrayNotHasKey('lucideIcon', $css);
+    }
+
     public function test_display_if_sets_condition(): void
     {
         $action = Action::delete()
@@ -132,6 +163,7 @@ class ActionTest extends TestCase
         $this->assertArrayHasKey('idField', $json);
         $this->assertSame([], $json['htmlAttributes']);
         $this->assertArrayNotHasKey('icon', $json);
+        $this->assertArrayNotHasKey('lucideIcon', $json);
         $this->assertArrayNotHasKey('confirm', $json);
         $this->assertArrayNotHasKey('displayCondition', $json);
         $this->assertArrayNotHasKey('entityClass', $json);

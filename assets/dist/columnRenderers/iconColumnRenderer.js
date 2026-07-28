@@ -1,32 +1,7 @@
 import { parseBooleanValue } from '../functions/htmlUtils.js';
+import { renderLucideIcon } from '../functions/lucideIcons.js';
+export { loadLucideIcons } from '../functions/lucideIcons.js';
 const SIZE_PX = { xs: 12, sm: 16, md: 20, lg: 24, xl: 32 };
-let lucide = null;
-let iconsByKebab = null;
-function pascalToKebab(name) {
-    return name
-        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-        .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
-        .toLowerCase();
-}
-export async function loadLucideIcons() {
-    if (lucide === null) {
-        lucide = (await import('lucide'));
-        iconsByKebab = new Map();
-        for (const [pascal, node] of Object.entries(lucide.icons)) {
-            iconsByKebab.set(pascalToKebab(pascal), node);
-        }
-    }
-}
-function renderSvg(iconName, sizePx) {
-    if (lucide === null || iconsByKebab === null || iconName.length === 0) {
-        return null;
-    }
-    const iconNode = iconsByKebab.get(iconName);
-    if (iconNode === undefined) {
-        return null;
-    }
-    return lucide.createElement(iconNode, { width: sizePx, height: sizePx }).outerHTML;
-}
 export function createIconColumnRenderer(style) {
     return {
         matches(column) {
@@ -60,7 +35,10 @@ export function createIconColumnRenderer(style) {
                     variant = resolved?.color ?? staticColor;
                     tooltip = tooltips[String(data ?? '')] ?? '';
                 }
-                const svg = renderSvg(iconName, sizePx);
+                const svg = renderLucideIcon(iconName, {
+                    width: sizePx,
+                    height: sizePx,
+                });
                 if (svg === null) {
                     return '';
                 }

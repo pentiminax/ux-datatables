@@ -14,6 +14,7 @@ use App\Entity\User;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Enum\Icon;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
@@ -35,12 +36,12 @@ final class UsersDataTable extends AbstractDataTable
             ->add(
                 Action::edit('Edit')
                     ->setClassName('btn btn-sm btn-warning')
-                    ->icon('bi bi-pencil')
+                    ->icon(Icon::Pencil)
             )
             ->add(
                 Action::delete('Delete')
                     ->setClassName('btn btn-sm btn-danger')
-                    ->icon('bi bi-trash')
+                    ->icon(Icon::Trash2)
                     ->askConfirmation('Delete this user?')
                     ->displayIf('status', 'draft')
             );
@@ -86,7 +87,7 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
   rows={[
     ['`label(string $label)`', 'Override the button label'],
     ['`setClassName(string $className)`', 'Customize button classes'],
-    ['`icon(string $icon)`', 'Render an icon before the label'],
+    ['`icon(string|Icon $icon)`', 'Render a CSS-class icon or a Lucide icon before the label'],
     ['`htmlAttributes(array $htmlAttributes)`', 'Set extra HTML attributes on the rendered action button/link'],
     ['`askConfirmation(string $message)`', 'Display a browser confirmation prompt before the action'],
     ['`displayIf(string $field, mixed $value)`', 'Show the action only when `row[field] === value`'],
@@ -98,6 +99,37 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
     ['`position(?ActionsPosition $position)`', 'Override the column placement for this action only (`null` inherits the `Actions` collection position). See [Column Position & Alignment](#column-position--alignment)'],
   ]}
 />
+
+### Action Icons
+
+Pass an `Icon` enum case to render a Lucide SVG before the action label:
+
+```php
+use Pentiminax\UX\DataTables\Enum\Icon;
+use Pentiminax\UX\DataTables\Model\Action;
+
+Action::edit('Edit')
+    ->icon(Icon::Pencil);
+```
+
+Lucide is loaded lazily when the table contains at least one Lucide action or `IconColumn`. The SVG
+uses the action's current text color and is sized to `1em`.
+
+String values remain backward compatible and are rendered as CSS classes:
+
+```php
+Action::edit('Edit')
+    ->icon('bi bi-pencil');
+```
+
+Lucide SVGs are decorative and hidden from assistive technologies. When an action has an empty
+label, provide an accessible name explicitly:
+
+```php
+Action::delete('')
+    ->icon(Icon::Trash2)
+    ->htmlAttributes(['aria-label' => 'Delete']);
+```
 
 When `linkToUrl()` receives a callable, the argument depends on how the row was produced:
 

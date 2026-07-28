@@ -1,51 +1,11 @@
 import type { ColumnStyleAdapter } from '../columnStyles/ColumnStyleAdapter.js'
 import { parseBooleanValue } from '../functions/htmlUtils.js'
+import { renderLucideIcon } from '../functions/lucideIcons.js'
 import type { ColumnRenderer, IconCustomOptions } from './types.js'
 
-type IconNode = unknown
-interface LucideModule {
-    icons: Record<string, IconNode>
-    createElement: (iconNode: IconNode, attrs?: Record<string, unknown>) => SVGElement
-}
+export { loadLucideIcons } from '../functions/lucideIcons.js'
 
 const SIZE_PX: Record<string, number> = { xs: 12, sm: 16, md: 20, lg: 24, xl: 32 }
-
-// Lazily loaded once, then read synchronously by DataTables' render callback.
-let lucide: LucideModule | null = null
-// Icon nodes keyed by kebab value, matching the PHP Icon enum's values.
-let iconsByKebab: Map<string, IconNode> | null = null
-
-// Mirror of the enum generator's pascalToKebab so acronym icons (ArrowDownAZ ->
-// arrow-down-az) resolve; a naive kebab->Pascal round-trip loses the casing.
-function pascalToKebab(name: string): string {
-    return name
-        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-        .replace(/([A-Z])([A-Z][a-z])/g, '$1-$2')
-        .toLowerCase()
-}
-
-export async function loadLucideIcons(): Promise<void> {
-    if (lucide === null) {
-        lucide = (await import('lucide')) as unknown as LucideModule
-        iconsByKebab = new Map()
-        for (const [pascal, node] of Object.entries(lucide.icons)) {
-            iconsByKebab.set(pascalToKebab(pascal), node)
-        }
-    }
-}
-
-function renderSvg(iconName: string, sizePx: number): string | null {
-    if (lucide === null || iconsByKebab === null || iconName.length === 0) {
-        return null
-    }
-
-    const iconNode = iconsByKebab.get(iconName)
-    if (iconNode === undefined) {
-        return null
-    }
-
-    return lucide.createElement(iconNode, { width: sizePx, height: sizePx }).outerHTML
-}
 
 export function createIconColumnRenderer(style: ColumnStyleAdapter): ColumnRenderer {
     return {
@@ -84,7 +44,10 @@ export function createIconColumnRenderer(style: ColumnStyleAdapter): ColumnRende
                     tooltip = tooltips[String(data ?? '')] ?? ''
                 }
 
-                const svg = renderSvg(iconName, sizePx)
+                const svg = renderLucideIcon(iconName, {
+                    width: sizePx,
+                    height: sizePx,
+                })
                 if (svg === null) {
                     return ''
                 }

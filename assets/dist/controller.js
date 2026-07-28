@@ -3,7 +3,7 @@ import { createActionColumnRenderer } from './columnRenderers/actionColumnRender
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js';
-import { createIconColumnRenderer, loadLucideIcons } from './columnRenderers/iconColumnRenderer.js';
+import { createIconColumnRenderer } from './columnRenderers/iconColumnRenderer.js';
 import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js';
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
@@ -19,6 +19,7 @@ import { registerFilterFeature } from './functions/filterFeature.js';
 import { applyFilterLayout } from './functions/filterLayout.js';
 import { FilterBar, hasFilters } from './functions/filters.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
+import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js';
 import { submitEditForm } from './functions/submitEditForm.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
 import { applyUrlStateToPayload, isUrlStateEnabled, readUrlState, writeUrlState, } from './functions/urlState.js';
@@ -68,8 +69,7 @@ class default_1 extends Controller {
             new ApiPlatformAdapter(columns).configure(payload);
         }
         this.configureColumns(payload);
-        if (Array.isArray(payload.columns) &&
-            payload.columns.some((column) => true === column?.customOptions?.isIcon)) {
+        if (hasLucideIcons(payload.columns)) {
             await loadLucideIcons();
         }
         const urlStateCfg = isUrlStateEnabled(payload);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Enum\Icon;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -26,6 +27,7 @@ final class ActionColumnTest extends TestCase
             (new Actions())->add(
                 Action::detail()
                     ->label('View')
+                    ->icon(Icon::Eye)
                     ->linkToUrl('/books/42')
             )
         )
@@ -46,6 +48,7 @@ final class ActionColumnTest extends TestCase
         $this->assertSame([], $data['columnControl']);
         $this->assertCount(1, $data['actions']);
         $this->assertSame('DETAIL', $data['actions'][0]['type']);
+        $this->assertSame('eye', $data['actions'][0]['lucideIcon']);
         $this->assertSame('/books/42', $data['actions'][0]['url']);
     }
 }

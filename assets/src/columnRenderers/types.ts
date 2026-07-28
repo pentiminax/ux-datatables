@@ -91,6 +91,7 @@ export interface ActionConfig {
     label: string
     className: string
     icon?: string
+    lucideIcon?: string
     confirm?: string
     displayCondition?: { field: string; value: unknown }
     entityClass?: string
