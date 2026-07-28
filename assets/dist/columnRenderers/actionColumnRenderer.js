@@ -47,8 +47,10 @@ export function createActionColumnRenderer(mutationsEnabled = true) {
                         ];
                         return `<button ${attrs.join(' ')}>${iconMarkup}${escapedLabel}</button>`;
                     }
-                    if (action.type === 'DETAIL' || action.type === 'CUSTOM') {
-                        const href = resolveActionUrl(action, row);
+                    const href = resolveActionUrl(action, row);
+                    if (action.type === 'DETAIL' ||
+                        action.type === 'CUSTOM' ||
+                        (action.type === 'EDIT' && href)) {
                         if (!href || isUnsafeUrl(href)) {
                             return '';
                         }
