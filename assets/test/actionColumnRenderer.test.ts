@@ -1,10 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 import {
   actionColumnRenderer,
   createActionColumnRenderer,
 } from '../src/columnRenderers/actionColumnRenderer'
+import { loadLucideIcons } from '../src/columnRenderers/iconColumnRenderer'
 
 describe('actionColumnRenderer', () => {
+  beforeAll(async () => {
+    await loadLucideIcons()
+  })
+
   it('matches columns with actions array', () => {
     expect(actionColumnRenderer.matches({ actions: [] })).toBe(true)
     expect(actionColumnRenderer.matches({ actions: [{ type: 'DELETE' }] })).toBe(true)
@@ -445,6 +450,93 @@ describe('actionColumnRenderer', () => {
 
       const html = column.render(null, 'display', { id: 1 })
       expect(html).toContain('<i class="bi bi-trash"></i>')
+    })
+
+    it('renders a decorative Lucide icon at the current font size', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'EDIT',
+            label: 'Edit',
+            className: 'btn btn-warning',
+            idField: 'id',
+            lucideIcon: 'pencil',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 1 })
+      expect(html).toContain('<svg')
+      expect(html).toContain('width="1em"')
+      expect(html).toContain('height="1em"')
+      expect(html).toContain('aria-hidden="true"')
+      expect(html).toContain('stroke="currentColor"')
+      expect(html).toContain('Edit')
+      expect(html).not.toContain('<i ')
+    })
+
+    it('keeps the label when the Lucide icon is unknown', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DELETE',
+            label: 'Delete',
+            className: 'btn btn-danger',
+            idField: 'id',
+            lucideIcon: 'this-icon-does-not-exist-xyz',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 1 })
+      expect(html).toContain('Delete')
+      expect(html).not.toContain('<svg')
+    })
+
+    it('uses the default control icon when a collapsible Lucide icon is unknown', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DETAIL',
+            label: 'Details',
+            className: 'btn',
+            idField: 'id',
+            collapsible: true,
+            lucideIcon: 'this-icon-does-not-exist-xyz',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 1 })
+      expect(html).toContain('dtr-control-icon')
+      expect(html).toContain('Details')
+    })
+
+    it('uses a Lucide icon instead of the default collapsible control icon', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DETAIL',
+            label: 'Details',
+            className: 'btn',
+            idField: 'id',
+            collapsible: true,
+            lucideIcon: 'chevron-right',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 1 })
+      expect(html).toContain('<svg')
+      expect(html).not.toContain('dtr-control-icon')
     })
 
     it('renders custom html attributes for button actions and ignores reserved ones', () => {
