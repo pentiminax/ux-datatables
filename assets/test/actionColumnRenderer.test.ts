@@ -62,6 +62,99 @@ describe('actionColumnRenderer', () => {
 
       const html = column.render(null, 'display', { id: 1 })
       expect(html).toMatch(/<button type="button"/)
+      expect(html).not.toContain('href=')
+    })
+
+    it('renders an edit action with a static url as a link with its html attributes', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'EDIT',
+            name: 'EDIT',
+            label: 'Edit',
+            className: 'btn btn-primary',
+            entityClass: 'App\\Entity\\Book',
+            idField: 'id',
+            url: '/books/42/edit',
+            htmlAttributes: {
+              target: '_blank',
+              rel: 'noopener noreferrer',
+              'aria-label': 'Edit book',
+            },
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', { id: 42 })
+      expect(html).toContain('<a ')
+      expect(html).toContain('href="/books/42/edit"')
+      expect(html).toContain('data-action-type="EDIT"')
+      expect(html).toContain('target="_blank"')
+      expect(html).toContain('rel="noopener noreferrer"')
+      expect(html).toContain('aria-label="Edit book"')
+      expect(html).not.toContain('data-entity=')
+      expect(html).not.toContain('data-id=')
+    })
+
+    it('renders an edit action with a per-row resolved url as a link', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'EDIT',
+            name: 'EDIT',
+            label: 'Edit',
+            className: 'btn btn-primary',
+            entityClass: 'App\\Entity\\Book',
+            idField: 'id',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', {
+        id: 42,
+        __ux_datatables_actions: {
+          EDIT: {
+            url: '/books/42/edit',
+          },
+        },
+      })
+
+      expect(html).toContain('<a ')
+      expect(html).toContain('href="/books/42/edit"')
+      expect(html).not.toContain('data-entity=')
+      expect(html).not.toContain('data-id=')
+    })
+
+    it('hides an edit action when its resolved url is unsafe', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'EDIT',
+            name: 'EDIT',
+            label: 'Edit',
+            className: 'btn btn-primary',
+            entityClass: 'App\\Entity\\Book',
+            idField: 'id',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', {
+        id: 42,
+        __ux_datatables_actions: {
+          EDIT: {
+            url: 'javascript:alert(1)',
+          },
+        },
+      })
+
+      expect(html).toBe('')
     })
 
     it('disables delete buttons when mutations are unavailable', () => {

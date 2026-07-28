@@ -62,9 +62,13 @@ export function createActionColumnRenderer(mutationsEnabled = true): ColumnRende
                             return `<button ${attrs.join(' ')}>${iconMarkup}${escapedLabel}</button>`
                         }
 
-                        if (action.type === 'DETAIL' || action.type === 'CUSTOM') {
-                            const href = resolveActionUrl(action, row as ActionRowData)
+                        const href = resolveActionUrl(action, row as ActionRowData)
 
+                        if (
+                            action.type === 'DETAIL' ||
+                            action.type === 'CUSTOM' ||
+                            (action.type === 'EDIT' && href)
+                        ) {
                             if (!href || isUnsafeUrl(href)) {
                                 return ''
                             }
