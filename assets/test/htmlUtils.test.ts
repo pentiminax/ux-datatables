@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { escapeHtml, isUnsafeUrl, parseBooleanValue } from '../src/functions/htmlUtils'
+import {
+  escapeHtml,
+  isSameOriginUrl,
+  isUnsafeUrl,
+  parseBooleanValue,
+} from '../src/functions/htmlUtils'
 
 describe('escapeHtml', () => {
   it('escapes ampersands', () => {
@@ -95,5 +100,25 @@ describe('isUnsafeUrl', () => {
     expect(isUnsafeUrl('https://example.com')).toBe(false)
     expect(isUnsafeUrl('/relative/path')).toBe(false)
     expect(isUnsafeUrl('http://example.com')).toBe(false)
+  })
+})
+
+describe('isSameOriginUrl', () => {
+  it('accepts relative urls', () => {
+    expect(isSameOriginUrl('/books/42/publish')).toBe(true)
+    expect(isSameOriginUrl('books/42/publish')).toBe(true)
+  })
+
+  it('accepts absolute urls on the current origin', () => {
+    expect(isSameOriginUrl(`${window.location.origin}/books/42/publish`)).toBe(true)
+  })
+
+  it('rejects urls on another origin', () => {
+    expect(isSameOriginUrl('https://evil.example.com/publish')).toBe(false)
+    expect(isSameOriginUrl('//evil.example.com/publish')).toBe(false)
+  })
+
+  it('rejects malformed urls', () => {
+    expect(isSameOriginUrl('http://')).toBe(false)
   })
 })

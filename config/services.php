@@ -124,6 +124,8 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.column.action_row_data_resolver', ActionRowDataResolver::class)
         ->arg(0, service('datatables.security.permission_checker'))
         ->arg(1, service('property_accessor')->nullOnInvalid())
+        ->arg(2, service('router')->nullOnInvalid())
+        ->arg(3, service('datatables.security.csrf_token_manager')->nullOnInvalid())
         ->private();
 
     $services->alias(TemplateColumnRenderer::class, 'datatables.column.template_column_renderer')

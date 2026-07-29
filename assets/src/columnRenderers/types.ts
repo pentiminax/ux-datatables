@@ -99,11 +99,13 @@ export interface ActionConfig {
     idField: string
     url?: string
     collapsible?: boolean
+    ajaxMethod?: string
 }
 
 export interface ActionRowConfig {
     id?: string | number
     url?: string
+    token?: string
 }
 
 export interface ActionRowData {

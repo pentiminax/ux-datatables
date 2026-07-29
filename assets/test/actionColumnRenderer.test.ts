@@ -749,6 +749,145 @@ describe('actionColumnRenderer', () => {
       expect(html).toContain('Force Delete')
     })
 
+    describe('ajax actions', () => {
+      const ajaxColumn = (overrides: Record<string, any> = {}): Record<string, any> => ({
+        actions: [
+          {
+            type: 'CUSTOM',
+            name: 'publish',
+            label: 'Publish',
+            className: 'btn btn-primary',
+            idField: 'id',
+            ajaxMethod: 'POST',
+            ...overrides,
+          },
+        ],
+      })
+
+      it('renders a button carrying the ajax method, url and token', () => {
+        const column = ajaxColumn()
+
+        actionColumnRenderer.configure(column)
+
+        const html = column.render(null, 'display', {
+          id: 42,
+          __ux_datatables_actions: {
+            publish: { url: '/books/42/publish', token: 'token-value' },
+          },
+        })
+
+        expect(html).toMatch(/^<button type="button"/)
+        expect(html).toContain('data-action-type="CUSTOM"')
+        expect(html).toContain('data-ajax-method="POST"')
+        expect(html).toContain('data-ajax-url="/books/42/publish"')
+        expect(html).toContain('data-ajax-token="token-value"')
+        expect(html).not.toContain('href=')
+      })
+
+      it('keeps the confirmation attribute', () => {
+        const column = ajaxColumn({ confirm: 'Publish this book?' })
+
+        actionColumnRenderer.configure(column)
+
+        const html = column.render(null, 'display', {
+          id: 42,
+          __ux_datatables_actions: {
+            publish: { url: '/books/42/publish', token: 'token-value' },
+          },
+        })
+
+        expect(html).toContain('data-confirm="Publish this book?"')
+      })
+
+      it('escapes the resolved url and token', () => {
+        const column = ajaxColumn()
+
+        actionColumnRenderer.configure(column)
+
+        const html = column.render(null, 'display', {
+          id: 42,
+          __ux_datatables_actions: {
+            publish: { url: '/books/42/publish?a="b"', token: '"><script>' },
+          },
+        })
+
+        expect(html).toContain('data-ajax-url="/books/42/publish?a=&quot;b&quot;"')
+        expect(html).toContain('data-ajax-token="&quot;&gt;&lt;script&gt;"')
+        expect(html).not.toContain('<script>')
+      })
+
+      it('renders nothing without a row token', () => {
+        const column = ajaxColumn()
+
+        actionColumnRenderer.configure(column)
+
+        const html = column.render(null, 'display', {
+          id: 42,
+          __ux_datatables_actions: { publish: { url: '/books/42/publish' } },
+        })
+
+        expect(html).toBe('')
+      })
+
+      it('renders nothing without a resolved url', () => {
+        const column = ajaxColumn()
+
+        actionColumnRenderer.configure(column)
+
+        const html = column.render(null, 'display', {
+          id: 42,
+          __ux_datatables_actions: { publish: { token: 'token-value' } },
+        })
+
+        expect(html).toBe('')
+      })
+
+      it('refuses cross-origin ajax urls', () => {
+        const column = ajaxColumn()
+
+        actionColumnRenderer.configure(column)
+
+        const html = column.render(null, 'display', {
+          id: 42,
+          __ux_datatables_actions: {
+            publish: { url: 'https://evil.example.com/publish', token: 'token-value' },
+          },
+        })
+
+        expect(html).toBe('')
+      })
+
+      it('refuses unsupported ajax methods', () => {
+        const column = ajaxColumn({ ajaxMethod: 'PUT' })
+
+        actionColumnRenderer.configure(column)
+
+        const html = column.render(null, 'display', {
+          id: 42,
+          __ux_datatables_actions: {
+            publish: { url: '/books/42/publish', token: 'token-value' },
+          },
+        })
+
+        expect(html).toBe('')
+      })
+
+      it('accepts a lowercase ajax method', () => {
+        const column = ajaxColumn({ ajaxMethod: 'delete' })
+
+        actionColumnRenderer.configure(column)
+
+        const html = column.render(null, 'display', {
+          id: 42,
+          __ux_datatables_actions: {
+            publish: { url: '/books/42/publish', token: 'token-value' },
+          },
+        })
+
+        expect(html).toContain('data-ajax-method="DELETE"')
+      })
+    })
+
     it('shows all actions when no displayCondition set', () => {
       const column: Record<string, any> = {
         actions: [
