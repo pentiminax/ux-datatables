@@ -20,6 +20,7 @@ import { applyFilterLayout } from './functions/filterLayout.js';
 import { FilterBar, hasFilters } from './functions/filters.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js';
+import { runAjaxAction } from './functions/runAjaxAction.js';
 import { submitEditForm } from './functions/submitEditForm.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
 import { applyUrlStateToPayload, isUrlStateEnabled, readUrlState, writeUrlState, } from './functions/urlState.js';
@@ -200,6 +201,12 @@ class default_1 extends Controller {
                 e.preventDefault();
                 return;
             }
+            const ajaxMethod = actionButton.getAttribute('data-ajax-method');
+            if (ajaxMethod) {
+                e.preventDefault();
+                await this.executeAjaxAction(actionButton, ajaxMethod, payload);
+                return;
+            }
             if (actionType === 'DETAIL' && entity && id) {
                 e.preventDefault();
                 const rowElement = actionButton.closest('tr');
@@ -265,6 +272,28 @@ class default_1 extends Controller {
                     });
                 }
             }
+        });
+    }
+    async executeAjaxAction(button, method, payload) {
+        const url = button.getAttribute('data-ajax-url');
+        const token = button.getAttribute('data-ajax-token');
+        if (!url || !token) {
+            return;
+        }
+        await runAjaxAction({
+            button,
+            method,
+            url,
+            token,
+            dispatch: (name, detail) => this.dispatchEvent(name, detail),
+            navigate: (target) => window.location.assign(target),
+            reload: () => {
+                if (payload.ajax) {
+                    this.table?.ajax?.reload(null, false);
+                    return;
+                }
+                window.location.reload();
+            },
         });
     }
     bindBooleanToggleHandler(payload) {

@@ -23,6 +23,12 @@ final class Action implements \JsonSerializable
     private string $idField                      = 'id';
     private ?string $url                         = null;
     private ?\Closure $urlResolver               = null;
+    private ?string $routeName                   = null;
+    private array $routeParameters               = [];
+    private ?\Closure $routeParametersResolver   = null;
+    private ?string $ajaxMethod                  = null;
+    private ?string $csrfTokenId                 = null;
+    private ?\Closure $csrfTokenIdResolver       = null;
     private ?string $permission                  = null;
     private ?\Closure $permissionSubjectResolver = null;
     private ?string $collapsibleTemplate         = null;
@@ -198,6 +204,10 @@ final class Action implements \JsonSerializable
 
     public function linkToUrl(string|callable $url): self
     {
+        $this->routeName               = null;
+        $this->routeParameters         = [];
+        $this->routeParametersResolver = null;
+
         if (\is_string($url)) {
             $this->url         = $url;
             $this->urlResolver = null;
@@ -209,6 +219,108 @@ final class Action implements \JsonSerializable
         $this->urlResolver = $url instanceof \Closure ? $url : $url(...);
 
         return $this;
+    }
+
+    /**
+     * Target a Symfony route, generated per row when the action is resolved.
+     *
+     * Mutually exclusive with {@see self::linkToUrl()}: the last call wins.
+     *
+     * @param array<string, mixed>|callable|null $params static route parameters, or a callable
+     *                                                   receiving the raw row and returning them
+     */
+    public function linkToRoute(string $routeName, array|callable|null $params = null): self
+    {
+        $this->url         = null;
+        $this->urlResolver = null;
+        $this->routeName   = $routeName;
+
+        if (null === $params || \is_array($params)) {
+            $this->routeParameters         = $params ?? [];
+            $this->routeParametersResolver = null;
+
+            return $this;
+        }
+
+        $this->routeParameters         = [];
+        $this->routeParametersResolver = $params instanceof \Closure ? $params : $params(...);
+
+        return $this;
+    }
+
+    /**
+     * Send this action as a same-origin Ajax request instead of navigating to its URL.
+     *
+     * The CSRF token id is resolved per row and its value is sent as `_token`. The application
+     * endpoint remains responsible for validating it (`#[IsCsrfTokenValid]`) and for
+     * authorization (`#[IsGranted]`).
+     *
+     * @param string|callable $csrfTokenId a token id, or a callable receiving the raw row
+     * @param string          $method      `POST` or `DELETE`
+     */
+    public function asAjaxRequest(string|callable $csrfTokenId, string $method = 'POST'): self
+    {
+        $normalizedMethod = strtoupper($method);
+
+        if (!\in_array($normalizedMethod, ['POST', 'DELETE'], true)) {
+            throw new \InvalidArgumentException(\sprintf('Ajax action method must be "POST" or "DELETE", "%s" given.', $method));
+        }
+
+        $this->ajaxMethod = $normalizedMethod;
+
+        if (\is_string($csrfTokenId)) {
+            $this->csrfTokenId         = $csrfTokenId;
+            $this->csrfTokenIdResolver = null;
+
+            return $this;
+        }
+
+        $this->csrfTokenId         = null;
+        $this->csrfTokenIdResolver = $csrfTokenId instanceof \Closure ? $csrfTokenId : $csrfTokenId(...);
+
+        return $this;
+    }
+
+    public function getRouteName(): ?string
+    {
+        return $this->routeName;
+    }
+
+    public function isAjaxRequest(): bool
+    {
+        return null !== $this->ajaxMethod;
+    }
+
+    public function getAjaxMethod(): ?string
+    {
+        return $this->ajaxMethod;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function resolveRouteParameters(mixed $row): array
+    {
+        if (null === $this->routeParametersResolver) {
+            return $this->routeParameters;
+        }
+
+        return ($this->routeParametersResolver)($row);
+    }
+
+    public function resolveCsrfTokenId(mixed $row): ?string
+    {
+        $tokenId = null !== $this->csrfTokenIdResolver
+            ? ($this->csrfTokenIdResolver)($row)
+            : $this->csrfTokenId;
+
+        if (null === $tokenId) {
+            return null;
+        }
+
+        $tokenId = trim((string) $tokenId);
+
+        return '' === $tokenId ? null : $tokenId;
     }
 
     /**
@@ -299,6 +411,10 @@ final class Action implements \JsonSerializable
 
         if (null !== $this->url) {
             $data['url'] = $this->url;
+        }
+
+        if (null !== $this->ajaxMethod) {
+            $data['ajaxMethod'] = $this->ajaxMethod;
         }
 
         if ($this->isCollapsible()) {

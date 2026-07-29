@@ -288,4 +288,116 @@ class ActionTest extends TestCase
 
         $this->assertArrayNotHasKey('position', $json);
     }
+
+    public function test_link_to_route_keeps_static_parameters(): void
+    {
+        $action = Action::new('publish', 'Publish')->linkToRoute('book_publish', ['id' => 42]);
+
+        $this->assertSame('book_publish', $action->getRouteName());
+        $this->assertSame(['id' => 42], $action->resolveRouteParameters(['id' => 7]));
+    }
+
+    public function test_link_to_route_resolves_callable_parameters_per_row(): void
+    {
+        $action = Action::new('publish', 'Publish')->linkToRoute(
+            'book_publish',
+            static fn (object $row): array => ['id' => $row->id],
+        );
+
+        $this->assertSame(['id' => 7], $action->resolveRouteParameters((object) ['id' => 7]));
+    }
+
+    public function test_link_to_route_defaults_to_empty_parameters(): void
+    {
+        $action = Action::new('publish', 'Publish')->linkToRoute('book_publish');
+
+        $this->assertSame([], $action->resolveRouteParameters(['id' => 7]));
+    }
+
+    public function test_link_to_route_clears_previous_url(): void
+    {
+        $action = Action::new('publish', 'Publish')
+            ->linkToUrl('/books/42/publish')
+            ->linkToRoute('book_publish', ['id' => 42]);
+
+        $this->assertNull($action->resolveUrl(['id' => 42]));
+        $this->assertArrayNotHasKey('url', $action->jsonSerialize());
+    }
+
+    public function test_link_to_url_clears_previous_route(): void
+    {
+        $action = Action::new('publish', 'Publish')
+            ->linkToRoute('book_publish', ['id' => 42])
+            ->linkToUrl('/books/42/publish');
+
+        $this->assertNull($action->getRouteName());
+        $this->assertSame('/books/42/publish', $action->resolveUrl(['id' => 42]));
+    }
+
+    public function test_as_ajax_request_defaults_to_post(): void
+    {
+        $action = Action::new('publish', 'Publish')->asAjaxRequest('publish_book');
+
+        $this->assertTrue($action->isAjaxRequest());
+        $this->assertSame('POST', $action->getAjaxMethod());
+        $this->assertSame('publish_book', $action->resolveCsrfTokenId(['id' => 7]));
+    }
+
+    public function test_as_ajax_request_normalizes_method_case(): void
+    {
+        $action = Action::new('archive', 'Archive')->asAjaxRequest('archive_book', 'delete');
+
+        $this->assertSame('DELETE', $action->getAjaxMethod());
+    }
+
+    public function test_as_ajax_request_rejects_unsupported_method(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Ajax action method must be "POST" or "DELETE", "PUT" given.');
+
+        Action::new('publish', 'Publish')->asAjaxRequest('publish_book', 'PUT');
+    }
+
+    public function test_as_ajax_request_resolves_callable_csrf_token_id(): void
+    {
+        $action = Action::new('publish', 'Publish')->asAjaxRequest(
+            static fn (object $row): string => 'publish_book_'.$row->id,
+        );
+
+        $this->assertSame('publish_book_7', $action->resolveCsrfTokenId((object) ['id' => 7]));
+    }
+
+    public function test_resolve_csrf_token_id_returns_null_for_blank_result(): void
+    {
+        $action = Action::new('publish', 'Publish')->asAjaxRequest(static fn (): string => '   ');
+
+        $this->assertNull($action->resolveCsrfTokenId(['id' => 7]));
+    }
+
+    public function test_resolve_csrf_token_id_returns_null_without_ajax_mode(): void
+    {
+        $this->assertFalse(Action::new('publish', 'Publish')->isAjaxRequest());
+        $this->assertNull(Action::new('publish', 'Publish')->resolveCsrfTokenId(['id' => 7]));
+    }
+
+    public function test_ajax_serialization_exposes_method_only(): void
+    {
+        $json = Action::new('publish', 'Publish')
+            ->linkToRoute('book_publish', ['id' => 42])
+            ->asAjaxRequest('publish_book')
+            ->jsonSerialize();
+
+        $this->assertSame('POST', $json['ajaxMethod']);
+        $this->assertArrayNotHasKey('url', $json);
+        $this->assertArrayNotHasKey('route', $json);
+        $this->assertArrayNotHasKey('routeName', $json);
+        $this->assertArrayNotHasKey('routeParameters', $json);
+        $this->assertArrayNotHasKey('csrfTokenId', $json);
+        $this->assertArrayNotHasKey('token', $json);
+    }
+
+    public function test_ajax_method_is_not_serialized_by_default(): void
+    {
+        $this->assertArrayNotHasKey('ajaxMethod', Action::new('publish', 'Publish')->jsonSerialize());
+    }
 }
