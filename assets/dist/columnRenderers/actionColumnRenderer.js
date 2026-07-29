@@ -1,4 +1,4 @@
-import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js';
+import { escapeHtml, isSameOriginUrl, isUnsafeUrl } from '../functions/htmlUtils.js';
 import { renderLucideIcon } from '../functions/lucideIcons.js';
 const SAFE_ATTRIBUTE_NAME_PATTERN = /^[a-zA-Z_:][a-zA-Z0-9:._-]*$/;
 const DEFAULT_COLLAPSIBLE_ICON = '<span class="dtr-control-icon" aria-hidden="true">&#9656;</span> ';
@@ -48,6 +48,38 @@ export function createActionColumnRenderer(mutationsEnabled = true) {
                         return `<button ${attrs.join(' ')}>${iconMarkup}${escapedLabel}</button>`;
                     }
                     const href = resolveActionUrl(action, row);
+                    if (action.ajaxMethod) {
+                        const method = resolveAjaxMethod(action.ajaxMethod);
+                        const token = row.__ux_datatables_actions?.[action.name]?.token;
+                        if (!method ||
+                            !token ||
+                            !href ||
+                            isUnsafeUrl(href) ||
+                            !isSameOriginUrl(href)) {
+                            return '';
+                        }
+                        const attrs = [
+                            `type="button"`,
+                            `class="${escapedClassName}"`,
+                            `data-action-type="${escapedType}"`,
+                            `data-ajax-method="${method}"`,
+                            `data-ajax-url="${escapeHtml(href)}"`,
+                            `data-ajax-token="${escapeHtml(token)}"`,
+                            ...serializeHtmlAttributes(action.htmlAttributes, new Set([
+                                'type',
+                                'class',
+                                'data-action-type',
+                                'data-ajax-method',
+                                'data-ajax-url',
+                                'data-ajax-token',
+                                'data-confirm',
+                            ])),
+                        ];
+                        if (action.confirm) {
+                            attrs.push(`data-confirm="${escapeHtml(action.confirm)}"`);
+                        }
+                        return `<button ${attrs.join(' ')}>${iconHtml}${escapedLabel}</button>`;
+                    }
                     if (action.type === 'DETAIL' ||
                         action.type === 'CUSTOM' ||
                         (action.type === 'EDIT' && href)) {
@@ -120,6 +152,10 @@ function isUsableActionId(value) {
         return Number.isFinite(value);
     }
     return typeof value === 'string' && value.trim().length > 0;
+}
+function resolveAjaxMethod(method) {
+    const normalized = method.toUpperCase();
+    return normalized === 'POST' || normalized === 'DELETE' ? normalized : null;
 }
 function resolveActionUrl(action, row) {
     const resolvedUrl = row.__ux_datatables_actions?.[action.name]?.url;

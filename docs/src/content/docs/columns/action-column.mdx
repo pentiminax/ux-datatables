@@ -94,6 +94,8 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
     ['`setIdField(string $idField)`', 'Use another row key instead of `id`'],
     ['`setEntityClass(string $entityClass)`', 'Set the Doctrine entity class explicitly'],
     ['`linkToUrl(string|callable $url)`', 'Set the URL for detail actions (static string or per-row callable)'],
+    ['`linkToRoute(string $routeName, array|callable|null $params = null)`', 'Target a Symfony route generated per row (static parameters array, or a callable receiving the raw row). Mutually exclusive with `linkToUrl()`: the last call wins'],
+    ["`asAjaxRequest(string|callable $csrfTokenId, string $method = 'POST')`", 'Send the action as a same-origin Ajax request instead of navigating. `$method` accepts `POST` or `DELETE`. The CSRF token id is resolved per row and its value is posted as `_token`. See [Ajax Actions](#ajax-actions)'],
     ['`collapsible(string $template, array $parameters = [])`', 'Render a `detail` action as an expand/collapse control that lazily loads a Twig child row (the template receives the row as `entity`, plus any extra `$parameters`). Only meaningful for `Action::detail()`'],
     ['`permission(string $attribute, ?callable $subjectResolver = null)`', 'Restrict the action with a Symfony security attribute (role/voter/expression). Without a resolver it is evaluated once before serialization; with a resolver it is evaluated per row (the resolver receives the raw source row). Denied actions are removed and never serialized to the client'],
     ['`position(?ActionsPosition $position)`', 'Override the column placement for this action only (`null` inherits the `Actions` collection position). See [Column Position & Alignment](#column-position--alignment)'],
@@ -170,6 +172,61 @@ public function configureActions(Actions $actions): Actions
   Custom actions are pure links: they resolve a URL per row and are **not** wired to any
   built-in Stimulus handler (no delete/edit/collapse behavior). The unique `$name` is what keeps
   them from colliding both in the `Actions` collection and in the per-row URL metadata.
+</Aside>
+
+### Ajax Actions
+
+`linkToRoute()` resolves a Symfony route per row, and `asAjaxRequest()` turns the action into a
+button that posts to that URL instead of navigating to it:
+
+```php
+use App\Entity\Book;
+use Pentiminax\UX\DataTables\Enum\Icon;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
+
+public function configureActions(Actions $actions): Actions
+{
+    return $actions->add(
+        Action::new('publish', 'Publish')
+            ->icon(Icon::Send)
+            ->linkToRoute('book_publish', fn (Book $book): array => ['id' => $book->getId()])
+            ->asAjaxRequest('publish_book')
+            ->askConfirmation('Publish this book?')
+            ->permission('PUBLISH', fn (Book $book): Book => $book)
+    );
+}
+```
+
+The rendered button posts `{"_token": "…"}` with `Content-Type: application/json` and
+`X-Requested-With: XMLHttpRequest`, and is locked while the request is pending. The route only has
+to accept the method and validate the token:
+
+```php
+#[Route('/books/{id}/publish', name: 'book_publish', methods: ['POST'])]
+#[IsGranted('PUBLISH', subject: 'book')]
+#[IsCsrfTokenValid('publish_book')]
+public function publish(Book $book): Response
+{
+    // …
+
+    return new Response(status: Response::HTTP_NO_CONTENT);
+}
+```
+
+After a successful response the controller dispatches `datatables:action:success`, then:
+
+- follows the redirect when the endpoint returned one,
+- reloads a server-side table without losing its current page,
+- reloads the page for a client-side table.
+
+A failed request dispatches `datatables:action:error` and re-enables the button.
+
+<Aside type="caution">
+  `permission()` only decides whether the button is rendered. It replaces neither `#[IsGranted]`
+  nor `#[IsCsrfTokenValid]` on the endpoint — the route stays the security boundary. Ajax actions
+  are refused when their URL is not same-origin, and are not rendered at all when no CSRF token
+  can be issued (no session, no token manager).
 </Aside>
 
 ## `Actions` API

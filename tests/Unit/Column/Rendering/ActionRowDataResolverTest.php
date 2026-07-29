@@ -13,7 +13,12 @@ use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
  * @internal
@@ -257,6 +262,204 @@ final class ActionRowDataResolverTest extends TestCase
             ['EDIT' => ['url' => '/items/7', 'id' => 7]],
             $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
         );
+    }
+
+    #[Test]
+    public function generates_route_url_with_static_parameters(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator
+            ->expects($this->once())
+            ->method('generate')
+            ->with('book_publish', ['id' => 42])
+            ->willReturn('/books/42/publish');
+
+        $actions = new Actions();
+        $actions->add(Action::new('publish', 'Publish')->linkToRoute('book_publish', ['id' => 42]));
+
+        $resolver = new ActionRowDataResolver(null, null, $urlGenerator);
+
+        $result = $resolver->resolveRow(
+            ['id' => 42],
+            (object) ['id' => 42],
+            [ActionColumn::fromActions('actions', '', $actions)],
+        );
+
+        $this->assertSame(
+            ['publish' => ['url' => '/books/42/publish']],
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
+        );
+    }
+
+    #[Test]
+    public function generates_route_url_with_per_row_parameters(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator
+            ->method('generate')
+            ->willReturnCallback(static fn (string $route, array $params): string => '/books/'.$params['id'].'/publish');
+
+        $actions = new Actions();
+        $actions->add(
+            Action::new('publish', 'Publish')
+                ->linkToRoute('book_publish', static fn (object $row): array => ['id' => $row->id])
+        );
+
+        $resolver = new ActionRowDataResolver(null, null, $urlGenerator);
+
+        $result = $resolver->resolveRow(
+            ['id' => 7],
+            (object) ['id' => 7],
+            [ActionColumn::fromActions('actions', '', $actions)],
+        );
+
+        $this->assertSame(
+            ['publish' => ['url' => '/books/7/publish']],
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
+        );
+    }
+
+    #[Test]
+    public function skips_route_action_when_router_is_missing(): void
+    {
+        $actions = new Actions();
+        $actions->add(Action::new('publish', 'Publish')->linkToRoute('book_publish', ['id' => 42]));
+
+        $result = (new ActionRowDataResolver())->resolveRow(
+            ['id' => 42],
+            (object) ['id' => 42],
+            [ActionColumn::fromActions('actions', '', $actions)],
+        );
+
+        $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
+    }
+
+    #[Test]
+    public function skips_route_action_when_url_generation_fails(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator
+            ->method('generate')
+            ->willThrowException(new RouteNotFoundException());
+
+        $actions = new Actions();
+        $actions->add(Action::new('publish', 'Publish')->linkToRoute('book_publish', ['id' => 42]));
+
+        $resolver = new ActionRowDataResolver(null, null, $urlGenerator);
+
+        $result = $resolver->resolveRow(
+            ['id' => 42],
+            (object) ['id' => 42],
+            [ActionColumn::fromActions('actions', '', $actions)],
+        );
+
+        $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
+    }
+
+    #[Test]
+    public function adds_csrf_token_to_ajax_action(): void
+    {
+        $actions = new Actions();
+        $actions->add(
+            Action::new('publish', 'Publish')
+                ->linkToUrl('/books/42/publish')
+                ->asAjaxRequest(static fn (object $row): string => 'publish_book_'.$row->id)
+        );
+
+        $resolver = new ActionRowDataResolver(
+            null,
+            null,
+            null,
+            $this->createCsrfTokenManager('publish_book_42', 'token-value'),
+        );
+
+        $result = $resolver->resolveRow(
+            ['id' => 42],
+            (object) ['id' => 42],
+            [ActionColumn::fromActions('actions', '', $actions)],
+        );
+
+        $this->assertSame(
+            ['publish' => ['url' => '/books/42/publish', 'token' => 'token-value']],
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
+        );
+    }
+
+    #[Test]
+    public function skips_ajax_action_when_csrf_token_manager_is_missing(): void
+    {
+        $actions = new Actions();
+        $actions->add(
+            Action::new('publish', 'Publish')
+                ->linkToUrl('/books/42/publish')
+                ->asAjaxRequest('publish_book')
+        );
+
+        $result = (new ActionRowDataResolver())->resolveRow(
+            ['id' => 42],
+            (object) ['id' => 42],
+            [ActionColumn::fromActions('actions', '', $actions)],
+        );
+
+        $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
+    }
+
+    #[Test]
+    public function skips_ajax_action_when_session_is_missing(): void
+    {
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager
+            ->method('getToken')
+            ->willThrowException(new SessionNotFoundException());
+
+        $actions = new Actions();
+        $actions->add(
+            Action::new('publish', 'Publish')
+                ->linkToUrl('/books/42/publish')
+                ->asAjaxRequest('publish_book')
+        );
+
+        $resolver = new ActionRowDataResolver(null, null, null, $csrfTokenManager);
+
+        $result = $resolver->resolveRow(
+            ['id' => 42],
+            (object) ['id' => 42],
+            [ActionColumn::fromActions('actions', '', $actions)],
+        );
+
+        $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
+    }
+
+    #[Test]
+    public function skips_ajax_action_when_url_cannot_be_resolved(): void
+    {
+        $actions = new Actions();
+        $actions->add(Action::new('publish', 'Publish')->asAjaxRequest('publish_book'));
+
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->expects($this->never())->method('getToken');
+
+        $resolver = new ActionRowDataResolver(null, null, null, $csrfTokenManager);
+
+        $result = $resolver->resolveRow(
+            ['id' => 42],
+            (object) ['id' => 42],
+            [ActionColumn::fromActions('actions', '', $actions)],
+        );
+
+        $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
+    }
+
+    private function createCsrfTokenManager(string $tokenId, string $value): CsrfTokenManagerInterface
+    {
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager
+            ->expects($this->once())
+            ->method('getToken')
+            ->with($tokenId)
+            ->willReturn(new CsrfToken($tokenId, $value));
+
+        return $csrfTokenManager;
     }
 }
 
