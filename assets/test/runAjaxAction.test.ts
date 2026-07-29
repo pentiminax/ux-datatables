@@ -46,6 +46,14 @@ describe('runAjaxAction', () => {
     })
   })
 
+  const redirectingResponse = (target: string): Response => {
+    const response = new Response(null, { status: 200 })
+    Object.defineProperty(response, 'redirected', { value: true })
+    Object.defineProperty(response, 'url', { value: target })
+
+    return response
+  }
+
   it('dispatches action:success and reloads the table', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 200 })))
 
@@ -60,15 +68,36 @@ describe('runAjaxAction', () => {
   })
 
   it('follows a redirect instead of reloading', async () => {
-    const response = new Response(null, { status: 200 })
-    Object.defineProperty(response, 'redirected', { value: true })
-    Object.defineProperty(response, 'url', { value: 'http://localhost:3000/books' })
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(redirectingResponse(`${window.location.origin}/books`))
+    )
 
     await run()
 
-    expect(navigate).toHaveBeenCalledWith('http://localhost:3000/books')
+    expect(navigate).toHaveBeenCalledWith(`${window.location.origin}/books`)
     expect(reload).not.toHaveBeenCalled()
+  })
+
+  it('refuses to follow a cross-origin redirect', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(redirectingResponse('https://evil.example.com/books'))
+    )
+
+    await run()
+
+    expect(navigate).not.toHaveBeenCalled()
+    expect(reload).toHaveBeenCalledOnce()
+  })
+
+  it('keeps the button locked after a successful request', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 200 })))
+
+    await run()
+
+    expect(button.disabled).toBe(true)
+    expect(button.getAttribute('aria-busy')).toBe('true')
   })
 
   it('dispatches action:error and re-enables the button on a failed response', async () => {
