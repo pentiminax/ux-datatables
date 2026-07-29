@@ -22,6 +22,7 @@ import { applyFilterLayout } from './functions/filterLayout.js'
 import { FilterBar, hasFilters } from './functions/filters.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
 import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js'
+import { runAjaxAction } from './functions/runAjaxAction.js'
 import { submitEditForm } from './functions/submitEditForm.js'
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js'
 import {
@@ -265,6 +266,15 @@ export default class extends Controller {
                     return
                 }
 
+                const ajaxMethod = actionButton.getAttribute('data-ajax-method')
+
+                if (ajaxMethod) {
+                    e.preventDefault()
+                    await this.executeAjaxAction(actionButton, ajaxMethod, payload)
+
+                    return
+                }
+
                 if (actionType === 'DETAIL' && entity && id) {
                     e.preventDefault()
 
@@ -344,6 +354,37 @@ export default class extends Controller {
                 }
             }
         )
+    }
+
+    private async executeAjaxAction(
+        button: HTMLElement,
+        method: string,
+        payload: Record<string, any>
+    ): Promise<void> {
+        const url = button.getAttribute('data-ajax-url')
+        const token = button.getAttribute('data-ajax-token')
+
+        if (!url || !token) {
+            return
+        }
+
+        await runAjaxAction({
+            button,
+            method,
+            url,
+            token,
+            dispatch: (name, detail) => this.dispatchEvent(name, detail),
+            navigate: (target) => window.location.assign(target),
+            reload: () => {
+                if (payload.ajax) {
+                    this.table?.ajax?.reload(null, false)
+
+                    return
+                }
+
+                window.location.reload()
+            },
+        })
     }
 
     private bindBooleanToggleHandler(payload: Record<string, any>): void {

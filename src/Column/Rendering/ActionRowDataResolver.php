@@ -10,9 +10,13 @@ use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\PropertyAccess\Exception\ExceptionInterface as PropertyAccessExceptionInterface;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\Routing\Exception\ExceptionInterface as RoutingExceptionInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 final class ActionRowDataResolver
 {
@@ -24,6 +28,8 @@ final class ActionRowDataResolver
     public function __construct(
         ?PermissionChecker $permissionChecker = null,
         ?PropertyAccessorInterface $propertyAccessor = null,
+        private readonly ?UrlGeneratorInterface $urlGenerator = null,
+        private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
     ) {
         $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
         $this->propertyAccessor  = $propertyAccessor  ?? PropertyAccess::createPropertyAccessor();
@@ -79,15 +85,25 @@ final class ActionRowDataResolver
     }
 
     /**
-     * @return array{url?: string, id?: string|int}
+     * @return array{url?: string, token?: string, id?: string|int}
      */
     private function resolveActionData(Action $action, mixed $sourceRow): array
     {
         $data = [];
-        $url  = $action->resolveUrl($sourceRow);
+        $url  = $this->resolveActionUrl($action, $sourceRow);
 
         if (null !== $url) {
             $data['url'] = $url;
+        }
+
+        if ($action->isAjaxRequest()) {
+            $token = null === $url ? null : $this->resolveCsrfToken($action, $sourceRow);
+
+            if (null === $token) {
+                return [];
+            }
+
+            $data['token'] = $token;
         }
 
         if ($this->shouldExposeRowId($action)) {
@@ -99,6 +115,44 @@ final class ActionRowDataResolver
         }
 
         return $data;
+    }
+
+    private function resolveActionUrl(Action $action, mixed $sourceRow): ?string
+    {
+        $routeName = $action->getRouteName();
+
+        if (null === $routeName) {
+            return $action->resolveUrl($sourceRow);
+        }
+
+        if (null === $this->urlGenerator) {
+            return null;
+        }
+
+        try {
+            return $this->urlGenerator->generate($routeName, $action->resolveRouteParameters($sourceRow));
+        } catch (RoutingExceptionInterface) {
+            return null;
+        }
+    }
+
+    private function resolveCsrfToken(Action $action, mixed $sourceRow): ?string
+    {
+        if (null === $this->csrfTokenManager) {
+            return null;
+        }
+
+        $tokenId = $action->resolveCsrfTokenId($sourceRow);
+
+        if (null === $tokenId) {
+            return null;
+        }
+
+        try {
+            return $this->csrfTokenManager->getToken($tokenId)->getValue();
+        } catch (SessionNotFoundException) {
+            return null;
+        }
     }
 
     private function shouldExposeRowId(Action $action): bool
