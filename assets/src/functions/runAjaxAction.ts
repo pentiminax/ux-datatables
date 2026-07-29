@@ -1,4 +1,5 @@
 import { createMutationHeaders } from './createMutationHeaders.js'
+import { isSameOriginUrl } from './htmlUtils.js'
 
 export interface AjaxActionOptions {
     button: HTMLElement
@@ -36,6 +37,7 @@ export async function runAjaxAction({
         })
 
         if (!response.ok) {
+            unlockButton(button)
             dispatch('action:error', { url, method, response })
 
             return
@@ -43,7 +45,7 @@ export async function runAjaxAction({
 
         dispatch('action:success', { url, method, response })
 
-        if (response.redirected && response.url) {
+        if (response.redirected && response.url && isSameOriginUrl(response.url)) {
             navigate(response.url)
 
             return
@@ -51,11 +53,14 @@ export async function runAjaxAction({
 
         reload()
     } catch (error) {
+        unlockButton(button)
         dispatch('action:error', { url, method, error })
-    } finally {
-        button.removeAttribute('aria-busy')
-        if (button instanceof HTMLButtonElement) {
-            button.disabled = false
-        }
+    }
+}
+
+function unlockButton(button: HTMLElement): void {
+    button.removeAttribute('aria-busy')
+    if (button instanceof HTMLButtonElement) {
+        button.disabled = false
     }
 }
