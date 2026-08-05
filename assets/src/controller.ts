@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus'
-import type DataTable from 'datatables.net/types/types'
+import type DataTable from 'datatables.net'
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
@@ -125,6 +125,10 @@ export default class extends Controller {
             applyFilterLayout(payload, filterBar)
         }
 
+        if (!this.isConnectCurrent(connectId)) {
+            return
+        }
+
         if (DataTable.isDataTable(this.element)) {
             this.destroyDataTable(DataTable)
         }
@@ -143,7 +147,7 @@ export default class extends Controller {
             window.addEventListener('popstate', this.popstateHandler)
         }
 
-        await this.initMercure(payload)
+        await this.initMercure(payload, connectId)
         if (!this.isConnectCurrent(connectId)) {
             return
         }
@@ -283,14 +287,27 @@ export default class extends Controller {
         }
     }
 
-    private async initMercure(payload: Record<string, any>): Promise<void> {
-        if (this.isMercureEnabled(payload)) {
-            const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
-            this.eventSource = createMercureSubscription(payload.mercure, (event) => {
-                this.dispatchEvent('mercure:message', { data: event.data, event })
-                this.table?.ajax?.reload(null, false)
-            })
+    private async initMercure(payload: Record<string, any>, connectId: number): Promise<void> {
+        if (!this.isMercureEnabled(payload)) {
+            return
         }
+
+        const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
+        if (!this.isConnectCurrent(connectId)) {
+            return
+        }
+
+        const eventSource = createMercureSubscription(payload.mercure, (event) => {
+            this.dispatchEvent('mercure:message', { data: event.data, event })
+            this.table?.ajax?.reload(null, false)
+        })
+
+        if (!this.isConnectCurrent(connectId)) {
+            eventSource.close()
+            return
+        }
+
+        this.eventSource = eventSource
     }
 
     private bindActionHandler(payload: Record<string, any>): void {
@@ -553,7 +570,7 @@ export default class extends Controller {
     }
 }
 
-type DataTableWithAjax = DataTable<any> & {
+type DataTableWithAjax = DataTable & {
     ajax?: {
         reload: (callback?: null, resetPaging?: boolean) => void
     }
