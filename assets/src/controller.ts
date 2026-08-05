@@ -505,7 +505,7 @@ export default class extends Controller {
     }
 }
 
-type DataTableWithAjax = DataTable & {
+type DataTableWithAjax = DataTable<any> & {
     ajax?: {
         reload: (callback?: null, resetPaging?: boolean) => void
     }
