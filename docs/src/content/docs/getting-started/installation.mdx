@@ -92,6 +92,9 @@ into the DataTables API directly:
 - callback `this` values are no longer jQuery objects
 - selector arguments should use native selectors
 - `columns().search()` uses the DataTables 3 search semantics
+- custom styling integrations should read `settings.classes` instead of `settings.oClasses` and
+  call `DataTable.ext.rendererDisplayRowCells()` instead of the removed private
+  `DataTable.ext.renderer.layout._forLayoutRow()` helper
 - legacy cache APIs and `scrollXInner` are removed
 - SCSS variable overrides must move to CSS-level theming or application styles
 
