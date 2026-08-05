@@ -89,6 +89,9 @@ class default_1 extends Controller {
             filterBar.attachToPayload(payload);
             applyFilterLayout(payload, filterBar);
         }
+        if (!this.isConnectCurrent(connectId)) {
+            return;
+        }
         if (DataTable.isDataTable(this.element)) {
             this.destroyDataTable(DataTable);
         }
@@ -102,7 +105,7 @@ class default_1 extends Controller {
             this.popstateHandler = () => this.applyUrlStateToTable(urlStateCfg);
             window.addEventListener('popstate', this.popstateHandler);
         }
-        await this.initMercure(payload);
+        await this.initMercure(payload, connectId);
         if (!this.isConnectCurrent(connectId)) {
             return;
         }
@@ -213,14 +216,23 @@ class default_1 extends Controller {
             }));
         }
     }
-    async initMercure(payload) {
-        if (this.isMercureEnabled(payload)) {
-            const { createMercureSubscription } = await import('./functions/mercureSubscription.js');
-            this.eventSource = createMercureSubscription(payload.mercure, (event) => {
-                this.dispatchEvent('mercure:message', { data: event.data, event });
-                this.table?.ajax?.reload(null, false);
-            });
+    async initMercure(payload, connectId) {
+        if (!this.isMercureEnabled(payload)) {
+            return;
         }
+        const { createMercureSubscription } = await import('./functions/mercureSubscription.js');
+        if (!this.isConnectCurrent(connectId)) {
+            return;
+        }
+        const eventSource = createMercureSubscription(payload.mercure, (event) => {
+            this.dispatchEvent('mercure:message', { data: event.data, event });
+            this.table?.ajax?.reload(null, false);
+        });
+        if (!this.isConnectCurrent(connectId)) {
+            eventSource.close();
+            return;
+        }
+        this.eventSource = eventSource;
     }
     bindActionHandler(payload) {
         ;
