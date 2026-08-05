@@ -1,5 +1,4 @@
 import { Controller } from '@hotwired/stimulus'
-import type DataTable from 'datatables.net/types/types'
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
@@ -65,6 +64,9 @@ export default class extends Controller {
     private eventSource: EventSource | null = null
     private framework: StyleFramework = 'dt'
     private popstateHandler: (() => void) | null = null
+    private connectId = 0
+    private actionClickHandler: ((event: MouseEvent) => void) | null = null
+    private booleanChangeHandler: ((event: Event) => void) | null = null
 
     async connect() {
         if (this.isDataTableInitialized) {
@@ -75,6 +77,7 @@ export default class extends Controller {
             throw new Error('Invalid element')
         }
 
+        const connectId = ++this.connectId
         const payload = this.viewValue
 
         this.dispatchEvent('pre-connect', {
@@ -85,14 +88,16 @@ export default class extends Controller {
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)
-        registerFilterFeature(DataTable)
-
-        if (DataTable.isDataTable(this.element)) {
-            this.isDataTableInitialized = true
+        if (!this.isConnectCurrent(connectId)) {
             return
         }
 
+        registerFilterFeature(DataTable)
+
         await this.loadExtensions(payload, framework, DataTable)
+        if (!this.isConnectCurrent(connectId)) {
+            return
+        }
 
         if (this.isApiPlatformEnabled(payload)) {
             const columns = Array.isArray(payload.columns)
@@ -105,6 +110,9 @@ export default class extends Controller {
 
         if (hasLucideIcons(payload.columns)) {
             await loadLucideIcons()
+            if (!this.isConnectCurrent(connectId)) {
+                return
+            }
         }
 
         const urlStateCfg = isUrlStateEnabled(payload)
@@ -118,6 +126,18 @@ export default class extends Controller {
             applyFilterLayout(payload, filterBar)
         }
 
+        if (!this.isConnectCurrent(connectId)) {
+            return
+        }
+
+        if (DataTable.isDataTable(this.element)) {
+            this.destroyDataTable(DataTable)
+        }
+
+        if (!this.isConnectCurrent(connectId)) {
+            return
+        }
+
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
 
         this.dispatchEvent('connect', { table: this.table })
@@ -128,7 +148,11 @@ export default class extends Controller {
             window.addEventListener('popstate', this.popstateHandler)
         }
 
-        await this.initMercure(payload)
+        await this.initMercure(payload, connectId)
+        if (!this.isConnectCurrent(connectId)) {
+            return
+        }
+
         this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
 
@@ -136,12 +160,43 @@ export default class extends Controller {
     }
 
     disconnect() {
+        this.connectId++
+
+        this.destroyOwnTable()
+        this.unbindActionHandler()
+        this.unbindBooleanToggleHandler()
+
         this.eventSource?.close()
         this.eventSource = null
 
         if (this.popstateHandler) {
             window.removeEventListener('popstate', this.popstateHandler)
             this.popstateHandler = null
+        }
+    }
+
+    private isConnectCurrent(connectId: number): boolean {
+        return connectId === this.connectId
+    }
+
+    private destroyOwnTable(): void {
+        if (this.table) {
+            this.table.destroy()
+            this.table = null
+        }
+
+        this.isDataTableInitialized = false
+    }
+
+    private destroyDataTable(DataTable: { Api?: new (element: Element) => { destroy: () => void } }): void {
+        if (this.table) {
+            this.destroyOwnTable()
+            return
+        }
+
+        // Leftover instance from a prior Turbo morph / aborted connect without this.table.
+        if (typeof DataTable.Api === 'function') {
+            new DataTable.Api(this.element).destroy()
         }
     }
 
@@ -235,125 +290,149 @@ export default class extends Controller {
         }
     }
 
-    private async initMercure(payload: Record<string, any>): Promise<void> {
-        if (this.isMercureEnabled(payload)) {
-            const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
-            this.eventSource = createMercureSubscription(payload.mercure, (event) => {
-                this.dispatchEvent('mercure:message', { data: event.data, event })
-                this.table?.ajax?.reload(null, false)
-            })
+    private async initMercure(payload: Record<string, any>, connectId: number): Promise<void> {
+        if (!this.isMercureEnabled(payload)) {
+            return
         }
+
+        const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
+        if (!this.isConnectCurrent(connectId)) {
+            return
+        }
+
+        const eventSource = createMercureSubscription(payload.mercure, (event) => {
+            this.dispatchEvent('mercure:message', { data: event.data, event })
+            this.table?.ajax?.reload(null, false)
+        })
+
+        if (!this.isConnectCurrent(connectId)) {
+            eventSource.close()
+            return
+        }
+
+        this.eventSource = eventSource
     }
 
     private bindActionHandler(payload: Record<string, any>): void {
-        ;(this.element as HTMLElement).addEventListener(
-            'click',
-            async (e: MouseEvent): Promise<void> => {
-                const target = e.target as HTMLElement
-                const actionButton = target.closest('[data-action-type]') as HTMLElement | null
+        this.unbindActionHandler()
 
-                if (!actionButton) {
-                    return
-                }
+        this.actionClickHandler = (e: MouseEvent): void => {
+            void this.handleActionClick(e, payload)
+        }
 
-                const actionType = actionButton.getAttribute('data-action-type')
-                const entity = actionButton.getAttribute('data-entity')
-                const id = actionButton.getAttribute('data-id')
-                const confirmMessage = actionButton.getAttribute('data-confirm')
+        ;(this.element as HTMLElement).addEventListener('click', this.actionClickHandler)
+    }
 
-                if (confirmMessage && !confirm(confirmMessage)) {
-                    e.preventDefault()
-                    return
-                }
+    private unbindActionHandler(): void {
+        if (!this.actionClickHandler) {
+            return
+        }
 
-                const ajaxMethod = actionButton.getAttribute('data-ajax-method')
+        ;(this.element as HTMLElement).removeEventListener('click', this.actionClickHandler)
+        this.actionClickHandler = null
+    }
 
-                if (ajaxMethod) {
-                    e.preventDefault()
-                    await this.executeAjaxAction(actionButton, ajaxMethod, payload)
+    private async handleActionClick(e: MouseEvent, payload: Record<string, any>): Promise<void> {
+        const target = e.target as HTMLElement
+        const actionButton = target.closest('[data-action-type]') as HTMLElement | null
 
-                    return
-                }
+        if (!actionButton) {
+            return
+        }
 
-                if (actionType === 'DETAIL' && entity && id) {
-                    e.preventDefault()
+        const actionType = actionButton.getAttribute('data-action-type')
+        const entity = actionButton.getAttribute('data-entity')
+        const id = actionButton.getAttribute('data-id')
+        const confirmMessage = actionButton.getAttribute('data-confirm')
 
-                    const rowElement = actionButton.closest('tr')
-                    const row = rowElement ? this.table?.row(rowElement) : null
+        if (confirmMessage && !confirm(confirmMessage)) {
+            e.preventDefault()
+            return
+        }
 
-                    if (!row) {
-                        return
-                    }
+        const ajaxMethod = actionButton.getAttribute('data-ajax-method')
 
-                    if (row.child.isShown()) {
-                        row.child.hide()
-                        actionButton.classList.remove('expanded')
-                        return
-                    }
+        if (ajaxMethod) {
+            e.preventDefault()
+            await this.executeAjaxAction(actionButton, ajaxMethod, payload)
 
-                    const result = await fetchDetailRow({
-                        entity,
-                        id,
-                        dataTableClass: payload.dataTableClass ?? null,
-                    })
+            return
+        }
 
-                    if (result.success) {
-                        row.child(result.html).show()
-                        actionButton.classList.add('expanded')
-                    }
-                }
+        if (actionType === 'DETAIL' && entity && id) {
+            e.preventDefault()
 
-                if (actionType === 'DELETE' && entity && id) {
-                    e.preventDefault()
-                    const response = await deleteEntity({
-                        entity,
-                        id,
-                        dataTableClass: payload.dataTableClass ?? null,
-                        csrfToken: this.getCsrfToken(payload),
-                    })
+            const rowElement = actionButton.closest('tr')
+            const row = rowElement ? this.table?.row(rowElement) : null
 
-                    if (response.ok) {
-                        this.table?.ajax?.reload(null, false)
-                    }
-                }
-
-                if (actionType === 'EDIT' && entity && id) {
-                    e.preventDefault()
-                    const modalConfig = payload.editModal ?? {}
-                    const modal = await resolveModalAdapter(
-                        modalConfig.adapter ?? null,
-                        this.framework
-                    )
-                    if (!modal) return
-
-                    const result = await fetchEditForm({
-                        entity,
-                        id,
-                        dataTableClass: payload.dataTableClass ?? null,
-                    })
-
-                    if (result.success) {
-                        await modal.show(result.html, {
-                            onSubmit: async (formData) => {
-                                const submitResult = await submitEditForm({
-                                    entity,
-                                    id,
-                                    formData,
-                                    dataTableClass: payload.dataTableClass ?? null,
-                                })
-
-                                if (submitResult.success) {
-                                    await modal.hide()
-                                    this.table?.ajax?.reload(null, false)
-                                } else if (submitResult.html) {
-                                    modal.replaceBody(submitResult.html)
-                                }
-                            },
-                        })
-                    }
-                }
+            if (!row) {
+                return
             }
-        )
+
+            if (row.child.isShown()) {
+                row.child.hide()
+                actionButton.classList.remove('expanded')
+                return
+            }
+
+            const result = await fetchDetailRow({
+                entity,
+                id,
+                dataTableClass: payload.dataTableClass ?? null,
+            })
+
+            if (result.success) {
+                row.child(result.html).show()
+                actionButton.classList.add('expanded')
+            }
+        }
+
+        if (actionType === 'DELETE' && entity && id) {
+            e.preventDefault()
+            const response = await deleteEntity({
+                entity,
+                id,
+                dataTableClass: payload.dataTableClass ?? null,
+                csrfToken: this.getCsrfToken(payload),
+            })
+
+            if (response.ok) {
+                this.table?.ajax?.reload(null, false)
+            }
+        }
+
+        if (actionType === 'EDIT' && entity && id) {
+            e.preventDefault()
+            const modalConfig = payload.editModal ?? {}
+            const modal = await resolveModalAdapter(modalConfig.adapter ?? null, this.framework)
+            if (!modal) return
+
+            const result = await fetchEditForm({
+                entity,
+                id,
+                dataTableClass: payload.dataTableClass ?? null,
+            })
+
+            if (result.success) {
+                await modal.show(result.html, {
+                    onSubmit: async (formData) => {
+                        const submitResult = await submitEditForm({
+                            entity,
+                            id,
+                            formData,
+                            dataTableClass: payload.dataTableClass ?? null,
+                        })
+
+                        if (submitResult.success) {
+                            await modal.hide()
+                            this.table?.ajax?.reload(null, false)
+                        } else if (submitResult.html) {
+                            modal.replaceBody(submitResult.html)
+                        }
+                    },
+                })
+            }
+        }
     }
 
     private async executeAjaxAction(
@@ -388,60 +467,77 @@ export default class extends Controller {
     }
 
     private bindBooleanToggleHandler(payload: Record<string, any>): void {
-        this.element.addEventListener('change', async (e: Event): Promise<void> => {
-            const target = e.target as EventTarget | null
-            if (
-                !(target instanceof HTMLInputElement) ||
-                !target.matches('.boolean-switch-action')
-            ) {
-                return
-            }
+        this.unbindBooleanToggleHandler()
 
-            const url = target.dataset.url
-            const id = target.dataset.id
-            const field = target.dataset.field
-            const method = target.dataset.method ?? 'PATCH'
-            const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : ''
+        this.booleanChangeHandler = (e: Event): void => {
+            void this.handleBooleanToggleChange(e, payload)
+        }
 
-            if (!id || !field) {
-                target.checked = !target.checked
-                console.error('Missing ID or field for boolean switch update')
-                return
-            }
+        this.element.addEventListener('change', this.booleanChangeHandler)
+    }
 
-            if (!dataTable) {
-                target.checked = !target.checked
-                console.error('Missing DataTable token for boolean toggle endpoint')
+    private unbindBooleanToggleHandler(): void {
+        if (!this.booleanChangeHandler) {
+            return
+        }
 
-                return
-            }
+        this.element.removeEventListener('change', this.booleanChangeHandler)
+        this.booleanChangeHandler = null
+    }
 
-            const previousState = !target.checked
+    private async handleBooleanToggleChange(
+        e: Event,
+        payload: Record<string, any>
+    ): Promise<void> {
+        const target = e.target as EventTarget | null
+        if (!(target instanceof HTMLInputElement) || !target.matches('.boolean-switch-action')) {
+            return
+        }
 
-            target.disabled = true
+        const url = target.dataset.url
+        const id = target.dataset.id
+        const field = target.dataset.field
+        const method = target.dataset.method ?? 'PATCH'
+        const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : ''
 
-            try {
-                const response = await toggleBooleanValue({
-                    url: url ?? this.getBooleanToggleUrl(),
-                    id,
-                    field,
-                    newValue: target.checked,
-                    method,
-                    dataTable,
-                    csrfToken: this.getCsrfToken(payload),
-                })
+        if (!id || !field) {
+            target.checked = !target.checked
+            console.error('Missing ID or field for boolean switch update')
+            return
+        }
 
-                if (!response.ok) {
-                    target.checked = previousState
-                    console.error(`Boolean switch update failed with status ${response.status}`)
-                }
-            } catch (error) {
+        if (!dataTable) {
+            target.checked = !target.checked
+            console.error('Missing DataTable token for boolean toggle endpoint')
+
+            return
+        }
+
+        const previousState = !target.checked
+
+        target.disabled = true
+
+        try {
+            const response = await toggleBooleanValue({
+                url: url ?? this.getBooleanToggleUrl(),
+                id,
+                field,
+                newValue: target.checked,
+                method,
+                dataTable,
+                csrfToken: this.getCsrfToken(payload),
+            })
+
+            if (!response.ok) {
                 target.checked = previousState
-                console.error('Boolean switch update failed', error)
-            } finally {
-                target.disabled = false
+                console.error(`Boolean switch update failed with status ${response.status}`)
             }
-        })
+        } catch (error) {
+            target.checked = previousState
+            console.error('Boolean switch update failed', error)
+        } finally {
+            target.disabled = false
+        }
     }
 
     private hasButtonsInLayout(payload: Record<string, any>): boolean {
@@ -505,10 +601,11 @@ export default class extends Controller {
     }
 }
 
-type DataTableWithAjax = DataTable<any> & {
+type DataTableWithAjax = {
     ajax?: {
         reload: (callback?: null, resetPaging?: boolean) => void
     }
+    destroy: (remove?: boolean) => void
     on: (event: string, callback: (...args: any[]) => void) => DataTableWithAjax
     table?: () => { container: () => HTMLElement | null }
     search: (input: string) => DataTableWithAjax
