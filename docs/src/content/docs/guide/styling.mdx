@@ -5,11 +5,16 @@ description: Use Bootstrap, Bulma, Foundation, Semantic UI, jQuery UI, or the de
 
 # Styling
 
-The bundle supports 7 DataTables CSS frameworks out of the box. The Stimulus controller **automatically detects** which stylesheet you have loaded and picks the matching JavaScript integration — no PHP configuration required.
+The bundle supports 8 DataTables CSS frameworks out of the box. The Stimulus controller **automatically detects** which stylesheet you have loaded and picks the matching JavaScript integration — no PHP configuration required.
 
 ## How It Works
 
 On page load, the controller scans the loaded stylesheets and matches the CSS file's URL against known patterns. The first match wins, so more specific patterns (e.g. `bootstrap5`) are checked before less specific ones (e.g. `bootstrap`). If nothing matches, the bundle falls back to the DataTables default theme.
+
+<Aside type="note" title="DataTables 3 theming">
+  DataTables 3 no longer supports the old SCSS variable customization path. Keep framework CSS
+  packages aligned with the detected theme and put overrides in your application's CSS.
+</Aside>
 
 ## Switching Frameworks
 

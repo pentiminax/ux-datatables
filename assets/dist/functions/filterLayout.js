@@ -30,7 +30,8 @@ function replaceMarker(layout, entry) {
 }
 export function applyFilterLayout(payload, instance) {
     const entry = { filters: { instance } };
-    const layout = (payload.layout ??= {});
+    payload.layout ??= {};
+    const layout = payload.layout;
     if (replaceMarker(layout, entry)) {
         return;
     }
