@@ -139,6 +139,7 @@ export default class extends Controller {
         }
 
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
+        this.isDataTableInitialized = true
 
         this.dispatchEvent('connect', { table: this.table })
 
@@ -155,11 +156,13 @@ export default class extends Controller {
 
         this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
-
-        this.isDataTableInitialized = true
     }
 
     disconnect() {
+        if (this.element.isConnected) {
+            return
+        }
+
         this.connectId++
 
         this.destroyOwnTable()

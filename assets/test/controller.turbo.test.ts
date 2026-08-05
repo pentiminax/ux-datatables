@@ -88,9 +88,21 @@ describe('datatable controller Turbo lifecycle', () => {
 
         expect(instances).toHaveLength(1)
 
-        controller.disconnect()
+        await detach(table)
 
         expect(instances[0].destroy).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the table when Stimulus reports a reparent instead of a detach', async () => {
+        const table = mountTable()
+        const controller = await getController(application, table)
+
+        loadResolvers[0](MockDataTable)
+        await flushMicrotasks()
+
+        controller.disconnect()
+
+        expect(instances[0].destroy).not.toHaveBeenCalled()
     })
 
     it('ignores a stale connect after Turbo disconnect mid-load', async () => {
@@ -122,11 +134,10 @@ describe('datatable controller Turbo lifecycle', () => {
         await flushMicrotasks()
         expect(instances).toHaveLength(1)
 
-        controller.disconnect()
+        await detach(table)
         expect(instances[0].destroy).toHaveBeenCalledTimes(1)
 
-        void controller.connect()
-        await flushMicrotasks()
+        await attach(table)
         expect(loadResolvers).toHaveLength(2)
 
         loadResolvers[1](MockDataTable)
@@ -173,6 +184,7 @@ describe('datatable controller Turbo lifecycle', () => {
 
         const staleSource: MockEventSource = { close: vi.fn() }
         vi.mocked(createMercureSubscription).mockImplementationOnce(() => {
+            table.remove()
             controller.disconnect()
             return staleSource as unknown as EventSource
         })
@@ -197,9 +209,8 @@ describe('datatable controller Turbo lifecycle', () => {
         loadResolvers[0](MockDataTable)
         await flushMicrotasks()
 
-        controller.disconnect()
-        void controller.connect()
-        await flushMicrotasks()
+        await detach(table)
+        await attach(table)
 
         loadResolvers[1](MockDataTable)
         await flushMicrotasks()
@@ -284,6 +295,16 @@ async function getController(
     }
 
     return controller as InstanceType<typeof DatatableController>
+}
+
+async function detach(table: HTMLTableElement): Promise<void> {
+    table.remove()
+    await flushMicrotasks()
+}
+
+async function attach(table: HTMLTableElement): Promise<void> {
+    document.body.appendChild(table)
+    await flushMicrotasks()
 }
 
 async function flushMicrotasks(): Promise<void> {

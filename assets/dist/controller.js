@@ -101,6 +101,7 @@ class default_1 extends Controller {
             return;
         }
         this.table = new DataTable(this.element, payload);
+        this.isDataTableInitialized = true;
         this.dispatchEvent('connect', { table: this.table });
         if (urlStateCfg && this.table) {
             this.table.on('draw.dt', () => writeUrlState(urlStateCfg, this.table));
@@ -113,9 +114,11 @@ class default_1 extends Controller {
         }
         this.bindActionHandler(payload);
         this.bindBooleanToggleHandler(payload);
-        this.isDataTableInitialized = true;
     }
     disconnect() {
+        if (this.element.isConnected) {
+            return;
+        }
         this.connectId++;
         this.destroyOwnTable();
         this.unbindActionHandler();
