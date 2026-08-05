@@ -81,6 +81,22 @@ data_tables:
   ]}
 />
 
+## DataTables 3 Baseline
+
+UX DataTables targets DataTables.net core 3 and its matching extension packages. DataTables 1.x and
+2.x are no longer supported by the bundle runtime.
+
+When upgrading an application to the DataTables 3 baseline, review any custom JavaScript that reaches
+into the DataTables API directly:
+
+- callback `this` values are no longer jQuery objects
+- selector arguments should use native selectors
+- `columns().search()` uses the DataTables 3 search semantics
+- legacy cache APIs and `scrollXInner` are removed
+- SCSS variable overrides must move to CSS-level theming or application styles
+
+The legacy `dom`, `pagingType`, and `orderCellsTop` options remain accepted for compatibility.
+
 ## Styling
 
 The bundle ships with the DataTables default theme enabled. Check your `assets/controllers.json`:
