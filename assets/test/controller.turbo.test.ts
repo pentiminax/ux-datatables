@@ -19,6 +19,16 @@ vi.mock('../src/functions/mercureSubscription.js', () => ({
     createMercureSubscription: vi.fn(),
 }))
 
+vi.mock('../src/functions/deleteEntity.js', () => ({
+    deleteEntity: vi.fn(async () => new Response(null, { status: 200 })),
+}))
+
+vi.mock('../src/functions/toggleBooleanValue.js', () => ({
+    toggleBooleanValue: vi.fn(async () => new Response(null, { status: 200 })),
+}))
+
+import { deleteEntity } from '../src/functions/deleteEntity.js'
+import { toggleBooleanValue } from '../src/functions/toggleBooleanValue.js'
 import DatatableController from '../src/controller.js'
 
 type MockInstance = {
@@ -175,6 +185,46 @@ describe('datatable controller Turbo lifecycle', () => {
 
         expect(staleSource.close).toHaveBeenCalledTimes(1)
         expect((controller as { eventSource: EventSource | null }).eventSource).toBeNull()
+    })
+
+    it('does not duplicate mutation handlers after Turbo reconnect', async () => {
+        const table = mountTable({
+            dataTable: 'mutation-token',
+            mutationsEnabled: true,
+        })
+        const controller = await getController(application, table)
+
+        loadResolvers[0](MockDataTable)
+        await flushMicrotasks()
+
+        controller.disconnect()
+        void controller.connect()
+        await flushMicrotasks()
+
+        loadResolvers[1](MockDataTable)
+        await flushMicrotasks()
+
+        const deleteButton = document.createElement('button')
+        deleteButton.setAttribute('data-action-type', 'DELETE')
+        deleteButton.setAttribute('data-entity', 'App\\Entity\\User')
+        deleteButton.setAttribute('data-id', '42')
+        table.appendChild(deleteButton)
+        deleteButton.click()
+        await flushMicrotasks()
+
+        expect(deleteEntity).toHaveBeenCalledTimes(1)
+
+        const toggle = document.createElement('input')
+        toggle.type = 'checkbox'
+        toggle.className = 'boolean-switch-action'
+        toggle.dataset.id = '42'
+        toggle.dataset.field = 'active'
+        toggle.checked = true
+        table.appendChild(toggle)
+        toggle.dispatchEvent(new Event('change', { bubbles: true }))
+        await flushMicrotasks()
+
+        expect(toggleBooleanValue).toHaveBeenCalledTimes(1)
     })
 })
 
