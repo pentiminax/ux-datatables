@@ -42,6 +42,9 @@ class default_1 extends Controller {
         this.eventSource = null;
         this.framework = 'dt';
         this.popstateHandler = null;
+        this.connectId = 0;
+        this.actionClickHandler = null;
+        this.booleanChangeHandler = null;
     }
     async connect() {
         if (this.isDataTableInitialized) {
@@ -50,6 +53,7 @@ class default_1 extends Controller {
         if (!(this.element instanceof HTMLTableElement)) {
             throw new Error('Invalid element');
         }
+        const connectId = ++this.connectId;
         const payload = this.viewValue;
         this.dispatchEvent('pre-connect', {
             config: payload,
@@ -57,12 +61,14 @@ class default_1 extends Controller {
         const framework = detectStyleFramework();
         this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
-        registerFilterFeature(DataTable);
-        if (DataTable.isDataTable(this.element)) {
-            this.isDataTableInitialized = true;
+        if (!this.isConnectCurrent(connectId)) {
             return;
         }
+        registerFilterFeature(DataTable);
         await this.loadExtensions(payload, framework, DataTable);
+        if (!this.isConnectCurrent(connectId)) {
+            return;
+        }
         if (this.isApiPlatformEnabled(payload)) {
             const columns = Array.isArray(payload.columns)
                 ? payload.columns
@@ -72,6 +78,9 @@ class default_1 extends Controller {
         this.configureColumns(payload);
         if (hasLucideIcons(payload.columns)) {
             await loadLucideIcons();
+            if (!this.isConnectCurrent(connectId)) {
+                return;
+            }
         }
         const urlStateCfg = isUrlStateEnabled(payload);
         if (urlStateCfg) {
@@ -82,6 +91,15 @@ class default_1 extends Controller {
             filterBar.attachToPayload(payload);
             applyFilterLayout(payload, filterBar);
         }
+        if (!this.isConnectCurrent(connectId)) {
+            return;
+        }
+        if (DataTable.isDataTable(this.element)) {
+            this.destroyDataTable(DataTable);
+        }
+        if (!this.isConnectCurrent(connectId)) {
+            return;
+        }
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
         if (urlStateCfg && this.table) {
@@ -89,17 +107,43 @@ class default_1 extends Controller {
             this.popstateHandler = () => this.applyUrlStateToTable(urlStateCfg);
             window.addEventListener('popstate', this.popstateHandler);
         }
-        await this.initMercure(payload);
+        await this.initMercure(payload, connectId);
+        if (!this.isConnectCurrent(connectId)) {
+            return;
+        }
         this.bindActionHandler(payload);
         this.bindBooleanToggleHandler(payload);
         this.isDataTableInitialized = true;
     }
     disconnect() {
+        this.connectId++;
+        this.destroyOwnTable();
+        this.unbindActionHandler();
+        this.unbindBooleanToggleHandler();
         this.eventSource?.close();
         this.eventSource = null;
         if (this.popstateHandler) {
             window.removeEventListener('popstate', this.popstateHandler);
             this.popstateHandler = null;
+        }
+    }
+    isConnectCurrent(connectId) {
+        return connectId === this.connectId;
+    }
+    destroyOwnTable() {
+        if (this.table) {
+            this.table.destroy();
+            this.table = null;
+        }
+        this.isDataTableInitialized = false;
+    }
+    destroyDataTable(DataTable) {
+        if (this.table) {
+            this.destroyOwnTable();
+            return;
+        }
+        if (typeof DataTable.Api === 'function') {
+            new DataTable.Api(this.element).destroy();
         }
     }
     applyUrlStateToTable(cfg) {
@@ -176,103 +220,124 @@ class default_1 extends Controller {
             }));
         }
     }
-    async initMercure(payload) {
-        if (this.isMercureEnabled(payload)) {
-            const { createMercureSubscription } = await import('./functions/mercureSubscription.js');
-            this.eventSource = createMercureSubscription(payload.mercure, (event) => {
-                this.dispatchEvent('mercure:message', { data: event.data, event });
-                this.table?.ajax?.reload(null, false);
-            });
+    async initMercure(payload, connectId) {
+        if (!this.isMercureEnabled(payload)) {
+            return;
         }
+        const { createMercureSubscription } = await import('./functions/mercureSubscription.js');
+        if (!this.isConnectCurrent(connectId)) {
+            return;
+        }
+        const eventSource = createMercureSubscription(payload.mercure, (event) => {
+            this.dispatchEvent('mercure:message', { data: event.data, event });
+            this.table?.ajax?.reload(null, false);
+        });
+        if (!this.isConnectCurrent(connectId)) {
+            eventSource.close();
+            return;
+        }
+        this.eventSource = eventSource;
     }
     bindActionHandler(payload) {
+        this.unbindActionHandler();
+        this.actionClickHandler = (e) => {
+            void this.handleActionClick(e, payload);
+        };
+        this.element.addEventListener('click', this.actionClickHandler);
+    }
+    unbindActionHandler() {
+        if (!this.actionClickHandler) {
+            return;
+        }
         ;
-        this.element.addEventListener('click', async (e) => {
-            const target = e.target;
-            const actionButton = target.closest('[data-action-type]');
-            if (!actionButton) {
+        this.element.removeEventListener('click', this.actionClickHandler);
+        this.actionClickHandler = null;
+    }
+    async handleActionClick(e, payload) {
+        const target = e.target;
+        const actionButton = target.closest('[data-action-type]');
+        if (!actionButton) {
+            return;
+        }
+        const actionType = actionButton.getAttribute('data-action-type');
+        const entity = actionButton.getAttribute('data-entity');
+        const id = actionButton.getAttribute('data-id');
+        const confirmMessage = actionButton.getAttribute('data-confirm');
+        if (confirmMessage && !confirm(confirmMessage)) {
+            e.preventDefault();
+            return;
+        }
+        const ajaxMethod = actionButton.getAttribute('data-ajax-method');
+        if (ajaxMethod) {
+            e.preventDefault();
+            await this.executeAjaxAction(actionButton, ajaxMethod, payload);
+            return;
+        }
+        if (actionType === 'DETAIL' && entity && id) {
+            e.preventDefault();
+            const rowElement = actionButton.closest('tr');
+            const row = rowElement ? this.table?.row(rowElement) : null;
+            if (!row) {
                 return;
             }
-            const actionType = actionButton.getAttribute('data-action-type');
-            const entity = actionButton.getAttribute('data-entity');
-            const id = actionButton.getAttribute('data-id');
-            const confirmMessage = actionButton.getAttribute('data-confirm');
-            if (confirmMessage && !confirm(confirmMessage)) {
-                e.preventDefault();
+            if (row.child.isShown()) {
+                row.child.hide();
+                actionButton.classList.remove('expanded');
                 return;
             }
-            const ajaxMethod = actionButton.getAttribute('data-ajax-method');
-            if (ajaxMethod) {
-                e.preventDefault();
-                await this.executeAjaxAction(actionButton, ajaxMethod, payload);
+            const result = await fetchDetailRow({
+                entity,
+                id,
+                dataTableClass: payload.dataTableClass ?? null,
+            });
+            if (result.success) {
+                row.child(result.html).show();
+                actionButton.classList.add('expanded');
+            }
+        }
+        if (actionType === 'DELETE' && entity && id) {
+            e.preventDefault();
+            const response = await deleteEntity({
+                entity,
+                id,
+                dataTableClass: payload.dataTableClass ?? null,
+                csrfToken: this.getCsrfToken(payload),
+            });
+            if (response.ok) {
+                this.table?.ajax?.reload(null, false);
+            }
+        }
+        if (actionType === 'EDIT' && entity && id) {
+            e.preventDefault();
+            const modalConfig = payload.editModal ?? {};
+            const modal = await resolveModalAdapter(modalConfig.adapter ?? null, this.framework);
+            if (!modal)
                 return;
-            }
-            if (actionType === 'DETAIL' && entity && id) {
-                e.preventDefault();
-                const rowElement = actionButton.closest('tr');
-                const row = rowElement ? this.table?.row(rowElement) : null;
-                if (!row) {
-                    return;
-                }
-                if (row.child.isShown()) {
-                    row.child.hide();
-                    actionButton.classList.remove('expanded');
-                    return;
-                }
-                const result = await fetchDetailRow({
-                    entity,
-                    id,
-                    dataTableClass: payload.dataTableClass ?? null,
+            const result = await fetchEditForm({
+                entity,
+                id,
+                dataTableClass: payload.dataTableClass ?? null,
+            });
+            if (result.success) {
+                await modal.show(result.html, {
+                    onSubmit: async (formData) => {
+                        const submitResult = await submitEditForm({
+                            entity,
+                            id,
+                            formData,
+                            dataTableClass: payload.dataTableClass ?? null,
+                        });
+                        if (submitResult.success) {
+                            await modal.hide();
+                            this.table?.ajax?.reload(null, false);
+                        }
+                        else if (submitResult.html) {
+                            modal.replaceBody(submitResult.html);
+                        }
+                    },
                 });
-                if (result.success) {
-                    row.child(result.html).show();
-                    actionButton.classList.add('expanded');
-                }
             }
-            if (actionType === 'DELETE' && entity && id) {
-                e.preventDefault();
-                const response = await deleteEntity({
-                    entity,
-                    id,
-                    dataTableClass: payload.dataTableClass ?? null,
-                    csrfToken: this.getCsrfToken(payload),
-                });
-                if (response.ok) {
-                    this.table?.ajax?.reload(null, false);
-                }
-            }
-            if (actionType === 'EDIT' && entity && id) {
-                e.preventDefault();
-                const modalConfig = payload.editModal ?? {};
-                const modal = await resolveModalAdapter(modalConfig.adapter ?? null, this.framework);
-                if (!modal)
-                    return;
-                const result = await fetchEditForm({
-                    entity,
-                    id,
-                    dataTableClass: payload.dataTableClass ?? null,
-                });
-                if (result.success) {
-                    await modal.show(result.html, {
-                        onSubmit: async (formData) => {
-                            const submitResult = await submitEditForm({
-                                entity,
-                                id,
-                                formData,
-                                dataTableClass: payload.dataTableClass ?? null,
-                            });
-                            if (submitResult.success) {
-                                await modal.hide();
-                                this.table?.ajax?.reload(null, false);
-                            }
-                            else if (submitResult.html) {
-                                modal.replaceBody(submitResult.html);
-                            }
-                        },
-                    });
-                }
-            }
-        });
+        }
     }
     async executeAjaxAction(button, method, payload) {
         const url = button.getAttribute('data-ajax-url');
@@ -297,52 +362,63 @@ class default_1 extends Controller {
         });
     }
     bindBooleanToggleHandler(payload) {
-        this.element.addEventListener('change', async (e) => {
-            const target = e.target;
-            if (!(target instanceof HTMLInputElement) ||
-                !target.matches('.boolean-switch-action')) {
-                return;
-            }
-            const url = target.dataset.url;
-            const id = target.dataset.id;
-            const field = target.dataset.field;
-            const method = target.dataset.method ?? 'PATCH';
-            const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : '';
-            if (!id || !field) {
-                target.checked = !target.checked;
-                console.error('Missing ID or field for boolean switch update');
-                return;
-            }
-            if (!dataTable) {
-                target.checked = !target.checked;
-                console.error('Missing DataTable token for boolean toggle endpoint');
-                return;
-            }
-            const previousState = !target.checked;
-            target.disabled = true;
-            try {
-                const response = await toggleBooleanValue({
-                    url: url ?? this.getBooleanToggleUrl(),
-                    id,
-                    field,
-                    newValue: target.checked,
-                    method,
-                    dataTable,
-                    csrfToken: this.getCsrfToken(payload),
-                });
-                if (!response.ok) {
-                    target.checked = previousState;
-                    console.error(`Boolean switch update failed with status ${response.status}`);
-                }
-            }
-            catch (error) {
+        this.unbindBooleanToggleHandler();
+        this.booleanChangeHandler = (e) => {
+            void this.handleBooleanToggleChange(e, payload);
+        };
+        this.element.addEventListener('change', this.booleanChangeHandler);
+    }
+    unbindBooleanToggleHandler() {
+        if (!this.booleanChangeHandler) {
+            return;
+        }
+        this.element.removeEventListener('change', this.booleanChangeHandler);
+        this.booleanChangeHandler = null;
+    }
+    async handleBooleanToggleChange(e, payload) {
+        const target = e.target;
+        if (!(target instanceof HTMLInputElement) || !target.matches('.boolean-switch-action')) {
+            return;
+        }
+        const url = target.dataset.url;
+        const id = target.dataset.id;
+        const field = target.dataset.field;
+        const method = target.dataset.method ?? 'PATCH';
+        const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : '';
+        if (!id || !field) {
+            target.checked = !target.checked;
+            console.error('Missing ID or field for boolean switch update');
+            return;
+        }
+        if (!dataTable) {
+            target.checked = !target.checked;
+            console.error('Missing DataTable token for boolean toggle endpoint');
+            return;
+        }
+        const previousState = !target.checked;
+        target.disabled = true;
+        try {
+            const response = await toggleBooleanValue({
+                url: url ?? this.getBooleanToggleUrl(),
+                id,
+                field,
+                newValue: target.checked,
+                method,
+                dataTable,
+                csrfToken: this.getCsrfToken(payload),
+            });
+            if (!response.ok) {
                 target.checked = previousState;
-                console.error('Boolean switch update failed', error);
+                console.error(`Boolean switch update failed with status ${response.status}`);
             }
-            finally {
-                target.disabled = false;
-            }
-        });
+        }
+        catch (error) {
+            target.checked = previousState;
+            console.error('Boolean switch update failed', error);
+        }
+        finally {
+            target.disabled = false;
+        }
     }
     hasButtonsInLayout(payload) {
         const layout = payload?.layout;
