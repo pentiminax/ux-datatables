@@ -1,5 +1,4 @@
 import { Controller } from '@hotwired/stimulus'
-import type DataTable from 'datatables.net/types/types'
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
@@ -505,7 +504,7 @@ export default class extends Controller {
     }
 }
 
-type DataTableWithAjax = DataTable<any> & {
+type DataTableWithAjax = {
     ajax?: {
         reload: (callback?: null, resetPaging?: boolean) => void
     }
