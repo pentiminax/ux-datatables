@@ -1,5 +1,4 @@
 import { Controller } from '@hotwired/stimulus'
-import type DataTable from 'datatables.net'
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
@@ -65,7 +64,6 @@ export default class extends Controller {
     private eventSource: EventSource | null = null
     private framework: StyleFramework = 'dt'
     private popstateHandler: (() => void) | null = null
-    private connectId = 0
 
     async connect() {
         if (this.isDataTableInitialized) {
@@ -76,7 +74,6 @@ export default class extends Controller {
             throw new Error('Invalid element')
         }
 
-        const connectId = ++this.connectId
         const payload = this.viewValue
 
         this.dispatchEvent('pre-connect', {
@@ -87,16 +84,14 @@ export default class extends Controller {
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)
-        if (!this.isConnectCurrent(connectId)) {
-            return
-        }
-
         registerFilterFeature(DataTable)
 
-        await this.loadExtensions(payload, framework, DataTable)
-        if (!this.isConnectCurrent(connectId)) {
+        if (DataTable.isDataTable(this.element)) {
+            this.isDataTableInitialized = true
             return
         }
+
+        await this.loadExtensions(payload, framework, DataTable)
 
         if (this.isApiPlatformEnabled(payload)) {
             const columns = Array.isArray(payload.columns)
@@ -109,9 +104,6 @@ export default class extends Controller {
 
         if (hasLucideIcons(payload.columns)) {
             await loadLucideIcons()
-            if (!this.isConnectCurrent(connectId)) {
-                return
-            }
         }
 
         const urlStateCfg = isUrlStateEnabled(payload)
@@ -125,18 +117,6 @@ export default class extends Controller {
             applyFilterLayout(payload, filterBar)
         }
 
-        if (!this.isConnectCurrent(connectId)) {
-            return
-        }
-
-        if (DataTable.isDataTable(this.element)) {
-            this.destroyDataTable(DataTable)
-        }
-
-        if (!this.isConnectCurrent(connectId)) {
-            return
-        }
-
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
 
         this.dispatchEvent('connect', { table: this.table })
@@ -147,11 +127,7 @@ export default class extends Controller {
             window.addEventListener('popstate', this.popstateHandler)
         }
 
-        await this.initMercure(payload, connectId)
-        if (!this.isConnectCurrent(connectId)) {
-            return
-        }
-
+        await this.initMercure(payload)
         this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
 
@@ -159,41 +135,12 @@ export default class extends Controller {
     }
 
     disconnect() {
-        this.connectId++
-
-        this.destroyOwnTable()
-
         this.eventSource?.close()
         this.eventSource = null
 
         if (this.popstateHandler) {
             window.removeEventListener('popstate', this.popstateHandler)
             this.popstateHandler = null
-        }
-    }
-
-    private isConnectCurrent(connectId: number): boolean {
-        return connectId === this.connectId
-    }
-
-    private destroyOwnTable(): void {
-        if (this.table) {
-            this.table.destroy()
-            this.table = null
-        }
-
-        this.isDataTableInitialized = false
-    }
-
-    private destroyDataTable(DataTable: { Api?: new (element: Element) => { destroy: () => void } }): void {
-        if (this.table) {
-            this.destroyOwnTable()
-            return
-        }
-
-        // Leftover instance from a prior Turbo morph / aborted connect without this.table.
-        if (typeof DataTable.Api === 'function') {
-            new DataTable.Api(this.element).destroy()
         }
     }
 
@@ -258,8 +205,8 @@ export default class extends Controller {
             createBooleanColumnRenderer(
                 this.getBooleanToggleUrl(),
                 this.areMutationsEnabled(payload) &&
-                    typeof payload.dataTable === 'string' &&
-                    payload.dataTable.length > 0,
+                typeof payload.dataTable === 'string' &&
+                payload.dataTable.length > 0,
                 style
             ),
             createChoiceColumnRenderer(style),
@@ -287,27 +234,14 @@ export default class extends Controller {
         }
     }
 
-    private async initMercure(payload: Record<string, any>, connectId: number): Promise<void> {
-        if (!this.isMercureEnabled(payload)) {
-            return
+    private async initMercure(payload: Record<string, any>): Promise<void> {
+        if (this.isMercureEnabled(payload)) {
+            const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
+            this.eventSource = createMercureSubscription(payload.mercure, (event) => {
+                this.dispatchEvent('mercure:message', { data: event.data, event })
+                this.table?.ajax?.reload(null, false)
+            })
         }
-
-        const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
-        if (!this.isConnectCurrent(connectId)) {
-            return
-        }
-
-        const eventSource = createMercureSubscription(payload.mercure, (event) => {
-            this.dispatchEvent('mercure:message', { data: event.data, event })
-            this.table?.ajax?.reload(null, false)
-        })
-
-        if (!this.isConnectCurrent(connectId)) {
-            eventSource.close()
-            return
-        }
-
-        this.eventSource = eventSource
     }
 
     private bindActionHandler(payload: Record<string, any>): void {
@@ -570,11 +504,10 @@ export default class extends Controller {
     }
 }
 
-type DataTableWithAjax = DataTable & {
+type DataTableWithAjax = {
     ajax?: {
         reload: (callback?: null, resetPaging?: boolean) => void
     }
-    destroy: (remove?: boolean) => void
     on: (event: string, callback: (...args: any[]) => void) => DataTableWithAjax
     table?: () => { container: () => HTMLElement | null }
     search: (input: string) => DataTableWithAjax
