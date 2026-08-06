@@ -1,0 +1,45 @@
+---
+title: 'Recipe: MoneyColumn'
+description: Display currency amounts with cents storage and ISO 4217 codes
+---
+
+# Recipe: MoneyColumn
+
+## What / When
+
+Use `MoneyColumn` when cells are monetary amounts. Prefer it over `NumberColumn` plus custom JS.
+
+## Minimal Example
+
+```php
+use Pentiminax\UX\DataTables\Column\MoneyColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+public function configureColumns(): iterable
+{
+    yield TextColumn::new('name', 'Product');
+    yield MoneyColumn::new('price', 'Price')
+        ->currency('EUR')
+        ->storedAsCents();
+}
+
+protected function mapRow(mixed $item): array
+{
+    return [
+        'name'  => $item->getName(),
+        'price' => $item->getPriceInCents(), // e.g. 1999 → €19.99
+    ];
+}
+```
+
+## Pitfalls
+
+<Aside type="note">
+  Keep integers (or floats) in `mapRow()`. Display formatting runs in the browser so numeric sorting
+  stays correct.
+</Aside>
+
+## Related
+
+- [Money Column](/ux-datatables/columns/money-column/)
+- [Number Column](/ux-datatables/columns/number-column/)

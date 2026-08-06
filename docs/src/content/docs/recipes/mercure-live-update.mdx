@@ -1,0 +1,39 @@
+---
+title: 'Recipe: Mercure Live Updates'
+description: Auto-reload a server-side table when Mercure publishes an update
+---
+
+# Recipe: Mercure Live Updates
+
+## What / When
+
+Enable Mercure when another process (or another tab) can change the underlying data and the table
+should refresh without a full page reload.
+
+## Minimal Example
+
+```php
+use App\Entity\Book;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(Book::class, mercure: true)]
+final class BookDataTable extends AbstractDataTable
+{
+}
+```
+
+Requires `symfony/mercure-bundle` and a configured hub. On each Mercure message the Stimulus
+controller calls `table.ajax.reload(null, false)`.
+
+## Pitfalls
+
+<Aside type="caution">
+  Mercure refreshes the current page of a server-side table. It does not push individual cell
+  patches. Confirm your hub URL and topics in the browser network panel if reloads never fire.
+</Aside>
+
+## Related
+
+- [Mercure Integration](/ux-datatables/integrations/mercure/)
+- [Doctrine server-side recipe](../doctrine-server-side/)

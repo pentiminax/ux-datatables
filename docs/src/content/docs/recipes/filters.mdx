@@ -1,0 +1,45 @@
+---
+title: 'Recipe: Filters'
+description: Add a declarative filter popover to a Doctrine server-side table
+---
+
+# Recipe: Filters
+
+## What / When
+
+Add `configureFilters()` when users need structured filters (text, choice, date range) on a
+**server-side** Doctrine table.
+
+## Minimal Example
+
+```php
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
+use Pentiminax\UX\DataTables\Filter\TextFilter;
+use Pentiminax\UX\DataTables\Model\Filters;
+
+public function configureFilters(Filters $filters): Filters
+{
+    return $filters
+        ->add(TextFilter::new('email')->label('Email'))
+        ->add(
+            ChoiceFilter::new('status')
+                ->label('Status')
+                ->options([
+                    'Draft' => 'draft',
+                    'Published' => 'published',
+                ])
+        );
+}
+```
+
+## Pitfalls
+
+<Aside type="caution">
+  Filters have no effect on client-side `data()` tables in this version. Enable `serverSide()` first.
+</Aside>
+
+## Related
+
+- [Filters reference](/ux-datatables/reference/filters/)
+- [Guide: Filters](/ux-datatables/guide/filters/)

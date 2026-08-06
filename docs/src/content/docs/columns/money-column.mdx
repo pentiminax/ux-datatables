@@ -1,0 +1,86 @@
+---
+title: Money Column
+description: Format currency amounts with ISO 4217 codes, cents storage, and locale-aware display
+---
+
+# Money Column
+
+`MoneyColumn` formats numeric amounts as money on the client. It uses the DataTables `num` type so
+sorting stays numeric while display uses `Intl.NumberFormat`.
+
+Defaults: currency `EUR`, values stored as cents, 2 decimal places, currency sign shown.
+
+## Basic Usage
+
+```php
+use Pentiminax\UX\DataTables\Column\MoneyColumn;
+
+MoneyColumn::new('price', 'Price');
+```
+
+## Currency And Storage
+
+```php
+MoneyColumn::new('total', 'Total')
+    ->currency('USD')
+    ->storedAsCents(true)
+    ->decimals(2);
+
+MoneyColumn::new('rate', 'Rate')
+    ->currency('EUR')
+    ->storedAsCents(false)
+    ->showCurrencySign(false);
+```
+
+Pass an ISO 4217 code to `currency()` (three letters). When `storedAsCents(true)` (the default),
+`12345` displays as `€123.45`. When `false`, the raw number is formatted as-is.
+
+## API Reference
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ["`MoneyColumn::new(string $name, string $title = '')`", 'Creates a MoneyColumn (type: `num`, `isMoney: true`)'],
+    ['`currency(string $currency)`', 'ISO 4217 currency code (default: `EUR`)'],
+    ['`storedAsCents(bool $storedAsCents = true)`', 'Divide by 100 before display when `true` (default)'],
+    ['`decimals(int $decimals)`', 'Fraction digits for display (0–20, default: `2`)'],
+    ['`showCurrencySign(bool $show = true)`', 'Use currency style vs plain decimal formatting'],
+  ]}
+/>
+
+## Complete Example
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\MoneyColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(Product::class)]
+final class ProductsDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('name', 'Product');
+        yield MoneyColumn::new('price', 'Price')->currency('EUR');
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        return [
+            'name'  => $item->getName(),
+            'price' => $item->getPriceInCents(),
+        ];
+    }
+}
+```
+
+## Related
+
+- [Number Column](../number-column/) — plain integers and floats without currency formatting
+- [Columns Overview](../overview/)
+
+<Aside type="note">
+  Keep raw integers (or floats) in `mapRow()`. Formatting happens in the browser so sorting and
+  filtering stay numeric.
+</Aside>

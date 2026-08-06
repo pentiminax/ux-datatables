@@ -7,6 +7,16 @@ description: Learn about UX DataTables and its features
 
 **UX DataTables** is a Symfony bundle that integrates the powerful [DataTables](https://datatables.net) JavaScript library into your Symfony applications with a clean PHP API.
 
+## Who Is This For?
+
+Use this bundle when you need interactive HTML tables in a **Symfony 7/8** app and want:
+
+- PHP-first column and option configuration (not hand-written DataTables JS)
+- Doctrine server-side processing without reinventing Ajax contracts
+- Optional Symfony UX Stimulus wiring, extensions, Mercure, and API Platform
+
+If you only need a static HTML table, stick with Twig. If your frontend is a SPA that already owns DataTables, you may not need the Twig/Stimulus layer.
+
 ## What is DataTables?
 
 DataTables is a highly flexible tool for creating interactive HTML tables with features like:
@@ -96,4 +106,6 @@ final class UsersDataTable extends AbstractDataTable
 └─────────────────────────────────────────────────────┘
 ```
 
-<Aside type="tip">Ready to get started? Head to the [Installation](../installation/) guide.</Aside>
+<Aside type="tip">
+  Ready to get started? [Install](../installation/), then follow the [Quick Start](../quick-start/).
+</Aside>

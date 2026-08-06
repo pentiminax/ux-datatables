@@ -1,0 +1,61 @@
+---
+title: 'Recipe: Client-side Inline Data'
+description: Build a small DataTable with rows embedded in the page
+---
+
+# Recipe: Client-side Inline Data
+
+## What / When
+
+Use inline `data()` when the full dataset is small and already available in the controller.
+DataTables handles search, sort, and paging in the browser.
+
+## Minimal Example
+
+```php
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\DataTableBuilderInterface;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+
+final class ProductController extends AbstractController
+{
+    #[Route('/products', name: 'products')]
+    public function index(DataTableBuilderInterface $builder): Response
+    {
+        $table = $builder
+            ->createDataTable('products')
+            ->columns([
+                NumberColumn::new('id', 'ID'),
+                TextColumn::new('name', 'Name'),
+            ])
+            ->data([
+                ['id' => 1, 'name' => 'Keyboard'],
+                ['id' => 2, 'name' => 'Mouse'],
+            ])
+            ->pageLength(10);
+
+        return $this->render('product/index.html.twig', [
+            'table' => $table,
+        ]);
+    }
+}
+```
+
+```twig
+{{ render_datatable(table) }}
+```
+
+## Pitfalls
+
+<Aside type="caution">
+  Do not use inline data for large Doctrine collections. Switch to
+  [Doctrine server-side](../doctrine-server-side/) once paging must hit the database.
+</Aside>
+
+## Related
+
+- [Client-side Processing](/ux-datatables/guide/client-side-processing/)
+- [Quick Start](/ux-datatables/getting-started/quick-start/)

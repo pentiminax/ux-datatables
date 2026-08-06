@@ -5,11 +5,11 @@ description: How to install and configure UX DataTables
 
 # Installation
 
-<Aside type="note">
-  Before you start, make sure [Symfony UX
-  StimulusBundle](https://symfony.com/bundles/StimulusBundle/current/index.html) is configured in
-  your application.
-</Aside>
+## Requirements
+
+- PHP **8.3+**
+- Symfony **7.x** or **8.x**
+- [Symfony UX StimulusBundle](https://symfony.com/bundles/StimulusBundle/current/index.html) **2.x** or **3.x**
 
 ## Install the Bundle
 
@@ -26,7 +26,7 @@ description: How to install and configure UX DataTables
 
     <Tabs>
       <TabItem label="AssetMapper">
-        If you're using **AssetMapper** (recommended for Symfony 6.4+), no extra work is needed. The bundle ships DataTables assets automatically.
+        If you're using **AssetMapper** (recommended for Symfony 7+), no extra work is needed. The bundle ships DataTables assets automatically.
       </TabItem>
       <TabItem label="Webpack Encore">
         If you're using **Webpack Encore**, install the JavaScript dependencies and rebuild your assets:
@@ -103,7 +103,7 @@ The bundle ships with the DataTables default theme enabled. Check your `assets/c
 
 The bundle supports 7 CSS frameworks (Bootstrap 5, Bootstrap 4, Bulma, Foundation, and more). The Stimulus controller automatically detects which stylesheet is loaded and applies the matching integration.
 
-See [Styling](../styling/) for the full setup guide.
+See [Styling](../../guide/styling/) for the full setup guide.
 
 ## Optional Dependencies
 

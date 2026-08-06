@@ -26,7 +26,7 @@ new DataTable(
   headers={['Method', 'Description']}
   rows={[
     ['`add(ColumnInterface $column)`', 'Add a single column'],
-    ['`columns(array|ColumnInterface $columns)`', 'Set multiple columns'],
+    ['`columns(array $columns)`', 'Replace the column list with the given array'],
     ['`getColumns(): ColumnInterface[]`', 'Return configured column objects keyed by name'],
     ['`getColumnDefinitions(): array`', 'Return the serialized DataTables column definitions'],
     ['`getColumnByName(string $name): ?ColumnInterface`', 'Find a column by its name'],
@@ -43,13 +43,18 @@ new DataTable(
       'Configure Ajax endpoint and request mode',
     ],
     [
-      "`ajaxRequestData(string $url, array $data, string $type = 'POST')`",
+      "`ajaxRequestData(string $url, array $data, string $type = 'GET')`",
       'Configure Ajax endpoint with extra request data sent on every call',
     ],
+    ['`mergeAjaxData(array $data)`', 'Merge additional key/value pairs into Ajax request data'],
     ['`data(array $data)`', 'Provide inline client-side data'],
     [
       '`forwardQueryParameters(array $parameters)`',
       'Capture the named page query parameters at render time and forward them on every Ajax call',
+    ],
+    [
+      "`urlState(array $keys = [], string $prefix = '')`",
+      'Sync selected DataTables state keys to the page URL query string',
     ],
     ['`serverSide(bool $serverSide = true)`', 'Enable server-side processing mode'],
     ['`apiPlatform(bool $enabled = true)`', 'Enable API Platform adapter behavior'],
@@ -91,9 +96,20 @@ new DataTable(
       '`layout(array $layout)`',
       'Position DataTables UI blocks',
     ],
+    ['`caption(string $caption)`', 'Set the table caption text'],
     ['`displayStart(int $displayStart)`', 'Set initial row offset'],
     ['`lengthMenu(array $lengthMenu)`', 'Configure available page sizes'],
     ['`pageLength(int $pageLength)`', 'Set default page size'],
+  ]}
+/>
+
+### Edit Modal
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`editModalTemplate(string $template)`', 'Twig template used for the inline edit modal'],
+    ['`editModalAdapter(string $adapter)`', 'Modal adapter name (`bootstrap`, `custom`, …)'],
   ]}
 />
 

@@ -1,0 +1,47 @@
+---
+title: Filters
+description: When and how to add declarative filters to a server-side DataTable
+---
+
+# Filters
+
+## What / When
+
+Filters add a popover next to the search box. Use them on **Doctrine server-side** tables when users
+need structured criteria (status, date range, free text) beyond global search.
+
+They do not apply to client-side inline datasets in this version.
+
+## Minimal Example
+
+Declare filters on your `AbstractDataTable`:
+
+```php
+use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
+use Pentiminax\UX\DataTables\Filter\TextFilter;
+use Pentiminax\UX\DataTables\Model\Filters;
+
+public function configureFilters(Filters $filters): Filters
+{
+    return $filters
+        ->add(TextFilter::new('email')->label('Email'))
+        ->add(
+            ChoiceFilter::new('status')
+                ->label('Status')
+                ->options(['Draft' => 'draft', 'Published' => 'published'])
+        );
+}
+```
+
+## Pitfalls
+
+<Aside type="caution">
+  Enable `serverSide()` first. Filters send criteria over Ajax and apply Doctrine conditions in the
+  query pipeline.
+</Aside>
+
+## Related
+
+- Full API: [Filters reference](/ux-datatables/reference/filters/)
+- Recipe: [Filters](/ux-datatables/recipes/filters/)
+- [Server-Side Processing](/ux-datatables/guide/server-side-processing/)

@@ -221,3 +221,21 @@ Keep both layers in place:
 
 A firewall rule alone would let any authenticated admin-area user delete *any* row reachable through
 the table; the voter is what scopes that down to the rows they're actually allowed to touch.
+
+## HTML Escaping Checklist
+
+Twig auto-escaping stays enabled for bundle templates. Treat HTML cell content as a security boundary:
+
+- Prefer typed columns (`TextColumn`, `MoneyColumn`, …) that render escaped scalars.
+- Use `TemplateColumn` only with templates you control. Escape untrusted entity fields inside the
+  Twig template (`{{ value }}`, never `{{ value|raw }}` unless the value is already sanitized).
+- Do not put user-controlled HTML into `defaultContent` or action labels without escaping.
+- Custom JS `render` callbacks must escape when inserting into the DOM.
+
+## Production Checklist
+
+1. `access_control` covers `^/datatables/ajax` with the same roles as the pages that render tables.
+2. Session-backed pages for delete / boolean toggle / edit modal (CSRF).
+3. Voters for `EDIT` and `DELETE` on every mutable entity.
+4. Template/HTML columns reviewed for escaping (see above).
+5. Unauthenticated probe of `/datatables/ajax/data` returns `401`/`403`, not table JSON.

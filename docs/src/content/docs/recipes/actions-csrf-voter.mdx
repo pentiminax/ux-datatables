@@ -1,0 +1,51 @@
+---
+title: 'Recipe: Actions with CSRF and Voter'
+description: Secure edit and delete row actions with session CSRF and entity voters
+---
+
+# Recipe: Actions with CSRF and Voter
+
+## What / When
+
+Use built-in `Action::edit()` / `Action::delete()` when mutations go through the bundle Ajax
+endpoints and must respect Symfony Security.
+
+## Minimal Example
+
+```php
+use Pentiminax\UX\DataTables\Enum\Icon;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
+
+public function configureActions(Actions $actions): Actions
+{
+    return $actions
+        ->add(
+            Action::edit('Edit')
+                ->icon(Icon::Pencil)
+        )
+        ->add(
+            Action::delete('Delete')
+                ->icon(Icon::Trash2)
+                ->askConfirmation('Delete this row?')
+        );
+}
+```
+
+Then:
+
+1. Import bundle routes.
+2. Add `access_control` for `^/datatables/ajax`.
+3. Register a voter supporting `EDIT` and `DELETE` for your entity.
+
+## Pitfalls
+
+<Aside type="danger">
+  Without a voter for `EDIT`/`DELETE`, Symfony denies every mutation once a firewall is present.
+  Session-backed pages are required for CSRF; otherwise `mutationsEnabled` is `false`.
+</Aside>
+
+## Related
+
+- [Securing Ajax Routes](/ux-datatables/getting-started/security/)
+- [Action Column](/ux-datatables/columns/action-column/)
