@@ -10,14 +10,6 @@ For a complete API inventory, see [/ux-datatables/reference/datatable/](/ux-data
 
 ## Basic Configuration
 
-<Aside type="note" title="DataTables 3 compatibility">
-  UX DataTables targets DataTables.net core 3. Most PHP option helpers still map directly to
-  DataTables options, but custom JavaScript should follow DataTables 3 semantics: callbacks no longer
-  receive a jQuery object as `this`, selector arguments should be native selectors, `columns().search()`
-  uses the DataTables 3 search behavior, and removed cache APIs are unavailable. The legacy `dom`,
-  `pagingType`, and `orderCellsTop` options are still retained for compatibility.
-</Aside>
-
 ### autoWidth
 
 Controls DataTables' smart column width calculation:
@@ -251,8 +243,6 @@ Enable horizontal scrolling:
 ```php
 $dataTable->scrollX(true);
 ```
-
-DataTables 3 removed `scrollXInner`. Use `scrollX(true)` with CSS width constraints instead.
 
 ### scrollY
 
