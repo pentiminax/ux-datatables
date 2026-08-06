@@ -7,7 +7,7 @@ function maskEmail(email: string): string {
         return email
     }
 
-    return email[0] + '***' + email.slice(atIndex)
+    return `${email[0]}***${email.slice(atIndex)}`
 }
 
 function obfuscateMailto(email: string): string {
