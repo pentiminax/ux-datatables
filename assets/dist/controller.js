@@ -42,7 +42,6 @@ class default_1 extends Controller {
         this.eventSource = null;
         this.framework = 'dt';
         this.popstateHandler = null;
-        this.connectId = 0;
     }
     async connect() {
         if (this.isDataTableInitialized) {
@@ -51,7 +50,6 @@ class default_1 extends Controller {
         if (!(this.element instanceof HTMLTableElement)) {
             throw new Error('Invalid element');
         }
-        const connectId = ++this.connectId;
         const payload = this.viewValue;
         this.dispatchEvent('pre-connect', {
             config: payload,
@@ -59,14 +57,12 @@ class default_1 extends Controller {
         const framework = detectStyleFramework();
         this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
-        if (!this.isConnectCurrent(connectId)) {
-            return;
-        }
         registerFilterFeature(DataTable);
-        await this.loadExtensions(payload, framework, DataTable);
-        if (!this.isConnectCurrent(connectId)) {
+        if (DataTable.isDataTable(this.element)) {
+            this.isDataTableInitialized = true;
             return;
         }
+        await this.loadExtensions(payload, framework, DataTable);
         if (this.isApiPlatformEnabled(payload)) {
             const columns = Array.isArray(payload.columns)
                 ? payload.columns
@@ -76,9 +72,6 @@ class default_1 extends Controller {
         this.configureColumns(payload);
         if (hasLucideIcons(payload.columns)) {
             await loadLucideIcons();
-            if (!this.isConnectCurrent(connectId)) {
-                return;
-            }
         }
         const urlStateCfg = isUrlStateEnabled(payload);
         if (urlStateCfg) {
@@ -89,15 +82,6 @@ class default_1 extends Controller {
             filterBar.attachToPayload(payload);
             applyFilterLayout(payload, filterBar);
         }
-        if (!this.isConnectCurrent(connectId)) {
-            return;
-        }
-        if (DataTable.isDataTable(this.element)) {
-            this.destroyDataTable(DataTable);
-        }
-        if (!this.isConnectCurrent(connectId)) {
-            return;
-        }
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
         if (urlStateCfg && this.table) {
@@ -105,41 +89,17 @@ class default_1 extends Controller {
             this.popstateHandler = () => this.applyUrlStateToTable(urlStateCfg);
             window.addEventListener('popstate', this.popstateHandler);
         }
-        await this.initMercure(payload, connectId);
-        if (!this.isConnectCurrent(connectId)) {
-            return;
-        }
+        await this.initMercure(payload);
         this.bindActionHandler(payload);
         this.bindBooleanToggleHandler(payload);
         this.isDataTableInitialized = true;
     }
     disconnect() {
-        this.connectId++;
-        this.destroyOwnTable();
         this.eventSource?.close();
         this.eventSource = null;
         if (this.popstateHandler) {
             window.removeEventListener('popstate', this.popstateHandler);
             this.popstateHandler = null;
-        }
-    }
-    isConnectCurrent(connectId) {
-        return connectId === this.connectId;
-    }
-    destroyOwnTable() {
-        if (this.table) {
-            this.table.destroy();
-            this.table = null;
-        }
-        this.isDataTableInitialized = false;
-    }
-    destroyDataTable(DataTable) {
-        if (this.table) {
-            this.destroyOwnTable();
-            return;
-        }
-        if (typeof DataTable.Api === 'function') {
-            new DataTable.Api(this.element).destroy();
         }
     }
     applyUrlStateToTable(cfg) {
@@ -216,23 +176,14 @@ class default_1 extends Controller {
             }));
         }
     }
-    async initMercure(payload, connectId) {
-        if (!this.isMercureEnabled(payload)) {
-            return;
+    async initMercure(payload) {
+        if (this.isMercureEnabled(payload)) {
+            const { createMercureSubscription } = await import('./functions/mercureSubscription.js');
+            this.eventSource = createMercureSubscription(payload.mercure, (event) => {
+                this.dispatchEvent('mercure:message', { data: event.data, event });
+                this.table?.ajax?.reload(null, false);
+            });
         }
-        const { createMercureSubscription } = await import('./functions/mercureSubscription.js');
-        if (!this.isConnectCurrent(connectId)) {
-            return;
-        }
-        const eventSource = createMercureSubscription(payload.mercure, (event) => {
-            this.dispatchEvent('mercure:message', { data: event.data, event });
-            this.table?.ajax?.reload(null, false);
-        });
-        if (!this.isConnectCurrent(connectId)) {
-            eventSource.close();
-            return;
-        }
-        this.eventSource = eventSource;
     }
     bindActionHandler(payload) {
         ;
