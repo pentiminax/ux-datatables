@@ -25,7 +25,6 @@ enum Language: string
     case DE_DE   = 'de_DE';
     case EL      = 'el';
     case EN      = 'en-GB';
-    case EN_GB   = 'en_GB';
     case EO      = 'eo';
     case ES      = 'es-ES';
     case ES_AR   = 'es_AR';
