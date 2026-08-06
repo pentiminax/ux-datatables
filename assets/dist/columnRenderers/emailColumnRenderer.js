@@ -4,7 +4,7 @@ function maskEmail(email) {
     if (atIndex <= 0) {
         return email;
     }
-    return email[0] + '***' + email.slice(atIndex);
+    return `${email[0]}***${email.slice(atIndex)}`;
 }
 function obfuscateMailto(email) {
     return email.replace(/@/g, '&#64;').replace(/\./g, '&#46;');

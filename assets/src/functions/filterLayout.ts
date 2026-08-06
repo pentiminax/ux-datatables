@@ -45,7 +45,8 @@ function replaceMarker(layout: Record<string, unknown>, entry: FilterLayoutEntry
  */
 export function applyFilterLayout(payload: Record<string, any>, instance: FilterBar): void {
     const entry: FilterLayoutEntry = { filters: { instance } }
-    const layout = (payload.layout ??= {}) as Record<string, unknown>
+    payload.layout ??= {}
+    const layout = payload.layout as Record<string, unknown>
 
     if (replaceMarker(layout, entry)) {
         return
