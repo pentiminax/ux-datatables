@@ -39,7 +39,6 @@ enum Language: string
     case FI      = 'fi';
     case FIL     = 'fil';
     case FR      = 'fr-FR';
-    case FR_FR   = 'fr_FR';
     case GA      = 'ga';
     case GANDA   = 'Ganda';
     case GL      = 'gl';
