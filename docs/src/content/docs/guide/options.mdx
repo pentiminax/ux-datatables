@@ -321,10 +321,10 @@ Set the UI language:
 ```php
 use Pentiminax\UX\DataTables\Enum\Language;
 
-$dataTable->language(Language::FR);    // French
-$dataTable->language(Language::DE);    // German
-$dataTable->language(Language::ES);    // Spanish
-$dataTable->language(Language::EN_GB); // British English
+$dataTable->language(Language::FR); // French
+$dataTable->language(Language::DE); // German
+$dataTable->language(Language::ES); // Spanish
+$dataTable->language(Language::EN); // British English
 ```
 
 ## Layout
@@ -370,7 +370,7 @@ $dataTable = new DataTable('products');
 $dataTable
     ->autoWidth()
     ->caption('Product Catalog')
-    ->language(Language::EN_GB)
+    ->language(Language::EN)
     ->ordering(handler: true, indicators: true)
     ->paging(buttons: 5, firstLast: true)
     ->searching()

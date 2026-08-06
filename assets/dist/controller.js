@@ -19,6 +19,7 @@ import { registerFilterFeature } from './functions/filterFeature.js';
 import { applyFilterLayout } from './functions/filterLayout.js';
 import { FilterBar, hasFilters } from './functions/filters.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
+import { applyLocalLanguage } from './functions/localLanguage.js';
 import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js';
 import { runAjaxAction } from './functions/runAjaxAction.js';
 import { submitEditForm } from './functions/submitEditForm.js';
@@ -80,6 +81,7 @@ class default_1 extends Controller {
             filterBar.attachToPayload(payload);
             applyFilterLayout(payload, filterBar);
         }
+        await applyLocalLanguage(payload);
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
         if (urlStateCfg && this.table) {
