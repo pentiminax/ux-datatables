@@ -23,7 +23,6 @@ const docsPages = (await getCollection('docs'))
 <html lang="en">
   <head>
     <script is:inline>
-      // Set theme before paint to avoid flash of wrong theme.
       ;(() => {
         const stored = localStorage.getItem('theme')
         const dark = stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
@@ -45,6 +44,7 @@ const docsPages = (await getCollection('docs'))
       href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
       rel="stylesheet"
     />
+    <link href="/ux-datatables/pagefind/pagefind-ui.css" rel="stylesheet" />
   </head>
   <body
     class="flex min-h-screen flex-col bg-white font-['Inter',system-ui,sans-serif] text-slate-900 dark:bg-[#0a1628] dark:text-white"
@@ -53,8 +53,26 @@ const docsPages = (await getCollection('docs'))
       class="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-800 dark:bg-[#0a1628]/80"
     >
       <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="flex h-16 items-center justify-between">
-          <div class="flex items-center gap-4">
+        <div class="flex h-16 items-center justify-between gap-3">
+          <div class="flex min-w-0 items-center gap-3">
+            <button
+              type="button"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-slate-100 text-slate-600 lg:hidden dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300"
+              data-mobile-nav-open
+              aria-label="Open documentation menu"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                class="h-5 w-5"
+                aria-hidden="true"
+              >
+                <path d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+            </button>
             <a href="/ux-datatables/" class="flex items-center gap-2">
               <span
                 class="bg-gradient-to-r from-sky-400 to-blue-500 bg-clip-text text-xl font-bold text-transparent"
@@ -62,44 +80,47 @@ const docsPages = (await getCollection('docs'))
               >
             </a>
             <div class="hidden md:block">
-              <div class="ml-10 flex items-baseline space-x-4">
+              <div class="ml-6 flex items-baseline space-x-1">
                 <a
-                  href="/ux-datatables/getting-started/introduction/"
+                  href="/ux-datatables/getting-started/quick-start/"
                   class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
-                  >Documentation</a
+                  >Docs</a
                 >
                 <a
                   href="/ux-datatables/getting-started/installation/"
                   class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
-                  >Installation</a
+                  >Install</a
                 >
                 <a
-                  href="/ux-datatables/guide/configuration/"
+                  href="/ux-datatables/recipes/"
                   class="rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
-                  >Configuration</a
+                  >Recipes</a
                 >
               </div>
             </div>
           </div>
-          <div class="hidden items-center gap-3 md:flex">
-            <div class="relative w-full max-w-sm" data-doc-search>
-              <input
-                type="search"
-                aria-label="Search documentation"
-                class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 pr-16 text-sm text-slate-900 placeholder:text-slate-500 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 focus:outline-none dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:placeholder:text-slate-400"
-                placeholder="Search docs..."
-                data-doc-search-input
-                autocomplete="off"
-              />
-              <span
-                class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded border border-slate-300 px-1.5 py-0.5 text-[11px] text-slate-500 dark:border-slate-600 dark:text-slate-300"
-                data-doc-search-shortcut>Ctrl+K</span
-              >
-              <div
-                class="absolute top-[calc(100%+0.5rem)] left-0 hidden w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
-                data-doc-search-results
-              >
-                <ul class="max-h-80 overflow-y-auto py-1" data-doc-search-results-list></ul>
+          <div class="flex items-center gap-2 sm:gap-3">
+            <div class="relative hidden w-full max-w-xs md:block" data-doc-search>
+              <div id="pagefind-search" class="pagefind-ui-host min-w-[14rem]"></div>
+              <div class="fallback-search">
+                <input
+                  type="search"
+                  aria-label="Search documentation"
+                  class="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 pr-14 text-sm text-slate-900 placeholder:text-slate-500 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/40 focus:outline-none dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-100 dark:placeholder:text-slate-400"
+                  placeholder="Search docs..."
+                  data-doc-search-input
+                  autocomplete="off"
+                />
+                <span
+                  class="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded border border-slate-300 px-1.5 py-0.5 text-[11px] text-slate-500 dark:border-slate-600 dark:text-slate-300"
+                  data-doc-search-shortcut>Ctrl+K</span
+                >
+                <div
+                  class="absolute top-[calc(100%+0.5rem)] left-0 hidden w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-900"
+                  data-doc-search-results
+                >
+                  <ul class="max-h-80 overflow-y-auto py-1" data-doc-search-results-list></ul>
+                </div>
               </div>
             </div>
             <button
@@ -114,8 +135,6 @@ const docsPages = (await getCollection('docs'))
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
                 class="hidden h-5 w-5 dark:block"
                 aria-hidden="true"
               >
@@ -130,8 +149,6 @@ const docsPages = (await getCollection('docs'))
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
                 class="h-5 w-5 dark:hidden"
                 aria-hidden="true"
               >
@@ -145,12 +162,7 @@ const docsPages = (await getCollection('docs'))
               class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-slate-100 text-slate-600 transition-colors hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:text-white"
               aria-label="GitHub repository"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                class="h-5 w-5"
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5">
                 <path
                   d="M12 1.5C6.2 1.5 1.5 6.2 1.5 12c0 4.6 3 8.4 7.1 9.8.5.1.7-.2.7-.5v-1.9c-2.9.6-3.5-1.2-3.5-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1.1 2.8.8.1-.6.4-1.1.7-1.3-2.3-.3-4.8-1.2-4.8-5.1 0-1.1.4-2 1-2.8-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c2-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.8 1 1.7 1 2.8 0 3.9-2.5 4.8-4.8 5.1.4.4.8 1 .8 2v2.9c0 .3.2.6.7.5A10.5 10.5 0 0 0 22.5 12c0-5.8-4.7-10.5-10.5-10.5Z"
                 ></path>
@@ -167,10 +179,43 @@ const docsPages = (await getCollection('docs'))
 
     <Footer />
 
+    <script is:inline src="/ux-datatables/pagefind/pagefind-ui.js"></script>
     <script is:inline define:vars={{ docsPages }}>
       ;(() => {
+        const openButtons = document.querySelectorAll('[data-mobile-nav-open]')
+        const closeButtons = document.querySelectorAll('[data-mobile-nav-close]')
+        const setOpen = (open) => {
+          document.documentElement.toggleAttribute('data-mobile-nav-open', open)
+          const drawer = document.getElementById('docs-mobile-nav')
+          if (drawer) drawer.setAttribute('aria-hidden', open ? 'false' : 'true')
+        }
+        openButtons.forEach((button) => button.addEventListener('click', () => setOpen(true)))
+        closeButtons.forEach((button) => button.addEventListener('click', () => setOpen(false)))
+
+        const host = document.getElementById('pagefind-search')
+        const fallback = document.querySelector('.fallback-search')
+        let pagefindReady = false
+
+        if (host && typeof window.PagefindUI === 'function') {
+          try {
+            new window.PagefindUI({
+              element: '#pagefind-search',
+              showImages: false,
+              baseUrl: '/ux-datatables/',
+              bundlePath: '/ux-datatables/pagefind/',
+            })
+            pagefindReady = host.childElementCount > 0
+          } catch {
+            pagefindReady = false
+          }
+        }
+
+        if (pagefindReady && fallback) {
+          fallback.classList.add('hidden')
+        }
+
         const search = document.querySelector('[data-doc-search]')
-        if (!search) return
+        if (!search || pagefindReady) return
 
         const input = search.querySelector('[data-doc-search-input]')
         const shortcut = search.querySelector('[data-doc-search-shortcut]')
@@ -227,6 +272,7 @@ const docsPages = (await getCollection('docs'))
           }
           if (event.key === 'Escape') {
             resultsContainer.classList.add('hidden')
+            setOpen(false)
           }
         })
 
@@ -265,12 +311,10 @@ const docsPages = (await getCollection('docs'))
     );
   }
 
-  /* Smooth scroll */
   html {
     scroll-behavior: smooth;
   }
 
-  /* Custom Scrollbar */
   ::-webkit-scrollbar {
     width: 10px;
   }
@@ -294,7 +338,6 @@ const docsPages = (await getCollection('docs'))
     background: #334155;
   }
 
-  /* Typography */
   h1,
   h2,
   h3,
@@ -302,5 +345,17 @@ const docsPages = (await getCollection('docs'))
   h5,
   h6 {
     @apply font-bold tracking-tight text-slate-900 dark:text-white;
+  }
+
+  button[data-mobile-nav-open] {
+    display: none;
+  }
+  body:has(#docs-mobile-nav) button[data-mobile-nav-open] {
+    display: inline-flex;
+  }
+  @media (min-width: 1024px) {
+    body:has(#docs-mobile-nav) button[data-mobile-nav-open] {
+      display: none;
+    }
   }
 </style>

@@ -28,6 +28,16 @@ This page helps you choose the right building blocks before you start coding.
       '/ux-datatables/guide/server-side-processing/',
     ],
     [
+      'Declarative filters',
+      'Filter popover with Doctrine conditions',
+      '/ux-datatables/guide/filters/',
+    ],
+    [
+      'Row actions & detail rows',
+      'Edit, delete, custom Ajax actions, collapsible detail templates',
+      '/ux-datatables/columns/action-column/',
+    ],
+    [
       'DataTables extensions',
       'Export, selection, responsiveness, scrolling, etc.',
       '/ux-datatables/extensions/',
@@ -38,9 +48,19 @@ This page helps you choose the right building blocks before you start coding.
       '/ux-datatables/integrations/api-platform/',
     ],
     [
+      'Mercure live updates',
+      'SSE-driven Ajax reload when data changes',
+      '/ux-datatables/integrations/mercure/',
+    ],
+    [
       'Inline editing',
-      'Edit rows via a Bootstrap 5 modal with auto-generated Symfony Forms',
-      '/ux-datatables/columns/action-column/#inline-edit-modal',
+      'Edit rows via a modal with auto-generated Symfony Forms',
+      '/ux-datatables/reference/edit-modal/',
+    ],
+    [
+      'Ajax security',
+      'Route protection, CSRF mutations, entity voters',
+      '/ux-datatables/getting-started/security/',
     ],
     [
       'Reusable table classes',
@@ -60,9 +80,10 @@ This page helps you choose the right building blocks before you start coding.
 1. Build a `DataTable` config or an `AbstractDataTable` class.
 2. Define columns and options.
 3. Pick a processing strategy: inline rows, Ajax-powered client-side, or server-side.
-4. Add extensions only when needed.
-5. Integrate API Platform when your backend is Hydra based.
+4. Add filters, actions, and extensions only when needed.
+5. Protect Ajax routes before production.
 
 ## Next Step
 
-Use [/ux-datatables/features/when-to-use-what/](/ux-datatables/features/when-to-use-what/) to pick a concrete setup by scenario.
+Use [/ux-datatables/features/when-to-use-what/](/ux-datatables/features/when-to-use-what/) or jump to
+[/ux-datatables/recipes/](/ux-datatables/recipes/) for copy-paste setups.

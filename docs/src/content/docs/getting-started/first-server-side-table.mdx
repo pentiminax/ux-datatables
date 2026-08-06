@@ -1,0 +1,84 @@
+---
+title: First Server-Side Table
+description: Build your first Doctrine-backed AbstractDataTable with automatic Ajax wiring
+---
+
+# First Server-Side Table
+
+After [Quick Start](../quick-start/), most Symfony apps need a Doctrine-backed table with paging and
+search on the server. This page is the shortest path.
+
+## What You Need
+
+1. Bundle installed and routes imported
+2. An entity (for example `User`)
+3. `#[AsDataTable]` + `AbstractDataTable`
+
+## Steps
+
+<Steps>
+**Create the DataTable class**
+
+```php
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+#[AsDataTable(User::class)]
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('email', 'Email');
+    }
+
+    protected function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->serverSide()->processing();
+    }
+
+    protected function mapRow(mixed $item): array
+    {
+        /** @var User $item */
+        return [
+            'id'    => $item->getId(),
+            'email' => $item->getEmail(),
+        ];
+    }
+}
+```
+
+**Render it**
+
+```php
+use Symfony\Component\Routing\Attribute\Route;
+
+#[Route('/users', name: 'users')]
+public function index(UsersDataTable $table): Response
+{
+    return $this->render('user/index.html.twig', [
+        'table' => $table,
+    ]);
+}
+```
+
+```twig
+{{ render_datatable(table) }}
+```
+
+**Secure Ajax**
+
+Protect `^/datatables/ajax` before production. Continue to
+[Securing Ajax Routes](../security/).
+
+</Steps>
+
+## Next Steps
+
+- [Filters](../../guide/filters/) on the same table
+- [Actions with CSRF and voter](../../recipes/actions-csrf-voter/)
+- Full details in [Server-Side Processing](../../guide/server-side-processing/)

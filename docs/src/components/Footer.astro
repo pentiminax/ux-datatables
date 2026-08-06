@@ -12,7 +12,10 @@ import { docsFooterSections } from '../config/navigation'
             <ul class="space-y-3">
               {section.items.map((item) => (
                 <li>
-                  <a href={item.href} class="text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400">
+                  <a
+                    href={item.href}
+                    class="text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+                  >
                     {item.label}
                   </a>
                 </li>
@@ -28,21 +31,27 @@ import { docsFooterSections } from '../config/navigation'
             <a
               href="https://github.com/pentiminax/ux-datatables"
               target="_blank"
-              class="text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400">GitHub</a
+              rel="noopener noreferrer"
+              class="text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+              >GitHub</a
             >
           </li>
           <li>
             <a
               href="https://github.com/pentiminax/ux-datatables/issues"
               target="_blank"
-              class="text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400">Issues</a
+              rel="noopener noreferrer"
+              class="text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+              >Issues</a
             >
           </li>
           <li>
             <a
               href="https://packagist.org/packages/pentiminax/ux-datatables"
               target="_blank"
-              class="text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400">Packagist</a
+              rel="noopener noreferrer"
+              class="text-slate-600 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+              >Packagist</a
             >
           </li>
         </ul>
@@ -50,8 +59,8 @@ import { docsFooterSections } from '../config/navigation'
     </div>
     <div class="mt-12 border-t border-slate-200 pt-8 text-center text-slate-500 dark:border-slate-800">
       <p>
-        &copy; {new Date().getFullYear()} UX DataTables. Built by <a href="https://pentiminax.fr"
-          >Pentiminax</a>
+        &copy; {new Date().getFullYear()} UX DataTables. Built by{' '}
+        <a href="https://pentiminax.fr" class="hover:text-blue-600 dark:hover:text-blue-400">Pentiminax</a>
       </p>
     </div>
   </div>

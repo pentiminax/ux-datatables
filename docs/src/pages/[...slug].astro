@@ -17,7 +17,7 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props
-const { Content } = await render(entry)
+const { Content, headings } = await render(entry)
 
 const components = {
   Aside,
@@ -27,8 +27,15 @@ const components = {
   TabItem,
   Table,
 }
+
+const editUrl = `https://github.com/pentiminax/ux-datatables/edit/main/docs/src/content/docs/${entry.id}.mdx`
 ---
 
-<DocsLayout title={entry.data.title} description={entry.data.description}>
+<DocsLayout
+  title={entry.data.title}
+  description={entry.data.description}
+  headings={headings}
+  editUrl={editUrl}
+>
   <Content components={components} />
 </DocsLayout>

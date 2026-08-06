@@ -48,6 +48,18 @@ Arguments:
       '`false`',
       'Opt-in to API Platform integration: auto Ajax URL wiring and column auto-detection from API Platform metadata',
     ],
+    [
+      '`editModalTemplate`',
+      '`string`',
+      "`''`",
+      'Optional Twig template path for the inline edit modal',
+    ],
+    [
+      '`editModalAdapter`',
+      '`string`',
+      "`''`",
+      'Optional modal adapter override (`bootstrap`, `custom`, …)',
+    ],
   ]}
 />
 
@@ -76,9 +88,12 @@ Arguments:
     ['Identity', '`type`, `name`, `title`'],
     [
       'Visibility and behavior',
-      '`orderable`, `searchable`, `visible`, `exportable`, `globalSearchable`',
+      '`orderable`, `searchable`, `visible`, `exportable`, `globalSearchable`, `hideWhenUpdating`',
     ],
-    ['Rendering', '`width`, `className`, `cellType`, `defaultContent`'],
+    [
+      'Rendering',
+      '`width`, `className`, `cellType`, `defaultContent`, `renderAsBadges`',
+    ],
     ['Data mapping', '`field`, `format`, `position`'],
   ]}
 />

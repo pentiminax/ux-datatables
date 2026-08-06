@@ -11,17 +11,34 @@ description: Public enum values used by UX DataTables
     ['`ButtonType`', '`COLUMN_VISIBILITY`, `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`'],
     ['`SelectStyle`', '`SINGLE`, `MULTI`'],
     ['`SelectItemType`', '`ROW`, `COLUMN`, `CELL`'],
-    ['`Feature`', '`BUTTONS`, `INFO`, `PAGE_LENGTH`, `PAGING`, `SEARCH`'],
-    ['`Language`', '`EN`, `FR`, `DE`, `ES`'],
+    [
+      '`Feature`',
+      '`BUTTONS`, `FILTERS`, `INFO`, `PAGE_LENGTH`, `PAGING`, `SEARCH`, `SEARCH_BUILDER`, `SEARCH_PANES`',
+    ],
+    [
+      '`Language`',
+      'Full DataTables i18n set (`EN`, `FR`, `DE`, `ES`, `IT_IT`, `PT_BR`, `JA`, `ZH`, …). See `Pentiminax\\UX\\DataTables\\Enum\\Language` for every case.',
+    ],
     [
       '`ColumnType`',
       '`DATE`, `NUM`, `NUM_FMT`, `HTML_NUM`, `HTML_NUM_FMT`, `HTML_UTF8`, `HTML`, `STRING_UTF8`, `STRING`',
     ],
-    ['`ActionType`', '`DELETE`, `DETAIL`, `EDIT`'],
+    ['`ActionType`', '`DELETE`, `DETAIL`, `EDIT`, `CUSTOM`'],
+    ['`ActionsAlignment`', '`Left`, `Center`, `Right`'],
+    ['`ActionsPosition`', '`BeforeColumns`, `AfterColumns`'],
+    ['`IconSize`', '`ExtraSmall`, `Small`, `Medium`, `Large`, `ExtraLarge`'],
+    [
+      '`ColumnControlLogic`',
+      '`Contains`, `Empty`, `Ends`, `Equal`, `Greater`, `GreaterOrEqual`, `In`, `Less`, `LessOrEqual`, `NotContains`, `NotEmpty`, `NotEqual`, `Starts`',
+    ],
   ]}
 />
+
+`Icon` enumerates Lucide icon names used by `IconColumn` and action buttons. Prefer `Icon::CircleCheck`
+over raw strings when the icon ships with the bundle.
 
 ## Cross Links
 
 - [/ux-datatables/guide/options/](/ux-datatables/guide/options/)
 - [/ux-datatables/extensions/buttons/](/ux-datatables/extensions/buttons/)
+- [/ux-datatables/columns/icon-column/](/ux-datatables/columns/icon-column/)
