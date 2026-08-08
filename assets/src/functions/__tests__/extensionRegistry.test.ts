@@ -19,6 +19,7 @@ const extensionFamilies = [
     { name: 'fixedColumns', packageKey: 'fixedcolumns', fileBase: 'fixedColumns' },
     { name: 'keyTable', packageKey: 'keytable', fileBase: 'keyTable' },
     { name: 'responsive', packageKey: 'responsive', fileBase: 'responsive' },
+    { name: 'rowGroup', packageKey: 'rowgroup', fileBase: 'rowGroup' },
     { name: 'scroller', packageKey: 'scroller', fileBase: 'scroller' },
     { name: 'select', packageKey: 'select', fileBase: 'select' },
 ]
