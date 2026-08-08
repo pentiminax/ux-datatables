@@ -9,6 +9,10 @@ export default defineConfig({
   site: 'https://pentiminax.github.io',
   base: '/ux-datatables',
   integrations: [sitemap(), mdx()],
+  session: false,
+  experimental: {
+    incrementalBuild: true,
+  },
   markdown: {
     shikiConfig: {
       theme: 'github-dark',
