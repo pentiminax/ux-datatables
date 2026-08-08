@@ -4,6 +4,7 @@ const EXTENSION_PKG_KEY = {
     fixedColumns: 'fixedcolumns',
     keyTable: 'keytable',
     responsive: 'responsive',
+    rowGroup: 'rowgroup',
     scroller: 'scroller',
     select: 'select',
 };
@@ -13,6 +14,7 @@ const EXTENSION_FILE_BASE = {
     fixedColumns: 'fixedColumns',
     keyTable: 'keyTable',
     responsive: 'responsive',
+    rowGroup: 'rowGroup',
     scroller: 'scroller',
     select: 'select',
 };

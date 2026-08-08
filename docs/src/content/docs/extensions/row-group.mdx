@@ -1,0 +1,122 @@
+---
+title: Row Group Extension
+description: Group related rows and add per-group summaries
+---
+
+# Row Group Extension
+
+## When To Use
+
+Use Row Group when a table is easier to scan when related rows are displayed together, such as
+employees by department or orders by customer. The extension groups the rows shown on the current
+page; it does not aggregate the complete server-side result set.
+
+## Basic Grouping
+
+The grouping source is required. Use a property name for object rows or a column index for array
+rows.
+
+```php
+use Pentiminax\UX\DataTables\Model\DataTableExtensions;
+use Pentiminax\UX\DataTables\Model\Extensions\RowGroupExtension;
+
+public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
+{
+    return $extensions->addExtension(
+        new RowGroupExtension(dataSrc: 'department')
+    );
+}
+```
+
+Group rows should be ordered by the same data source so that each group remains contiguous. When
+the grouping source is a column, apply an initial order for that column in `configureDataTable()`.
+
+## Multi-level Grouping
+
+Pass a list ordered from the outermost group to the innermost group:
+
+```php
+new RowGroupExtension(dataSrc: ['department', 'office']);
+```
+
+## Configuration Options
+
+```php
+new RowGroupExtension(
+    dataSrc: 'department',
+    enable: false,
+    className: 'table-group',
+    startClassName: 'table-group-start',
+    endClassName: 'table-group-end',
+    emptyDataGroup: 'Unassigned',
+);
+```
+
+With the default renderer, setting `emptyDataGroup` to `null` omits the grouping row for `null`,
+`undefined`, or empty grouping values. Row Group still collects those data rows into a group
+internally. If you configure `startRender` or `endRender`, return `null` for the missing group value
+to keep its grouping row hidden. Setting `enable` to `false` loads Row Group but leaves it initially
+disabled for later activation through the DataTables API.
+
+## Custom JavaScript Grouping And Summaries
+
+PHP configuration is serialized as JSON, so `dataSrc`, `startRender`, and `endRender` functions
+must be attached through the `datatables:pre-connect` event.
+
+```javascript
+this.element.addEventListener('datatables:pre-connect', (event) => {
+  const config = event.detail.config.rowGroup
+
+  config.dataSrc = (rowData) => (rowData.salary < 50000 ? 'Under 50,000' : '50,000 and above')
+
+  config.startRender = (rows, group) => {
+    if (group === null || group === '') {
+      return null
+    }
+
+    const row = document.createElement('tr')
+    const cell = document.createElement('td')
+
+    cell.colSpan = event.detail.config.columns.length
+    cell.textContent = `${group} (${rows.count()} rows)`
+    row.append(cell)
+
+    return row
+  }
+
+  config.endRender = (rows, group) =>
+    group === null || group === '' ? null : `Visible rows in this group: ${rows.count()}`
+})
+```
+
+Use DOM nodes and `textContent` when group values can contain user-provided data. Returning an HTML
+string requires the application to escape every untrusted value. Render callbacks run again after
+paging, searching, and ordering, so keep them synchronous and inexpensive. Set either renderer to
+`null` when its grouping row should not be displayed.
+
+## Ajax And Server-side Tables
+
+Every returned row must contain the property selected by `dataSrc`. A grouping property may be
+provided by a hidden column:
+
+```php
+yield TextColumn::new('department', 'Department')->setVisible(false);
+```
+
+When overriding `mapRow()`, keep the grouping property in the returned array even when it is not
+displayed. Row Group only sees the current Ajax page, so counts and other summaries calculated in a
+render callback are page-level values rather than totals for the full filtered result set.
+
+## Compatibility
+
+- Row Group is not compatible with Scroller.
+- Buttons exports omit grouping rows and export only the underlying data rows.
+- Expanding or collapsing groups is not provided by Row Group.
+
+These combinations are documented but are not blocked by UX DataTables at runtime.
+
+## Cross Links
+
+- [/ux-datatables/extensions/combining-extensions/](/ux-datatables/extensions/combining-extensions/)
+- [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)
+- [DataTables RowGroup reference](https://datatables.net/reference/option/rowGroup)
