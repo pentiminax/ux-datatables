@@ -52,9 +52,11 @@ new RowGroupExtension(
 );
 ```
 
-Set `emptyDataGroup` to `null` to omit the grouping row for `null`, `undefined`, or empty grouping
-values. Setting `enable` to `false` loads Row Group but leaves it initially disabled for later
-activation through the DataTables API.
+With the default renderer, setting `emptyDataGroup` to `null` omits the grouping row for `null`,
+`undefined`, or empty grouping values. Row Group still collects those data rows into a group
+internally. If you configure `startRender` or `endRender`, return `null` for the missing group value
+to keep its grouping row hidden. Setting `enable` to `false` loads Row Group but leaves it initially
+disabled for later activation through the DataTables API.
 
 ## Custom JavaScript Grouping And Summaries
 
@@ -68,6 +70,10 @@ this.element.addEventListener('datatables:pre-connect', (event) => {
   config.dataSrc = (rowData) => (rowData.salary < 50000 ? 'Under 50,000' : '50,000 and above')
 
   config.startRender = (rows, group) => {
+    if (group === null || group === '') {
+      return null
+    }
+
     const row = document.createElement('tr')
     const cell = document.createElement('td')
 
@@ -78,7 +84,8 @@ this.element.addEventListener('datatables:pre-connect', (event) => {
     return row
   }
 
-  config.endRender = (rows) => `Visible rows in this group: ${rows.count()}`
+  config.endRender = (rows, group) =>
+    group === null || group === '' ? null : `Visible rows in this group: ${rows.count()}`
 })
 ```
 
