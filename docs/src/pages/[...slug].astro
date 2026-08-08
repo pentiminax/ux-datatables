@@ -13,6 +13,7 @@ export async function getStaticPaths() {
   return docs.map((entry) => ({
     params: { slug: entry.id },
     props: { entry },
+    cacheKey: entry.digest,
   }))
 }
 
