@@ -50,6 +50,7 @@ const EXTENSION_MAP: Record<string, string> = {
     fixedColumns: 'fixedColumns',
     colReorder: 'colReorder',
     keys: 'keyTable',
+    rowGroup: 'rowGroup',
     scroller: 'scroller',
 }
 

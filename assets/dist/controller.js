@@ -33,6 +33,7 @@ const EXTENSION_MAP = {
     fixedColumns: 'fixedColumns',
     colReorder: 'colReorder',
     keys: 'keyTable',
+    rowGroup: 'rowGroup',
     scroller: 'scroller',
 };
 class default_1 extends Controller {
