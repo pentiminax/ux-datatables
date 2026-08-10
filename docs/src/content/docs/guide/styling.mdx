@@ -1,6 +1,6 @@
 ---
 title: Styling
-description: Use Bootstrap, Bulma, Foundation, Semantic UI, jQuery UI, or the default DataTables theme
+description: Use Bootstrap, Foundation, Semantic UI, jQuery UI, or the default DataTables theme
 ---
 
 # Styling
@@ -52,7 +52,7 @@ Edit `assets/controllers.json` to enable the CSS file for your target framework 
     }
     ```
   </TabItem>
-  <TabItem label="Bulma / Foundation / Other">
+  <TabItem label="Foundation / Other">
     ```json
     {
       "controllers": {
@@ -61,7 +61,7 @@ Edit `assets/controllers.json` to enable the CSS file for your target framework 
             "enabled": true,
             "autoimport": {
               "datatables.net-dt/css/dataTables.dataTables.min.css": false,
-              "datatables.net-bm/css/dataTables.bulma.min.css": true
+              "datatables.net-zf/css/dataTables.foundation.min.css": true
             }
           }
         }
@@ -85,7 +85,7 @@ Import the CSS directly in your entry file:
 // assets/app.js — enable exactly one:
 import 'datatables.net-dt/css/dataTables.dataTables.min.css'
 // import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css'
-// import 'datatables.net-bm/css/dataTables.bulma.min.css'
+// import 'datatables.net-zf/css/dataTables.foundation.min.css'
 ```
 
 ## Supported Frameworks
@@ -97,7 +97,6 @@ import 'datatables.net-dt/css/dataTables.dataTables.min.css'
     ['Bootstrap 5', '`bs5`', '`dataTables.bootstrap5`', '`datatables.net-bs5`'],
     ['Bootstrap 4', '`bs4`', '`dataTables.bootstrap4`', '`datatables.net-bs4`'],
     ['Bootstrap 3', '`bs`', '`dataTables.bootstrap`', '`datatables.net-bs`'],
-    ['Bulma', '`bm`', '`dataTables.bulma`', '`datatables.net-bm`'],
     ['Zurb Foundation', '`zf`', '`dataTables.foundation`', '`datatables.net-zf`'],
     ['jQuery UI', '`jqui`', '`dataTables.jqueryui`', '`datatables.net-jqui`'],
     ['Semantic UI', '`se`', '`dataTables.semanticui`', '`datatables.net-se`'],
@@ -128,12 +127,6 @@ php bin/console importmap:require datatables.net-bs4
 php bin/console importmap:require datatables.net-bs
 ```
 
-### Bulma
-
-```bash
-php bin/console importmap:require datatables.net-bm
-```
-
 ### Zurb Foundation
 
 ```bash
@@ -156,13 +149,13 @@ php bin/console importmap:require datatables.net-se
 
 Each extension (Select, Responsive, Buttons, etc.) also has framework-specific packages. If you use extensions, install the matching variants alongside the core package.
 
-For example, with **Bulma**:
+For example, with **Zurb Foundation**:
 
 ```bash
-php bin/console importmap:require datatables.net-bm
-php bin/console importmap:require datatables.net-select-bm
-php bin/console importmap:require datatables.net-responsive-bm
-php bin/console importmap:require datatables.net-buttons-bm
+php bin/console importmap:require datatables.net-zf
+php bin/console importmap:require datatables.net-select-zf
+php bin/console importmap:require datatables.net-responsive-zf
+php bin/console importmap:require datatables.net-buttons-zf
 # Add other extensions you use…
 ```
 

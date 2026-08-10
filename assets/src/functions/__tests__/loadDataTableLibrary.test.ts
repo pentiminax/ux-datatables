@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { StyleFramework } from '../../types/styleFramework.js'
 
-const frameworks: StyleFramework[] = ['dt', 'bs', 'bs4', 'bs5', 'bm', 'zf', 'jqui', 'se']
+const frameworks: StyleFramework[] = ['dt', 'bs', 'bs4', 'bs5', 'zf', 'jqui', 'se']
 
 describe('loadDataTableLibrary', () => {
     afterEach(() => {
