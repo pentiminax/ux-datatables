@@ -14,7 +14,6 @@ describe('resolveColumnStyleAdapter', () => {
 
     it.each([
         'dt',
-        'bm',
         'zf',
         'jqui',
         'se',

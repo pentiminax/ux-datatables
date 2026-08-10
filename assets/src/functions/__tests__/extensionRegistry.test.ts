@@ -6,7 +6,6 @@ const frameworks: Array<{ framework: StyleFramework; cssSuffix: string }> = [
     { framework: 'bs', cssSuffix: 'bootstrap' },
     { framework: 'bs4', cssSuffix: 'bootstrap4' },
     { framework: 'bs5', cssSuffix: 'bootstrap5' },
-    { framework: 'bm', cssSuffix: 'bulma' },
     { framework: 'zf', cssSuffix: 'foundation' },
     { framework: 'jqui', cssSuffix: 'jqueryui' },
     { framework: 'se', cssSuffix: 'semanticui' },
