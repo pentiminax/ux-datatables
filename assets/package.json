@@ -194,7 +194,7 @@
     "datatables.net-select-se": "^4.0.0",
     "datatables.net-select-zf": "^4.0.0",
     "datatables.net-zf": "^3.0.1",
-    "jsdom": "^29.1.0",
+    "jsdom": "^30.0.1",
     "jszip": "^3.10.0",
     "lucide": "^1.25.0",
     "pdfmake": "^0.3.0",
