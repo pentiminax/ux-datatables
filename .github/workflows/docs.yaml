@@ -32,7 +32,7 @@ jobs:
           cache-dependency-path: docs/package-lock.json
 
       - name: Cache Astro incremental build
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: docs/node_modules/.astro
           key: astro-incremental-${{ hashFiles('docs/package-lock.json') }}-${{ hashFiles('docs/src/**', 'docs/astro.config.mjs', 'docs/src/content.config.*') }}
