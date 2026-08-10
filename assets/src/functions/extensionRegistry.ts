@@ -27,7 +27,6 @@ const FRAMEWORK_CSS_SUFFIX: Record<StyleFramework, string> = {
     bs: 'bootstrap',
     bs4: 'bootstrap4',
     bs5: 'bootstrap5',
-    bm: 'bulma',
     zf: 'foundation',
     jqui: 'jqueryui',
     se: 'semanticui',
