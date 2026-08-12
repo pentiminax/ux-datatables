@@ -111,6 +111,22 @@ final class TemplateColumnRendererTest extends TestCase
     }
 
     #[Test]
+    public function it_skips_a_column_without_a_row_key(): void
+    {
+        $renderer = new TemplateColumnRenderer(new Environment(new ArrayLoader([
+            'column.html.twig' => '<b>{{ data }}</b>',
+        ])));
+
+        $row = $renderer->renderRow(
+            row: ['id' => 3],
+            mappedRow: [],
+            columns: [TemplateColumn::new('')->setTemplate('column.html.twig')]
+        );
+
+        $this->assertSame(['id' => 3], $row);
+    }
+
+    #[Test]
     public function it_fails_fast_when_twig_is_missing(): void
     {
         $renderer = new TemplateColumnRenderer();
