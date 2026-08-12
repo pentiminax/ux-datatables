@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\RowMapper;
 
+use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 
 final class DefaultRowMapper implements RowMapperInterface
@@ -49,28 +49,14 @@ final class DefaultRowMapper implements RowMapperInterface
                 continue;
             }
 
-            $key = $this->resolveColumnKey($column);
+            $key = ColumnKeyResolver::rowKey($column);
             if (null === $key) {
                 continue;
             }
 
-            $mapped[$key] = PropertyReader::readPath($row, $this->resolveReadPath($column, $key));
+            $mapped[$key] = PropertyReader::readPath($row, ColumnKeyResolver::readPath($column, $key));
         }
 
         return $mapped ?: get_object_vars($row);
-    }
-
-    private function resolveColumnKey(ColumnInterface $column): ?string
-    {
-        $key = $column->getData() ?? $column->getName();
-
-        return null === $key || '' === $key ? null : $key;
-    }
-
-    private function resolveReadPath(ColumnInterface $column, string $key): string
-    {
-        $field = $column->getField();
-
-        return (null !== $field && $field !== $column->getName()) ? $field : $key;
     }
 }

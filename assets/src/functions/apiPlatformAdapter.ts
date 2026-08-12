@@ -35,7 +35,11 @@ export interface ColumnConfig {
  * override must stay reserved for nested relation columns.
  */
 export function resolveColumnDataKey(column: ColumnConfig): string | null | undefined {
-    return column.customOptions?.templatePath ? column.data : (column.field ?? column.data)
+    if (column.customOptions?.templatePath) {
+        return column.data ?? column.name
+    }
+
+    return column.field ?? column.data
 }
 
 interface HydraCollectionResponse {
