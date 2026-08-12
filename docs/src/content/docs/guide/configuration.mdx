@@ -20,6 +20,12 @@ data_tables:
       bottomEnd: paging
     lengthMenu: [10, 25, 50]
     pageLength: 10
+    paging:
+      boundaryNumbers: true
+      buttons: 7
+      firstLast: true
+      numbers: true
+      previousNext: true
   template_parameters:
     class: 'table'
   extensions:
@@ -128,6 +134,33 @@ data_tables:
     pageLength: 25
 ```
 
+### paging
+
+Sets the default pagination control layout for every table. Only the keys you declare need to be
+listed; the others keep their defaults.
+
+```yaml
+data_tables:
+  options:
+    paging:
+      buttons: 5
+      firstLast: false
+```
+
+<Table
+  headers={['Key', 'Default', 'Description']}
+  rows={[
+    ['`boundaryNumbers`', '`true`', 'Always show the first and last page numbers'],
+    ['`buttons`', '`7`', 'Number of page number buttons'],
+    ['`firstLast`', '`true`', 'Show the first and last buttons'],
+    ['`numbers`', '`true`', 'Show the page number buttons'],
+    ['`previousNext`', '`true`', 'Show the previous and next buttons'],
+  ]}
+/>
+
+Override it per table with `$table->paging(...)`, or disable pagination entirely with
+`$table->withoutPaging()`.
+
 ## Template Parameters
 
 Default HTML attributes for the generated `<table>` element:
@@ -181,7 +214,8 @@ extensions:
 
 ## Per-Table Override
 
-Bundle defaults can be overridden for individual tables:
+Bundle defaults apply to every table, whether it is created through `DataTableBuilderInterface` or
+declared as an `AbstractDataTable` class, and can be overridden for individual tables:
 
 ```php
 $table = $builder

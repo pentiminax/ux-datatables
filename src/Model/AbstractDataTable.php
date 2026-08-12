@@ -73,7 +73,7 @@ abstract class AbstractDataTable
         $this->asDataTable = $this->resolveAsDataTable();
 
         $this->table = $this->configureDataTable(
-            new DataTable($this->getClassName())
+            $this->infrastructure()->builder()->createDataTable($this->getClassName())
         );
 
         $this->table->setDataTableClass(static::class);
@@ -97,7 +97,7 @@ abstract class AbstractDataTable
         $this->table->setFilters($this->filters);
 
         $this->table->setExtensions(
-            $this->configureExtensions(new DataTableExtensions())
+            $this->configureExtensions($this->table->getExtensionsCollection())
         );
 
         $this->initialized = true;

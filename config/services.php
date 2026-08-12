@@ -292,6 +292,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(2, service('datatables.runtime.factory'))
         ->arg(3, service('datatables.query.intent_factory'))
         ->arg(4, service('datatables.query.filter_pipeline'))
+        ->arg(5, service('datatables.builder'))
         ->private();
 
     $services->alias(DataTableInfrastructure::class, 'datatables.infrastructure')
