@@ -23,10 +23,19 @@ interface DataTableServerSideParams {
 }
 
 export interface ColumnConfig {
+    customOptions?: Record<string, unknown>
     data?: string | null
     defaultContent?: string
     field?: string | null
     name: string
+}
+
+/**
+ * Template columns are rendered server-side under their own `data ?? name` key, so the `field`
+ * override must stay reserved for nested relation columns.
+ */
+export function resolveColumnDataKey(column: ColumnConfig): string | null | undefined {
+    return column.customOptions?.templatePath ? column.data : (column.field ?? column.data)
 }
 
 interface HydraCollectionResponse {
