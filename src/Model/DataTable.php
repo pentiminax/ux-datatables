@@ -550,6 +550,15 @@ class DataTable
         return $this->extensions->jsonSerialize();
     }
 
+    /**
+     * Mutable extension collection, already seeded with the bundle-wide
+     * `data_tables.extensions` configuration.
+     */
+    public function getExtensionsCollection(): DataTableExtensions
+    {
+        return $this->extensions;
+    }
+
     public function setExtensions(DataTableExtensions $extensions): static
     {
         $this->extensions = $extensions;
