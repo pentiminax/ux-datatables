@@ -34,8 +34,12 @@ final class TemplateColumnRenderer
                 continue;
             }
 
-            $field = $column->getField();
-            $data  = $this->resolveData(mappedRow: $item, row: $contextRow, field: $field);
+            $rowKey = $column->getData() ?? $column->getName();
+            if (null === $rowKey || '' === $rowKey) {
+                continue;
+            }
+
+            $data = $this->resolveData(mappedRow: $item, row: $contextRow, field: $this->resolveReadPath($column, $rowKey));
 
             $context = [
                 'entity' => $item,
@@ -52,7 +56,7 @@ final class TemplateColumnRenderer
                 }
             }
 
-            $renderedRow[$field] = $this->renderTemplate($column->getTemplate(), $context);
+            $renderedRow[$rowKey] = $this->renderTemplate($column->getTemplate(), $context);
         }
 
         return $renderedRow;
@@ -65,6 +69,13 @@ final class TemplateColumnRenderer
         }
 
         return $this->twig->render($template, $context);
+    }
+
+    private function resolveReadPath(ColumnInterface $column, string $key): string
+    {
+        $field = $column->getField();
+
+        return (null !== $field && $field !== $column->getName()) ? $field : $key;
     }
 
     private function resolveData(mixed $mappedRow, array $row, string $field): mixed
