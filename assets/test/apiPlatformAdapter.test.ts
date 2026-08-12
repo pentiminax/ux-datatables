@@ -1,5 +1,38 @@
-import {ApiPlatformAdapter} from '../src/functions/apiPlatformAdapter';
+import {ApiPlatformAdapter, resolveColumnDataKey} from '../src/functions/apiPlatformAdapter';
 import {afterEach, describe, expect, it, vi} from 'vitest';
+
+describe('resolveColumnDataKey', () => {
+    it('keeps the data key of a template column so the server-rendered cell is read', () => {
+        expect(
+            resolveColumnDataKey({
+                name: 'margin',
+                data: 'margin',
+                field: 'marginRate',
+                customOptions: {templatePath: 'datatable/columns/margin.html.twig'},
+            })
+        ).toBe('margin');
+    });
+
+    it('overrides the data key with the field of a nested relation column', () => {
+        expect(
+            resolveColumnDataKey({name: 'company', data: 'company', field: 'company.name'})
+        ).toBe('company.name');
+    });
+
+    it('falls back to the data key when no field is configured', () => {
+        expect(resolveColumnDataKey({name: 'email', data: 'email'})).toBe('email');
+    });
+
+    it('falls back to the name of a template column whose data key is filtered out of the payload', () => {
+        expect(
+            resolveColumnDataKey({
+                name: 'margin',
+                field: 'marginRate',
+                customOptions: {templatePath: 'datatable/columns/margin.html.twig'},
+            })
+        ).toBe('margin');
+    });
+});
 
 describe('ApiPlatformAdapter', () => {
     afterEach(() => {

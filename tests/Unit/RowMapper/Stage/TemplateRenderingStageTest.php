@@ -37,7 +37,8 @@ final class TemplateRenderingStageTest extends TestCase
             [TemplateColumn::new('status_display')->setField('status')->setTemplate('badge.html.twig')],
         );
 
-        $this->assertSame('<b>active</b>', $result['status']);
+        $this->assertSame('<b>active</b>', $result['status_display']);
+        $this->assertSame('active', $result['status']);
     }
 
     #[Test]

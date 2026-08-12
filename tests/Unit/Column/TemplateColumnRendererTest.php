@@ -41,7 +41,89 @@ final class TemplateColumnRendererTest extends TestCase
         );
 
         $this->assertSame(7, $row['id']);
-        $this->assertSame('<span data-field="status">active</span>', $row['status']);
+        $this->assertSame('<span data-field="status">active</span>', $row['status_display']);
+    }
+
+    #[Test]
+    public function it_does_not_overwrite_the_column_matching_the_field_name(): void
+    {
+        $twig = new Environment(new ArrayLoader([
+            'margin.html.twig' => '<span class="badge">{{ data|number_format(2) }}</span>',
+        ]));
+
+        $renderer = new TemplateColumnRenderer($twig);
+        $columns  = [
+            TemplateColumn::new('margin')->setField('marginRate')->setTemplate('margin.html.twig'),
+            TextColumn::new('marginRate'),
+        ];
+
+        $row = $renderer->renderRow(
+            row: ['margin' => 12.3456, 'marginRate' => 12.3456],
+            mappedRow: [],
+            columns: $columns
+        );
+
+        $this->assertSame('<span class="badge">12.35</span>', $row['margin']);
+        $this->assertSame(12.3456, $row['marginRate']);
+    }
+
+    #[Test]
+    public function it_reads_the_data_key_when_no_field_is_configured(): void
+    {
+        $twig = new Environment(new ArrayLoader([
+            'column.html.twig' => '<b>{{ data }}</b>',
+        ]));
+
+        $renderer = new TemplateColumnRenderer($twig);
+        $columns  = [
+            TemplateColumn::new('status_display')->setData('status')->setTemplate('column.html.twig'),
+        ];
+
+        $row = $renderer->renderRow(
+            row: ['status' => 'active'],
+            mappedRow: [],
+            columns: $columns
+        );
+
+        $this->assertSame('<b>active</b>', $row['status']);
+    }
+
+    #[Test]
+    public function it_keys_the_rendered_cell_by_name_for_a_nested_field(): void
+    {
+        $twig = new Environment(new ArrayLoader([
+            'column.html.twig' => '<b>{{ data }}</b>',
+        ]));
+
+        $renderer = new TemplateColumnRenderer($twig);
+        $columns  = [
+            TemplateColumn::new('author_name')->setField('author.name')->setTemplate('column.html.twig'),
+        ];
+
+        $row = $renderer->renderRow(
+            row: [],
+            mappedRow: ['author' => ['name' => 'Ada']],
+            columns: $columns
+        );
+
+        $this->assertSame('<b>Ada</b>', $row['author_name']);
+        $this->assertArrayNotHasKey('author.name', $row);
+    }
+
+    #[Test]
+    public function it_skips_a_column_without_a_row_key(): void
+    {
+        $renderer = new TemplateColumnRenderer(new Environment(new ArrayLoader([
+            'column.html.twig' => '<b>{{ data }}</b>',
+        ])));
+
+        $row = $renderer->renderRow(
+            row: ['id' => 3],
+            mappedRow: [],
+            columns: [TemplateColumn::new('')->setTemplate('column.html.twig')]
+        );
+
+        $this->assertSame(['id' => 3], $row);
     }
 
     #[Test]
@@ -97,7 +179,7 @@ final class TemplateColumnRendererTest extends TestCase
             columns: $columns
         );
 
-        $this->assertSame('from_row', $row['status']);
+        $this->assertSame('from_row', $row['status_display']);
     }
 
     #[Test]
@@ -120,7 +202,7 @@ final class TemplateColumnRendererTest extends TestCase
             columns: $columns
         );
 
-        $this->assertSame('badge-success: active', $row['status']);
+        $this->assertSame('badge-success: active', $row['status_display']);
     }
 
     #[Test]
@@ -143,8 +225,8 @@ final class TemplateColumnRendererTest extends TestCase
             columns: $columns
         );
 
-        $this->assertSame('Status: active', $row['status']);
-        $this->assertSame('Type: admin', $row['type']);
+        $this->assertSame('Status: active', $row['status_display']);
+        $this->assertSame('Type: admin', $row['type_display']);
     }
 
     #[Test]
@@ -167,7 +249,7 @@ final class TemplateColumnRendererTest extends TestCase
             columns: $columns
         );
 
-        $this->assertSame('verified-42-status_display', $row['status']);
+        $this->assertSame('verified-42-status_display', $row['status_display']);
     }
 
     #[Test]
@@ -192,7 +274,7 @@ final class TemplateColumnRendererTest extends TestCase
         );
 
         // entity (back-compat) and item both resolve to the projected DTO; source stays the original.
-        $this->assertSame('projected|raw|projected', $row['status']);
+        $this->assertSame('projected|raw|projected', $row['status_display']);
     }
 }
 
