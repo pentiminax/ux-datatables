@@ -115,8 +115,8 @@ final class RowProcessingPipelineTest extends TestCase
         $mappedRow = $pipeline->map(new TemplateRow(id: 5, status: 'active'));
 
         $this->assertSame([
-            'id'     => 5,
-            'status' => '<span>5-active</span>',
+            'id'             => 5,
+            'status_display' => '<span>5-active</span>',
         ], $mappedRow);
     }
 
@@ -284,7 +284,7 @@ final class RowProcessingPipelineTest extends TestCase
 
         $mappedRow = $pipeline->map(['id' => 7, 'status' => 'active']);
 
-        $this->assertSame('missing|mapped-active', $mappedRow['status']);
+        $this->assertSame('missing|mapped-active', $mappedRow['status_display']);
         $this->assertSame('/movies/7', $mappedRow['__ux_datatables_actions']['DETAIL']['url']);
     }
 }

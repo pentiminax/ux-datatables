@@ -1,3 +1,9 @@
+export function resolveColumnDataKey(column) {
+    if (column.customOptions?.templatePath) {
+        return column.data ?? column.name;
+    }
+    return column.field ?? column.data;
+}
 function toPositiveLength(length) {
     return typeof length === 'number' && Number.isFinite(length) && length > 0
         ? Math.floor(length)

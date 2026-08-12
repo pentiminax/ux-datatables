@@ -9,7 +9,11 @@ import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js'
 import type { ColumnRenderer } from './columnRenderers/types.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js'
-import { ApiPlatformAdapter, type ColumnConfig } from './functions/apiPlatformAdapter.js'
+import {
+    ApiPlatformAdapter,
+    type ColumnConfig,
+    resolveColumnDataKey,
+} from './functions/apiPlatformAdapter.js'
 import { normalizeDisabledColumnControls } from './functions/columnControl.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
@@ -231,7 +235,7 @@ export default class extends Controller {
         if (this.isApiPlatformEnabled(payload) && Array.isArray(payload.columns)) {
             payload.columns = (payload.columns as ColumnConfig[]).map((column) => ({
                 ...column,
-                data: column.field ?? column.data,
+                data: resolveColumnDataKey(column),
             }))
         }
     }

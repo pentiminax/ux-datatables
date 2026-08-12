@@ -294,7 +294,7 @@ final class DataTablesExtensionTest extends TestCase
         $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
         $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
 
-        $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status']));
+        $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status_display']));
     }
 
     #[Test]
@@ -499,7 +499,7 @@ final class DataTablesExtensionTest extends TestCase
         $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
         $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
 
-        $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status']));
+        $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status_display']));
         $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
     }
 
@@ -525,7 +525,7 @@ final class DataTablesExtensionTest extends TestCase
 
         $this->assertSame(5, $actual['data'][0]['id']);
         $this->assertSame('Dune', $actual['data'][0]['title']);
-        $this->assertSame('<span class="badge">dto-5-active</span>', trim($actual['data'][0]['status']));
+        $this->assertSame('<span class="badge">dto-5-active</span>', trim($actual['data'][0]['status_display']));
         $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
         $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
     }
@@ -588,7 +588,7 @@ final class DataTablesExtensionTest extends TestCase
 
         $payload = json_decode($table->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
 
-        $this->assertSame('<span class="badge">7-active</span>', trim($payload['data'][0]['status']));
+        $this->assertSame('<span class="badge">7-active</span>', trim($payload['data'][0]['status_display']));
 
         $kernel->shutdown();
     }
