@@ -21,6 +21,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -29,6 +30,7 @@ use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * @internal
@@ -112,6 +114,56 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertTrue($payload['success']);
+    }
+
+    #[Test]
+    public function it_returns_forbidden_when_edit_is_not_granted(): void
+    {
+        $entity     = new AjaxEditFormSubmitControllerFixture();
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->expects($this->once())->method('find')->with(42)->willReturn($entity);
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects($this->once())
+            ->method('getRepository')
+            ->with(AjaxEditFormSubmitControllerFixture::class)
+            ->willReturn($repository);
+        $entityManager->expects($this->never())->method('getClassMetadata');
+        $entityManager->expects($this->never())->method('flush');
+
+        $registry = $this->createRegistry($entityManager);
+
+        $formFactory = $this->createMock(FormFactoryInterface::class);
+        $formFactory->expects($this->never())->method('createBuilder');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('renderBody');
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveColumns');
+
+        $authorizationChecker = $this->createMock(AuthorizationCheckerInterface::class);
+        $authorizationChecker->method('isGranted')->with('EDIT', $entity)->willReturn(false);
+
+        $controller = new AjaxEditFormSubmitController(new EditFormService(
+            new EntityLocator($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+            new NullMercurePublisher(),
+            permissionChecker: new PermissionChecker($authorizationChecker),
+        ));
+
+        $response = $controller(new AjaxEditFormRequestDto(
+            entity: AjaxEditFormSubmitControllerFixture::class,
+            id: 42,
+            formData: ['name' => 'Alice'],
+            dataTableClass: 'SomeDataTable',
+        ));
+
+        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
+
+        $this->assertSame(403, $response->getStatusCode());
+        $this->assertFalse($payload['success']);
+        $this->assertSame('You are not allowed to perform this action.', $payload['message']);
     }
 
     #[Test]

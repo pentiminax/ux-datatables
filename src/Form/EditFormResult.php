@@ -55,4 +55,14 @@ final readonly class EditFormResult
             statusCode: Response::HTTP_NOT_FOUND,
         );
     }
+
+    public static function forbidden(string $message = 'You are not allowed to perform this action.'): self
+    {
+        return new self(
+            success: false,
+            html: null,
+            message: $message,
+            statusCode: Response::HTTP_FORBIDDEN,
+        );
+    }
 }
