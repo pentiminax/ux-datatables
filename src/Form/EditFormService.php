@@ -11,13 +11,17 @@ use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Form\FormInterface;
 
 final class EditFormService
 {
+    private readonly PermissionChecker $permissionChecker;
+
     public function __construct(
         private readonly EntityLocator $locator,
         private readonly EditFormBuilder $builder,
@@ -26,7 +30,9 @@ final class EditFormService
         private readonly MercurePublisherInterface $publisher,
         private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
         private readonly ?ContainerInterface $dataTables = null,
+        ?PermissionChecker $permissionChecker = null,
     ) {
+        $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
     }
 
     public function handleView(AjaxEditFormQueryDto $payload): EditFormResult
@@ -39,6 +45,10 @@ final class EditFormService
             $context = $this->locator->locate($payload->entity, $payload->id);
         } catch (EntityNotFoundException) {
             return EditFormResult::notFound();
+        }
+
+        if (null !== ($denied = $this->authorize($context->entity, $payload->entity, $payload->dataTableClass))) {
+            return $denied;
         }
 
         $columns = $this->templateResolver->resolveColumns($payload->dataTableClass);
@@ -66,6 +76,10 @@ final class EditFormService
             $context = $this->locator->locate($payload->entity, $payload->id);
         } catch (EntityNotFoundException) {
             return EditFormResult::notFound();
+        }
+
+        if (null !== ($denied = $this->authorize($context->entity, $payload->entity, $payload->dataTableClass))) {
+            return $denied;
         }
 
         $columns = $this->templateResolver->resolveColumns($payload->dataTableClass);
@@ -98,6 +112,35 @@ final class EditFormService
         ]);
 
         return EditFormResult::success();
+    }
+
+    /**
+     * Boolean toggles and deletes already require EDIT/DELETE plus a registered
+     * DataTable purpose. The edit modal must not be a weaker write path: a client
+     * can otherwise swap `entity`/`id`/`dataTableClass` and persist any mapped
+     * column on any Doctrine entity they can name.
+     */
+    private function authorize(object $entity, string $entityClass, string $dataTableClass): ?EditFormResult
+    {
+        if (!$this->permissionChecker->isGranted('EDIT', $entity)) {
+            return EditFormResult::forbidden();
+        }
+
+        if (null === $this->dataTables || !$this->dataTables->has($dataTableClass)) {
+            return null;
+        }
+
+        $dataTable = $this->dataTables->get($dataTableClass);
+        if (!$dataTable instanceof AbstractDataTable) {
+            return EditFormResult::forbidden();
+        }
+
+        $tableEntityClass = $dataTable->getEntityClass();
+        if (null === $tableEntityClass || ltrim($tableEntityClass, '\\') !== ltrim($entityClass, '\\')) {
+            return EditFormResult::forbidden();
+        }
+
+        return null;
     }
 
     /**
