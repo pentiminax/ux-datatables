@@ -23,6 +23,28 @@ Renders as: `<a href="https://example.com">https://example.com</a>`
   `javascript:`, `data:`, `vbscript:` and `file:` URLs are rendered as escaped plain text instead of links.
 </Aside>
 
+## Empty Values
+
+When a row has no resolvable URL (a `null`/empty field, or `linkToRoute()`/`linkToUrl()`
+resolving to nothing for that row), the column renders its plain, escaped text instead of an
+`<a>` tag:
+
+```php
+UrlColumn::new('website', 'Website');
+```
+
+A row with an empty `website` value renders as plain text — no `href`-less anchor. This avoids
+producing `<a href=""></a>`, which has no accessible name or purpose and fails
+[WCAG 2.4.4](https://www.w3.org/WAI/WCAG21/Understanding/link-purpose-in-context.html).
+
+If a use case genuinely needs the old always-render-an-anchor behavior, opt back in with
+`renderEmptyAsAnchor()`:
+
+```php
+UrlColumn::new('website', 'Website')
+    ->renderEmptyAsAnchor();
+```
+
 ## Symfony Route
 
 Use `linkToRoute()` when the URL should be generated from a Symfony route. The callable receives the original source object (or the row array for inline data).
@@ -135,6 +157,7 @@ UrlColumn::new('website', 'Website')
     ['`showExternalIcon(bool $show = true)`', 'Append the external-link icon after the anchor text'],
     ['`setDefaultProtocol(string $protocol)`', 'Prepend a protocol to href values that do not already include one'],
     ['`allowedProtocols(array $protocols)`', 'Render only URLs with the listed protocols as links'],
+    ['`renderEmptyAsAnchor(bool $render = true)`', 'Render `<a href="">` for rows with no resolvable URL instead of falling back to plain text'],
   ]}
 />
 
