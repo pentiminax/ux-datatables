@@ -119,6 +119,10 @@ final class EditFormService
      * DataTable purpose. The edit modal must not be a weaker write path: a client
      * can otherwise swap `entity`/`id`/`dataTableClass` and persist any mapped
      * column on any Doctrine entity they can name.
+     *
+     * An unresolvable DataTable fails closed: a custom EditModalTemplateResolver
+     * able to resolve columns for an unregistered class must not turn the missing
+     * table into a bypass of the table-purpose boundary.
      */
     private function authorize(object $entity, string $entityClass, string $dataTableClass): ?EditFormResult
     {
@@ -127,7 +131,7 @@ final class EditFormService
         }
 
         if (null === $this->dataTables || !$this->dataTables->has($dataTableClass)) {
-            return null;
+            return EditFormResult::forbidden();
         }
 
         $dataTable = $this->dataTables->get($dataTableClass);

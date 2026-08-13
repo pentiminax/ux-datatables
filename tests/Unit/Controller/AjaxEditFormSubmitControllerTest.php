@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
@@ -20,11 +21,14 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
@@ -53,7 +57,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ->method('isValid')
             ->willReturn(false);
 
-        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver($form, '<form>invalid</form>', 1, true, 'SomeDataTable');
+        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver($form, '<form>invalid</form>', 1, true, AjaxEditFormSubmitControllerDataTable::class);
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
             new EntityLocator($registry),
@@ -61,13 +65,14 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
+            dataTables: $this->registeredDataTables(),
         ));
 
         $response = $controller(new AjaxEditFormRequestDto(
             entity: AjaxEditFormSubmitControllerFixture::class,
             id: 42,
             formData: ['name' => 'Alice'],
-            dataTableClass: 'SomeDataTable',
+            dataTableClass: AjaxEditFormSubmitControllerDataTable::class,
         ));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
@@ -93,7 +98,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ->willReturn(true);
         $form->expects($this->never())->method('createView');
 
-        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver($form, '', 1, false, 'SomeDataTable');
+        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver($form, '', 1, false, AjaxEditFormSubmitControllerDataTable::class);
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
             new EntityLocator($registry),
@@ -101,13 +106,14 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
+            dataTables: $this->registeredDataTables(),
         ));
 
         $response = $controller(new AjaxEditFormRequestDto(
             entity: AjaxEditFormSubmitControllerFixture::class,
             id: 42,
             formData: ['name' => 'Alice'],
-            dataTableClass: 'SomeDataTable',
+            dataTableClass: AjaxEditFormSubmitControllerDataTable::class,
         ));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
@@ -188,7 +194,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             '',
             1,
             false,
-            'SomeDataTable',
+            AjaxEditFormSubmitControllerDataTable::class,
         );
 
         $resolver = $this->createMock(MercureConfigResolverInterface::class);
@@ -206,6 +212,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $templateResolver,
             new MercureUpdatePublisher($hub),
             $resolver,
+            $this->registeredDataTables(),
         ));
 
         // The DTO no longer carries a topics field, so the client cannot influence
@@ -214,7 +221,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             entity: AjaxEditFormSubmitControllerFixture::class,
             id: 42,
             formData: ['name' => 'Alice'],
-            dataTableClass: 'SomeDataTable',
+            dataTableClass: AjaxEditFormSubmitControllerDataTable::class,
         ));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
@@ -238,7 +245,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             '',
             1,
             false,
-            'SomeDataTable',
+            AjaxEditFormSubmitControllerDataTable::class,
         );
 
         $resolver = $this->createMock(MercureConfigResolverInterface::class);
@@ -253,18 +260,28 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $templateResolver,
             new MercureUpdatePublisher($hub),
             $resolver,
+            $this->registeredDataTables(),
         ));
 
         $response = $controller(new AjaxEditFormRequestDto(
             entity: AjaxEditFormSubmitControllerFixture::class,
             id: 42,
             formData: ['name' => 'Alice'],
-            dataTableClass: 'SomeDataTable',
+            dataTableClass: AjaxEditFormSubmitControllerDataTable::class,
         ));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
         $this->assertTrue($payload['success']);
+    }
+
+    private function registeredDataTables(): ContainerInterface
+    {
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with(AjaxEditFormSubmitControllerDataTable::class)->willReturn(true);
+        $dataTables->method('get')->with(AjaxEditFormSubmitControllerDataTable::class)->willReturn(new AjaxEditFormSubmitControllerDataTable());
+
+        return $dataTables;
     }
 
     private function createRegistry(EntityManagerInterface $entityManager): ManagerRegistry
@@ -370,4 +387,19 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
 
 final class AjaxEditFormSubmitControllerFixture
 {
+}
+
+#[AsDataTable(entityClass: AjaxEditFormSubmitControllerFixture::class)]
+final class AjaxEditFormSubmitControllerDataTable extends AbstractDataTable
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
 }
