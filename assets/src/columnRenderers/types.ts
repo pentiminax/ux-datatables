@@ -59,6 +59,7 @@ export interface UrlCustomOptions {
     showExternalIcon?: boolean
     defaultProtocol?: string
     allowedProtocols?: string[]
+    renderEmptyAsAnchor?: boolean
 }
 
 export interface IconCustomOptions {

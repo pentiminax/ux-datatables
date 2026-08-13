@@ -9,12 +9,13 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class UrlColumn extends AbstractColumn
 {
-    public const string OPTION_IS_URL             = 'isUrl';
-    public const string OPTION_TARGET             = 'target';
-    public const string OPTION_DISPLAY_VALUE      = 'displayValue';
-    public const string OPTION_SHOW_EXTERNAL_ICON = 'showExternalIcon';
-    public const string OPTION_DEFAULT_PROTOCOL   = 'defaultProtocol';
-    public const string OPTION_ALLOWED_PROTOCOLS  = 'allowedProtocols';
+    public const string OPTION_IS_URL                 = 'isUrl';
+    public const string OPTION_TARGET                 = 'target';
+    public const string OPTION_DISPLAY_VALUE          = 'displayValue';
+    public const string OPTION_SHOW_EXTERNAL_ICON     = 'showExternalIcon';
+    public const string OPTION_DEFAULT_PROTOCOL       = 'defaultProtocol';
+    public const string OPTION_ALLOWED_PROTOCOLS      = 'allowedProtocols';
+    public const string OPTION_RENDER_EMPTY_AS_ANCHOR = 'renderEmptyAsAnchor';
 
     private const array UNSAFE_PROTOCOLS = ['javascript', 'data', 'vbscript', 'file'];
 
@@ -122,6 +123,18 @@ class UrlColumn extends AbstractColumn
     public function showExternalIcon(bool $show = true): static
     {
         $this->setCustomOption(self::OPTION_SHOW_EXTERNAL_ICON, $show);
+
+        return $this;
+    }
+
+    /**
+     * By default, a row with no resolvable URL renders as plain (escaped) text instead of an
+     * `<a>` tag, since a href-less anchor has no accessible name/purpose. Opt back into the
+     * old always-render-an-anchor behavior with `renderEmptyAsAnchor(true)`.
+     */
+    public function renderEmptyAsAnchor(bool $render = true): static
+    {
+        $this->setCustomOption(self::OPTION_RENDER_EMPTY_AS_ANCHOR, $render);
 
         return $this;
     }

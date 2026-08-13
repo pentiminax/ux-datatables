@@ -21,8 +21,14 @@ export const urlColumnRenderer: ColumnRenderer = {
     },
 
     configure(column: Record<string, any>): void {
-        const { target, displayValue, showExternalIcon, defaultProtocol, allowedProtocols } =
-            (column.customOptions ?? {}) as UrlCustomOptions
+        const {
+            target,
+            displayValue,
+            showExternalIcon,
+            defaultProtocol,
+            allowedProtocols,
+            renderEmptyAsAnchor,
+        } = (column.customOptions ?? {}) as UrlCustomOptions
 
         column.render = (data: any, type: string, row: Record<string, any> & UrlRowData): any => {
             if (type !== 'display') {
@@ -36,6 +42,14 @@ export const urlColumnRenderer: ColumnRenderer = {
                     : typeof data === 'string'
                       ? data
                       : ''
+
+            // An empty href has nowhere to link to: rendering it as `<a href="">` produces an
+            // anchor with no accessible name/purpose (WCAG 2.4.4), so fall back to plain text
+            // unless the caller explicitly opts back into the old anchor-always behavior.
+            if ('' === rawHref && true !== renderEmptyAsAnchor) {
+                return escapeHtml(String(displayValue ?? data ?? ''))
+            }
+
             const href = withDefaultProtocol(rawHref, defaultProtocol)
 
             if (isUnsafeUrl(href) || !isAllowedUrlProtocol(href, allowedProtocols)) {
