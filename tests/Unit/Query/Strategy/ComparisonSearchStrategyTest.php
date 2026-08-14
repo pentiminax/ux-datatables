@@ -88,6 +88,25 @@ final class ComparisonSearchStrategyTest extends TestCase
         $strategy->apply($qb, $column, $search, 3, 'e');
     }
 
+    /**
+     * A malformed identifier bound with an identifier Doctrine type makes conversion
+     * throw at execution time, so it must be skipped like any other non-matching term.
+     */
+    #[Test]
+    #[DataProvider('comparison_logic_cases')]
+    public function it_skips_a_malformed_identifier_on_a_uuid_column(ColumnControlLogic $logic): void
+    {
+        $qb = $this->queryBuilderWithFieldType('id', 'guid');
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+
+        $strategy = new ComparisonSearchStrategy($logic);
+        $column   = TextColumn::new('id')->setField('id');
+        $search   = new ColumnControlSearch('018f2c3e', $logic, 'text');
+
+        $strategy->apply($qb, $column, $search, 3, 'e');
+    }
+
     #[Test]
     public function it_returns_logic_value(): void
     {
@@ -133,5 +152,15 @@ final class ComparisonSearchStrategyTest extends TestCase
         yield 'starts' => [ColumnControlLogic::Starts];
         yield 'ends' => [ColumnControlLogic::Ends];
         yield 'notContains' => [ColumnControlLogic::NotContains];
+    }
+
+    /**
+     * @return iterable<string, array{ColumnControlLogic}>
+     */
+    public static function comparison_logic_cases(): iterable
+    {
+        yield 'equal' => [ColumnControlLogic::Equal];
+        yield 'notEqual' => [ColumnControlLogic::NotEqual];
+        yield 'greater' => [ColumnControlLogic::Greater];
     }
 }

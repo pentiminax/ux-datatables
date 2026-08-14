@@ -43,9 +43,9 @@ final class SearchPredicateFactory
         $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $field);
 
         if (null !== $uuidType) {
-            $identifier = trim($value);
+            $identifier = UuidSearchTerm::normalize($value);
 
-            if (!self::isUuidLike($identifier)) {
+            if (null === $identifier) {
                 return null;
             }
 
@@ -57,14 +57,5 @@ final class SearchPredicateFactory
         }
 
         return SearchConditionBuilder::text($qb, $alias, $field, $value, $paramName);
-    }
-
-    private static function isUuidLike(string $value): bool
-    {
-        if (1 === preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value)) {
-            return true;
-        }
-
-        return 1 === preg_match('/^[0-7][0-9A-HJKMNP-TV-Z]{25}$/i', $value);
     }
 }
