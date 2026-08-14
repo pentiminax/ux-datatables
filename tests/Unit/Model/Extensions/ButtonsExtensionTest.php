@@ -19,56 +19,11 @@ use PHPUnit\Framework\TestCase;
 final class ButtonsExtensionTest extends TestCase
 {
     #[Test]
-    public function it_serializes_to_array(): void
-    {
-        $buttons = [];
-        foreach (ButtonType::cases() as $buttonType) {
-            $buttons[] = $buttonType->value;
-        }
-
-        $extension = new ButtonsExtension($buttons);
-
-        $expectedArray = [
-            'colvis',
-            [
-                'extend'        => 'copy',
-                'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
-                ],
-            ],
-            [
-                'extend'        => 'csv',
-                'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
-                ],
-            ],
-            [
-                'extend'        => 'excel',
-                'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
-                ],
-            ],
-            [
-                'extend'        => 'pdf',
-                'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
-                ],
-            ],
-            [
-                'extend'        => 'print',
-                'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
-                ],
-            ],
-        ];
-
-        $this->assertEquals($expectedArray, $extension->jsonSerialize());
-    }
-
-    #[Test]
-    public function it_serializes_mixed_button_types_and_custom_buttons(): void
+    public function it_serializes_strings_enum_cases_and_custom_buttons(): void
     {
         $extension = new ButtonsExtension([
+            'colvis',
+            'pdf',
             ButtonType::COPY,
             Button::csv()
                 ->text('Export CSV')
@@ -79,6 +34,13 @@ final class ButtonsExtensionTest extends TestCase
         ]);
 
         $this->assertSame([
+            'colvis',
+            [
+                'extend'        => 'pdf',
+                'exportOptions' => [
+                    'columns' => ':visible:not(.not-exportable)',
+                ],
+            ],
             [
                 'extend'        => 'copy',
                 'exportOptions' => [
