@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
  * Builds a DQL search condition for a column based on its type.
  *
  * For numeric columns: exact match when the value is numeric, null otherwise.
+ * For native UUID/ULID columns: exact match when the value is a UUID or ULID, null otherwise.
  * For other columns: LIKE %value% when the field supports search filtering, null otherwise.
  *
  * A column is treated as numeric when {@see ColumnInterface::isNumber()} is true or when
@@ -37,6 +38,18 @@ final class SearchPredicateFactory
 
         if ($column->isDate()) {
             return null;
+        }
+
+        $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $field);
+
+        if (null !== $uuidType) {
+            $identifier = UuidSearchTerm::normalize($value);
+
+            if (null === $identifier) {
+                return null;
+            }
+
+            return SearchConditionBuilder::equality($qb, $alias, $field, $identifier, $paramName, $uuidType);
         }
 
         if (!RelationFieldResolver::supportsTextSearch($qb, $field)) {

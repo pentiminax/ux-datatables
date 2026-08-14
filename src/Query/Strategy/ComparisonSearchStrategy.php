@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
+use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
 
 /**
  * Parameterized search strategy for simple comparison operators.
@@ -33,11 +34,31 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $field     = RelationFieldResolver::resolve($qb, $alias, $column->getField());
+        $fieldPath = $column->getField();
+        if (null === $fieldPath) {
+            return;
+        }
+
+        if ($this->logic->usesLikeOperator() && !RelationFieldResolver::supportsTextSearch($qb, $fieldPath)) {
+            return;
+        }
+
+        $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $fieldPath);
+        $value    = $search->value;
+
+        if (null !== $uuidType) {
+            $value = UuidSearchTerm::normalize($value);
+
+            if (null === $value) {
+                return;
+            }
+        }
+
+        $field     = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
         $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
         $qb->andWhere(\sprintf('%s %s :%s', $field, $this->logic->operator(), $paramName));
-        $qb->setParameter($paramName, \sprintf($this->logic->paramFormat(), $search->value));
+        $qb->setParameter($paramName, \sprintf($this->logic->paramFormat(), $value), $uuidType);
     }
 
     public function getLogic(): string

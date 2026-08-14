@@ -16,6 +16,20 @@ use Doctrine\ORM\QueryBuilder;
 final class RelationFieldResolver
 {
     /**
+     * Native UUID/ULID Doctrine types. LIKE is invalid on PostgreSQL and SQL Server
+     * (`uuid ~~ unknown`, UNIQUEIDENTIFIER), so these are searched with equality only.
+     *
+     * @var list<string>
+     */
+    private const array UUID_FIELD_TYPES = [
+        'guid',
+        'ulid',
+        'uuid',
+        'uuid_binary',
+        'uuid_binary_ordered_time',
+    ];
+
+    /**
      * Doctrine field types that cannot be used with SQL LIKE without an explicit cast.
      *
      * @var list<string>
@@ -38,6 +52,7 @@ final class RelationFieldResolver
         'smallint',
         'time',
         'time_immutable',
+        ...self::UUID_FIELD_TYPES,
     ];
 
     /**
@@ -96,9 +111,9 @@ final class RelationFieldResolver
     /**
      * Returns whether a field path supports SQL LIKE text search.
      *
-     * Non-string Doctrine field types (boolean, integer, datetime, etc.) are rejected
-     * because operators like LIKE are not valid on those columns in strict SQL engines
-     * such as PostgreSQL.
+     * Non-string Doctrine field types (boolean, integer, datetime, uuid, etc.) are
+     * rejected because operators like LIKE are not valid on those columns in strict
+     * SQL engines such as PostgreSQL.
      */
     public static function supportsTextSearch(QueryBuilder $qb, string $fieldPath): bool
     {
@@ -109,6 +124,29 @@ final class RelationFieldResolver
         $fieldType = self::resolveFieldType($qb, $fieldPath);
 
         return null === $fieldType || self::isTextSearchableFieldType($fieldType);
+    }
+
+    /**
+     * Returns the Doctrine type of a native UUID/ULID field path, or null when the field
+     * is not one. Such fields can be compared with equality but must not be used with SQL LIKE.
+     *
+     * Callers need the type name itself, not only the answer, because the parameter must be
+     * bound with it: `ulid` and the binary UUID types only match once Doctrine has converted
+     * the search term to its stored representation.
+     */
+    public static function resolveUuidFieldType(QueryBuilder $qb, string $fieldPath): ?string
+    {
+        if (!self::supportsSearchFiltering($qb, $fieldPath)) {
+            return null;
+        }
+
+        $fieldType = self::resolveFieldType($qb, $fieldPath);
+
+        if (null === $fieldType || !\in_array($fieldType, self::UUID_FIELD_TYPES, true)) {
+            return null;
+        }
+
+        return $fieldType;
     }
 
     private static function isTextSearchableFieldType(string $type): bool

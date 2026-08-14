@@ -173,6 +173,33 @@ protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $req
 
 The forwarded values are a snapshot taken when the page renders and are sent unchanged on every paging/search/sort reload. Only parameters actually present in the request are forwarded. This works with automatic Ajax and with manual `ajax()` / `ajaxRequestData()`; it is not applied in API Platform mode.
 
+## Searching UUID And ULID Columns
+
+Columns mapped to a native identifier type — `guid`, `uuid`, `ulid`, `uuid_binary`, and
+`uuid_binary_ordered_time` — are searched by **exact identifier only**. Global search, per-column
+search, and text filters compare them with `=`, never with `LIKE`.
+
+PostgreSQL and SQL Server reject `LIKE` on those columns, which previously made any search request
+fail with an error such as:
+
+```
+SQLSTATE[42883]: Undefined function: operator does not exist: uuid ~~ unknown
+```
+
+What this means for a search term:
+
+- A complete identifier (`018f2c3e-1234-7abc-9def-0123456789ab`, `01ARZ3NDEKTSV4RRFFQ69G5FAV`)
+  matches the row. Surrounding whitespace is trimmed.
+- A fragment (`018f2c3e`) matches nothing on that column; the condition is skipped instead of
+  raising an error. Other searchable columns still apply.
+- Hyphens are required in UUIDs: `018f2c3e12347abc9def0123456789ab` is not recognized.
+
+<Aside type="caution">
+On MySQL and SQLite, where UUIDs are usually stored as text, partial search on these columns worked
+before and no longer does. Add a searchable text column (a slug, a reference number, or a
+`string` copy of the identifier) when users need partial matching.
+</Aside>
+
 ## Sorting Computed Columns
 
 Server-side ordering resolves a column to `<alias>.<field>` and runs `ORDER BY` on it. A column
