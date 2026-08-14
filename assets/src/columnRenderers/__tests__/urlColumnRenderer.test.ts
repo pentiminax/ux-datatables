@@ -71,4 +71,25 @@ describe('urlColumnRenderer', () => {
         const render = configuredRender({ isUrl: true })
         expect(render('javascript:alert(1)', 'display')).toBe('javascript:alert(1)')
     })
+
+    it('does not use the display cell value as an href when the resolver produced no url for this row', () => {
+        // linkToRoute()/linkToUrl() sets hasUrlResolver: true. When resolveUrl() returns null for
+        // a given row, UrlColumnDataResolver::resolveRow() omits the row's __ux_datatables_urls
+        // entry entirely — it is not present at all, not merely falsy.
+        const render = configuredRender({ isUrl: true, hasUrlResolver: true }, { data: 'name' })
+        expect(render('Jane', 'display', {})).toBe('Jane')
+        expect(render('Jane', 'display', { __ux_datatables_urls: {} })).toBe('Jane')
+    })
+
+    it('still renders the resolved anchor when the resolver did produce a url for this row', () => {
+        const render = configuredRender({ isUrl: true, hasUrlResolver: true }, { data: 'name' })
+        const html = render('Jane', 'display', { __ux_datatables_urls: { name: '/users/42' } })
+        expect(html).toBe('<a href="/users/42">Jane</a>')
+    })
+
+    it('still falls back to the cell value as href for plain field-bound columns without a resolver', () => {
+        const render = configuredRender({ isUrl: true }, { data: 'website' })
+        const html = render('https://example.com', 'display', {})
+        expect(html).toBe('<a href="https://example.com">https://example.com</a>')
+    })
 })

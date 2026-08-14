@@ -37,6 +37,10 @@ A row with an empty `website` value renders as plain text — no `href`-less anc
 producing `<a href=""></a>`, which has no accessible name or purpose and fails
 [WCAG 2.4.4](https://www.w3.org/WAI/WCAG21/Understanding/link-purpose-in-context.html).
 
+This also applies to `linkToRoute()`/`linkToUrl()`: when the resolver returns nothing for a
+particular row, that row falls back to plain text too — the cell's own value (e.g. a name) is
+never substituted in as a fake `href`, since it isn't a URL at all.
+
 If a use case genuinely needs the old always-render-an-anchor behavior, opt back in with
 `renderEmptyAsAnchor()`:
 

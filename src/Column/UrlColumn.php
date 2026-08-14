@@ -16,6 +16,7 @@ class UrlColumn extends AbstractColumn
     public const string OPTION_DEFAULT_PROTOCOL       = 'defaultProtocol';
     public const string OPTION_ALLOWED_PROTOCOLS      = 'allowedProtocols';
     public const string OPTION_RENDER_EMPTY_AS_ANCHOR = 'renderEmptyAsAnchor';
+    public const string OPTION_HAS_URL_RESOLVER       = 'hasUrlResolver';
 
     private const array UNSAFE_PROTOCOLS = ['javascript', 'data', 'vbscript', 'file'];
 
@@ -101,6 +102,8 @@ class UrlColumn extends AbstractColumn
         $this->url         = null;
         $this->urlResolver = null;
 
+        $this->setCustomOption(self::OPTION_HAS_URL_RESOLVER, true);
+
         return $this;
     }
 
@@ -116,6 +119,8 @@ class UrlColumn extends AbstractColumn
 
         $this->routeName       = null;
         $this->routeParameters = null;
+
+        $this->setCustomOption(self::OPTION_HAS_URL_RESOLVER, true);
 
         return $this;
     }

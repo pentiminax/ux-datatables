@@ -60,6 +60,7 @@ export interface UrlCustomOptions {
     defaultProtocol?: string
     allowedProtocols?: string[]
     renderEmptyAsAnchor?: boolean
+    hasUrlResolver?: boolean
 }
 
 export interface IconCustomOptions {
