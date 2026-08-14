@@ -7,7 +7,9 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -51,20 +53,20 @@ final class UrlColumnDataResolverTest extends TestCase
     }
 
     #[Test]
-    public function it_skips_url_columns_without_resolver(): void
+    #[DataProvider('provideColumnsWithoutResolvableUrl')]
+    public function it_skips_columns_without_resolvable_url(ColumnInterface $column, array $row): void
     {
-        $row = (new UrlColumnDataResolver())
-            ->resolveRow(['website' => 'https://example.com'], ['slug' => 'jane'], [UrlColumn::new('website')]);
+        $row = (new UrlColumnDataResolver())->resolveRow($row, ['slug' => 'jane'], [$column]);
 
         $this->assertArrayNotHasKey('__ux_datatables_urls', $row);
     }
 
-    #[Test]
-    public function it_skips_non_url_columns(): void
+    /**
+     * @return iterable<string, array{ColumnInterface, array<string, mixed>}>
+     */
+    public static function provideColumnsWithoutResolvableUrl(): iterable
     {
-        $row = (new UrlColumnDataResolver())
-            ->resolveRow(['name' => 'Jane'], ['name' => 'Jane'], [TextColumn::new('name')]);
-
-        $this->assertArrayNotHasKey('__ux_datatables_urls', $row);
+        yield 'url column without resolver' => [UrlColumn::new('website'), ['website' => 'https://example.com']];
+        yield 'non url column' => [TextColumn::new('name'), ['name' => 'Jane']];
     }
 }

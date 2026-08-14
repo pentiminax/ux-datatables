@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
+use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(TemplateColumn::class)]
-final class TemplateColumnTest extends TestCase
+final class TemplateColumnTest extends DataTableTestCase
 {
     #[Test]
     public function it_serializes_template_path(): void
@@ -22,86 +23,69 @@ final class TemplateColumnTest extends TestCase
             ->setField('status')
             ->setTemplate('datatable/columns/status_badge.html.twig');
 
-        $data = $column->jsonSerialize();
-
-        $this->assertSame('status_display', $data['name']);
-        $this->assertSame('status_display', $data['data']);
-        $this->assertSame('status', $data['field']);
-        $this->assertSame('html', $data['type']);
-        $this->assertSame('datatable/columns/status_badge.html.twig', $data['customOptions']['templatePath']);
+        $this->assertColumnHeader($column, 'html', 'status_display', 'status_display');
+        $this->assertSame('status', $column->jsonSerialize()['field']);
+        $this->assertCustomOption('datatable/columns/status_badge.html.twig', 'templatePath', $column);
     }
 
+    /**
+     * @param class-string<\Throwable> $expectedException
+     */
     #[Test]
-    public function it_rejects_empty_template_path(): void
+    #[DataProvider('provideInvalidTemplateConfigurations')]
+    public function it_rejects_an_invalid_template_configuration(callable $scenario, string $expectedException, string $expectedMessage): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Template path cannot be empty.');
+        $this->expectException($expectedException);
+        $this->expectExceptionMessage($expectedMessage);
 
-        TemplateColumn::new('status_display')->setTemplate('   ');
+        $scenario();
     }
 
-    #[Test]
-    public function it_fails_when_template_is_missing(): void
+    /**
+     * @return iterable<string, array{0: callable(): mixed, 1: class-string<\Throwable>, 2: string}>
+     */
+    public static function provideInvalidTemplateConfigurations(): iterable
     {
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('Template path is not configured for column');
+        yield 'empty path' => [
+            static fn () => TemplateColumn::new('status_display')->setTemplate('   '),
+            \InvalidArgumentException::class,
+            'Template path cannot be empty.',
+        ];
 
-        TemplateColumn::new('status_display')->getTemplate();
+        yield 'missing path' => [
+            static fn () => TemplateColumn::new('status_display')->getTemplate(),
+            \LogicException::class,
+            'Template path is not configured for column',
+        ];
     }
 
     #[Test]
-    public function it_returns_empty_array_as_default_parameters(): void
+    public function it_keeps_template_parameters_server_side(): void
     {
         $column = TemplateColumn::new('status_display');
 
         $this->assertSame([], $column->getTemplateParameters());
-    }
 
-    #[Test]
-    public function it_stores_template_parameters(): void
-    {
-        $column = TemplateColumn::new('status_display')
-            ->setTemplate('some/template.html.twig', ['badge_class' => 'badge-success', 'show_icon' => true]);
+        $column->setTemplate('some/template.html.twig', ['badge_class' => 'badge-success', 'show_icon' => true]);
 
         $this->assertSame(['badge_class' => 'badge-success', 'show_icon' => true], $column->getTemplateParameters());
-    }
-
-    #[Test]
-    public function it_does_not_serialize_template_parameters(): void
-    {
-        $column = TemplateColumn::new('status_display')
-            ->setTemplate('some/template.html.twig', ['secret' => 'server-side-only']);
 
         $data = $column->jsonSerialize();
 
         $this->assertArrayNotHasKey('templateParameters', $data);
         $this->assertArrayNotHasKey(TemplateColumn::OPTION_TEMPLATE_PARAMETERS, $data);
-        $this->assertArrayNotHasKey('templateParameters', $data['customOptions'] ?? []);
-    }
-
-    #[Test]
-    public function it_is_fluent(): void
-    {
-        $column = TemplateColumn::new('status_display');
-
-        $this->assertSame($column, $column->setTemplate('some/template.html.twig'));
+        $this->assertNoCustomOption('templateParameters', $column);
     }
 
     #[Test]
     public function it_is_display_only_by_default(): void
     {
         $column = TemplateColumn::new('status_display');
+        $data   = $column->jsonSerialize();
 
         $this->assertFalse($column->isOrderable());
         $this->assertFalse($column->isSearchable());
         $this->assertFalse($column->isGlobalSearchable());
-    }
-
-    #[Test]
-    public function it_serializes_display_only_flags(): void
-    {
-        $data = TemplateColumn::new('status_display')->jsonSerialize();
-
         $this->assertFalse($data['orderable']);
         $this->assertFalse($data['searchable']);
     }

@@ -50,22 +50,7 @@ final class PropertyTypeMapperTest extends TestCase
         yield 'DateTimeImmutable' => ['updatedAt', DateColumn::class];
         yield 'DateTimeInterface' => ['deletedAt', DateColumn::class];
         yield 'object' => ['metadata', TextColumn::class];
-    }
-
-    #[Test]
-    public function it_returns_text_column_for_null_type(): void
-    {
-        $this->assertSame(TextColumn::class, $this->mapper->mapType(null));
-    }
-
-    #[Test]
-    public function it_returns_text_column_for_untyped_property(): void
-    {
-        $reflection = new \ReflectionProperty(TypeMapperFixture::class, 'untyped');
-        $type       = $reflection->getType();
-
-        $this->assertNull($type);
-        $this->assertSame(TextColumn::class, $this->mapper->mapType(null));
+        yield 'untyped' => ['untyped', TextColumn::class];
     }
 }
 
