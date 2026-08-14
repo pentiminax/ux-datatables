@@ -8,73 +8,72 @@ use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Enum\Icon;
 use Pentiminax\UX\DataTables\Model\Action;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
-class ActionTest extends TestCase
+#[CoversClass(Action::class)]
+final class ActionTest extends TestCase
 {
-    public function test_delete_factory_creates_action_with_default_values(): void
+    public static function builtinActionProvider(): iterable
     {
-        $action = Action::delete();
-
-        $this->assertSame(ActionType::Delete, $action->getType());
-
-        $json = $action->jsonSerialize();
-
-        $this->assertSame('DELETE', $json['type']);
-        $this->assertSame('Delete', $json['label']);
-        $this->assertSame('btn btn-danger', $json['className']);
-        $this->assertSame('id', $json['idField']);
-        $this->assertSame([], $json['htmlAttributes']);
-        $this->assertArrayNotHasKey('icon', $json);
-        $this->assertArrayNotHasKey('lucideIcon', $json);
-        $this->assertArrayNotHasKey('confirm', $json);
-        $this->assertArrayNotHasKey('displayCondition', $json);
-        $this->assertArrayNotHasKey('entityClass', $json);
+        yield 'delete' => [Action::delete(), ActionType::Delete, 'Delete', 'btn btn-danger'];
+        yield 'detail' => [Action::detail(), ActionType::Detail, 'Detail', 'btn btn-primary'];
+        yield 'edit' => [Action::edit(), ActionType::Edit, 'Edit', 'btn btn-warning'];
+        yield 'edit with custom label and class name' => [
+            Action::edit('Modifier', 'btn btn-sm btn-warning'),
+            ActionType::Edit,
+            'Modifier',
+            'btn btn-sm btn-warning',
+        ];
     }
 
-    public function test_new_factory_creates_custom_action_with_name(): void
+    #[Test]
+    #[DataProvider('builtinActionProvider')]
+    public function it_creates_builtin_actions_without_optional_state(Action $action, ActionType $type, string $label, string $className): void
+    {
+        $this->assertSame($type, $action->getType());
+        $this->assertSame($type->value, $action->getName());
+        $this->assertNull($action->getPosition());
+        $this->assertFalse($action->isCollapsible());
+        $this->assertNull($action->getCollapsibleTemplate());
+        $this->assertSame([], $action->getCollapsibleParameters());
+        $this->assertFalse($action->isAjaxRequest());
+
+        $this->assertSame([
+            'type'           => $type->value,
+            'name'           => $type->value,
+            'label'          => $label,
+            'className'      => $className,
+            'idField'        => 'id',
+            'htmlAttributes' => [],
+        ], $action->jsonSerialize());
+    }
+
+    #[Test]
+    public function it_creates_a_custom_action_with_its_own_name(): void
     {
         $action = Action::new('download', 'Download', 'btn btn-link');
 
         $this->assertSame(ActionType::Custom, $action->getType());
         $this->assertSame('download', $action->getName());
 
-        $json = $action->jsonSerialize();
-
-        $this->assertSame('CUSTOM', $json['type']);
-        $this->assertSame('download', $json['name']);
-        $this->assertSame('Download', $json['label']);
-        $this->assertSame('btn btn-link', $json['className']);
+        $this->assertSame([
+            'type'           => 'CUSTOM',
+            'name'           => 'download',
+            'label'          => 'Download',
+            'className'      => 'btn btn-link',
+            'idField'        => 'id',
+            'htmlAttributes' => [],
+        ], $action->jsonSerialize());
     }
 
-    public function test_builtin_factory_name_matches_type_value(): void
-    {
-        $this->assertSame('DELETE', Action::delete()->getName());
-        $this->assertSame('DELETE', Action::delete()->jsonSerialize()['name']);
-        $this->assertSame('DETAIL', Action::detail()->getName());
-        $this->assertSame('EDIT', Action::edit()->getName());
-    }
-
-    public function test_detail_factory_creates_action_with_default_values(): void
-    {
-        $action = Action::detail();
-
-        $this->assertSame(ActionType::Detail, $action->getType());
-
-        $json = $action->jsonSerialize();
-
-        $this->assertSame('DETAIL', $json['type']);
-        $this->assertSame('Detail', $json['label']);
-        $this->assertSame('btn btn-primary', $json['className']);
-        $this->assertSame('id', $json['idField']);
-        $this->assertSame([], $json['htmlAttributes']);
-        $this->assertArrayNotHasKey('url', $json);
-    }
-
-    public function test_fluent_setters(): void
+    #[Test]
+    public function it_applies_fluent_setters(): void
     {
         $action = Action::delete()
             ->label('Supprimer')
@@ -82,7 +81,12 @@ class ActionTest extends TestCase
             ->icon('bi bi-trash')
             ->askConfirmation('Are you sure?')
             ->htmlAttributes(['target' => '_blank'])
-            ->setIdField('uuid');
+            ->setIdField('uuid')
+            ->displayIf('isDeletable', true)
+            ->setEntityClass('App\\Entity\\User');
+
+        $this->assertSame('uuid', $action->getIdField());
+        $this->assertSame('App\\Entity\\User', $action->getEntityClass());
 
         $json = $action->jsonSerialize();
 
@@ -92,265 +96,124 @@ class ActionTest extends TestCase
         $this->assertSame('Are you sure?', $json['confirm']);
         $this->assertSame(['target' => '_blank'], $json['htmlAttributes']);
         $this->assertSame('uuid', $json['idField']);
-    }
-
-    public function test_icon_enum_serializes_as_lucide_icon(): void
-    {
-        $json = Action::edit()
-            ->icon(Icon::Pencil)
-            ->jsonSerialize();
-
-        $this->assertSame('pencil', $json['lucideIcon']);
-        $this->assertArrayNotHasKey('icon', $json);
-    }
-
-    public function test_last_icon_call_wins_between_css_and_lucide(): void
-    {
-        $lucide = Action::edit()
-            ->icon('bi bi-pencil')
-            ->icon(Icon::Pencil)
-            ->jsonSerialize();
-
-        $this->assertSame('pencil', $lucide['lucideIcon']);
-        $this->assertArrayNotHasKey('icon', $lucide);
-
-        $css = Action::edit()
-            ->icon(Icon::Pencil)
-            ->icon('bi bi-pencil')
-            ->jsonSerialize();
-
-        $this->assertSame('bi bi-pencil', $css['icon']);
-        $this->assertArrayNotHasKey('lucideIcon', $css);
-    }
-
-    public function test_display_if_sets_condition(): void
-    {
-        $action = Action::delete()
-            ->displayIf('isDeletable', true);
-
-        $json = $action->jsonSerialize();
-
         $this->assertSame(['field' => 'isDeletable', 'value' => true], $json['displayCondition']);
-    }
-
-    public function test_set_entity_class_strips_leading_backslash(): void
-    {
-        $action = Action::delete()
-            ->setEntityClass('\\App\\Entity\\User');
-
-        $json = $action->jsonSerialize();
-
         $this->assertSame('App\\Entity\\User', $json['entityClass']);
     }
 
-    public function test_set_entity_class_without_leading_backslash(): void
+    #[Test]
+    public function it_strips_the_leading_backslash_from_the_entity_class(): void
     {
-        $action = Action::delete()
-            ->setEntityClass('App\\Entity\\User');
+        $action = Action::delete()->setEntityClass('\\App\\Entity\\User');
+
+        $this->assertSame('App\\Entity\\User', $action->jsonSerialize()['entityClass']);
+    }
+
+    public static function iconProvider(): iterable
+    {
+        yield 'css class' => [['bi bi-pencil'], ['icon' => 'bi bi-pencil']];
+        yield 'lucide enum' => [[Icon::Pencil], ['lucideIcon' => 'pencil']];
+        yield 'lucide replaces css' => [['bi bi-pencil', Icon::Pencil], ['lucideIcon' => 'pencil']];
+        yield 'css replaces lucide' => [[Icon::Pencil, 'bi bi-pencil'], ['icon' => 'bi bi-pencil']];
+    }
+
+    /**
+     * @param list<Icon|string>     $icons
+     * @param array<string, string> $expected
+     */
+    #[Test]
+    #[DataProvider('iconProvider')]
+    public function it_keeps_only_the_last_icon_call(array $icons, array $expected): void
+    {
+        $action = Action::edit();
+
+        foreach ($icons as $icon) {
+            $action->icon($icon);
+        }
 
         $json = $action->jsonSerialize();
 
-        $this->assertSame('App\\Entity\\User', $json['entityClass']);
+        $this->assertSame($expected, array_intersect_key($json, ['icon' => null, 'lucideIcon' => null]));
     }
 
-    public function test_json_serialize_omits_null_optional_fields(): void
+    public static function urlProvider(): iterable
     {
-        $json = Action::delete()->jsonSerialize();
-
-        $this->assertArrayHasKey('type', $json);
-        $this->assertArrayHasKey('label', $json);
-        $this->assertArrayHasKey('className', $json);
-        $this->assertArrayHasKey('idField', $json);
-        $this->assertSame([], $json['htmlAttributes']);
-        $this->assertArrayNotHasKey('icon', $json);
-        $this->assertArrayNotHasKey('lucideIcon', $json);
-        $this->assertArrayNotHasKey('confirm', $json);
-        $this->assertArrayNotHasKey('displayCondition', $json);
-        $this->assertArrayNotHasKey('entityClass', $json);
+        yield 'static url' => ['/books/42', ['id' => 42], '/books/42', '/books/42'];
+        yield 'callable' => [static fn (object $row): string => '/books/'.$row->id, (object) ['id' => 42], '/books/42', null];
+        yield 'blank callable' => [static fn (): string => '   ', ['id' => 42], null, null];
     }
 
-    public function test_link_to_static_url_serializes_url(): void
+    #[Test]
+    #[DataProvider('urlProvider')]
+    public function it_resolves_urls_per_row_and_serializes_static_ones_only(string|\Closure $url, mixed $row, ?string $resolved, ?string $serialized): void
     {
-        $json = Action::detail()
-            ->linkToUrl('/books/42')
-            ->jsonSerialize();
+        $action = Action::detail()->linkToUrl($url);
 
-        $this->assertSame('/books/42', $json['url']);
+        $this->assertSame($resolved, $action->resolveUrl($row));
+        $this->assertSame($serialized, $action->jsonSerialize()['url'] ?? null);
     }
 
-    public function test_link_to_url_resolves_callable_result(): void
+    public static function routeParametersProvider(): iterable
     {
-        $action = Action::detail()->linkToUrl(static fn (object $row): string => '/books/'.$row->id);
-
-        $this->assertSame('/books/42', $action->resolveUrl((object) ['id' => 42]));
-        $this->assertArrayNotHasKey('url', $action->jsonSerialize());
+        yield 'static parameters' => [['id' => 42], ['id' => 7], ['id' => 42]];
+        yield 'callable parameters' => [static fn (object $row): array => ['id' => $row->id], (object) ['id' => 7], ['id' => 7]];
+        yield 'no parameters' => [null, ['id' => 7], []];
     }
 
-    public function test_link_to_url_returns_null_for_blank_result(): void
+    /**
+     * @param array<string, mixed>|null $params
+     * @param array<string, mixed>      $expected
+     */
+    #[Test]
+    #[DataProvider('routeParametersProvider')]
+    public function it_resolves_route_parameters_per_row(array|\Closure|null $params, mixed $row, array $expected): void
     {
-        $action = Action::detail()->linkToUrl(static fn (): string => '   ');
-
-        $this->assertNull($action->resolveUrl(['id' => 42]));
-    }
-
-    public function test_permission_static_marks_attribute_without_subject_resolver(): void
-    {
-        $action = Action::delete()->permission('ROLE_ADMIN');
-
-        $this->assertSame('ROLE_ADMIN', $action->getPermission());
-        $this->assertNull($action->getPermissionSubjectResolver());
-        $this->assertTrue($action->hasStaticPermission());
-        $this->assertFalse($action->hasPerRowPermission());
-    }
-
-    public function test_permission_with_subject_resolver_is_per_row(): void
-    {
-        $resolver = static fn (mixed $row): mixed => $row;
-        $action   = Action::edit()->permission('EDIT', $resolver);
-
-        $this->assertSame('EDIT', $action->getPermission());
-        $this->assertInstanceOf(\Closure::class, $action->getPermissionSubjectResolver());
-        $this->assertFalse($action->hasStaticPermission());
-        $this->assertTrue($action->hasPerRowPermission());
-    }
-
-    public function test_permission_is_not_serialized_to_client(): void
-    {
-        $json = Action::delete()
-            ->permission('ROLE_ADMIN')
-            ->jsonSerialize();
-
-        $this->assertArrayNotHasKey('permission', $json);
-        $this->assertArrayNotHasKey('permissionSubjectResolver', $json);
-    }
-
-    public function test_permission_setter_is_chainable(): void
-    {
-        $action = Action::delete();
-
-        $this->assertSame($action, $action->permission('ROLE_ADMIN'));
-    }
-
-    public function test_collapsible_stores_template_and_parameters(): void
-    {
-        $action = Action::detail()->collapsible('book/detail.html.twig', ['extra' => 'value']);
-
-        $this->assertTrue($action->isCollapsible());
-        $this->assertSame('book/detail.html.twig', $action->getCollapsibleTemplate());
-        $this->assertSame(['extra' => 'value'], $action->getCollapsibleParameters());
-    }
-
-    public function test_action_is_not_collapsible_by_default(): void
-    {
-        $action = Action::detail();
-
-        $this->assertFalse($action->isCollapsible());
-        $this->assertNull($action->getCollapsibleTemplate());
-        $this->assertSame([], $action->getCollapsibleParameters());
-    }
-
-    public function test_collapsible_serializes_flag_without_leaking_template_path(): void
-    {
-        $json = Action::detail()->collapsible('book/detail.html.twig')->jsonSerialize();
-
-        $this->assertTrue($json['collapsible']);
-        $this->assertArrayNotHasKey('collapsibleTemplate', $json);
-        $this->assertArrayNotHasKey('collapsibleParameters', $json);
-    }
-
-    public function test_non_collapsible_action_omits_collapsible_flag(): void
-    {
-        $this->assertArrayNotHasKey('collapsible', Action::detail()->jsonSerialize());
-    }
-
-    public function test_position_is_null_by_default(): void
-    {
-        $this->assertNull(Action::detail()->getPosition());
-    }
-
-    public function test_set_position_overrides_position(): void
-    {
-        $action = Action::detail()->position(ActionsPosition::BeforeColumns);
-
-        $this->assertSame(ActionsPosition::BeforeColumns, $action->getPosition());
-    }
-
-    public function test_set_position_is_chainable(): void
-    {
-        $action = Action::detail();
-
-        $this->assertSame($action, $action->position(ActionsPosition::BeforeColumns));
-    }
-
-    public function test_position_is_not_serialized_to_client(): void
-    {
-        $json = Action::detail()->position(ActionsPosition::BeforeColumns)->jsonSerialize();
-
-        $this->assertArrayNotHasKey('position', $json);
-    }
-
-    public function test_link_to_route_keeps_static_parameters(): void
-    {
-        $action = Action::new('publish', 'Publish')->linkToRoute('book_publish', ['id' => 42]);
+        $action = Action::new('publish', 'Publish')->linkToRoute('book_publish', $params);
 
         $this->assertSame('book_publish', $action->getRouteName());
-        $this->assertSame(['id' => 42], $action->resolveRouteParameters(['id' => 7]));
+        $this->assertSame($expected, $action->resolveRouteParameters($row));
     }
 
-    public function test_link_to_route_resolves_callable_parameters_per_row(): void
+    #[Test]
+    public function it_keeps_url_and_route_targets_mutually_exclusive(): void
     {
-        $action = Action::new('publish', 'Publish')->linkToRoute(
-            'book_publish',
-            static fn (object $row): array => ['id' => $row->id],
-        );
-
-        $this->assertSame(['id' => 7], $action->resolveRouteParameters((object) ['id' => 7]));
-    }
-
-    public function test_link_to_route_defaults_to_empty_parameters(): void
-    {
-        $action = Action::new('publish', 'Publish')->linkToRoute('book_publish');
-
-        $this->assertSame([], $action->resolveRouteParameters(['id' => 7]));
-    }
-
-    public function test_link_to_route_clears_previous_url(): void
-    {
-        $action = Action::new('publish', 'Publish')
+        $route = Action::new('publish', 'Publish')
             ->linkToUrl('/books/42/publish')
             ->linkToRoute('book_publish', ['id' => 42]);
 
-        $this->assertNull($action->resolveUrl(['id' => 42]));
-        $this->assertArrayNotHasKey('url', $action->jsonSerialize());
-    }
+        $this->assertSame('book_publish', $route->getRouteName());
+        $this->assertNull($route->resolveUrl(['id' => 42]));
+        $this->assertArrayNotHasKey('url', $route->jsonSerialize());
 
-    public function test_link_to_url_clears_previous_route(): void
-    {
-        $action = Action::new('publish', 'Publish')
+        $url = Action::new('publish', 'Publish')
             ->linkToRoute('book_publish', ['id' => 42])
             ->linkToUrl('/books/42/publish');
 
-        $this->assertNull($action->getRouteName());
-        $this->assertSame('/books/42/publish', $action->resolveUrl(['id' => 42]));
+        $this->assertNull($url->getRouteName());
+        $this->assertSame('/books/42/publish', $url->resolveUrl(['id' => 42]));
     }
 
-    public function test_as_ajax_request_defaults_to_post(): void
+    public static function ajaxMethodProvider(): iterable
     {
-        $action = Action::new('publish', 'Publish')->asAjaxRequest('publish_book');
+        yield 'defaults to POST' => [null, 'POST'];
+        yield 'normalizes the case' => ['delete', 'DELETE'];
+    }
+
+    #[Test]
+    #[DataProvider('ajaxMethodProvider')]
+    public function it_normalizes_the_ajax_method(?string $method, string $expected): void
+    {
+        $action = null === $method
+            ? Action::new('publish', 'Publish')->asAjaxRequest('publish_book')
+            : Action::new('publish', 'Publish')->asAjaxRequest('publish_book', $method);
 
         $this->assertTrue($action->isAjaxRequest());
-        $this->assertSame('POST', $action->getAjaxMethod());
+        $this->assertSame($expected, $action->getAjaxMethod());
+        $this->assertSame($expected, $action->jsonSerialize()['ajaxMethod']);
         $this->assertSame('publish_book', $action->resolveCsrfTokenId(['id' => 7]));
     }
 
-    public function test_as_ajax_request_normalizes_method_case(): void
-    {
-        $action = Action::new('archive', 'Archive')->asAjaxRequest('archive_book', 'delete');
-
-        $this->assertSame('DELETE', $action->getAjaxMethod());
-    }
-
-    public function test_as_ajax_request_rejects_unsupported_method(): void
+    #[Test]
+    public function it_rejects_an_unsupported_ajax_method(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Ajax action method must be "POST" or "DELETE", "PUT" given.');
@@ -358,29 +221,29 @@ class ActionTest extends TestCase
         Action::new('publish', 'Publish')->asAjaxRequest('publish_book', 'PUT');
     }
 
-    public function test_as_ajax_request_resolves_callable_csrf_token_id(): void
+    public static function csrfTokenIdProvider(): iterable
     {
-        $action = Action::new('publish', 'Publish')->asAjaxRequest(
-            static fn (object $row): string => 'publish_book_'.$row->id,
-        );
-
-        $this->assertSame('publish_book_7', $action->resolveCsrfTokenId((object) ['id' => 7]));
+        yield 'callable token id' => [static fn (object $row): string => 'publish_book_'.$row->id, (object) ['id' => 7], 'publish_book_7'];
+        yield 'blank token id' => [static fn (): string => '   ', ['id' => 7], null];
+        yield 'without ajax mode' => [null, ['id' => 7], null];
     }
 
-    public function test_resolve_csrf_token_id_returns_null_for_blank_result(): void
+    #[Test]
+    #[DataProvider('csrfTokenIdProvider')]
+    public function it_resolves_the_csrf_token_id_per_row(?\Closure $csrfTokenId, mixed $row, ?string $expected): void
     {
-        $action = Action::new('publish', 'Publish')->asAjaxRequest(static fn (): string => '   ');
+        $action = Action::new('publish', 'Publish');
 
-        $this->assertNull($action->resolveCsrfTokenId(['id' => 7]));
+        if (null !== $csrfTokenId) {
+            $action->asAjaxRequest($csrfTokenId);
+        }
+
+        $this->assertSame(null !== $csrfTokenId, $action->isAjaxRequest());
+        $this->assertSame($expected, $action->resolveCsrfTokenId($row));
     }
 
-    public function test_resolve_csrf_token_id_returns_null_without_ajax_mode(): void
-    {
-        $this->assertFalse(Action::new('publish', 'Publish')->isAjaxRequest());
-        $this->assertNull(Action::new('publish', 'Publish')->resolveCsrfTokenId(['id' => 7]));
-    }
-
-    public function test_ajax_serialization_exposes_method_only(): void
+    #[Test]
+    public function it_exposes_the_ajax_method_only_to_the_client(): void
     {
         $json = Action::new('publish', 'Publish')
             ->linkToRoute('book_publish', ['id' => 42])
@@ -388,16 +251,54 @@ class ActionTest extends TestCase
             ->jsonSerialize();
 
         $this->assertSame('POST', $json['ajaxMethod']);
-        $this->assertArrayNotHasKey('url', $json);
-        $this->assertArrayNotHasKey('route', $json);
-        $this->assertArrayNotHasKey('routeName', $json);
-        $this->assertArrayNotHasKey('routeParameters', $json);
-        $this->assertArrayNotHasKey('csrfTokenId', $json);
-        $this->assertArrayNotHasKey('token', $json);
+        $this->assertSame(['type', 'name', 'label', 'className', 'idField', 'htmlAttributes', 'ajaxMethod'], array_keys($json));
     }
 
-    public function test_ajax_method_is_not_serialized_by_default(): void
+    public static function permissionProvider(): iterable
     {
-        $this->assertArrayNotHasKey('ajaxMethod', Action::new('publish', 'Publish')->jsonSerialize());
+        yield 'static permission' => [null, true, false];
+        yield 'per row permission' => [static fn (mixed $row): mixed => $row, false, true];
+    }
+
+    #[Test]
+    #[DataProvider('permissionProvider')]
+    public function it_distinguishes_static_from_per_row_permissions(?\Closure $subjectResolver, bool $static, bool $perRow): void
+    {
+        $action = Action::delete()->permission('ROLE_ADMIN', $subjectResolver);
+
+        $this->assertSame('ROLE_ADMIN', $action->getPermission());
+        $this->assertSame($subjectResolver, $action->getPermissionSubjectResolver());
+        $this->assertSame($static, $action->hasStaticPermission());
+        $this->assertSame($perRow, $action->hasPerRowPermission());
+
+        $json = $action->jsonSerialize();
+
+        $this->assertArrayNotHasKey('permission', $json);
+        $this->assertArrayNotHasKey('permissionSubjectResolver', $json);
+    }
+
+    #[Test]
+    public function it_serializes_the_collapsible_flag_without_leaking_the_template(): void
+    {
+        $action = Action::detail()->collapsible('book/detail.html.twig', ['extra' => 'value']);
+
+        $this->assertTrue($action->isCollapsible());
+        $this->assertSame('book/detail.html.twig', $action->getCollapsibleTemplate());
+        $this->assertSame(['extra' => 'value'], $action->getCollapsibleParameters());
+
+        $json = $action->jsonSerialize();
+
+        $this->assertTrue($json['collapsible']);
+        $this->assertArrayNotHasKey('collapsibleTemplate', $json);
+        $this->assertArrayNotHasKey('collapsibleParameters', $json);
+    }
+
+    #[Test]
+    public function it_overrides_the_position_without_serializing_it(): void
+    {
+        $action = Action::detail()->position(ActionsPosition::BeforeColumns);
+
+        $this->assertSame(ActionsPosition::BeforeColumns, $action->getPosition());
+        $this->assertArrayNotHasKey('position', $action->jsonSerialize());
     }
 }
