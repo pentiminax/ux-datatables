@@ -40,12 +40,16 @@ final class SearchPredicateFactory
             return null;
         }
 
-        if (RelationFieldResolver::supportsUuidEqualitySearch($qb, $field)) {
-            if (!self::isUuidLike($value)) {
+        $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $field);
+
+        if (null !== $uuidType) {
+            $identifier = trim($value);
+
+            if (!self::isUuidLike($identifier)) {
                 return null;
             }
 
-            return SearchConditionBuilder::numeric($qb, $alias, $field, $value, $paramName);
+            return SearchConditionBuilder::equality($qb, $alias, $field, $identifier, $paramName, $uuidType);
         }
 
         if (!RelationFieldResolver::supportsTextSearch($qb, $field)) {
@@ -57,8 +61,6 @@ final class SearchPredicateFactory
 
     private static function isUuidLike(string $value): bool
     {
-        $value = trim($value);
-
         if (1 === preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $value)) {
             return true;
         }

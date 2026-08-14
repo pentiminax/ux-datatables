@@ -41,6 +41,21 @@ final class TextFilterTest extends TestCase
         $this->assertSame(['filter_name' => '%john%'], $this->capturedParams);
     }
 
+    /**
+     * PostgreSQL rejects both LOWER(uuid) and uuid LIKE, so a native uuid column
+     * must not produce a text condition at all.
+     */
+    #[Test]
+    public function it_is_a_no_op_for_a_uuid_field(): void
+    {
+        $qb = $this->createScalarFieldQueryBuilder('uuid');
+
+        TextFilter::new('id')->apply($qb, '018f2c3e', 'e');
+
+        $this->assertSame([], $this->capturedWhere);
+        $this->assertSame([], $this->capturedParams);
+    }
+
     #[Test]
     public function it_is_a_no_op_for_blank_values(): void
     {

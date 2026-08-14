@@ -36,6 +36,21 @@ enum ColumnControlLogic: string
         };
     }
 
+    /**
+     * Whether the logic is expressed with SQL LIKE, which strict engines reject on
+     * non-text columns such as PostgreSQL's native uuid type.
+     */
+    public function usesLikeOperator(): bool
+    {
+        return match ($this) {
+            self::Contains,
+            self::Ends,
+            self::NotContains,
+            self::Starts => true,
+            default      => false,
+        };
+    }
+
     public function operator(): string
     {
         if (!$this->supportsComparisonStrategy()) {

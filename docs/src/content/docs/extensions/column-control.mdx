@@ -22,10 +22,17 @@ The bundled `ColumnControlExtension` serializes default controls for:
 - ordering actions (asc, desc, add/remove order)
 - per-column search input
 
+Search logics that rely on SQL `LIKE` — `contains`, `notContains`, `starts`, and `ends` — are
+ignored on columns mapped to a native identifier type (`guid`, `uuid`, `ulid`, `uuid_binary`,
+`uuid_binary_ordered_time`), because PostgreSQL and SQL Server reject `LIKE` on those columns.
+`equal` and `notEqual` still work and match a complete identifier. See
+[Searching UUID and ULID columns](/ux-datatables/guide/server-side-processing/#searching-uuid-and-ulid-columns).
+
 ## Frequent Pitfalls
 
 - Expecting custom control layouts from the default extension payload.
 - Enabling it without ensuring the target columns are searchable/orderable.
+- Expecting partial search (`contains`, `starts`) to work on a UUID or ULID column.
 
 ## Cross Links
 

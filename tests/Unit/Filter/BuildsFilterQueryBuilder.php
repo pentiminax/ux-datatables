@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Filter;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Mapping\FieldMapping;
 use Doctrine\ORM\QueryBuilder;
 
 /**
@@ -20,10 +21,20 @@ trait BuildsFilterQueryBuilder
     /** @var array<string, mixed> */
     private array $capturedParams = [];
 
-    private function createScalarFieldQueryBuilder(): QueryBuilder
+    /**
+     * @param string|null $fieldType Doctrine type reported for every mapped field, or null to leave fields unmapped
+     */
+    private function createScalarFieldQueryBuilder(?string $fieldType = null): QueryBuilder
     {
         $metadata = $this->createMock(ClassMetadata::class);
         $metadata->method('hasAssociation')->willReturn(false);
+        $metadata->method('hasField')->willReturn(null !== $fieldType);
+
+        if (null !== $fieldType) {
+            $metadata->method('getFieldMapping')->willReturnCallback(
+                static fn (string $field): FieldMapping => new FieldMapping($fieldType, $field, $field)
+            );
+        }
 
         $em = $this->createMock(EntityManagerInterface::class);
         $em->method('getClassMetadata')->willReturn($metadata);

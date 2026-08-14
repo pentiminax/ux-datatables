@@ -21,6 +21,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SearchPredicateFactory::class)]
 final class SearchPredicateFactoryTest extends TestCase
 {
+    use BuildsTypedFieldQueryBuilder;
+
     #[Test]
     public function it_returns_like_condition_for_text_column(): void
     {
@@ -60,7 +62,7 @@ final class SearchPredicateFactoryTest extends TestCase
     {
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->once())->method('setParameter')->with('p_0', '42');
+        $qb->expects($this->once())->method('setParameter')->with('p_0', '42', null);
 
         $column = NumberColumn::new('id', 'ID')->setField('id');
         $result = SearchPredicateFactory::build($qb, $column, 'e', 'id', '42', 'p_0');
@@ -85,7 +87,7 @@ final class SearchPredicateFactoryTest extends TestCase
     {
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->once())->method('setParameter')->with('p_0', '42');
+        $qb->expects($this->once())->method('setParameter')->with('p_0', '42', null);
 
         $column = TextColumn::new('score', 'Score')->setField('score');
         $result = SearchPredicateFactory::build($qb, $column, 'e', 'score', '42', 'p_0', true);
@@ -133,7 +135,7 @@ final class SearchPredicateFactoryTest extends TestCase
     {
         $qb = $this->queryBuilderWithFieldType('id', 'guid');
         $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->once())->method('setParameter')->with('p_0', '018f2c3e-1234-7abc-9def-0123456789ab');
+        $qb->expects($this->once())->method('setParameter')->with('p_0', '018f2c3e-1234-7abc-9def-0123456789ab', 'guid');
 
         $column = TextColumn::new('id', 'ID')->setField('id');
         $result = SearchPredicateFactory::build(
@@ -165,7 +167,7 @@ final class SearchPredicateFactoryTest extends TestCase
     {
         $qb = $this->queryBuilderWithFieldType('id', 'ulid');
         $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->once())->method('setParameter')->with('p_0', '01ARZ3NDEKTSV4RRFFQ69G5FAV');
+        $qb->expects($this->once())->method('setParameter')->with('p_0', '01ARZ3NDEKTSV4RRFFQ69G5FAV', 'ulid');
 
         $column = TextColumn::new('id', 'ID')->setField('id');
         $result = SearchPredicateFactory::build(
@@ -180,20 +182,59 @@ final class SearchPredicateFactoryTest extends TestCase
         $this->assertSame('e.id = :p_0', $result);
     }
 
-    private function queryBuilderWithFieldType(string $field, string $type): QueryBuilder
+    #[Test]
+    public function it_binds_the_doctrine_type_for_binary_uuid_column(): void
     {
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with($field)->willReturn(false);
-        $metadata->method('hasField')->with($field)->willReturn(true);
-        $metadata->method('getFieldMapping')->with($field)->willReturn(new FieldMapping($type, $field, $field));
+        $qb = $this->queryBuilderWithFieldType('id', 'uuid_binary');
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('p_0', '018f2c3e-1234-7abc-9def-0123456789ab', 'uuid_binary');
 
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getClassMetadata')->with('App\\Entity\\Product')->willReturn($metadata);
+        $column = TextColumn::new('id', 'ID')->setField('id');
+        $result = SearchPredicateFactory::build(
+            $qb,
+            $column,
+            'e',
+            'id',
+            '018f2c3e-1234-7abc-9def-0123456789ab',
+            'p_0',
+        );
 
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Product']);
-        $qb->method('getEntityManager')->willReturn($em);
+        $this->assertSame('e.id = :p_0', $result);
+    }
 
-        return $qb;
+    #[Test]
+    public function it_binds_a_trimmed_identifier_for_uuid_column(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('id', 'uuid');
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('p_0', '018f2c3e-1234-7abc-9def-0123456789ab', 'uuid');
+
+        $column = TextColumn::new('id', 'ID')->setField('id');
+        $result = SearchPredicateFactory::build(
+            $qb,
+            $column,
+            'e',
+            'id',
+            '  018f2c3e-1234-7abc-9def-0123456789ab  ',
+            'p_0',
+        );
+
+        $this->assertSame('e.id = :p_0', $result);
+    }
+
+    #[Test]
+    public function it_returns_null_for_uuid_column_with_unhyphenated_value(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('id', 'uuid');
+        $qb->expects($this->never())->method('setParameter');
+
+        $column = TextColumn::new('id', 'ID')->setField('id');
+        $result = SearchPredicateFactory::build($qb, $column, 'e', 'id', '018f2c3e12347abc9def0123456789ab', 'p_0');
+
+        $this->assertNull($result);
     }
 }
