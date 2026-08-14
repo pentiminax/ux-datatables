@@ -127,28 +127,31 @@ final class RelationFieldResolver
     }
 
     /**
-     * Returns whether a field path is a native UUID/ULID type that can be compared
-     * with equality but must not be used with SQL LIKE.
+     * Returns the Doctrine type of a native UUID/ULID field path, or null when the field
+     * is not one. Such fields can be compared with equality but must not be used with SQL LIKE.
+     *
+     * Callers need the type name itself, not only the answer, because the parameter must be
+     * bound with it: `ulid` and the binary UUID types only match once Doctrine has converted
+     * the search term to its stored representation.
      */
-    public static function supportsUuidEqualitySearch(QueryBuilder $qb, string $fieldPath): bool
+    public static function resolveUuidFieldType(QueryBuilder $qb, string $fieldPath): ?string
     {
         if (!self::supportsSearchFiltering($qb, $fieldPath)) {
-            return false;
+            return null;
         }
 
         $fieldType = self::resolveFieldType($qb, $fieldPath);
 
-        return null !== $fieldType && self::isUuidFieldType($fieldType);
+        if (null === $fieldType || !\in_array($fieldType, self::UUID_FIELD_TYPES, true)) {
+            return null;
+        }
+
+        return $fieldType;
     }
 
     private static function isTextSearchableFieldType(string $type): bool
     {
         return !\in_array($type, self::NON_TEXT_SEARCHABLE_TYPES, true);
-    }
-
-    private static function isUuidFieldType(string $type): bool
-    {
-        return \in_array($type, self::UUID_FIELD_TYPES, true);
     }
 
     private static function resolveFieldType(QueryBuilder $qb, string $fieldPath): ?string

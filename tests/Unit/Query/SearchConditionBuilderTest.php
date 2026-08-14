@@ -37,9 +37,23 @@ final class SearchConditionBuilderTest extends TestCase
 
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with('param_0', '42');
+            ->with('param_0', '42', null);
 
         $result = SearchConditionBuilder::numeric($qb, 'e', 'id', '42', 'param_0');
+
+        $this->assertSame('e.id = :param_0', $result);
+    }
+
+    #[Test]
+    public function equality_binds_the_given_doctrine_type(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('param_0', '01ARZ3NDEKTSV4RRFFQ69G5FAV', 'ulid');
+
+        $result = SearchConditionBuilder::equality($qb, 'e', 'id', '01ARZ3NDEKTSV4RRFFQ69G5FAV', 'param_0', 'ulid');
 
         $this->assertSame('e.id = :param_0', $result);
     }
@@ -77,7 +91,7 @@ final class SearchConditionBuilderTest extends TestCase
 
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with('param_0', '99');
+            ->with('param_0', '99', null);
 
         $result = SearchConditionBuilder::numeric($qb, 'e', 'order.total', '99', 'param_0');
 

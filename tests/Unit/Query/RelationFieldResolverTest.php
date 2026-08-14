@@ -20,6 +20,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(RelationFieldResolver::class)]
 final class RelationFieldResolverTest extends TestCase
 {
+    use BuildsTypedFieldQueryBuilder;
+
     #[Test]
     public function it_returns_alias_and_field_for_simple_field(): void
     {
@@ -198,7 +200,7 @@ final class RelationFieldResolverTest extends TestCase
         $qb = $this->queryBuilderWithFieldType('id', 'guid');
 
         $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'id'));
-        $this->assertTrue(RelationFieldResolver::supportsUuidEqualitySearch($qb, 'id'));
+        $this->assertSame('guid', RelationFieldResolver::resolveUuidFieldType($qb, 'id'));
     }
 
     #[Test]
@@ -207,16 +209,50 @@ final class RelationFieldResolverTest extends TestCase
         $qb = $this->queryBuilderWithFieldType('id', 'uuid');
 
         $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'id'));
-        $this->assertTrue(RelationFieldResolver::supportsUuidEqualitySearch($qb, 'id'));
+        $this->assertSame('uuid', RelationFieldResolver::resolveUuidFieldType($qb, 'id'));
     }
 
     #[Test]
-    public function it_does_not_support_uuid_equality_search_for_string_field(): void
+    public function it_does_not_support_text_search_for_ulid_field(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('id', 'ulid');
+
+        $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'id'));
+        $this->assertSame('ulid', RelationFieldResolver::resolveUuidFieldType($qb, 'id'));
+    }
+
+    #[Test]
+    public function it_resolves_the_uuid_type_for_binary_uuid_field(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('id', 'uuid_binary_ordered_time');
+
+        $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'id'));
+        $this->assertSame('uuid_binary_ordered_time', RelationFieldResolver::resolveUuidFieldType($qb, 'id'));
+    }
+
+    #[Test]
+    public function it_does_not_resolve_a_uuid_type_for_string_field(): void
     {
         $qb = $this->queryBuilderWithFieldType('email', 'string');
 
         $this->assertTrue(RelationFieldResolver::supportsTextSearch($qb, 'email'));
-        $this->assertFalse(RelationFieldResolver::supportsUuidEqualitySearch($qb, 'email'));
+        $this->assertNull(RelationFieldResolver::resolveUuidFieldType($qb, 'email'));
+    }
+
+    #[Test]
+    public function it_does_not_resolve_a_uuid_type_for_association_field(): void
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->with('client')->willReturn(true);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        $this->assertNull(RelationFieldResolver::resolveUuidFieldType($qb, 'client'));
     }
 
     #[Test]
@@ -238,22 +274,5 @@ final class RelationFieldResolverTest extends TestCase
         $result = RelationFieldResolver::resolve($qb, 'e', 'author.address.city');
 
         $this->assertSame('author_address.city', $result);
-    }
-
-    private function queryBuilderWithFieldType(string $field, string $type): QueryBuilder
-    {
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with($field)->willReturn(false);
-        $metadata->method('hasField')->with($field)->willReturn(true);
-        $metadata->method('getFieldMapping')->with($field)->willReturn(new FieldMapping($type, $field, $field));
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getClassMetadata')->with('App\\Entity\\Product')->willReturn($metadata);
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Product']);
-        $qb->method('getEntityManager')->willReturn($em);
-
-        return $qb;
     }
 }
