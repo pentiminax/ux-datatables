@@ -18,7 +18,6 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
-use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CustomerListDto;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -49,7 +48,6 @@ final class AbstractDataTableProjectorTest extends TestCase
 
         (new SchemaTool($this->em))->createSchema([
             $this->em->getClassMetadata(CountCustomer::class),
-            $this->em->getClassMetadata(CountTag::class),
         ]);
 
         $this->em->persist(new CountCustomer(1, 'Alpha'));
@@ -72,8 +70,10 @@ final class AbstractDataTableProjectorTest extends TestCase
 
         $data = json_decode((string) $table->getResponse()->getContent(), true)['data'];
 
-        $this->assertSame('BADGE:Alpha', $data[0]['badge']);
-        $this->assertSame('BADGE:Beta', $data[1]['badge']);
+        $this->assertSame([
+            ['id' => 1, 'name' => 'Alpha', 'badge' => 'BADGE:Alpha'],
+            ['id' => 2, 'name' => 'Beta', 'badge' => 'BADGE:Beta'],
+        ], $data);
     }
 }
 

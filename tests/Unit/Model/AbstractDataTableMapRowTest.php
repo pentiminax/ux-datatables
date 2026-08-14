@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -25,359 +26,224 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableMapRowTest extends TestCase
 {
+    /**
+     * @param array<int, object>   $columns
+     * @param array<string, mixed> $expected
+     */
     #[Test]
-    public function it_maps_array_row_as_is(): void
+    #[DataProvider('provideMappedRows')]
+    public function it_maps_a_row(array $columns, mixed $row, array $expected, ?\Closure $detailActionUrl = null): void
     {
-        $table = new MapRowTestTable([TextColumn::new('id')]);
-        $row   = ['id' => 10, 'title' => 'Heat'];
+        $table = new MapRowTestTable($columns, $detailActionUrl, $this->urlGenerator());
 
-        $this->assertSame($row, $table->mapRowPublic($row));
+        $this->assertSame($expected, $table->mapRowPublic($row));
     }
 
+    /**
+     * @param array<int, object>               $columns
+     * @param array<int, mixed>                $data
+     * @param array<int, array<string, mixed>> $expected
+     */
     #[Test]
-    public function it_maps_json_serializable_row(): void
+    #[DataProvider('provideInlineData')]
+    public function it_maps_inline_data(array $columns, array $data, array $expected, ?\Closure $detailActionUrl = null): void
     {
-        $table = new MapRowTestTable([TextColumn::new('id')]);
-        $row   = new SerializableRow();
+        $table = new MapRowTestTable($columns, $detailActionUrl, $this->urlGenerator());
 
-        $this->assertSame(['id' => 5], $table->mapRowPublic($row));
-    }
+        $table->setData($data);
 
-    #[Test]
-    public function it_maps_object_row_and_formats_date(): void
-    {
-        $table = new MapRowTestTable([
-            TextColumn::new('id'),
-            TextColumn::new('title'),
-            DateColumn::new('releasedAt'),
-        ]);
-
-        $row = new MovieRow(
-            id: 1,
-            title: 'Heat',
-            releasedAt: new \DateTimeImmutable('1995-12-15')
-        );
-
-        $this->assertSame([
-            'id'         => 1,
-            'title'      => 'Heat',
-            'releasedAt' => '1995-12-15',
-        ], $table->mapRowPublic($row));
-    }
-
-    #[Test]
-    public function it_maps_nested_object_path(): void
-    {
-        $table = new MapRowTestTable([
-            TextColumn::new('title')->setData('meta.title'),
-            DateColumn::new('releasedAt')->setData('meta.releasedAt'),
-        ]);
-
-        $row = new MovieWithMetaRow(
-            new MetaRow('Alien', new \DateTimeImmutable('1979-05-25'))
-        );
-
-        $this->assertSame([
-            'meta.title'      => 'Alien',
-            'meta.releasedAt' => '1979-05-25',
-        ], $table->mapRowPublic($row));
-    }
-
-    #[Test]
-    public function it_maps_boolean_property_with_is_prefixed_getter(): void
-    {
-        $table = new MapRowTestTable([
-            TextColumn::new('isEmailAuthEnabled'),
-        ]);
-
-        $row = new BooleanFlagRow(true);
-
-        $this->assertSame([
-            'isEmailAuthEnabled' => true,
-        ], $table->mapRowPublic($row));
-    }
-
-    #[Test]
-    public function it_adds_resolved_detail_action_url_for_object_rows(): void
-    {
-        $table = new DetailActionMapRowTestTable([
-            TextColumn::new('id'),
-            TextColumn::new('title'),
-        ]);
-
-        $row = new MovieRow(
-            id: 7,
-            title: 'Heat',
-            releasedAt: new \DateTimeImmutable('1995-12-15')
-        );
-
-        $mappedRow = $table->renderRowPublic($row);
-
-        $this->assertSame('/movies/7', $mappedRow['__ux_datatables_actions']['DETAIL']['url']);
-    }
-
-    #[Test]
-    public function it_adds_resolved_detail_action_url_for_array_rows(): void
-    {
-        $table = new DetailActionMapRowTestTable([
-            TextColumn::new('id'),
-            TextColumn::new('title'),
-        ]);
-
-        $mappedRow = $table->renderRowPublic([
-            'id'    => 8,
-            'title' => 'Alien',
-        ]);
-
-        $this->assertSame('/movies/8', $mappedRow['__ux_datatables_actions']['DETAIL']['url']);
-    }
-
-    #[Test]
-    public function it_sets_inline_data_from_objects_with_typed_action_closure(): void
-    {
-        $table = new TypedDetailActionSetDataTable([
-            TextColumn::new('id'),
-            TextColumn::new('title'),
-        ]);
-
-        $table->setData([
-            new MovieRow(
-                id: 11,
-                title: 'Blade Runner',
-                releasedAt: new \DateTimeImmutable('1982-06-25')
-            ),
-        ]);
-
-        $data = $table->getDataTable()->getOption('data');
-
-        $this->assertSame([
-            [
-                'id'                      => 11,
-                'title'                   => 'Blade Runner',
-                '__ux_datatables_actions' => [
-                    'DETAIL' => ['url' => '/movies/11'],
-                ],
-            ],
-        ], $data);
+        $this->assertSame($expected, $table->getDataTable()->getOption('data'));
         $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
     }
 
-    #[Test]
-    public function it_sets_inline_data_from_arrays_with_array_action_closure(): void
+    /**
+     * @return iterable<string, array{array<int, object>, mixed, array<string, mixed>, 3?: \Closure}>
+     */
+    public static function provideMappedRows(): iterable
     {
-        $table = new ArrayDetailActionSetDataTable([
-            TextColumn::new('id'),
-            TextColumn::new('title'),
-        ]);
+        yield 'array row is kept as is' => [
+            [TextColumn::new('id')],
+            ['id' => 10, 'title' => 'Heat'],
+            ['id' => 10, 'title' => 'Heat'],
+        ];
 
-        $table->setData([
-            ['id' => 12, 'title' => 'Alien'],
-        ]);
+        yield 'json serializable row' => [
+            [TextColumn::new('id')],
+            new SerializableRow(),
+            ['id' => 5],
+        ];
 
-        $this->assertSame([
+        yield 'object row with a formatted date' => [
+            [TextColumn::new('id'), TextColumn::new('title'), DateColumn::new('releasedAt')],
+            new MovieRow(1, 'Heat', new \DateTimeImmutable('1995-12-15')),
+            ['id' => 1, 'title' => 'Heat', 'releasedAt' => '1995-12-15'],
+        ];
+
+        yield 'nested object path' => [
             [
-                'id'                      => 12,
+                TextColumn::new('title')->setData('meta.title'),
+                DateColumn::new('releasedAt')->setData('meta.releasedAt'),
+            ],
+            new MovieWithMetaRow(new MetaRow('Alien', new \DateTimeImmutable('1979-05-25'))),
+            ['meta.title' => 'Alien', 'meta.releasedAt' => '1979-05-25'],
+        ];
+
+        yield 'boolean property with an is-prefixed getter' => [
+            [TextColumn::new('isEmailAuthEnabled')],
+            new BooleanFlagRow(true),
+            ['isEmailAuthEnabled' => true],
+        ];
+
+        yield 'object row with a resolved detail action url' => [
+            [TextColumn::new('id'), TextColumn::new('title')],
+            new MovieRow(7, 'Heat', new \DateTimeImmutable('1995-12-15')),
+            [
+                'id'                      => 7,
+                'title'                   => 'Heat',
+                '__ux_datatables_actions' => ['DETAIL' => ['url' => '/movies/7']],
+            ],
+            self::mixedDetailUrl(),
+        ];
+
+        yield 'array row with a resolved detail action url' => [
+            [TextColumn::new('id'), TextColumn::new('title')],
+            ['id' => 8, 'title' => 'Alien'],
+            [
+                'id'                      => 8,
                 'title'                   => 'Alien',
-                '__ux_datatables_actions' => [
-                    'DETAIL' => ['url' => '/movies/12'],
-                ],
+                '__ux_datatables_actions' => ['DETAIL' => ['url' => '/movies/8']],
             ],
-        ], $table->getDataTable()->getOption('data'));
+            self::mixedDetailUrl(),
+        ];
     }
 
-    #[Test]
-    public function it_sets_inline_data_from_objects_with_typed_url_route_closure(): void
+    /**
+     * @return iterable<string, array{array<int, object>, array<int, mixed>, array<int, array<string, mixed>>, 3?: \Closure}>
+     */
+    public static function provideInlineData(): iterable
     {
-        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        yield 'objects with a typed action closure' => [
+            [TextColumn::new('id'), TextColumn::new('title')],
+            [new MovieRow(11, 'Blade Runner', new \DateTimeImmutable('1982-06-25'))],
+            [
+                [
+                    'id'                      => 11,
+                    'title'                   => 'Blade Runner',
+                    '__ux_datatables_actions' => ['DETAIL' => ['url' => '/movies/11']],
+                ],
+            ],
+            static fn (MovieRow $row): string => '/movies/'.$row->getId(),
+        ];
+
+        yield 'arrays with an array action closure' => [
+            [TextColumn::new('id'), TextColumn::new('title')],
+            [['id' => 12, 'title' => 'Alien']],
+            [
+                [
+                    'id'                      => 12,
+                    'title'                   => 'Alien',
+                    '__ux_datatables_actions' => ['DETAIL' => ['url' => '/movies/12']],
+                ],
+            ],
+            static fn (array $row): string => '/movies/'.$row['id'],
+        ];
+
+        yield 'objects with a typed url route closure' => [
+            [
+                TextColumn::new('id'),
+                UrlColumn::new('title')->linkToRoute(
+                    'movie_show',
+                    static fn (MovieRow $movie): array => ['id' => $movie->getId()]
+                ),
+            ],
+            [new MovieRow(13, 'Arrival', new \DateTimeImmutable('2016-09-01'))],
+            [
+                [
+                    'id'                   => 13,
+                    'title'                => 'Arrival',
+                    '__ux_datatables_urls' => ['title' => '/movie_show/13'],
+                ],
+            ],
+        ];
+
+        yield 'arrays with an array url closure' => [
+            [
+                TextColumn::new('id'),
+                UrlColumn::new('title')->linkToUrl(static fn (array $row): string => '/movies/'.$row['id']),
+            ],
+            [['id' => 14, 'title' => 'Aliens']],
+            [
+                [
+                    'id'                   => 14,
+                    'title'                => 'Aliens',
+                    '__ux_datatables_urls' => ['title' => '/movies/14'],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Resolves the detail url from either an array or an object row.
+     */
+    private static function mixedDetailUrl(): \Closure
+    {
+        return static function (mixed $row): string {
+            $id = \is_array($row) ? $row['id'] : $row->getId();
+
+            return '/movies/'.$id;
+        };
+    }
+
+    /**
+     * Echoes the route and its parameters back so assertions cover both.
+     */
+    private function urlGenerator(): UrlGeneratorInterface
+    {
+        $urlGenerator = $this->createStub(UrlGeneratorInterface::class);
         $urlGenerator
-            ->expects($this->once())
             ->method('generate')
-            ->with('movie_show', ['id' => 13])
-            ->willReturn('/movies/13');
+            ->willReturnCallback(static fn (string $route, array $parameters): string => \sprintf('/%s/%s', $route, implode('/', $parameters)));
 
-        $table = new TypedUrlColumnSetDataTable([
-            TextColumn::new('id'),
-            UrlColumn::new('title')->linkToRoute(
-                'movie_show',
-                static fn (MovieRow $movie): array => ['id' => $movie->getId()]
-            ),
-        ], $urlGenerator);
-
-        $table->setData([
-            new MovieRow(
-                id: 13,
-                title: 'Arrival',
-                releasedAt: new \DateTimeImmutable('2016-09-01')
-            ),
-        ]);
-
-        $this->assertSame([
-            [
-                'id'                   => 13,
-                'title'                => 'Arrival',
-                '__ux_datatables_urls' => [
-                    'title' => '/movies/13',
-                ],
-            ],
-        ], $table->getDataTable()->getOption('data'));
-    }
-
-    #[Test]
-    public function it_sets_inline_data_from_arrays_with_array_url_closure(): void
-    {
-        $table = new ArrayUrlColumnSetDataTable([
-            TextColumn::new('id'),
-            UrlColumn::new('title')->linkToUrl(static fn (array $row): string => '/movies/'.$row['id']),
-        ]);
-
-        $table->setData([
-            ['id' => 14, 'title' => 'Aliens'],
-        ]);
-
-        $this->assertSame([
-            [
-                'id'                   => 14,
-                'title'                => 'Aliens',
-                '__ux_datatables_urls' => [
-                    'title' => '/movies/14',
-                ],
-            ],
-        ], $table->getDataTable()->getOption('data'));
+        return $urlGenerator;
     }
 }
 
 final class MapRowTestTable extends AbstractDataTable
 {
-    public function __construct(private readonly array $columnsConfig)
-    {
+    /**
+     * @param array<int, object> $columnsConfig
+     */
+    public function __construct(
+        private readonly array $columnsConfig,
+        private readonly ?\Closure $detailActionUrl = null,
+        ?UrlGeneratorInterface $urlGenerator = null,
+    ) {
         parent::__construct();
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            runtimeFactory: new DataTableRuntimeFactory(
+                actionRowDataResolver: new ActionRowDataResolver(),
+                urlColumnDataResolver: new UrlColumnDataResolver($urlGenerator),
+            )
+        ));
     }
 
     public function configureColumns(): iterable
     {
         return $this->columnsConfig;
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        if (null === $this->detailActionUrl) {
+            return $actions;
+        }
+
+        return $actions->add(Action::detail()->linkToUrl($this->detailActionUrl));
     }
 
     public function mapRowPublic(mixed $row): array
     {
         return $this->createRowMapper()->map($row);
-    }
-}
-
-final class DetailActionMapRowTestTable extends AbstractDataTable
-{
-    public function __construct(private readonly array $columnsConfig)
-    {
-        parent::__construct();
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            runtimeFactory: new DataTableRuntimeFactory(
-                actionRowDataResolver: new ActionRowDataResolver(),
-            )
-        ));
-    }
-
-    public function configureColumns(): iterable
-    {
-        return $this->columnsConfig;
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(
-            Action::detail()->linkToUrl(static function (mixed $row): string {
-                $id = \is_array($row) ? $row['id'] : $row->getId();
-
-                return '/movies/'.$id;
-            })
-        );
-    }
-
-    public function renderRowPublic(mixed $row): array
-    {
-        return $this->createRowMapper()->map($row);
-    }
-}
-
-final class TypedDetailActionSetDataTable extends AbstractDataTable
-{
-    public function __construct(private readonly array $columnsConfig)
-    {
-        parent::__construct();
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            runtimeFactory: new DataTableRuntimeFactory(
-                actionRowDataResolver: new ActionRowDataResolver(),
-            )
-        ));
-    }
-
-    public function configureColumns(): iterable
-    {
-        return $this->columnsConfig;
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(
-            Action::detail()->linkToUrl(static fn (MovieRow $row): string => '/movies/'.$row->getId())
-        );
-    }
-}
-
-final class ArrayDetailActionSetDataTable extends AbstractDataTable
-{
-    public function __construct(private readonly array $columnsConfig)
-    {
-        parent::__construct();
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            runtimeFactory: new DataTableRuntimeFactory(
-                actionRowDataResolver: new ActionRowDataResolver(),
-            )
-        ));
-    }
-
-    public function configureColumns(): iterable
-    {
-        return $this->columnsConfig;
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(
-            Action::detail()->linkToUrl(static fn (array $row): string => '/movies/'.$row['id'])
-        );
-    }
-}
-
-final class TypedUrlColumnSetDataTable extends AbstractDataTable
-{
-    public function __construct(
-        private readonly array $columnsConfig,
-        private readonly UrlGeneratorInterface $urlGenerator,
-    ) {
-        parent::__construct();
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            runtimeFactory: new DataTableRuntimeFactory(
-                urlColumnDataResolver: new UrlColumnDataResolver($this->urlGenerator),
-            )
-        ));
-    }
-
-    public function configureColumns(): iterable
-    {
-        return $this->columnsConfig;
-    }
-}
-
-final class ArrayUrlColumnSetDataTable extends AbstractDataTable
-{
-    public function __construct(private readonly array $columnsConfig)
-    {
-        parent::__construct();
-    }
-
-    public function configureColumns(): iterable
-    {
-        return $this->columnsConfig;
     }
 }
 
