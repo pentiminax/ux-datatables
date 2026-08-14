@@ -13,12 +13,13 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
-use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
@@ -29,51 +30,39 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 final class ColumnResolverTest extends TestCase
 {
     #[Test]
-    public function resolve_columns_returns_empty_when_no_attribute(): void
+    #[DataProvider('provideEmptyResolutions')]
+    public function it_resolves_no_column_without_usable_configuration(\Closure $resolve): void
     {
-        $resolver = new ColumnResolver();
+        $this->assertSame([], $resolve(new ColumnResolver()));
+    }
 
-        $this->assertSame([], $resolver->resolveColumns(null));
+    /**
+     * @return iterable<string, array{\Closure(ColumnResolver): array<ColumnInterface>}>
+     */
+    public static function provideEmptyResolutions(): iterable
+    {
+        yield 'resolveColumns without attribute' => [static fn (ColumnResolver $resolver) => $resolver->resolveColumns(null)];
+        yield 'columnsFromAttributes without attribute' => [static fn (ColumnResolver $resolver) => $resolver->columnsFromAttributes(null)];
+        yield 'autoDetectColumns without detector' => [
+            static fn (ColumnResolver $resolver) => $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class)),
+        ];
     }
 
     #[Test]
-    public function columns_from_attributes_returns_empty_when_no_attribute(): void
-    {
-        $resolver = new ColumnResolver();
-
-        $this->assertSame([], $resolver->columnsFromAttributes(null));
-    }
-
-    #[Test]
-    public function auto_detect_returns_empty_without_detector(): void
-    {
-        $resolver = new ColumnResolver();
-
-        $this->assertSame([], $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class)));
-    }
-
-    #[Test]
-    public function auto_detect_returns_empty_without_api_platform_opt_in(): void
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function auto_detect_returns_empty_when_detector_cannot_be_used(bool $apiPlatform): void
     {
         $detector = $this->createMock(ColumnAutoDetectorInterface::class);
-        $detector->expects($this->never())->method('supports');
+        $detector
+            ->expects($apiPlatform ? $this->once() : $this->never())
+            ->method('supports')
+            ->willReturn(false);
         $detector->expects($this->never())->method('detectColumns');
 
         $resolver = new ColumnResolver(columnAutoDetector: $detector);
 
-        $this->assertSame([], $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class)));
-    }
-
-    #[Test]
-    public function auto_detect_returns_empty_when_not_supported(): void
-    {
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
-        $detector->method('supports')->willReturn(false);
-        $detector->expects($this->never())->method('detectColumns');
-
-        $resolver = new ColumnResolver(columnAutoDetector: $detector);
-
-        $this->assertSame([], $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: true)));
+        $this->assertSame([], $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: $apiPlatform)));
     }
 
     #[Test]
@@ -93,85 +82,88 @@ final class ColumnResolverTest extends TestCase
         $this->assertSame($expected, $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: true)));
     }
 
+    /**
+     * @param string[] $explicitGroups
+     * @param string[] $expectedGroups
+     */
     #[Test]
-    public function auto_detect_uses_attribute_serialization_groups(): void
+    #[TestWith([[], ['product:list']])]
+    #[TestWith([['custom:group'], ['custom:group']])]
+    public function auto_detect_forwards_serialization_groups(array $explicitGroups, array $expectedGroups): void
     {
         $detector = $this->createMock(ColumnAutoDetectorInterface::class);
         $detector->method('supports')->willReturn(true);
         $detector
             ->expects($this->once())
             ->method('detectColumns')
-            ->with(\stdClass::class, ['product:list'])
-            ->willReturn([]);
-
-        $resolver = new ColumnResolver(columnAutoDetector: $detector);
-
-        $resolver->autoDetectColumns(
-            new AsDataTable(entityClass: \stdClass::class, serializationGroups: ['product:list'], apiPlatform: true)
-        );
-    }
-
-    #[Test]
-    public function auto_detect_explicit_groups_override_attribute(): void
-    {
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
-        $detector->method('supports')->willReturn(true);
-        $detector
-            ->expects($this->once())
-            ->method('detectColumns')
-            ->with(\stdClass::class, ['custom:group'])
+            ->with(\stdClass::class, $expectedGroups)
             ->willReturn([]);
 
         $resolver = new ColumnResolver(columnAutoDetector: $detector);
 
         $resolver->autoDetectColumns(
             new AsDataTable(entityClass: \stdClass::class, serializationGroups: ['product:list'], apiPlatform: true),
-            ['custom:group']
+            $explicitGroups
         );
     }
 
     #[Test]
-    public function configure_action_entity_class_sets_entity_on_actions(): void
+    public function resolve_columns_falls_through_to_auto_detect(): void
+    {
+        $expected = [TextColumn::new('name', 'Name')];
+
+        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
+        $detector->method('supports')->willReturn(true);
+        $detector->method('detectColumns')->willReturn($expected);
+
+        // stdClass has no #[Column] attributes, so AttributeColumnReader returns []
+        $resolver = new ColumnResolver(
+            attributeColumnReader: new AttributeColumnReader(),
+            columnAutoDetector: $detector,
+        );
+
+        $this->assertSame(
+            $expected,
+            $resolver->resolveColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: true))
+        );
+    }
+
+    #[Test]
+    #[TestWith(['App\\Entity\\Product'])]
+    #[TestWith([null])]
+    public function configure_action_entity_class_only_applies_with_an_attribute(?string $entityClass): void
     {
         $resolver = new ColumnResolver();
-        $attr     = new AsDataTable(entityClass: 'App\\Entity\\Product');
 
         $actions = new Actions();
         $actions->add(Action::delete());
         $actions->add(Action::detail());
 
-        $resolver->configureActionEntityClass($actions, $attr);
+        $resolver->configureActionEntityClass(
+            $actions,
+            null === $entityClass ? null : new AsDataTable(entityClass: $entityClass)
+        );
 
         foreach ($actions->getActions() as $action) {
             $serialized = $action->jsonSerialize();
-            $this->assertSame('App\\Entity\\Product', $serialized['entityClass']);
+
+            if (null === $entityClass) {
+                $this->assertArrayNotHasKey('entityClass', $serialized);
+
+                continue;
+            }
+
+            $this->assertSame($entityClass, $serialized['entityClass']);
         }
-    }
-
-    #[Test]
-    public function configure_action_entity_class_noop_when_no_attribute(): void
-    {
-        $resolver = new ColumnResolver();
-
-        $actions = new Actions();
-        $actions->add(Action::delete());
-
-        $resolver->configureActionEntityClass($actions, null);
-
-        $serialized = $actions->getActions()[0]->jsonSerialize();
-        $this->assertArrayNotHasKey('entityClass', $serialized);
     }
 
     #[Test]
     public function filter_static_permissions_drops_denied_columns(): void
     {
-        $inner = $this->createMock(AuthorizationCheckerInterface::class);
-        $inner->method('isGranted')->willReturnMap([
+        $resolver = $this->createResolverWithPermissions([
             ['ROLE_HR', null, false],
             ['ROLE_PUBLIC', null, true],
         ]);
-
-        $resolver = new ColumnResolver(permissionChecker: new PermissionChecker($inner));
 
         $salary = TextColumn::new('salary', 'Salary')->permission('ROLE_HR');
         $name   = TextColumn::new('name', 'Name');
@@ -185,8 +177,7 @@ final class ColumnResolverTest extends TestCase
     #[Test]
     public function filter_static_permissions_filters_actions_inside_action_column(): void
     {
-        $inner = $this->createMock(AuthorizationCheckerInterface::class);
-        $inner->method('isGranted')->willReturnMap([
+        $resolver = $this->createResolverWithPermissions([
             ['ROLE_ADMIN', null, false],
             ['ROLE_EDITOR', null, true],
         ]);
@@ -195,10 +186,7 @@ final class ColumnResolverTest extends TestCase
         $actions->add(Action::delete()->permission('ROLE_ADMIN'));
         $actions->add(Action::edit()->permission('ROLE_EDITOR'));
 
-        $actionColumn = ActionColumn::fromActions('actions', '', $actions);
-
-        $resolver = new ColumnResolver(permissionChecker: new PermissionChecker($inner));
-        $filtered = $resolver->filterStaticPermissions([$actionColumn]);
+        $filtered = $resolver->filterStaticPermissions([ActionColumn::fromActions('actions', '', $actions)]);
 
         $this->assertCount(1, $filtered);
         $this->assertSame(1, $actions->count());
@@ -208,182 +196,52 @@ final class ColumnResolverTest extends TestCase
     #[Test]
     public function filter_static_permissions_drops_action_column_when_column_permission_denied(): void
     {
-        $inner = $this->createMock(AuthorizationCheckerInterface::class);
-        $inner->method('isGranted')->willReturn(false);
+        $resolver = $this->createResolverWithPermissions([['ROLE_MANAGER', null, false]]);
 
         $actions = new Actions();
         $actions->add(Action::delete());
         $actionColumn = ActionColumn::fromActions('actions', '', $actions)->permission('ROLE_MANAGER');
 
-        $resolver = new ColumnResolver(permissionChecker: new PermissionChecker($inner));
-        $filtered = $resolver->filterStaticPermissions([$actionColumn]);
-
-        $this->assertSame([], $filtered);
+        $this->assertSame([], $resolver->filterStaticPermissions([$actionColumn]));
     }
 
     #[Test]
     public function filter_actions_by_static_permissions_delegates_to_actions(): void
     {
-        $inner = $this->createMock(AuthorizationCheckerInterface::class);
-        $inner->method('isGranted')->willReturn(false);
+        $resolver = $this->createResolverWithPermissions([['ROLE_ADMIN', null, false]]);
 
         $actions = new Actions();
         $actions->add(Action::delete()->permission('ROLE_ADMIN'));
 
-        $resolver = new ColumnResolver(permissionChecker: new PermissionChecker($inner));
         $resolver->filterActionsByStaticPermissions($actions);
 
         $this->assertTrue($actions->isEmpty());
     }
 
     #[Test]
-    public function filter_static_permissions_is_noop_without_checker(): void
+    #[DataProvider('provideColumnsKeptWithoutPermissionCheck')]
+    public function filter_static_permissions_keeps_columns_it_cannot_deny(ColumnInterface $column): void
     {
-        $resolver = new ColumnResolver();
-        $column   = TextColumn::new('salary', 'Salary')->permission('ROLE_HR');
-
-        $this->assertSame([$column], $resolver->filterStaticPermissions([$column]));
+        $this->assertSame([$column], (new ColumnResolver())->filterStaticPermissions([$column]));
     }
 
-    #[Test]
-    public function filter_static_permissions_keeps_custom_column_without_permission_contract(): void
+    /**
+     * @return iterable<string, array{ColumnInterface}>
+     */
+    public static function provideColumnsKeptWithoutPermissionCheck(): iterable
     {
-        $resolver = new ColumnResolver(permissionChecker: new PermissionChecker());
-        $column   = new class implements ColumnInterface {
-            public function getName(): string
-            {
-                return 'custom';
-            }
-
-            public function getField(): ?string
-            {
-                return 'custom';
-            }
-
-            public function setField(string $field): static
-            {
-                return $this;
-            }
-
-            public function getOrderExpression(): ?string
-            {
-                return null;
-            }
-
-            public function setVisible(bool $visible): static
-            {
-                return $this;
-            }
-
-            public function isSearchable(): bool
-            {
-                return true;
-            }
-
-            public function isGlobalSearchable(): bool
-            {
-                return true;
-            }
-
-            public function getData(): ?string
-            {
-                return 'custom';
-            }
-
-            public function getTitle(): ?string
-            {
-                return 'Custom';
-            }
-
-            public function isNumber(): bool
-            {
-                return false;
-            }
-
-            public function isDate(): bool
-            {
-                return false;
-            }
-
-            public function getType(): ColumnType
-            {
-                return ColumnType::STRING;
-            }
-
-            public function isVisible(): bool
-            {
-                return true;
-            }
-
-            public function isOrderable(): bool
-            {
-                return true;
-            }
-
-            public function isExportable(): bool
-            {
-                return true;
-            }
-
-            public function getWidth(): ?string
-            {
-                return null;
-            }
-
-            public function getClassName(): ?string
-            {
-                return null;
-            }
-
-            public function getCellType(): ?string
-            {
-                return null;
-            }
-
-            public function getDefaultContent(): ?string
-            {
-                return null;
-            }
-
-            public function getCustomOption(string $optionName): mixed
-            {
-                return null;
-            }
-
-            public function getCustomOptions(): array
-            {
-                return [];
-            }
-
-            public function jsonSerialize(): array
-            {
-                return ['name' => 'custom'];
-            }
-        };
-
-        $this->assertSame([$column], $resolver->filterStaticPermissions([$column]));
+        yield 'permission granted by the default checker' => [TextColumn::new('salary', 'Salary')->permission('ROLE_HR')];
+        yield 'custom column without permission contract' => [self::createStub(ColumnInterface::class)];
     }
 
-    #[Test]
-    public function resolve_columns_falls_through_to_auto_detect(): void
+    /**
+     * @param list<array{string, mixed, bool}> $isGrantedMap
+     */
+    private function createResolverWithPermissions(array $isGrantedMap): ColumnResolver
     {
-        $expected = [TextColumn::new('name', 'Name')];
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->method('isGranted')->willReturnMap($isGrantedMap);
 
-        // stdClass has no #[Column] attributes, so AttributeColumnReader returns []
-        $reader = new AttributeColumnReader();
-
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
-        $detector->method('supports')->willReturn(true);
-        $detector->method('detectColumns')->willReturn($expected);
-
-        $resolver = new ColumnResolver(
-            attributeColumnReader: $reader,
-            columnAutoDetector: $detector,
-        );
-
-        $this->assertSame(
-            $expected,
-            $resolver->resolveColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: true))
-        );
+        return new ColumnResolver(permissionChecker: new PermissionChecker($inner));
     }
 }
