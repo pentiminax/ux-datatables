@@ -46,7 +46,7 @@ final class ContainsSearchStrategyTest extends TestCase
     {
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->once())->method('setParameter')->with('column_control_param_1', '42');
+        $qb->expects($this->once())->method('setParameter')->with('column_control_param_1', '42', null);
         $qb->expects($this->once())->method('andWhere')->with('e.id = :column_control_param_1');
 
         $column = NumberColumn::new('id')->setField('id');
@@ -64,7 +64,7 @@ final class ContainsSearchStrategyTest extends TestCase
     {
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->once())->method('setParameter')->with('column_control_param_2', '7');
+        $qb->expects($this->once())->method('setParameter')->with('column_control_param_2', '7', null);
         $qb->expects($this->once())->method('andWhere')->with('e.score = :column_control_param_2');
 
         $column = TextColumn::new('score')->setField('score');
