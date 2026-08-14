@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model\RowMapper;
 
 use Pentiminax\UX\DataTables\RowMapper\ClosureRowMapper;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -15,31 +16,28 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ClosureRowMapper::class)]
 final class ClosureRowMapperTest extends TestCase
 {
-    #[Test]
-    public function it_maps_with_array(): void
+    public static function rowProvider(): iterable
     {
-        $mapper = new ClosureRowMapper(fn (array $item) => [
-            'id'   => $item['id'],
-            'name' => strtoupper($item['name']),
-        ]);
+        yield 'array item' => [
+            static fn (array $item): array => ['id' => $item['id'], 'name' => strtoupper($item['name'])],
+            ['id' => 1, 'name' => 'john'],
+            ['id' => 1, 'name' => 'JOHN'],
+        ];
 
-        $result = $mapper->map(['id' => 1, 'name' => 'john']);
-
-        $this->assertSame(['id' => 1, 'name' => 'JOHN'], $result);
+        yield 'object item' => [
+            static fn (object $item): array => ['id' => $item->id, 'name' => ucfirst($item->name)],
+            (object) ['id' => 2, 'name' => 'doe'],
+            ['id' => 2, 'name' => 'Doe'],
+        ];
     }
 
+    /**
+     * @param array<string, mixed> $expected
+     */
     #[Test]
-    public function it_maps_with_object(): void
+    #[DataProvider('rowProvider')]
+    public function it_maps_rows_through_the_closure(\Closure $mapper, mixed $item, array $expected): void
     {
-        $mapper = new ClosureRowMapper(function (object $item) {
-            return [
-                'id'   => $item->id,
-                'name' => ucfirst($item->name),
-            ];
-        });
-
-        $result = $mapper->map((object) ['id' => 2, 'name' => 'doe']);
-
-        $this->assertSame(['id' => 2, 'name' => 'Doe'], $result);
+        $this->assertSame($expected, (new ClosureRowMapper($mapper))->map($item));
     }
 }
