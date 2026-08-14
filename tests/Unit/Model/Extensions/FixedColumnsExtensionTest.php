@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 
 use Pentiminax\UX\DataTables\Model\Extensions\FixedColumnsExtension;
+use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(FixedColumnsExtension::class)]
-final class FixedColumnsExtensionTest extends TestCase
+final class FixedColumnsExtensionTest extends DataTableTestCase
 {
     /**
      * @param array{start?: int, end?: int} $arguments
@@ -27,6 +27,6 @@ final class FixedColumnsExtensionTest extends TestCase
     {
         $extension = new FixedColumnsExtension(...$arguments);
 
-        $this->assertSame($expected, $extension->jsonSerialize());
+        $this->assertExtensionPayload($expected, $extension);
     }
 }

@@ -6,16 +6,16 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\RowGroupExtension;
+use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(RowGroupExtension::class)]
-final class RowGroupExtensionTest extends TestCase
+final class RowGroupExtensionTest extends DataTableTestCase
 {
     /**
      * @return iterable<string, array{array<string, mixed>, array<string, mixed>}>
@@ -64,7 +64,7 @@ final class RowGroupExtensionTest extends TestCase
     {
         $extension = new RowGroupExtension(...$arguments);
 
-        $this->assertSame($expected, $extension->jsonSerialize());
+        $this->assertExtensionPayload($expected, $extension);
     }
 
     #[Test]

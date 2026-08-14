@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -189,28 +190,10 @@ final class AbstractDataTableExtensionsTest extends TestCase
      */
     private function tableWith(array $layout, \Closure $configureExtensions): AbstractDataTable
     {
-        return new class($layout, $configureExtensions) extends AbstractDataTable {
-            public function __construct(
-                private readonly array $layout,
-                private readonly \Closure $configureExtensions,
-            ) {
-                parent::__construct();
-            }
-
-            public function configureDataTable(DataTable $table): DataTable
-            {
-                return [] === $this->layout ? $table : $table->layout($this->layout);
-            }
-
-            public function configureColumns(): iterable
-            {
-                yield TextColumn::new('id');
-            }
-
-            public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
-            {
-                return ($this->configureExtensions)($extensions);
-            }
-        };
+        return new ConfigurableDataTable(
+            [TextColumn::new('id')],
+            extensions: $configureExtensions,
+            configureTable: static fn (DataTable $table): DataTable => [] === $layout ? $table : $table->layout($layout),
+        );
     }
 }
