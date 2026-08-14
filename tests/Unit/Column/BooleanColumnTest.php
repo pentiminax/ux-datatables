@@ -5,37 +5,36 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(BooleanColumn::class)]
-final class BooleanColumnTest extends TestCase
+final class BooleanColumnTest extends DataTableTestCase
 {
     #[Test]
     public function it_has_neutral_default_serialization(): void
     {
-        $data = BooleanColumn::new('active', 'Active')->jsonSerialize();
+        $column = BooleanColumn::new('active', 'Active');
 
-        $this->assertSame('num', $data['type']);
-        $this->assertArrayNotHasKey('customOptions', $data);
+        $this->assertColumnHeader($column, 'num', 'active', 'Active');
+        $this->assertCustomOptions([], $column);
     }
 
     #[Test]
     public function it_can_configure_switch_state_and_ajax(): void
     {
-        $data = BooleanColumn::new('active')
+        $column = BooleanColumn::new('active')
             ->renderAsSwitch(true)
-            ->setToggleAjax('uuid', 'post')
-            ->jsonSerialize();
+            ->setToggleAjax('uuid', 'post');
 
-        $this->assertTrue($data['customOptions']['renderAsSwitch']);
-        $this->assertTrue($data['customOptions']['defaultState']);
-        $this->assertSame('uuid', $data['customOptions']['toggleIdField']);
-        $this->assertSame('POST', $data['customOptions']['toggleMethod']);
+        $this->assertCustomOption(true, 'renderAsSwitch', $column);
+        $this->assertCustomOption(true, 'defaultState', $column);
+        $this->assertCustomOption('uuid', 'toggleIdField', $column);
+        $this->assertCustomOption('POST', 'toggleMethod', $column);
     }
 
     #[Test]
@@ -54,27 +53,18 @@ final class BooleanColumnTest extends TestCase
             ->setEntityClass('App\\Entity\\User');
 
         $this->assertSame('App\\Entity\\User', $column->getEntityClass());
-        $this->assertArrayNotHasKey('entityClass', $column->jsonSerialize()['customOptions'] ?? []);
+        $this->assertNoCustomOption('entityClass', $column);
     }
 
     #[Test]
-    public function it_serializes_toggle_field_in_custom_options(): void
-    {
-        $column = BooleanColumn::new('active');
-        $column->setCustomOption(BooleanColumn::OPTION_TOGGLE_FIELD, 'isActive');
-
-        $data = $column->jsonSerialize();
-
-        $this->assertSame('isActive', $data['customOptions']['toggleField']);
-    }
-
-    #[Test]
-    public function it_returns_toggle_field_via_getter(): void
+    public function it_exposes_the_toggle_field_through_the_getter_and_the_payload(): void
     {
         $column = BooleanColumn::new('active');
         $this->assertNull($column->getToggleField());
 
         $column->setCustomOption(BooleanColumn::OPTION_TOGGLE_FIELD, 'isActive');
+
         $this->assertSame('isActive', $column->getToggleField());
+        $this->assertCustomOption('isActive', 'toggleField', $column);
     }
 }

@@ -5,92 +5,69 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
+use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(ChoiceColumn::class)]
-final class ChoiceColumnTest extends TestCase
+final class ChoiceColumnTest extends DataTableTestCase
 {
     #[Test]
-    public function it_has_no_choices_or_badges_by_default(): void
+    public function it_creates_html_type_column_without_choices_or_badges(): void
     {
-        $data = ChoiceColumn::new('status')->jsonSerialize();
+        $column = ChoiceColumn::new('status', 'Status');
 
-        $this->assertArrayNotHasKey('customOptions', $data);
+        $this->assertColumnHeader($column, 'html', 'status', 'Status');
+        $this->assertCustomOptions([], $column);
     }
 
     #[Test]
-    public function it_has_html_column_type(): void
+    #[DataProvider('provideChoices')]
+    public function it_normalizes_choices(mixed $choices, array $expected): void
     {
-        $data = ChoiceColumn::new('status')->jsonSerialize();
+        $column = ChoiceColumn::new('status')->setChoices($choices);
 
-        $this->assertSame('html', $data['type']);
+        $this->assertCustomOption($expected, 'choices', $column);
+    }
+
+    /**
+     * @return iterable<string, array{mixed, array<string, string>}>
+     */
+    public static function provideChoices(): iterable
+    {
+        yield 'label indexed array' => [
+            ['Active' => 'active', 'Inactive' => 'inactive'],
+            ['active' => 'Active', 'inactive' => 'Inactive'],
+        ];
+
+        yield 'non string values are cast to string keys' => [
+            ['One' => 1, 'Two' => 2],
+            ['1' => 'One', '2' => 'Two'],
+        ];
+
+        yield 'enum cases exposing getLabel()' => [
+            TestStatusWithLabel::cases(),
+            ['active' => 'Active ✅', 'inactive' => 'Inactive ❌'],
+        ];
+
+        yield 'backed enum class' => [
+            TestStatus::class,
+            ['active' => 'Active', 'inactive' => 'Inactive', 'pending' => 'Pending'],
+        ];
+
+        yield 'backed enum cases' => [
+            TestStatus::cases(),
+            ['active' => 'Active', 'inactive' => 'Inactive', 'pending' => 'Pending'],
+        ];
     }
 
     #[Test]
-    public function it_sets_choices_from_array(): void
-    {
-        $data = ChoiceColumn::new('status')
-            ->setChoices(['Active' => 'active', 'Inactive' => 'inactive'])
-            ->jsonSerialize();
-
-        $this->assertArrayHasKey('choices', $data['customOptions']);
-        $this->assertSame(['active' => 'Active', 'inactive' => 'Inactive'], $data['customOptions']['choices']);
-    }
-
-    #[Test]
-    public function it_casts_non_string_choice_values_to_string_keys(): void
-    {
-        $data = ChoiceColumn::new('status')
-            ->setChoices(['One' => 1, 'Two' => 2])
-            ->jsonSerialize();
-
-        $this->assertSame(['1' => 'One', '2' => 'Two'], $data['customOptions']['choices']);
-    }
-
-    #[Test]
-    public function it_resolves_enum_labels_from_get_label_method(): void
-    {
-        $data = ChoiceColumn::new('status')
-            ->setChoices(TestStatusWithLabel::cases())
-            ->jsonSerialize();
-
-        $this->assertSame([
-            'active'   => 'Active ✅',
-            'inactive' => 'Inactive ❌',
-        ], $data['customOptions']['choices']);
-    }
-
-    #[Test]
-    #[DataProvider('provideBackedEnumChoices')]
-    public function it_sets_choices_from_backed_enum(mixed $input): void
-    {
-        $data = ChoiceColumn::new('status')
-            ->setChoices($input)
-            ->jsonSerialize();
-
-        $this->assertArrayHasKey('choices', $data['customOptions']);
-        $this->assertSame([
-            'active'   => 'Active',
-            'inactive' => 'Inactive',
-            'pending'  => 'Pending',
-        ], $data['customOptions']['choices']);
-    }
-
-    public static function provideBackedEnumChoices(): iterable
-    {
-        yield 'enum class' => [TestStatus::class];
-        yield 'enum cases' => [TestStatus::cases()];
-    }
-
-    #[Test]
-    public function it_throws_exception_for_invalid_choices_class(): void
+    public function it_rejects_a_class_that_is_not_an_enum(): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
@@ -100,52 +77,32 @@ final class ChoiceColumnTest extends TestCase
     #[Test]
     public function it_sets_badge_options(): void
     {
-        $data = ChoiceColumn::new('status')
+        $column = ChoiceColumn::new('status')
             ->setChoices(['active' => 'Active', 'inactive' => 'Inactive'])
-            ->renderAsBadges(['active' => 'success', 'inactive' => 'danger'], 'secondary')
-            ->jsonSerialize();
+            ->renderAsBadges(['active' => 'success', 'inactive' => 'danger'], 'secondary');
 
-        $this->assertArrayHasKey('renderAsBadges', $data['customOptions']);
-        $this->assertArrayHasKey('defaultBadgeVariant', $data['customOptions']);
-        $this->assertSame(['active' => 'success', 'inactive' => 'danger'], $data['customOptions']['renderAsBadges']);
-        $this->assertSame('secondary', $data['customOptions']['defaultBadgeVariant']);
+        $this->assertCustomOption(['active' => 'success', 'inactive' => 'danger'], 'renderAsBadges', $column);
+        $this->assertCustomOption('secondary', 'defaultBadgeVariant', $column);
     }
 
     #[Test]
     public function it_falls_back_to_secondary_as_default_badge_variant(): void
     {
-        $data = ChoiceColumn::new('status')
+        $column = ChoiceColumn::new('status')
             ->setChoices(['active' => 'Active'])
-            ->renderAsBadges()
-            ->jsonSerialize();
+            ->renderAsBadges();
 
-        $this->assertSame([], $data['customOptions']['renderAsBadges']);
-        $this->assertSame('secondary', $data['customOptions']['defaultBadgeVariant']);
+        $this->assertCustomOption([], 'renderAsBadges', $column);
+        $this->assertCustomOption('secondary', 'defaultBadgeVariant', $column);
     }
 
     #[Test]
     #[TestWith([['active' => 'invalid']])]
     #[TestWith([[], 'invalid'])]
-    public function it_throws_exception_for_invalid_badge_variant(array $mapped, string $default = 'secondary'): void
+    public function it_rejects_an_invalid_badge_variant(array $mapped, string $default = 'secondary'): void
     {
         $this->expectException(\InvalidArgumentException::class);
 
         ChoiceColumn::new('status')->renderAsBadges($mapped, $default);
-    }
-
-    #[Test]
-    public function it_falls_back_to_name_as_default_title(): void
-    {
-        $data = ChoiceColumn::new('status')->jsonSerialize();
-
-        $this->assertSame('status', $data['title']);
-    }
-
-    #[Test]
-    public function it_uses_explicit_title(): void
-    {
-        $data = ChoiceColumn::new('status', 'Status')->jsonSerialize();
-
-        $this->assertSame('Status', $data['title']);
     }
 }
