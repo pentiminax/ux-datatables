@@ -193,6 +193,33 @@ final class RelationFieldResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_does_not_support_text_search_for_guid_field(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('id', 'guid');
+
+        $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'id'));
+        $this->assertTrue(RelationFieldResolver::supportsUuidEqualitySearch($qb, 'id'));
+    }
+
+    #[Test]
+    public function it_does_not_support_text_search_for_uuid_field(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('id', 'uuid');
+
+        $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'id'));
+        $this->assertTrue(RelationFieldResolver::supportsUuidEqualitySearch($qb, 'id'));
+    }
+
+    #[Test]
+    public function it_does_not_support_uuid_equality_search_for_string_field(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('email', 'string');
+
+        $this->assertTrue(RelationFieldResolver::supportsTextSearch($qb, 'email'));
+        $this->assertFalse(RelationFieldResolver::supportsUuidEqualitySearch($qb, 'email'));
+    }
+
+    #[Test]
     public function it_only_adds_new_join_when_partial_duplicate(): void
     {
         $existingJoin = $this->createMock(Join::class);
@@ -211,5 +238,22 @@ final class RelationFieldResolverTest extends TestCase
         $result = RelationFieldResolver::resolve($qb, 'e', 'author.address.city');
 
         $this->assertSame('author_address.city', $result);
+    }
+
+    private function queryBuilderWithFieldType(string $field, string $type): QueryBuilder
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->with($field)->willReturn(false);
+        $metadata->method('hasField')->with($field)->willReturn(true);
+        $metadata->method('getFieldMapping')->with($field)->willReturn(new FieldMapping($type, $field, $field));
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->with('App\\Entity\\Product')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Product']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        return $qb;
     }
 }
