@@ -7,20 +7,20 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 use Pentiminax\UX\DataTables\Enum\SelectItemType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(SelectExtension::class)]
-final class SelectExtensionTest extends TestCase
+final class SelectExtensionTest extends DataTableTestCase
 {
     #[Test]
     public function it_serializes_default_options(): void
     {
-        $this->assertSame([
+        $this->assertExtensionPayload([
             'blurable'       => false,
             'className'      => 'selected',
             'info'           => true,
@@ -30,7 +30,7 @@ final class SelectExtensionTest extends TestCase
             'toggleable'     => true,
             'headerCheckbox' => false,
             'withCheckbox'   => false,
-        ], (new SelectExtension())->jsonSerialize());
+        ], new SelectExtension());
     }
 
     #[Test]
@@ -49,7 +49,7 @@ final class SelectExtensionTest extends TestCase
 
         $extension->withCheckbox()->headerCheckbox();
 
-        $this->assertSame([
+        $this->assertExtensionPayload([
             'blurable'       => true,
             'className'      => 'is-selected',
             'info'           => false,
@@ -59,6 +59,6 @@ final class SelectExtensionTest extends TestCase
             'toggleable'     => false,
             'headerCheckbox' => true,
             'withCheckbox'   => true,
-        ], $extension->jsonSerialize());
+        ], $extension);
     }
 }

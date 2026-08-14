@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Support;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -29,6 +30,14 @@ abstract class DataTableTestCase extends TestCase
         $this->assertSame($name, $data['data']);
         $this->assertSame($name, $data['name']);
         $this->assertSame($title, $data['title']);
+    }
+
+    /**
+     * @param array<array-key, mixed> $expected the complete expected extension payload
+     */
+    protected function assertExtensionPayload(array $expected, ExtensionInterface $extension): void
+    {
+        $this->assertSame($expected, $extension->jsonSerialize());
     }
 
     /**

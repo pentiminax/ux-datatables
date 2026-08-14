@@ -7,16 +7,16 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(ButtonsExtension::class)]
 #[CoversClass(Button::class)]
-final class ButtonsExtensionTest extends TestCase
+final class ButtonsExtensionTest extends DataTableTestCase
 {
     #[Test]
     public function it_serializes_strings_enum_cases_and_custom_buttons(): void
@@ -33,7 +33,7 @@ final class ButtonsExtensionTest extends TestCase
             Button::colVis()->text('Columns'),
         ]);
 
-        $this->assertSame([
+        $this->assertExtensionPayload([
             'colvis',
             [
                 'extend'        => 'pdf',
@@ -66,6 +66,6 @@ final class ButtonsExtensionTest extends TestCase
                 'extend' => 'colvis',
                 'text'   => 'Columns',
             ],
-        ], $extension->jsonSerialize());
+        ], $extension);
     }
 }

@@ -12,9 +12,10 @@ use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -28,25 +29,50 @@ final class AbstractDataTableActionsTest extends TestCase
      * when appended, and at index 0 when prepended.
      */
     #[Test]
-    #[TestWith([AfterColumnsActionsTestTable::class, 1])]
-    #[TestWith([BeforeColumnsActionsTestTable::class, 0])]
-    public function it_places_the_actions_column_at_the_configured_position(string $tableClass, int $index): void
+    #[DataProvider('actionsColumnPositionProvider')]
+    public function it_places_the_actions_column_at_the_configured_position(AbstractDataTable $table, int $index): void
     {
-        $columns = $this->columnsOf(new $tableClass());
+        $columns = $this->columnsOf($table);
 
         $this->assertInstanceOf(ActionColumn::class, $columns[$index]);
     }
 
-    #[Test]
-    #[TestWith([ActionsColumnClassNameTestTable::class])]
-    #[TestWith([BeforeColumnsActionsTestTable::class])]
-    public function it_applies_the_actions_column_class_name(string $tableClass): void
+    /**
+     * @return iterable<string, array{AbstractDataTable, int}>
+     */
+    public static function actionsColumnPositionProvider(): iterable
     {
-        $column = (new $tableClass())->getColumnByName('actions');
+        yield 'after the columns' => [
+            self::tableWith(static fn (Actions $actions): Actions => $actions->add(Action::detail())),
+            1,
+        ];
+
+        yield 'before the columns' => [self::beforeColumnsTable(), 0];
+    }
+
+    #[Test]
+    #[DataProvider('centeredActionsColumnProvider')]
+    public function it_applies_the_actions_column_class_name(AbstractDataTable $table): void
+    {
+        $column = $table->getColumnByName('actions');
 
         $this->assertInstanceOf(ActionColumn::class, $column);
         $this->assertSame('dt-center', $column->getClassName());
         $this->assertSame('dt-center not-exportable', $column->jsonSerialize()['className']);
+    }
+
+    /**
+     * @return iterable<string, array{AbstractDataTable}>
+     */
+    public static function centeredActionsColumnProvider(): iterable
+    {
+        yield 'explicit column class name' => [
+            self::tableWith(static fn (Actions $actions): Actions => $actions
+                ->setColumnClassName('dt-center')
+                ->add(Action::detail())),
+        ];
+
+        yield 'center alignment' => [self::beforeColumnsTable()];
     }
 
     #[Test]
@@ -61,7 +87,9 @@ final class AbstractDataTableActionsTest extends TestCase
     #[Test]
     public function it_splits_actions_into_two_columns_when_a_single_action_overrides_its_position(): void
     {
-        $columns = $this->columnsOf(new PerActionPositionTestTable());
+        $columns = $this->columnsOf(self::tableWith(static fn (Actions $actions): Actions => $actions
+            ->add(Action::detail()->position(ActionsPosition::BeforeColumns))
+            ->add(Action::delete())));
 
         $first = $columns[0];
         $last  = end($columns);
@@ -80,7 +108,9 @@ final class AbstractDataTableActionsTest extends TestCase
     #[Test]
     public function it_keeps_a_single_actions_column_when_all_actions_share_the_override(): void
     {
-        $table = new SingleOverrideActionPositionTestTable();
+        $table = self::tableWith(static fn (Actions $actions): Actions => $actions->add(
+            Action::detail()->position(ActionsPosition::BeforeColumns)
+        ));
 
         $columns = $this->columnsOf($table);
 
@@ -90,83 +120,27 @@ final class AbstractDataTableActionsTest extends TestCase
     }
 
     /**
+     * @param \Closure(Actions): Actions $configureActions
+     */
+    private static function tableWith(\Closure $configureActions): ConfigurableDataTable
+    {
+        return new ConfigurableDataTable([TextColumn::new('id')], $configureActions);
+    }
+
+    private static function beforeColumnsTable(): ConfigurableDataTable
+    {
+        return self::tableWith(static fn (Actions $actions): Actions => $actions
+            ->position(ActionsPosition::BeforeColumns)
+            ->alignment(ActionsAlignment::Center)
+            ->add(Action::detail()));
+    }
+
+    /**
      * @return list<\Pentiminax\UX\DataTables\Contracts\ColumnInterface>
      */
     private function columnsOf(AbstractDataTable $table): array
     {
         return array_values($table->getConfiguredDataTable()->getColumns());
-    }
-}
-
-final class AfterColumnsActionsTestTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(Action::detail());
-    }
-}
-
-final class BeforeColumnsActionsTestTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions
-            ->position(ActionsPosition::BeforeColumns)
-            ->alignment(ActionsAlignment::Center)
-            ->add(Action::detail());
-    }
-}
-
-final class ActionsColumnClassNameTestTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions
-            ->setColumnClassName('dt-center')
-            ->add(Action::detail());
-    }
-}
-
-final class PerActionPositionTestTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions
-            ->add(Action::detail()->position(ActionsPosition::BeforeColumns))
-            ->add(Action::delete());
-    }
-}
-
-final class SingleOverrideActionPositionTestTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(Action::detail()->position(ActionsPosition::BeforeColumns));
     }
 }
 

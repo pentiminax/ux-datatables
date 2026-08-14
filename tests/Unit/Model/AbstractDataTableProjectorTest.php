@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
-use Doctrine\DBAL\DriverManager;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\ORMSetup;
-use Doctrine\ORM\Tools\SchemaTool;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -19,6 +15,7 @@ use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CustomerListDto;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -30,25 +27,13 @@ use Symfony\Component\HttpFoundation\Request;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableProjectorTest extends TestCase
 {
+    use BuildsEntityManager;
+
     private EntityManagerInterface $em;
 
     protected function setUp(): void
     {
-        $config = ORMSetup::createAttributeMetadataConfiguration(
-            paths: [__DIR__.'/../../Fixtures/Count'],
-            isDevMode: true,
-        );
-
-        if (\PHP_VERSION_ID >= 80400) {
-            $config->enableNativeLazyObjects(true);
-        }
-
-        $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true], $config);
-        $this->em   = new EntityManager($connection, $config);
-
-        (new SchemaTool($this->em))->createSchema([
-            $this->em->getClassMetadata(CountCustomer::class),
-        ]);
+        $this->em = $this->createEntityManager(CountCustomer::class);
 
         $this->em->persist(new CountCustomer(1, 'Alpha'));
         $this->em->persist(new CountCustomer(2, 'Beta'));
