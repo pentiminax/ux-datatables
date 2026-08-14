@@ -10,17 +10,23 @@ export const urlColumnRenderer = {
             opts.allowedProtocols !== undefined);
     },
     configure(column) {
-        const { target, displayValue, showExternalIcon, defaultProtocol, allowedProtocols } = (column.customOptions ?? {});
+        const { target, displayValue, showExternalIcon, defaultProtocol, allowedProtocols, renderEmptyAsAnchor, hasUrlResolver, } = (column.customOptions ?? {});
         column.render = (data, type, row) => {
             if (type !== 'display') {
                 return data;
             }
             const key = column.data ?? column.name;
-            const rawHref = typeof key === 'string' && row.__ux_datatables_urls?.[key]
-                ? row.__ux_datatables_urls[key]
-                : typeof data === 'string'
-                    ? data
-                    : '';
+            const resolvedHref = typeof key === 'string' ? row.__ux_datatables_urls?.[key] : undefined;
+            const rawHref = resolvedHref
+                ? resolvedHref
+                : true === hasUrlResolver
+                    ? ''
+                    : typeof data === 'string'
+                        ? data
+                        : '';
+            if ('' === rawHref && true !== renderEmptyAsAnchor) {
+                return escapeHtml(String(displayValue ?? data ?? ''));
+            }
             const href = withDefaultProtocol(rawHref, defaultProtocol);
             if (isUnsafeUrl(href) || !isAllowedUrlProtocol(href, allowedProtocols)) {
                 return escapeHtml(String(data ?? ''));

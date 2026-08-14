@@ -153,6 +153,42 @@ final class UrlColumnTest extends TestCase
     }
 
     #[Test]
+    public function it_does_not_render_empty_as_anchor_by_default(): void
+    {
+        $data = UrlColumn::new('website')->jsonSerialize();
+
+        $this->assertArrayNotHasKey('renderEmptyAsAnchor', $data['customOptions']);
+    }
+
+    #[Test]
+    public function it_stores_render_empty_as_anchor_flag(): void
+    {
+        $data = UrlColumn::new('website')
+            ->renderEmptyAsAnchor()
+            ->jsonSerialize();
+
+        $this->assertTrue($data['customOptions']['renderEmptyAsAnchor']);
+    }
+
+    #[Test]
+    public function it_can_disable_render_empty_as_anchor(): void
+    {
+        $data = UrlColumn::new('website')
+            ->renderEmptyAsAnchor(false)
+            ->jsonSerialize();
+
+        $this->assertFalse($data['customOptions']['renderEmptyAsAnchor']);
+    }
+
+    #[Test]
+    public function it_does_not_set_has_url_resolver_flag_without_a_resolver(): void
+    {
+        $data = UrlColumn::new('website')->jsonSerialize();
+
+        $this->assertArrayNotHasKey('hasUrlResolver', $data['customOptions']);
+    }
+
+    #[Test]
     public function it_resolves_static_url(): void
     {
         $column = UrlColumn::new('website')
@@ -161,6 +197,7 @@ final class UrlColumnTest extends TestCase
         $this->assertSame('/users', $column->resolveUrl((object) ['id' => 7]));
         $this->assertTrue($column->hasUrlResolver());
         $this->assertArrayNotHasKey('url', $column->jsonSerialize()['customOptions']);
+        $this->assertTrue($column->jsonSerialize()['customOptions']['hasUrlResolver']);
     }
 
     #[Test]
@@ -172,6 +209,7 @@ final class UrlColumnTest extends TestCase
         $this->assertSame('/users/7', $column->resolveUrl((object) ['id' => 7]));
         $this->assertTrue($column->hasUrlResolver());
         $this->assertArrayNotHasKey('url', $column->jsonSerialize()['customOptions']);
+        $this->assertTrue($column->jsonSerialize()['customOptions']['hasUrlResolver']);
     }
 
     #[Test]
@@ -190,6 +228,7 @@ final class UrlColumnTest extends TestCase
         $this->assertSame('/users/7', $column->resolveUrl((object) ['id' => 7], $urlGenerator));
         $this->assertTrue($column->hasUrlResolver());
         $this->assertArrayNotHasKey('routeName', $column->jsonSerialize()['customOptions']);
+        $this->assertTrue($column->jsonSerialize()['customOptions']['hasUrlResolver']);
     }
 
     #[Test]
