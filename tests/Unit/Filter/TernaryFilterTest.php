@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Filter;
 
 use Pentiminax\UX\DataTables\Filter\TernaryFilter;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -38,7 +39,7 @@ final class TernaryFilterTest extends TestCase
     #[Test]
     public function it_translates_state_labels_falling_back_to_defaults(): void
     {
-        $translator = $this->createMock(TranslatorInterface::class);
+        $translator = $this->createStub(TranslatorInterface::class);
         $translator
             ->method('trans')
             ->willReturnMap([
@@ -57,44 +58,48 @@ final class TernaryFilterTest extends TestCase
         $this->assertSame('Non vérifié', $serialized['falseLabel']);
     }
 
+    /**
+     * @param list<string>         $expectedWhere
+     * @param array<string, mixed> $expectedParams
+     */
     #[Test]
-    public function it_applies_is_not_null_for_true_state(): void
+    #[DataProvider('provideStates')]
+    public function it_applies_a_condition_per_state(TernaryFilter $filter, string $state, array $expectedWhere, array $expectedParams): void
     {
-        $qb = $this->createScalarFieldQueryBuilder();
-
-        TernaryFilter::new('verified')->field('emailVerifiedAt')->apply($qb, 'true', 'e');
-
-        $this->assertSame(['e.emailVerifiedAt IS NOT NULL'], $this->capturedWhere);
+        $this->assertFilterProduces($filter, $state, $expectedWhere, $expectedParams);
     }
 
-    #[Test]
-    public function it_applies_is_null_for_false_state(): void
+    /**
+     * @return iterable<string, array{TernaryFilter, string, list<string>, array<string, mixed>}>
+     */
+    public static function provideStates(): iterable
     {
-        $qb = $this->createScalarFieldQueryBuilder();
+        yield 'nullable field, true state' => [
+            TernaryFilter::new('verified')->field('emailVerifiedAt'),
+            'true',
+            ['e.emailVerifiedAt IS NOT NULL'],
+            [],
+        ];
 
-        TernaryFilter::new('verified')->field('emailVerifiedAt')->apply($qb, 'false', 'e');
+        yield 'nullable field, false state' => [
+            TernaryFilter::new('verified')->field('emailVerifiedAt'),
+            'false',
+            ['e.emailVerifiedAt IS  NULL'],
+            [],
+        ];
 
-        $this->assertSame(['e.emailVerifiedAt IS  NULL'], $this->capturedWhere);
-    }
+        yield 'explicit values' => [
+            TernaryFilter::new('active')->values(true, false),
+            'true',
+            ['e.active = :filter_active_true'],
+            ['filter_active_true' => true],
+        ];
 
-    #[Test]
-    public function it_compares_against_values_when_provided(): void
-    {
-        $qb = $this->createScalarFieldQueryBuilder();
-
-        TernaryFilter::new('active')->values(true, false)->apply($qb, 'true', 'e');
-
-        $this->assertSame(['e.active = :filter_active_true'], $this->capturedWhere);
-        $this->assertSame(['filter_active_true' => true], $this->capturedParams);
-    }
-
-    #[Test]
-    public function it_is_a_no_op_for_unrecognized_state(): void
-    {
-        $qb = $this->createScalarFieldQueryBuilder();
-
-        TernaryFilter::new('verified')->field('emailVerifiedAt')->apply($qb, 'maybe', 'e');
-
-        $this->assertSame([], $this->capturedWhere);
+        yield 'unrecognized state' => [
+            TernaryFilter::new('verified')->field('emailVerifiedAt'),
+            'maybe',
+            [],
+            [],
+        ];
     }
 }
