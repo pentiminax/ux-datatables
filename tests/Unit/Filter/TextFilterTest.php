@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Filter;
 
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -30,40 +31,35 @@ final class TextFilterTest extends TestCase
         ], $filter->jsonSerialize());
     }
 
+    /**
+     * The uuid case matters because PostgreSQL rejects both LOWER(uuid) and
+     * uuid LIKE, so a native uuid column must not produce a text condition.
+     *
+     * @param list<string>         $expectedWhere
+     * @param array<string, mixed> $expectedParams
+     */
     #[Test]
-    public function it_applies_a_case_insensitive_like(): void
+    #[DataProvider('provideConditions')]
+    public function it_applies_a_condition(string $field, string $value, ?string $fieldType, array $expectedWhere, array $expectedParams): void
     {
-        $qb = $this->createScalarFieldQueryBuilder();
-
-        TextFilter::new('name')->apply($qb, 'John', 'e');
-
-        $this->assertSame(['LOWER(e.name) LIKE :filter_name'], $this->capturedWhere);
-        $this->assertSame(['filter_name' => '%john%'], $this->capturedParams);
+        $this->assertFilterProduces(TextFilter::new($field), $value, $expectedWhere, $expectedParams, $fieldType);
     }
 
     /**
-     * PostgreSQL rejects both LOWER(uuid) and uuid LIKE, so a native uuid column
-     * must not produce a text condition at all.
+     * @return iterable<string, array{string, string, string|null, list<string>, array<string, mixed>}>
      */
-    #[Test]
-    public function it_is_a_no_op_for_a_uuid_field(): void
+    public static function provideConditions(): iterable
     {
-        $qb = $this->createScalarFieldQueryBuilder('uuid');
+        yield 'case insensitive like' => [
+            'name',
+            'John',
+            null,
+            ['LOWER(e.name) LIKE :filter_name'],
+            ['filter_name' => '%john%'],
+        ];
 
-        TextFilter::new('id')->apply($qb, '018f2c3e', 'e');
+        yield 'uuid field' => ['id', '018f2c3e', 'uuid', [], []];
 
-        $this->assertSame([], $this->capturedWhere);
-        $this->assertSame([], $this->capturedParams);
-    }
-
-    #[Test]
-    public function it_is_a_no_op_for_blank_values(): void
-    {
-        $qb = $this->createScalarFieldQueryBuilder();
-
-        TextFilter::new('name')->apply($qb, '   ', 'e');
-
-        $this->assertSame([], $this->capturedWhere);
-        $this->assertSame([], $this->capturedParams);
+        yield 'blank value' => ['name', '   ', null, [], []];
     }
 }

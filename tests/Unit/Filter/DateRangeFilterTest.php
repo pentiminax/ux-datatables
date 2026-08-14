@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Filter;
 
 use Pentiminax\UX\DataTables\Filter\DateRangeFilter;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -29,30 +30,33 @@ final class DateRangeFilterTest extends TestCase
         ], $filter->jsonSerialize());
     }
 
+    /**
+     * @param array<string, string> $value
+     * @param list<string>          $expectedWhere
+     * @param array<string, mixed>  $expectedParams
+     */
     #[Test]
-    public function it_applies_both_bounds(): void
+    #[DataProvider('provideBounds')]
+    public function it_applies_the_provided_bounds(array $value, array $expectedWhere, array $expectedParams): void
     {
-        $qb = $this->createScalarFieldQueryBuilder();
-
-        DateRangeFilter::new('createdAt')->apply($qb, ['from' => '2024-01-01', 'to' => '2024-12-31'], 'e');
-
-        $this->assertSame([
-            'e.createdAt >= :filter_createdAt_from',
-            'e.createdAt <= :filter_createdAt_to',
-        ], $this->capturedWhere);
-        $this->assertSame([
-            'filter_createdAt_from' => '2024-01-01',
-            'filter_createdAt_to'   => '2024-12-31',
-        ], $this->capturedParams);
+        $this->assertFilterProduces(DateRangeFilter::new('createdAt'), $value, $expectedWhere, $expectedParams);
     }
 
-    #[Test]
-    public function it_applies_only_the_provided_bound(): void
+    /**
+     * @return iterable<string, array{array<string, string>, list<string>, array<string, mixed>}>
+     */
+    public static function provideBounds(): iterable
     {
-        $qb = $this->createScalarFieldQueryBuilder();
+        yield 'both bounds' => [
+            ['from' => '2024-01-01', 'to' => '2024-12-31'],
+            ['e.createdAt >= :filter_createdAt_from', 'e.createdAt <= :filter_createdAt_to'],
+            ['filter_createdAt_from' => '2024-01-01', 'filter_createdAt_to' => '2024-12-31'],
+        ];
 
-        DateRangeFilter::new('createdAt')->apply($qb, ['from' => '2024-01-01'], 'e');
-
-        $this->assertSame(['e.createdAt >= :filter_createdAt_from'], $this->capturedWhere);
+        yield 'lower bound only' => [
+            ['from' => '2024-01-01'],
+            ['e.createdAt >= :filter_createdAt_from'],
+            ['filter_createdAt_from' => '2024-01-01'],
+        ];
     }
 }

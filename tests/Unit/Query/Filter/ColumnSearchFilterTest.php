@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Filter;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Column;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnSearchFilter;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -26,334 +26,188 @@ final class ColumnSearchFilterTest extends TestCase
 {
     use BuildsQueryFilterContext;
 
-    #[Test]
-    public function it_applies_text_column_search_with_dot_notation(): void
+    /**
+     * @return iterable<string, array{ColumnInterface, string, string, string, ?array{string, string}}>
+     */
+    public static function appliedColumnSearches(): iterable
     {
-        $filter = new ColumnSearchFilter();
+        yield 'text field' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            'test',
+            'e.name LIKE :column_search_param_0',
+            '%test%',
+            null,
+        ];
 
+        yield 'numeric field with a numeric value' => [
+            NumberColumn::new('id', 'ID')->setField('id'),
+            '123',
+            'e.id = :column_search_param_0',
+            '123',
+            null,
+        ];
+
+        yield 'dot notation field' => [
+            TextColumn::new('authorName', 'Author')->setField('author.firstName'),
+            'john',
+            'author.firstName LIKE :column_search_param_0',
+            '%john%',
+            ['e.author', 'author'],
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{ColumnInterface, ?Search, bool}>
+     */
+    public static function skippedColumnSearches(): iterable
+    {
+        yield 'numeric field with a non numeric value' => [
+            NumberColumn::new('id', 'ID')->setField('id'),
+            new Search('abc', false),
+            true,
+        ];
+
+        yield 'non searchable column' => [
+            TextColumn::new('name', 'Name')->setField('name')->setSearchable(false),
+            new Search('test', false),
+            true,
+        ];
+
+        yield 'empty value' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            new Search('', false),
+            true,
+        ];
+
+        yield 'null value' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            new Search(null, false),
+            true,
+        ];
+
+        yield 'whitespace only value' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            new Search('   ', false),
+            true,
+        ];
+
+        yield 'column missing from the request' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            null,
+            false,
+        ];
+    }
+
+    /**
+     * @param ?array{string, string} $expectedJoin
+     */
+    #[Test]
+    #[DataProvider('appliedColumnSearches')]
+    public function it_applies_column_search(
+        ColumnInterface $column,
+        string $value,
+        string $expectedCondition,
+        string $expectedParameterValue,
+        ?array $expectedJoin,
+    ): void {
         $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
+        $qb->method('getDQLPart')->willReturn([]);
 
-        $qb->expects($this->once())
-            ->method('leftJoin')
-            ->with('e.author', 'author')
-            ->willReturn($qb);
+        if (null === $expectedJoin) {
+            $qb->expects($this->never())->method('leftJoin');
+        } else {
+            $qb->expects($this->once())
+                ->method('leftJoin')
+                ->with($expectedJoin[0], $expectedJoin[1])
+                ->willReturn($qb);
+        }
 
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with($this->equalTo('author.firstName LIKE :column_search_param_0'));
+            ->with($expectedCondition);
 
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with($this->equalTo('column_search_param_0'), $this->equalTo('%john%'));
+            ->with('column_search_param_0', $expectedParameterValue);
 
-        $column        = TextColumn::new('authorName', 'Author')->setField('author.firstName');
-        $search        = new Search('john', false);
-        $requestColumn = new Column('authorName', 'authorName', true, true, $search);
+        $context = $this->singleColumnContext($column, new Search($value, false));
 
-        $columns = new Columns(['authorName' => $requestColumn]);
-        $request = new DataTableRequest(1, $columns);
+        (new ColumnSearchFilter())->apply($qb, $context);
+    }
 
-        $context = $this->context($request, [$column]);
+    #[Test]
+    #[DataProvider('skippedColumnSearches')]
+    public function it_skips_column_search(ColumnInterface $column, ?Search $search, bool $inRequest): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
 
-        $filter->apply($qb, $context);
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+
+        $context = $this->singleColumnContext($column, $search, inRequest: $inRequest);
+
+        (new ColumnSearchFilter())->apply($qb, $context);
     }
 
     #[Test]
     public function it_skips_text_column_when_field_requires_an_explicit_scalar_path(): void
     {
-        $filter = new ColumnSearchFilter();
-
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with('client')->willReturn(true);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getClassMetadata')->willReturn($metadata);
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
-        $qb->method('getEntityManager')->willReturn($em);
-
+        $qb = $this->associationFieldQueryBuilder('client');
         $qb->expects($this->never())->method('andWhere');
         $qb->expects($this->never())->method('setParameter');
         $qb->expects($this->never())->method('leftJoin');
 
-        $column        = TextColumn::new('client', 'Client');
-        $search        = new Search('acme', false);
-        $requestColumn = new Column('client', 'client', true, true, $search);
+        $context = $this->singleColumnContext(TextColumn::new('client', 'Client'), new Search('acme', false));
 
-        $columns = new Columns(['client' => $requestColumn]);
-        $request = new DataTableRequest(1, $columns);
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
-    }
-
-    #[Test]
-    public function it_applies_text_column_search(): void
-    {
-        $filter = new ColumnSearchFilter();
-
-        $qb = $this->createMock(QueryBuilder::class);
-
-        $qb->expects($this->once())
-            ->method('andWhere')
-            ->with($this->equalTo('e.name LIKE :column_search_param_0'));
-
-        $qb->expects($this->once())
-            ->method('setParameter')
-            ->with($this->equalTo('column_search_param_0'), $this->equalTo('%test%'));
-
-        $column        = TextColumn::new('name', 'Name')->setField('name');
-        $search        = new Search('test', false);
-        $requestColumn = new Column('name', 'name', true, true, $search);
-
-        $columns = new Columns(['name' => $requestColumn]);
-        $request = new DataTableRequest(1, $columns);
-
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
-    }
-
-    #[Test]
-    public function it_applies_numeric_column_search_with_numeric_value(): void
-    {
-        $filter = new ColumnSearchFilter();
-
-        $qb = $this->createMock(QueryBuilder::class);
-
-        $qb->expects($this->once())
-            ->method('andWhere')
-            ->with($this->equalTo('e.id = :column_search_param_0'));
-
-        $qb->expects($this->once())
-            ->method('setParameter')
-            ->with($this->equalTo('column_search_param_0'), $this->equalTo('123'));
-
-        $column        = NumberColumn::new('id', 'ID')->setField('id');
-        $search        = new Search('123', false);
-        $requestColumn = new Column('id', 'id', true, true, $search);
-
-        $columns = new Columns(['id' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns);
-
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
-    }
-
-    #[Test]
-    public function it_skips_numeric_column_with_non_numeric_value(): void
-    {
-        $filter = new ColumnSearchFilter();
-
-        $qb = $this->createMock(QueryBuilder::class);
-
-        $qb->expects($this->never())
-            ->method('andWhere');
-
-        $qb->expects($this->never())
-            ->method('setParameter');
-
-        $column        = NumberColumn::new('id', 'ID')->setField('id');
-        $search        = new Search('abc', false);
-        $requestColumn = new Column('id', 'id', true, true, $search);
-
-        $columns = new Columns(['id' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns);
-
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
-    }
-
-    #[Test]
-    public function it_skips_non_searchable_column(): void
-    {
-        $filter = new ColumnSearchFilter();
-
-        $qb = $this->createMock(QueryBuilder::class);
-
-        $qb->expects($this->never())
-            ->method('andWhere');
-
-        $qb->expects($this->never())
-            ->method('setParameter');
-
-        $column        = TextColumn::new('name', 'Name')->setField('name')->setSearchable(false);
-        $search        = new Search('test', false);
-        $requestColumn = new Column('name', 'name', true, true, $search);
-
-        $columns = new Columns(['name' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns);
-
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
-    }
-
-    #[Test]
-    public function it_skips_empty_search_value(): void
-    {
-        $filter = new ColumnSearchFilter();
-
-        $qb = $this->createMock(QueryBuilder::class);
-
-        $qb->expects($this->never())
-            ->method('andWhere');
-
-        $qb->expects($this->never())
-            ->method('setParameter');
-
-        $column        = TextColumn::new('name', 'Name')->setField('name');
-        $search        = new Search('', false);
-        $requestColumn = new Column('name', 'name', true, true, $search);
-
-        $columns = new Columns(['name' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns);
-
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
-    }
-
-    #[Test]
-    public function it_skips_null_search_value(): void
-    {
-        $filter = new ColumnSearchFilter();
-
-        $qb = $this->createMock(QueryBuilder::class);
-
-        $qb->expects($this->never())
-            ->method('andWhere');
-
-        $qb->expects($this->never())
-            ->method('setParameter');
-
-        $column        = TextColumn::new('name', 'Name')->setField('name');
-        $search        = new Search(null, false);
-        $requestColumn = new Column('name', 'name', true, true, $search);
-
-        $columns = new Columns(['name' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns);
-
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
-    }
-
-    #[Test]
-    public function it_skips_whitespace_only_search_value(): void
-    {
-        $filter = new ColumnSearchFilter();
-
-        $qb = $this->createMock(QueryBuilder::class);
-
-        $qb->expects($this->never())
-            ->method('andWhere');
-
-        $qb->expects($this->never())
-            ->method('setParameter');
-
-        $column        = TextColumn::new('name', 'Name')->setField('name');
-        $search        = new Search('   ', false);
-        $requestColumn = new Column('name', 'name', true, true, $search);
-
-        $columns = new Columns(['name' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns);
-
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
-    }
-
-    #[Test]
-    public function it_skips_when_column_not_in_request(): void
-    {
-        $filter = new ColumnSearchFilter();
-
-        $qb = $this->createMock(QueryBuilder::class);
-
-        $qb->expects($this->never())
-            ->method('andWhere');
-
-        $qb->expects($this->never())
-            ->method('setParameter');
-
-        $column = TextColumn::new('name', 'Name')->setField('name');
-
-        $columns = new Columns([]);
-
-        $request = new DataTableRequest(1, $columns);
-
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
+        (new ColumnSearchFilter())->apply($qb, $context);
     }
 
     #[Test]
     public function it_applies_multiple_column_searches_with_and_logic(): void
     {
-        $filter = new ColumnSearchFilter();
-
         $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+
+        $conditions = [];
+        $parameters = [];
 
         $qb->expects($this->exactly(2))
             ->method('andWhere')
-            ->willReturnCallback(function ($condition) {
-                static $callCount = 0;
-                ++$callCount;
-                if (1 === $callCount) {
-                    $this->assertEquals('e.name LIKE :column_search_param_0', $condition);
-                } elseif (2 === $callCount) {
-                    $this->assertEquals('e.email LIKE :column_search_param_1', $condition);
-                }
+            ->willReturnCallback(function (string $condition) use (&$conditions, $qb): QueryBuilder {
+                $conditions[] = $condition;
 
-                return $this->createMock(QueryBuilder::class);
+                return $qb;
             });
 
         $qb->expects($this->exactly(2))
             ->method('setParameter')
-            ->willReturnCallback(function ($param, $value) {
-                static $callCount = 0;
-                ++$callCount;
-                if (1 === $callCount) {
-                    $this->assertEquals('column_search_param_0', $param);
-                    $this->assertEquals('%alice%', $value);
-                } elseif (2 === $callCount) {
-                    $this->assertEquals('column_search_param_1', $param);
-                    $this->assertEquals('%example.com%', $value);
-                }
+            ->willReturnCallback(function (string $name, mixed $value) use (&$parameters, $qb): QueryBuilder {
+                $parameters[$name] = $value;
 
-                return $this->createMock(QueryBuilder::class);
+                return $qb;
             });
 
-        $nameColumn  = TextColumn::new('name', 'Name')->setField('name');
-        $emailColumn = TextColumn::new('email', 'Email')->setField('email');
-
-        $nameSearch  = new Search('alice', false);
-        $emailSearch = new Search('example.com', false);
-
-        $nameRequestColumn  = new Column('name', 'name', true, true, $nameSearch);
-        $emailRequestColumn = new Column('email', 'email', true, true, $emailSearch);
-
-        $columns = new Columns([
-            'name'  => $nameRequestColumn,
-            'email' => $emailRequestColumn,
+        $requestColumns = new Columns([
+            'name'  => new Column('name', 'name', true, true, new Search('alice', false)),
+            'email' => new Column('email', 'email', true, true, new Search('example.com', false)),
         ]);
 
-        $request = new DataTableRequest(1, $columns);
+        $context = $this->context(new DataTableRequest(1, $requestColumns), [
+            TextColumn::new('name', 'Name')->setField('name'),
+            TextColumn::new('email', 'Email')->setField('email'),
+        ]);
 
-        $context = $this->context($request, [$nameColumn, $emailColumn]);
+        (new ColumnSearchFilter())->apply($qb, $context);
 
-        $filter->apply($qb, $context);
+        self::assertSame([
+            'e.name LIKE :column_search_param_0',
+            'e.email LIKE :column_search_param_1',
+        ], $conditions);
+
+        self::assertSame([
+            'column_search_param_0' => '%alice%',
+            'column_search_param_1' => '%example.com%',
+        ], $parameters);
     }
 }

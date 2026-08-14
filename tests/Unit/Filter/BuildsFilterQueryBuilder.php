@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Mapping\FieldMapping;
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Contracts\FilterInterface;
 
 /**
  * Builds a QueryBuilder mock that captures andWhere/setParameter calls and
@@ -57,5 +58,18 @@ trait BuildsFilterQueryBuilder
         });
 
         return $qb;
+    }
+
+    /**
+     * @param list<string>         $expectedWhere
+     * @param array<string, mixed> $expectedParams
+     * @param string|null          $fieldType      Doctrine type reported for every mapped field, or null to leave fields unmapped
+     */
+    private function assertFilterProduces(FilterInterface $filter, mixed $value, array $expectedWhere, array $expectedParams, ?string $fieldType = null): void
+    {
+        $filter->apply($this->createScalarFieldQueryBuilder($fieldType), $value, 'e');
+
+        $this->assertSame($expectedWhere, $this->capturedWhere);
+        $this->assertSame($expectedParams, $this->capturedParams);
     }
 }
