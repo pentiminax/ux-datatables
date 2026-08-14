@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
+use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
 
 /**
  * Parameterized search strategy for simple comparison operators.
@@ -43,7 +44,15 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
         }
 
         $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $fieldPath);
-        $value    = null === $uuidType ? $search->value : trim($search->value);
+        $value    = $search->value;
+
+        if (null !== $uuidType) {
+            $value = UuidSearchTerm::normalize($value);
+
+            if (null === $value) {
+                return;
+            }
+        }
 
         $field     = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
         $paramName = \sprintf('column_control_param_%d', $paramIndex);
