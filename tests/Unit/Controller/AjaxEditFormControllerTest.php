@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
@@ -17,10 +18,13 @@ use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
@@ -73,12 +77,13 @@ final class AjaxEditFormControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
+            dataTables: $this->registeredDataTables(),
         ));
 
         $response = $controller(new AjaxEditFormQueryDto(
             entity: AjaxEditFormControllerFixture::class,
             id: '42',
-            dataTableClass: 'SomeDataTable',
+            dataTableClass: AjaxEditFormControllerDataTable::class,
         ));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
@@ -177,6 +182,15 @@ final class AjaxEditFormControllerTest extends TestCase
         $this->assertSame('Entity not found.', $payload['message']);
     }
 
+    private function registeredDataTables(): ContainerInterface
+    {
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with(AjaxEditFormControllerDataTable::class)->willReturn(true);
+        $dataTables->method('get')->with(AjaxEditFormControllerDataTable::class)->willReturn(new AjaxEditFormControllerDataTable());
+
+        return $dataTables;
+    }
+
     private function createRegistry(EntityManagerInterface $entityManager): ManagerRegistry
     {
         $registry = $this->createMock(ManagerRegistry::class);
@@ -217,4 +231,19 @@ final class AjaxEditFormControllerTest extends TestCase
 
 final class AjaxEditFormControllerFixture
 {
+}
+
+#[AsDataTable(entityClass: AjaxEditFormControllerFixture::class)]
+final class AjaxEditFormControllerDataTable extends AbstractDataTable
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
 }

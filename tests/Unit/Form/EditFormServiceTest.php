@@ -28,6 +28,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -38,6 +39,7 @@ use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\Component\Mercure\Update;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * @internal
@@ -137,6 +139,7 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
+            dataTables: $this->registeredDataTables(EditFormServiceFixtureDataTable::class, new EditFormServiceFixtureDataTable()),
         );
 
         $result = $service->handleView(new AjaxEditFormQueryDto(
@@ -214,6 +217,7 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
+            dataTables: $this->registeredDataTables(EditFormServiceFixtureDataTable::class, new EditFormServiceFixtureDataTable()),
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
@@ -265,6 +269,7 @@ final class EditFormServiceTest extends TestCase
             $templateResolver,
             new MercureUpdatePublisher($hub),
             $this->resolverReturning(['/topic/42']),
+            $this->registeredDataTables(EditFormServiceFixtureDataTable::class, new EditFormServiceFixtureDataTable()),
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
@@ -315,6 +320,7 @@ final class EditFormServiceTest extends TestCase
             $templateResolver,
             new MercureUpdatePublisher($hub, $logger),
             $this->resolverReturning(['/topic/42']),
+            $this->registeredDataTables(EditFormServiceFixtureDataTable::class, new EditFormServiceFixtureDataTable()),
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
@@ -396,34 +402,18 @@ final class EditFormServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_falls_back_to_the_bare_resolver_when_the_datatable_class_is_not_registered(): void
+    public function it_rejects_submit_when_the_datatable_class_is_not_registered(): void
     {
-        $entityManager = $this->createEntityManagerWithEntity(new EditFormServiceFixture(), 42);
-        $entityManager->expects($this->once())->method('flush');
+        $entity        = new EditFormServiceFixture();
+        $entityManager = $this->createEntityManagerThatFinds($entity, 42);
+        $registry      = $this->createRegistry($entityManager);
 
-        $registry = $this->createRegistry($entityManager);
-
-        $form = $this->createMock(FormInterface::class);
-        $form->expects($this->once())->method('submit')->with(['name' => 'Alice']);
-        $form->expects($this->once())->method('isValid')->willReturn(true);
-        $form->expects($this->never())->method('createView');
-
-        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver(
-            form: $form,
-            entity: new EditFormServiceFixture(),
-            renderedHtml: '',
-            expectRenderRequest: false,
-            dataTableClass: EditFormServiceFixtureDataTable::class,
-        );
-
-        $hub = $this->createMock(HubInterface::class);
-        $hub->expects($this->once())
-            ->method('publish')
-            ->with($this->callback(function (Update $update) {
-                return ['/topic/42']             === $update->getTopics()
-                    && '{"type":"edit","id":42}' === $update->getData();
-            }))
-            ->willReturn('urn:uuid:edit');
+        $formFactory = $this->createMock(FormFactoryInterface::class);
+        $formFactory->expects($this->never())->method('createBuilder');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('renderBody');
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveColumns');
 
         $dataTables = $this->createMock(ContainerInterface::class);
         $dataTables->method('has')->with(EditFormServiceFixtureDataTable::class)->willReturn(false);
@@ -434,9 +424,8 @@ final class EditFormServiceTest extends TestCase
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
-            new MercureUpdatePublisher($hub),
-            $this->resolverReturning(['/topic/42']),
-            $dataTables,
+            new NullMercurePublisher(),
+            dataTables: $dataTables,
         );
 
         $result = $service->handleSubmit(new AjaxEditFormRequestDto(
@@ -446,9 +435,230 @@ final class EditFormServiceTest extends TestCase
             dataTableClass: EditFormServiceFixtureDataTable::class,
         ));
 
-        $this->assertTrue($result->success);
+        $this->assertFalse($result->success);
+        $this->assertSame(403, $result->statusCode);
+        $this->assertSame('You are not allowed to perform this action.', $result->message);
         $this->assertNull($result->html);
-        $this->assertSame('', $result->message);
+    }
+
+    #[Test]
+    public function it_rejects_view_when_the_datatable_class_is_not_registered(): void
+    {
+        $entity        = new EditFormServiceFixture();
+        $entityManager = $this->createEntityManagerThatFinds($entity, 42);
+        $registry      = $this->createRegistry($entityManager);
+
+        $formFactory = $this->createMock(FormFactoryInterface::class);
+        $formFactory->expects($this->never())->method('createBuilder');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('render');
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveColumns');
+
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with(EditFormServiceFixtureDataTable::class)->willReturn(false);
+        $dataTables->expects($this->never())->method('get');
+
+        $service = new EditFormService(
+            new EntityLocator($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+            new NullMercurePublisher(),
+            dataTables: $dataTables,
+        );
+
+        $result = $service->handleView(new AjaxEditFormQueryDto(
+            entity: EditFormServiceFixture::class,
+            id: 42,
+            dataTableClass: EditFormServiceFixtureDataTable::class,
+        ));
+
+        $this->assertFalse($result->success);
+        $this->assertSame(403, $result->statusCode);
+        $this->assertSame('You are not allowed to perform this action.', $result->message);
+        $this->assertNull($result->html);
+    }
+
+    #[Test]
+    public function it_rejects_submit_when_no_datatable_locator_is_available(): void
+    {
+        $entity        = new EditFormServiceFixture();
+        $entityManager = $this->createEntityManagerThatFinds($entity, 42);
+        $registry      = $this->createRegistry($entityManager);
+
+        $formFactory = $this->createMock(FormFactoryInterface::class);
+        $formFactory->expects($this->never())->method('createBuilder');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('renderBody');
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveColumns');
+
+        $service = new EditFormService(
+            new EntityLocator($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+            new NullMercurePublisher(),
+        );
+
+        $result = $service->handleSubmit(new AjaxEditFormRequestDto(
+            entity: EditFormServiceFixture::class,
+            id: 42,
+            formData: ['name' => 'Alice'],
+            dataTableClass: EditFormServiceFixtureDataTable::class,
+        ));
+
+        $this->assertFalse($result->success);
+        $this->assertSame(403, $result->statusCode);
+        $this->assertSame('You are not allowed to perform this action.', $result->message);
+        $this->assertNull($result->html);
+    }
+
+    #[Test]
+    public function it_rejects_view_when_no_datatable_locator_is_available(): void
+    {
+        $entity        = new EditFormServiceFixture();
+        $entityManager = $this->createEntityManagerThatFinds($entity, 42);
+        $registry      = $this->createRegistry($entityManager);
+
+        $formFactory = $this->createMock(FormFactoryInterface::class);
+        $formFactory->expects($this->never())->method('createBuilder');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('render');
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveColumns');
+
+        $service = new EditFormService(
+            new EntityLocator($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+            new NullMercurePublisher(),
+        );
+
+        $result = $service->handleView(new AjaxEditFormQueryDto(
+            entity: EditFormServiceFixture::class,
+            id: 42,
+            dataTableClass: EditFormServiceFixtureDataTable::class,
+        ));
+
+        $this->assertFalse($result->success);
+        $this->assertSame(403, $result->statusCode);
+        $this->assertSame('You are not allowed to perform this action.', $result->message);
+        $this->assertNull($result->html);
+    }
+
+    #[Test]
+    public function it_rejects_view_when_edit_is_not_granted_on_the_entity(): void
+    {
+        $entity        = new EditFormServiceFixture();
+        $entityManager = $this->createEntityManagerThatFinds($entity, 42);
+        $registry      = $this->createRegistry($entityManager);
+
+        $formFactory = $this->createMock(FormFactoryInterface::class);
+        $formFactory->expects($this->never())->method('createBuilder');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('render');
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveColumns');
+
+        $service = new EditFormService(
+            new EntityLocator($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+            new NullMercurePublisher(),
+            permissionChecker: $this->denyingChecker('EDIT', $entity),
+        );
+
+        $result = $service->handleView(new AjaxEditFormQueryDto(
+            entity: EditFormServiceFixture::class,
+            id: 42,
+            dataTableClass: EditFormServiceFixtureDataTable::class,
+        ));
+
+        $this->assertFalse($result->success);
+        $this->assertSame(403, $result->statusCode);
+        $this->assertSame('You are not allowed to perform this action.', $result->message);
+        $this->assertNull($result->html);
+    }
+
+    #[Test]
+    public function it_rejects_submit_when_edit_is_not_granted_on_the_entity(): void
+    {
+        $entity        = new EditFormServiceFixture();
+        $entityManager = $this->createEntityManagerThatFinds($entity, 42);
+        $registry      = $this->createRegistry($entityManager);
+
+        $formFactory = $this->createMock(FormFactoryInterface::class);
+        $formFactory->expects($this->never())->method('createBuilder');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('renderBody');
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveColumns');
+
+        $service = new EditFormService(
+            new EntityLocator($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+            new NullMercurePublisher(),
+            permissionChecker: $this->denyingChecker('EDIT', $entity),
+        );
+
+        $result = $service->handleSubmit(new AjaxEditFormRequestDto(
+            entity: EditFormServiceFixture::class,
+            id: 42,
+            formData: ['name' => 'Alice'],
+            dataTableClass: EditFormServiceFixtureDataTable::class,
+        ));
+
+        $this->assertFalse($result->success);
+        $this->assertSame(403, $result->statusCode);
+        $this->assertSame('You are not allowed to perform this action.', $result->message);
+        $this->assertNull($result->html);
+    }
+
+    #[Test]
+    public function it_rejects_submit_when_the_datatable_entity_class_does_not_match(): void
+    {
+        $entity        = new EditFormServiceFixture();
+        $entityManager = $this->createEntityManagerThatFinds($entity, 42);
+        $registry      = $this->createRegistry($entityManager);
+
+        $formFactory = $this->createMock(FormFactoryInterface::class);
+        $formFactory->expects($this->never())->method('createBuilder');
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('renderBody');
+        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver->expects($this->never())->method('resolveColumns');
+
+        $dataTable  = new EditFormServiceMismatchedEntityDataTable();
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with(EditFormServiceMismatchedEntityDataTable::class)->willReturn(true);
+        $dataTables->method('get')->with(EditFormServiceMismatchedEntityDataTable::class)->willReturn($dataTable);
+
+        $service = new EditFormService(
+            new EntityLocator($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+            new NullMercurePublisher(),
+            dataTables: $dataTables,
+        );
+
+        $result = $service->handleSubmit(new AjaxEditFormRequestDto(
+            entity: EditFormServiceFixture::class,
+            id: 42,
+            formData: ['name' => 'Alice'],
+            dataTableClass: EditFormServiceMismatchedEntityDataTable::class,
+        ));
+
+        $this->assertFalse($result->success);
+        $this->assertSame(403, $result->statusCode);
+        $this->assertSame('You are not allowed to perform this action.', $result->message);
+        $this->assertNull($result->html);
     }
 
     #[Test]
@@ -508,6 +718,42 @@ final class EditFormServiceTest extends TestCase
         $this->assertFalse($result->success);
         $this->assertSame(400, $result->statusCode);
         $this->assertNull($result->html);
+    }
+
+    private function registeredDataTables(string $dataTableClass, object $dataTable): ContainerInterface
+    {
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with($dataTableClass)->willReturn(true);
+        $dataTables->method('get')->with($dataTableClass)->willReturn($dataTable);
+
+        return $dataTables;
+    }
+
+    private function denyingChecker(string $attribute, object $subject): PermissionChecker
+    {
+        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker->method('isGranted')->with($attribute, $subject)->willReturn(false);
+
+        return new PermissionChecker($checker);
+    }
+
+    private function createEntityManagerThatFinds(object $entity, int|string $id): EntityManagerInterface
+    {
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->expects($this->once())
+            ->method('find')
+            ->with($id)
+            ->willReturn($entity);
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects($this->once())
+            ->method('getRepository')
+            ->with(EditFormServiceFixture::class)
+            ->willReturn($repository);
+        $entityManager->expects($this->never())->method('getClassMetadata');
+        $entityManager->expects($this->never())->method('flush');
+
+        return $entityManager;
     }
 
     private function createRegistry(EntityManagerInterface $entityManager): ManagerRegistry
@@ -629,8 +875,19 @@ final class EditFormServiceFixture
 {
 }
 
-final class EditFormServiceFixtureDataTable
+#[AsDataTable(entityClass: EditFormServiceFixture::class)]
+final class EditFormServiceFixtureDataTable extends AbstractDataTable
 {
+    public function __construct()
+    {
+        parent::__construct();
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
 }
 
 #[AsDataTable(entityClass: EditFormServiceFixture::class, mercure: true)]
@@ -652,6 +909,21 @@ final class EditFormServiceMercureFixtureDataTable extends AbstractDataTable
         return $table
             ->serverSide()
             ->mercure(topics: ['/datatable-instance/topic']);
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+}
+
+#[AsDataTable(entityClass: \stdClass::class)]
+final class EditFormServiceMismatchedEntityDataTable extends AbstractDataTable
+{
+    public function __construct()
+    {
+        parent::__construct();
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
     }
 
     public function configureColumns(): iterable
