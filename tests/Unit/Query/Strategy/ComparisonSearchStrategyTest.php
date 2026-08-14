@@ -53,9 +53,15 @@ final class ComparisonSearchStrategyTest extends TestCase
         $strategy->apply($qb, $column, $search, 3, 'e');
     }
 
+    /**
+     * Two independent guards, both observable as "the query builder is never touched":
+     * a LIKE against a uuid-typed column crashes on PostgreSQL and SQL Server, and a
+     * malformed identifier bound with an identifier Doctrine type makes conversion throw
+     * at execution time.
+     */
     #[Test]
-    #[DataProvider('like_logic_cases')]
-    public function it_skips_like_logic_on_a_uuid_column(ColumnControlLogic $logic): void
+    #[DataProvider('uuid_skip_cases')]
+    public function it_skips_an_unbindable_predicate_on_a_uuid_column(ColumnControlLogic $logic): void
     {
         $qb = $this->queryBuilderWithFieldType('id', 'guid');
         $qb->expects($this->never())->method('andWhere');
@@ -84,25 +90,6 @@ final class ComparisonSearchStrategyTest extends TestCase
         $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
         $column   = TextColumn::new('id')->setField('id');
         $search   = new ColumnControlSearch('  018f2c3e-1234-7abc-9def-0123456789ab  ', ColumnControlLogic::Equal, 'text');
-
-        $strategy->apply($qb, $column, $search, 3, 'e');
-    }
-
-    /**
-     * A malformed identifier bound with an identifier Doctrine type makes conversion
-     * throw at execution time, so it must be skipped like any other non-matching term.
-     */
-    #[Test]
-    #[DataProvider('comparison_logic_cases')]
-    public function it_skips_a_malformed_identifier_on_a_uuid_column(ColumnControlLogic $logic): void
-    {
-        $qb = $this->queryBuilderWithFieldType('id', 'guid');
-        $qb->expects($this->never())->method('andWhere');
-        $qb->expects($this->never())->method('setParameter');
-
-        $strategy = new ComparisonSearchStrategy($logic);
-        $column   = TextColumn::new('id')->setField('id');
-        $search   = new ColumnControlSearch('018f2c3e', $logic, 'text');
 
         $strategy->apply($qb, $column, $search, 3, 'e');
     }
@@ -147,20 +134,13 @@ final class ComparisonSearchStrategyTest extends TestCase
     /**
      * @return iterable<string, array{ColumnControlLogic}>
      */
-    public static function like_logic_cases(): iterable
+    public static function uuid_skip_cases(): iterable
     {
-        yield 'starts' => [ColumnControlLogic::Starts];
-        yield 'ends' => [ColumnControlLogic::Ends];
-        yield 'notContains' => [ColumnControlLogic::NotContains];
-    }
-
-    /**
-     * @return iterable<string, array{ColumnControlLogic}>
-     */
-    public static function comparison_logic_cases(): iterable
-    {
-        yield 'equal' => [ColumnControlLogic::Equal];
-        yield 'notEqual' => [ColumnControlLogic::NotEqual];
-        yield 'greater' => [ColumnControlLogic::Greater];
+        yield 'starts (LIKE on a uuid column)' => [ColumnControlLogic::Starts];
+        yield 'ends (LIKE on a uuid column)' => [ColumnControlLogic::Ends];
+        yield 'notContains (LIKE on a uuid column)' => [ColumnControlLogic::NotContains];
+        yield 'equal (malformed identifier)' => [ColumnControlLogic::Equal];
+        yield 'notEqual (malformed identifier)' => [ColumnControlLogic::NotEqual];
+        yield 'greater (malformed identifier)' => [ColumnControlLogic::Greater];
     }
 }

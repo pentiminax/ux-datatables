@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Strategy\ContainsSearchStrategy;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -27,95 +28,99 @@ final class ContainsSearchStrategyTest extends TestCase
         $this->assertSame('contains', (new ContainsSearchStrategy())->getLogic());
     }
 
-    #[Test]
-    public function it_applies_like_condition_for_text_column(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->once())->method('setParameter')->with('column_control_param_3', '%foo%');
-        $qb->expects($this->once())->method('andWhere')->with('e.name LIKE :column_control_param_3');
-
-        $column = TextColumn::new('name')->setField('name');
-        $search = new ColumnControlSearch('foo', ColumnControlLogic::Contains, 'text');
-
-        (new ContainsSearchStrategy())->apply($qb, $column, $search, 3, 'e');
-    }
-
-    #[Test]
-    public function it_applies_exact_condition_for_numeric_column(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->once())->method('setParameter')->with('column_control_param_1', '42', null);
-        $qb->expects($this->once())->method('andWhere')->with('e.id = :column_control_param_1');
-
-        $column = NumberColumn::new('id')->setField('id');
-        $search = new ColumnControlSearch('42', ColumnControlLogic::Contains, 'text');
-
-        (new ContainsSearchStrategy())->apply($qb, $column, $search, 1, 'e');
-    }
-
     /**
-     * Regression guard: a numeric search type hint must force numeric (exact) handling
-     * even when the column itself is not numeric.
+     * The value is always bound through setParameter, never interpolated into the DQL.
+     *
+     * @param list<mixed> $expectedParameter the expected setParameter() arguments
      */
     #[Test]
-    public function it_applies_exact_condition_when_search_type_is_number(): void
-    {
+    #[DataProvider('applied_cases')]
+    public function it_applies_expected_condition(
+        ColumnInterface $column,
+        string $searchType,
+        int $paramIndex,
+        string $value,
+        string $expectedExpression,
+        array $expectedParameter,
+    ): void {
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->once())->method('setParameter')->with('column_control_param_2', '7', null);
-        $qb->expects($this->once())->method('andWhere')->with('e.score = :column_control_param_2');
+        $qb->expects($this->once())->method('setParameter')->with(...$expectedParameter);
+        $qb->expects($this->once())->method('andWhere')->with($expectedExpression);
 
-        $column = TextColumn::new('score')->setField('score');
-        $search = new ColumnControlSearch('7', ColumnControlLogic::Contains, 'number');
+        $search = new ColumnControlSearch($value, ColumnControlLogic::Contains, $searchType);
 
-        (new ContainsSearchStrategy())->apply($qb, $column, $search, 2, 'e');
+        (new ContainsSearchStrategy())->apply($qb, $column, $search, $paramIndex, 'e');
     }
 
     #[Test]
-    public function it_does_nothing_when_search_type_is_number_but_value_is_non_numeric(): void
+    #[DataProvider('ignored_cases')]
+    public function it_leaves_the_query_builder_untouched(?string $field, string $value, string $searchType): void
     {
         $qb = $this->createMock(QueryBuilder::class);
         $qb->expects($this->never())->method('setParameter');
         $qb->expects($this->never())->method('andWhere');
 
-        $column = TextColumn::new('score')->setField('score');
-        $search = new ColumnControlSearch('abc', ColumnControlLogic::Contains, 'numeric');
+        $column = null !== $field ? TextColumn::new($field)->setField($field) : $this->columnWithoutField();
+        $search = new ColumnControlSearch($value, ColumnControlLogic::Contains, $searchType);
 
         (new ContainsSearchStrategy())->apply($qb, $column, $search, 0, 'e');
     }
 
     /**
-     * The upfront null-field guard prevents a null field from reaching the predicate
-     * builder (whose $field parameter is a non-null string), which would otherwise
-     * TypeError. This applies to every column type, including forced-numeric.
+     * @return iterable<string, array{ColumnInterface, string, int, string, string, list<mixed>}>
      */
-    #[Test]
-    public function it_does_nothing_when_the_column_field_is_null(): void
+    public static function applied_cases(): iterable
     {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->expects($this->never())->method('setParameter');
-        $qb->expects($this->never())->method('andWhere');
+        yield 'text column uses LIKE' => [
+            TextColumn::new('name')->setField('name'),
+            'text',
+            3,
+            'foo',
+            'e.name LIKE :column_control_param_3',
+            ['column_control_param_3', '%foo%'],
+        ];
 
-        $column = $this->createMock(ColumnInterface::class);
+        yield 'numeric column uses exact match' => [
+            NumberColumn::new('id')->setField('id'),
+            'text',
+            1,
+            '42',
+            'e.id = :column_control_param_1',
+            ['column_control_param_1', '42', null],
+        ];
+
+        // Regression guard: a numeric search type hint must force numeric (exact) handling
+        // even when the column itself is not numeric.
+        yield 'number search type forces exact match' => [
+            TextColumn::new('score')->setField('score'),
+            'number',
+            2,
+            '7',
+            'e.score = :column_control_param_2',
+            ['column_control_param_2', '7', null],
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{?string, string, string}>
+     */
+    public static function ignored_cases(): iterable
+    {
+        yield 'blank value' => ['name', '   ', 'text'];
+        yield 'non-numeric value for a numeric search type' => ['score', 'abc', 'numeric'];
+
+        // The upfront null-field guard prevents a null field from reaching the predicate
+        // builder (whose $field parameter is a non-null string), which would otherwise
+        // TypeError. This applies to every column type, including forced-numeric.
+        yield 'null column field' => [null, '7', 'number'];
+    }
+
+    private function columnWithoutField(): ColumnInterface
+    {
+        $column = $this->createStub(ColumnInterface::class);
         $column->method('getField')->willReturn(null);
 
-        $search = new ColumnControlSearch('7', ColumnControlLogic::Contains, 'number');
-
-        (new ContainsSearchStrategy())->apply($qb, $column, $search, 0, 'e');
-    }
-
-    #[Test]
-    public function it_does_nothing_for_blank_value(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->expects($this->never())->method('setParameter');
-        $qb->expects($this->never())->method('andWhere');
-
-        $column = TextColumn::new('name')->setField('name');
-        $search = new ColumnControlSearch('   ', ColumnControlLogic::Contains, 'text');
-
-        (new ContainsSearchStrategy())->apply($qb, $column, $search, 0, 'e');
+        return $column;
     }
 }
