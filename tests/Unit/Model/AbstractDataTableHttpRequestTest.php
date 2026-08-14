@@ -22,18 +22,12 @@ use Symfony\Component\HttpFoundation\Request;
 final class AbstractDataTableHttpRequestTest extends TestCase
 {
     #[Test]
-    public function test_give_n_no_handled_request_whe_n_get_http_request_is_accessed_the_n_null_is_returned(): void
-    {
-        $table = new HttpRequestAwareTable();
-
-        $this->assertNull($table->exposedHttpRequest());
-    }
-
-    #[Test]
-    public function test_give_n_handled_request_whe_n_get_http_request_is_accessed_the_n_same_request_is_returned(): void
+    public function it_exposes_the_handled_http_request(): void
     {
         $table   = new HttpRequestAwareTable();
         $request = new Request(query: ['draw' => 3, 'genre' => 'sci-fi']);
+
+        $this->assertNull($table->exposedHttpRequest());
 
         $table->handleRequest($request);
 
@@ -41,7 +35,7 @@ final class AbstractDataTableHttpRequestTest extends TestCase
     }
 
     #[Test]
-    public function test_give_n_custom_http_filter_whe_n_configure_query_builder_runs_the_n_it_reads_the_current_http_request(): void
+    public function it_reads_the_current_http_request_while_configuring_the_query_builder(): void
     {
         $table = new HttpRequestAwareTable();
         $table->handleRequest(new Request(query: ['draw' => 3, 'genre' => 'sci-fi']));
