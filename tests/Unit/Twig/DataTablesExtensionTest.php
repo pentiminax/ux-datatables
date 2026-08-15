@@ -15,14 +15,13 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoAjaxServerSideDataTable;
-use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
+use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
@@ -34,21 +33,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 #[CoversClass(DataTablesExtension::class)]
 final class DataTablesExtensionTest extends TestCase
 {
-    private TwigAppKernel $kernel;
-
-    private ContainerInterface $container;
-
-    protected function setUp(): void
-    {
-        $this->kernel = new TwigAppKernel('test', true);
-        $this->kernel->boot();
-        $this->container = $this->kernel->getContainer()->get('test.service_container');
-    }
-
-    protected function tearDown(): void
-    {
-        $this->kernel->shutdown();
-    }
+    use BootsTwigKernel;
 
     #[Test]
     public function it_renders_datatable(): void

@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Query\Filter\GlobalSearchFilter;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsQueryFilterContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;

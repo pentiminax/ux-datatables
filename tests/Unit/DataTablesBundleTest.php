@@ -8,7 +8,7 @@ use Pentiminax\UX\DataTables\DataTablesBundle;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
+use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -20,18 +20,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[CoversClass(DataTablesBundle::class)]
 final class DataTablesBundleTest extends TestCase
 {
-    private TwigAppKernel $kernel;
-
-    protected function setUp(): void
-    {
-        $this->kernel = new TwigAppKernel('test', true);
-        $this->kernel->boot();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->kernel->shutdown();
-    }
+    use BootsTwigKernel;
 
     #[Test]
     public function it_wires_the_query_intent_factory_through_the_datatable_infrastructure(): void

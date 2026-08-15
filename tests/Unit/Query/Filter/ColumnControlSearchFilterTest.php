@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnControlSearchFilter;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsQueryFilterContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;

@@ -9,7 +9,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Strategy\ComparisonSearchStrategy;
-use Pentiminax\UX\DataTables\Tests\Unit\Query\BuildsTypedFieldQueryBuilder;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
