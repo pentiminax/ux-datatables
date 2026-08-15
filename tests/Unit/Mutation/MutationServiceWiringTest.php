@@ -12,7 +12,7 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
+use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -25,18 +25,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(DataTablesBundle::class)]
 final class MutationServiceWiringTest extends TestCase
 {
-    private TwigAppKernel $kernel;
-
-    protected function setUp(): void
-    {
-        $this->kernel = new TwigAppKernel('test', true);
-        $this->kernel->boot();
-    }
-
-    protected function tearDown(): void
-    {
-        $this->kernel->shutdown();
-    }
+    use BootsTwigKernel;
 
     #[Test]
     public function it_wires_entity_mutator_with_the_mercure_publisher_interface(): void
@@ -89,15 +78,6 @@ final class MutationServiceWiringTest extends TestCase
 
         $this->assertInstanceOf(AjaxEditController::class, $controller);
         $this->assertInstanceOf(BooleanMutationContextResolver::class, $this->readPrivateProperty($controller, 'contextResolver'));
-    }
-
-    private function service(string $id): object
-    {
-        $service = $this->kernel->getContainer()->get($id);
-
-        $this->assertIsObject($service);
-
-        return $service;
     }
 
     private function readPrivateProperty(object $object, string $property): mixed

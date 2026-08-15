@@ -14,7 +14,7 @@ use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
 use Pentiminax\UX\DataTables\RowMapper\Stage\ActionResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
-use Pentiminax\UX\DataTables\Tests\Unit\RowMapper\Stage\BuildsRowStageContext;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRowStageContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;

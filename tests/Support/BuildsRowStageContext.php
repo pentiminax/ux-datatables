@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Tests\Unit\RowMapper\Stage;
+namespace Pentiminax\UX\DataTables\Tests\Support;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
