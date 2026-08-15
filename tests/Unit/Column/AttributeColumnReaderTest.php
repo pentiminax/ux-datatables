@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -28,109 +29,65 @@ final class AttributeColumnReaderTest extends TestCase
         $this->reader = new AttributeColumnReader();
     }
 
+    /**
+     * @param class-string $entityClass
+     * @param list<string> $expectedNames
+     */
     #[Test]
-    public function it_reads_annotated_properties(): void
+    #[TestWith([ReaderEntityFixture::class, ['id', 'firstName', 'active', 'createdAt']])]
+    #[TestWith([MixedAnnotationFixture::class, ['name']])]
+    #[TestWith([NoAttributeFixture::class, []])]
+    #[TestWith([PositionFixture::class, ['first', 'second', 'third']])]
+    #[TestWith([StableSortFixture::class, ['alpha', 'beta', 'gamma']])]
+    public function it_reads_annotated_properties_in_position_order(string $entityClass, array $expectedNames): void
     {
-        $columns = $this->reader->readColumns(ReaderEntityFixture::class);
+        $columns = $this->reader->readColumns($entityClass);
 
-        $this->assertCount(4, $columns);
+        $this->assertSame($expectedNames, array_map(static fn ($column) => $column->getName(), $columns));
     }
 
+    /**
+     * @param class-string $expectedColumnClass
+     */
     #[Test]
-    public function it_infers_correct_column_types(): void
+    #[TestWith([0, NumberColumn::class, 'id', 'ID'])]
+    #[TestWith([1, TextColumn::class, 'firstName', 'First Name'])]
+    #[TestWith([2, BooleanColumn::class, 'active', 'Active'])]
+    #[TestWith([3, DateColumn::class, 'createdAt', 'Created At'])]
+    public function it_infers_column_type_and_humanized_label(int $index, string $expectedColumnClass, string $expectedName, string $expectedTitle): void
     {
-        $columns = $this->reader->readColumns(ReaderEntityFixture::class);
+        $column = $this->reader->readColumns(ReaderEntityFixture::class)[$index];
 
-        $this->assertInstanceOf(NumberColumn::class, $columns[0]);
-        $this->assertInstanceOf(TextColumn::class, $columns[1]);
-        $this->assertInstanceOf(BooleanColumn::class, $columns[2]);
-        $this->assertInstanceOf(DateColumn::class, $columns[3]);
+        $this->assertInstanceOf($expectedColumnClass, $column);
+        $this->assertSame($expectedName, $column->getName());
+        $this->assertSame($expectedTitle, $column->jsonSerialize()['title']);
     }
 
+    /**
+     * @param class-string $entityClass
+     * @param class-string $expectedColumnClass
+     */
     #[Test]
-    public function it_overrides_inferred_type_with_explicit_type(): void
+    #[TestWith([ExplicitTypeFixture::class, TextColumn::class, 'code', 'Code'])]
+    #[TestWith([CustomNameFixture::class, TextColumn::class, 'full_name', 'First Name'])]
+    #[TestWith([ExplicitLabelFixture::class, TextColumn::class, 'firstName', 'Full Name'])]
+    public function it_applies_explicit_attribute_overrides(string $entityClass, string $expectedColumnClass, string $expectedName, string $expectedTitle): void
     {
-        $columns = $this->reader->readColumns(ExplicitTypeFixture::class);
+        $columns = $this->reader->readColumns($entityClass);
 
         $this->assertCount(1, $columns);
-        $this->assertInstanceOf(TextColumn::class, $columns[0]);
-    }
-
-    #[Test]
-    public function it_uses_property_name_as_default_name(): void
-    {
-        $columns = $this->reader->readColumns(ReaderEntityFixture::class);
-
-        $this->assertSame('id', $columns[0]->getName());
-        $this->assertSame('firstName', $columns[1]->getName());
-    }
-
-    #[Test]
-    public function it_overrides_default_name_with_explicit_name(): void
-    {
-        $columns = $this->reader->readColumns(CustomNameFixture::class);
-
-        $this->assertSame('full_name', $columns[0]->getName());
-    }
-
-    #[Test]
-    public function it_humanizes_labels(): void
-    {
-        $columns = $this->reader->readColumns(ReaderEntityFixture::class);
-
-        $data = $columns[0]->jsonSerialize();
-        $this->assertSame('ID', $data['title']);
-
-        $data = $columns[1]->jsonSerialize();
-        $this->assertSame('First Name', $data['title']);
-    }
-
-    #[Test]
-    public function it_uses_explicit_label(): void
-    {
-        $columns = $this->reader->readColumns(ExplicitLabelFixture::class);
-
-        $data = $columns[0]->jsonSerialize();
-        $this->assertSame('Full Name', $data['title']);
+        $this->assertInstanceOf($expectedColumnClass, $columns[0]);
+        $this->assertSame($expectedName, $columns[0]->getName());
+        $this->assertSame($expectedTitle, $columns[0]->jsonSerialize()['title']);
     }
 
     #[Test]
     public function it_applies_format_to_date_column(): void
     {
-        $columns = $this->reader->readColumns(ReaderEntityFixture::class);
+        $dateColumn = $this->reader->readColumns(ReaderEntityFixture::class)[3];
 
-        $dateColumn = $columns[3];
         $this->assertInstanceOf(DateColumn::class, $dateColumn);
         $this->assertSame('Y-m-d', $dateColumn->getFormat());
-    }
-
-    #[Test]
-    public function it_ignores_unannotated_properties(): void
-    {
-        $columns = $this->reader->readColumns(MixedAnnotationFixture::class);
-
-        $this->assertCount(1, $columns);
-        $this->assertSame('name', $columns[0]->getName());
-    }
-
-    #[Test]
-    public function it_sorts_by_position(): void
-    {
-        $columns = $this->reader->readColumns(PositionFixture::class);
-
-        $this->assertSame('first', $columns[0]->getName());
-        $this->assertSame('second', $columns[1]->getName());
-        $this->assertSame('third', $columns[2]->getName());
-    }
-
-    #[Test]
-    public function it_preserves_declaration_order_for_equal_positions(): void
-    {
-        $columns = $this->reader->readColumns(StableSortFixture::class);
-
-        $this->assertSame('alpha', $columns[0]->getName());
-        $this->assertSame('beta', $columns[1]->getName());
-        $this->assertSame('gamma', $columns[2]->getName());
     }
 
     #[Test]
@@ -168,19 +125,11 @@ final class AttributeColumnReaderTest extends TestCase
 
         $this->assertCount(1, $columns);
         $this->assertInstanceOf(ChoiceColumn::class, $columns[0]);
-        $this->assertSame(
-            ['active' => 'success', 'inactive' => 'danger'],
-            $columns[0]->jsonSerialize()['customOptions']['renderAsBadges']
-        );
-        $this->assertSame('secondary', $columns[0]->jsonSerialize()['customOptions']['defaultBadgeVariant']);
-    }
 
-    #[Test]
-    public function it_returns_empty_for_entity_with_no_attributes(): void
-    {
-        $columns = $this->reader->readColumns(NoAttributeFixture::class);
+        $customOptions = $columns[0]->jsonSerialize()['customOptions'];
 
-        $this->assertSame([], $columns);
+        $this->assertSame(['active' => 'success', 'inactive' => 'danger'], $customOptions['renderAsBadges']);
+        $this->assertSame('secondary', $customOptions['defaultBadgeVariant']);
     }
 }
 

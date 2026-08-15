@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInter
 use ApiPlatform\Metadata\Resource\ResourceMetadataCollection;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -21,140 +22,97 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ApiResourceCollectionUrlResolver::class)]
 final class ApiResourceCollectionUrlResolverTest extends TestCase
 {
+    private const string ENTITY_CLASS = 'App\Entity\Book';
+
     #[Test]
-    public function it_builds_path_from_route_prefix_and_uri_template(): void
+    #[DataProvider('provideCollectionOperations')]
+    public function it_builds_the_collection_url(ApiResource $resource, string $expectedUrl): void
     {
-        $factory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
-        $factory
-            ->method('create')
-            ->with('App\Entity\Book')
-            ->willReturn(new ResourceMetadataCollection('App\Entity\Book', [
-                (new ApiResource())->withOperations(new Operations([
-                    new GetCollection(uriTemplate: '/books{._format}', routePrefix: '/api'),
-                ])),
-            ]));
+        $this->assertSame($expectedUrl, $this->resolver($resource)->resolveCollectionUrl(self::ENTITY_CLASS));
+    }
 
-        $resolver = new ApiResourceCollectionUrlResolver($factory);
+    /**
+     * @return iterable<string, array{0: ApiResource, 1: string}>
+     */
+    public static function provideCollectionOperations(): iterable
+    {
+        yield 'operation route prefix' => [
+            (new ApiResource())->withOperations(new Operations([
+                new GetCollection(uriTemplate: '/books{._format}', routePrefix: '/api'),
+            ])),
+            '/api/books',
+        ];
 
-        $this->assertSame('/api/books', $resolver->resolveCollectionUrl('App\Entity\Book'));
+        yield 'default route prefix when none is declared' => [
+            (new ApiResource())->withOperations(new Operations([
+                new GetCollection(uriTemplate: '/books{._format}'),
+            ])),
+            '/api/books',
+        ];
+
+        yield 'resource route prefix' => [
+            (new ApiResource(routePrefix: '/api'))->withOperations(new Operations([
+                new GetCollection(uriTemplate: '/books{._format}'),
+            ])),
+            '/api/books',
+        ];
+
+        yield 'dot format suffix stripped' => [
+            (new ApiResource())->withOperations(new Operations([
+                new GetCollection(uriTemplate: '/books.{_format}', routePrefix: '/api'),
+            ])),
+            '/api/books',
+        ];
+
+        yield 'uri template without format suffix' => [
+            (new ApiResource())->withOperations(new Operations([
+                new GetCollection(uriTemplate: '/books'),
+            ])),
+            '/api/books',
+        ];
     }
 
     #[Test]
-    public function it_works_when_route_prefix_is_null(): void
+    public function it_excludes_operations_that_are_not_collection_operations(): void
     {
-        $factory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
-        $factory
-            ->method('create')
-            ->with('App\Entity\Book')
-            ->willReturn(new ResourceMetadataCollection('App\Entity\Book', [
-                (new ApiResource())->withOperations(new Operations([
-                    new GetCollection(uriTemplate: '/books{._format}'),
-                ])),
-            ]));
+        $resource = (new ApiResource())->withOperations(new Operations([
+            new Get(uriTemplate: '/api/books/{id}'),
+        ]));
 
-        $resolver = new ApiResourceCollectionUrlResolver($factory);
-
-        $this->assertSame('/api/books', $resolver->resolveCollectionUrl('App\Entity\Book'));
+        $this->assertNull($this->resolver($resource)->resolveCollectionUrl(self::ENTITY_CLASS));
     }
 
     #[Test]
-    public function it_falls_back_to_resource_route_prefix(): void
+    public function it_excludes_paths_that_still_contain_variables(): void
     {
-        $factory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
-        $factory
-            ->method('create')
-            ->with('App\Entity\Book')
-            ->willReturn(new ResourceMetadataCollection('App\Entity\Book', [
-                (new ApiResource(routePrefix: '/api'))->withOperations(new Operations([
-                    new GetCollection(uriTemplate: '/books{._format}'),
-                ])),
-            ]));
+        $resource = (new ApiResource())->withOperations(new Operations([
+            new GetCollection(uriTemplate: '/books/{id}{._format}'),
+        ]));
 
-        $resolver = new ApiResourceCollectionUrlResolver($factory);
-
-        $this->assertSame('/api/books', $resolver->resolveCollectionUrl('App\Entity\Book'));
-    }
-
-    #[Test]
-    public function it_strips_dot_format_suffix(): void
-    {
-        $factory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
-        $factory
-            ->method('create')
-            ->with('App\Entity\Book')
-            ->willReturn(new ResourceMetadataCollection('App\Entity\Book', [
-                (new ApiResource())->withOperations(new Operations([
-                    new GetCollection(uriTemplate: '/books.{_format}', routePrefix: '/api'),
-                ])),
-            ]));
-
-        $resolver = new ApiResourceCollectionUrlResolver($factory);
-
-        $this->assertSame('/api/books', $resolver->resolveCollectionUrl('App\Entity\Book'));
-    }
-
-    #[Test]
-    public function it_returns_null_when_no_get_collection_operation(): void
-    {
-        $factory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
-        $factory
-            ->method('create')
-            ->willReturn(new ResourceMetadataCollection('App\Entity\Book', [
-                (new ApiResource())->withOperations(new Operations([
-                    new Get(uriTemplate: '/api/books/{id}'),
-                ])),
-            ]));
-
-        $resolver = new ApiResourceCollectionUrlResolver($factory);
-
-        $this->assertNull($resolver->resolveCollectionUrl('App\Entity\Book'));
-    }
-
-    #[Test]
-    public function it_returns_null_when_path_contains_variables(): void
-    {
-        $factory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
-        $factory
-            ->method('create')
-            ->willReturn(new ResourceMetadataCollection('App\Entity\Book', [
-                (new ApiResource())->withOperations(new Operations([
-                    new GetCollection(uriTemplate: '/books/{id}{._format}'),
-                ])),
-            ]));
-
-        $resolver = new ApiResourceCollectionUrlResolver($factory);
-
-        $this->assertNull($resolver->resolveCollectionUrl('App\Entity\Book'));
-    }
-
-    #[Test]
-    public function it_keeps_path_without_format_suffix(): void
-    {
-        $factory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
-        $factory
-            ->method('create')
-            ->with('App\Entity\Book')
-            ->willReturn(new ResourceMetadataCollection('App\Entity\Book', [
-                (new ApiResource())->withOperations(new Operations([
-                    new GetCollection(uriTemplate: '/books'),
-                ])),
-            ]));
-
-        $resolver = new ApiResourceCollectionUrlResolver($factory);
-
-        $this->assertSame('/api/books', $resolver->resolveCollectionUrl('App\Entity\Book'));
+        $this->assertNull($this->resolver($resource)->resolveCollectionUrl(self::ENTITY_CLASS));
     }
 
     #[Test]
     public function it_returns_null_when_metadata_factory_throws(): void
     {
-        $factory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
+        $factory = $this->createStub(ResourceMetadataCollectionFactoryInterface::class);
         $factory
             ->method('create')
             ->willThrowException(new \RuntimeException('boom'));
 
         $resolver = new ApiResourceCollectionUrlResolver($factory);
 
-        $this->assertNull($resolver->resolveCollectionUrl('App\Entity\Book'));
+        $this->assertNull($resolver->resolveCollectionUrl(self::ENTITY_CLASS));
+    }
+
+    private function resolver(ApiResource $resource): ApiResourceCollectionUrlResolver
+    {
+        $factory = $this->createStub(ResourceMetadataCollectionFactoryInterface::class);
+        $factory
+            ->method('create')
+            ->with(self::ENTITY_CLASS)
+            ->willReturn(new ResourceMetadataCollection(self::ENTITY_CLASS, [$resource]));
+
+        return new ApiResourceCollectionUrlResolver($factory);
     }
 }

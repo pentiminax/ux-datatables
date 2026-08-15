@@ -11,8 +11,10 @@ use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Mutation\BooleanMutationContext;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
@@ -25,33 +27,35 @@ final class BooleanMutationContextResolverTest extends TestCase
 {
     private const string TOKEN_SECRET = 'test-secret';
 
-    #[Test]
-    public function it_resolves_entity_and_datatable_classes_from_the_hmac_token(): void
+    /**
+     * @return iterable<string, array{class-string<AbstractDataTable>, string, class-string}>
+     */
+    public static function provideResolvableContexts(): iterable
     {
-        $context = $this->resolver(new SwitchableBooleanDataTableFixture())
-            ->resolve($this->token(SwitchableBooleanDataTableFixture::class), 'enabled');
+        yield 'datatable entity class' => [SwitchableBooleanDataTableFixture::class, 'enabled', BooleanMutationEntityFixture::class];
 
-        $this->assertSame(BooleanMutationEntityFixture::class, $context->entityClass);
-        $this->assertSame(SwitchableBooleanDataTableFixture::class, $context->dataTableClass);
-        $this->assertSame('enabled', $context->field);
+        yield 'column entity class over the datatable entity class' => [ColumnEntityClassDataTableFixture::class, 'enabled', BooleanMutationColumnEntityFixture::class];
+
+        yield 'column entity class when the datatable has none' => [ColumnOnlyEntityClassDataTableFixture::class, 'enabled', BooleanMutationColumnEntityFixture::class];
+
+        yield 'effective toggle field differing from the column name' => [ToggleFieldDataTableFixture::class, 'isEnabled', BooleanMutationEntityFixture::class];
+
+        yield 'column field fallback when the toggle field is empty' => [EmptyToggleFieldDataTableFixture::class, 'enabled', BooleanMutationEntityFixture::class];
     }
 
+    /**
+     * @param class-string<AbstractDataTable> $dataTableClass
+     * @param class-string                    $expectedEntityClass
+     */
     #[Test]
-    public function it_prefers_the_boolean_column_entity_class_over_the_datatable_entity_class(): void
+    #[DataProvider('provideResolvableContexts')]
+    public function it_resolves_the_mutation_context_from_the_hmac_token(string $dataTableClass, string $field, string $expectedEntityClass): void
     {
-        $context = $this->resolver(new ColumnEntityClassDataTableFixture())
-            ->resolve($this->token(ColumnEntityClassDataTableFixture::class), 'enabled');
+        $context = $this->resolve($dataTableClass, $field);
 
-        $this->assertSame(BooleanMutationColumnEntityFixture::class, $context->entityClass);
-    }
-
-    #[Test]
-    public function it_supports_a_column_entity_class_when_the_datatable_has_none(): void
-    {
-        $context = $this->resolver(new ColumnOnlyEntityClassDataTableFixture())
-            ->resolve($this->token(ColumnOnlyEntityClassDataTableFixture::class), 'enabled');
-
-        $this->assertSame(BooleanMutationColumnEntityFixture::class, $context->entityClass);
+        $this->assertSame($expectedEntityClass, $context->entityClass);
+        $this->assertSame($dataTableClass, $context->dataTableClass);
+        $this->assertSame($field, $context->field);
     }
 
     #[Test]
@@ -60,7 +64,7 @@ final class BooleanMutationContextResolverTest extends TestCase
         $this->expectException(InvalidBooleanMutationContextException::class);
         $this->expectExceptionMessage('Invalid DataTable token.');
 
-        $this->resolver(new SwitchableBooleanDataTableFixture())->resolve('not-a-valid-token', 'enabled');
+        $this->resolver(SwitchableBooleanDataTableFixture::class)->resolve('not-a-valid-token', 'enabled');
     }
 
     #[Test]
@@ -69,8 +73,7 @@ final class BooleanMutationContextResolverTest extends TestCase
         $this->expectException(InvalidBooleanMutationContextException::class);
         $this->expectExceptionMessage('must define an entity class');
 
-        $this->resolver(new MissingEntityClassDataTableFixture(), MissingEntityClassDataTableFixture::class)
-            ->resolve($this->token(MissingEntityClassDataTableFixture::class), 'enabled');
+        $this->resolve(MissingEntityClassDataTableFixture::class, 'enabled');
     }
 
     #[Test]
@@ -79,8 +82,7 @@ final class BooleanMutationContextResolverTest extends TestCase
         $this->expectException(InvalidBooleanMutationContextException::class);
         $this->expectExceptionMessage('is not a switchable boolean column');
 
-        $this->resolver(new NonSwitchBooleanDataTableFixture(), NonSwitchBooleanDataTableFixture::class)
-            ->resolve($this->token(NonSwitchBooleanDataTableFixture::class), 'enabled');
+        $this->resolve(NonSwitchBooleanDataTableFixture::class, 'enabled');
     }
 
     #[Test]
@@ -89,8 +91,7 @@ final class BooleanMutationContextResolverTest extends TestCase
         $this->expectException(InvalidBooleanMutationContextException::class);
         $this->expectExceptionMessage('is not a switchable boolean column');
 
-        $this->resolver(new TextColumnDataTableFixture(), TextColumnDataTableFixture::class)
-            ->resolve($this->token(TextColumnDataTableFixture::class), 'enabled');
+        $this->resolve(TextColumnDataTableFixture::class, 'enabled');
     }
 
     #[Test]
@@ -99,26 +100,7 @@ final class BooleanMutationContextResolverTest extends TestCase
         $this->expectException(InvalidBooleanMutationContextException::class);
         $this->expectExceptionMessage('is not a switchable boolean column');
 
-        $this->resolver(new SwitchableBooleanDataTableFixture())
-            ->resolve($this->token(SwitchableBooleanDataTableFixture::class), 'unknown');
-    }
-
-    #[Test]
-    public function it_uses_the_effective_toggle_field_when_it_differs_from_the_column_name(): void
-    {
-        $context = $this->resolver(new ToggleFieldDataTableFixture(), ToggleFieldDataTableFixture::class)
-            ->resolve($this->token(ToggleFieldDataTableFixture::class), 'isEnabled');
-
-        $this->assertSame('isEnabled', $context->field);
-    }
-
-    #[Test]
-    public function it_falls_back_to_the_column_field_when_toggle_field_is_empty(): void
-    {
-        $context = $this->resolver(new EmptyToggleFieldDataTableFixture(), EmptyToggleFieldDataTableFixture::class)
-            ->resolve($this->token(EmptyToggleFieldDataTableFixture::class), 'enabled');
-
-        $this->assertSame('enabled', $context->field);
+        $this->resolve(SwitchableBooleanDataTableFixture::class, 'unknown');
     }
 
     #[Test]
@@ -127,19 +109,24 @@ final class BooleanMutationContextResolverTest extends TestCase
         $this->expectException(InvalidBooleanMutationContextException::class);
         $this->expectExceptionMessage('is not a switchable boolean column');
 
-        $this->resolver(new MissingEffectiveFieldDataTableFixture())
-            ->resolve($this->token(MissingEffectiveFieldDataTableFixture::class), '');
+        $this->resolve(MissingEffectiveFieldDataTableFixture::class, '');
     }
 
     /**
-     * @param class-string<AbstractDataTable>|null $dataTableClass
+     * @param class-string<AbstractDataTable> $dataTableClass
      */
-    private function resolver(AbstractDataTable $dataTable, ?string $dataTableClass = null): BooleanMutationContextResolver
+    private function resolve(string $dataTableClass, string $field): BooleanMutationContext
     {
-        $dataTableClass ??= $dataTable::class;
+        return $this->resolver($dataTableClass)->resolve($this->token($dataTableClass), $field);
+    }
 
+    /**
+     * @param class-string<AbstractDataTable> $dataTableClass
+     */
+    private function resolver(string $dataTableClass): BooleanMutationContextResolver
+    {
         $locator = $this->createMock(ContainerInterface::class);
-        $locator->method('get')->with('table')->willReturn($dataTable);
+        $locator->method('get')->with('table')->willReturn(new $dataTableClass());
 
         return new BooleanMutationContextResolver(new AjaxDataTableRegistry(
             $locator,

@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Model\Actions;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -33,156 +34,66 @@ class ColumnToFormTypeMapperTest extends TestCase
         $this->mapper = new ColumnToFormTypeMapper();
     }
 
-    public function test_boolean_switch_maps_to_checkbox(): void
+    /**
+     * @param array{formType: class-string, options: array<string, mixed>} $expected
+     */
+    #[DataProvider('mappedColumnProvider')]
+    public function test_column_maps_to_a_form_type_with_its_options(array $expected, ColumnInterface $column): void
     {
-        $column = TextColumn::new('active', 'Active')
-            ->setCustomOption('renderAsSwitch', true);
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNotNull($result);
-        $this->assertSame(CheckboxType::class, $result['formType']);
-        $this->assertSame('Active', $result['options']['label']);
-        $this->assertFalse($result['options']['required']);
+        $this->assertSame($expected, $this->mapper->map($column));
     }
 
-    public function test_choices_maps_to_choice_type(): void
+    public static function mappedColumnProvider(): \Generator
     {
-        $choices = ['draft' => 'Draft', 'published' => 'Published'];
+        yield 'boolean switch' => [
+            ['formType' => CheckboxType::class, 'options' => ['label' => 'Active', 'required' => false]],
+            TextColumn::new('active', 'Active')->setCustomOption('renderAsSwitch', true),
+        ];
 
-        $column = TextColumn::new('status', 'Status')
-            ->setCustomOption('choices', $choices);
+        yield 'choices' => [
+            ['formType' => ChoiceType::class, 'options' => [
+                'label'    => 'Status',
+                'choices'  => ['Draft' => 'draft', 'Published' => 'published'],
+                'required' => false,
+            ]],
+            TextColumn::new('status', 'Status')->setCustomOption('choices', ['draft' => 'Draft', 'published' => 'Published']),
+        ];
 
-        $result = $this->mapper->map($column);
+        yield 'date' => [
+            ['formType' => DateType::class, 'options' => ['label' => 'Created At', 'widget' => 'single_text']],
+            DateColumn::new('createdAt', 'Created At'),
+        ];
 
-        $this->assertNotNull($result);
-        $this->assertSame(ChoiceType::class, $result['formType']);
-        $this->assertSame(array_flip($choices), $result['options']['choices']);
-        $this->assertFalse($result['options']['required']);
+        $number = ['formType' => NumberType::class, 'options' => ['label' => 'Price', 'html5' => true]];
+
+        yield 'num' => [$number, NumberColumn::new('price', 'Price')];
+        yield 'num-fmt' => [$number, NumberColumn::new('price', 'Price')->formatted()];
+        yield 'html-num' => [$number, NumberColumn::new('price', 'Price')->html()];
+        yield 'html-num-fmt' => [$number, NumberColumn::new('price', 'Price')->html()->formatted()];
+
+        $text = ['formType' => TextType::class, 'options' => ['label' => 'Full Name']];
+
+        yield 'string' => [$text, TextColumn::new('name', 'Full Name')];
+        yield 'string-utf8' => [$text, TextColumn::new('name', 'Full Name')->utf8()];
+
+        yield 'html' => [
+            ['formType' => TextareaType::class, 'options' => ['label' => 'Description']],
+            TextColumn::new('description', 'Description')->html(),
+        ];
     }
 
-    public function test_date_type_maps_to_date_type_without_custom_option(): void
+    #[DataProvider('skippedColumnProvider')]
+    public function test_column_is_skipped(ColumnInterface $column): void
     {
-        $column = DateColumn::new('createdAt', 'Created At');
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNotNull($result);
-        $this->assertSame(DateType::class, $result['formType']);
-        $this->assertSame('single_text', $result['options']['widget']);
+        $this->assertNull($this->mapper->map($column));
     }
 
-    #[DataProvider('numericColumnProvider')]
-    public function test_numeric_types_map_to_number_type(callable $builder): void
+    public static function skippedColumnProvider(): \Generator
     {
-        $column = $builder();
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNotNull($result);
-        $this->assertSame(NumberType::class, $result['formType']);
-    }
-
-    public static function numericColumnProvider(): \Generator
-    {
-        yield 'num' => [static fn (): NumberColumn => NumberColumn::new('price', 'Price')];
-        yield 'num-fmt' => [static fn (): NumberColumn => NumberColumn::new('price', 'Price')->formatted()];
-        yield 'html-num' => [static fn (): NumberColumn => NumberColumn::new('price', 'Price')->html()];
-        yield 'html-num-fmt' => [static fn (): NumberColumn => NumberColumn::new('price', 'Price')->html()->formatted()];
-    }
-
-    #[DataProvider('stringColumnProvider')]
-    public function test_string_types_map_to_text_type(callable $builder): void
-    {
-        $column = $builder();
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNotNull($result);
-        $this->assertSame(TextType::class, $result['formType']);
-    }
-
-    public static function stringColumnProvider(): \Generator
-    {
-        yield 'string' => [static fn (): TextColumn => TextColumn::new('name', 'Name')];
-        yield 'string-utf8' => [static fn (): TextColumn => TextColumn::new('name', 'Name')->utf8()];
-    }
-
-    public function test_html_type_maps_to_textarea(): void
-    {
-        $column = TextColumn::new('description', 'Description')->html();
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNotNull($result);
-        $this->assertSame(TextareaType::class, $result['formType']);
-    }
-
-    public function test_action_column_is_skipped(): void
-    {
-        $column = ActionColumn::fromActions('actions', 'Actions', new Actions([]));
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNull($result);
-    }
-
-    public function test_template_column_is_skipped(): void
-    {
-        $column = TemplateColumn::new('custom', 'Custom')
-            ->setCustomOption('templatePath', 'some/template.html.twig');
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNull($result);
-    }
-
-    public function test_url_column_is_skipped(): void
-    {
-        $column = UrlColumn::new('link', 'Link');
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNull($result);
-    }
-
-    public function test_nested_field_path_is_skipped(): void
-    {
-        $column = TextColumn::new('author', 'Author')
-            ->setField('author.firstName');
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNull($result);
-    }
-
-    public function test_hide_when_updating_is_skipped(): void
-    {
-        $column = TextColumn::new('createdAt', 'Created At')
-            ->setCustomOption('hideWhenUpdating', true);
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNull($result);
-    }
-
-    public function test_unknown_type_defaults_to_text_type(): void
-    {
-        $column = TextColumn::new('unknown', 'Unknown');
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNotNull($result);
-        $this->assertSame(TextType::class, $result['formType']);
-    }
-
-    public function test_label_is_set_from_title(): void
-    {
-        $column = TextColumn::new('name', 'Full Name');
-
-        $result = $this->mapper->map($column);
-
-        $this->assertNotNull($result);
-        $this->assertSame('Full Name', $result['options']['label']);
+        yield 'action column' => [ActionColumn::fromActions('actions', 'Actions', new Actions([]))];
+        yield 'template column' => [TemplateColumn::new('custom', 'Custom')->setCustomOption('templatePath', 'some/template.html.twig')];
+        yield 'url column' => [UrlColumn::new('link', 'Link')];
+        yield 'nested field path' => [TextColumn::new('author', 'Author')->setField('author.firstName')];
+        yield 'hidden when updating' => [TextColumn::new('createdAt', 'Created At')->setCustomOption('hideWhenUpdating', true)];
     }
 }

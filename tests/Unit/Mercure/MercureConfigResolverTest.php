@@ -20,12 +20,7 @@ final class MercureConfigResolverTest extends TestCase
     #[Test]
     public function it_returns_null_without_hub_url(): void
     {
-        $hubResolver = $this->createMock(MercureHubUrlResolverInterface::class);
-        $hubResolver
-            ->method('resolveHubUrl')
-            ->willReturn(null);
-
-        $resolver = new MercureConfigResolver($hubResolver);
+        $resolver = new MercureConfigResolver($this->hubUrlResolver(null));
 
         $this->assertNull($resolver->resolveMercureConfig('App\\Entity\\Book'));
     }
@@ -33,11 +28,6 @@ final class MercureConfigResolverTest extends TestCase
     #[Test]
     public function it_uses_api_platform_topics_when_available(): void
     {
-        $hubResolver = $this->createMock(MercureHubUrlResolverInterface::class);
-        $hubResolver
-            ->method('resolveHubUrl')
-            ->willReturn('http://localhost/.well-known/mercure');
-
         $metadataResolver = $this->createMock(ApiResourceMercureMetadataResolverInterface::class);
         $metadataResolver
             ->expects($this->once())
@@ -45,7 +35,7 @@ final class MercureConfigResolverTest extends TestCase
             ->with('App\\Entity\\Book')
             ->willReturn(['/api/books/{id}', '/api/authors/{id}']);
 
-        $resolver = new MercureConfigResolver($hubResolver, $metadataResolver);
+        $resolver = new MercureConfigResolver($this->hubUrlResolver('http://localhost/.well-known/mercure'), $metadataResolver);
         $config   = $resolver->resolveMercureConfig('App\\Entity\\Book');
 
         $this->assertSame('http://localhost/.well-known/mercure', $config?->hubUrl);
@@ -55,19 +45,24 @@ final class MercureConfigResolverTest extends TestCase
     #[Test]
     public function it_falls_back_to_internal_topic_when_metadata_is_missing(): void
     {
-        $hubResolver = $this->createMock(MercureHubUrlResolverInterface::class);
-        $hubResolver
-            ->method('resolveHubUrl')
-            ->willReturn('http://localhost/.well-known/mercure');
-
-        $metadataResolver = $this->createMock(ApiResourceMercureMetadataResolverInterface::class);
+        $metadataResolver = $this->createStub(ApiResourceMercureMetadataResolverInterface::class);
         $metadataResolver
             ->method('resolveTopics')
             ->willReturn([]);
 
-        $resolver = new MercureConfigResolver($hubResolver, $metadataResolver);
+        $resolver = new MercureConfigResolver($this->hubUrlResolver('http://localhost/.well-known/mercure'), $metadataResolver);
         $config   = $resolver->resolveMercureConfig('App\\Entity\\BookCategory');
 
         $this->assertSame(['/datatables/book-categories/{id}'], $config?->topics);
+    }
+
+    private function hubUrlResolver(?string $hubUrl): MercureHubUrlResolverInterface
+    {
+        $hubResolver = $this->createStub(MercureHubUrlResolverInterface::class);
+        $hubResolver
+            ->method('resolveHubUrl')
+            ->willReturn($hubUrl);
+
+        return $hubResolver;
     }
 }

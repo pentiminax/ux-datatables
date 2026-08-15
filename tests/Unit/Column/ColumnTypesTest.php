@@ -9,6 +9,9 @@ use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\EmailColumn;
+use Pentiminax\UX\DataTables\Column\IconColumn;
+use Pentiminax\UX\DataTables\Column\ImageColumn;
+use Pentiminax\UX\DataTables\Column\MoneyColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -24,15 +27,39 @@ use PHPUnit\Framework\TestCase;
  * @internal
  */
 #[CoversClass(ColumnType::class)]
+#[CoversClass(AbstractColumn::class)]
 final class ColumnTypesTest extends TestCase
 {
+    /**
+     * Every column shares the AbstractColumn::new(string $name, string $title = '') factory,
+     * so the title fallback is asserted once here instead of in each column test.
+     *
+     * @param class-string<AbstractColumn> $columnClass
+     */
     #[Test]
-    public function it_falls_back_to_name_as_title(): void
+    #[DataProvider('provideColumnClasses')]
+    public function it_falls_back_to_name_as_title(string $columnClass): void
     {
-        $data = TextColumn::new('username')->jsonSerialize();
+        $this->assertSame('username', $columnClass::new('username')->jsonSerialize()['title']);
+        $this->assertSame('Username', $columnClass::new('username', 'Username')->jsonSerialize()['title']);
+    }
 
-        $this->assertArrayHasKey('title', $data);
-        $this->assertSame('username', $data['title']);
+    /**
+     * @return iterable<string, array{class-string<AbstractColumn>}>
+     */
+    public static function provideColumnClasses(): iterable
+    {
+        yield 'text' => [TextColumn::class];
+        yield 'number' => [NumberColumn::class];
+        yield 'boolean' => [BooleanColumn::class];
+        yield 'date' => [DateColumn::class];
+        yield 'choice' => [ChoiceColumn::class];
+        yield 'email' => [EmailColumn::class];
+        yield 'url' => [UrlColumn::class];
+        yield 'image' => [ImageColumn::class];
+        yield 'icon' => [IconColumn::class];
+        yield 'money' => [MoneyColumn::class];
+        yield 'template' => [TemplateColumn::class];
     }
 
     #[Test]

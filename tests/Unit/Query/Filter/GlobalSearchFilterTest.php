@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Filter;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Query\Expr;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Query\Filter\GlobalSearchFilter;
+use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsQueryFilterContext;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -25,99 +27,85 @@ final class GlobalSearchFilterTest extends TestCase
 {
     use BuildsQueryFilterContext;
 
-    #[Test]
-    public function it_applies_with_dot_notation_field(): void
+    /**
+     * @return iterable<string, array{ColumnInterface, string, string, string, ?array{string, string}}>
+     */
+    public static function appliedGlobalSearches(): iterable
     {
-        $filter = new GlobalSearchFilter();
+        yield 'simple field' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            'test',
+            'e.name LIKE :search_param_0',
+            '%test%',
+            null,
+        ];
 
+        yield 'dot notation field' => [
+            TextColumn::new('authorName', 'Author')->setField('author.firstName'),
+            'john',
+            'author.firstName LIKE :search_param_0',
+            '%john%',
+            ['e.author', 'author'],
+        ];
+    }
+
+    /**
+     * @param ?array{string, string} $expectedJoin
+     */
+    #[Test]
+    #[DataProvider('appliedGlobalSearches')]
+    public function it_applies_global_search(
+        ColumnInterface $column,
+        string $value,
+        string $expectedCondition,
+        string $expectedParameterValue,
+        ?array $expectedJoin,
+    ): void {
         $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
+        $qb->method('getDQLPart')->willReturn([]);
 
-        $qb->expects($this->once())
-            ->method('leftJoin')
-            ->with('e.author', 'author')
-            ->willReturn($qb);
+        if (null === $expectedJoin) {
+            $qb->expects($this->never())->method('leftJoin');
+        } else {
+            $qb->expects($this->once())
+                ->method('leftJoin')
+                ->with($expectedJoin[0], $expectedJoin[1])
+                ->willReturn($qb);
+        }
 
         $expr = $this->createMock(Expr::class);
         $expr->expects($this->once())
             ->method('orX')
-            ->with('author.firstName LIKE :search_param_0')
-            ->willReturn(new Expr\Orx(['author.firstName LIKE :search_param_0']));
+            ->with($expectedCondition)
+            ->willReturn(new Expr\Orx([$expectedCondition]));
 
         $qb->method('expr')->willReturn($expr);
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);
 
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with('search_param_0', '%john%');
+            ->with('search_param_0', $expectedParameterValue);
 
-        $column  = TextColumn::new('authorName', 'Author')->setField('author.firstName');
-        $columns = new Columns([]);
-        $search  = new Search('john', false);
-        $request = new DataTableRequest(1, $columns, search: $search);
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
+        (new GlobalSearchFilter())->apply($qb, $this->globalSearchContext($column, $value));
     }
 
     #[Test]
     public function it_skips_text_column_when_field_requires_an_explicit_scalar_path(): void
     {
-        $filter = new GlobalSearchFilter();
-
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with('client')->willReturn(true);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getClassMetadata')->willReturn($metadata);
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
-        $qb->method('getEntityManager')->willReturn($em);
-
+        $qb = $this->associationFieldQueryBuilder('client');
         $qb->expects($this->never())->method('andWhere');
         $qb->expects($this->never())->method('setParameter');
         $qb->expects($this->never())->method('leftJoin');
 
-        $column  = TextColumn::new('client', 'Client');
-        $columns = new Columns([]);
-        $search  = new Search('acme', false);
-        $request = new DataTableRequest(1, $columns, search: $search);
-        $context = $this->context($request, [$column]);
+        $context = $this->globalSearchContext(TextColumn::new('client', 'Client'), 'acme');
 
-        $filter->apply($qb, $context);
+        (new GlobalSearchFilter())->apply($qb, $context);
     }
 
-    #[Test]
-    public function it_applies_with_simple_field(): void
+    private function globalSearchContext(ColumnInterface $column, string $value): QueryFilterContext
     {
-        $filter = new GlobalSearchFilter();
+        $request = new DataTableRequest(1, new Columns([]), search: new Search($value, false));
 
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-
-        $expr = $this->createMock(Expr::class);
-        $expr->expects($this->once())
-            ->method('orX')
-            ->with('e.name LIKE :search_param_0')
-            ->willReturn(new Expr\Orx(['e.name LIKE :search_param_0']));
-
-        $qb->method('expr')->willReturn($expr);
-        $qb->expects($this->once())->method('andWhere')->willReturn($qb);
-
-        $qb->expects($this->once())
-            ->method('setParameter')
-            ->with('search_param_0', '%test%');
-
-        $qb->expects($this->never())->method('leftJoin');
-
-        $column  = TextColumn::new('name', 'Name')->setField('name');
-        $columns = new Columns([]);
-        $search  = new Search('test', false);
-        $request = new DataTableRequest(1, $columns, search: $search);
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
+        return $this->context($request, [$column]);
     }
 }

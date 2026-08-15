@@ -4,18 +4,15 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\DataProvider;
 
-use Doctrine\DBAL\DriverManager;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\ORMSetup;
 use Doctrine\ORM\QueryBuilder;
-use Doctrine\ORM\Tools\SchemaTool;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -26,26 +23,13 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(DoctrineDataProvider::class)]
 final class DoctrineDataProviderFilteredCountTest extends TestCase
 {
+    use BuildsEntityManager;
+
     private EntityManagerInterface $em;
 
     protected function setUp(): void
     {
-        $config = ORMSetup::createAttributeMetadataConfiguration(
-            paths: [__DIR__.'/../../Fixtures/Count'],
-            isDevMode: true,
-        );
-
-        if (\PHP_VERSION_ID >= 80400) {
-            $config->enableNativeLazyObjects(true);
-        }
-
-        $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true], $config);
-        $this->em   = new EntityManager($connection, $config);
-
-        (new SchemaTool($this->em))->createSchema([
-            $this->em->getClassMetadata(CountCustomer::class),
-            $this->em->getClassMetadata(CountTag::class),
-        ]);
+        $this->em = $this->createEntityManager(CountCustomer::class, CountTag::class);
 
         // Two customers; the first has several tags so a to-many join multiplies its rows.
         $alpha = new CountCustomer(1, 'Alpha');

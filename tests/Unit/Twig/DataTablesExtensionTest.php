@@ -14,14 +14,14 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoAjaxServerSideDataTable;
-use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
+use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
+use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
@@ -33,17 +33,12 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 #[CoversClass(DataTablesExtension::class)]
 final class DataTablesExtensionTest extends TestCase
 {
+    use BootsTwigKernel;
+
     #[Test]
     public function it_renders_datatable(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
-        /** @var DataTableBuilderInterface $builder */
-        $builder = $container->get('test.datatables.builder');
-
-        $table = $builder
+        $table = $this->builder()
             ->createDataTable('table')
             ->lengthMenu([10, 25, 50, 100])
             ->pageLength(25)
@@ -59,21 +54,11 @@ final class DataTablesExtensionTest extends TestCase
             ['firstColumn' => 'Row 2 Column 1', 'secondColumn' => 'Row 2 Column 2'],
         ]);
 
-        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable(
-            $table,
-            ['data-controller' => 'mycontroller', 'class' => 'myclass']
-        );
-
-        $dom = new \DOMDocument();
-        $dom->loadHTML($rendered);
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
+        $tableEl = $this->renderTableElement($table, ['data-controller' => 'mycontroller', 'class' => 'myclass']);
 
         $this->assertSame('table', $tableEl->getAttribute('id'));
         $this->assertSame('mycontroller pentiminax--ux-datatables--datatable', $tableEl->getAttribute('data-controller'));
         $this->assertSame('myclass', $tableEl->getAttribute('class'));
-
-        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
-        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
 
         $expected = [
             'lengthMenu' => [10, 25, 50, 100],
@@ -112,26 +97,20 @@ final class DataTablesExtensionTest extends TestCase
             'mutationsEnabled' => false,
         ];
 
-        $this->assertSame($expected, $actual);
+        $this->assertSame($expected, $this->decodePayload($tableEl));
     }
 
     #[Test]
     public function it_exposes_edit_modal_overrides_and_the_datatable_class(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
+        $table = new ConfigurableDataTable(
+            [TextColumn::new('firstColumn')],
+            configureTable: static fn (DataTable $table): DataTable => $table
+                ->editModalTemplate('custom/modal.html.twig')
+                ->editModalAdapter('tw'),
+        );
 
-        $table = new EditModalConfiguredDataTable();
-
-        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
-
-        $dom = new \DOMDocument();
-        $dom->loadHTML($rendered);
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
-
-        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
-        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+        $actual = $this->renderPayload($table);
 
         $this->assertSame('tw', $actual['editModal']['adapter']);
         $this->assertSame($table::class, $actual['dataTableClass']);
@@ -141,88 +120,44 @@ final class DataTablesExtensionTest extends TestCase
     #[Test]
     public function it_exposes_an_opaque_datatable_token_for_registered_abstract_datatables(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
         /** @var AbstractDataTable $table */
-        $table = $container->get('test.datatables.auto_ajax_server_side');
+        $table = $this->container->get('test.datatables.auto_ajax_server_side');
 
-        $actual = $this->renderPayloadFromContainer($container, $table);
+        $actual = $this->renderPayload($table);
 
         $this->assertSame($table::class, $actual['dataTableClass']);
         $this->assertIsString($actual['dataTable']);
         $this->assertNotSame('', $actual['dataTable']);
         $this->assertStringNotContainsString('AutoAjaxServerSideDataTable', $actual['dataTable']);
-
-        $kernel->shutdown();
     }
 
     #[Test]
     public function it_exposes_a_boolean_mutation_token_for_a_raw_datatable_with_a_registered_class(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
         $table = (new DataTable('products'))
             ->setDataTableClass(AutoAjaxServerSideDataTable::class);
 
-        $actual    = $this->renderPayloadFromContainer($container, $table);
-        $ajaxToken = $container->get('datatables.ajax.registry')
+        $actual    = $this->renderPayload($table);
+        $ajaxToken = $this->container->get('datatables.ajax.registry')
             ->getToken(AutoAjaxServerSideDataTable::class);
 
         $this->assertSame(AutoAjaxServerSideDataTable::class, $actual['dataTableClass']);
         $this->assertIsString($actual['dataTable']);
         $this->assertNotSame('', $actual['dataTable']);
         $this->assertNotSame($ajaxToken, $actual['dataTable']);
-
-        $kernel->shutdown();
     }
 
     #[Test]
-    public function it_exposes_the_current_request_locale(): void
+    public function it_exposes_the_current_request_locale_and_enables_mutations_from_the_session(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
         $request = Request::create('/products');
         $request->setLocale('fr_FR');
-        $container->get('request_stack')->push($request);
+        $request->setSession(new Session(new MockArraySessionStorage()));
+        $this->container->get('request_stack')->push($request);
 
-        $table = (new DataTable('products'))->columns([
-            TextColumn::new('name'),
-        ]);
-
-        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
-
-        $dom = new \DOMDocument();
-        $dom->loadHTML($rendered);
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
-
-        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
-        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+        $actual = $this->renderPayload((new DataTable('products'))->columns([TextColumn::new('name')]));
 
         $this->assertSame('fr_FR', $actual['locale']);
-    }
-
-    #[Test]
-    public function it_enables_mutations_when_a_csrf_token_can_be_stored_in_the_session(): void
-    {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
-        $request = Request::create('/products');
-        $request->setSession(new Session(new MockArraySessionStorage()));
-        $container->get('request_stack')->push($request);
-
-        $actual = $this->renderPayloadFromContainer(
-            $container,
-            (new DataTable('products'))->columns([TextColumn::new('name')]),
-        );
-
         $this->assertTrue($actual['mutationsEnabled']);
         $this->assertNotSame('', $actual['csrfToken']);
     }
@@ -230,10 +165,6 @@ final class DataTablesExtensionTest extends TestCase
     #[Test]
     public function it_uses_get_data_table_for_abstract_datatable(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
         $table = new class extends AbstractDataTable {
             public bool $getDataTableCalled        = false;
             public bool $prepareForRenderingCalled = false;
@@ -258,160 +189,105 @@ final class DataTablesExtensionTest extends TestCase
             }
         };
 
-        $container->get('test.datatables.twig_extension')->renderDataTable($table);
+        $this->container->get('test.datatables.twig_extension')->renderDataTable($table);
 
         $this->assertTrue($table->getDataTableCalled);
         $this->assertTrue($table->prepareForRenderingCalled);
     }
 
+    /**
+     * @param array<string, mixed>|null $expectedRow the expected first inline row, or null when no inline data is expected
+     */
     #[Test]
-    public function it_pre_renders_template_columns_in_inline_data(): void
+    #[DataProvider('inlineRenderingCases')]
+    public function it_prepares_inline_rows_during_rendering(string $mode, ?array $expectedRow): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
+        $table = $this->createInlineTable($mode);
 
-        /** @var DataTableBuilderInterface $builder */
-        $builder = $container->get('test.datatables.builder');
+        $actual = $this->renderPayload($table);
 
-        $table = $builder->createDataTable('template_table');
-        $table->columns([
-            TextColumn::new('id'),
-            TemplateColumn::new('status_display')
-                ->setField('status')
-                ->setTemplate('datatable/columns/status_badge.html.twig'),
-        ]);
-        $table->data([
-            ['id' => 5, 'status' => 'active'],
-        ]);
+        if (null === $expectedRow) {
+            $this->assertArrayNotHasKey('data', $actual);
+            $this->assertFalse($table->areTemplateColumnsRendered());
 
-        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+            return;
+        }
 
-        $dom = new \DOMDocument();
-        $dom->loadHTML($rendered);
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
+        $this->assertSame($expectedRow, $this->trimRow($actual['data'][0]));
+        $this->assertTrue($table->areTemplateColumnsRendered());
+    }
 
-        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
-        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+    /**
+     * @return iterable<string, array{0: string, 1: array<string, mixed>|null}>
+     */
+    public static function inlineRenderingCases(): iterable
+    {
+        yield 'template columns are pre-rendered' => ['template', [
+            'id'             => 5,
+            'status'         => 'active',
+            'status_display' => '<span class="badge">5-active</span>',
+        ]];
 
-        $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status_display']));
+        yield 'template columns already marked as rendered are left untouched' => ['marked', [
+            'id'     => 5,
+            'status' => 'active',
+        ]];
+
+        yield 'ajax tables carry no inline data' => ['ajax', null];
+
+        yield 'detail action urls are resolved' => ['actions', [
+            'id'                      => 5,
+            '__ux_datatables_actions' => ['DETAIL' => ['url' => '/books/5']],
+        ]];
+    }
+
+    /**
+     * @param array<string, mixed> $expectedRow
+     */
+    #[Test]
+    #[DataProvider('inlineObjectRowCases')]
+    public function it_prepares_inline_object_rows_during_rendering(string $mode, array $expectedRow): void
+    {
+        $table = $this->createInlineObjectTable($mode);
+
+        $actual = $this->renderPayload($table);
+
+        $this->assertSame($expectedRow, $this->trimRow($actual['data'][0]));
+        $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
+    }
+
+    /**
+     * @return iterable<string, array{0: string, 1: array<string, mixed>}>
+     */
+    public static function inlineObjectRowCases(): iterable
+    {
+        yield 'rows passed to setData()' => ['setData', [
+            'id'                      => 5,
+            'title'                   => 'Dune',
+            'status_display'          => '<span class="badge">5-active</span>',
+            '__ux_datatables_actions' => ['DETAIL' => ['url' => '/books/5']],
+        ]];
+
+        yield 'rows configured through data()' => ['configured', [
+            'id'                      => 5,
+            'title'                   => 'Dune',
+            'status_display'          => '<span class="badge">dto-5-active</span>',
+            '__ux_datatables_actions' => ['DETAIL' => ['url' => '/books/5']],
+        ]];
     }
 
     #[Test]
-    public function it_skips_template_rendering_when_already_marked(): void
+    public function it_keeps_set_data_rows_prepared_before_rendering(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
+        $table = $this->createInlineObjectTable('setData');
 
-        /** @var DataTableBuilderInterface $builder */
-        $builder = $container->get('test.datatables.builder');
-
-        $table = $builder->createDataTable('template_table');
-        $table->columns([
-            TextColumn::new('id'),
-            TemplateColumn::new('status_display')
-                ->setField('status')
-                ->setTemplate('datatable/columns/status_badge.html.twig'),
-        ]);
-        $table->data([
-            ['id' => 5, 'status' => 'active'],
-        ]);
-
-        $table->markTemplateColumnsRendered();
-
-        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
-
-        $dom = new \DOMDocument();
-        $dom->loadHTML($rendered);
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
-
-        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
-        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
-
-        $this->assertSame('active', $actual['data'][0]['status']);
-    }
-
-    #[Test]
-    public function it_skips_template_rendering_when_no_inline_data(): void
-    {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
-        /** @var DataTableBuilderInterface $builder */
-        $builder = $container->get('test.datatables.builder');
-
-        $table = $builder->createDataTable('ajax_table');
-        $table->columns([
-            TextColumn::new('id'),
-            TemplateColumn::new('status_display')
-                ->setField('status')
-                ->setTemplate('datatable/columns/status_badge.html.twig'),
-        ]);
-        $table->ajax('/api/items');
-
-        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
-
-        $dom = new \DOMDocument();
-        $dom->loadHTML($rendered);
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
-
-        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
-        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
-
-        $this->assertArrayNotHasKey('data', $actual);
-        $this->assertFalse($table->areTemplateColumnsRendered());
-    }
-
-    #[Test]
-    public function it_resolves_detail_action_urls_for_inline_data(): void
-    {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
-        /** @var DataTableBuilderInterface $builder */
-        $builder = $container->get('test.datatables.builder');
-
-        $actions = (new Actions())->add(
-            Action::detail()
-                ->setClassName('btn btn-info')
-                ->linkToUrl(static fn (array $row): string => '/books/'.$row['id'])
-        );
-
-        $table = $builder->createDataTable('actions_table');
-        $table->columns([
-            TextColumn::new('id'),
-            ActionColumn::fromActions('actions', 'Actions', $actions),
-        ]);
-        $table->data([
-            ['id' => 5],
-        ]);
-
-        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
-
-        $dom = new \DOMDocument();
-        $dom->loadHTML($rendered);
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
-
-        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
-        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
-
-        $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
+        $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
     }
 
     #[Test]
     public function it_filters_denied_columns_on_direct_datatable_rendering(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
-        /** @var DataTableBuilderInterface $builder */
-        $builder = $container->get('test.datatables.builder');
-
-        $table = $builder->createDataTable('permission_table');
+        $table = $this->builder()->createDataTable('permission_table');
         $table->columns([
             TextColumn::new('id'),
             TextColumn::new('secret')->permission('ROLE_DENIED'),
@@ -420,14 +296,7 @@ final class DataTablesExtensionTest extends TestCase
             ['id' => 5, 'secret' => 'hidden'],
         ]);
 
-        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
-
-        $dom = new \DOMDocument();
-        $dom->loadHTML($rendered);
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
-
-        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
-        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+        $actual = $this->renderPayload($table);
 
         $this->assertSame(['id'], array_column($actual['columns'], 'name'));
     }
@@ -435,20 +304,13 @@ final class DataTablesExtensionTest extends TestCase
     #[Test]
     public function it_filters_denied_static_actions_on_direct_datatable_rendering(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
-        /** @var DataTableBuilderInterface $builder */
-        $builder = $container->get('test.datatables.builder');
-
         $actions = (new Actions())->add(
             Action::detail()
                 ->permission('ROLE_DENIED')
                 ->linkToUrl(static fn (array $row): string => '/books/'.$row['id'])
         );
 
-        $table = $builder->createDataTable('denied_actions_table');
+        $table = $this->builder()->createDataTable('denied_actions_table');
         $table->columns([
             TextColumn::new('id'),
             ActionColumn::fromActions('actions', 'Actions', $actions),
@@ -457,14 +319,7 @@ final class DataTablesExtensionTest extends TestCase
             ['id' => 5],
         ]);
 
-        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
-
-        $dom = new \DOMDocument();
-        $dom->loadHTML($rendered);
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
-
-        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
-        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
+        $actual = $this->renderPayload($table);
 
         $actionColumn = array_values(array_filter(
             $actual['columns'],
@@ -475,106 +330,66 @@ final class DataTablesExtensionTest extends TestCase
         $this->assertArrayNotHasKey('__ux_datatables_actions', $actual['data'][0]);
     }
 
+    /**
+     * @param list<array<string, mixed>>|null $expectedData
+     */
     #[Test]
-    public function it_keeps_set_data_rows_prepared_during_rendering(): void
-    {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
-        $table = new InlinePreparedDataTable($container->get('test.datatables.infrastructure'));
-
-        $table->setData([
-            new InlineBookEntity(id: 5, status: 'active'),
-        ]);
-
-        $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
-
-        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
-
-        $dom = new \DOMDocument();
-        $dom->loadHTML($rendered);
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
-
-        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
-        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
-
-        $this->assertSame('<span class="badge">5-active</span>', trim($actual['data'][0]['status_display']));
-        $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
-    }
-
-    #[Test]
-    public function it_prepares_explicit_abstract_datatable_inline_dto_rows_during_rendering(): void
-    {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
-        $table = new ExplicitInlineDtoDataTable([
-            new ExplicitInlineBookDto(id: 5, title: 'Dune', status: 'active'),
-        ], $container->get('test.datatables.infrastructure'));
-
-        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
-
-        $dom = new \DOMDocument();
-        $dom->loadHTML($rendered);
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
-
-        $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
-        $actual   = json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
-
-        $this->assertSame(5, $actual['data'][0]['id']);
-        $this->assertSame('Dune', $actual['data'][0]['title']);
-        $this->assertSame('<span class="badge">dto-5-active</span>', trim($actual['data'][0]['status_display']));
-        $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
-        $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
-    }
-
-    #[Test]
-    public function it_auto_hydrates_client_side_abstract_datatable_from_provider(): void
-    {
+    #[DataProvider('autoHydrationCases')]
+    public function it_auto_hydrates_client_side_abstract_datatables_without_an_explicit_data_source(
+        string $mode,
+        int $expectedProviderCalls,
+        ?array $expectedData,
+    ): void {
         $table = new ProviderHydratedDataTable([
-            new ProviderHydratedBookEntity(id: 5, title: 'Dune'),
-            new ProviderHydratedBookEntity(id: 9, title: 'Foundation'),
-        ]);
+            new InlineBook(id: 5, title: 'Dune', status: 'active'),
+            new InlineBook(id: 9, title: 'Foundation', status: 'active'),
+        ], $mode);
 
         $actual = $this->renderPayload($table);
 
-        $this->assertSame(1, $table->providerCalls);
-        $this->assertSame('Dune', $actual['data'][0]['title']);
-        $this->assertSame('Foundation', $actual['data'][1]['title']);
-        $this->assertSame('/books/5', $actual['data'][0]['__ux_datatables_actions']['DETAIL']['url']);
+        $this->assertSame($expectedProviderCalls, $table->providerCalls);
+
+        if (null === $expectedData) {
+            $this->assertArrayNotHasKey('data', $actual);
+
+            return;
+        }
+
+        $this->assertSame($expectedData, $actual['data']);
     }
 
-    #[Test]
-    public function it_does_not_auto_hydrate_when_an_explicit_data_source_or_server_side_mode_is_configured(): void
+    /**
+     * @return iterable<string, array{0: string, 1: int, 2: list<array<string, mixed>>|null}>
+     */
+    public static function autoHydrationCases(): iterable
     {
-        foreach (['serverSide', 'ajax', 'data', 'apiPlatform'] as $mode) {
-            $table = new ProviderHydratedDataTable([
-                new ProviderHydratedBookEntity(id: 5, title: 'Dune'),
-            ], $mode);
+        yield 'client side table without data source' => ['default', 1, [
+            [
+                'id'                      => 5,
+                'title'                   => 'Dune',
+                '__ux_datatables_actions' => ['DETAIL' => ['url' => '/books/5']],
+            ],
+            [
+                'id'                      => 9,
+                'title'                   => 'Foundation',
+                '__ux_datatables_actions' => ['DETAIL' => ['url' => '/books/9']],
+            ],
+        ]];
 
-            $actual = $this->renderPayload($table);
+        yield 'server side table' => ['serverSide', 0, null];
 
-            $this->assertSame(0, $table->providerCalls, $mode);
+        yield 'ajax table' => ['ajax', 0, null];
 
-            if ('data' === $mode) {
-                $this->assertSame([['id' => 99, 'title' => 'Manual']], $actual['data']);
-            } else {
-                $this->assertArrayNotHasKey('data', $actual, $mode);
-            }
-        }
+        yield 'api platform table' => ['apiPlatform', 0, null];
+
+        yield 'table with explicit data' => ['data', 0, [['id' => 99, 'title' => 'Manual']]];
     }
 
     #[Test]
     public function it_renders_template_columns_in_service_managed_server_side_ajax_response(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
         /** @var AbstractDataTable $table */
-        $table = $container->get('test.datatables.server_side_template');
+        $table = $this->container->get('test.datatables.server_side_template');
         $table->handleRequest(Request::create('/datatable/books', 'GET', [
             'draw'    => 1,
             'start'   => 0,
@@ -589,25 +404,17 @@ final class DataTablesExtensionTest extends TestCase
         $payload = json_decode($table->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
 
         $this->assertSame('<span class="badge">7-active</span>', trim($payload['data'][0]['status_display']));
-
-        $kernel->shutdown();
     }
 
     #[Test]
     public function it_dispatches_auto_ajax_for_service_managed_server_side_table_with_custom_service_id(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
-        $registry = $container->get('datatables.ajax.registry');
-        $token    = $registry->getToken(AutoAjaxServerSideDataTable::class);
+        $token = $this->container->get('datatables.ajax.registry')->getToken(AutoAjaxServerSideDataTable::class);
 
         $this->assertIsString($token);
         $this->assertStringNotContainsString('AutoAjaxServerSideDataTable', $token);
 
-        $controller = $container->get('datatables.controller.ajax_data');
-        $response   = $controller(Request::create('/datatables/ajax/data', 'GET', [
+        $response = $this->container->get('datatables.controller.ajax_data')(Request::create('/datatables/ajax/data', 'GET', [
             'table'   => $token,
             'draw'    => 1,
             'start'   => 0,
@@ -623,101 +430,141 @@ final class DataTablesExtensionTest extends TestCase
 
         $this->assertSame(1, $payload['draw']);
         $this->assertSame('Generated endpoint', $payload['data'][0]['title']);
+    }
 
-        try {
-            $controller(Request::create('/datatables/ajax/data', 'GET', [
-                'table' => $token,
-            ]));
-            $this->fail('Expected invalid DataTables payload to be rejected.');
-        } catch (BadRequestHttpException) {
-            $this->addToAssertionCount(1);
+    #[Test]
+    public function it_rejects_an_auto_ajax_request_without_a_valid_datatables_payload(): void
+    {
+        $token      = $this->container->get('datatables.ajax.registry')->getToken(AutoAjaxServerSideDataTable::class);
+        $controller = $this->container->get('datatables.controller.ajax_data');
+
+        $this->expectException(BadRequestHttpException::class);
+
+        $controller(Request::create('/datatables/ajax/data', 'GET', ['table' => $token]));
+    }
+
+    private function createInlineTable(string $mode): DataTable
+    {
+        $table = $this->builder()->createDataTable('inline_table');
+
+        if ('actions' === $mode) {
+            $actions = (new Actions())->add(
+                Action::detail()
+                    ->setClassName('btn btn-info')
+                    ->linkToUrl(static fn (array $row): string => '/books/'.$row['id'])
+            );
+
+            $table->columns([
+                TextColumn::new('id'),
+                ActionColumn::fromActions('actions', 'Actions', $actions),
+            ]);
+            $table->data([['id' => 5]]);
+
+            return $table;
         }
 
-        $kernel->shutdown();
+        $table->columns([
+            TextColumn::new('id'),
+            TemplateColumn::new('status_display')
+                ->setField('status')
+                ->setTemplate('datatable/columns/status_badge.html.twig'),
+        ]);
+
+        if ('ajax' === $mode) {
+            $table->ajax('/api/items');
+
+            return $table;
+        }
+
+        $table->data([['id' => 5, 'status' => 'active']]);
+
+        if ('marked' === $mode) {
+            $table->markTemplateColumnsRendered();
+        }
+
+        return $table;
     }
 
+    private function createInlineObjectTable(string $mode): AbstractDataTable
+    {
+        $rows     = [new InlineBook(id: 5, title: 'Dune', status: 'active')];
+        $template = 'setData' === $mode
+            ? 'datatable/columns/status_badge.html.twig'
+            : 'datatable/columns/entity_status_badge.html.twig';
+
+        $table = new ConfigurableDataTable(
+            [
+                TextColumn::new('id'),
+                TextColumn::new('title'),
+                TemplateColumn::new('status_display')
+                    ->setField('status')
+                    ->setTemplate($template),
+            ],
+            actions: static fn (Actions $actions): Actions => $actions->add(
+                Action::detail()->linkToUrl(static fn (InlineBook $book): string => '/books/'.$book->getId())
+            ),
+            configureTable: 'setData' === $mode
+                ? null
+                : static fn (DataTable $table): DataTable => $table->data($rows),
+        );
+
+        $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
+
+        if ('setData' === $mode) {
+            $table->setData($rows);
+        }
+
+        return $table;
+    }
+
+    private function builder(): DataTableBuilderInterface
+    {
+        return $this->container->get('test.datatables.builder');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function renderPayload(AbstractDataTable|DataTable $table): array
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-        $container = $kernel->getContainer()->get('test.service_container');
-
-        return $this->renderPayloadFromContainer($container, $table);
+        return $this->decodePayload($this->renderTableElement($table));
     }
 
-    private function renderPayloadFromContainer(ContainerInterface $container, AbstractDataTable|DataTable $table): array
+    /**
+     * @param array<string, mixed> $attributes
+     */
+    private function renderTableElement(AbstractDataTable|DataTable $table, array $attributes = []): \DOMElement
     {
-        $rendered = $container->get('test.datatables.twig_extension')->renderDataTable($table);
+        $rendered = $this->container->get('test.datatables.twig_extension')->renderDataTable($table, $attributes);
 
         $dom = new \DOMDocument();
         $dom->loadHTML($rendered);
-        $tableEl = $dom->getElementsByTagName('table')->item(0);
 
+        return $dom->getElementsByTagName('table')->item(0);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodePayload(\DOMElement $tableEl): array
+    {
         $jsonAttr = html_entity_decode($tableEl->getAttribute('data-pentiminax--ux-datatables--datatable-view-value'));
 
         return json_decode($jsonAttr, true, 512, JSON_THROW_ON_ERROR);
     }
-}
 
-final class EditModalConfiguredDataTable extends AbstractDataTable
-{
-    public function configureDataTable(DataTable $table): DataTable
+    /**
+     * @param array<string, mixed> $row
+     *
+     * @return array<string, mixed>
+     */
+    private function trimRow(array $row): array
     {
-        return $table
-            ->editModalTemplate('custom/modal.html.twig')
-            ->editModalAdapter('tw');
-    }
-
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('firstColumn');
+        return array_map(static fn (mixed $value): mixed => \is_string($value) ? trim($value) : $value, $row);
     }
 }
 
-final readonly class InlineBookEntity
-{
-    public function __construct(
-        private int $id,
-        private string $status,
-    ) {
-    }
-
-    public function getId(): int
-    {
-        return $this->id;
-    }
-
-    public function getStatus(): string
-    {
-        return $this->status;
-    }
-}
-
-final class InlinePreparedDataTable extends AbstractDataTable
-{
-    public function __construct(DataTableInfrastructure $infrastructure)
-    {
-        parent::__construct();
-        $this->setDataTableInfrastructure($infrastructure);
-    }
-
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-        yield TemplateColumn::new('status_display')
-            ->setField('status')
-            ->setTemplate('datatable/columns/status_badge.html.twig');
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(
-            Action::detail()->linkToUrl(static fn (InlineBookEntity $book): string => '/books/'.$book->getId())
-        );
-    }
-}
-
-final readonly class ExplicitInlineBookDto
+final readonly class InlineBook
 {
     public function __construct(
         private int $id,
@@ -747,61 +594,13 @@ final readonly class ExplicitInlineBookDto
     }
 }
 
-final class ExplicitInlineDtoDataTable extends AbstractDataTable
-{
-    public function __construct(
-        private readonly array $items,
-        DataTableInfrastructure $infrastructure,
-    ) {
-        parent::__construct();
-        $this->setDataTableInfrastructure($infrastructure);
-    }
-
-    public function configureDataTable(DataTable $table): DataTable
-    {
-        return $table->data($this->items);
-    }
-
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-        yield TextColumn::new('title');
-        yield TemplateColumn::new('status_display')
-            ->setField('status')
-            ->setTemplate('datatable/columns/entity_status_badge.html.twig');
-    }
-
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(
-            Action::detail()->linkToUrl(static fn (ExplicitInlineBookDto $book): string => '/books/'.$book->getId())
-        );
-    }
-}
-
-final readonly class ProviderHydratedBookEntity
-{
-    public function __construct(
-        private int $id,
-        private string $title,
-    ) {
-    }
-
-    public function getId(): int
-    {
-        return $this->id;
-    }
-
-    public function getTitle(): string
-    {
-        return $this->title;
-    }
-}
-
 final class ProviderHydratedDataTable extends AbstractDataTable
 {
     public int $providerCalls = 0;
 
+    /**
+     * @param list<InlineBook> $items
+     */
     public function __construct(
         private readonly array $items,
         private readonly string $mode = 'default',
@@ -833,7 +632,7 @@ final class ProviderHydratedDataTable extends AbstractDataTable
         }
 
         return $actions->add(
-            Action::detail()->linkToUrl(static fn (ProviderHydratedBookEntity $book): string => '/books/'.$book->getId())
+            Action::detail()->linkToUrl(static fn (InlineBook $book): string => '/books/'.$book->getId())
         );
     }
 

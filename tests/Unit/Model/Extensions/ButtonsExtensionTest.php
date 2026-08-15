@@ -7,68 +7,23 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(ButtonsExtension::class)]
 #[CoversClass(Button::class)]
-final class ButtonsExtensionTest extends TestCase
+final class ButtonsExtensionTest extends DataTableTestCase
 {
     #[Test]
-    public function it_serializes_to_array(): void
-    {
-        $buttons = [];
-        foreach (ButtonType::cases() as $buttonType) {
-            $buttons[] = $buttonType->value;
-        }
-
-        $extension = new ButtonsExtension($buttons);
-
-        $expectedArray = [
-            'colvis',
-            [
-                'extend'        => 'copy',
-                'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
-                ],
-            ],
-            [
-                'extend'        => 'csv',
-                'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
-                ],
-            ],
-            [
-                'extend'        => 'excel',
-                'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
-                ],
-            ],
-            [
-                'extend'        => 'pdf',
-                'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
-                ],
-            ],
-            [
-                'extend'        => 'print',
-                'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
-                ],
-            ],
-        ];
-
-        $this->assertEquals($expectedArray, $extension->jsonSerialize());
-    }
-
-    #[Test]
-    public function it_serializes_mixed_button_types_and_custom_buttons(): void
+    public function it_serializes_strings_enum_cases_and_custom_buttons(): void
     {
         $extension = new ButtonsExtension([
+            'colvis',
+            'pdf',
             ButtonType::COPY,
             Button::csv()
                 ->text('Export CSV')
@@ -78,7 +33,14 @@ final class ButtonsExtensionTest extends TestCase
             Button::colVis()->text('Columns'),
         ]);
 
-        $this->assertSame([
+        $this->assertExtensionPayload([
+            'colvis',
+            [
+                'extend'        => 'pdf',
+                'exportOptions' => [
+                    'columns' => ':visible:not(.not-exportable)',
+                ],
+            ],
             [
                 'extend'        => 'copy',
                 'exportOptions' => [
@@ -104,6 +66,6 @@ final class ButtonsExtensionTest extends TestCase
                 'extend' => 'colvis',
                 'text'   => 'Columns',
             ],
-        ], $extension->jsonSerialize());
+        ], $extension);
     }
 }

@@ -38,11 +38,6 @@ final class AjaxEditFormControllerTest extends TestCase
     #[Test]
     public function it_returns_rendered_html_when_the_entity_exists(): void
     {
-        $entityManager = $this->createEntityManagerWithEntity(new AjaxEditFormControllerFixture());
-        $registry      = $this->createRegistry($entityManager);
-
-        $form = $this->createMock(FormInterface::class);
-
         $formBuilder = $this->createMock(FormBuilderInterface::class);
         $formBuilder->expects($this->once())
             ->method('add')
@@ -50,7 +45,7 @@ final class AjaxEditFormControllerTest extends TestCase
             ->willReturnSelf();
         $formBuilder->expects($this->once())
             ->method('getForm')
-            ->willReturn($form);
+            ->willReturn($this->createMock(FormInterface::class));
 
         $formFactory = $this->createMock(FormFactoryInterface::class);
         $formFactory->expects($this->once())
@@ -71,20 +66,15 @@ final class AjaxEditFormControllerTest extends TestCase
             ->method('resolveColumns')
             ->willReturn([TextColumn::new('name', 'Name')]);
 
-        $controller = new AjaxEditFormController(new EditFormService(
-            new EntityLocator($registry),
-            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+        $controller = $this->controller(
+            $this->createRegistry($this->createEntityManagerWithEntity(new AjaxEditFormControllerFixture())),
+            $formFactory,
             $renderer,
             $templateResolver,
-            new NullMercurePublisher(),
-            dataTables: $this->registeredDataTables(),
-        ));
+            $this->registeredDataTables(),
+        );
 
-        $response = $controller(new AjaxEditFormQueryDto(
-            entity: AjaxEditFormControllerFixture::class,
-            id: '42',
-            dataTableClass: AjaxEditFormControllerDataTable::class,
-        ));
+        $response = $controller($this->payload('42', AjaxEditFormControllerDataTable::class));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
@@ -109,31 +99,11 @@ final class AjaxEditFormControllerTest extends TestCase
             ->willReturn($repository);
         $entityManager->expects($this->never())->method('getClassMetadata');
 
-        $registry = $this->createRegistry($entityManager);
+        [$formFactory, $renderer, $templateResolver] = $this->createUnusedFormCollaborators();
 
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-        $formFactory->expects($this->never())->method('createBuilder');
+        $controller = $this->controller($this->createRegistry($entityManager), $formFactory, $renderer, $templateResolver);
 
-        $renderer = $this->createMock(EditModalRenderer::class);
-        $renderer->expects($this->never())->method('render');
-
-        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
-        $templateResolver->expects($this->never())->method('resolveChromeTemplate');
-        $templateResolver->expects($this->never())->method('resolveColumns');
-
-        $controller = new AjaxEditFormController(new EditFormService(
-            new EntityLocator($registry),
-            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $renderer,
-            $templateResolver,
-            new NullMercurePublisher(),
-        ));
-
-        $response = $controller(new AjaxEditFormQueryDto(
-            entity: AjaxEditFormControllerFixture::class,
-            id: 'missing',
-            dataTableClass: 'SomeDataTable',
-        ));
+        $response = $controller($this->payload('missing', 'SomeDataTable'));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
@@ -151,6 +121,50 @@ final class AjaxEditFormControllerTest extends TestCase
             ->with(AjaxEditFormControllerFixture::class)
             ->willReturn(null);
 
+        [$formFactory, $renderer, $templateResolver] = $this->createUnusedFormCollaborators();
+
+        $controller = $this->controller($registry, $formFactory, $renderer, $templateResolver);
+
+        $response = $controller($this->payload('42', 'SomeDataTable'));
+
+        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
+
+        $this->assertSame(404, $response->getStatusCode());
+        $this->assertFalse($payload['success']);
+        $this->assertSame('Entity not found.', $payload['message']);
+    }
+
+    private function controller(
+        ManagerRegistry $registry,
+        FormFactoryInterface $formFactory,
+        EditModalRenderer $renderer,
+        EditModalTemplateResolverInterface $templateResolver,
+        ?ContainerInterface $dataTables = null,
+    ): AjaxEditFormController {
+        return new AjaxEditFormController(new EditFormService(
+            new EntityLocator($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $templateResolver,
+            new NullMercurePublisher(),
+            dataTables: $dataTables,
+        ));
+    }
+
+    private function payload(string $id, string $dataTableClass): AjaxEditFormQueryDto
+    {
+        return new AjaxEditFormQueryDto(
+            entity: AjaxEditFormControllerFixture::class,
+            id: $id,
+            dataTableClass: $dataTableClass,
+        );
+    }
+
+    /**
+     * @return array{FormFactoryInterface, EditModalRenderer, EditModalTemplateResolverInterface}
+     */
+    private function createUnusedFormCollaborators(): array
+    {
         $formFactory = $this->createMock(FormFactoryInterface::class);
         $formFactory->expects($this->never())->method('createBuilder');
 
@@ -161,25 +175,7 @@ final class AjaxEditFormControllerTest extends TestCase
         $templateResolver->expects($this->never())->method('resolveChromeTemplate');
         $templateResolver->expects($this->never())->method('resolveColumns');
 
-        $controller = new AjaxEditFormController(new EditFormService(
-            new EntityLocator($registry),
-            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $renderer,
-            $templateResolver,
-            new NullMercurePublisher(),
-        ));
-
-        $response = $controller(new AjaxEditFormQueryDto(
-            entity: AjaxEditFormControllerFixture::class,
-            id: '42',
-            dataTableClass: 'SomeDataTable',
-        ));
-
-        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
-
-        $this->assertSame(404, $response->getStatusCode());
-        $this->assertFalse($payload['success']);
-        $this->assertSame('Entity not found.', $payload['message']);
+        return [$formFactory, $renderer, $templateResolver];
     }
 
     private function registeredDataTables(): ContainerInterface

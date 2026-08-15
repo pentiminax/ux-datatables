@@ -5,124 +5,76 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\MoneyColumn;
+use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(MoneyColumn::class)]
-final class MoneyColumnTest extends TestCase
+final class MoneyColumnTest extends DataTableTestCase
 {
     #[Test]
-    public function it_creates_num_type_column(): void
+    public function it_creates_num_type_column_with_default_money_options(): void
     {
-        $data = MoneyColumn::new('price', 'Price')->jsonSerialize();
+        $column = MoneyColumn::new('price', 'Price');
 
-        $this->assertSame('num', $data['type']);
-        $this->assertSame('price', $data['data']);
-        $this->assertSame('price', $data['name']);
-        $this->assertSame('Price', $data['title']);
-    }
-
-    #[Test]
-    public function it_falls_back_to_name_as_title(): void
-    {
-        $data = MoneyColumn::new('price')->jsonSerialize();
-
-        $this->assertSame('price', $data['title']);
-    }
-
-    #[Test]
-    public function it_sets_default_money_options(): void
-    {
-        $data = MoneyColumn::new('price')->jsonSerialize();
-
-        $this->assertSame([
+        $this->assertColumnHeader($column, 'num', 'price', 'Price');
+        $this->assertCustomOptions([
             'isMoney'       => true,
             'currency'      => 'EUR',
             'storedAsCents' => true,
             'decimals'      => 2,
-        ], $data['customOptions']);
-    }
-
-    #[Test]
-    public function it_normalizes_currency_to_uppercase(): void
-    {
-        $data = MoneyColumn::new('price')
-            ->currency('usd')
-            ->jsonSerialize();
-
-        $this->assertSame('USD', $data['customOptions']['currency']);
-    }
-
-    #[Test]
-    public function it_can_configure_currency_storage_and_decimals(): void
-    {
-        $data = MoneyColumn::new('price')
-            ->setCurrency('GBP')
-            ->storedAsCents(false)
-            ->decimals(0)
-            ->jsonSerialize();
-
-        $this->assertSame('GBP', $data['customOptions']['currency']);
-        $this->assertFalse($data['customOptions']['storedAsCents']);
-        $this->assertSame(0, $data['customOptions']['decimals']);
-    }
-
-    #[Test]
-    public function it_rejects_invalid_currency(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The currency "EURO" is not a valid ISO 4217 currency code.');
-
-        MoneyColumn::new('price')->currency('euro');
-    }
-
-    #[Test]
-    public function it_rejects_decimals_below_minimum(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The number of decimals must be between 0 and 20.');
-
-        MoneyColumn::new('price')->decimals(-1);
-    }
-
-    #[Test]
-    public function it_rejects_decimals_above_maximum(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The number of decimals must be between 0 and 20.');
-
-        MoneyColumn::new('price')->decimals(21);
-    }
-
-    #[Test]
-    public function it_can_show_currency_sign(): void
-    {
-        $data = MoneyColumn::new('price')
-            ->showCurrencySign()
-            ->jsonSerialize();
-
-        $this->assertTrue($data['customOptions']['showCurrencySign']);
-    }
-
-    #[Test]
-    public function it_can_hide_currency_sign(): void
-    {
-        $data = MoneyColumn::new('price')
-            ->showCurrencySign(false)
-            ->jsonSerialize();
-
-        $this->assertFalse($data['customOptions']['showCurrencySign']);
+        ], $column);
     }
 
     #[Test]
     public function it_does_not_set_show_currency_sign_by_default(): void
     {
-        $data = MoneyColumn::new('price')->jsonSerialize();
+        $this->assertNoCustomOption('showCurrencySign', MoneyColumn::new('price'));
+    }
 
-        $this->assertArrayNotHasKey('showCurrencySign', $data['customOptions']);
+    #[Test]
+    #[DataProvider('provideCustomOptions')]
+    public function it_serializes_custom_options(string $method, mixed $argument, string $option, mixed $expected): void
+    {
+        $column = MoneyColumn::new('price')->{$method}($argument);
+
+        $this->assertCustomOption($expected, $option, $column);
+    }
+
+    /**
+     * @return iterable<string, array{string, mixed, string, mixed}>
+     */
+    public static function provideCustomOptions(): iterable
+    {
+        yield 'currency is uppercased' => ['currency', 'usd', 'currency', 'USD'];
+        yield 'currency via setter' => ['setCurrency', 'GBP', 'currency', 'GBP'];
+        yield 'stored as units' => ['storedAsCents', false, 'storedAsCents', false];
+        yield 'decimals' => ['decimals', 0, 'decimals', 0];
+        yield 'currency sign shown' => ['showCurrencySign', true, 'showCurrencySign', true];
+        yield 'currency sign hidden' => ['showCurrencySign', false, 'showCurrencySign', false];
+    }
+
+    #[Test]
+    #[DataProvider('provideInvalidConfigurations')]
+    public function it_rejects_invalid_configuration(string $method, mixed $argument, string $message): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        MoneyColumn::new('price')->{$method}($argument);
+    }
+
+    /**
+     * @return iterable<string, array{string, mixed, string}>
+     */
+    public static function provideInvalidConfigurations(): iterable
+    {
+        yield 'unknown currency' => ['currency', 'euro', 'The currency "EURO" is not a valid ISO 4217 currency code.'];
+        yield 'decimals below minimum' => ['decimals', -1, 'The number of decimals must be between 0 and 20.'];
+        yield 'decimals above maximum' => ['decimals', 21, 'The number of decimals must be between 0 and 20.'];
     }
 }

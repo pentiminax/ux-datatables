@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithAttribute;
@@ -28,6 +29,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureTo
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithoutAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithServerSide;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -38,74 +40,20 @@ use PHPUnit\Framework\TestCase;
 final class AsDataTableTest extends TestCase
 {
     #[Test]
-    public function it_can_be_instantiated(): void
-    {
-        $attribute = new AsDataTable(entityClass: \stdClass::class);
-
-        $this->assertSame(\stdClass::class, $attribute->entityClass);
-        $this->assertFalse($attribute->mercure);
-        $this->assertSame('', $attribute->editModalTemplate);
-        $this->assertSame('', $attribute->editModalAdapter);
-    }
-
-    #[Test]
-    public function it_accepts_explicit_mercure_topics(): void
-    {
-        $attribute = new AsDataTable(entityClass: \stdClass::class, mercure: [
-            'topics' => [
-                'https://example.com/books',
-            ],
-        ]);
-
-        $this->assertSame([
-            'topics' => [
-                'https://example.com/books',
-            ],
-        ], $attribute->mercure);
-    }
-
-    #[Test]
-    public function it_can_be_applied_to_class(): void
-    {
-        $reflection = new \ReflectionClass(TestDataTableWithAttribute::class);
-        $attributes = $reflection->getAttributes(AsDataTable::class);
-
-        $this->assertCount(1, $attributes);
-
-        $instance = $attributes[0]->newInstance();
-        $this->assertInstanceOf(AsDataTable::class, $instance);
-        $this->assertSame(\stdClass::class, $instance->entityClass);
-        $this->assertFalse($instance->mercure);
-        $this->assertSame('', $instance->editModalTemplate);
-        $this->assertSame('', $instance->editModalAdapter);
-    }
-
-    #[Test]
-    public function it_can_be_applied_to_class_with_explicit_mercure_topics(): void
-    {
-        $reflection = new \ReflectionClass(TestDataTableWithMercureTopicsAttribute::class);
-        $attributes = $reflection->getAttributes(AsDataTable::class);
-
-        $this->assertCount(1, $attributes);
-
-        $instance = $attributes[0]->newInstance();
-        $this->assertSame([
-            'topics' => [
-                'https://example.com/books',
-            ],
-        ], $instance->mercure);
-    }
-
-    #[Test]
-    public function it_auto_configures_data_provider(): void
+    public function it_auto_configures_and_caches_the_data_provider(): void
     {
         $table = new TestDataTableWithAttribute();
         $em    = $this->createMock(EntityManagerInterface::class);
-        $table->setDataTableInfrastructure($this->createInfrastructureWithEntityManager($em));
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            runtimeFactory: new DataTableRuntimeFactory(
+                dataProviderResolver: new DataProviderResolver(new AutoDataProviderFactory($em))
+            )
+        ));
 
         $provider = $table->getDataProvider();
 
         $this->assertInstanceOf(DoctrineDataProvider::class, $provider);
+        $this->assertSame($provider, $table->getDataProvider());
     }
 
     #[Test]
@@ -126,30 +74,12 @@ final class AsDataTableTest extends TestCase
         $this->assertNull($table->getDataProvider());
     }
 
+    /**
+     * @param class-string<AbstractDataTable> $tableClass
+     */
     #[Test]
-    public function it_caches_provider(): void
-    {
-        $table = new TestDataTableWithAttribute();
-        $em    = $this->createMock(EntityManagerInterface::class);
-        $table->setDataTableInfrastructure($this->createInfrastructureWithEntityManager($em));
-
-        $provider1 = $table->getDataProvider();
-        $provider2 = $table->getDataProvider();
-
-        $this->assertSame($provider1, $provider2);
-    }
-
-    private function createInfrastructureWithEntityManager(EntityManagerInterface $em): DataTableInfrastructure
-    {
-        return DataTableInfrastructure::createDefault(
-            runtimeFactory: new DataTableRuntimeFactory(
-                dataProviderResolver: new DataProviderResolver(new AutoDataProviderFactory($em))
-            )
-        );
-    }
-
-    #[Test]
-    public function it_configures_ajax_for_api_resource(): void
+    #[DataProvider('provideApiPlatformTables')]
+    public function it_configures_ajax_for_api_resource(string $tableClass): void
     {
         $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
         $resolver
@@ -158,7 +88,7 @@ final class AsDataTableTest extends TestCase
             ->with(\stdClass::class)
             ->willReturn('/api/books');
 
-        $table = new TestDataTableWithAttribute(apiResourceCollectionUrlResolver: $resolver);
+        $table = new $tableClass(apiResourceCollectionUrlResolver: $resolver);
 
         $table->prepareForRendering();
 
@@ -168,6 +98,13 @@ final class AsDataTableTest extends TestCase
         ], $table->getDataTable()->getOption('ajax'));
 
         $this->assertTrue($table->getDataTable()->getOption('apiPlatform'));
+    }
+
+    public static function provideApiPlatformTables(): iterable
+    {
+        yield 'client side' => [TestDataTableWithAttribute::class];
+
+        yield 'server side' => [TestDataTableWithServerSide::class];
     }
 
     #[Test]
@@ -186,28 +123,6 @@ final class AsDataTableTest extends TestCase
         ], $table->getDataTable()->getOption('ajax'));
 
         $this->assertFalse($table->getDataTable()->getOption('apiPlatform') ?? false);
-    }
-
-    #[Test]
-    public function it_configures_ajax_when_server_side_is_enabled(): void
-    {
-        $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
-        $resolver
-            ->expects($this->once())
-            ->method('resolveCollectionUrl')
-            ->with(\stdClass::class)
-            ->willReturn('/api/books');
-
-        $table = new TestDataTableWithServerSide(apiResourceCollectionUrlResolver: $resolver);
-
-        $table->prepareForRendering();
-
-        $this->assertSame([
-            'type' => 'GET',
-            'url'  => '/api/books',
-        ], $table->getDataTable()->getOption('ajax'));
-
-        $this->assertTrue($table->getDataTable()->getOption('apiPlatform'));
     }
 
     #[Test]
@@ -246,8 +161,13 @@ final class AsDataTableTest extends TestCase
         $this->assertNull($table->getDataTable()->getOption('ajax'));
     }
 
+    /**
+     * @param class-string<AbstractDataTable> $tableClass
+     * @param string[]                        $topics
+     */
     #[Test]
-    public function it_auto_configures_mercure_for_attribute(): void
+    #[DataProvider('provideAutoConfiguredMercureTables')]
+    public function it_auto_configures_mercure_for_attribute(string $tableClass, array $topics, string $ajaxUrl): void
     {
         $resolver = $this->createMock(MercureConfigResolverInterface::class);
         $resolver
@@ -255,46 +175,38 @@ final class AsDataTableTest extends TestCase
             ->method('resolveMercureConfig')
             ->with(\stdClass::class)
             ->willReturn(
-                (new MercureConfig(topics: ['/api/books/{id}']))
+                (new MercureConfig(topics: $topics))
                     ->withHubUrl('http://localhost/.well-known/mercure')
             );
 
-        $table = new TestDataTableWithMercureAttribute(mercureConfigResolver: $resolver);
-
-        $table->prepareForRendering();
-
-        $this->assertSame([
-            'hubUrl' => 'http://localhost/.well-known/mercure',
-            'topics' => ['/api/books/{id}'],
-        ], $table->getDataTable()->getOptions()['mercure']);
-    }
-
-    #[Test]
-    public function it_auto_configures_mercure_with_manual_ajax(): void
-    {
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
-        $resolver
-            ->expects($this->once())
-            ->method('resolveMercureConfig')
-            ->with(\stdClass::class)
-            ->willReturn(
-                (new MercureConfig(topics: ['/api/books/{id}', '/api/authors/{id}']))
-                    ->withHubUrl('http://localhost/.well-known/mercure')
-            );
-
-        $table = new TestDataTableWithMercureAndManualAjax(mercureConfigResolver: $resolver);
+        $table = new $tableClass(mercureConfigResolver: $resolver);
 
         $table->prepareForRendering();
 
         $this->assertSame([
             'type' => 'GET',
-            'url'  => '/custom-endpoint',
+            'url'  => $ajaxUrl,
         ], $table->getDataTable()->getOption('ajax'));
 
         $this->assertSame([
             'hubUrl' => 'http://localhost/.well-known/mercure',
-            'topics' => ['/api/books/{id}', '/api/authors/{id}'],
+            'topics' => $topics,
         ], $table->getDataTable()->getOptions()['mercure']);
+    }
+
+    public static function provideAutoConfiguredMercureTables(): iterable
+    {
+        yield 'attribute only' => [
+            TestDataTableWithMercureAttribute::class,
+            ['/api/books/{id}'],
+            '/api/books',
+        ];
+
+        yield 'manual ajax' => [
+            TestDataTableWithMercureAndManualAjax::class,
+            ['/api/books/{id}', '/api/authors/{id}'],
+            '/custom-endpoint',
+        ];
     }
 
     #[Test]

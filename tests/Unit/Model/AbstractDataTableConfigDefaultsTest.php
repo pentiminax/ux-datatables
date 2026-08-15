@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Tests\Kernel\ConfigDefaultsAppKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -30,7 +31,7 @@ final class AbstractDataTableConfigDefaultsTest extends TestCase
     }
 
     #[Test]
-    public function it_inherits_the_configured_paging_defaults(): void
+    public function it_inherits_the_bundle_configuration_defaults(): void
     {
         $table = $this->configuredDataTable();
 
@@ -41,22 +42,8 @@ final class AbstractDataTableConfigDefaultsTest extends TestCase
             'numbers'         => true,
             'previousNext'    => true,
         ], $table->getOption('paging'));
-    }
-
-    #[Test]
-    public function it_inherits_the_configured_options_and_template_parameters(): void
-    {
-        $table = $this->configuredDataTable();
-
         self::assertSame(25, $table->getOption('pageLength'));
         self::assertSame(['class' => 'table table-striped'], $table->getAttributes());
-    }
-
-    #[Test]
-    public function it_inherits_the_configured_extensions(): void
-    {
-        $table = $this->configuredDataTable();
-
         self::assertSame('multi', $table->getExtensions()['select']['style'] ?? null);
     }
 
@@ -70,7 +57,7 @@ final class AbstractDataTableConfigDefaultsTest extends TestCase
         self::assertSame(3, $table->getOption('paging')['buttons']);
     }
 
-    private function configuredDataTable(): \Pentiminax\UX\DataTables\Model\DataTable
+    private function configuredDataTable(): DataTable
     {
         /** @var AbstractDataTable $dataTable */
         $dataTable = $this->kernel->getContainer()->get('test.datatables.config_defaults');
