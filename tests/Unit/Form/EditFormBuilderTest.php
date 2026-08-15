@@ -7,10 +7,14 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Form;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Model\Actions;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Form\Extension\Core\Type\FormType;
+use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
@@ -21,90 +25,69 @@ use Symfony\Component\Form\FormInterface;
  */
 class EditFormBuilderTest extends TestCase
 {
-    public function test_build_form_adds_mapped_columns(): void
+    /**
+     * @param ColumnInterface[]                                        $columns
+     * @param string[]                                                 $identifierFields
+     * @param array<string, array{class-string, array<string, mixed>}> $expectedFields   Field name => [form type, options], in the order they must be added
+     */
+    #[DataProvider('provideColumnScenarios')]
+    public function test_build_form_adds_one_field_per_mapped_column(array $columns, array $identifierFields, array $expectedFields): void
     {
-        $entity  = new \stdClass();
-        $columns = [
-            TextColumn::new('name', 'Name'),
-            NumberColumn::new('price', 'Price'),
-        ];
+        $entity = new \stdClass();
+        $form   = $this->createStub(FormInterface::class);
 
-        $form        = $this->createMock(FormInterface::class);
+        $addCalls = [];
+
         $formBuilder = $this->createMock(FormBuilderInterface::class);
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-
-        $formFactory->expects($this->once())
-            ->method('createBuilder')
-            ->willReturn($formBuilder);
-
-        $formBuilder->expects($this->exactly(2))
+        $formBuilder->expects($this->exactly(\count($expectedFields)))
             ->method('add')
-            ->willReturnSelf();
+            ->willReturnCallback(function (string $name, string $type, array $options) use (&$addCalls, $formBuilder) {
+                $addCalls[$name] = [$type, $options];
 
+                return $formBuilder;
+            });
         $formBuilder->expects($this->once())
             ->method('getForm')
             ->willReturn($form);
 
-        $builder = new EditFormBuilder($formFactory, new ColumnToFormTypeMapper());
-        $result  = $builder->buildForm($entity, $columns);
+        $formFactory = $this->createMock(FormFactoryInterface::class);
+        $formFactory->expects($this->once())
+            ->method('createBuilder')
+            ->with(FormType::class, $entity)
+            ->willReturn($formBuilder);
 
-        $this->assertSame($form, $result);
+        $builder = new EditFormBuilder($formFactory, new ColumnToFormTypeMapper());
+
+        $this->assertSame($form, $builder->buildForm($entity, $columns, $identifierFields));
+        $this->assertSame($expectedFields, $addCalls);
     }
 
-    public function test_build_form_skips_action_columns(): void
+    public static function provideColumnScenarios(): iterable
     {
-        $entity  = new \stdClass();
-        $columns = [
-            TextColumn::new('name', 'Name'),
-            ActionColumn::fromActions('actions', 'Actions', new Actions([])),
+        yield 'maps every supported column' => [
+            [TextColumn::new('name', 'Name'), NumberColumn::new('price', 'Price')],
+            [],
+            [
+                'name'  => [TextType::class, ['label' => 'Name']],
+                'price' => [NumberType::class, ['label' => 'Price', 'html5' => true]],
+            ],
         ];
 
-        $form        = $this->createMock(FormInterface::class);
-        $formBuilder = $this->createMock(FormBuilderInterface::class);
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-
-        $formFactory->method('createBuilder')->willReturn($formBuilder);
-
-        $formBuilder->expects($this->once())
-            ->method('add')
-            ->with('name', TextType::class, $this->anything())
-            ->willReturnSelf();
-
-        $formBuilder->method('getForm')->willReturn($form);
-
-        $builder = new EditFormBuilder($formFactory, new ColumnToFormTypeMapper());
-        $builder->buildForm($entity, $columns);
-    }
-
-    public function test_build_form_disables_identifier_fields(): void
-    {
-        $entity  = new \stdClass();
-        $columns = [
-            NumberColumn::new('id', 'ID'),
-            TextColumn::new('name', 'Name'),
+        yield 'skips action columns' => [
+            [TextColumn::new('name', 'Name'), ActionColumn::fromActions('actions', 'Actions', new Actions([]))],
+            [],
+            [
+                'name' => [TextType::class, ['label' => 'Name']],
+            ],
         ];
 
-        $form        = $this->createMock(FormInterface::class);
-        $formBuilder = $this->createMock(FormBuilderInterface::class);
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-
-        $formFactory->method('createBuilder')->willReturn($formBuilder);
-
-        $addCalls = [];
-        $formBuilder->expects($this->exactly(2))
-            ->method('add')
-            ->willReturnCallback(function (string $name, string $type, array $options) use (&$addCalls, $formBuilder) {
-                $addCalls[$name] = $options;
-
-                return $formBuilder;
-            });
-
-        $formBuilder->method('getForm')->willReturn($form);
-
-        $builder = new EditFormBuilder($formFactory, new ColumnToFormTypeMapper());
-        $builder->buildForm($entity, $columns, ['id']);
-
-        $this->assertTrue($addCalls['id']['disabled']);
-        $this->assertArrayNotHasKey('disabled', $addCalls['name']);
+        yield 'disables identifier fields only' => [
+            [NumberColumn::new('id', 'ID'), TextColumn::new('name', 'Name')],
+            ['id'],
+            [
+                'id'   => [NumberType::class, ['label' => 'ID', 'html5' => true, 'disabled' => true]],
+                'name' => [TextType::class, ['label' => 'Name']],
+            ],
+        ];
     }
 }
