@@ -22,13 +22,15 @@ final class DataTableProfilerTest extends TestCase
         $profiler = new DataTableProfiler();
         $profiler->collectRenderedTable('App\\ProductDataTable', new DataTable('products'));
 
-        $tables = $profiler->getRenderedTables();
-        $this->assertCount(1, $tables);
-        $this->assertSame('products', $tables[0]['id']);
-        $this->assertSame('App\\ProductDataTable', $tables[0]['class']);
-        $this->assertArrayHasKey('serverSide', $tables[0]);
-        $this->assertArrayHasKey('columnCount', $tables[0]);
-        $this->assertArrayHasKey('extensions', $tables[0]);
+        $this->assertSame([[
+            'id'          => 'products',
+            'class'       => 'App\\ProductDataTable',
+            'serverSide'  => false,
+            'columnCount' => 0,
+            'extensions'  => [],
+            'ajax'        => null,
+            'hasData'     => false,
+        ]], $profiler->getRenderedTables());
     }
 
     #[Test]
@@ -37,12 +39,14 @@ final class DataTableProfilerTest extends TestCase
         $profiler = new DataTableProfiler();
         $profiler->collectAjaxQuery('App\\ProductDataTable', 'token', null, 42, 10, 1.5);
 
-        $queries = $profiler->getAjaxQueries();
-        $this->assertCount(1, $queries);
-        $this->assertSame('token', $queries[0]['token']);
-        $this->assertSame(42, $queries[0]['recordsTotal']);
-        $this->assertSame(10, $queries[0]['recordsFiltered']);
-        $this->assertSame(1.5, $queries[0]['durationMs']);
+        $this->assertSame([[
+            'class'           => 'App\\ProductDataTable',
+            'token'           => 'token',
+            'request'         => null,
+            'recordsTotal'    => 42,
+            'recordsFiltered' => 10,
+            'durationMs'      => 1.5,
+        ]], $profiler->getAjaxQueries());
     }
 
     #[Test]
