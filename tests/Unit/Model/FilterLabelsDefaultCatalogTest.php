@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Model\FilterLabels;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Translation\Loader\XliffFileLoader;
@@ -20,42 +21,41 @@ use Symfony\Component\Translation\Translator;
 #[CoversClass(FilterLabels::class)]
 final class FilterLabelsDefaultCatalogTest extends TestCase
 {
+    /**
+     * @param array<string, string> $expected
+     */
     #[Test]
-    public function it_resolves_the_french_defaults_from_the_bundle_catalog(): void
+    #[DataProvider('provideTranslatedLabels')]
+    public function it_translates_labels_through_the_bundle_catalog(string $locale, FilterLabels $labels, array $expected): void
     {
-        $translator = $this->buildTranslator('fr');
-
-        $labels = new FilterLabels();
-
-        $this->assertSame(
-            [
-                'title' => 'Filtres',
-                'reset' => 'Réinitialiser',
-                'apply' => 'Appliquer les filtres',
-                'all'   => 'Tous',
-            ],
-            $labels->toTranslatedArray($translator, 'fr'),
-        );
-        $this->assertSame([], $labels->jsonSerialize());
+        $this->assertSame($expected, $labels->toTranslatedArray($this->buildTranslator($locale), $locale));
     }
 
-    #[Test]
-    public function it_resolves_the_english_defaults_from_the_bundle_catalog(): void
+    /**
+     * @return iterable<string, array{string, FilterLabels, array<string, string>}>
+     */
+    public static function provideTranslatedLabels(): iterable
     {
-        $translator = $this->buildTranslator('en');
+        yield 'french defaults' => ['fr', new FilterLabels(), [
+            'title' => 'Filtres',
+            'reset' => 'Réinitialiser',
+            'apply' => 'Appliquer les filtres',
+            'all'   => 'Tous',
+        ]];
 
-        $labels = new FilterLabels();
+        yield 'english defaults' => ['en', new FilterLabels(), [
+            'title' => 'Filters',
+            'reset' => 'Reset',
+            'apply' => 'Apply filters',
+            'all'   => 'All',
+        ]];
 
-        $this->assertSame(
-            [
-                'title' => 'Filters',
-                'reset' => 'Reset',
-                'apply' => 'Apply filters',
-                'all'   => 'All',
-            ],
-            $labels->toTranslatedArray($translator, 'en'),
-        );
-        $this->assertSame([], $labels->jsonSerialize());
+        yield 'explicit labels override the catalog defaults' => ['en', new FilterLabels(title: 'My filters'), [
+            'title' => 'My filters',
+            'reset' => 'Reset',
+            'apply' => 'Apply filters',
+            'all'   => 'All',
+        ]];
     }
 
     private function buildTranslator(string $locale): Translator

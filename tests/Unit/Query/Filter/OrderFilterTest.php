@@ -6,12 +6,16 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Column;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\Query\Filter\OrderFilter;
+use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsQueryFilterContext;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -23,135 +27,103 @@ final class OrderFilterTest extends TestCase
 {
     use BuildsQueryFilterContext;
 
-    #[Test]
-    public function it_applies_order_on_simple_field(): void
+    /**
+     * @return iterable<string, array{ColumnInterface, string, string, ?array{string, string}}>
+     */
+    public static function appliedOrders(): iterable
     {
-        $filter = new OrderFilter();
+        yield 'simple field' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            'asc',
+            'e.name',
+            null,
+        ];
 
+        yield 'configured field wins over the request column name' => [
+            TextColumn::new('displayName', 'Display Name')->setField('customField'),
+            'desc',
+            'e.customField',
+            null,
+        ];
+
+        yield 'order expression used verbatim, without alias prefix or join resolution' => [
+            TextColumn::new('invoiceCount', 'Invoices')->setOrderExpression('invoiceCount'),
+            'desc',
+            'invoiceCount',
+            null,
+        ];
+
+        yield 'dot notation field' => [
+            TextColumn::new('authorName', 'Author')->setField('author.firstName'),
+            'asc',
+            'author.firstName',
+            ['e.author', 'author'],
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{list<Order>, list<ColumnInterface>}>
+     */
+    public static function skippedOrders(): iterable
+    {
+        yield 'no order requested' => [[], [TextColumn::new('name', 'Name')->setField('name')]];
+
+        yield 'order column index out of bounds' => [[new Order(5, 'asc', 'name')], []];
+    }
+
+    /**
+     * @param ?array{string, string} $expectedJoin
+     */
+    #[Test]
+    #[DataProvider('appliedOrders')]
+    public function it_applies_order(
+        ColumnInterface $column,
+        string $direction,
+        string $expectedExpression,
+        ?array $expectedJoin,
+    ): void {
         $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
+        $qb->method('getDQLPart')->willReturn([]);
+
+        if (null === $expectedJoin) {
+            $qb->expects($this->never())->method('leftJoin');
+        } else {
+            $qb->expects($this->once())
+                ->method('leftJoin')
+                ->with($expectedJoin[0], $expectedJoin[1])
+                ->willReturn($qb);
+        }
 
         $qb->expects($this->once())
             ->method('addOrderBy')
-            ->with('e.name', 'asc');
+            ->with($expectedExpression, $direction);
 
-        $column        = TextColumn::new('name', 'Name')->setField('name');
-        $requestColumn = new Column('name', 'name', true, true);
-        $columns       = new Columns(['name' => $requestColumn]);
-        $order         = new Order(0, 'asc', 'name');
-
-        $request = new DataTableRequest(1, $columns, order: [$order]);
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
+        (new OrderFilter())->apply($qb, $this->orderedContext($column, $direction));
     }
 
+    /**
+     * @param list<Order>           $order
+     * @param list<ColumnInterface> $columns
+     */
     #[Test]
-    public function it_uses_abstract_column_field_not_request_column_name(): void
+    #[DataProvider('skippedOrders')]
+    public function it_skips_ordering(array $order, array $columns): void
     {
-        $filter = new OrderFilter();
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-
-        $qb->expects($this->once())
-            ->method('addOrderBy')
-            ->with('e.customField', 'desc');
-
-        $column        = TextColumn::new('displayName', 'Display Name')->setField('customField');
-        $requestColumn = new Column('displayName', 'displayName', true, true);
-        $columns       = new Columns(['displayName' => $requestColumn]);
-        $order         = new Order(0, 'desc', 'displayName');
-
-        $request = new DataTableRequest(1, $columns, order: [$order]);
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
-    }
-
-    #[Test]
-    public function it_uses_order_expression_verbatim_when_set(): void
-    {
-        $filter = new OrderFilter();
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->expects($this->never())->method('leftJoin');
-
-        // Raw SELECT alias — no "e." prefix, no join resolution.
-        $qb->expects($this->once())
-            ->method('addOrderBy')
-            ->with('invoiceCount', 'desc');
-
-        $column        = TextColumn::new('invoiceCount', 'Invoices')->setOrderExpression('invoiceCount');
-        $requestColumn = new Column('invoiceCount', 'invoiceCount', false, true);
-        $columns       = new Columns(['invoiceCount' => $requestColumn]);
-        $order         = new Order(0, 'desc', 'invoiceCount');
-
-        $request = new DataTableRequest(1, $columns, order: [$order]);
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
-    }
-
-    #[Test]
-    public function it_applies_order_with_dot_notation_field(): void
-    {
-        $filter = new OrderFilter();
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-
-        $qb->expects($this->once())
-            ->method('leftJoin')
-            ->with('e.author', 'author')
-            ->willReturn($qb);
-
-        $qb->expects($this->once())
-            ->method('addOrderBy')
-            ->with('author.firstName', 'asc');
-
-        $column        = TextColumn::new('authorName', 'Author')->setField('author.firstName');
-        $requestColumn = new Column('authorName', 'authorName', true, true);
-        $columns       = new Columns(['authorName' => $requestColumn]);
-        $order         = new Order(0, 'asc', 'authorName');
-
-        $request = new DataTableRequest(1, $columns, order: [$order]);
-        $context = $this->context($request, [$column]);
-
-        $filter->apply($qb, $context);
-    }
-
-    #[Test]
-    public function it_skips_when_no_order(): void
-    {
-        $filter = new OrderFilter();
-
         $qb = $this->createMock(QueryBuilder::class);
         $qb->expects($this->never())->method('addOrderBy');
 
-        $column  = TextColumn::new('name', 'Name')->setField('name');
-        $columns = new Columns([]);
-        $request = new DataTableRequest(1, $columns, order: []);
-        $context = $this->context($request, [$column]);
+        $requestColumns = new Columns(['name' => new Column('name', 'name', true, true)]);
+        $request        = new DataTableRequest(1, $requestColumns, order: $order);
 
-        $filter->apply($qb, $context);
+        (new OrderFilter())->apply($qb, $this->context($request, $columns));
     }
 
-    #[Test]
-    public function it_skips_when_column_index_out_of_bounds(): void
+    private function orderedContext(ColumnInterface $column, string $direction): QueryFilterContext
     {
-        $filter = new OrderFilter();
+        $name    = $column->getName();
+        $columns = new Columns([$name => new Column($name, $name, true, true)]);
+        $request = new DataTableRequest(1, $columns, order: [new Order(0, $direction, $name)]);
 
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->expects($this->never())->method('addOrderBy');
-
-        $requestColumn = new Column('name', 'name', true, true);
-        $columns       = new Columns(['name' => $requestColumn]);
-        $order         = new Order(5, 'asc', 'name');
-
-        $request = new DataTableRequest(1, $columns, order: [$order]);
-        $context = $this->context($request, []);
-
-        $filter->apply($qb, $context);
+        return $this->context($request, [$column]);
     }
 }

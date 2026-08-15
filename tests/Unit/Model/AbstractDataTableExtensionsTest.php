@@ -14,7 +14,9 @@ use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -28,30 +30,18 @@ final class AbstractDataTableExtensionsTest extends TestCase
     #[Test]
     public function it_configures_all_extensions_through_configure_extensions(): void
     {
-        $table = new class extends AbstractDataTable {
-            public function configureDataTable(DataTable $table): DataTable
-            {
-                return $table->layout([
-                    'topStart'    => Feature::BUTTONS,
-                    'topEnd'      => Feature::SEARCH,
-                    'bottomStart' => Feature::INFO,
-                    'bottomEnd'   => Feature::PAGING,
-                ]);
-            }
-
-            public function configureColumns(): iterable
-            {
-                yield TextColumn::new('id');
-            }
-
-            public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
-            {
-                return $extensions
-                    ->addExtension(new ButtonsExtension([ButtonType::CSV]))
-                    ->addExtension(new ColumnControlExtension())
-                    ->addExtension(new SelectExtension());
-            }
-        };
+        $table = $this->tableWith(
+            [
+                'topStart'    => Feature::BUTTONS,
+                'topEnd'      => Feature::SEARCH,
+                'bottomStart' => Feature::INFO,
+                'bottomEnd'   => Feature::PAGING,
+            ],
+            fn (DataTableExtensions $extensions) => $extensions
+                ->addExtension(new ButtonsExtension([ButtonType::CSV]))
+                ->addExtension(new ColumnControlExtension())
+                ->addExtension(new SelectExtension()),
+        );
 
         $this->assertSame([
             'topStart' => [
@@ -105,112 +95,105 @@ final class AbstractDataTableExtensionsTest extends TestCase
         ], $table->getDataTable()->getExtensions());
     }
 
+    /**
+     * @param array<string, mixed>    $layout
+     * @param list<Button|ButtonType> $buttons
+     * @param array<string, mixed>    $expectedLayout
+     */
     #[Test]
-    public function it_injects_customized_buttons_into_layout(): void
+    #[DataProvider('buttonsLayoutProvider')]
+    public function it_injects_buttons_into_the_layout(array $layout, array $buttons, array $expectedLayout): void
     {
-        $table = new class extends AbstractDataTable {
-            public function configureDataTable(DataTable $table): DataTable
-            {
-                return $table->layout([
-                    'topStart' => Feature::BUTTONS,
-                    'topEnd'   => Feature::SEARCH,
-                ]);
-            }
+        $table = $this->tableWith(
+            $layout,
+            fn (DataTableExtensions $extensions) => $extensions->addExtension(new ButtonsExtension($buttons)),
+        );
 
-            public function configureColumns(): iterable
-            {
-                yield TextColumn::new('id');
-            }
-
-            public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
-            {
-                return $extensions
-                    ->addExtension(new ButtonsExtension([
-                        Button::csv()
-                            ->text('Export CSV')
-                            ->className('btn btn-primary')
-                            ->exportOptions(['columns' => ':visible']),
-                    ]));
-            }
-        };
-
-        $this->assertSame([
-            'buttons' => [
-                [
-                    'extend'        => 'csv',
-                    'text'          => 'Export CSV',
-                    'className'     => 'btn btn-primary',
-                    'exportOptions' => [
-                        'columns' => ':visible',
-                    ],
-                ],
-            ],
-        ], $table->getDataTable()->getOptions()['layout']['topStart']);
+        $this->assertSame($expectedLayout, $table->getDataTable()->getOptions()['layout']);
     }
 
-    #[Test]
-    public function it_injects_buttons_when_in_array_position(): void
+    /**
+     * @return iterable<string, array{array<string, mixed>, list<Button|ButtonType>, array<string, mixed>}>
+     */
+    public static function buttonsLayoutProvider(): iterable
     {
-        $table = new class extends AbstractDataTable {
-            public function configureDataTable(DataTable $table): DataTable
-            {
-                return $table->layout([
-                    'topEnd' => [Feature::SEARCH, Feature::BUTTONS],
-                ]);
-            }
+        yield 'customized buttons in a single feature position' => [
+            [
+                'topStart' => Feature::BUTTONS,
+                'topEnd'   => Feature::SEARCH,
+            ],
+            [
+                Button::csv()
+                    ->text('Export CSV')
+                    ->className('btn btn-primary')
+                    ->exportOptions(['columns' => ':visible']),
+            ],
+            [
+                'topStart' => [
+                    'buttons' => [
+                        [
+                            'extend'        => 'csv',
+                            'text'          => 'Export CSV',
+                            'className'     => 'btn btn-primary',
+                            'exportOptions' => [
+                                'columns' => ':visible',
+                            ],
+                        ],
+                    ],
+                ],
+                'topEnd' => 'search',
+            ],
+        ];
 
-            public function configureColumns(): iterable
-            {
-                yield TextColumn::new('id');
-            }
-
-            public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
-            {
-                return $extensions
-                    ->addExtension(new ButtonsExtension([ButtonType::CSV]));
-            }
-        };
-
-        $layout = $table->getDataTable()->getOptions()['layout'];
-
-        $this->assertSame('search', $layout['topEnd'][0]);
-        $this->assertSame([
-            'buttons' => [
-                [
-                    'extend'        => 'csv',
-                    'exportOptions' => [
-                        'columns' => ':visible:not(.not-exportable)',
+        yield 'buttons nested in an array position' => [
+            [
+                'topEnd' => [Feature::SEARCH, Feature::BUTTONS],
+            ],
+            [ButtonType::CSV],
+            [
+                'topEnd' => [
+                    'search',
+                    [
+                        'buttons' => [
+                            [
+                                'extend'        => 'csv',
+                                'exportOptions' => [
+                                    'columns' => ':visible:not(.not-exportable)',
+                                ],
+                            ],
+                        ],
                     ],
                 ],
             ],
-        ], $layout['topEnd'][1]);
+        ];
     }
 
     #[Test]
     public function it_configures_select_extension_with_checkbox_via_closure(): void
     {
-        $table = new class extends AbstractDataTable {
-            public function configureDataTable(DataTable $table): DataTable
-            {
-                return $table;
-            }
-
-            public function configureColumns(): iterable
-            {
-                yield TextColumn::new('id');
-            }
-
-            public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
-            {
-                return $extensions->addSelectExtension(
-                    fn (SelectExtension $select) => $select->withCheckbox()->headerCheckbox()
-                );
-            }
-        };
+        $table = $this->tableWith(
+            [],
+            fn (DataTableExtensions $extensions) => $extensions->addSelectExtension(
+                fn (SelectExtension $select) => $select->withCheckbox()->headerCheckbox()
+            ),
+        );
 
         $extensions = $table->getDataTable()->getExtensions();
 
         $this->assertTrue($extensions['select']['withCheckbox']);
         $this->assertTrue($extensions['select']['headerCheckbox']);
+    }
+
+    /**
+     * @param array<string, mixed>                               $layout              an empty array leaves the default layout untouched
+     * @param \Closure(DataTableExtensions): DataTableExtensions $configureExtensions
+     */
+    private function tableWith(array $layout, \Closure $configureExtensions): AbstractDataTable
+    {
+        return new ConfigurableDataTable(
+            [TextColumn::new('id')],
+            extensions: $configureExtensions,
+            configureTable: static fn (DataTable $table): DataTable => [] === $layout ? $table : $table->layout($layout),
+        );
     }
 }

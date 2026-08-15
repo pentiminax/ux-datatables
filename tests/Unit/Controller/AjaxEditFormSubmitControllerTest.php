@@ -27,6 +27,7 @@ use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -43,24 +44,23 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 final class AjaxEditFormSubmitControllerTest extends TestCase
 {
     #[Test]
-    public function it_returns_rendered_html_when_the_form_is_invalid(): void
+    #[TestWith([true, null], 'valid form flushes and reports success')]
+    #[TestWith([false, '<form>invalid</form>'], 'invalid form returns the rendered body')]
+    public function it_flushes_a_valid_form_and_renders_an_invalid_one(bool $valid, ?string $invalidHtml): void
     {
-        $entityManager = $this->createEntityManagerWithEntity(new AjaxEditFormSubmitControllerFixture(), 1);
-        $entityManager->expects($this->never())->method('flush');
+        $entityManager = $this->createEntityManagerWithEntity(new AjaxEditFormSubmitControllerFixture());
+        $entityManager->expects($valid ? $this->once() : $this->never())->method('flush');
 
-        $registry = $this->createRegistry($entityManager);
-        $form     = $this->createMock(FormInterface::class);
-        $form->expects($this->once())
-            ->method('submit')
-            ->with(['name' => 'Alice']);
-        $form->expects($this->once())
-            ->method('isValid')
-            ->willReturn(false);
+        $form = $this->createFormMock($valid);
 
-        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver($form, '<form>invalid</form>', 1, true, AjaxEditFormSubmitControllerDataTable::class);
+        if ($valid) {
+            $form->expects($this->never())->method('createView');
+        }
+
+        [$formFactory, $renderer, $templateResolver] = $this->createFormCollaborators($form, $invalidHtml);
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
-            new EntityLocator($registry),
+            new EntityLocator($this->createRegistry($entityManager)),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
@@ -68,58 +68,16 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             dataTables: $this->registeredDataTables(),
         ));
 
-        $response = $controller(new AjaxEditFormRequestDto(
-            entity: AjaxEditFormSubmitControllerFixture::class,
-            id: 42,
-            formData: ['name' => 'Alice'],
-            dataTableClass: AjaxEditFormSubmitControllerDataTable::class,
-        ));
+        $response = $controller($this->payload());
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertFalse($payload['success']);
-        $this->assertSame('<form>invalid</form>', $payload['html']);
-    }
+        $this->assertSame($valid, $payload['success']);
 
-    #[Test]
-    public function it_returns_success_when_the_form_is_valid(): void
-    {
-        $entityManager = $this->createEntityManagerWithEntity(new AjaxEditFormSubmitControllerFixture(), 1);
-        $entityManager->expects($this->once())->method('flush');
-
-        $registry = $this->createRegistry($entityManager);
-        $form     = $this->createMock(FormInterface::class);
-        $form->expects($this->once())
-            ->method('submit')
-            ->with(['name' => 'Alice']);
-        $form->expects($this->once())
-            ->method('isValid')
-            ->willReturn(true);
-        $form->expects($this->never())->method('createView');
-
-        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver($form, '', 1, false, AjaxEditFormSubmitControllerDataTable::class);
-
-        $controller = new AjaxEditFormSubmitController(new EditFormService(
-            new EntityLocator($registry),
-            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $renderer,
-            $templateResolver,
-            new NullMercurePublisher(),
-            dataTables: $this->registeredDataTables(),
-        ));
-
-        $response = $controller(new AjaxEditFormRequestDto(
-            entity: AjaxEditFormSubmitControllerFixture::class,
-            id: 42,
-            formData: ['name' => 'Alice'],
-            dataTableClass: AjaxEditFormSubmitControllerDataTable::class,
-        ));
-
-        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
-
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertTrue($payload['success']);
+        if (null !== $invalidHtml) {
+            $this->assertSame($invalidHtml, $payload['html']);
+        }
     }
 
     #[Test]
@@ -137,8 +95,6 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $entityManager->expects($this->never())->method('getClassMetadata');
         $entityManager->expects($this->never())->method('flush');
 
-        $registry = $this->createRegistry($entityManager);
-
         $formFactory = $this->createMock(FormFactoryInterface::class);
         $formFactory->expects($this->never())->method('createBuilder');
         $renderer = $this->createMock(EditModalRenderer::class);
@@ -150,7 +106,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $authorizationChecker->method('isGranted')->with('EDIT', $entity)->willReturn(false);
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
-            new EntityLocator($registry),
+            new EntityLocator($this->createRegistry($entityManager)),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
@@ -158,12 +114,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             permissionChecker: new PermissionChecker($authorizationChecker),
         ));
 
-        $response = $controller(new AjaxEditFormRequestDto(
-            entity: AjaxEditFormSubmitControllerFixture::class,
-            id: 42,
-            formData: ['name' => 'Alice'],
-            dataTableClass: 'SomeDataTable',
-        ));
+        $response = $controller($this->payload('SomeDataTable'));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
@@ -172,41 +123,47 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $this->assertSame('You are not allowed to perform this action.', $payload['message']);
     }
 
+    /**
+     * The DTO does not carry a topics field, so the client cannot influence the publish
+     * target: only the server-resolved topic is ever used, and nothing is published when
+     * the server resolves no configuration.
+     *
+     * @param list<string>|null $serverTopics
+     */
     #[Test]
-    public function it_publishes_to_the_server_resolved_topics_ignoring_the_client(): void
+    #[TestWith([['/server/topic/42']], 'publishes the server resolved topics')]
+    #[TestWith([null], 'publishes nothing without a resolved config')]
+    public function it_publishes_only_to_the_server_resolved_topics(?array $serverTopics): void
     {
-        $entityManager = $this->createEntityManagerWithEntity(new AjaxEditFormSubmitControllerFixture(), 1);
+        $entityManager = $this->createEntityManagerWithEntity(new AjaxEditFormSubmitControllerFixture());
         $entityManager->expects($this->once())->method('flush');
 
-        $registry = $this->createRegistry($entityManager);
-
         $hub = $this->createMock(HubInterface::class);
-        $hub->expects($this->once())
-            ->method('publish')
-            ->with($this->callback(function (Update $update) {
-                return ['/server/topic/42']      === $update->getTopics()
-                    && '{"type":"edit","id":42}' === $update->getData();
-            }))
-            ->willReturn('urn:uuid:published');
 
-        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver(
-            $this->createValidFormMock(),
-            '',
-            1,
-            false,
-            AjaxEditFormSubmitControllerDataTable::class,
-        );
+        if (null === $serverTopics) {
+            $hub->expects($this->never())->method('publish');
+        } else {
+            $hub->expects($this->once())
+                ->method('publish')
+                ->with($this->callback(static function (Update $update) use ($serverTopics) {
+                    return $serverTopics             === $update->getTopics()
+                        && '{"type":"edit","id":42}' === $update->getData();
+                }))
+                ->willReturn('urn:uuid:published');
+        }
+
+        [$formFactory, $renderer, $templateResolver] = $this->createFormCollaborators($this->createFormMock(true));
 
         $resolver = $this->createMock(MercureConfigResolverInterface::class);
         $resolver->method('resolveMercureConfig')
             ->with(AjaxEditFormSubmitControllerFixture::class)
-            ->willReturn(new MercureConfig(
-                topics: ['/server/topic/42'],
+            ->willReturn(null === $serverTopics ? null : new MercureConfig(
+                topics: $serverTopics,
                 hubUrl: 'https://hub.example/.well-known/mercure',
             ));
 
         $controller = new AjaxEditFormSubmitController(new EditFormService(
-            new EntityLocator($registry),
+            new EntityLocator($this->createRegistry($entityManager)),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
@@ -215,64 +172,21 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $this->registeredDataTables(),
         ));
 
-        // The DTO no longer carries a topics field, so the client cannot influence
-        // the publish target: only the server-resolved topic is ever used.
-        $response = $controller(new AjaxEditFormRequestDto(
-            entity: AjaxEditFormSubmitControllerFixture::class,
-            id: 42,
-            formData: ['name' => 'Alice'],
-            dataTableClass: AjaxEditFormSubmitControllerDataTable::class,
-        ));
+        $response = $controller($this->payload());
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
         $this->assertTrue($payload['success']);
     }
 
-    #[Test]
-    public function it_does_not_publish_when_no_mercure_config_is_resolved(): void
+    private function payload(?string $dataTableClass = AjaxEditFormSubmitControllerDataTable::class): AjaxEditFormRequestDto
     {
-        $entityManager = $this->createEntityManagerWithEntity(new AjaxEditFormSubmitControllerFixture(), 1);
-        $entityManager->expects($this->once())->method('flush');
-
-        $registry = $this->createRegistry($entityManager);
-
-        $hub = $this->createMock(HubInterface::class);
-        $hub->expects($this->never())->method('publish');
-
-        [$formFactory, $renderer, $templateResolver] = $this->createFormFactoryRendererAndResolver(
-            $this->createValidFormMock(),
-            '',
-            1,
-            false,
-            AjaxEditFormSubmitControllerDataTable::class,
-        );
-
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
-        $resolver->method('resolveMercureConfig')
-            ->with(AjaxEditFormSubmitControllerFixture::class)
-            ->willReturn(null);
-
-        $controller = new AjaxEditFormSubmitController(new EditFormService(
-            new EntityLocator($registry),
-            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $renderer,
-            $templateResolver,
-            new MercureUpdatePublisher($hub),
-            $resolver,
-            $this->registeredDataTables(),
-        ));
-
-        $response = $controller(new AjaxEditFormRequestDto(
+        return new AjaxEditFormRequestDto(
             entity: AjaxEditFormSubmitControllerFixture::class,
             id: 42,
             formData: ['name' => 'Alice'],
-            dataTableClass: AjaxEditFormSubmitControllerDataTable::class,
-        ));
-
-        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
-
-        $this->assertTrue($payload['success']);
+            dataTableClass: $dataTableClass,
+        );
     }
 
     private function registeredDataTables(): ContainerInterface
@@ -295,25 +209,25 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         return $registry;
     }
 
-    private function createEntityManagerWithEntity(object $entity, int $calls): EntityManagerInterface
+    private function createEntityManagerWithEntity(object $entity): EntityManagerInterface
     {
         $repository = $this->createMock(EntityRepository::class);
-        $repository->expects($this->exactly($calls))
+        $repository->expects($this->once())
             ->method('find')
             ->with(42)
             ->willReturn($entity);
 
         $classMetadata = $this->createMock(ClassMetadata::class);
-        $classMetadata->expects($this->exactly($calls))
+        $classMetadata->expects($this->once())
             ->method('getIdentifierFieldNames')
             ->willReturn([]);
 
         $entityManager = $this->createMock(EntityManagerInterface::class);
-        $entityManager->expects($this->exactly($calls))
+        $entityManager->expects($this->once())
             ->method('getRepository')
             ->with(AjaxEditFormSubmitControllerFixture::class)
             ->willReturn($repository);
-        $entityManager->expects($this->exactly($calls))
+        $entityManager->expects($this->once())
             ->method('getClassMetadata')
             ->with(AjaxEditFormSubmitControllerFixture::class)
             ->willReturn($classMetadata);
@@ -322,56 +236,56 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
     }
 
     /**
+     * @param string|null $invalidHtml the body rendered for an invalid form, or null when the form is expected to be valid
+     *
      * @return array{FormFactoryInterface, EditModalRenderer, EditModalTemplateResolverInterface}
      */
-    private function createFormFactoryRendererAndResolver(FormInterface $form, string $html, int $calls, bool $expectInvalidRender, ?string $dataTableClass = null): array
+    private function createFormCollaborators(FormInterface $form, ?string $invalidHtml = null): array
     {
         $formBuilder = $this->createMock(FormBuilderInterface::class);
-        $formBuilder->expects($this->exactly($calls))
+        $formBuilder->expects($this->once())
             ->method('add')
             ->with('name', $this->isType('string'), $this->isType('array'))
             ->willReturnSelf();
-        $formBuilder->expects($this->exactly($calls))
+        $formBuilder->expects($this->once())
             ->method('getForm')
             ->willReturn($form);
 
         $formFactory = $this->createMock(FormFactoryInterface::class);
-        $formFactory->expects($this->exactly($calls))
+        $formFactory->expects($this->once())
             ->method('createBuilder')
             ->with($this->isType('string'), $this->isType('object'))
             ->willReturn($formBuilder);
 
-        $renderer = $this->createMock(EditModalRenderer::class);
-        if ($expectInvalidRender) {
-            $renderer->expects($this->once())->method('renderBody')->with($this->isType('object'))->willReturn($html);
-        } else {
-            $renderer->expects($this->never())->method('render');
-            $renderer->expects($this->never())->method('renderBody');
-        }
-
+        $renderer         = $this->createMock(EditModalRenderer::class);
         $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
-        $templateResolver->expects($this->exactly($calls))
+        $templateResolver->expects($this->once())
             ->method('resolveColumns')
-            ->with($dataTableClass)
+            ->with(AjaxEditFormSubmitControllerDataTable::class)
             ->willReturn([TextColumn::new('name', 'Name')]);
 
-        if ($expectInvalidRender) {
-            $templateResolver->expects($this->exactly($calls))
-                ->method('resolveChromeTemplate')
-                ->with($dataTableClass)
-                ->willReturn('modal.html.twig');
-            $templateResolver->expects($this->exactly($calls))
-                ->method('resolveBodyTemplate')
-                ->willReturn('body.html.twig');
-        } else {
+        if (null === $invalidHtml) {
+            $renderer->expects($this->never())->method('render');
+            $renderer->expects($this->never())->method('renderBody');
             $templateResolver->expects($this->never())->method('resolveChromeTemplate');
             $templateResolver->expects($this->never())->method('resolveBodyTemplate');
+
+            return [$formFactory, $renderer, $templateResolver];
         }
+
+        $renderer->expects($this->once())->method('renderBody')->with($this->isType('object'))->willReturn($invalidHtml);
+        $templateResolver->expects($this->once())
+            ->method('resolveChromeTemplate')
+            ->with(AjaxEditFormSubmitControllerDataTable::class)
+            ->willReturn('modal.html.twig');
+        $templateResolver->expects($this->once())
+            ->method('resolveBodyTemplate')
+            ->willReturn('body.html.twig');
 
         return [$formFactory, $renderer, $templateResolver];
     }
 
-    private function createValidFormMock(): FormInterface
+    private function createFormMock(bool $valid): FormInterface
     {
         $form = $this->createMock(FormInterface::class);
         $form->expects($this->once())
@@ -379,7 +293,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ->with(['name' => 'Alice']);
         $form->expects($this->once())
             ->method('isValid')
-            ->willReturn(true);
+            ->willReturn($valid);
 
         return $form;
     }

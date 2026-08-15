@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\RowMapper\Stage;
 
 use Pentiminax\UX\DataTables\Column\IconColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\Icon;
 use Pentiminax\UX\DataTables\RowMapper\Stage\IconColumnResolutionStage;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -17,38 +19,38 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(IconColumnResolutionStage::class)]
 final class IconColumnResolutionStageTest extends TestCase
 {
+    /**
+     * @param list<ColumnInterface> $columns
+     * @param array<string, mixed>  $expected
+     */
     #[Test]
-    public function it_resolves_icon_and_color_via_callables(): void
+    #[DataProvider('iconColumnProvider')]
+    public function it_exposes_resolved_icon_data_only_for_columns_with_resolvers(array $columns, array $expected): void
     {
-        $stage = new IconColumnResolutionStage();
+        $result = (new IconColumnResolutionStage())->process(['status' => 'draft'], ['status' => 'draft'], $columns);
 
-        $result = $stage->process(
-            ['status' => 'draft'],
-            ['status' => 'draft'],
+        $this->assertSame($expected, $result);
+    }
+
+    public static function iconColumnProvider(): iterable
+    {
+        yield 'icon and color resolved via callables' => [
             [
                 IconColumn::new('status')
                     ->icon(static fn (string $s): Icon => Icon::Clock)
                     ->color(static fn (string $s): string => 'warning'),
             ],
-        );
+            [
+                'status'                                 => 'draft',
+                IconColumnResolutionStage::ROW_ICONS_KEY => [
+                    'status' => ['icon' => 'clock', 'color' => 'warning'],
+                ],
+            ],
+        ];
 
-        $this->assertSame(
-            ['icon' => 'clock', 'color' => 'warning'],
-            $result[IconColumnResolutionStage::ROW_ICONS_KEY]['status'],
-        );
-    }
-
-    #[Test]
-    public function it_passes_through_when_column_has_no_resolvers(): void
-    {
-        $stage = new IconColumnResolutionStage();
-
-        $result = $stage->process(
-            ['status' => 'draft'],
-            ['status' => 'draft'],
+        yield 'static icon and color are not exposed per row' => [
             [IconColumn::new('status')->icon('clock')->color('warning')],
-        );
-
-        $this->assertArrayNotHasKey(IconColumnResolutionStage::ROW_ICONS_KEY, $result);
+            ['status' => 'draft'],
+        ];
     }
 }

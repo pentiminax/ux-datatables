@@ -20,14 +20,6 @@ use Symfony\Component\HttpFoundation\Response;
 final class DataTableCollectorTest extends TestCase
 {
     #[Test]
-    public function it_returns_the_correct_collector_name(): void
-    {
-        $collector = new DataTableCollector(new DataTableProfiler());
-
-        $this->assertSame('datatables', $collector->getName());
-    }
-
-    #[Test]
     public function it_collects_rendered_tables_and_ajax_queries_from_profiler(): void
     {
         $profiler = new DataTableProfiler();
@@ -37,6 +29,7 @@ final class DataTableCollectorTest extends TestCase
         $collector = new DataTableCollector($profiler);
         $collector->collect(Request::create('/'), new Response());
 
+        $this->assertSame('datatables', $collector->getName());
         $this->assertSame(1, $collector->getTableCount());
         $this->assertSame(1, $collector->getQueryCount());
         $this->assertCount(1, $collector->getTables());

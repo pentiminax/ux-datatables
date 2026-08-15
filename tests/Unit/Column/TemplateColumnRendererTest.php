@@ -7,8 +7,10 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Twig\Environment;
@@ -21,260 +23,170 @@ use Twig\Loader\ArrayLoader;
 #[CoversClass(TemplateColumnRenderer::class)]
 final class TemplateColumnRendererTest extends TestCase
 {
+    /**
+     * @param array<string, string> $templates
+     * @param list<ColumnInterface> $columns
+     * @param array<string, mixed>  $row
+     * @param array<string, mixed>  $expectedRow
+     */
     #[Test]
-    public function it_renders_column_from_entity_field(): void
+    #[DataProvider('provideRenderedRows')]
+    public function it_renders_template_columns(array $templates, array $columns, array $row, mixed $mappedRow, array $expectedRow): void
     {
-        $twig = new Environment(new ArrayLoader([
-            'datatable/columns/status_badge.html.twig' => '<span data-field="{{ column.field }}">{{ data }}</span>',
-        ]));
+        $rendered = self::renderer($templates)->renderRow(row: $row, mappedRow: $mappedRow, columns: $columns);
 
-        $renderer = new TemplateColumnRenderer($twig);
-        $columns  = [
-            TextColumn::new('id'),
-            TemplateColumn::new('status_display')->setField('status')->setTemplate('datatable/columns/status_badge.html.twig'),
-        ];
-
-        $row = $renderer->renderRow(
-            row: ['id' => 7],
-            mappedRow: new TemplateEntity(id: 7, status: 'active'),
-            columns: $columns
-        );
-
-        $this->assertSame(7, $row['id']);
-        $this->assertSame('<span data-field="status">active</span>', $row['status_display']);
+        $this->assertSame($expectedRow, $rendered);
     }
 
-    #[Test]
-    public function it_does_not_overwrite_the_column_matching_the_field_name(): void
+    /**
+     * @return iterable<string, array{0: array<string, string>, 1: list<ColumnInterface>, 2: array<string, mixed>, 3: mixed, 4: array<string, mixed>}>
+     */
+    public static function provideRenderedRows(): iterable
     {
-        $twig = new Environment(new ArrayLoader([
-            'margin.html.twig' => '<span class="badge">{{ data|number_format(2) }}</span>',
-        ]));
-
-        $renderer = new TemplateColumnRenderer($twig);
-        $columns  = [
-            TemplateColumn::new('margin')->setField('marginRate')->setTemplate('margin.html.twig'),
-            TextColumn::new('marginRate'),
+        yield 'entity field' => [
+            ['status.html.twig' => '<span data-field="{{ column.field }}">{{ data }}</span>'],
+            [
+                TextColumn::new('id'),
+                TemplateColumn::new('status_display')->setField('status')->setTemplate('status.html.twig'),
+            ],
+            ['id' => 7],
+            new TemplateEntity(id: 7, status: 'active'),
+            ['id' => 7, 'status_display' => '<span data-field="status">active</span>'],
         ];
 
-        $row = $renderer->renderRow(
-            row: ['margin' => 12.3456, 'marginRate' => 12.3456],
-            mappedRow: [],
-            columns: $columns
-        );
-
-        $this->assertSame('<span class="badge">12.35</span>', $row['margin']);
-        $this->assertSame(12.3456, $row['marginRate']);
-    }
-
-    #[Test]
-    public function it_reads_the_data_key_when_no_field_is_configured(): void
-    {
-        $twig = new Environment(new ArrayLoader([
-            'column.html.twig' => '<b>{{ data }}</b>',
-        ]));
-
-        $renderer = new TemplateColumnRenderer($twig);
-        $columns  = [
-            TemplateColumn::new('status_display')->setData('status')->setTemplate('column.html.twig'),
+        yield 'column matching the field name is not overwritten' => [
+            ['margin.html.twig' => '<span class="badge">{{ data|number_format(2) }}</span>'],
+            [
+                TemplateColumn::new('margin')->setField('marginRate')->setTemplate('margin.html.twig'),
+                TextColumn::new('marginRate'),
+            ],
+            ['margin' => 12.3456, 'marginRate' => 12.3456],
+            [],
+            ['margin' => '<span class="badge">12.35</span>', 'marginRate' => 12.3456],
         ];
 
-        $row = $renderer->renderRow(
-            row: ['status' => 'active'],
-            mappedRow: [],
-            columns: $columns
-        );
-
-        $this->assertSame('<b>active</b>', $row['status']);
-    }
-
-    #[Test]
-    public function it_keys_the_rendered_cell_by_name_for_a_nested_field(): void
-    {
-        $twig = new Environment(new ArrayLoader([
-            'column.html.twig' => '<b>{{ data }}</b>',
-        ]));
-
-        $renderer = new TemplateColumnRenderer($twig);
-        $columns  = [
-            TemplateColumn::new('author_name')->setField('author.name')->setTemplate('column.html.twig'),
+        yield 'data key when no field is configured' => [
+            ['column.html.twig' => '<b>{{ data }}</b>'],
+            [TemplateColumn::new('status_display')->setData('status')->setTemplate('column.html.twig')],
+            ['status' => 'active'],
+            [],
+            ['status' => '<b>active</b>'],
         ];
 
-        $row = $renderer->renderRow(
-            row: [],
-            mappedRow: ['author' => ['name' => 'Ada']],
-            columns: $columns
-        );
-
-        $this->assertSame('<b>Ada</b>', $row['author_name']);
-        $this->assertArrayNotHasKey('author.name', $row);
-    }
-
-    #[Test]
-    public function it_skips_a_column_without_a_row_key(): void
-    {
-        $renderer = new TemplateColumnRenderer(new Environment(new ArrayLoader([
-            'column.html.twig' => '<b>{{ data }}</b>',
-        ])));
-
-        $row = $renderer->renderRow(
-            row: ['id' => 3],
-            mappedRow: [],
-            columns: [TemplateColumn::new('')->setTemplate('column.html.twig')]
-        );
-
-        $this->assertSame(['id' => 3], $row);
-    }
-
-    #[Test]
-    public function it_fails_fast_when_twig_is_missing(): void
-    {
-        $renderer = new TemplateColumnRenderer();
-        $columns  = [
-            TemplateColumn::new('status_display')->setTemplate('datatable/columns/status_badge.html.twig'),
+        yield 'nested field is keyed by name' => [
+            ['column.html.twig' => '<b>{{ data }}</b>'],
+            [TemplateColumn::new('author_name')->setField('author.name')->setTemplate('column.html.twig')],
+            [],
+            ['author'      => ['name' => 'Ada']],
+            ['author_name' => '<b>Ada</b>'],
         ];
 
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('Twig Environment is required to render TemplateColumn cells.');
-
-        $renderer->renderRow(
-            row: ['status_display' => 'active'],
-            mappedRow: ['status_display' => 'active'],
-            columns: $columns
-        );
-    }
-
-    #[Test]
-    public function it_fails_fast_when_template_does_not_exist(): void
-    {
-        $renderer = new TemplateColumnRenderer(new Environment(new ArrayLoader([])));
-        $columns  = [
-            TemplateColumn::new('status_display')->setTemplate('datatable/columns/missing.html.twig'),
+        yield 'column without a row key is skipped' => [
+            ['column.html.twig' => '<b>{{ data }}</b>'],
+            [TemplateColumn::new('')->setTemplate('column.html.twig')],
+            ['id' => 3],
+            [],
+            ['id' => 3],
         ];
 
-        $this->expectException(LoaderError::class);
-
-        $renderer->renderRow(
-            row: ['status_display' => 'active'],
-            mappedRow: ['status_display' => 'active'],
-            columns: $columns
-        );
-    }
-
-    #[Test]
-    public function it_prefers_row_array_value_over_mapped_row(): void
-    {
-        $twig = new Environment(new ArrayLoader([
-            'column.html.twig' => '{{ data }}',
-        ]));
-
-        $renderer = new TemplateColumnRenderer($twig);
-        $columns  = [
-            TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig'),
+        yield 'row array value wins over mapped row' => [
+            ['column.html.twig' => '{{ data }}'],
+            [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
+            ['status' => 'from_row'],
+            new TemplateEntity(id: 1, status: 'from_entity'),
+            ['status' => 'from_row', 'status_display' => 'from_row'],
         ];
 
-        $row = $renderer->renderRow(
-            row: ['status' => 'from_row'],
-            mappedRow: new TemplateEntity(id: 1, status: 'from_entity'),
-            columns: $columns
-        );
-
-        $this->assertSame('from_row', $row['status_display']);
-    }
-
-    #[Test]
-    public function it_passes_custom_template_parameters_to_twig(): void
-    {
-        $twig = new Environment(new ArrayLoader([
-            'column.html.twig' => '{{ badge_class }}: {{ data }}',
-        ]));
-
-        $renderer = new TemplateColumnRenderer($twig);
-        $columns  = [
-            TemplateColumn::new('status_display')
-                ->setField('status')
-                ->setTemplate('column.html.twig', ['badge_class' => 'badge-success']),
+        yield 'custom template parameters' => [
+            ['column.html.twig' => '{{ badge_class }}: {{ data }}'],
+            [
+                TemplateColumn::new('status_display')
+                    ->setField('status')
+                    ->setTemplate('column.html.twig', ['badge_class' => 'badge-success']),
+            ],
+            ['status' => 'active'],
+            [],
+            ['status' => 'active', 'status_display' => 'badge-success: active'],
         ];
 
-        $row = $renderer->renderRow(
-            row: ['status' => 'active'],
-            mappedRow: [],
-            columns: $columns
-        );
-
-        $this->assertSame('badge-success: active', $row['status_display']);
-    }
-
-    #[Test]
-    public function it_renders_multiple_template_columns_in_same_row(): void
-    {
-        $twig = new Environment(new ArrayLoader([
-            'status.html.twig' => 'Status: {{ data }}',
-            'type.html.twig'   => 'Type: {{ data }}',
-        ]));
-
-        $renderer = new TemplateColumnRenderer($twig);
-        $columns  = [
-            TemplateColumn::new('status_display')->setField('status')->setTemplate('status.html.twig'),
-            TemplateColumn::new('type_display')->setField('type')->setTemplate('type.html.twig'),
+        yield 'multiple template columns in the same row' => [
+            [
+                'status.html.twig' => 'Status: {{ data }}',
+                'type.html.twig'   => 'Type: {{ data }}',
+            ],
+            [
+                TemplateColumn::new('status_display')->setField('status')->setTemplate('status.html.twig'),
+                TemplateColumn::new('type_display')->setField('type')->setTemplate('type.html.twig'),
+            ],
+            ['status' => 'active', 'type' => 'admin'],
+            [],
+            [
+                'status'         => 'active',
+                'type'           => 'admin',
+                'status_display' => 'Status: active',
+                'type_display'   => 'Type: admin',
+            ],
         ];
 
-        $row = $renderer->renderRow(
-            row: ['status' => 'active', 'type' => 'admin'],
-            mappedRow: [],
-            columns: $columns
-        );
-
-        $this->assertSame('Status: active', $row['status_display']);
-        $this->assertSame('Type: admin', $row['type_display']);
-    }
-
-    #[Test]
-    public function it_exposes_entity_row_and_column_in_twig_context(): void
-    {
-        $twig = new Environment(new ArrayLoader([
-            'column.html.twig' => '{{ entity.getStatus() }}-{{ row.id }}-{{ column.name }}',
-        ]));
-
-        $renderer = new TemplateColumnRenderer($twig);
-        $columns  = [
-            TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig'),
+        yield 'entity, row and column exposed in the twig context' => [
+            ['column.html.twig' => '{{ entity.getStatus() }}-{{ row.id }}-{{ column.name }}'],
+            [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
+            ['id' => 42],
+            new TemplateEntity(id: 42, status: 'verified'),
+            ['id' => 42, 'status_display' => 'verified-42-status_display'],
         ];
-
-        $entity = new TemplateEntity(id: 42, status: 'verified');
-
-        $row = $renderer->renderRow(
-            row: ['id' => 42],
-            mappedRow: $entity,
-            columns: $columns
-        );
-
-        $this->assertSame('verified-42-status_display', $row['status_display']);
-    }
-
-    #[Test]
-    public function it_exposes_projected_item_and_original_source_for_a_row_context(): void
-    {
-        $twig = new Environment(new ArrayLoader([
-            'column.html.twig' => '{{ item.getStatus() }}|{{ source.getStatus() }}|{{ entity.getStatus() }}',
-        ]));
-
-        $renderer = new TemplateColumnRenderer($twig);
-        $columns  = [
-            TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig'),
-        ];
-
-        $source = new TemplateEntity(id: 1, status: 'raw');
-        $item   = new TemplateEntity(id: 1, status: 'projected');
-
-        $row = $renderer->renderRow(
-            row: ['id' => 1],
-            mappedRow: new RowContext($source, $item),
-            columns: $columns
-        );
 
         // entity (back-compat) and item both resolve to the projected DTO; source stays the original.
-        $this->assertSame('projected|raw|projected', $row['status_display']);
+        yield 'projected item and original source of a row context' => [
+            ['column.html.twig' => '{{ item.getStatus() }}|{{ source.getStatus() }}|{{ entity.getStatus() }}'],
+            [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
+            ['id' => 1],
+            new RowContext(new TemplateEntity(id: 1, status: 'raw'), new TemplateEntity(id: 1, status: 'projected')),
+            ['id' => 1, 'status_display' => 'projected|raw|projected'],
+        ];
+    }
+
+    /**
+     * @param class-string<\Throwable> $expectedException
+     */
+    #[Test]
+    #[DataProvider('provideUnrenderableTemplates')]
+    public function it_fails_fast_when_the_template_cannot_be_rendered(TemplateColumnRenderer $renderer, string $expectedException, string $expectedMessage): void
+    {
+        $this->expectException($expectedException);
+        $this->expectExceptionMessage($expectedMessage);
+
+        $renderer->renderRow(
+            row: ['status_display' => 'active'],
+            mappedRow: ['status_display' => 'active'],
+            columns: [TemplateColumn::new('status_display')->setTemplate('datatable/columns/missing.html.twig')]
+        );
+    }
+
+    /**
+     * @return iterable<string, array{0: TemplateColumnRenderer, 1: class-string<\Throwable>, 2: string}>
+     */
+    public static function provideUnrenderableTemplates(): iterable
+    {
+        yield 'missing twig environment' => [
+            new TemplateColumnRenderer(),
+            \LogicException::class,
+            'Twig Environment is required to render TemplateColumn cells.',
+        ];
+
+        yield 'unknown template' => [
+            self::renderer([]),
+            LoaderError::class,
+            'datatable/columns/missing.html.twig',
+        ];
+    }
+
+    /**
+     * @param array<string, string> $templates
+     */
+    private static function renderer(array $templates): TemplateColumnRenderer
+    {
+        return new TemplateColumnRenderer(new Environment(new ArrayLoader($templates)));
     }
 }
 

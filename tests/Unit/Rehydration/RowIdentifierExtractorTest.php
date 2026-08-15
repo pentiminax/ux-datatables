@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Rehydration;
 
 use Pentiminax\UX\DataTables\Rehydration\RowIdentifierExtractor;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -15,33 +16,26 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(RowIdentifierExtractor::class)]
 final class RowIdentifierExtractorTest extends TestCase
 {
+    /**
+     * @param array<string, mixed> $row
+     */
     #[Test]
-    public function it_extracts_an_integer_id(): void
+    #[DataProvider('provideRows')]
+    public function it_extracts_the_row_identifier(array $row, int|string|null $expected): void
     {
-        $this->assertSame(7, (new RowIdentifierExtractor())->extract(['id' => 7]));
+        $this->assertSame($expected, (new RowIdentifierExtractor())->extract($row));
     }
 
-    #[Test]
-    public function it_extracts_a_string_id(): void
+    public static function provideRows(): iterable
     {
-        $this->assertSame('abc', (new RowIdentifierExtractor())->extract(['id' => 'abc']));
-    }
+        yield 'integer id' => [['id' => 7], 7];
 
-    #[Test]
-    public function it_extracts_the_last_segment_of_an_iri(): void
-    {
-        $this->assertSame('7', (new RowIdentifierExtractor())->extract(['@id' => '/api/users/7']));
-    }
+        yield 'string id' => [['id' => 'abc'], 'abc'];
 
-    #[Test]
-    public function it_returns_null_when_no_identifier_is_present(): void
-    {
-        $this->assertNull((new RowIdentifierExtractor())->extract(['email' => 'user@example.com']));
-    }
+        yield 'last segment of an IRI' => [['@id' => '/api/users/7'], '7'];
 
-    #[Test]
-    public function it_returns_null_when_the_iri_is_blank(): void
-    {
-        $this->assertNull((new RowIdentifierExtractor())->extract(['@id' => '   ']));
+        yield 'no identifier at all' => [['email' => 'user@example.com'], null];
+
+        yield 'blank IRI' => [['@id' => '   '], null];
     }
 }

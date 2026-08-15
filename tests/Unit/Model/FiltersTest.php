@@ -49,9 +49,8 @@ final class FiltersTest extends TestCase
     #[Test]
     public function it_has_empty_bar_labels_by_default(): void
     {
-        $filters = new Filters();
+        $labels = (new Filters())->getLabels();
 
-        $labels = $filters->getLabels();
         $this->assertTrue($labels->isEmpty());
         $this->assertSame([], $labels->jsonSerialize());
     }
@@ -59,24 +58,13 @@ final class FiltersTest extends TestCase
     #[Test]
     public function it_stores_and_serializes_only_the_provided_bar_labels(): void
     {
-        $filters = (new Filters())->labels(title: 'Filtres', apply: 'Appliquer');
+        $labels = (new Filters())->labels(title: 'Filtres', apply: 'Appliquer')->getLabels();
 
-        $labels = $filters->getLabels();
-        $this->assertInstanceOf(FilterLabels::class, $labels);
         $this->assertFalse($labels->isEmpty());
         $this->assertSame(
             ['title' => 'Filtres', 'apply' => 'Appliquer'],
             $labels->jsonSerialize(),
         );
-    }
-
-    #[Test]
-    public function empty_bar_labels_report_as_empty(): void
-    {
-        $labels = new FilterLabels();
-
-        $this->assertTrue($labels->isEmpty());
-        $this->assertSame([], $labels->jsonSerialize());
     }
 
     #[Test]

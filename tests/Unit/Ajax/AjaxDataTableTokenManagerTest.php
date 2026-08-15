@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 final class AjaxDataTableTokenManagerTest extends TestCase
 {
     #[Test]
-    public function it_generates_deterministic_opaque_tokens(): void
+    public function it_generates_deterministic_tokens_bound_to_the_table_class(): void
     {
         $manager = new AjaxDataTableTokenManager('test-secret');
 
@@ -24,6 +24,13 @@ final class AjaxDataTableTokenManagerTest extends TestCase
 
         $this->assertSame($token, $manager->generateHmacSignature('App\\DataTable\\UserDataTable'));
         $this->assertNotSame($token, $manager->generateHmacSignature('App\\DataTable\\AdminDataTable'));
+    }
+
+    #[Test]
+    public function it_never_exposes_the_table_class_inside_the_token(): void
+    {
+        $token = (new AjaxDataTableTokenManager('test-secret'))->generateHmacSignature('App\\DataTable\\UserDataTable');
+
         $this->assertStringNotContainsString('UserDataTable', $token);
         $this->assertStringNotContainsString('App', $token);
     }

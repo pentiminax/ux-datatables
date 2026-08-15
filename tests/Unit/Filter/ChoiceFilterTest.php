@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Filter;
 
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsFilterQueryBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Contracts\Translation\TranslatableInterface;
@@ -47,27 +49,13 @@ final class ChoiceFilterTest extends TestCase
     }
 
     #[Test]
-    public function it_uses_the_enum_label_as_fallback_before_translation(): void
+    public function it_falls_back_to_enum_labels_until_translation(): void
     {
         $filter = ChoiceFilter::new('role')->options(ChoiceFilterTranslatableRole::class);
 
-        $this->assertSame(
-            ['admin' => 'Admin', 'user' => 'User'],
-            $filter->jsonSerialize()['options'],
-        );
-    }
+        $this->assertSame(['admin' => 'Admin', 'user' => 'User'], $filter->jsonSerialize()['options']);
 
-    #[Test]
-    public function it_translates_translatable_enum_option_labels(): void
-    {
-        $translator = $this->createMock(TranslatorInterface::class);
-        $translator->method('trans')->willReturnMap([
-            ['role.admin', [], null, null, 'Administrateur'],
-            ['role.user', [], null, null, 'Utilisateur'],
-        ]);
-
-        $filter = ChoiceFilter::new('role')->options(ChoiceFilterTranslatableRole::class);
-        $filter->translateLabels($translator);
+        $filter->translateLabels($this->createRoleTranslator());
 
         $this->assertSame(
             ['admin' => 'Administrateur', 'user' => 'Utilisateur'],
@@ -78,45 +66,59 @@ final class ChoiceFilterTest extends TestCase
     #[Test]
     public function it_clears_translatable_cases_when_options_are_reassigned(): void
     {
-        $translator = $this->createMock(TranslatorInterface::class);
-        $translator->expects($this->never())->method('trans');
-
         $filter = ChoiceFilter::new('role')->options(ChoiceFilterTranslatableRole::class);
         $filter->options(['Draft' => 'draft']);
-        $filter->translateLabels($translator);
+        $filter->translateLabels($this->createRoleTranslator());
 
         $this->assertSame(['draft' => 'Draft'], $filter->jsonSerialize()['options']);
     }
 
+    /**
+     * @param list<string>         $expectedWhere
+     * @param array<string, mixed> $expectedParams
+     */
     #[Test]
-    public function it_applies_an_equality_condition(): void
+    #[DataProvider('provideConditions')]
+    public function it_applies_a_condition(ChoiceFilter $filter, mixed $value, array $expectedWhere, array $expectedParams): void
     {
-        $qb = $this->createScalarFieldQueryBuilder();
-
-        ChoiceFilter::new('status')->apply($qb, 'draft', 'e');
-
-        $this->assertSame(['e.status = :filter_status'], $this->capturedWhere);
-        $this->assertSame(['filter_status' => 'draft'], $this->capturedParams);
+        $this->assertFilterProduces($filter, $value, $expectedWhere, $expectedParams);
     }
 
-    #[Test]
-    public function it_applies_an_in_condition_when_multiple(): void
+    /**
+     * @return iterable<string, array{ChoiceFilter, mixed, list<string>, array<string, mixed>}>
+     */
+    public static function provideConditions(): iterable
     {
-        $qb = $this->createScalarFieldQueryBuilder();
+        yield 'single value' => [
+            ChoiceFilter::new('status'),
+            'draft',
+            ['e.status = :filter_status'],
+            ['filter_status' => 'draft'],
+        ];
 
-        ChoiceFilter::new('status')->multiple()->apply($qb, ['draft', 'published'], 'e');
+        yield 'multiple values' => [
+            ChoiceFilter::new('status')->multiple(),
+            ['draft', 'published'],
+            ['e.status IN (:filter_status_in)'],
+            ['filter_status_in' => ['draft', 'published']],
+        ];
 
-        $this->assertSame(['e.status IN (:filter_status_in)'], $this->capturedWhere);
-        $this->assertSame(['filter_status_in' => ['draft', 'published']], $this->capturedParams);
+        yield 'multiple without values' => [
+            ChoiceFilter::new('status')->multiple(),
+            [],
+            [],
+            [],
+        ];
     }
 
-    #[Test]
-    public function it_is_a_no_op_when_multiple_receives_no_values(): void
+    private function createRoleTranslator(): TranslatorInterface
     {
-        $qb = $this->createScalarFieldQueryBuilder();
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnMap([
+            ['role.admin', [], null, null, 'Administrateur'],
+            ['role.user', [], null, null, 'Utilisateur'],
+        ]);
 
-        ChoiceFilter::new('status')->multiple()->apply($qb, [], 'e');
-
-        $this->assertSame([], $this->capturedWhere);
+        return $translator;
     }
 }

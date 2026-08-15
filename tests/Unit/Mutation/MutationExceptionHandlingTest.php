@@ -45,19 +45,16 @@ final class MutationExceptionHandlingTest extends TestCase
     #[Test]
     public function it_maps_a_delete_not_found_exception_to_a_json_404_response(): void
     {
-        $mutator = $this->mutatorReturning(null);
+        $controller = new AjaxDeleteController($this->mutatorReturning(null), new MutationTokenValidator($this->validCsrfTokenManager()));
 
         $response = $this->handleControllerException(
-            fn () => (new AjaxDeleteController($mutator, new MutationTokenValidator($this->validCsrfTokenManager())))($this->validTokenRequest(), new AjaxDeleteRequestDto(
+            fn () => $controller($this->validTokenRequest(), new AjaxDeleteRequestDto(
                 entity: MutationExceptionHandlingFixture::class,
                 id: 404,
             )),
         );
 
-        $this->assertSame(404, $response->getStatusCode());
-        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
-        $this->assertFalse($payload['success']);
-        $this->assertSame('Entity not found.', $payload['message']);
+        $this->assertJsonError($response, 404, 'Entity not found.');
     }
 
     #[Test]
@@ -68,15 +65,15 @@ final class MutationExceptionHandlingTest extends TestCase
         $accessor = $this->createMock(PropertyAccessorInterface::class);
         $accessor->method('isWritable')->with($entity, 'enabled')->willReturn(false);
 
-        $mutator = new EntityMutator(
+        $controller = $this->editController(new EntityMutator(
             new EntityLocator($this->registryReturning($entity)),
             $accessor,
             new NullMercurePublisher(),
             new PermissionChecker(),
-        );
+        ));
 
         $response = $this->handleControllerException(
-            fn () => (new AjaxEditController($mutator, new MutationTokenValidator($this->validCsrfTokenManager()), $this->contextResolver()))($this->validTokenRequest(), new AjaxEditRequestDto(
+            fn () => $controller($this->validTokenRequest(), new AjaxEditRequestDto(
                 field: 'enabled',
                 id: 5,
                 newValue: true,
@@ -84,19 +81,16 @@ final class MutationExceptionHandlingTest extends TestCase
             )),
         );
 
-        $this->assertSame(400, $response->getStatusCode());
-        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
-        $this->assertFalse($payload['success']);
-        $this->assertSame('Unable to write "enabled" on the entity.', $payload['message']);
+        $this->assertJsonError($response, 400, 'Unable to write "enabled" on the entity.');
     }
 
     #[Test]
     public function it_maps_an_invalid_boolean_mutation_context_to_a_json_400_response(): void
     {
-        $mutator = $this->mutatorReturning(new MutationExceptionHandlingFixture());
+        $controller = $this->editController($this->mutatorReturning(new MutationExceptionHandlingFixture()));
 
         $response = $this->handleControllerException(
-            fn () => (new AjaxEditController($mutator, new MutationTokenValidator($this->validCsrfTokenManager()), $this->contextResolver()))($this->validTokenRequest(), new AjaxEditRequestDto(
+            fn () => $controller($this->validTokenRequest(), new AjaxEditRequestDto(
                 field: 'enabled',
                 id: 5,
                 newValue: true,
@@ -104,10 +98,25 @@ final class MutationExceptionHandlingTest extends TestCase
             )),
         );
 
-        $this->assertSame(400, $response->getStatusCode());
-        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
-        $this->assertFalse($payload['success']);
-        $this->assertSame('Invalid DataTable token.', $payload['message']);
+        $this->assertJsonError($response, 400, 'Invalid DataTable token.');
+    }
+
+    /**
+     * The client-facing payload must carry nothing but the generic message: no internal
+     * class name, SQL fragment, file path or stack trace may reach the browser.
+     */
+    private function assertJsonError(JsonResponse $response, int $statusCode, string $message): void
+    {
+        $this->assertSame($statusCode, $response->getStatusCode());
+        $this->assertSame(
+            ['success' => false, 'message' => $message],
+            json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR),
+        );
+    }
+
+    private function editController(EntityMutator $mutator): AjaxEditController
+    {
+        return new AjaxEditController($mutator, new MutationTokenValidator($this->validCsrfTokenManager()), $this->contextResolver());
     }
 
     /**
@@ -183,14 +192,7 @@ final class MutationExceptionHandlingTest extends TestCase
 
     private function contextResolver(): BooleanMutationContextResolver
     {
-        $locator = $this->createMock(ContainerInterface::class);
-        $locator->method('get')->with('mutation_exception_table')->willReturn(new MutationExceptionHandlingDataTableFixture());
-
-        return new BooleanMutationContextResolver(new AjaxDataTableRegistry(
-            $locator,
-            new AjaxDataTableTokenManager(self::TOKEN_SECRET),
-            [MutationExceptionHandlingDataTableFixture::class => 'mutation_exception_table'],
-        ));
+        return new BooleanMutationContextResolver($this->dataTableRegistry());
     }
 
     private function dataTableToken(): string

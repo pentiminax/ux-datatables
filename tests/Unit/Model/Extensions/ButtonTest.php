@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -44,28 +45,35 @@ final class ButtonTest extends TestCase
     }
 
     #[Test]
-    public function it_applies_default_export_options_to_export_buttons(): void
+    #[DataProvider('provideSerializationVariants')]
+    public function it_serializes_button_variants(Button $button, array|string $expected): void
     {
-        $this->assertSame([
-            'extend'        => 'excel',
-            'exportOptions' => [
-                'columns' => ':visible:not(.not-exportable)',
+        $this->assertSame($expected, $button->jsonSerialize());
+    }
+
+    /**
+     * @return iterable<string, array{Button, array<string, mixed>|string}>
+     */
+    public static function provideSerializationVariants(): iterable
+    {
+        yield 'export button gets default export options' => [
+            Button::excel(),
+            [
+                'extend'        => 'excel',
+                'exportOptions' => [
+                    'columns' => ':visible:not(.not-exportable)',
+                ],
             ],
-        ], Button::excel()->jsonSerialize());
-    }
+        ];
 
-    #[Test]
-    public function it_serializes_plain_column_visibility_as_a_string(): void
-    {
-        $this->assertSame('colvis', Button::colVis()->jsonSerialize());
-    }
+        yield 'plain column visibility is a string' => [Button::colVis(), 'colvis'];
 
-    #[Test]
-    public function it_serializes_customized_column_visibility_as_an_object(): void
-    {
-        $this->assertSame([
-            'extend' => 'colvis',
-            'text'   => 'Columns',
-        ], Button::colVis()->text('Columns')->jsonSerialize());
+        yield 'customized column visibility is an object without export options' => [
+            Button::colVis()->text('Columns'),
+            [
+                'extend' => 'colvis',
+                'text'   => 'Columns',
+            ],
+        ];
     }
 }

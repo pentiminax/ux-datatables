@@ -21,69 +21,45 @@ use Symfony\Component\TypeInfo\Type;
 #[CoversClass(ApiPlatformPropertyTypeMapper::class)]
 final class ApiPlatformPropertyTypeMapperTest extends TestCase
 {
-    private ApiPlatformPropertyTypeMapper $mapper;
-
-    protected function setUp(): void
-    {
-        $this->mapper = new ApiPlatformPropertyTypeMapper();
-    }
-
+    /**
+     * @param class-string $expectedColumnClass
+     */
     #[Test]
     #[DataProvider('provideTypeMappings')]
-    public function it_maps_type(Type $type, string $expectedColumnClass): void
+    public function it_maps_a_type_to_a_column(?Type $type, string $expectedColumnClass, string $expectedType): void
     {
-        $this->assertSame($expectedColumnClass, $this->mapper->mapType($type));
+        $mapper = new ApiPlatformPropertyTypeMapper();
+
+        $this->assertSame($expectedColumnClass, $mapper->mapType($type));
+
+        $column = $mapper->createColumn('price', 'Price', $type);
+
+        $this->assertInstanceOf($expectedColumnClass, $column);
+        $this->assertSame([
+            'data'       => 'price',
+            'name'       => 'price',
+            'orderable'  => true,
+            'searchable' => true,
+            'title'      => 'Price',
+            'type'       => $expectedType,
+            'visible'    => true,
+            'field'      => 'price',
+        ], $column->jsonSerialize());
     }
 
     /**
-     * @return iterable<string, array{0: Type, 1: class-string}>
+     * @return iterable<string, array{0: ?Type, 1: class-string, 2: string}>
      */
     public static function provideTypeMappings(): iterable
     {
-        yield 'bool' => [Type::bool(), BooleanColumn::class];
-        yield 'int' => [Type::int(), NumberColumn::class];
-        yield 'float' => [Type::float(), NumberColumn::class];
-        yield 'string' => [Type::string(), TextColumn::class];
-        yield 'DateTime' => [Type::object(\DateTime::class), DateColumn::class];
-        yield 'DateTimeImmutable' => [Type::object(\DateTimeImmutable::class), DateColumn::class];
-        yield 'object-not-date' => [Type::object(\stdClass::class), TextColumn::class];
-        yield 'array' => [Type::array(), TextColumn::class];
-    }
-
-    #[Test]
-    public function it_falls_back_to_text_column_for_null_type(): void
-    {
-        $this->assertSame(TextColumn::class, $this->mapper->mapType(null));
-    }
-
-    #[Test]
-    public function it_creates_correct_column_instance(): void
-    {
-        $type   = Type::int();
-        $column = $this->mapper->createColumn('price', 'Price', $type);
-
-        $this->assertInstanceOf(NumberColumn::class, $column);
-        $this->assertSame('price', $column->getName());
-
-        $data = $column->jsonSerialize();
-        $this->assertSame('Price', $data['title']);
-    }
-
-    #[Test]
-    public function it_creates_boolean_column_for_bool_type(): void
-    {
-        $type   = Type::bool();
-        $column = $this->mapper->createColumn('active', 'Active', $type);
-
-        $this->assertInstanceOf(BooleanColumn::class, $column);
-    }
-
-    #[Test]
-    public function it_creates_date_column_for_datetime_type(): void
-    {
-        $type   = Type::object(\DateTimeImmutable::class);
-        $column = $this->mapper->createColumn('createdAt', 'Created At', $type);
-
-        $this->assertInstanceOf(DateColumn::class, $column);
+        yield 'bool' => [Type::bool(), BooleanColumn::class, 'num'];
+        yield 'int' => [Type::int(), NumberColumn::class, 'num'];
+        yield 'float' => [Type::float(), NumberColumn::class, 'num'];
+        yield 'string' => [Type::string(), TextColumn::class, 'string'];
+        yield 'DateTime' => [Type::object(\DateTime::class), DateColumn::class, 'date'];
+        yield 'DateTimeImmutable' => [Type::object(\DateTimeImmutable::class), DateColumn::class, 'date'];
+        yield 'object-not-date' => [Type::object(\stdClass::class), TextColumn::class, 'string'];
+        yield 'array' => [Type::array(), TextColumn::class, 'string'];
+        yield 'null' => [null, TextColumn::class, 'string'];
     }
 }

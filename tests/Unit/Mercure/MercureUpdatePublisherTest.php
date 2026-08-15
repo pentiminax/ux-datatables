@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Mercure;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -19,37 +20,34 @@ use Symfony\Component\Mercure\Update;
 #[CoversClass(MercureUpdatePublisher::class)]
 final class MercureUpdatePublisherTest extends TestCase
 {
+    /**
+     * @param array<string, mixed> $data
+     */
     #[Test]
-    public function it_publishes_an_update(): void
+    #[DataProvider('providePublishedUpdates')]
+    public function it_publishes_an_update(array $data, string $expectedData): void
     {
         $hub = $this->createMock(HubInterface::class);
         $hub->expects($this->once())
             ->method('publish')
-            ->with($this->callback(function (Update $update) {
-                return 'datatables/MyTable'   === $update->getTopics()[0]
-                    && '{"action":"updated"}' === $update->getData();
+            ->with($this->callback(function (Update $update) use ($expectedData) {
+                return ['datatables/MyTable'] === $update->getTopics()
+                    && $expectedData          === $update->getData();
             }))
             ->willReturn('urn:uuid:1234');
 
         $publisher = new MercureUpdatePublisher($hub);
-        $result    = $publisher->publish('datatables/MyTable', ['action' => 'updated']);
 
-        $this->assertSame('urn:uuid:1234', $result);
+        $this->assertSame('urn:uuid:1234', $publisher->publish('datatables/MyTable', $data));
     }
 
-    #[Test]
-    public function it_publishes_with_empty_data(): void
+    /**
+     * @return iterable<string, array{array<string, mixed>, string}>
+     */
+    public static function providePublishedUpdates(): iterable
     {
-        $hub = $this->createMock(HubInterface::class);
-        $hub->expects($this->once())
-            ->method('publish')
-            ->with($this->callback(function (Update $update) {
-                return '[]' === $update->getData();
-            }))
-            ->willReturn('urn:uuid:5678');
-
-        $publisher = new MercureUpdatePublisher($hub);
-        $publisher->publish('datatables/MyTable');
+        yield 'with data' => [['action' => 'updated'], '{"action":"updated"}'];
+        yield 'with empty data' => [[], '[]'];
     }
 
     #[Test]
@@ -78,9 +76,11 @@ final class MercureUpdatePublisherTest extends TestCase
             ->with(
                 'Failed to publish Mercure update.',
                 $this->callback(static function (array $context) use ($exception): bool {
-                    return ['/topic/42']                  === $context['topics']
-                        && ['type' => 'edit', 'id' => 42] === $context['data']
-                        && $exception                     === $context['exception'];
+                    return [
+                        'topics'    => ['/topic/42'],
+                        'data'      => ['type' => 'edit', 'id' => 42],
+                        'exception' => $exception,
+                    ] === $context;
                 })
             );
 
@@ -99,7 +99,7 @@ final class MercureUpdatePublisherTest extends TestCase
         $hub->expects($this->once())
             ->method('publish')
             ->with($this->callback(function (Update $update) {
-                return '/datatables/product-data-tables/{id}' === $update->getTopics()[0];
+                return ['/datatables/product-data-tables/{id}'] === $update->getTopics();
             }))
             ->willReturn('urn:uuid:abcd');
 
@@ -126,13 +126,17 @@ final class MercureUpdatePublisherTest extends TestCase
     }
 
     #[Test]
-    public function it_throws_when_datatable_has_no_mercure_config(): void
+    public function it_throws_and_does_not_publish_when_datatable_has_no_mercure_config(): void
     {
-        $hub       = $this->createMock(HubInterface::class);
+        $hub = $this->createMock(HubInterface::class);
+        $hub->expects($this->never())->method('publish');
+
         $publisher = new MercureUpdatePublisher($hub);
         $table     = new DataTable('NoMercureTable');
 
         $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('The DataTable does not have Mercure configured.');
+
         $publisher->publishForDataTable($table);
     }
 }

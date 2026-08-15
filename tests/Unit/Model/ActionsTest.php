@@ -10,232 +10,189 @@ use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * @internal
  */
-class ActionsTest extends TestCase
+#[CoversClass(Actions::class)]
+final class ActionsTest extends TestCase
 {
-    public function test_new_actions_is_empty(): void
+    #[Test]
+    public function it_starts_empty_with_default_column_metadata(): void
     {
         $actions = new Actions();
 
         $this->assertTrue($actions->isEmpty());
         $this->assertSame(0, $actions->count());
         $this->assertSame([], $actions->getActions());
+        $this->assertSame('Actions', $actions->getColumnLabel());
+        $this->assertNull($actions->getColumnClassName());
+        $this->assertSame(ActionsPosition::AfterColumns, $actions->getPosition());
+        $this->assertNull($actions->getAlignment());
     }
 
-    public function test_add_action(): void
+    #[Test]
+    public function it_adds_and_removes_actions(): void
     {
-        $actions = new Actions();
-        $actions->add(Action::delete());
+        $actions = (new Actions())->add(Action::delete());
 
         $this->assertFalse($actions->isEmpty());
         $this->assertSame(1, $actions->count());
-    }
+        $this->assertSame(ActionType::Delete, $actions->getActions()[0]->getType());
 
-    public function test_remove_action(): void
-    {
-        $actions = new Actions();
-        $actions->add(Action::delete());
         $actions->remove(ActionType::Delete);
 
         $this->assertTrue($actions->isEmpty());
+        $this->assertSame(0, $actions->count());
     }
 
-    public function test_set_column_label(): void
+    #[Test]
+    public function it_configures_column_metadata_fluently(): void
     {
-        $actions = new Actions();
-        $actions->setColumnLabel('Operations');
+        $actions = (new Actions())
+            ->setColumnLabel('Operations')
+            ->setColumnClassName('dt-center')
+            ->position(ActionsPosition::BeforeColumns)
+            ->alignment(ActionsAlignment::Center);
 
         $this->assertSame('Operations', $actions->getColumnLabel());
-    }
-
-    public function test_default_column_label(): void
-    {
-        $actions = new Actions();
-
-        $this->assertSame('Actions', $actions->getColumnLabel());
-    }
-
-    public function test_set_column_class_name(): void
-    {
-        $actions = new Actions();
-        $actions->setColumnClassName('dt-center');
-
         $this->assertSame('dt-center', $actions->getColumnClassName());
+        $this->assertSame(ActionsPosition::BeforeColumns, $actions->getPosition());
+        $this->assertSame(ActionsAlignment::Center, $actions->getAlignment());
+        $this->assertSame('dt-center', $actions->getAlignment()->cssClass());
     }
 
-    public function test_json_serialize(): void
+    #[Test]
+    public function it_serializes_every_action_in_insertion_order(): void
     {
-        $actions = new Actions();
-        $actions->add(Action::delete()->label('Remove'));
+        $actions = (new Actions())
+            ->add(Action::delete()->label('Remove'))
+            ->add(Action::new('view', 'View')->linkToUrl('/invoices/1'))
+            ->add(Action::new('download', 'Download')->linkToUrl('/invoices/1/download'));
 
         $json = $actions->jsonSerialize();
 
-        $this->assertCount(1, $json);
-        $this->assertSame('DELETE', $json[0]['type']);
-        $this->assertSame('Remove', $json[0]['label']);
+        $this->assertSame(3, $actions->count());
+        $this->assertCount(3, $json);
+        $this->assertSame(['DELETE', 'CUSTOM', 'CUSTOM'], array_column($json, 'type'));
+        $this->assertSame(['Remove', 'View', 'Download'], array_column($json, 'label'));
     }
 
-    public function test_fluent_api(): void
+    public static function invalidActionProvider(): iterable
+    {
+        yield 'duplicate native name' => [
+            [Action::delete()->label('First'), Action::delete()->label('Second')],
+            'Action name "DELETE" is already used.',
+        ];
+
+        yield 'duplicate custom name' => [
+            [Action::new('view', 'First'), Action::new('view', 'Second')],
+            'Action name "view" is already used.',
+        ];
+
+        yield 'empty custom name' => [
+            [Action::new('   ')],
+            'Action name must not be empty.',
+        ];
+
+        yield 'name reserved for a native action' => [
+            [Action::new('delete')],
+            'Custom action name "delete" is reserved.',
+        ];
+    }
+
+    /**
+     * @param list<Action> $added
+     */
+    #[Test]
+    #[DataProvider('invalidActionProvider')]
+    public function it_rejects_invalid_action_names(array $added, string $message): void
+    {
+        $actions = new Actions();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        foreach ($added as $action) {
+            $actions->add($action);
+        }
+    }
+
+    #[Test]
+    public function it_removes_actions_whose_static_permission_is_denied(): void
     {
         $actions = (new Actions())
-            ->add(Action::delete())
-            ->setColumnLabel('Ops');
+            ->add(Action::delete()->permission('ROLE_ADMIN'))
+            ->add(Action::edit()->permission('ROLE_EDITOR'))
+            ->add(Action::detail());
 
-        $this->assertSame(1, $actions->count());
-        $this->assertSame('Ops', $actions->getColumnLabel());
-    }
-
-    public function test_add_rejects_a_duplicate_native_action_name(): void
-    {
-        $actions = new Actions();
-        $actions->add(Action::delete()->label('First'));
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Action name "DELETE" is already used.');
-
-        $actions->add(Action::delete()->label('Second'));
-    }
-
-    public function test_custom_actions_with_distinct_names_coexist(): void
-    {
-        $actions = new Actions();
-        $actions->add(Action::new('view', 'View')->linkToUrl('/invoices/1'));
-        $actions->add(Action::new('download', 'Download')->linkToUrl('/invoices/1/download'));
-
-        $this->assertSame(2, $actions->count());
-
-        $labels = array_map(static fn (Action $a) => $a->jsonSerialize()['label'], $actions->getActions());
-        $this->assertSame(['View', 'Download'], $labels);
-    }
-
-    public function test_add_rejects_a_duplicate_custom_action_name(): void
-    {
-        $actions = new Actions();
-        $actions->add(Action::new('view', 'First'));
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Action name "view" is already used.');
-
-        $actions->add(Action::new('view', 'Second'));
-    }
-
-    public function test_add_rejects_an_empty_custom_action_name(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Action name must not be empty.');
-
-        (new Actions())->add(Action::new('   '));
-    }
-
-    public function test_add_rejects_custom_names_reserved_for_native_actions(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Custom action name "delete" is reserved.');
-
-        (new Actions())->add(Action::new('delete'));
-    }
-
-    public function test_filter_static_permissions_removes_denied_actions(): void
-    {
-        $actions = new Actions();
-        $actions->add(Action::delete()->permission('ROLE_ADMIN'));
-        $actions->add(Action::edit()->permission('ROLE_EDITOR'));
-        $actions->add(Action::detail()); // no permission
-
-        $inner = $this->createMock(AuthorizationCheckerInterface::class);
-        $inner->method('isGranted')->willReturnMap([
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
+        $checker->method('isGranted')->willReturnMap([
             ['ROLE_ADMIN', null, false],
             ['ROLE_EDITOR', null, true],
         ]);
 
-        $actions->filterStaticPermissions(new PermissionChecker($inner));
+        $actions->filterStaticPermissions(new PermissionChecker($checker));
 
-        $types = array_map(static fn (Action $a) => $a->getType(), $actions->getActions());
+        $types = array_map(static fn (Action $action) => $action->getType(), $actions->getActions());
         $this->assertSame([ActionType::Edit, ActionType::Detail], $types);
     }
 
-    public function test_filter_static_permissions_ignores_per_row_actions(): void
+    #[Test]
+    public function it_ignores_per_row_permissions_when_filtering(): void
     {
-        $actions = new Actions();
-        $actions->add(Action::delete()->permission('DELETE', static fn ($row) => $row));
+        $actions = (new Actions())->add(Action::delete()->permission('DELETE', static fn ($row) => $row));
 
-        $inner = $this->createMock(AuthorizationCheckerInterface::class);
-        $inner->expects($this->never())->method('isGranted');
-
-        $actions->filterStaticPermissions(new PermissionChecker($inner));
+        $actions->filterStaticPermissions(new PermissionChecker($this->createStub(AuthorizationCheckerInterface::class)));
 
         $this->assertSame(1, $actions->count());
     }
 
-    public function test_filter_static_permissions_with_no_checker_is_noop(): void
+    #[Test]
+    public function it_keeps_every_action_without_an_authorization_checker(): void
     {
-        $actions = new Actions();
-        $actions->add(Action::delete()->permission('ROLE_ADMIN'));
+        $actions = (new Actions())->add(Action::delete()->permission('ROLE_ADMIN'));
 
         $actions->filterStaticPermissions(new PermissionChecker());
 
         $this->assertSame(1, $actions->count());
     }
 
-    public function test_position_defaults_to_after_columns(): void
+    #[Test]
+    public function it_groups_actions_by_their_effective_position(): void
     {
-        $this->assertSame(ActionsPosition::AfterColumns, (new Actions())->getPosition());
-    }
-
-    public function test_alignment_defaults_to_null(): void
-    {
-        $this->assertNull((new Actions())->getAlignment());
-    }
-
-    public function test_set_position_and_alignment_are_fluent(): void
-    {
-        $actions = (new Actions())
-            ->position(ActionsPosition::BeforeColumns)
-            ->alignment(ActionsAlignment::Center);
-
-        $this->assertSame(ActionsPosition::BeforeColumns, $actions->getPosition());
-        $this->assertSame(ActionsAlignment::Center, $actions->getAlignment());
-        $this->assertSame('dt-center', $actions->getAlignment()->cssClass());
-    }
-
-    public function test_partition_groups_all_actions_under_collection_position_when_no_override(): void
-    {
-        $actions = (new Actions())
+        $inherited = (new Actions())
             ->add(Action::detail())
-            ->add(Action::edit());
-
-        $groups = $actions->partitionByPosition();
-
-        $this->assertSame([ActionsPosition::AfterColumns->value], array_keys($groups));
-        $this->assertSame(2, $groups[ActionsPosition::AfterColumns->value]->count());
-    }
-
-    public function test_partition_splits_actions_by_per_action_position(): void
-    {
-        $actions = (new Actions())
-            ->add(Action::detail()->position(ActionsPosition::BeforeColumns))
             ->add(Action::edit())
-            ->add(Action::delete());
+            ->partitionByPosition();
 
-        $groups = $actions->partitionByPosition();
+        $this->assertSame([ActionsPosition::AfterColumns->value], array_keys($inherited));
+        $this->assertSame(2, $inherited[ActionsPosition::AfterColumns->value]->count());
 
-        $this->assertArrayHasKey(ActionsPosition::BeforeColumns->value, $groups);
-        $this->assertArrayHasKey(ActionsPosition::AfterColumns->value, $groups);
+        $groups = (new Actions())
+            ->position(ActionsPosition::BeforeColumns)
+            ->add(Action::detail())
+            ->add(Action::edit()->position(ActionsPosition::AfterColumns))
+            ->add(Action::delete())
+            ->partitionByPosition();
 
         $before = $groups[ActionsPosition::BeforeColumns->value];
         $after  = $groups[ActionsPosition::AfterColumns->value];
 
-        $this->assertSame(1, $before->count());
+        $this->assertSame(2, $before->count());
         $this->assertSame(ActionType::Detail, $before->getActions()[0]->getType());
-        $this->assertSame(2, $after->count());
+        $this->assertSame(ActionType::Delete, $before->getActions()[1]->getType());
+        $this->assertSame(1, $after->count());
+        $this->assertSame(ActionType::Edit, $after->getActions()[0]->getType());
     }
 
-    public function test_partition_groups_inherit_column_metadata(): void
+    #[Test]
+    public function it_copies_the_column_metadata_into_every_group(): void
     {
         $actions = (new Actions())
             ->setColumnLabel('Ops')
@@ -248,19 +205,5 @@ class ActionsTest extends TestCase
         $this->assertSame('Ops', $group->getColumnLabel());
         $this->assertSame('dt-center', $group->getColumnClassName());
         $this->assertSame(ActionsAlignment::Center, $group->getAlignment());
-    }
-
-    public function test_partition_respects_collection_position_as_fallback(): void
-    {
-        $actions = (new Actions())
-            ->position(ActionsPosition::BeforeColumns)
-            ->add(Action::detail()) // inherits BeforeColumns
-            ->add(Action::edit()->position(ActionsPosition::AfterColumns));
-
-        $groups = $actions->partitionByPosition();
-
-        $this->assertSame(1, $groups[ActionsPosition::BeforeColumns->value]->count());
-        $this->assertSame(ActionType::Detail, $groups[ActionsPosition::BeforeColumns->value]->getActions()[0]->getType());
-        $this->assertSame(ActionType::Edit, $groups[ActionsPosition::AfterColumns->value]->getActions()[0]->getType());
     }
 }

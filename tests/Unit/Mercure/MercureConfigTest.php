@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Mercure;
 
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -15,86 +16,57 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(MercureConfig::class)]
 final class MercureConfigTest extends TestCase
 {
+    /**
+     * @param array<string, mixed> $expected
+     */
     #[Test]
-    public function it_serializes_required_fields(): void
+    #[DataProvider('provideSerializations')]
+    public function it_serializes_the_configuration(bool $withCredentials, ?int $debounceMs, array $expected): void
     {
-        $config = (new MercureConfig(topics: ['datatables/MyTable']))
-            ->withHubUrl('/.well-known/mercure');
+        $config = (new MercureConfig(
+            topics: ['datatables/MyTable'],
+            withCredentials: $withCredentials,
+            debounceMs: $debounceMs,
+        ))->withHubUrl('/.well-known/mercure');
 
-        $this->assertSame([
+        $this->assertSame($expected, $config->jsonSerialize());
+    }
+
+    /**
+     * @return iterable<string, array{bool, ?int, array<string, mixed>}>
+     */
+    public static function provideSerializations(): iterable
+    {
+        yield 'optional fields are omitted' => [false, null, [
             'hubUrl' => '/.well-known/mercure',
             'topics' => ['datatables/MyTable'],
-        ], $config->jsonSerialize());
-    }
+        ]];
 
-    #[Test]
-    public function it_omits_false_with_credentials(): void
-    {
-        $config = (new MercureConfig(
-            topics: ['datatables/MyTable'],
-            withCredentials: false,
-        ))->withHubUrl('/.well-known/mercure');
+        yield 'credentials only' => [true, null, [
+            'hubUrl'          => '/.well-known/mercure',
+            'topics'          => ['datatables/MyTable'],
+            'withCredentials' => true,
+        ]];
 
-        $serialized = $config->jsonSerialize();
+        yield 'debounce only' => [false, 1000, [
+            'hubUrl'     => '/.well-known/mercure',
+            'topics'     => ['datatables/MyTable'],
+            'debounceMs' => 1000,
+        ]];
 
-        $this->assertArrayNotHasKey('withCredentials', $serialized);
-    }
-
-    #[Test]
-    public function it_includes_with_credentials_when_true(): void
-    {
-        $config = (new MercureConfig(
-            topics: ['datatables/MyTable'],
-            withCredentials: true,
-        ))->withHubUrl('/.well-known/mercure');
-
-        $serialized = $config->jsonSerialize();
-
-        $this->assertTrue($serialized['withCredentials']);
-    }
-
-    #[Test]
-    public function it_omits_null_debounce(): void
-    {
-        $config = (new MercureConfig(topics: ['datatables/MyTable']))
-            ->withHubUrl('/.well-known/mercure');
-
-        $this->assertArrayNotHasKey('debounceMs', $config->jsonSerialize());
-    }
-
-    #[Test]
-    public function it_includes_debounce_when_set(): void
-    {
-        $config = (new MercureConfig(
-            topics: ['datatables/MyTable'],
-            debounceMs: 1000,
-        ))->withHubUrl('/.well-known/mercure');
-
-        $this->assertSame(1000, $config->jsonSerialize()['debounceMs']);
-    }
-
-    #[Test]
-    public function it_serializes_all_fields(): void
-    {
-        $config = (new MercureConfig(
-            topics: ['datatables/MyTable'],
-            withCredentials: true,
-            debounceMs: 300,
-        ))->withHubUrl('/.well-known/mercure');
-
-        $this->assertSame([
+        yield 'all fields' => [true, 300, [
             'hubUrl'          => '/.well-known/mercure',
             'topics'          => ['datatables/MyTable'],
             'withCredentials' => true,
             'debounceMs'      => 300,
-        ], $config->jsonSerialize());
+        ]];
     }
 
     #[Test]
-    public function it_normalizes_multiple_topics(): void
+    public function it_normalizes_topics(): void
     {
         $config = new MercureConfig(
-            topics: ['/api/books/{id}', '/api/authors/{id}'],
+            topics: ['/api/books/{id}', '', '/api/authors/{id}'],
         );
 
         $this->assertSame(['/api/books/{id}', '/api/authors/{id}'], $config->topics);

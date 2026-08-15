@@ -12,7 +12,7 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Pentiminax\UX\DataTables\Tests\Kernel\TwigAppKernel;
+use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -25,99 +25,59 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(DataTablesBundle::class)]
 final class MutationServiceWiringTest extends TestCase
 {
+    use BootsTwigKernel;
+
     #[Test]
     public function it_wires_entity_mutator_with_the_mercure_publisher_interface(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-
-        $mutator = $kernel->getContainer()->get('test.datatables.mutation.mutator');
+        $mutator = $this->service('test.datatables.mutation.mutator');
 
         $this->assertInstanceOf(EntityMutator::class, $mutator);
-
-        $publisher = $this->readPrivateProperty($mutator, 'publisher');
-
-        $this->assertInstanceOf(MercureUpdatePublisher::class, $publisher);
-
-        $kernel->shutdown();
+        $this->assertInstanceOf(MercureUpdatePublisher::class, $this->readPrivateProperty($mutator, 'publisher'));
     }
 
     #[Test]
     public function it_registers_the_mutation_exception_listener_with_priority(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-
         /** @var EventDispatcherInterface $dispatcher */
-        $dispatcher = $kernel->getContainer()->get('event_dispatcher');
+        $dispatcher = $this->service('event_dispatcher');
 
-        $listeners  = $dispatcher->getListeners('kernel.exception');
-        $priorities = array_map(
-            static fn (callable $listener): int => $dispatcher->getListenerPriority('kernel.exception', $listener),
-            $listeners,
-        );
-
-        $this->assertContains(10, $priorities);
-
-        $listenerFound = false;
-
-        foreach ($listeners as $listener) {
+        foreach ($dispatcher->getListeners('kernel.exception') as $listener) {
             if ($listener instanceof MutationExceptionListener || (\is_array($listener) && $listener[0] instanceof MutationExceptionListener)) {
-                $listenerFound = true;
+                $this->assertSame(10, $dispatcher->getListenerPriority('kernel.exception', $listener));
 
-                break;
+                return;
             }
         }
 
-        $this->assertTrue($listenerFound, 'MutationExceptionListener must be registered on kernel.exception.');
-
-        $kernel->shutdown();
+        $this->fail('MutationExceptionListener must be registered on kernel.exception.');
     }
 
     #[Test]
     public function it_always_wires_the_mutation_token_validator_with_a_csrf_token_manager(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-
-        $validator = $kernel->getContainer()->get('test.datatables.security.mutation_token_validator');
+        $validator = $this->service('test.datatables.security.mutation_token_validator');
 
         $this->assertInstanceOf(MutationTokenValidator::class, $validator);
 
         // The guard must never be left without a manager, even when the application
         // has no CSRF component configured: otherwise every mutation would be rejected.
-        $manager = $this->readPrivateProperty($validator, 'csrfTokenManager');
-
-        $this->assertInstanceOf(CsrfTokenManagerInterface::class, $manager);
-
-        $kernel->shutdown();
+        $this->assertInstanceOf(CsrfTokenManagerInterface::class, $this->readPrivateProperty($validator, 'csrfTokenManager'));
     }
 
     #[Test]
     public function it_registers_the_null_mercure_publisher_fallback_service(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-
-        $publisher = $kernel->getContainer()->get('test.datatables.mercure.null_publisher');
-
-        $this->assertInstanceOf(NullMercurePublisher::class, $publisher);
-
-        $kernel->shutdown();
+        $this->assertInstanceOf(NullMercurePublisher::class, $this->service('test.datatables.mercure.null_publisher'));
     }
 
     #[Test]
     public function it_wires_the_ajax_edit_controller_with_the_boolean_mutation_context_resolver(): void
     {
-        $kernel = new TwigAppKernel('test', true);
-        $kernel->boot();
-
-        $controller = $kernel->getContainer()->get('datatables.controller.ajax_edit');
+        $controller = $this->service('datatables.controller.ajax_edit');
 
         $this->assertInstanceOf(AjaxEditController::class, $controller);
         $this->assertInstanceOf(BooleanMutationContextResolver::class, $this->readPrivateProperty($controller, 'contextResolver'));
-
-        $kernel->shutdown();
     }
 
     private function readPrivateProperty(object $object, string $property): mixed

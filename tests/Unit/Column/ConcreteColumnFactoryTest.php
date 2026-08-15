@@ -13,67 +13,39 @@ use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
+use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(AbstractColumn::class)]
-final class ConcreteColumnFactoryTest extends TestCase
+final class ConcreteColumnFactoryTest extends DataTableTestCase
 {
-    #[Test]
-    #[DataProvider('provideColumns')]
-    public function it_sets_name_data_title_and_type(string $columnClass, ColumnType $expectedType): void
-    {
-        $column = $columnClass::new('field_name', 'Field label');
-        if ($column instanceof TemplateColumn) {
-            $column->setTemplate('datatable/columns/cell.html.twig');
-        }
-
-        $data = $column->jsonSerialize();
-
-        $this->assertSame('field_name', $data['data']);
-        $this->assertSame('field_name', $data['name']);
-        $this->assertSame('Field label', $data['title']);
-        $this->assertSame($expectedType->value, $data['type']);
-    }
-
-    #[Test]
-    #[DataProvider('provideColumns')]
-    public function it_defaults_title_to_name(string $columnClass): void
-    {
-        $column = $columnClass::new('field_name');
-        if ($column instanceof TemplateColumn) {
-            $column->setTemplate('datatable/columns/cell.html.twig');
-        }
-
-        $data = $column->jsonSerialize();
-
-        $this->assertSame('field_name', $data['title']);
-    }
-
     /**
-     * @return iterable<string, array{0: class-string, 1: ColumnType}>
+     * @param callable(): AbstractColumn $builder
      */
-    public static function provideColumns(): iterable
+    #[Test]
+    #[DataProvider('provideColumnBuilders')]
+    public function it_sets_name_data_title_and_type(callable $builder, ColumnType $expectedType): void
     {
-        yield 'text' => [TextColumn::class, ColumnType::STRING];
-        yield 'boolean' => [BooleanColumn::class, ColumnType::NUM];
-        yield 'date' => [DateColumn::class, ColumnType::DATE];
-        yield 'number' => [NumberColumn::class, ColumnType::NUM];
-        yield 'template' => [TemplateColumn::class, ColumnType::HTML];
-        yield 'url' => [UrlColumn::class, ColumnType::HTML];
-        yield 'email' => [EmailColumn::class, ColumnType::HTML];
+        $this->assertColumnHeader($builder(), $expectedType->value, 'field_name', 'Field label');
     }
 
     /**
      * @return iterable<string, array{0: callable(): AbstractColumn, 1: ColumnType}>
      */
-    public static function provideVariantBuilders(): iterable
+    public static function provideColumnBuilders(): iterable
     {
+        yield 'text' => [static fn () => TextColumn::new('field_name', 'Field label'), ColumnType::STRING];
+        yield 'boolean' => [static fn () => BooleanColumn::new('field_name', 'Field label'), ColumnType::NUM];
+        yield 'date' => [static fn () => DateColumn::new('field_name', 'Field label'), ColumnType::DATE];
+        yield 'number' => [static fn () => NumberColumn::new('field_name', 'Field label'), ColumnType::NUM];
+        yield 'template' => [static fn () => TemplateColumn::new('field_name', 'Field label')->setTemplate('datatable/columns/cell.html.twig'), ColumnType::HTML];
+        yield 'url' => [static fn () => UrlColumn::new('field_name', 'Field label'), ColumnType::HTML];
+        yield 'email' => [static fn () => EmailColumn::new('field_name', 'Field label'), ColumnType::HTML];
         yield 'text::utf8' => [static fn () => TextColumn::new('field_name', 'Field label')->utf8(), ColumnType::STRING_UTF8];
         yield 'text::html' => [static fn () => TextColumn::new('field_name', 'Field label')->html(), ColumnType::HTML];
         yield 'text::html+utf8' => [static fn () => TextColumn::new('field_name', 'Field label')->html()->utf8(), ColumnType::HTML_UTF8];
@@ -83,47 +55,39 @@ final class ConcreteColumnFactoryTest extends TestCase
     }
 
     #[Test]
-    #[DataProvider('provideVariantBuilders')]
-    public function it_creates_columns_via_variant_modifiers(callable $builder, ColumnType $expectedType): void
-    {
-        $column = $builder();
-
-        $data = $column->jsonSerialize();
-
-        $this->assertSame('field_name', $data['data']);
-        $this->assertSame('field_name', $data['name']);
-        $this->assertSame('Field label', $data['title']);
-        $this->assertSame($expectedType->value, $data['type']);
-    }
-
-    #[Test]
     public function it_does_not_add_implicit_custom_options_in_new(): void
     {
         $this->assertArrayNotHasKey('customOptions', BooleanColumn::new('active')->jsonSerialize());
         $this->assertArrayNotHasKey('customOptions', DateColumn::new('createdAt')->jsonSerialize());
     }
 
+    /**
+     * @param list<callable(): AbstractColumn> $builders
+     */
     #[Test]
-    public function text_modifiers_are_idempotent_and_order_independent(): void
+    #[DataProvider('provideEquivalentModifierChains')]
+    public function modifiers_are_idempotent_and_order_independent(array $builders, ColumnType $expectedType): void
     {
-        $fromHtmlThenUtf8  = TextColumn::new('field_name')->html()->utf8()->jsonSerialize();
-        $fromUtf8ThenHtml  = TextColumn::new('field_name')->utf8()->html()->jsonSerialize();
-        $fromRepeatedCalls = TextColumn::new('field_name')->html()->utf8()->html()->utf8()->jsonSerialize();
-
-        $this->assertSame(ColumnType::HTML_UTF8->value, $fromHtmlThenUtf8['type']);
-        $this->assertSame($fromHtmlThenUtf8['type'], $fromUtf8ThenHtml['type']);
-        $this->assertSame($fromHtmlThenUtf8['type'], $fromRepeatedCalls['type']);
+        foreach ($builders as $builder) {
+            $this->assertSame($expectedType->value, $builder()->jsonSerialize()['type']);
+        }
     }
 
-    #[Test]
-    public function number_modifiers_are_idempotent_and_order_independent(): void
+    /**
+     * @return iterable<string, array{0: list<callable(): AbstractColumn>, 1: ColumnType}>
+     */
+    public static function provideEquivalentModifierChains(): iterable
     {
-        $fromHtmlThenFormatted = NumberColumn::new('field_name')->html()->formatted()->jsonSerialize();
-        $fromFormattedThenHtml = NumberColumn::new('field_name')->formatted()->html()->jsonSerialize();
-        $fromRepeatedCalls     = NumberColumn::new('field_name')->html()->formatted()->html()->formatted()->jsonSerialize();
+        yield 'text' => [[
+            static fn () => TextColumn::new('field_name')->html()->utf8(),
+            static fn () => TextColumn::new('field_name')->utf8()->html(),
+            static fn () => TextColumn::new('field_name')->html()->utf8()->html()->utf8(),
+        ], ColumnType::HTML_UTF8];
 
-        $this->assertSame(ColumnType::HTML_NUM_FMT->value, $fromHtmlThenFormatted['type']);
-        $this->assertSame($fromHtmlThenFormatted['type'], $fromFormattedThenHtml['type']);
-        $this->assertSame($fromHtmlThenFormatted['type'], $fromRepeatedCalls['type']);
+        yield 'number' => [[
+            static fn () => NumberColumn::new('field_name')->html()->formatted(),
+            static fn () => NumberColumn::new('field_name')->formatted()->html(),
+            static fn () => NumberColumn::new('field_name')->html()->formatted()->html()->formatted(),
+        ], ColumnType::HTML_NUM_FMT];
     }
 }

@@ -4,26 +4,23 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 
+use Pentiminax\UX\DataTables\Enum\SelectItemType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
  */
 #[CoversClass(SelectExtension::class)]
-final class SelectExtensionTest extends TestCase
+final class SelectExtensionTest extends DataTableTestCase
 {
     #[Test]
-    public function it_serializes_to_array(): void
+    public function it_serializes_default_options(): void
     {
-        $extension = new SelectExtension();
-
-        $serializedExtension = $extension->jsonSerialize();
-
-        $expectedArray = [
+        $this->assertExtensionPayload([
             'blurable'       => false,
             'className'      => 'selected',
             'info'           => true,
@@ -33,34 +30,35 @@ final class SelectExtensionTest extends TestCase
             'toggleable'     => true,
             'headerCheckbox' => false,
             'withCheckbox'   => false,
-        ];
-
-        $this->assertEquals($expectedArray, $serializedExtension);
+        ], new SelectExtension());
     }
 
     #[Test]
-    public function it_configures_style(): void
+    public function it_serializes_configured_options_and_omits_the_selector(): void
     {
-        $extension = new SelectExtension(SelectStyle::MULTI);
+        $extension = new SelectExtension(
+            style: SelectStyle::MULTI,
+            blurable: true,
+            className: 'is-selected',
+            info: false,
+            items: SelectItemType::CELL,
+            keys: true,
+            selector: 'td:first-child',
+            toggleable: false,
+        );
 
-        $this->assertEquals('multi', $extension->jsonSerialize()['style']);
-    }
+        $extension->withCheckbox()->headerCheckbox();
 
-    #[Test]
-    public function it_configures_with_checkbox(): void
-    {
-        $extension = new SelectExtension();
-        $extension->withCheckbox();
-
-        $this->assertTrue($extension->jsonSerialize()['withCheckbox']);
-    }
-
-    #[Test]
-    public function it_configures_header_checkbox(): void
-    {
-        $extension = new SelectExtension();
-        $extension->headerCheckbox();
-
-        $this->assertTrue($extension->jsonSerialize()['headerCheckbox']);
+        $this->assertExtensionPayload([
+            'blurable'       => true,
+            'className'      => 'is-selected',
+            'info'           => false,
+            'items'          => 'cell',
+            'keys'           => true,
+            'style'          => 'multi',
+            'toggleable'     => false,
+            'headerCheckbox' => true,
+            'withCheckbox'   => true,
+        ], $extension);
     }
 }

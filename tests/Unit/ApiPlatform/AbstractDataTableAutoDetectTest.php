@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectTestDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectWithGroupsDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectWithoutApiPlatformOptInDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -22,70 +23,48 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AbstractDataTable::class)]
 final class AbstractDataTableAutoDetectTest extends TestCase
 {
+    /**
+     * @param class-string<AbstractDataTable> $tableClass
+     * @param bool|null                       $supports   null when no detector is registered at all
+     */
     #[Test]
-    public function it_returns_empty_columns_without_detector(): void
+    #[DataProvider('provideTablesWithoutDetectedColumns')]
+    public function it_returns_empty_columns(string $tableClass, ?bool $supports): void
     {
-        $table = new AutoDetectTestDataTable();
+        $table = new $tableClass(columnAutoDetector: null === $supports ? null : $this->detector($supports));
 
         $this->assertSame([], $table->getConfiguredDataTable()->getColumns());
     }
 
-    #[Test]
-    public function it_returns_empty_columns_without_attribute(): void
+    /**
+     * @return iterable<string, array{class-string<AbstractDataTable>, bool|null}>
+     */
+    public static function provideTablesWithoutDetectedColumns(): iterable
     {
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
-        $detector->expects($this->never())->method('supports');
-        $detector->expects($this->never())->method('detectColumns');
-
-        $table = new AutoDetectNoAttributeDataTable(columnAutoDetector: $detector);
-
-        $this->assertSame([], $table->getConfiguredDataTable()->getColumns());
-    }
-
-    #[Test]
-    public function it_returns_empty_columns_without_api_platform_opt_in(): void
-    {
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
-        $detector->expects($this->never())->method('supports');
-        $detector->expects($this->never())->method('detectColumns');
-
-        $table = new AutoDetectWithoutApiPlatformOptInDataTable(columnAutoDetector: $detector);
-
-        $this->assertSame([], $table->getConfiguredDataTable()->getColumns());
-    }
-
-    #[Test]
-    public function it_returns_empty_columns_when_not_supported(): void
-    {
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
-        $detector->method('supports')->willReturn(false);
-        $detector->expects($this->never())->method('detectColumns');
-
-        $table = new AutoDetectTestDataTable(columnAutoDetector: $detector);
-
-        $this->assertSame([], $table->getConfiguredDataTable()->getColumns());
+        yield 'without detector' => [AutoDetectTestDataTable::class, null];
+        yield 'without attribute' => [AutoDetectNoAttributeDataTable::class, true];
+        yield 'without API Platform opt-in' => [AutoDetectWithoutApiPlatformOptInDataTable::class, true];
+        yield 'unsupported entity' => [AutoDetectTestDataTable::class, false];
     }
 
     #[Test]
     public function it_returns_detected_columns(): void
     {
-        $detected = [
+        $detector = $this->createStub(ColumnAutoDetectorInterface::class);
+        $detector->method('supports')->willReturn(true);
+        $detector->method('detectColumns')->willReturn([
             NumberColumn::new('id', 'ID'),
             TextColumn::new('name', 'Name'),
-        ];
+        ]);
 
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
-        $detector->method('supports')->with(\stdClass::class)->willReturn(true);
-        $detector->method('detectColumns')->with(\stdClass::class, [])->willReturn($detected);
+        $dataTable = (new AutoDetectTestDataTable(columnAutoDetector: $detector))->getConfiguredDataTable();
 
-        $table   = new AutoDetectTestDataTable(columnAutoDetector: $detector);
-        $columns = $table->getConfiguredDataTable()->getColumns();
-
-        $this->assertCount(2, $columns);
-        $this->assertSame('id', $columns['id']->getName());
-        $this->assertSame('name', $columns['name']->getName());
-        $this->assertSame('id', $table->getConfiguredDataTable()->getColumnDefinitions()[0]['name']);
-        $this->assertSame('name', $table->getConfiguredDataTable()->getColumnDefinitions()[1]['name']);
+        $this->assertSame(['id', 'name'], array_keys($dataTable->getColumns()));
+        $this->assertSame(['id', 'name'], array_map(
+            static fn (object $column): string => $column->getName(),
+            array_values($dataTable->getColumns())
+        ));
+        $this->assertSame(['id', 'name'], array_column($dataTable->getColumnDefinitions(), 'name'));
     }
 
     #[Test]
@@ -100,5 +79,17 @@ final class AbstractDataTableAutoDetectTest extends TestCase
             ->willReturn([]);
 
         (new AutoDetectWithGroupsDataTable(columnAutoDetector: $detector))->getConfiguredDataTable();
+    }
+
+    /**
+     * Returns columns whenever it is consulted, so an empty column list proves it was not.
+     */
+    private function detector(bool $supports): ColumnAutoDetectorInterface
+    {
+        $detector = $this->createStub(ColumnAutoDetectorInterface::class);
+        $detector->method('supports')->willReturn($supports);
+        $detector->method('detectColumns')->willReturn([TextColumn::new('detected')]);
+
+        return $detector;
     }
 }
