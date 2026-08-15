@@ -6,13 +6,15 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Form;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 
 /**
  * @internal
@@ -20,40 +22,37 @@ use Psr\Container\ContainerInterface;
 #[CoversClass(EditModalTemplateResolver::class)]
 final class EditModalTemplateResolverTest extends TestCase
 {
+    /**
+     * @param class-string<AbstractDataTable> $dataTableClass
+     */
     #[Test]
-    public function it_uses_the_fluent_template_before_the_attribute_template(): void
+    #[DataProvider('chromeTemplateProvider')]
+    public function it_resolves_the_chrome_template_of_a_registered_data_table(string $expected, string $dataTableClass, callable $factory): void
     {
-        $resolver = $this->createResolver([
-            FluentEditModalDataTable::class => new FluentEditModalDataTable(),
-        ]);
+        $resolver = $this->createResolver([$dataTableClass => $factory]);
 
-        $template = $resolver->resolveChromeTemplate(FluentEditModalDataTable::class);
-
-        $this->assertSame('fluent.html.twig', $template);
+        $this->assertSame($expected, $resolver->resolveChromeTemplate($dataTableClass));
     }
 
-    #[Test]
-    public function it_falls_back_to_the_attribute_template(): void
+    public static function chromeTemplateProvider(): \Generator
     {
-        $resolver = $this->createResolver([
-            AttributeEditModalDataTable::class => new AttributeEditModalDataTable(),
-        ]);
+        yield 'fluent template wins over the attribute' => [
+            'fluent.html.twig',
+            FluentEditModalDataTable::class,
+            static fn (): FluentEditModalDataTable => new FluentEditModalDataTable(),
+        ];
 
-        $template = $resolver->resolveChromeTemplate(AttributeEditModalDataTable::class);
+        yield 'attribute template without a fluent override' => [
+            'attribute.html.twig',
+            AttributeEditModalDataTable::class,
+            static fn (): AttributeEditModalDataTable => new AttributeEditModalDataTable(),
+        ];
 
-        $this->assertSame('attribute.html.twig', $template);
-    }
-
-    #[Test]
-    public function it_falls_back_to_the_bundle_default_when_no_override_exists(): void
-    {
-        $resolver = $this->createResolver([
-            DefaultEditModalDataTable::class => new DefaultEditModalDataTable(),
-        ]);
-
-        $template = $resolver->resolveChromeTemplate(DefaultEditModalDataTable::class);
-
-        $this->assertSame('@DataTables/modal/datatables/edit_modal.html.twig', $template);
+        yield 'bundle default without any override' => [
+            '@DataTables/modal/datatables/edit_modal.html.twig',
+            DefaultEditModalDataTable::class,
+            static fn (): DefaultEditModalDataTable => new DefaultEditModalDataTable(),
+        ];
     }
 
     #[Test]
@@ -80,13 +79,12 @@ final class EditModalTemplateResolverTest extends TestCase
     public function it_resolves_columns_from_a_registered_data_table(): void
     {
         $resolver = $this->createResolver([
-            ColumnsEditModalDataTable::class => new ColumnsEditModalDataTable(),
+            ColumnsEditModalDataTable::class => static fn (): ColumnsEditModalDataTable => new ColumnsEditModalDataTable(),
         ]);
 
         $columns = $resolver->resolveColumns(ColumnsEditModalDataTable::class);
 
-        $this->assertCount(1, $columns);
-        $this->assertSame('name', $columns[0]->getName());
+        $this->assertSame(['name'], array_map(static fn (ColumnInterface $column): string => $column->getName(), $columns));
     }
 
     #[Test]
@@ -101,12 +99,12 @@ final class EditModalTemplateResolverTest extends TestCase
     }
 
     /**
-     * @param array<string, AbstractDataTable> $services
+     * @param array<class-string<AbstractDataTable>, callable(): AbstractDataTable> $factories
      */
-    private function createResolver(array $services = []): EditModalTemplateResolver
+    private function createResolver(array $factories = []): EditModalTemplateResolver
     {
         return new EditModalTemplateResolver(
-            new TestContainer($services),
+            new ServiceLocator($factories),
             '@DataTables/modal/datatables/edit_modal.html.twig',
             '@DataTables/modal/datatables/_form_body.html.twig',
         );
@@ -150,32 +148,5 @@ final class ColumnsEditModalDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('name', 'Name');
-    }
-}
-
-/**
- * @implements ContainerInterface<object>
- */
-final readonly class TestContainer implements ContainerInterface
-{
-    /**
-     * @param array<string, object> $services
-     */
-    public function __construct(private array $services)
-    {
-    }
-
-    public function get(string $id): object
-    {
-        if (!$this->has($id)) {
-            throw new \RuntimeException(\sprintf('Unknown service "%s".', $id));
-        }
-
-        return $this->services[$id];
-    }
-
-    public function has(string $id): bool
-    {
-        return \array_key_exists($id, $this->services);
     }
 }

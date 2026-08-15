@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,24 +22,12 @@ use Symfony\Component\HttpFoundation\Request;
 final class DataTableRuntimeTest extends TestCase
 {
     #[Test]
-    public function test_give_n_no_handled_request_whe_n_get_http_request_the_n_null_is_returned(): void
+    public function it_exposes_the_handled_http_request(): void
     {
-        $runtime = new DataTableRuntime(
-            table: new DataTable('movies'),
-            dataProviderFactory: static fn (): ?DataProviderInterface => null,
-        );
+        $runtime = $this->createRuntime();
+        $request = new Request(query: ['draw' => 7, 'genre' => 'sci-fi']);
 
         $this->assertNull($runtime->getHttpRequest());
-    }
-
-    #[Test]
-    public function test_give_n_handled_request_whe_n_get_http_request_the_n_same_request_is_returned(): void
-    {
-        $runtime = new DataTableRuntime(
-            table: new DataTable('movies'),
-            dataProviderFactory: static fn (): ?DataProviderInterface => null,
-        );
-        $request = new Request(query: ['draw' => 7, 'genre' => 'sci-fi']);
 
         $runtime->handleRequest($request);
 
@@ -46,82 +35,78 @@ final class DataTableRuntimeTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_an_empty_response_when_no_request_has_been_handled(): void
+    #[DataProvider('responseCases')]
+    public function it_builds_the_json_response(?Request $request, ?DataProviderInterface $provider, array $expected): void
     {
-        $runtime = new DataTableRuntime(
-            table: new DataTable('movies'),
-            dataProviderFactory: static fn (): ?DataProviderInterface => null,
-        );
+        $runtime = $this->createRuntime($provider);
+
+        if (null !== $request) {
+            $runtime->handleRequest($request);
+        }
 
         $response = $runtime->getResponse();
 
-        $this->assertSame([
-            'draw'            => 1,
-            'recordsTotal'    => 0,
-            'recordsFiltered' => 0,
-            'data'            => [],
-        ], json_decode((string) $response->getContent(), true));
+        $this->assertSame($expected, json_decode((string) $response->getContent(), true));
     }
 
-    #[Test]
-    public function it_returns_an_empty_response_when_a_request_is_handled_without_a_provider(): void
+    /**
+     * @return iterable<string, array{0: ?Request, 1: ?DataProviderInterface, 2: array<string, mixed>}>
+     */
+    public static function responseCases(): iterable
     {
-        $runtime = new DataTableRuntime(
-            table: new DataTable('movies'),
-            dataProviderFactory: static fn (): ?DataProviderInterface => null,
-        );
-        $runtime->handleRequest(new Request(query: ['draw' => 7]));
-
-        $response = $runtime->getResponse();
-
-        $this->assertSame([
-            'draw'            => 7,
-            'recordsTotal'    => 0,
-            'recordsFiltered' => 0,
-            'data'            => [],
-        ], json_decode((string) $response->getContent(), true));
-    }
-
-    #[Test]
-    public function it_builds_a_response_from_the_provider_result(): void
-    {
-        $provider = new class implements DataProviderInterface {
-            public function fetchData(DataTableRequest $request): DataTableResult
-            {
-                return new DataTableResult(
-                    recordsTotal: 10,
-                    recordsFiltered: 4,
-                    data: [
-                        ['id' => 1, 'name' => 'Alien'],
-                        ['id' => 2, 'name' => 'Heat'],
-                    ],
-                );
-            }
-        };
-
-        $runtime = new DataTableRuntime(
-            table: new DataTable('movies'),
-            dataProviderFactory: static fn (): ?DataProviderInterface => $provider,
-        );
-        $runtime->handleRequest(new Request(query: ['draw' => 3]));
-
-        $response = $runtime->getResponse();
-
-        $this->assertSame([
-            'draw'            => 3,
-            'recordsTotal'    => 10,
-            'recordsFiltered' => 4,
-            'data'            => [
-                ['id' => 1, 'name' => 'Alien'],
-                ['id' => 2, 'name' => 'Heat'],
+        yield 'no request handled' => [
+            null,
+            null,
+            [
+                'draw'            => 1,
+                'recordsTotal'    => 0,
+                'recordsFiltered' => 0,
+                'data'            => [],
             ],
-        ], json_decode((string) $response->getContent(), true));
+        ];
+
+        yield 'request handled without a provider' => [
+            new Request(query: ['draw' => 7]),
+            null,
+            [
+                'draw'            => 7,
+                'recordsTotal'    => 0,
+                'recordsFiltered' => 0,
+                'data'            => [],
+            ],
+        ];
+
+        yield 'request handled with a provider result' => [
+            new Request(query: ['draw' => 3]),
+            new class implements DataProviderInterface {
+                public function fetchData(DataTableRequest $request): DataTableResult
+                {
+                    return new DataTableResult(
+                        recordsTotal: 10,
+                        recordsFiltered: 4,
+                        data: [
+                            ['id' => 1, 'name' => 'Alien'],
+                            ['id' => 2, 'name' => 'Heat'],
+                        ],
+                    );
+                }
+            },
+            [
+                'draw'            => 3,
+                'recordsTotal'    => 10,
+                'recordsFiltered' => 4,
+                'data'            => [
+                    ['id' => 1, 'name' => 'Alien'],
+                    ['id' => 2, 'name' => 'Heat'],
+                ],
+            ],
+        ];
     }
 
     #[Test]
     public function it_caches_the_resolved_provider(): void
     {
-        $provider     = $this->createMock(DataProviderInterface::class);
+        $provider     = $this->createStub(DataProviderInterface::class);
         $factoryCalls = 0;
         $runtime      = new DataTableRuntime(
             table: new DataTable('movies'),
@@ -132,11 +117,16 @@ final class DataTableRuntimeTest extends TestCase
             },
         );
 
-        $firstProvider  = $runtime->getDataProvider();
-        $secondProvider = $runtime->getDataProvider();
-
-        $this->assertSame($provider, $firstProvider);
-        $this->assertSame($provider, $secondProvider);
+        $this->assertSame($provider, $runtime->getDataProvider());
+        $this->assertSame($provider, $runtime->getDataProvider());
         $this->assertSame(1, $factoryCalls);
+    }
+
+    private function createRuntime(?DataProviderInterface $provider = null): DataTableRuntime
+    {
+        return new DataTableRuntime(
+            table: new DataTable('movies'),
+            dataProviderFactory: static fn (): ?DataProviderInterface => $provider,
+        );
     }
 }

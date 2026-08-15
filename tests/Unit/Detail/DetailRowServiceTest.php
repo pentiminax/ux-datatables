@@ -18,7 +18,7 @@ use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
@@ -34,7 +34,7 @@ final class DetailRowServiceTest extends TestCase
         $entity = new DetailRowEntity('alice@example.com');
 
         $service = $this->createService(
-            [CollapsibleDetailDataTable::class => new CollapsibleDetailDataTable()],
+            [CollapsibleDetailDataTable::class => static fn (): CollapsibleDetailDataTable => new CollapsibleDetailDataTable()],
             $this->locatorReturning($entity),
             new Environment(new ArrayLoader(['detail.html.twig' => 'Email: {{ entity.email }} / {{ extra }}'])),
         );
@@ -52,21 +52,22 @@ final class DetailRowServiceTest extends TestCase
     #[Test]
     public function it_returns_bad_request_without_a_data_table_class(): void
     {
-        $service = $this->createService([], new EntityLocator(null), $this->createMock(Environment::class));
+        $service = $this->createService([], new EntityLocator(null), $this->twigThatNeverRenders());
 
         $result = $service->handleView(new AjaxDetailQueryDto(DetailRowEntity::class, 7, null));
 
         $this->assertFalse($result->success);
         $this->assertSame(400, $result->statusCode);
+        $this->assertNull($result->html);
     }
 
     #[Test]
     public function it_returns_bad_request_when_no_collapsible_detail_action_is_configured(): void
     {
         $service = $this->createService(
-            [PlainDetailDataTable::class => new PlainDetailDataTable()],
+            [PlainDetailDataTable::class => static fn (): PlainDetailDataTable => new PlainDetailDataTable()],
             new EntityLocator(null),
-            $this->createMock(Environment::class),
+            $this->twigThatNeverRenders(),
         );
 
         $result = $service->handleView(new AjaxDetailQueryDto(
@@ -77,15 +78,16 @@ final class DetailRowServiceTest extends TestCase
 
         $this->assertFalse($result->success);
         $this->assertSame(400, $result->statusCode);
+        $this->assertNull($result->html);
     }
 
     #[Test]
     public function it_returns_not_found_when_the_entity_is_missing(): void
     {
         $service = $this->createService(
-            [CollapsibleDetailDataTable::class => new CollapsibleDetailDataTable()],
+            [CollapsibleDetailDataTable::class => static fn (): CollapsibleDetailDataTable => new CollapsibleDetailDataTable()],
             new EntityLocator(null), // no doctrine => always throws EntityNotFoundException
-            new Environment(new ArrayLoader(['detail.html.twig' => 'x'])),
+            $this->twigThatNeverRenders(),
         );
 
         $result = $service->handleView(new AjaxDetailQueryDto(
@@ -96,13 +98,14 @@ final class DetailRowServiceTest extends TestCase
 
         $this->assertFalse($result->success);
         $this->assertSame(404, $result->statusCode);
+        $this->assertNull($result->html);
     }
 
     #[Test]
     public function it_returns_bad_request_when_twig_is_unavailable(): void
     {
-        $service = new DetailRowService(
-            new DetailTestContainer([CollapsibleDetailDataTable::class => new CollapsibleDetailDataTable()]),
+        $service = $this->createService(
+            [CollapsibleDetailDataTable::class => static fn (): CollapsibleDetailDataTable => new CollapsibleDetailDataTable()],
             new EntityLocator(null),
             null,
         );
@@ -115,25 +118,34 @@ final class DetailRowServiceTest extends TestCase
 
         $this->assertFalse($result->success);
         $this->assertSame(400, $result->statusCode);
+        $this->assertNull($result->html);
     }
 
     /**
-     * @param array<string, AbstractDataTable> $dataTables
+     * @param array<class-string<AbstractDataTable>, callable(): AbstractDataTable> $dataTables
      */
-    private function createService(array $dataTables, EntityLocator $locator, Environment $twig): DetailRowService
+    private function createService(array $dataTables, EntityLocator $locator, ?Environment $twig): DetailRowService
     {
-        return new DetailRowService(new DetailTestContainer($dataTables), $locator, $twig);
+        return new DetailRowService(new ServiceLocator($dataTables), $locator, $twig);
+    }
+
+    private function twigThatNeverRenders(): Environment
+    {
+        $twig = $this->createMock(Environment::class);
+        $twig->expects($this->never())->method('render');
+
+        return $twig;
     }
 
     private function locatorReturning(object $entity): EntityLocator
     {
-        $repository = $this->createMock(EntityRepository::class);
+        $repository = $this->createStub(EntityRepository::class);
         $repository->method('find')->willReturn($entity);
 
-        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager = $this->createStub(EntityManagerInterface::class);
         $manager->method('getRepository')->willReturn($repository);
 
-        $registry = $this->createMock(ManagerRegistry::class);
+        $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn($manager);
 
         return new EntityLocator($registry);
@@ -172,32 +184,5 @@ final class PlainDetailDataTable extends AbstractDataTable
     public function configureActions(Actions $actions): Actions
     {
         return $actions->add(Action::detail()->linkToUrl('/detail/1'));
-    }
-}
-
-/**
- * @implements ContainerInterface<object>
- */
-final readonly class DetailTestContainer implements ContainerInterface
-{
-    /**
-     * @param array<string, object> $services
-     */
-    public function __construct(private array $services)
-    {
-    }
-
-    public function get(string $id): object
-    {
-        if (!$this->has($id)) {
-            throw new \RuntimeException(\sprintf('Unknown service "%s".', $id));
-        }
-
-        return $this->services[$id];
-    }
-
-    public function has(string $id): bool
-    {
-        return \array_key_exists($id, $this->services);
     }
 }
