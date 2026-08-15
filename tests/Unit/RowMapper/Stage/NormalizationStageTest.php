@@ -7,9 +7,11 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\RowMapper\Stage;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
 use Pentiminax\UX\DataTables\Tests\Unit\Column\TestStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -19,17 +21,21 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(NormalizationStage::class)]
 final class NormalizationStageTest extends TestCase
 {
+    /**
+     * @param array<string, mixed>  $mappedRow
+     * @param list<ColumnInterface> $columns
+     * @param array<string, mixed>  $expected
+     */
     #[Test]
-    public function it_leaves_scalar_values_unchanged(): void
+    #[DataProvider('normalizedRowProvider')]
+    public function it_normalizes_object_values_per_column(array $mappedRow, array $columns, array $expected): void
     {
-        $stage  = new NormalizationStage();
-        $result = $stage->process(['title' => 'Hello'], 'original', [TextColumn::new('title')]);
+        $result = (new NormalizationStage())->process($mappedRow, 'original', $columns);
 
-        $this->assertSame(['title' => 'Hello'], $result);
+        $this->assertSame($expected, $result);
     }
 
-    #[Test]
-    public function it_converts_stringable_to_string(): void
+    public static function normalizedRowProvider(): iterable
     {
         $stringable = new class implements \Stringable {
             public function __toString(): string
@@ -38,68 +44,50 @@ final class NormalizationStageTest extends TestCase
             }
         };
 
-        $stage  = new NormalizationStage();
-        $result = $stage->process(['name' => $stringable], 'original', [TextColumn::new('name')]);
-
-        $this->assertSame(['name' => 'Label'], $result);
-    }
-
-    #[Test]
-    public function it_converts_non_stringable_object_to_null(): void
-    {
-        $stage  = new NormalizationStage();
-        $result = $stage->process(['obj' => new \stdClass()], 'original', [TextColumn::new('obj')]);
-
-        $this->assertNull($result['obj']);
-    }
-
-    #[Test]
-    public function it_converts_backed_enum_to_its_value(): void
-    {
-        $stage  = new NormalizationStage();
-        $result = $stage->process(['status' => TestStatus::Active], 'original', [ChoiceColumn::new('status')]);
-
-        $this->assertSame(['status' => 'active'], $result);
-    }
-
-    #[Test]
-    public function it_formats_datetime_with_date_column(): void
-    {
-        $date  = new \DateTimeImmutable('2024-06-01');
-        $stage = new NormalizationStage();
-
-        $result = $stage->process(
-            ['date' => $date],
-            'original',
-            [DateColumn::new('date')->setFormat('d/m/Y')],
-        );
-
-        $this->assertSame(['date' => '01/06/2024'], $result);
-    }
-
-    #[Test]
-    public function it_resolves_dotted_field_path(): void
-    {
-        $stage = new NormalizationStage();
-        $obj   = new class {
+        $company = new class {
             public string $name = 'Acme';
         };
 
-        $result = $stage->process(
-            ['company' => $obj],
-            'original',
+        yield 'scalar value is left unchanged' => [
+            ['title' => 'Hello'],
+            [TextColumn::new('title')],
+            ['title' => 'Hello'],
+        ];
+
+        yield 'stringable is converted to string' => [
+            ['name' => $stringable],
+            [TextColumn::new('name')],
+            ['name' => 'Label'],
+        ];
+
+        yield 'non stringable object is converted to null' => [
+            ['obj' => new \stdClass()],
+            [TextColumn::new('obj')],
+            ['obj' => null],
+        ];
+
+        yield 'backed enum is converted to its value' => [
+            ['status' => TestStatus::Active],
+            [ChoiceColumn::new('status')],
+            ['status' => 'active'],
+        ];
+
+        yield 'date column formats datetime' => [
+            ['date' => new \DateTimeImmutable('2024-06-01')],
+            [DateColumn::new('date')->setFormat('d/m/Y')],
+            ['date' => '01/06/2024'],
+        ];
+
+        yield 'dotted field path is resolved' => [
+            ['company' => $company],
             [TextColumn::new('company')->setField('company.name')],
-        );
+            ['company' => 'Acme'],
+        ];
 
-        $this->assertSame(['company' => 'Acme'], $result);
-    }
-
-    #[Test]
-    public function it_skips_columns_without_key(): void
-    {
-        $stage  = new NormalizationStage();
-        $result = $stage->process(['title' => 'Hello'], 'original', [TextColumn::new('')]);
-
-        $this->assertSame(['title' => 'Hello'], $result);
+        yield 'column without key is skipped' => [
+            ['title' => 'Hello'],
+            [TextColumn::new('')],
+            ['title' => 'Hello'],
+        ];
     }
 }
