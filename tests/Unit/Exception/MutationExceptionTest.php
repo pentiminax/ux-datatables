@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Exception\MutationException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -23,52 +24,40 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(PropertyNotWritableException::class)]
 final class MutationExceptionTest extends TestCase
 {
+    /**
+     * The MutationException parameter type pins the hierarchy the exception listener relies on.
+     */
     #[Test]
-    public function entity_not_found_maps_to_404_with_default_message(): void
+    #[DataProvider('provideMutationExceptions')]
+    public function it_maps_to_a_status_code_and_a_client_message(MutationException $exception, int $statusCode, string $clientMessage): void
     {
-        $exception = new EntityNotFoundException();
-
-        $this->assertInstanceOf(MutationException::class, $exception);
-        $this->assertSame(404, $exception->getStatusCode());
-        $this->assertSame('Entity not found.', $exception->getClientMessage());
+        $this->assertSame($statusCode, $exception->getStatusCode());
+        $this->assertSame($clientMessage, $exception->getClientMessage());
     }
 
-    #[Test]
-    public function property_not_writable_maps_to_400_with_field_message(): void
+    /**
+     * @return iterable<string, array{MutationException, int, string}>
+     */
+    public static function provideMutationExceptions(): iterable
     {
-        $exception = new PropertyNotWritableException('isEnabled');
+        yield 'entity not found' => [new EntityNotFoundException(), 404, 'Entity not found.'];
 
-        $this->assertInstanceOf(MutationException::class, $exception);
-        $this->assertSame(400, $exception->getStatusCode());
-        $this->assertSame('Unable to write "isEnabled" on the entity.', $exception->getClientMessage());
-    }
+        yield 'property not writable' => [new PropertyNotWritableException('isEnabled'), 400, 'Unable to write "isEnabled" on the entity.'];
 
-    #[Test]
-    public function mutation_not_allowed_maps_to_403_with_default_message(): void
-    {
-        $exception = new MutationNotAllowedException();
+        yield 'mutation not allowed' => [new MutationNotAllowedException(), 403, 'You are not allowed to perform this action.'];
 
-        $this->assertInstanceOf(MutationException::class, $exception);
-        $this->assertSame(403, $exception->getStatusCode());
-        $this->assertSame('You are not allowed to perform this action.', $exception->getClientMessage());
-    }
+        yield 'invalid datatable token' => [InvalidBooleanMutationContextException::invalidDataTableToken(), 400, 'Invalid DataTable token.'];
 
-    #[Test]
-    public function invalid_boolean_mutation_context_factories_map_to_400_with_specific_messages(): void
-    {
-        $invalidToken = InvalidBooleanMutationContextException::invalidDataTableToken();
-        $missingClass = InvalidBooleanMutationContextException::missingEntityClass('App\\DataTable\\ProductDataTable');
-        $invalidField = InvalidBooleanMutationContextException::fieldNotSwitchable('enabled', 'App\\DataTable\\ProductDataTable');
-
-        $this->assertSame(400, $invalidToken->getStatusCode());
-        $this->assertSame('Invalid DataTable token.', $invalidToken->getClientMessage());
-        $this->assertSame(
+        yield 'missing entity class' => [
+            InvalidBooleanMutationContextException::missingEntityClass('App\\DataTable\\ProductDataTable'),
+            400,
             'DataTable "App\\DataTable\\ProductDataTable" must define an entity class to mutate a boolean switch.',
-            $missingClass->getClientMessage(),
-        );
-        $this->assertSame(
+        ];
+
+        yield 'field not switchable' => [
+            InvalidBooleanMutationContextException::fieldNotSwitchable('enabled', 'App\\DataTable\\ProductDataTable'),
+            400,
             'Field "enabled" is not a switchable boolean column on DataTable "App\\DataTable\\ProductDataTable".',
-            $invalidField->getClientMessage(),
-        );
+        ];
     }
 }
