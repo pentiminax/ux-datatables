@@ -25,7 +25,9 @@ The bundled `ColumnControlExtension` serializes default controls for:
 Search logics that rely on SQL `LIKE` — `contains`, `notContains`, `starts`, and `ends` — are
 ignored on columns mapped to a native identifier type (`guid`, `uuid`, `ulid`, `uuid_binary`,
 `uuid_binary_ordered_time`), because PostgreSQL and SQL Server reject `LIKE` on those columns.
-`equal` and `notEqual` still work and match a complete identifier. See
+`equal` and `notEqual` still work and match a complete identifier. `empty` and `notEmpty` only
+test `IS NULL` / `IS NOT NULL` on those columns — they must not compare the identifier to an
+empty string. See
 [Searching UUID and ULID columns](/ux-datatables/guide/server-side-processing/#searching-uuid-and-ulid-columns).
 
 ## Frequent Pitfalls

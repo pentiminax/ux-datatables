@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Strategy\NullnessSearchStrategy;
+use Pentiminax\UX\DataTables\Tests\Unit\Query\BuildsTypedFieldQueryBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -23,6 +24,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(NullnessSearchStrategy::class)]
 final class NullnessSearchStrategyTest extends TestCase
 {
+    use BuildsTypedFieldQueryBuilder;
+
     #[Test]
     #[DataProvider('text_column_cases')]
     public function it_applies_expected_text_expression(bool $negated, string $expectedExpression): void
@@ -101,6 +104,32 @@ final class NullnessSearchStrategyTest extends TestCase
         $strategy->apply($qb, $column, $search, 0, 'e');
     }
 
+    /**
+     * Column Control "Empty" / "Not empty" on a TextColumn mapped to a native UUID
+     * must not emit `= ''`. PostgreSQL rejects that comparison with SQLSTATE 22P02.
+     */
+    #[Test]
+    #[DataProvider('uuid_column_cases')]
+    public function it_applies_null_only_expression_on_a_uuid_column(bool $negated, string $expectedExpression): void
+    {
+        $strategy = new NullnessSearchStrategy($negated);
+        $column   = TextColumn::new('id')->setField('id');
+
+        $search = new ColumnControlSearch(
+            value: '',
+            logic: ColumnControlLogic::from($strategy->getLogic()),
+            type: 'text'
+        );
+
+        $qb = $this->queryBuilderWithFieldType('id', 'uuid');
+        $qb->method('expr')->willReturn(new Expr());
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with($expectedExpression);
+
+        $strategy->apply($qb, $column, $search, 0, 'e');
+    }
+
     #[Test]
     #[DataProvider('logic_cases')]
     public function it_returns_expected_logic(bool $negated, string $expectedLogic): void
@@ -135,6 +164,15 @@ final class NullnessSearchStrategyTest extends TestCase
     {
         yield 'empty' => [false, 'e.sentAt IS NULL'];
         yield 'not empty' => [true, 'e.sentAt IS NOT NULL'];
+    }
+
+    /**
+     * @return iterable<string, array{bool, string}>
+     */
+    public static function uuid_column_cases(): iterable
+    {
+        yield 'empty' => [false, 'e.id IS NULL'];
+        yield 'not empty' => [true, 'e.id IS NOT NULL'];
     }
 
     /**

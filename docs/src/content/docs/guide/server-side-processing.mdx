@@ -177,7 +177,8 @@ The forwarded values are a snapshot taken when the page renders and are sent unc
 
 Columns mapped to a native identifier type — `guid`, `uuid`, `ulid`, `uuid_binary`, and
 `uuid_binary_ordered_time` — are searched by **exact identifier only**. Global search, per-column
-search, and text filters compare them with `=`, never with `LIKE`.
+search, and text filters compare them with `=`, never with `LIKE`. Column Control `empty` /
+`notEmpty` only test `IS NULL` / `IS NOT NULL`; they do not compare the identifier to `''`.
 
 PostgreSQL and SQL Server reject `LIKE` on those columns, which previously made any search request
 fail with an error such as:
