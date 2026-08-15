@@ -54,6 +54,18 @@ final class ActionTest extends TestCase
         ], $action->jsonSerialize());
     }
 
+    /**
+     * The serialized type is a cross-language contract: assets/src/controller.ts and
+     * assets/src/columnRenderers/actionColumnRenderer.ts branch on these exact literals.
+     */
+    #[Test]
+    public function it_serializes_the_action_types_the_frontend_branches_on(): void
+    {
+        $this->assertSame('DELETE', Action::delete()->jsonSerialize()['type']);
+        $this->assertSame('DETAIL', Action::detail()->jsonSerialize()['type']);
+        $this->assertSame('EDIT', Action::edit()->jsonSerialize()['type']);
+    }
+
     #[Test]
     public function it_creates_a_custom_action_with_its_own_name(): void
     {
