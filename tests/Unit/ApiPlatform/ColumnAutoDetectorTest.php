@@ -17,9 +17,11 @@ use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Tests\Fixtures\ApiPlatform\TestPropertyInfoExtractor;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\TypeInfo\Type;
 
@@ -40,34 +42,22 @@ final class ColumnAutoDetectorTest extends TestCase
             $this->markTestSkipped('API Platform is not installed.');
         }
 
-        $this->resourceMetadataFactory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
+        $this->resourceMetadataFactory = $this->createStub(ResourceMetadataCollectionFactoryInterface::class);
         $this->propertyNameFactory     = $this->createMock(PropertyNameCollectionFactoryInterface::class);
-        $this->propertyMetadataFactory = $this->createMock(PropertyMetadataFactoryInterface::class);
+        $this->propertyMetadataFactory = $this->createStub(PropertyMetadataFactoryInterface::class);
         $this->propertyInfoExtractor   = new TestPropertyInfoExtractor();
     }
 
     #[Test]
-    public function it_supports_api_resource(): void
+    #[TestWith([true])]
+    #[TestWith([false])]
+    public function it_supports_only_classes_exposed_as_api_resources(bool $isApiResource): void
     {
         $this->resourceMetadataFactory
             ->method('create')
-            ->willReturn(new ResourceMetadataCollection('Foo', [new ApiResource()]));
+            ->willReturn(new ResourceMetadataCollection('Foo', $isApiResource ? [new ApiResource()] : []));
 
-        $detector = $this->createDetector();
-
-        $this->assertTrue($detector->supports('App\Entity\Foo'));
-    }
-
-    #[Test]
-    public function it_does_not_support_non_api_resource(): void
-    {
-        $this->resourceMetadataFactory
-            ->method('create')
-            ->willReturn(new ResourceMetadataCollection('Foo', []));
-
-        $detector = $this->createDetector();
-
-        $this->assertFalse($detector->supports('App\Entity\Foo'));
+        $this->assertSame($isApiResource, $this->createDetector()->supports('App\Entity\Foo'));
     }
 
     #[Test]
@@ -77,93 +67,104 @@ final class ColumnAutoDetectorTest extends TestCase
             ->method('create')
             ->willThrowException(new \RuntimeException('Not found'));
 
-        $detector = $this->createDetector();
-
-        $this->assertFalse($detector->supports('App\Entity\Unknown'));
+        $this->assertFalse($this->createDetector()->supports('App\Entity\Unknown'));
     }
 
     #[Test]
     public function it_generates_correct_column_types(): void
     {
-        $this->propertyNameFactory
-            ->method('create')
-            ->willReturn(new PropertyNameCollection(['id', 'name', 'price', 'active']));
+        $this->givenProperties(['id', 'name', 'price', 'active']);
 
         $this->propertyMetadataFactory
             ->method('create')
-            ->willReturnCallback(function (string $class, string $property): ApiProperty {
-                return match ($property) {
-                    'id'     => (new ApiProperty())->withIdentifier(true)->withReadable(true),
-                    'name'   => (new ApiProperty())->withReadable(true),
-                    'price'  => (new ApiProperty())->withReadable(true),
-                    'active' => (new ApiProperty())->withReadable(true),
-                };
-            });
+            ->willReturnCallback(static fn (string $class, string $property): ApiProperty => 'id' === $property
+                ? (new ApiProperty())->withIdentifier(true)->withReadable(true)
+                : (new ApiProperty())->withReadable(true));
 
         $this->propertyInfoExtractor->setTypeResolver(
-            static function (string $class, string $property): ?Type {
-                return match ($property) {
-                    'id'     => Type::int(),
-                    'name'   => Type::string(),
-                    'price'  => Type::float(),
-                    'active' => Type::bool(),
-                    default  => null,
-                };
+            static fn (string $class, string $property): ?Type => match ($property) {
+                'id'     => Type::int(),
+                'name'   => Type::string(),
+                'price'  => Type::float(),
+                'active' => Type::bool(),
+                default  => null,
             }
         );
 
-        $detector = $this->createDetector();
-        $columns  = $detector->detectColumns('App\Entity\Product');
+        $columns = $this->createDetector()->detectColumns('App\Entity\Product');
 
-        $this->assertCount(4, $columns);
-
-        // id — NumberColumn, hidden (identifier)
-        $this->assertInstanceOf(NumberColumn::class, $columns[0]);
-        $this->assertSame('id', $columns[0]->getName());
-        $this->assertFalse($columns[0]->jsonSerialize()['visible']);
-
-        // name — TextColumn
-        $this->assertInstanceOf(TextColumn::class, $columns[1]);
-        $this->assertSame('name', $columns[1]->getName());
-
-        // price — NumberColumn
-        $this->assertInstanceOf(NumberColumn::class, $columns[2]);
-
-        // active — BooleanColumn
-        $this->assertInstanceOf(BooleanColumn::class, $columns[3]);
+        $this->assertSame(
+            [NumberColumn::class, TextColumn::class, NumberColumn::class, BooleanColumn::class],
+            array_map(static fn (ColumnInterface $column): string => $column::class, $columns)
+        );
+        $this->assertSame([
+            [
+                'data'       => 'id',
+                'name'       => 'id',
+                'orderable'  => true,
+                'searchable' => true,
+                'title'      => 'ID',
+                'type'       => 'num',
+                'visible'    => false,
+                'field'      => 'id',
+            ],
+            [
+                'data'       => 'name',
+                'name'       => 'name',
+                'orderable'  => true,
+                'searchable' => true,
+                'title'      => 'Name',
+                'type'       => 'string',
+                'visible'    => true,
+                'field'      => 'name',
+            ],
+            [
+                'data'       => 'price',
+                'name'       => 'price',
+                'orderable'  => true,
+                'searchable' => true,
+                'title'      => 'Price',
+                'type'       => 'num',
+                'visible'    => true,
+                'field'      => 'price',
+            ],
+            [
+                'data'       => 'active',
+                'name'       => 'active',
+                'orderable'  => true,
+                'searchable' => true,
+                'title'      => 'Active',
+                'type'       => 'num',
+                'visible'    => true,
+                'field'      => 'active',
+            ],
+        ], array_map(static fn (ColumnInterface $column): array => $column->jsonSerialize(), $columns));
     }
 
     #[Test]
     public function it_excludes_write_only_properties(): void
     {
-        $this->propertyNameFactory
-            ->method('create')
-            ->willReturn(new PropertyNameCollection(['name', 'password']));
+        $this->givenProperties(['name', 'password']);
 
         $this->propertyMetadataFactory
             ->method('create')
-            ->willReturnCallback(function (string $class, string $property): ApiProperty {
-                return match ($property) {
-                    'name'     => (new ApiProperty())->withReadable(true),
-                    'password' => (new ApiProperty())->withReadable(false),
-                };
-            });
+            ->willReturnCallback(static fn (string $class, string $property): ApiProperty => (new ApiProperty())
+                ->withReadable('password' !== $property));
 
         $this->propertyInfoExtractor->setTypeResolver(static fn (): ?Type => Type::string());
 
-        $detector = $this->createDetector();
-        $columns  = $detector->detectColumns('App\Entity\User');
+        $columns = $this->createDetector()->detectColumns('App\Entity\User');
 
-        $this->assertCount(1, $columns);
-        $this->assertSame('name', $columns[0]->getName());
+        $this->assertSame(['name'], array_map(
+            static fn (ColumnInterface $column): string => $column->getName(),
+            $columns
+        ));
     }
 
     #[Test]
     public function it_humanizes_labels(): void
     {
-        $this->propertyNameFactory
-            ->method('create')
-            ->willReturn(new PropertyNameCollection(['createdAt', 'first_name']));
+        $this->givenProperties(['createdAt', 'first_name', 'id', 'userId']);
 
         $this->propertyMetadataFactory
             ->method('create')
@@ -171,20 +172,12 @@ final class ColumnAutoDetectorTest extends TestCase
 
         $this->propertyInfoExtractor->setTypeResolver(static fn (): ?Type => Type::string());
 
-        $detector = $this->createDetector();
-        $columns  = $detector->detectColumns('App\Entity\User');
+        $columns = $this->createDetector()->detectColumns('App\Entity\User');
 
-        $this->assertSame('Created At', $columns[0]->jsonSerialize()['title']);
-        $this->assertSame('First Name', $columns[1]->jsonSerialize()['title']);
-    }
-
-    #[Test]
-    public function it_converts_id_to_uppercase(): void
-    {
-        $humanizer = new PropertyNameHumanizer();
-
-        $this->assertSame('ID', $humanizer->humanize('id'));
-        $this->assertSame('User ID', $humanizer->humanize('userId'));
+        $this->assertSame(['Created At', 'First Name', 'ID', 'User ID'], array_map(
+            static fn (ColumnInterface $column): string => $column->jsonSerialize()['title'],
+            $columns
+        ));
     }
 
     #[Test]
@@ -198,8 +191,17 @@ final class ColumnAutoDetectorTest extends TestCase
             ->with('App\Entity\Product', ['serializer_groups' => $groups])
             ->willReturn(new PropertyNameCollection([]));
 
-        $detector = $this->createDetector();
-        $detector->detectColumns('App\Entity\Product', $groups);
+        $this->createDetector()->detectColumns('App\Entity\Product', $groups);
+    }
+
+    /**
+     * @param string[] $properties
+     */
+    private function givenProperties(array $properties): void
+    {
+        $this->propertyNameFactory
+            ->method('create')
+            ->willReturn(new PropertyNameCollection($properties));
     }
 
     private function createDetector(): ColumnAutoDetector
