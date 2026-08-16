@@ -1,4 +1,12 @@
-@import 'tailwindcss';
+/*
+ * Layer order is the cascade contract: a component rule never has to outrank a
+ * base rule by selector weight, and nothing in here needs `!important`.
+ */
+@layer tokens, base, layout, components, prose;
 
-/* Class-based dark mode: toggled by `.dark` on <html> */
-@custom-variant dark (&:where(.dark, .dark *));
+@import './tokens.css';
+@import './base.css';
+@import './layout.css';
+@import './components.css';
+@import './home.css';
+@import './prose.css';
