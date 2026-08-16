@@ -13,10 +13,12 @@ use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
  * Default factory that normalizes a DataTableRequest plus configured columns into a
  * provider-neutral {@see DataTableQueryIntent}.
  *
- * This is the single place that resolves raw DataTables request indexes. Configured
- * columns are authoritative; request-only columns never create intent. Malformed
- * transport-level inputs (unknown indexes, empty searches) are dropped to preserve
- * the current no-op behaviour rather than raising errors.
+ * This is the single place that resolves raw DataTables request columns onto the
+ * configured table. Configured columns are authoritative; request-only columns never
+ * create intent. Matching is by column name, not display index: the client may prepend
+ * columns (Select checkbox mode unshifts one) that the server never configured.
+ * Malformed transport-level inputs (unknown names, empty searches) are dropped to
+ * preserve the current no-op behaviour rather than raising errors.
  */
 final class DefaultDataTableQueryIntentFactory implements DataTableQueryIntentFactoryInterface
 {
@@ -114,7 +116,7 @@ final class DefaultDataTableQueryIntentFactory implements DataTableQueryIntentFa
         }
 
         $order     = $request->order[0];
-        $reference = $references[$order->column] ?? null;
+        $reference = $this->referenceByName($references, $order->name);
 
         if (null === $reference || !$reference->orderable) {
             return null;
@@ -132,12 +134,12 @@ final class DefaultDataTableQueryIntentFactory implements DataTableQueryIntentFa
     {
         $searches = [];
 
-        foreach ($references as $index => $reference) {
+        foreach ($references as $reference) {
             if (!$reference->searchable || null === $reference->fieldPath) {
                 continue;
             }
 
-            $requestColumn = $request->columns->getColumnByIndex($index);
+            $requestColumn = $request->columns->getColumnByName($reference->name);
             if (null === $requestColumn) {
                 continue;
             }
@@ -162,12 +164,12 @@ final class DefaultDataTableQueryIntentFactory implements DataTableQueryIntentFa
     {
         $controls = [];
 
-        foreach ($references as $index => $reference) {
+        foreach ($references as $reference) {
             if (!$reference->searchable || null === $reference->fieldPath) {
                 continue;
             }
 
-            $requestColumn = $request->columns->getColumnByIndex($index);
+            $requestColumn = $request->columns->getColumnByName($reference->name);
             $columnControl = $requestColumn?->columnControl;
 
             if (null === $columnControl) {
@@ -218,5 +220,23 @@ final class DefaultDataTableQueryIntentFactory implements DataTableQueryIntentFa
     private function isNullnessLogic(ColumnControlLogic $logic): bool
     {
         return ColumnControlLogic::Empty === $logic || ColumnControlLogic::NotEmpty === $logic;
+    }
+
+    /**
+     * @param array<int, ColumnReadReference> $references
+     */
+    private function referenceByName(array $references, string $name): ?ColumnReadReference
+    {
+        if ('' === $name) {
+            return null;
+        }
+
+        foreach ($references as $reference) {
+            if ($reference->name === $name) {
+                return $reference;
+            }
+        }
+
+        return null;
     }
 }
