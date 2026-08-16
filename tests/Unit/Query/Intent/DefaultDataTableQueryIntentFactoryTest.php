@@ -49,10 +49,16 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
             null,
         ];
 
-        yield 'unknown column index' => [
+        yield 'unknown column name' => [
             TextColumn::new('name', 'Name')->setField('name'),
-            [new Order(5, 'asc', 'name')],
+            [new Order(5, 'asc', 'column_5')],
             null,
+        ];
+
+        yield 'order index shifted by a leading client column' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            [new Order(1, 'desc', 'name')],
+            SortDirection::Desc,
         ];
 
         yield 'non orderable column' => [
@@ -257,6 +263,44 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
         self::assertCount(2, $intent->columns);
         self::assertSame('name', $intent->columns[0]->name);
         self::assertSame('id', $intent->columns[1]->name);
+    }
+
+    #[Test]
+    public function it_maps_shifted_request_columns_by_name(): void
+    {
+        $name  = TextColumn::new('name', 'Name')->setField('name');
+        $email = TextColumn::new('email', 'Email')->setField('email');
+
+        $request = new DataTableRequest(
+            draw: 1,
+            columns: new Columns([
+                ''      => new Column('', '', false, false),
+                'name'  => new Column('name', 'name', true, true, new Search('alice', false)),
+                'email' => new Column(
+                    'email',
+                    'email',
+                    true,
+                    true,
+                    columnControl: new ColumnControl(search: new ColumnControlSearch('acme', ColumnControlLogic::Contains, 'text')),
+                ),
+            ]),
+            order: [new Order(2, 'asc', 'email')],
+        );
+
+        $intent = $this->intent($request, $name, $email);
+
+        self::assertNotNull($intent->order);
+        self::assertSame('email', $intent->order->column->name);
+        self::assertSame(SortDirection::Asc, $intent->order->direction);
+
+        self::assertCount(1, $intent->columnSearches);
+        self::assertSame('name', $intent->columnSearches[0]->column->name);
+        self::assertSame('alice', $intent->columnSearches[0]->value);
+
+        self::assertCount(1, $intent->columnControls);
+        self::assertSame('email', $intent->columnControls[0]->column->name);
+        self::assertSame(ColumnControlLogic::Contains, $intent->columnControls[0]->logic);
+        self::assertSame('acme', $intent->columnControls[0]->value);
     }
 
     #[Test]
