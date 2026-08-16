@@ -1,0 +1,364 @@
+/*
+ * Home page only. The rest of the site is a Read surface; this one page is
+ * allowed to persuade, so it gets the wide grid, the working sample table, and
+ * the only display-size heading in the build.
+ */
+@layer components {
+  .hero {
+    align-items: center;
+    display: grid;
+    gap: var(--space-12);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    padding-block: var(--space-20) var(--space-16);
+  }
+
+  .hero h1 {
+    font-size: var(--text-4xl);
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+    margin: 0;
+    max-width: 14ch;
+  }
+
+  .hero-lede {
+    color: var(--text-muted);
+    font-size: var(--text-lg);
+    line-height: var(--leading-normal);
+    margin: var(--space-6) 0 0;
+    max-width: 46ch;
+    text-wrap: pretty;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-8);
+  }
+
+  .hero-install {
+    margin-top: var(--space-8);
+  }
+
+  /* ---- Sample table ---------------------------------------------------
+     The one moment on the site where the reader can operate the thing being
+     documented: real columns, a real sort, and the same grid vocabulary the
+     documentation shell uses. */
+  .mock {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-2);
+    margin: 0;
+    padding: var(--space-2) var(--space-2) var(--space-3);
+  }
+
+  .mock-table {
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+    width: 100%;
+  }
+
+  .mock-table :is(th, td) {
+    padding: var(--space-3) var(--space-4);
+    text-align: left;
+  }
+
+  .mock-numeric {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  /* The frozen header row: its own ground, and the only sort control. */
+  .mock-table thead th {
+    background: var(--header-freeze);
+    border-bottom: 1px solid var(--border-strong);
+    font-family: var(--font-display);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    padding: 0;
+    text-transform: uppercase;
+  }
+
+  .mock-table thead th:first-child {
+    border-top-left-radius: var(--radius-md);
+  }
+
+  .mock-table thead th:last-child {
+    border-top-right-radius: var(--radius-md);
+  }
+
+  .mock-table thead button {
+    align-items: center;
+    background: none;
+    border: 0;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    width: 100%;
+  }
+
+  .mock-table .mock-numeric button {
+    justify-content: flex-end;
+  }
+
+  .mock-table thead button:hover {
+    color: var(--accent);
+  }
+
+  /* The caret is the sort direction, drawn from the header itself: neutral
+     until a column is chosen, then pointing the way the rows now read. */
+  .mock-table thead button::after {
+    border-bottom: 4px solid currentColor;
+    border-inline: 4px solid transparent;
+    content: '';
+    height: 0;
+    opacity: 0.3;
+    transition: transform var(--duration-fast) var(--ease-out);
+    width: 0;
+  }
+
+  .mock-table th[aria-sort='ascending'] button,
+  .mock-table th[aria-sort='descending'] button {
+    color: var(--accent);
+  }
+
+  .mock-table th[aria-sort='ascending'] button::after,
+  .mock-table th[aria-sort='descending'] button::after {
+    opacity: 1;
+  }
+
+  .mock-table th[aria-sort='descending'] button::after {
+    transform: rotate(180deg);
+  }
+
+  .mock-table tbody :is(th, td) {
+    border-bottom: 1px solid var(--rule);
+    font-weight: 400;
+  }
+
+  .mock-table tbody th {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  /* Zebra on hover only: the row under the pointer is the one being read. */
+  .mock-table tbody tr:hover {
+    background: var(--row-hover);
+  }
+
+  .mock-table tbody tr:last-child :is(th, td) {
+    border-bottom: 0;
+  }
+
+  .mock-status {
+    border: 1px solid currentColor;
+    border-radius: var(--radius-full);
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    letter-spacing: var(--tracking-wide);
+    padding: 2px var(--space-2);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .mock-status-paid {
+    color: var(--tip-fg);
+  }
+
+  .mock-status-review {
+    color: var(--warning-fg);
+  }
+
+  .mock-status-shipped {
+    color: var(--accent);
+  }
+
+  .mock figcaption {
+    color: var(--text-subtle);
+    font-size: var(--text-xs);
+    padding: var(--space-3) var(--space-4) 0;
+    text-wrap: pretty;
+  }
+
+  /* The one authored motion moment: after a sort, the rows settle into their
+     new positions in reading order instead of teleporting. */
+  @media (prefers-reduced-motion: no-preference) {
+    .mock-table tbody.is-sorting tr {
+      animation: row-settle var(--duration-base) var(--ease-out) both;
+      animation-delay: calc(var(--row-index, 0) * 45ms);
+    }
+  }
+
+  @keyframes row-settle {
+    from {
+      opacity: 0;
+      transform: translateY(-0.4rem);
+    }
+  }
+
+  /* ---- Sections ------------------------------------------------------- */
+  .home-section {
+    border-top: 1px solid var(--border);
+    padding-block: var(--space-16);
+  }
+
+  .home-section > h2 {
+    font-size: var(--text-2xl);
+    margin: 0 0 var(--space-8);
+  }
+
+  .mode-cards,
+  .home-sections {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  }
+
+  .mode-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    color: inherit;
+    display: block;
+    padding: var(--space-6);
+    text-decoration: none;
+    transition:
+      border-color var(--duration-fast) var(--ease-out),
+      transform var(--duration-fast) var(--ease-out);
+  }
+
+  .mode-card:hover {
+    border-color: var(--accent-border);
+    transform: translateY(-2px);
+  }
+
+  .mode-card h3 {
+    font-size: var(--text-lg);
+    margin: 0;
+  }
+
+  .mode-card p {
+    color: var(--text-muted);
+    margin: var(--space-3) 0 var(--space-5);
+    text-wrap: pretty;
+  }
+
+  .mode-card-cue {
+    align-items: center;
+    color: var(--accent);
+    display: inline-flex;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    gap: var(--space-2);
+  }
+
+  .mode-card:hover .mode-card-cue .icon {
+    transform: translateX(2px);
+  }
+
+  .mode-card-cue .icon {
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  /* ---- Copy beside code ----------------------------------------------- */
+  .split {
+    align-items: start;
+    display: grid;
+    gap: var(--space-10);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+
+  .split h2 {
+    font-size: var(--text-2xl);
+    margin: 0 0 var(--space-5);
+  }
+
+  .split-copy p {
+    color: var(--text-muted);
+    margin: 0 0 var(--space-4);
+    max-width: 48ch;
+    text-wrap: pretty;
+  }
+
+  /* ---- Section index cards -------------------------------------------- */
+  .home-section-card {
+    border-top: 2px solid var(--accent);
+    padding-top: var(--space-5);
+  }
+
+  .home-section-title {
+    align-items: center;
+    color: var(--text);
+    display: inline-flex;
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    gap: var(--space-2);
+    text-decoration: none;
+  }
+
+  .home-section-title:hover {
+    color: var(--accent);
+  }
+
+  .home-section-card > p {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    margin: var(--space-2) 0 var(--space-4);
+    text-wrap: pretty;
+  }
+
+  .home-section-card ul {
+    display: grid;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .home-section-card a:not(.home-section-title) {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    text-decoration: none;
+  }
+
+  .home-section-card a:not(.home-section-title):hover {
+    color: var(--accent);
+  }
+
+  @media (max-width: 999px) {
+    .hero,
+    .split {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .hero {
+      gap: var(--space-10);
+      padding-block: var(--space-12) var(--space-10);
+    }
+
+    .hero h1 {
+      max-width: none;
+    }
+
+    .home-section {
+      padding-block: var(--space-12);
+    }
+  }
+
+  @media (max-width: 599px) {
+    .mock-table :is(th, td),
+    .mock-table thead button {
+      padding-inline: var(--space-3);
+    }
+
+    .mock-table thead th:nth-child(2),
+    .mock-table tbody td:nth-child(2) {
+      display: none;
+    }
+  }
+}

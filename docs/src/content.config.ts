@@ -4,18 +4,14 @@ import { glob } from 'astro/loaders'
 
 const docs = defineCollection({
   loader: glob({ pattern: '**/*.{md,mdx}', base: './src/content/docs' }),
-  schema: z
-    .object({
-      title: z.string(),
-      description: z.string().optional(),
-      sidebar: z
-        .object({
-          label: z.string().optional(),
-          order: z.number().optional(),
-        })
-        .optional(),
-    })
-    .passthrough(),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    /** Rank in the sidebar and the pager. Unranked pages sort last. */
+    order: z.number().optional(),
+    /** Shorter label for the sidebar when the page title is long. */
+    navTitle: z.string().optional(),
+  }),
 })
 
 export const collections = { docs }

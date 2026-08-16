@@ -1,33 +1,35 @@
 ---
+import Icon from './Icon.astro'
+import type { IconName } from './Icon.astro'
+
+type Tone = 'note' | 'tip' | 'warning' | 'danger'
+
 interface Props {
-  type?: 'note' | 'tip' | 'caution' | 'danger'
+  /** `caution` is an authoring alias kept for existing pages; it renders as `warning`. */
+  type?: Tone | 'caution'
   title?: string
 }
 
 const { type = 'note', title } = Astro.props
+const tone: Tone = type === 'caution' ? 'warning' : type
 
-const colors = {
-  note: 'bg-blue-500/10 border-blue-500/20 text-blue-700 dark:text-blue-300',
-  tip: 'bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-300',
-  caution: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-700 dark:text-yellow-300',
-  danger: 'bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-300',
+const defaults: Record<Tone, { title: string; icon: IconName }> = {
+  note: { title: 'Note', icon: 'note' },
+  tip: { title: 'Tip', icon: 'tip' },
+  warning: { title: 'Watch out', icon: 'warning' },
+  danger: { title: 'Security', icon: 'danger' },
 }
 
-const titleColors = {
-  note: 'text-blue-600 dark:text-blue-400',
-  tip: 'text-green-600 dark:text-green-400',
-  caution: 'text-yellow-600 dark:text-yellow-400',
-  danger: 'text-red-600 dark:text-red-400',
-}
+// Titles name options and functions, so they carry Markdown code spans.
+const segments = (title ?? defaults[tone].title).split('`')
 ---
 
-<aside class={`my-6 p-4 rounded-lg border ${colors[type]}`}>
-  {
-    title && (
-      <p class={`mb-2 text-xs font-bold tracking-wider uppercase ${titleColors[type]}`}>{title}</p>
-    )
-  }
-  <div class="prose-sm">
+<aside class:list={['aside', `aside-${tone}`]}>
+  <p class="aside-title">
+    <Icon name={defaults[tone].icon} size={18} />
+    {segments.map((segment, i) => (i % 2 === 1 ? <code>{segment}</code> : segment))}
+  </p>
+  <div class="aside-body">
     <slot />
   </div>
 </aside>
