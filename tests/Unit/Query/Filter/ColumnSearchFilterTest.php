@@ -165,6 +165,32 @@ final class ColumnSearchFilterTest extends TestCase
     }
 
     #[Test]
+    public function it_applies_column_search_when_the_request_prepends_a_client_only_column(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('e.name LIKE :column_search_param_0');
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_search_param_0', '%alice%');
+
+        $requestColumns = new Columns([
+            ''     => new Column('', '', false, false),
+            'name' => new Column('name', 'name', true, true, new Search('alice', false)),
+        ]);
+
+        $context = $this->context(new DataTableRequest(1, $requestColumns), [
+            TextColumn::new('name', 'Name')->setField('name'),
+        ]);
+
+        (new ColumnSearchFilter())->apply($qb, $context);
+    }
+
+    #[Test]
     public function it_applies_multiple_column_searches_with_and_logic(): void
     {
         $qb = $this->createMock(QueryBuilder::class);
