@@ -47,7 +47,7 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
         $value    = $search->value;
 
         if (null !== $uuidType) {
-            $value = UuidSearchTerm::normalize($value);
+            $value = UuidSearchTerm::normalize($value, $uuidType);
 
             if (null === $value) {
                 return;

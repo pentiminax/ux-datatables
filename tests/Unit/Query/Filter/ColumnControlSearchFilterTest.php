@@ -122,6 +122,17 @@ final class ColumnControlSearchFilterTest extends TestCase
         yield 'partial identifier' => [['018f2c3e']];
         yield 'unhyphenated uuid' => [['018f2c3e12347abc9def0123456789ab']];
         yield 'only junk' => [['not-a-uuid', '']];
+        yield 'ulid on a guid column' => [[self::ULID]];
+    }
+
+    #[Test]
+    public function it_skips_a_uuid_list_on_an_ulid_column(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('id', 'ulid');
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+
+        $this->applyList($qb, TextColumn::new('id')->setField('id'), [self::UUID]);
     }
 
     #[Test]
@@ -164,11 +175,25 @@ final class ColumnControlSearchFilterTest extends TestCase
             ['e.id = :id_in_0'],
         ];
 
+        yield 'guid list drops a ulid' => [
+            'guid',
+            [self::UUID, self::ULID],
+            [['id_in_0', self::UUID, 'guid']],
+            ['e.id = :id_in_0'],
+        ];
+
         yield 'ulid list' => [
             'ulid',
             [self::ULID],
             [['id_in_0', self::ULID, 'ulid']],
             ['e.id = :id_in_0'],
+        ];
+
+        yield 'ulid list drops a uuid' => [
+            'ulid',
+            [self::UUID, self::ULID],
+            [['id_in_1', self::ULID, 'ulid']],
+            ['e.id = :id_in_1'],
         ];
 
         yield 'binary uuid list of two values' => [
