@@ -78,8 +78,8 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
     /**
      * Native UUID/ULID columns reject both `IN ('')` and a raw string bound with an
      * identifier Doctrine type. Keep the same skip/equality contract as the scalar
-     * search strategies: drop malformed terms, and bind survivors with the field type
-     * so `ulid` / `uuid_binary` still convert to the stored representation.
+     * search strategies: drop malformed or cross-type terms, and bind survivors with
+     * the field type so `ulid` / `uuid_binary` still convert to the stored representation.
      *
      * @param list<mixed> $values
      */
@@ -92,7 +92,7 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
                 continue;
             }
 
-            $identifier = UuidSearchTerm::normalize((string) $value);
+            $identifier = UuidSearchTerm::normalize((string) $value, $uuidType);
             if (null === $identifier) {
                 continue;
             }

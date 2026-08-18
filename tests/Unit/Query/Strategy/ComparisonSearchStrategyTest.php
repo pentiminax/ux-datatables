@@ -95,6 +95,34 @@ final class ComparisonSearchStrategyTest extends TestCase
     }
 
     #[Test]
+    public function it_skips_a_ulid_on_a_guid_column(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('id', 'guid');
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+
+        $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
+        $column   = TextColumn::new('id')->setField('id');
+        $search   = new ColumnControlSearch('01ARZ3NDEKTSV4RRFFQ69G5FAV', ColumnControlLogic::Equal, 'text');
+
+        $strategy->apply($qb, $column, $search, 3, 'e');
+    }
+
+    #[Test]
+    public function it_skips_a_uuid_on_an_ulid_column(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('id', 'ulid');
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+
+        $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
+        $column   = TextColumn::new('id')->setField('id');
+        $search   = new ColumnControlSearch('018f2c3e-1234-7abc-9def-0123456789ab', ColumnControlLogic::Equal, 'text');
+
+        $strategy->apply($qb, $column, $search, 3, 'e');
+    }
+
+    #[Test]
     public function it_returns_logic_value(): void
     {
         $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Ends);
