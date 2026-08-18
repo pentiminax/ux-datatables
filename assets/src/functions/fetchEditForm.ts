@@ -9,13 +9,13 @@ type FetchEditFormResponse = {
 }
 
 export async function fetchEditForm(payload: FetchEditFormPayload): Promise<FetchEditFormResponse> {
-    const params = new URLSearchParams({
-        dataTable: payload.dataTable,
-        id: payload.id,
-    })
-
-    const response = await fetch(`/datatables/ajax/edit-form?${params}`, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    const response = await fetch('/datatables/ajax/edit-form/view', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ dataTable: payload.dataTable, id: payload.id }),
     })
 
     return response.json()
