@@ -107,6 +107,15 @@ final class SearchPredicateFactoryTest extends TestCase
             null,
         ];
 
+        yield 'guid field with ulid value' => [
+            TextColumn::new('id', 'ID')->setField('id'),
+            'guid',
+            self::ULID,
+            false,
+            null,
+            null,
+        ];
+
         yield 'ulid field with ulid value' => [
             TextColumn::new('id', 'ID')->setField('id'),
             'ulid',
@@ -114,6 +123,15 @@ final class SearchPredicateFactoryTest extends TestCase
             false,
             'e.id = :p_0',
             ['p_0', self::ULID, 'ulid'],
+        ];
+
+        yield 'ulid field with uuid value' => [
+            TextColumn::new('id', 'ID')->setField('id'),
+            'ulid',
+            self::UUID,
+            false,
+            null,
+            null,
         ];
 
         yield 'binary uuid field with uuid value' => [
