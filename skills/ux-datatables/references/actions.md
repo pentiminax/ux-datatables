@@ -88,7 +88,7 @@ public function configureActions(Actions $actions): Actions
 }
 ```
 
-- Loaded lazily via `GET /datatables/ajax/detail` (frontend `fetchDetailRow`). **Requires the bundle routes imported** — same import as server-side (see `server-side.md`); without it the toggle does nothing.
+- Loaded lazily via `POST /datatables/ajax/detail` (frontend `fetchDetailRow`). **Requires the bundle routes imported** — same import as server-side (see `server-side.md`); without it the toggle does nothing.
 - `collapsible()` is meaningful only on `Action::detail()`. It is mutually exclusive with `linkToUrl()` in practice (an expand toggle, not a link).
 - Template example: `<div>{{ entity.email }}</div>` — `entity` is the resolved Doctrine entity / source row.
 

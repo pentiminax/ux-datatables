@@ -4,69 +4,79 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Detail;
 
+use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
-use Pentiminax\UX\DataTables\Dto\AjaxDetailQueryDto;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
-use Psr\Container\ContainerInterface;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use Twig\Environment;
 
 final readonly class DetailRowService
 {
+    private PermissionChecker $permissionChecker;
+
     public function __construct(
-        private ContainerInterface $dataTables,
         private EntityLocator $locator,
         private ?Environment $twig = null,
+        ?PermissionChecker $permissionChecker = null,
     ) {
+        $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
     }
 
-    public function handleView(AjaxDetailQueryDto $payload): DetailRowResult
+    public function handleView(ResolvedDataTable $dataTable, int|string $id): DetailRowResult
     {
         if (null === $this->twig) {
             return DetailRowResult::badRequest('Twig is required to render a detail row.');
         }
 
-        if (null === $payload->dataTableClass) {
-            return DetailRowResult::badRequest('A detail row requires a DataTable class (AbstractDataTable).');
-        }
-
-        $action = $this->resolveCollapsibleDetailAction($payload->dataTableClass);
+        $action = $this->resolveCollapsibleDetailAction($dataTable->table);
 
         if (null === $action) {
             return DetailRowResult::badRequest('No collapsible detail action is configured for this DataTable.');
         }
 
         try {
-            $context = $this->locator->locate($payload->entity, $payload->id);
+            $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
         } catch (EntityNotFoundException) {
             return DetailRowResult::notFound();
         }
 
-        $parameters = [
-            'entity' => $context->entity,
-        ];
+        if (!$this->isGranted($action, $context->entity)) {
+            return DetailRowResult::forbidden();
+        }
 
-        $parameters = array_merge($parameters, $action->getCollapsibleParameters());
-        $html       = $this->twig->render($action->getCollapsibleTemplate(), $parameters);
+        $parameters = array_merge(['entity' => $context->entity], $action->getCollapsibleParameters());
 
-        return DetailRowResult::success($html);
+        return DetailRowResult::success($this->twig->render($action->getCollapsibleTemplate(), $parameters));
     }
 
-    private function resolveCollapsibleDetailAction(string $dataTableClass): ?Action
+    /**
+     * Mirrors the permission the rendering pipeline evaluates for this action, so an
+     * action the user cannot see is also an action they cannot fetch. A per-row
+     * resolver receives the located entity, which is the row source for the Doctrine
+     * tables that can reach this endpoint. Actions without a configured permission
+     * fall back to VIEW on the entity, matching DELETE and EDIT elsewhere.
+     */
+    private function isGranted(Action $action, object $entity): bool
     {
-        if (!$this->dataTables->has($dataTableClass)) {
-            return null;
+        if ($action->hasPerRowPermission()) {
+            $resolver = $action->getPermissionSubjectResolver();
+
+            return $this->permissionChecker->isGranted((string) $action->getPermission(), $resolver($entity));
         }
 
-        $dataTable = $this->dataTables->get($dataTableClass);
-
-        if (!$dataTable instanceof AbstractDataTable) {
-            return null;
+        if ($action->hasStaticPermission()) {
+            return $this->permissionChecker->isGranted((string) $action->getPermission());
         }
 
+        return $this->permissionChecker->isGranted('VIEW', $entity);
+    }
+
+    private function resolveCollapsibleDetailAction(AbstractDataTable $dataTable): ?Action
+    {
         foreach ($dataTable->getConfiguredDataTable()->getColumns() as $column) {
             if (!$column instanceof ActionsProvidingColumnInterface) {
                 continue;

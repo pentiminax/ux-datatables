@@ -7,10 +7,10 @@ namespace Pentiminax\UX\DataTables\Dto;
 final readonly class AjaxEditRequestDto
 {
     public function __construct(
-        public string $field,
-        public int|string $id,
-        public bool $newValue,
         public string $dataTable,
+        public int|string $id,
+        public string $field,
+        public bool $newValue,
     ) {
     }
 }

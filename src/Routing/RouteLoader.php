@@ -39,9 +39,9 @@ final class RouteLoader implements RouteLoaderInterface
         ));
 
         $routes->add('ux_datatables_ajax_edit_form', new Route(
-            path: '/datatables/ajax/edit-form',
+            path: '/datatables/ajax/edit-form/view',
             defaults: ['_controller' => 'datatables.controller.ajax_edit_form'],
-            methods: ['GET'],
+            methods: ['POST'],
         ));
 
         $routes->add('ux_datatables_ajax_edit_form_submit', new Route(
@@ -53,7 +53,7 @@ final class RouteLoader implements RouteLoaderInterface
         $routes->add('ux_datatables_ajax_detail', new Route(
             path: '/datatables/ajax/detail',
             defaults: ['_controller' => 'datatables.controller.ajax_detail'],
-            methods: ['GET'],
+            methods: ['POST'],
         ));
 
         return $routes;

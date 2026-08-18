@@ -22,9 +22,9 @@ final class AjaxDataController
 
     public function __invoke(Request $request): JsonResponse
     {
-        $token = $request->query->get('table');
+        $token = $request->query->getString('table');
 
-        if (!\is_string($token) || '' === $token) {
+        if ('' === $token) {
             throw new NotFoundHttpException('DataTable not found.');
         }
 

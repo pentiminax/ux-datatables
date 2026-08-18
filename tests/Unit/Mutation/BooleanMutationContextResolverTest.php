@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
+use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContext;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
@@ -61,7 +62,7 @@ final class BooleanMutationContextResolverTest extends TestCase
     #[Test]
     public function it_rejects_an_unknown_datatable_token_before_any_mutation_context_is_created(): void
     {
-        $this->expectException(InvalidBooleanMutationContextException::class);
+        $this->expectException(InvalidDataTableTokenException::class);
         $this->expectExceptionMessage('Invalid DataTable token.');
 
         $this->resolver(SwitchableBooleanDataTableFixture::class)->resolve('not-a-valid-token', 'enabled');
@@ -70,7 +71,7 @@ final class BooleanMutationContextResolverTest extends TestCase
     #[Test]
     public function it_rejects_a_datatable_without_an_entity_class(): void
     {
-        $this->expectException(InvalidBooleanMutationContextException::class);
+        $this->expectException(InvalidDataTableTokenException::class);
         $this->expectExceptionMessage('must define an entity class');
 
         $this->resolve(MissingEntityClassDataTableFixture::class, 'enabled');
@@ -144,7 +145,7 @@ final class BooleanMutationContextResolverTest extends TestCase
             $this->createStub(ContainerInterface::class),
             new AjaxDataTableTokenManager(self::TOKEN_SECRET),
             [$dataTableClass => 'table'],
-        ))->getBooleanMutationToken($dataTableClass);
+        ))->getActionToken($dataTableClass);
 
         $this->assertNotNull($token);
 

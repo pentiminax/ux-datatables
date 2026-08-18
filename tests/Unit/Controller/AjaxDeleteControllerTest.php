@@ -7,12 +7,15 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Controller;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Dto\AjaxDeleteRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
+use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
@@ -41,6 +44,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(AjaxDeleteController::class)]
 final class AjaxDeleteControllerTest extends TestCase
 {
+    private const string TOKEN_SECRET = 'test-secret';
+
     #[Test]
     public function it_removes_the_entity_and_returns_success(): void
     {
@@ -67,10 +72,10 @@ final class AjaxDeleteControllerTest extends TestCase
             ->with(new CsrfToken(MutationTokenValidator::TOKEN_ID, 'valid-token'))
             ->willReturn(true);
 
-        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager));
+        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry());
 
         $response = $controller($this->createRequest(), new AjaxDeleteRequestDto(
-            entity: DeletableEntityFixture::class,
+            dataTable: $this->dataTableToken(),
             id: 12,
         ));
 
@@ -80,7 +85,7 @@ final class AjaxDeleteControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_forwards_the_data_table_class_from_the_payload_and_publishes_its_own_mercure_topics(): void
+    public function it_derives_the_data_table_class_from_the_token_and_publishes_its_own_mercure_topics(): void
     {
         $registry = $this->createDoctrine(12, new DeletableEntityFixture());
 
@@ -90,7 +95,7 @@ final class AjaxDeleteControllerTest extends TestCase
             ->with(['/manual/deletable-entity-fixtures'], ['type' => 'delete', 'id' => 12]);
 
         // The bare entity-class resolver would publish a *different* topic;
-        // it must not be consulted once the payload's dataTableClass resolves.
+        // it must not be consulted once the token's data table resolves.
         $resolver = $this->createMock(MercureConfigResolverInterface::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
@@ -115,12 +120,11 @@ final class AjaxDeleteControllerTest extends TestCase
         $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
 
-        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager));
+        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry($dataTable));
 
         $controller($this->createRequest(), new AjaxDeleteRequestDto(
-            entity: DeletableEntityFixture::class,
+            dataTable: $this->dataTableToken(),
             id: 12,
-            dataTableClass: DeletableEntityFixtureDataTable::class,
         ));
     }
 
@@ -136,7 +140,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $controller = $this->createController($registry, $csrfTokenManager);
 
         $this->expectException(InvalidCsrfTokenException::class);
-        $controller($this->createRequest('wrong-token'), new AjaxDeleteRequestDto(entity: DeletableEntityFixture::class, id: 12));
+        $controller($this->createRequest('wrong-token'), new AjaxDeleteRequestDto(dataTable: $this->dataTableToken(), id: 12));
     }
 
     #[Test]
@@ -151,7 +155,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $controller = $this->createController($registry, $csrfTokenManager);
 
         $this->expectException(InvalidCsrfTokenException::class);
-        $controller(new Request(), new AjaxDeleteRequestDto(entity: DeletableEntityFixture::class, id: 12));
+        $controller(new Request(), new AjaxDeleteRequestDto(dataTable: $this->dataTableToken(), id: 12));
     }
 
     #[Test]
@@ -163,7 +167,22 @@ final class AjaxDeleteControllerTest extends TestCase
         $controller = $this->createController($this->createDoctrine(404, null), $csrfTokenManager);
 
         $this->expectException(EntityNotFoundException::class);
-        $controller($this->createRequest(), new AjaxDeleteRequestDto(entity: DeletableEntityFixture::class, id: 404));
+        $controller($this->createRequest(), new AjaxDeleteRequestDto(dataTable: $this->dataTableToken(), id: 404));
+    }
+
+    #[Test]
+    public function it_rejects_an_unknown_data_table_token_before_touching_the_entity(): void
+    {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManagerForClass');
+
+        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+
+        $controller = $this->createController($registry, $csrfTokenManager);
+
+        $this->expectException(InvalidDataTableTokenException::class);
+        $controller($this->createRequest(), new AjaxDeleteRequestDto(dataTable: 'forged-token', id: 12));
     }
 
     /**
@@ -206,7 +225,29 @@ final class AjaxDeleteControllerTest extends TestCase
                 new PermissionChecker(),
             ),
             new MutationTokenValidator($csrfTokenManager),
+            $this->registry(),
         );
+    }
+
+    private function registry(?AbstractDataTable $dataTable = null): AjaxDataTableRegistry
+    {
+        $locator = $this->createMock(ContainerInterface::class);
+        $locator->method('get')->with('deletable_table')->willReturn($dataTable ?? new DeletableEntityFixtureDataTable());
+
+        return new AjaxDataTableRegistry(
+            $locator,
+            new AjaxDataTableTokenManager(self::TOKEN_SECRET),
+            [DeletableEntityFixtureDataTable::class => 'deletable_table'],
+        );
+    }
+
+    private function dataTableToken(): string
+    {
+        $token = $this->registry()->getActionToken(DeletableEntityFixtureDataTable::class);
+
+        $this->assertNotNull($token);
+
+        return $token;
     }
 
     private function createRequest(string $token = 'valid-token'): Request

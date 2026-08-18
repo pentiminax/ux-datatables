@@ -195,8 +195,8 @@ class default_1 extends Controller {
                 return;
             }
             const actionType = actionButton.getAttribute('data-action-type');
-            const entity = actionButton.getAttribute('data-entity');
             const id = actionButton.getAttribute('data-id');
+            const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : '';
             const confirmMessage = actionButton.getAttribute('data-confirm');
             if (confirmMessage && !confirm(confirmMessage)) {
                 e.preventDefault();
@@ -208,7 +208,7 @@ class default_1 extends Controller {
                 await this.executeAjaxAction(actionButton, ajaxMethod, payload);
                 return;
             }
-            if (actionType === 'DETAIL' && entity && id) {
+            if (actionType === 'DETAIL' && dataTable && id) {
                 e.preventDefault();
                 const rowElement = actionButton.closest('tr');
                 const row = rowElement ? this.table?.row(rowElement) : null;
@@ -220,47 +220,38 @@ class default_1 extends Controller {
                     actionButton.classList.remove('expanded');
                     return;
                 }
-                const result = await fetchDetailRow({
-                    entity,
-                    id,
-                    dataTableClass: payload.dataTableClass ?? null,
-                });
+                const result = await fetchDetailRow({ dataTable, id });
                 if (result.success) {
                     row.child(result.html).show();
                     actionButton.classList.add('expanded');
                 }
             }
-            if (actionType === 'DELETE' && entity && id) {
+            if (actionType === 'DELETE' && dataTable && id) {
                 e.preventDefault();
                 const response = await deleteEntity({
-                    entity,
+                    dataTable,
                     id,
-                    dataTableClass: payload.dataTableClass ?? null,
                     csrfToken: this.getCsrfToken(payload),
                 });
                 if (response.ok) {
                     this.table?.ajax?.reload(null, false);
                 }
             }
-            if (actionType === 'EDIT' && entity && id) {
+            if (actionType === 'EDIT' && dataTable && id) {
                 e.preventDefault();
                 const modalConfig = payload.editModal ?? {};
                 const modal = await resolveModalAdapter(modalConfig.adapter ?? null, this.framework);
                 if (!modal)
                     return;
-                const result = await fetchEditForm({
-                    entity,
-                    id,
-                    dataTableClass: payload.dataTableClass ?? null,
-                });
+                const result = await fetchEditForm({ dataTable, id });
                 if (result.success) {
                     await modal.show(result.html, {
                         onSubmit: async (formData) => {
                             const submitResult = await submitEditForm({
-                                entity,
+                                dataTable,
                                 id,
                                 formData,
-                                dataTableClass: payload.dataTableClass ?? null,
+                                csrfToken: this.getCsrfToken(payload),
                             });
                             if (submitResult.success) {
                                 await modal.hide();

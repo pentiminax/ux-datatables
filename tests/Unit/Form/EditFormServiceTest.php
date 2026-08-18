@@ -8,11 +8,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
-use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
-use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormResult;
@@ -64,12 +63,7 @@ final class EditFormServiceTest extends TestCase
             ->with(EditFormServiceFixture::class)
             ->willReturn(null);
 
-        $result = $this->handleWithoutFormCollaborators(
-            handler: $handler,
-            registry: $registry,
-            dataTableClass: EditFormServiceFixtureDataTable::class,
-            dataTables: $this->registeredDataTables(EditFormServiceFixtureDataTable::class, new EditFormServiceFixtureDataTable()),
-        );
+        $result = $this->handleWithoutFormCollaborators(handler: $handler, registry: $registry);
 
         $this->assertFalse($result->success);
         $this->assertSame(404, $result->statusCode);
@@ -99,11 +93,7 @@ final class EditFormServiceTest extends TestCase
             dataTables: $this->registeredDataTables(EditFormServiceFixtureDataTable::class, new EditFormServiceFixtureDataTable()),
         );
 
-        $result = $service->handleView(new AjaxEditFormQueryDto(
-            entity: EditFormServiceFixture::class,
-            id: '42',
-            dataTableClass: EditFormServiceFixtureDataTable::class,
-        ));
+        $result = $service->handleView($this->resolved(new EditFormServiceFixtureDataTable()), '42');
 
         $this->assertTrue($result->success);
         $this->assertSame('<div>ok</div>', $result->html);
@@ -138,12 +128,7 @@ final class EditFormServiceTest extends TestCase
             dataTables: $this->registeredDataTables(EditFormServiceFixtureDataTable::class, new EditFormServiceFixtureDataTable()),
         );
 
-        $result = $service->handleSubmit(new AjaxEditFormRequestDto(
-            entity: EditFormServiceFixture::class,
-            id: 42,
-            formData: ['name' => 'Alice'],
-            dataTableClass: EditFormServiceFixtureDataTable::class,
-        ));
+        $result = $service->handleSubmit($this->resolved(new EditFormServiceFixtureDataTable()), 42, ['name' => 'Alice']);
 
         $this->assertFalse($result->success);
         $this->assertSame('<form>invalid</form>', $result->html);
@@ -166,8 +151,7 @@ final class EditFormServiceTest extends TestCase
         $result = $this->handleValidSubmit(
             publisher: new MercureUpdatePublisher($hub),
             mercureConfigResolver: $this->resolverReturning(['/topic/42']),
-            dataTables: $this->registeredDataTables(EditFormServiceFixtureDataTable::class, new EditFormServiceFixtureDataTable()),
-            dataTableClass: EditFormServiceFixtureDataTable::class,
+            dataTable: new EditFormServiceFixtureDataTable(),
         );
 
         $this->assertTrue($result->success);
@@ -189,8 +173,7 @@ final class EditFormServiceTest extends TestCase
         $result = $this->handleValidSubmit(
             publisher: new MercureUpdatePublisher($hub, $logger),
             mercureConfigResolver: $this->resolverReturning(['/topic/42']),
-            dataTables: $this->registeredDataTables(EditFormServiceFixtureDataTable::class, new EditFormServiceFixtureDataTable()),
-            dataTableClass: EditFormServiceFixtureDataTable::class,
+            dataTable: new EditFormServiceFixtureDataTable(),
         );
 
         $this->assertTrue($result->success);
@@ -221,11 +204,7 @@ final class EditFormServiceTest extends TestCase
         $result = $this->handleValidSubmit(
             publisher: new MercureUpdatePublisher($hub),
             mercureConfigResolver: $resolver,
-            dataTables: $this->registeredDataTables(
-                EditFormServiceMercureFixtureDataTable::class,
-                new EditFormServiceMercureFixtureDataTable($hubUrlResolver),
-            ),
-            dataTableClass: EditFormServiceMercureFixtureDataTable::class,
+            dataTable: new EditFormServiceMercureFixtureDataTable($hubUrlResolver),
         );
 
         $this->assertTrue($result->success);
@@ -246,75 +225,8 @@ final class EditFormServiceTest extends TestCase
         $this->assertForbidden($this->handleWithoutFormCollaborators(
             handler: $handler,
             registry: $this->createRegistry($this->createEntityManagerThatFinds($entity, 42)),
-            dataTableClass: EditFormServiceFixtureDataTable::class,
-            dataTables: $this->registeredDataTables(EditFormServiceFixtureDataTable::class, new EditFormServiceFixtureDataTable()),
             permissionChecker: new PermissionChecker($checker),
         ));
-    }
-
-    #[Test]
-    #[TestWith(['view'])]
-    #[TestWith(['submit'])]
-    public function it_rejects_when_the_datatable_class_is_not_registered(string $handler): void
-    {
-        $dataTables = $this->createMock(ContainerInterface::class);
-        $dataTables->method('has')->with(EditFormServiceFixtureDataTable::class)->willReturn(false);
-        $dataTables->expects($this->never())->method('get');
-
-        $this->assertForbidden($this->handleWithoutFormCollaborators(
-            handler: $handler,
-            registry: $this->createRegistry($this->createEntityManagerThatFinds(new EditFormServiceFixture(), 42)),
-            dataTableClass: EditFormServiceFixtureDataTable::class,
-            dataTables: $dataTables,
-        ));
-    }
-
-    #[Test]
-    #[TestWith(['view'])]
-    #[TestWith(['submit'])]
-    public function it_rejects_when_no_datatable_locator_is_available(string $handler): void
-    {
-        $this->assertForbidden($this->handleWithoutFormCollaborators(
-            handler: $handler,
-            registry: $this->createRegistry($this->createEntityManagerThatFinds(new EditFormServiceFixture(), 42)),
-            dataTableClass: EditFormServiceFixtureDataTable::class,
-        ));
-    }
-
-    #[Test]
-    #[TestWith(['view'])]
-    #[TestWith(['submit'])]
-    public function it_rejects_when_the_datatable_entity_class_does_not_match(string $handler): void
-    {
-        $this->assertForbidden($this->handleWithoutFormCollaborators(
-            handler: $handler,
-            registry: $this->createRegistry($this->createEntityManagerThatFinds(new EditFormServiceFixture(), 42)),
-            dataTableClass: EditFormServiceMismatchedEntityDataTable::class,
-            dataTables: $this->registeredDataTables(
-                EditFormServiceMismatchedEntityDataTable::class,
-                new EditFormServiceMismatchedEntityDataTable(),
-            ),
-        ));
-    }
-
-    #[Test]
-    #[TestWith(['view'])]
-    #[TestWith(['submit'])]
-    public function it_returns_bad_request_when_the_datatable_class_is_missing(string $handler): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->never())->method('getManagerForClass');
-
-        $result = $this->handleWithoutFormCollaborators(
-            handler: $handler,
-            registry: $registry,
-            dataTableClass: null,
-        );
-
-        $this->assertFalse($result->success);
-        $this->assertSame(400, $result->statusCode);
-        $this->assertSame('Edit modal requires a DataTable class (AbstractDataTable).', $result->message);
-        $this->assertNull($result->html);
     }
 
     private function assertForbidden(EditFormResult $result): void
@@ -332,8 +244,6 @@ final class EditFormServiceTest extends TestCase
     private function handleWithoutFormCollaborators(
         string $handler,
         ManagerRegistry $registry,
-        ?string $dataTableClass,
-        ?ContainerInterface $dataTables = null,
         ?PermissionChecker $permissionChecker = null,
     ): EditFormResult {
         $formFactory = $this->createMock(FormFactoryInterface::class);
@@ -354,24 +264,21 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
-            dataTables: $dataTables,
             permissionChecker: $permissionChecker,
         );
 
+        $dataTable = $this->resolved(new EditFormServiceFixtureDataTable());
+
         if ('view' === $handler) {
-            return $service->handleView(new AjaxEditFormQueryDto(
-                entity: EditFormServiceFixture::class,
-                id: 42,
-                dataTableClass: $dataTableClass,
-            ));
+            return $service->handleView($dataTable, 42);
         }
 
-        return $service->handleSubmit(new AjaxEditFormRequestDto(
-            entity: EditFormServiceFixture::class,
-            id: 42,
-            formData: ['name' => 'Alice'],
-            dataTableClass: $dataTableClass,
-        ));
+        return $service->handleSubmit($dataTable, 42, ['name' => 'Alice']);
+    }
+
+    private function resolved(AbstractDataTable $dataTable): ResolvedDataTable
+    {
+        return new ResolvedDataTable($dataTable, EditFormServiceFixture::class, $dataTable::class);
     }
 
     /**
@@ -380,11 +287,11 @@ final class EditFormServiceTest extends TestCase
     private function handleValidSubmit(
         MercurePublisherInterface $publisher,
         MercureConfigResolverInterface $mercureConfigResolver,
-        ContainerInterface $dataTables,
-        string $dataTableClass,
+        AbstractDataTable $dataTable,
     ): EditFormResult {
-        $entity        = new EditFormServiceFixture();
-        $entityManager = $this->createEntityManagerWithEntity($entity, 42);
+        $dataTableClass = $dataTable::class;
+        $entity         = new EditFormServiceFixture();
+        $entityManager  = $this->createEntityManagerWithEntity($entity, 42);
         $entityManager->expects($this->once())->method('flush');
 
         $form = $this->createMock(FormInterface::class);
@@ -411,15 +318,10 @@ final class EditFormServiceTest extends TestCase
             $templateResolver,
             $publisher,
             $mercureConfigResolver,
-            $dataTables,
+            $this->registeredDataTables($dataTableClass, $dataTable),
         );
 
-        return $service->handleSubmit(new AjaxEditFormRequestDto(
-            entity: EditFormServiceFixture::class,
-            id: 42,
-            formData: ['name' => 'Alice'],
-            dataTableClass: $dataTableClass,
-        ));
+        return $service->handleSubmit($this->resolved($dataTable), 42, ['name' => 'Alice']);
     }
 
     private function renderRequestFor(FormInterface $form, object $entity): Callback
@@ -587,21 +489,6 @@ final class EditFormServiceMercureFixtureDataTable extends AbstractDataTable
         return $table
             ->serverSide()
             ->mercure(topics: ['/datatable-instance/topic']);
-    }
-
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-}
-
-#[AsDataTable(entityClass: \stdClass::class)]
-final class EditFormServiceMismatchedEntityDataTable extends AbstractDataTable
-{
-    public function __construct()
-    {
-        parent::__construct();
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
     }
 
     public function configureColumns(): iterable
