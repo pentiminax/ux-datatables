@@ -292,7 +292,7 @@ final class AjaxEditControllerTest extends TestCase
     private function dataTableToken(): string
     {
         $token = $this->registry(new ToggleBooleanEntityFixtureDataTable())
-            ->getBooleanMutationToken(ToggleBooleanEntityFixtureDataTable::class);
+            ->getActionToken(ToggleBooleanEntityFixtureDataTable::class);
 
         $this->assertNotNull($token);
 

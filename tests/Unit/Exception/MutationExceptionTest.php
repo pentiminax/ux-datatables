@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Exception;
 
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
+use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Exception\MutationException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
@@ -20,6 +21,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(MutationException::class)]
 #[CoversClass(EntityNotFoundException::class)]
 #[CoversClass(InvalidBooleanMutationContextException::class)]
+#[CoversClass(InvalidDataTableTokenException::class)]
 #[CoversClass(MutationNotAllowedException::class)]
 #[CoversClass(PropertyNotWritableException::class)]
 final class MutationExceptionTest extends TestCase
@@ -46,12 +48,12 @@ final class MutationExceptionTest extends TestCase
 
         yield 'mutation not allowed' => [new MutationNotAllowedException(), 403, 'You are not allowed to perform this action.'];
 
-        yield 'invalid datatable token' => [InvalidBooleanMutationContextException::invalidDataTableToken(), 400, 'Invalid DataTable token.'];
+        yield 'invalid datatable token' => [InvalidDataTableTokenException::invalidToken(), 400, 'Invalid DataTable token.'];
 
         yield 'missing entity class' => [
-            InvalidBooleanMutationContextException::missingEntityClass('App\\DataTable\\ProductDataTable'),
+            InvalidDataTableTokenException::missingEntityClass('App\\DataTable\\ProductDataTable'),
             400,
-            'DataTable "App\\DataTable\\ProductDataTable" must define an entity class to mutate a boolean switch.',
+            'DataTable "App\\DataTable\\ProductDataTable" must define an entity class.',
         ];
 
         yield 'field not switchable' => [

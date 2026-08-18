@@ -17,13 +17,9 @@ final readonly class BooleanMutationContextResolver
 
     public function resolve(string $dataTableToken, string $field): BooleanMutationContext
     {
-        $dataTable = $this->registry->getForBooleanMutation($dataTableToken);
+        $resolved = $this->registry->resolveAction($dataTableToken);
 
-        if (null === $dataTable) {
-            throw InvalidBooleanMutationContextException::invalidDataTableToken();
-        }
-
-        foreach ($dataTable->getConfiguredDataTable()->getColumns() as $column) {
+        foreach ($resolved->table->getConfiguredDataTable()->getColumns() as $column) {
             if (!$column instanceof BooleanColumn || !$column->isRenderedAsSwitch()) {
                 continue;
             }
@@ -33,19 +29,14 @@ final readonly class BooleanMutationContextResolver
                 continue;
             }
 
-            $entityClass = $column->getEntityClass() ?? $dataTable->getEntityClass();
-            if (null === $entityClass) {
-                throw InvalidBooleanMutationContextException::missingEntityClass($dataTable::class);
-            }
-
             return new BooleanMutationContext(
-                entityClass: $entityClass,
-                dataTableClass: $dataTable::class,
+                entityClass: $column->getEntityClass() ?? $resolved->requireEntityClass(),
+                dataTableClass: $resolved->dataTableClass,
                 field: $field,
             );
         }
 
-        throw InvalidBooleanMutationContextException::fieldNotSwitchable($field, $dataTable::class);
+        throw InvalidBooleanMutationContextException::fieldNotSwitchable($field, $resolved->dataTableClass);
     }
 
     private function resolveEffectiveField(BooleanColumn $column): string

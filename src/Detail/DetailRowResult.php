@@ -45,4 +45,14 @@ final readonly class DetailRowResult
             statusCode: Response::HTTP_NOT_FOUND,
         );
     }
+
+    public static function forbidden(): self
+    {
+        return new self(
+            success: false,
+            html: null,
+            message: 'You are not allowed to perform this action.',
+            statusCode: Response::HTTP_FORBIDDEN,
+        );
+    }
 }

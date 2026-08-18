@@ -1,11 +1,8 @@
 export async function fetchEditForm(payload) {
     const params = new URLSearchParams({
-        entity: payload.entity,
+        dataTable: payload.dataTable,
         id: payload.id,
     });
-    if (payload.dataTableClass) {
-        params.append('dataTableClass', payload.dataTableClass);
-    }
     const response = await fetch(`/datatables/ajax/edit-form?${params}`, {
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
     });

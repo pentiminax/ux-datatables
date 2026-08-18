@@ -36,7 +36,7 @@ final class EntityMutator
      * @throws MutationNotAllowedException
      * @throws MutationPersistenceException
      */
-    public function delete(string $entityClass, int|string $id, ?string $dataTableClass = null): void
+    public function delete(string $entityClass, int|string $id, string $dataTableClass): void
     {
         $context = $this->locator->locate($entityClass, $id);
 
@@ -62,7 +62,7 @@ final class EntityMutator
      * @throws MutationPersistenceException
      * @throws PropertyNotWritableException
      */
-    public function setProperty(string $entityClass, int|string $id, string $field, bool $value, ?string $dataTableClass = null): void
+    public function setProperty(string $entityClass, int|string $id, string $field, bool $value, string $dataTableClass): void
     {
         $context = $this->locator->locate($entityClass, $id);
 

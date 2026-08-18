@@ -1,8 +1,10 @@
+import { createMutationHeaders } from './createMutationHeaders.js'
+
 type SubmitEditFormPayload = {
-    entity: string
+    dataTable: string
     id: string
     formData: Record<string, any>
-    dataTableClass: string | null
+    csrfToken?: string
 }
 
 type SubmitEditFormResponse = {
@@ -15,15 +17,11 @@ export async function submitEditForm(
 ): Promise<SubmitEditFormResponse> {
     const response = await fetch('/datatables/ajax/edit-form', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-        },
+        headers: createMutationHeaders(payload.csrfToken),
         body: JSON.stringify({
-            entity: payload.entity,
+            dataTable: payload.dataTable,
             id: payload.id,
             formData: payload.formData,
-            dataTableClass: payload.dataTableClass,
         }),
     })
 
