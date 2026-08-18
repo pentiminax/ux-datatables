@@ -44,13 +44,35 @@ final readonly class DetailRowService
             return DetailRowResult::notFound();
         }
 
-        if (!$this->permissionChecker->isGranted('VIEW', $context->entity)) {
+        if (!$this->isGranted($action, $context->entity)) {
             return DetailRowResult::forbidden();
         }
 
         $parameters = array_merge(['entity' => $context->entity], $action->getCollapsibleParameters());
 
         return DetailRowResult::success($this->twig->render($action->getCollapsibleTemplate(), $parameters));
+    }
+
+    /**
+     * Mirrors the permission the rendering pipeline evaluates for this action, so an
+     * action the user cannot see is also an action they cannot fetch. A per-row
+     * resolver receives the located entity, which is the row source for the Doctrine
+     * tables that can reach this endpoint. Actions without a configured permission
+     * fall back to VIEW on the entity, matching DELETE and EDIT elsewhere.
+     */
+    private function isGranted(Action $action, object $entity): bool
+    {
+        if ($action->hasPerRowPermission()) {
+            $resolver = $action->getPermissionSubjectResolver();
+
+            return $this->permissionChecker->isGranted((string) $action->getPermission(), $resolver($entity));
+        }
+
+        if ($action->hasStaticPermission()) {
+            return $this->permissionChecker->isGranted((string) $action->getPermission());
+        }
+
+        return $this->permissionChecker->isGranted('VIEW', $entity);
     }
 
     private function resolveCollapsibleDetailAction(AbstractDataTable $dataTable): ?Action

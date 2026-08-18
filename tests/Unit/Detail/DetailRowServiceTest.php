@@ -65,6 +65,44 @@ final class DetailRowServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_enforces_the_permission_configured_on_the_detail_action(): void
+    {
+        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker->expects($this->once())->method('isGranted')->with('SHOW_DETAIL', null)->willReturn(false);
+
+        $service = $this->createService(
+            $this->locatorReturning(new DetailRowEntity('alice@example.com')),
+            $this->twigThatNeverRenders(),
+            new PermissionChecker($checker),
+        );
+
+        $result = $service->handleView($this->resolved(new StaticPermissionDetailDataTable()), 7);
+
+        $this->assertFalse($result->success);
+        $this->assertSame(403, $result->statusCode);
+    }
+
+    #[Test]
+    public function it_passes_the_located_entity_to_a_per_row_permission_resolver(): void
+    {
+        $entity = new DetailRowEntity('alice@example.com');
+
+        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker->expects($this->once())->method('isGranted')->with('SHOW_DETAIL', 'alice@example.com')->willReturn(true);
+
+        $service = $this->createService(
+            $this->locatorReturning($entity),
+            new Environment(new ArrayLoader(['detail.html.twig' => 'Email: {{ entity.email }}'])),
+            new PermissionChecker($checker),
+        );
+
+        $result = $service->handleView($this->resolved(new PerRowPermissionDetailDataTable()), 7);
+
+        $this->assertTrue($result->success);
+        $this->assertSame('Email: alice@example.com', $result->html);
+    }
+
+    #[Test]
     public function it_returns_bad_request_when_no_collapsible_detail_action_is_configured(): void
     {
         $service = $this->createService(new EntityLocator(null), $this->twigThatNeverRenders());
@@ -169,5 +207,39 @@ final class PlainDetailDataTable extends AbstractDataTable
     public function configureActions(Actions $actions): Actions
     {
         return $actions->add(Action::detail()->linkToUrl('/detail/1'));
+    }
+}
+
+#[AsDataTable(entityClass: DetailRowEntity::class)]
+final class StaticPermissionDetailDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('email', 'Email');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(
+            Action::detail()->collapsible('detail.html.twig')->permission('SHOW_DETAIL')
+        );
+    }
+}
+
+#[AsDataTable(entityClass: DetailRowEntity::class)]
+final class PerRowPermissionDetailDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('email', 'Email');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(
+            Action::detail()
+                ->collapsible('detail.html.twig')
+                ->permission('SHOW_DETAIL', static fn (DetailRowEntity $entity): string => $entity->email)
+        );
     }
 }

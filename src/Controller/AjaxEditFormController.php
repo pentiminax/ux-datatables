@@ -10,7 +10,7 @@ use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Http\JsonErrorResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Attribute\MapQueryString;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 
 final class AjaxEditFormController
 {
@@ -20,7 +20,7 @@ final class AjaxEditFormController
     ) {
     }
 
-    public function __invoke(#[MapQueryString] AjaxEditFormQueryDto $payload): Response
+    public function __invoke(#[MapRequestPayload] AjaxEditFormQueryDto $payload): Response
     {
         $result = $this->service->handleView($this->registry->resolveAction($payload->dataTable), $payload->id);
 

@@ -10,7 +10,7 @@ use Pentiminax\UX\DataTables\Dto\AjaxDetailQueryDto;
 use Pentiminax\UX\DataTables\Http\JsonErrorResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Attribute\MapQueryString;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 
 final class AjaxDetailController
 {
@@ -20,7 +20,7 @@ final class AjaxDetailController
     ) {
     }
 
-    public function __invoke(#[MapQueryString] AjaxDetailQueryDto $payload): Response
+    public function __invoke(#[MapRequestPayload] AjaxDetailQueryDto $payload): Response
     {
         $result = $this->service->handleView($this->registry->resolveAction($payload->dataTable), $payload->id);
 

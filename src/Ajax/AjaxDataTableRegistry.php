@@ -11,9 +11,10 @@ use Psr\Container\ContainerInterface;
 final class AjaxDataTableRegistry
 {
     /**
-     * Action tokens are signed under their own prefix so that the read token —
-     * which travels in a query string, and therefore leaks through logs and the
-     * Referer header — can never be replayed against a write route.
+     * Action tokens are signed under their own prefix so that the read token — which
+     * travels in a query string on /ajax/data, and therefore leaks through logs and
+     * the Referer header — can never be replayed against an action route. Every route
+     * accepting an action token reads it from the request body for the same reason.
      */
     private const string ACTION_TOKEN_PREFIX = 'action:';
 
