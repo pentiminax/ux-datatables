@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Controller;
 
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Dto\AjaxDeleteRequestDto;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
@@ -17,6 +18,7 @@ final class AjaxDeleteController
     public function __construct(
         private readonly EntityMutator $mutator,
         private readonly MutationTokenValidator $tokenValidator,
+        private readonly AjaxDataTableRegistry $registry,
     ) {
     }
 
@@ -24,7 +26,9 @@ final class AjaxDeleteController
     {
         $this->tokenValidator->validate($request);
 
-        $this->mutator->delete($payload->entity, $payload->id, $payload->dataTableClass);
+        $dataTable = $this->registry->resolveAction($payload->dataTable);
+
+        $this->mutator->delete($dataTable->requireEntityClass(), $payload->id, $dataTable->dataTableClass);
 
         return new JsonResponse(['success' => true]);
     }

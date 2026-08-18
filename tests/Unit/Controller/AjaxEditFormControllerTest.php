@@ -8,6 +8,8 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
@@ -21,6 +23,7 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -28,6 +31,7 @@ use Psr\Container\ContainerInterface;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * @internal
@@ -35,6 +39,8 @@ use Symfony\Component\Form\FormInterface;
 #[CoversClass(AjaxEditFormController::class)]
 final class AjaxEditFormControllerTest extends TestCase
 {
+    private const string TOKEN_SECRET = 'test-secret';
+
     #[Test]
     public function it_returns_rendered_html_when_the_entity_exists(): void
     {
@@ -74,7 +80,7 @@ final class AjaxEditFormControllerTest extends TestCase
             $this->registeredDataTables(),
         );
 
-        $response = $controller($this->payload('42', AjaxEditFormControllerDataTable::class));
+        $response = $controller($this->payload('42'));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
@@ -103,7 +109,7 @@ final class AjaxEditFormControllerTest extends TestCase
 
         $controller = $this->controller($this->createRegistry($entityManager), $formFactory, $renderer, $templateResolver);
 
-        $response = $controller($this->payload('missing', 'SomeDataTable'));
+        $response = $controller($this->payload('missing'));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
@@ -125,7 +131,7 @@ final class AjaxEditFormControllerTest extends TestCase
 
         $controller = $this->controller($registry, $formFactory, $renderer, $templateResolver);
 
-        $response = $controller($this->payload('42', 'SomeDataTable'));
+        $response = $controller($this->payload('42'));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
@@ -141,23 +147,42 @@ final class AjaxEditFormControllerTest extends TestCase
         EditModalTemplateResolverInterface $templateResolver,
         ?ContainerInterface $dataTables = null,
     ): AjaxEditFormController {
-        return new AjaxEditFormController(new EditFormService(
-            new EntityLocator($registry),
-            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $renderer,
-            $templateResolver,
-            new NullMercurePublisher(),
-            dataTables: $dataTables,
-        ));
+        $authorizationChecker = $this->createMock(AuthorizationCheckerInterface::class);
+        $authorizationChecker->method('isGranted')->willReturn(true);
+
+        return new AjaxEditFormController(
+            new EditFormService(
+                new EntityLocator($registry),
+                new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+                $renderer,
+                $templateResolver,
+                new NullMercurePublisher(),
+                dataTables: $dataTables,
+                permissionChecker: new PermissionChecker($authorizationChecker),
+            ),
+            $this->tableRegistry(),
+        );
     }
 
-    private function payload(string $id, string $dataTableClass): AjaxEditFormQueryDto
+    private function tableRegistry(): AjaxDataTableRegistry
     {
-        return new AjaxEditFormQueryDto(
-            entity: AjaxEditFormControllerFixture::class,
-            id: $id,
-            dataTableClass: $dataTableClass,
+        $locator = $this->createMock(ContainerInterface::class);
+        $locator->method('get')->with('edit_form_table')->willReturn(new AjaxEditFormControllerDataTable());
+
+        return new AjaxDataTableRegistry(
+            $locator,
+            new AjaxDataTableTokenManager(self::TOKEN_SECRET),
+            [AjaxEditFormControllerDataTable::class => 'edit_form_table'],
         );
+    }
+
+    private function payload(string $id): AjaxEditFormQueryDto
+    {
+        $token = $this->tableRegistry()->getActionToken(AjaxEditFormControllerDataTable::class);
+
+        $this->assertNotNull($token);
+
+        return new AjaxEditFormQueryDto(dataTable: $token, id: $id);
     }
 
     /**

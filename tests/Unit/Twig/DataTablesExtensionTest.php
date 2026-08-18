@@ -89,9 +89,8 @@ final class DataTablesExtensionTest extends TestCase
                 ['firstColumn' => 'Row 1 Column 1', 'secondColumn' => 'Row 1 Column 2'],
                 ['firstColumn' => 'Row 2 Column 1', 'secondColumn' => 'Row 2 Column 2'],
             ],
-            'dataTableClass' => null,
-            'dataTable'      => null,
-            'editModal'      => [
+            'dataTable' => null,
+            'editModal' => [
                 'adapter' => null,
             ],
             'mutationsEnabled' => false,
@@ -101,7 +100,7 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
-    public function it_exposes_edit_modal_overrides_and_the_datatable_class(): void
+    public function it_exposes_edit_modal_overrides(): void
     {
         $table = new ConfigurableDataTable(
             [TextColumn::new('firstColumn')],
@@ -113,7 +112,6 @@ final class DataTablesExtensionTest extends TestCase
         $actual = $this->renderPayload($table);
 
         $this->assertSame('tw', $actual['editModal']['adapter']);
-        $this->assertSame($table::class, $actual['dataTableClass']);
         $this->assertNull($actual['dataTable']);
     }
 
@@ -125,7 +123,6 @@ final class DataTablesExtensionTest extends TestCase
 
         $actual = $this->renderPayload($table);
 
-        $this->assertSame($table::class, $actual['dataTableClass']);
         $this->assertIsString($actual['dataTable']);
         $this->assertNotSame('', $actual['dataTable']);
         $this->assertStringNotContainsString('AutoAjaxServerSideDataTable', $actual['dataTable']);
@@ -141,7 +138,6 @@ final class DataTablesExtensionTest extends TestCase
         $ajaxToken = $this->container->get('datatables.ajax.registry')
             ->getToken(AutoAjaxServerSideDataTable::class);
 
-        $this->assertSame(AutoAjaxServerSideDataTable::class, $actual['dataTableClass']);
         $this->assertIsString($actual['dataTable']);
         $this->assertNotSame('', $actual['dataTable']);
         $this->assertNotSame($ajaxToken, $actual['dataTable']);

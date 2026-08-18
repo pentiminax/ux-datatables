@@ -32,7 +32,6 @@ export function createActionColumnRenderer(mutationsEnabled = true): ColumnRende
                     .map((action) => {
                         const id = resolveActionId(action, row as ActionRowData)
                         const escapedId = escapeHtml(String(id ?? ''))
-                        const escapedEntity = escapeHtml(action.entityClass ?? '')
                         const escapedLabel = escapeHtml(action.label)
                         const escapedClassName = escapeHtml(action.className)
                         const escapedType = escapeHtml(action.type)
@@ -45,7 +44,6 @@ export function createActionColumnRenderer(mutationsEnabled = true): ColumnRende
                                 `type="button"`,
                                 `class="${escapedClassName}"`,
                                 `data-action-type="${escapedType}"`,
-                                `data-entity="${escapedEntity}"`,
                                 `data-id="${escapedId}"`,
                                 ...serializeHtmlAttributes(
                                     action.htmlAttributes,
@@ -53,7 +51,6 @@ export function createActionColumnRenderer(mutationsEnabled = true): ColumnRende
                                         'type',
                                         'class',
                                         'data-action-type',
-                                        'data-entity',
                                         'data-id',
                                     ])
                                 ),
@@ -136,7 +133,6 @@ export function createActionColumnRenderer(mutationsEnabled = true): ColumnRende
                             `type="button"`,
                             `class="${escapedClassName}"`,
                             `data-action-type="${escapedType}"`,
-                            `data-entity="${escapedEntity}"`,
                             `data-id="${escapedId}"`,
                             ...serializeHtmlAttributes(
                                 action.htmlAttributes,
@@ -144,7 +140,6 @@ export function createActionColumnRenderer(mutationsEnabled = true): ColumnRende
                                     'type',
                                     'class',
                                     'data-action-type',
-                                    'data-entity',
                                     'data-id',
                                     'data-confirm',
                                 ])

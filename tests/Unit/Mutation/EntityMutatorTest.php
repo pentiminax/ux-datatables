@@ -52,6 +52,12 @@ final class EntityMutatorTest extends TestCase
 
     private const HUB_URL = 'https://hub.example/.well-known/mercure';
 
+    /**
+     * A table class the test locator never knows about, so topic resolution
+     * falls back to the bare entity-class resolver.
+     */
+    private const UNREGISTERED_TABLE_CLASS = 'App\\DataTable\\UnregisteredDataTable';
+
     #[Test]
     public function it_deletes_flushes_and_publishes(): void
     {
@@ -183,7 +189,7 @@ final class EntityMutatorTest extends TestCase
             resolver: $this->resolverReturning(self::BARE_RESOLVER_TOPICS),
         );
 
-        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
+        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::UNREGISTERED_TABLE_CLASS);
     }
 
     #[Test]
@@ -204,7 +210,7 @@ final class EntityMutatorTest extends TestCase
         $mutator = $this->mutator($manager, $publisher, accessor: $accessor);
 
         $this->expectException(PropertyNotWritableException::class);
-        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
+        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::UNREGISTERED_TABLE_CLASS);
     }
 
     #[Test]
@@ -224,7 +230,7 @@ final class EntityMutatorTest extends TestCase
         $mutator = $this->mutator($manager, $publisher, accessor: $accessor);
 
         $this->expectException(FieldNotToggleableException::class);
-        $mutator->setProperty(EntityMutatorFixture::class, 5, 'admin', true);
+        $mutator->setProperty(EntityMutatorFixture::class, 5, 'admin', true, self::UNREGISTERED_TABLE_CLASS);
     }
 
     #[Test]
@@ -244,7 +250,7 @@ final class EntityMutatorTest extends TestCase
         $this->expectException(MutationNotAllowedException::class);
 
         try {
-            $mutator->delete(EntityMutatorFixture::class, 5);
+            $mutator->delete(EntityMutatorFixture::class, 5, self::UNREGISTERED_TABLE_CLASS);
         } catch (MutationNotAllowedException $exception) {
             $this->assertSame(403, $exception->getStatusCode());
 
@@ -277,7 +283,7 @@ final class EntityMutatorTest extends TestCase
         $this->expectException(MutationNotAllowedException::class);
 
         try {
-            $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
+            $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::UNREGISTERED_TABLE_CLASS);
         } catch (MutationNotAllowedException $exception) {
             $this->assertSame(403, $exception->getStatusCode());
 
@@ -302,7 +308,7 @@ final class EntityMutatorTest extends TestCase
         $mutator = $this->mutator($manager, $publisher, resolver: $this->resolverReturning(self::BARE_RESOLVER_TOPICS));
 
         $this->assertMapsToPersistenceException(
-            fn () => $mutator->delete(EntityMutatorFixture::class, 5),
+            fn () => $mutator->delete(EntityMutatorFixture::class, 5, self::UNREGISTERED_TABLE_CLASS),
             $failure,
         );
     }
@@ -332,7 +338,7 @@ final class EntityMutatorTest extends TestCase
         );
 
         $this->assertMapsToPersistenceException(
-            fn () => $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true),
+            fn () => $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::UNREGISTERED_TABLE_CLASS),
             $dbalException,
         );
     }
@@ -353,7 +359,7 @@ final class EntityMutatorTest extends TestCase
         $mutator = $this->mutator($manager, $publisher);
 
         $this->expectException(EntityNotFoundException::class);
-        $mutator->delete(EntityMutatorFixture::class, 404);
+        $mutator->delete(EntityMutatorFixture::class, 404, self::UNREGISTERED_TABLE_CLASS);
     }
 
     /**
@@ -398,7 +404,7 @@ final class EntityMutatorTest extends TestCase
         array $expectedTopics,
         ?MercureConfigResolverInterface $resolver = null,
         ?ContainerInterface $dataTables = null,
-        ?string $dataTableClass = null,
+        string $dataTableClass = self::UNREGISTERED_TABLE_CLASS,
     ): void {
         $entity = new EntityMutatorFixture();
 

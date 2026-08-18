@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Controller;
 
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Http\JsonErrorResponse;
@@ -15,12 +16,13 @@ final class AjaxEditFormController
 {
     public function __construct(
         private readonly EditFormService $service,
+        private readonly AjaxDataTableRegistry $registry,
     ) {
     }
 
     public function __invoke(#[MapQueryString] AjaxEditFormQueryDto $payload): Response
     {
-        $result = $this->service->handleView($payload);
+        $result = $this->service->handleView($this->registry->resolveAction($payload->dataTable), $payload->id);
 
         if (!$result->success) {
             return JsonErrorResponse::create($result->message, $result->statusCode);
