@@ -77,9 +77,8 @@ class DataTablesExtension extends AbstractExtension
         }
 
         $view = array_merge($options, $table->getExtensions(), [
-            'dataTableClass' => $dataTableClass,
-            'dataTable'      => null !== $dataTableClass ? $this->ajaxRegistry?->getBooleanMutationToken($dataTableClass) : null,
-            'editModal'      => [
+            'dataTable' => null !== $dataTableClass ? $this->ajaxRegistry?->getActionToken($dataTableClass) : null,
+            'editModal' => [
                 'adapter' => $table->getEditModalAdapter(),
             ],
             'mutationsEnabled' => false,

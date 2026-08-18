@@ -186,6 +186,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.controller.ajax_delete', AjaxDeleteController::class)
         ->arg(0, service('datatables.mutation.mutator'))
         ->arg(1, service('datatables.security.mutation_token_validator'))
+        ->arg(2, service('datatables.ajax.registry'))
         ->tag('controller.service_arguments')
         ->public();
 
@@ -196,13 +197,14 @@ return static function (ContainerConfigurator $container): void {
         ->public();
 
     $services->set('datatables.detail.row_service', DetailRowService::class)
-        ->arg(0, tagged_locator('datatables.data_table'))
-        ->arg(1, service('datatables.mutation.locator'))
-        ->arg(2, service('twig')->nullOnInvalid())
+        ->arg(0, service('datatables.mutation.locator'))
+        ->arg(1, service('twig')->nullOnInvalid())
+        ->arg(2, service('datatables.security.permission_checker'))
         ->private();
 
     $services->set('datatables.controller.ajax_detail', AjaxDetailController::class)
         ->arg(0, service('datatables.detail.row_service'))
+        ->arg(1, service('datatables.ajax.registry'))
         ->tag('controller.service_arguments')
         ->public();
 

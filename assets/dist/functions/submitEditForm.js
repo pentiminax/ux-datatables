@@ -1,15 +1,12 @@
+import { createMutationHeaders } from './createMutationHeaders.js';
 export async function submitEditForm(payload) {
     const response = await fetch('/datatables/ajax/edit-form', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-        },
+        headers: createMutationHeaders(payload.csrfToken),
         body: JSON.stringify({
-            entity: payload.entity,
+            dataTable: payload.dataTable,
             id: payload.id,
             formData: payload.formData,
-            dataTableClass: payload.dataTableClass,
         }),
     });
     return response.json();

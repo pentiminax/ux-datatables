@@ -45,11 +45,15 @@ final class MutationExceptionHandlingTest extends TestCase
     #[Test]
     public function it_maps_a_delete_not_found_exception_to_a_json_404_response(): void
     {
-        $controller = new AjaxDeleteController($this->mutatorReturning(null), new MutationTokenValidator($this->validCsrfTokenManager()));
+        $controller = new AjaxDeleteController(
+            $this->mutatorReturning(null),
+            new MutationTokenValidator($this->validCsrfTokenManager()),
+            $this->dataTableRegistry(),
+        );
 
         $response = $this->handleControllerException(
             fn () => $controller($this->validTokenRequest(), new AjaxDeleteRequestDto(
-                entity: MutationExceptionHandlingFixture::class,
+                dataTable: $this->dataTableToken(),
                 id: 404,
             )),
         );
@@ -197,7 +201,7 @@ final class MutationExceptionHandlingTest extends TestCase
 
     private function dataTableToken(): string
     {
-        $token = $this->dataTableRegistry()->getBooleanMutationToken(MutationExceptionHandlingDataTableFixture::class);
+        $token = $this->dataTableRegistry()->getActionToken(MutationExceptionHandlingDataTableFixture::class);
 
         $this->assertNotNull($token);
 

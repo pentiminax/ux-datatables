@@ -262,8 +262,8 @@ export default class extends Controller {
                 }
 
                 const actionType = actionButton.getAttribute('data-action-type')
-                const entity = actionButton.getAttribute('data-entity')
                 const id = actionButton.getAttribute('data-id')
+                const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : ''
                 const confirmMessage = actionButton.getAttribute('data-confirm')
 
                 if (confirmMessage && !confirm(confirmMessage)) {
@@ -280,7 +280,7 @@ export default class extends Controller {
                     return
                 }
 
-                if (actionType === 'DETAIL' && entity && id) {
+                if (actionType === 'DETAIL' && dataTable && id) {
                     e.preventDefault()
 
                     const rowElement = actionButton.closest('tr')
@@ -296,11 +296,7 @@ export default class extends Controller {
                         return
                     }
 
-                    const result = await fetchDetailRow({
-                        entity,
-                        id,
-                        dataTableClass: payload.dataTableClass ?? null,
-                    })
+                    const result = await fetchDetailRow({ dataTable, id })
 
                     if (result.success) {
                         row.child(result.html).show()
@@ -308,12 +304,11 @@ export default class extends Controller {
                     }
                 }
 
-                if (actionType === 'DELETE' && entity && id) {
+                if (actionType === 'DELETE' && dataTable && id) {
                     e.preventDefault()
                     const response = await deleteEntity({
-                        entity,
+                        dataTable,
                         id,
-                        dataTableClass: payload.dataTableClass ?? null,
                         csrfToken: this.getCsrfToken(payload),
                     })
 
@@ -322,7 +317,7 @@ export default class extends Controller {
                     }
                 }
 
-                if (actionType === 'EDIT' && entity && id) {
+                if (actionType === 'EDIT' && dataTable && id) {
                     e.preventDefault()
                     const modalConfig = payload.editModal ?? {}
                     const modal = await resolveModalAdapter(
@@ -331,20 +326,16 @@ export default class extends Controller {
                     )
                     if (!modal) return
 
-                    const result = await fetchEditForm({
-                        entity,
-                        id,
-                        dataTableClass: payload.dataTableClass ?? null,
-                    })
+                    const result = await fetchEditForm({ dataTable, id })
 
                     if (result.success) {
                         await modal.show(result.html, {
                             onSubmit: async (formData) => {
                                 const submitResult = await submitEditForm({
-                                    entity,
+                                    dataTable,
                                     id,
                                     formData,
-                                    dataTableClass: payload.dataTableClass ?? null,
+                                    csrfToken: this.getCsrfToken(payload),
                                 })
 
                                 if (submitResult.success) {

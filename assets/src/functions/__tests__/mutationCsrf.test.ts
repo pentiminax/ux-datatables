@@ -17,14 +17,14 @@ describe('mutation CSRF header', () => {
     })
 
     it('deleteEntity sends the X-CSRF-Token header when a token is provided', async () => {
-        await deleteEntity({ entity: 'App\\Entity\\User', id: '5', csrfToken: 'tok-123' })
+        await deleteEntity({ dataTable: 'signed-token', id: '5', csrfToken: 'tok-123' })
 
         const headers = headersOf((fetch as any).mock.calls[0])
         expect(headers['X-CSRF-Token']).toBe('tok-123')
     })
 
     it('deleteEntity omits the X-CSRF-Token header when no token is provided', async () => {
-        await deleteEntity({ entity: 'App\\Entity\\User', id: '5' })
+        await deleteEntity({ dataTable: 'signed-token', id: '5' })
 
         const headers = headersOf((fetch as any).mock.calls[0])
         expect(headers['X-CSRF-Token']).toBeUndefined()
