@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Runtime;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
@@ -21,6 +22,7 @@ use Pentiminax\UX\DataTables\RowMapper\Stage\IconColumnResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\TemplateRenderingStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\UrlColumnResolutionStage;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 
 final class DataTableRuntimeFactory
 {
@@ -29,6 +31,7 @@ final class DataTableRuntimeFactory
         private readonly ?TemplateColumnRenderer $templateColumnRenderer = null,
         private readonly ?ActionRowDataResolver $actionRowDataResolver = null,
         private readonly ?UrlColumnDataResolver $urlColumnDataResolver = null,
+        private readonly ?PermissionChecker $permissionChecker = null,
     ) {
     }
 
@@ -38,7 +41,11 @@ final class DataTableRuntimeFactory
      */
     public function createRowMapper(\Closure $baseMapper, array $columns): RowMapperInterface
     {
-        $pipeline = (new RowProcessingPipeline($baseMapper, $columns))
+        $pipeline = (new RowProcessingPipeline(
+            $baseMapper,
+            $columns,
+            new ColumnResolver(permissionChecker: $this->permissionChecker ?? new PermissionChecker()),
+        ))
             ->add(new NormalizationStage())
             ->add(new IconColumnResolutionStage())
             ->add(new BooleanSwitchMetadataStage());

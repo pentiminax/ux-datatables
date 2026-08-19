@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\RowMapper;
 
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
@@ -14,11 +15,13 @@ use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
 use Pentiminax\UX\DataTables\RowMapper\Stage\ActionResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowStageContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * @internal
@@ -43,6 +46,29 @@ final class RowProcessingPipelineTest extends TestCase
         $mappedRow = $pipeline->map(['id' => 9, 'title' => 'Alien']);
 
         $this->assertSame(['trace' => 'base:9|first|second|third'], $mappedRow);
+    }
+
+    #[Test]
+    public function it_strips_denied_column_values_and_keeps_unrelated_keys(): void
+    {
+        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker->method('isGranted')->willReturnCallback(
+            static fn (mixed $attribute): bool => 'ROLE_HR' !== $attribute
+        );
+
+        $pipeline = new RowProcessingPipeline(
+            baseMapper: static fn (array $row): array => $row,
+            columns: [
+                TextColumn::new('salary', 'Salary')->permission('ROLE_HR'),
+                TextColumn::new('name', 'Name'),
+            ],
+            columnResolver: new ColumnResolver(permissionChecker: new PermissionChecker($checker)),
+        );
+
+        $this->assertSame(
+            ['name' => 'Ada', 'extra' => 'kept'],
+            $pipeline->map(['salary' => 120000, 'name' => 'Ada', 'extra' => 'kept']),
+        );
     }
 
     #[Test]

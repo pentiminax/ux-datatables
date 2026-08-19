@@ -295,6 +295,11 @@ final class DataTablesExtensionTest extends TestCase
         $actual = $this->renderPayload($table);
 
         $this->assertSame(['id'], array_column($actual['columns'], 'name'));
+        $this->assertSame(['id' => 5], $actual['data'][0]);
+        $this->assertSame(['id', 'secret'], array_map(
+            static fn (mixed $column): string => $column->getName(),
+            array_values($table->getColumns()),
+        ));
     }
 
     #[Test]
@@ -324,6 +329,39 @@ final class DataTablesExtensionTest extends TestCase
 
         $this->assertSame([], $actionColumn['actions']);
         $this->assertArrayNotHasKey('__ux_datatables_actions', $actual['data'][0]);
+
+        $configuredActionColumn = $table->getColumnByName('actions');
+        $this->assertInstanceOf(ActionColumn::class, $configuredActionColumn);
+        $this->assertSame(1, $configuredActionColumn->getActions()?->count());
+    }
+
+    #[Test]
+    public function it_keeps_unauthorized_columns_on_a_shared_abstract_datatable_after_render(): void
+    {
+        $table = new ConfigurableDataTable(
+            [
+                TextColumn::new('id'),
+                TextColumn::new('secret')->permission('ROLE_DENIED'),
+            ],
+            configureTable: static fn (DataTable $table): DataTable => $table->data([
+                ['id' => 5, 'secret' => 'hidden'],
+            ]),
+        );
+        $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
+
+        $this->assertSame(['id', 'secret'], array_map(
+            static fn (mixed $column): string => $column->getName(),
+            array_values($table->getConfiguredDataTable()->getColumns()),
+        ));
+
+        $actual = $this->renderPayload($table);
+
+        $this->assertSame(['id'], array_column($actual['columns'], 'name'));
+        $this->assertSame(['id' => 5], $actual['data'][0]);
+        $this->assertSame(['id', 'secret'], array_map(
+            static fn (mixed $column): string => $column->getName(),
+            array_values($table->getConfiguredDataTable()->getColumns()),
+        ));
     }
 
     /**

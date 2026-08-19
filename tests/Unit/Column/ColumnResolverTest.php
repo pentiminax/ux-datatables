@@ -189,8 +189,27 @@ final class ColumnResolverTest extends TestCase
         $filtered = $resolver->filterStaticPermissions([ActionColumn::fromActions('actions', '', $actions)]);
 
         $this->assertCount(1, $filtered);
-        $this->assertSame(1, $actions->count());
-        $this->assertSame(ActionType::Edit, $actions->getActions()[0]->getType());
+        $this->assertSame(2, $actions->count());
+        $this->assertSame(ActionType::Delete, $actions->getActions()[0]->getType());
+        $this->assertInstanceOf(ActionColumn::class, $filtered[0]);
+        $this->assertSame(1, $filtered[0]->getActions()?->count());
+        $this->assertSame(ActionType::Edit, $filtered[0]->getActions()?->getActions()[0]->getType());
+    }
+
+    #[Test]
+    public function remove_denied_column_values_drops_unauthorized_keys_only(): void
+    {
+        $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
+
+        $row = $resolver->removeDeniedColumnValues(
+            ['salary' => 120000, 'name' => 'Ada', 'extra' => 'kept'],
+            [
+                TextColumn::new('salary', 'Salary')->permission('ROLE_HR'),
+                TextColumn::new('name', 'Name'),
+            ],
+        );
+
+        $this->assertSame(['name' => 'Ada', 'extra' => 'kept'], $row);
     }
 
     #[Test]
