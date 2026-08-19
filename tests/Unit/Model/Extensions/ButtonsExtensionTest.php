@@ -32,6 +32,7 @@ final class ButtonsExtensionTest extends DataTableTestCase
             Button::excel()->option('filename', 'users-export'),
             Button::colVis()->text('Columns'),
             Button::ccSearchClear()->text('Clear filters'),
+            Button::custom('restoreOrder')->text('Restore order'),
         ]);
 
         $this->assertExtensionPayload([
@@ -70,6 +71,22 @@ final class ButtonsExtensionTest extends DataTableTestCase
             [
                 'extend' => 'ccSearchClear',
                 'text'   => 'Clear filters',
+            ],
+            [
+                'action' => 'restoreOrder',
+                'text'   => 'Restore order',
+            ],
+        ], $extension);
+    }
+
+    #[Test]
+    public function it_adds_a_custom_button_via_the_fluent_helper(): void
+    {
+        $extension = (new ButtonsExtension([]))->withCustomButton('clearColumnControlFilters');
+
+        $this->assertExtensionPayload([
+            [
+                'action' => 'clearColumnControlFilters',
             ],
         ], $extension);
     }

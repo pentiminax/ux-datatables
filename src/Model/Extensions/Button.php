@@ -101,6 +101,26 @@ final class Button implements \JsonSerializable
         return $button;
     }
 
+    /**
+     * A button whose click behavior is defined in JavaScript rather than PHP.
+     *
+     * DataTables button `action` callbacks are JavaScript functions and cannot be serialized from
+     * PHP. $action is a name the frontend resolves to a real callback registered through the
+     * `buttonActions` registry (`import { buttonActions } from '@pentiminax/ux-datatables'`), the
+     * same way row actions resolve behavior by name rather than by shipping a closure.
+     */
+    public static function custom(string $action): self
+    {
+        if ('' === trim($action)) {
+            throw new \InvalidArgumentException('Custom button action must not be empty.');
+        }
+
+        $button                    = self::fromType(ButtonType::CUSTOM);
+        $button->options['action'] = $action;
+
+        return $button;
+    }
+
     public function text(string $text): self
     {
         $this->options['text'] = $text;
@@ -136,6 +156,16 @@ final class Button implements \JsonSerializable
     {
         if (\in_array($this->type, self::BARE_STRING_TYPES, true) && [] === $this->options) {
             return $this->type->value;
+        }
+
+        if (ButtonType::CUSTOM === $this->type) {
+            $action = $this->options['action'] ?? null;
+
+            if (!\is_string($action) || '' === $action) {
+                throw new \LogicException('A custom button must have an "action" name set. Use Button::custom().');
+            }
+
+            return $this->options;
         }
 
         $config = [
