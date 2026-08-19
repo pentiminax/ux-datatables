@@ -22,6 +22,8 @@ final class Actions implements \JsonSerializable
 
     private ?ActionsAlignment $alignment = null;
 
+    private ?array $columnControl = null;
+
     public function add(Action $action): self
     {
         $name = $action->getName();
@@ -116,6 +118,26 @@ final class Actions implements \JsonSerializable
     }
 
     /**
+     * Override the ColumnControl content for the generated actions column, using the same
+     * content descriptors as AbstractColumn::setColumnControl() (e.g. `['colvisDropdown']`).
+     *
+     * Requires `ColumnControlExtension` to be added to the table to have any visible effect.
+     *
+     * @param list<mixed> $columnControl
+     */
+    public function setColumnControl(array $columnControl): self
+    {
+        $this->columnControl = $columnControl;
+
+        return $this;
+    }
+
+    public function getColumnControl(): ?array
+    {
+        return $this->columnControl;
+    }
+
+    /**
      * Split the actions into position-grouped collections.
      *
      * Each action is placed in the group matching its own position when set,
@@ -185,6 +207,7 @@ final class Actions implements \JsonSerializable
         $clone->columnClassName = $this->columnClassName;
         $clone->position        = $this->position;
         $clone->alignment       = $this->alignment;
+        $clone->columnControl   = $this->columnControl;
 
         return $clone;
     }

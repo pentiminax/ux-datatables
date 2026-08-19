@@ -10,6 +10,7 @@ public function configureActions(Actions $actions): Actions
     return $actions
         ->setColumnLabel('Operations')          // header (default: 'Actions')
         ->setColumnClassName('text-end')
+        ->setColumnControl(['colvisDropdown'])  // requires ColumnControlExtension on the table
         ->add(Action::edit())
         ->add(
             Action::delete('Delete')
