@@ -1,5 +1,12 @@
 import { buttonActions } from './buttonActionRegistry.js'
 
+// Collection-type buttons (colvis, or any button with `extend: 'collection'`) nest further
+// button descriptors under these keys — DataTables merges prefixButtons/postfixButtons into
+// `buttons` at init (dataTables.buttons.mjs). A custom action can live at any depth here (e.g.
+// a "Restore order" button placed in the Columns dropdown's postfixButtons alongside
+// colvisRestore), so resolution must recurse into all three, not just the top-level array.
+const NESTED_BUTTON_KEYS = ['buttons', 'postfixButtons', 'prefixButtons'] as const
+
 // Button::custom() serializes only an `action` name (a string) since JS closures aren't
 // JSON-serializable from PHP. Before DataTables initializes, swap that name for the real
 // callback registered through `buttonActions`, mirroring how row actions resolve behavior by
@@ -10,20 +17,32 @@ function resolveButtonDescriptor(button: unknown): unknown {
     }
 
     const descriptor = button as Record<string, unknown>
+    const hasAction = typeof descriptor.action === 'string'
+    const nestedKeys = NESTED_BUTTON_KEYS.filter((key) => Array.isArray(descriptor[key]))
 
-    if (typeof descriptor.action !== 'string') {
+    if (!hasAction && nestedKeys.length === 0) {
         return button
     }
 
-    const action = buttonActions.get(descriptor.action)
+    const resolved: Record<string, unknown> = { ...descriptor }
 
-    if (!action) {
-        console.error(`No button action registered for "${descriptor.action}"`)
+    if (hasAction) {
+        const name = descriptor.action as string
+        const action = buttonActions.get(name)
 
-        return { ...descriptor, action: () => {} }
+        if (!action) {
+            console.error(`No button action registered for "${name}"`)
+            resolved.action = () => {}
+        } else {
+            resolved.action = action
+        }
     }
 
-    return { ...descriptor, action }
+    for (const key of nestedKeys) {
+        resolved[key] = (descriptor[key] as unknown[]).map(resolveButtonDescriptor)
+    }
+
+    return resolved
 }
 
 function resolveButtonsArray(buttons: unknown): unknown {

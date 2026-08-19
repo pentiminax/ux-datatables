@@ -145,4 +145,24 @@ final class ButtonTest extends TestCase
 
         $button->jsonSerialize();
     }
+
+    #[Test]
+    public function it_serializes_a_custom_button_nested_inside_a_collection_option(): void
+    {
+        $colVis = Button::colVis()
+            ->text('Columns')
+            ->option('postfixButtons', [
+                ['extend' => 'colvisRestore'],
+                Button::custom('restoreOrder')->text('Restore order'),
+            ]);
+
+        $this->assertSame([
+            'extend'         => 'colvis',
+            'text'           => 'Columns',
+            'postfixButtons' => [
+                ['extend' => 'colvisRestore'],
+                ['action' => 'restoreOrder', 'text' => 'Restore order'],
+            ],
+        ], json_decode(json_encode($colVis), true));
+    }
 }

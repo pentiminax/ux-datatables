@@ -1,18 +1,31 @@
 import { buttonActions } from './buttonActionRegistry.js';
+const NESTED_BUTTON_KEYS = ['buttons', 'postfixButtons', 'prefixButtons'];
 function resolveButtonDescriptor(button) {
     if (typeof button !== 'object' || button === null || Array.isArray(button)) {
         return button;
     }
     const descriptor = button;
-    if (typeof descriptor.action !== 'string') {
+    const hasAction = typeof descriptor.action === 'string';
+    const nestedKeys = NESTED_BUTTON_KEYS.filter((key) => Array.isArray(descriptor[key]));
+    if (!hasAction && nestedKeys.length === 0) {
         return button;
     }
-    const action = buttonActions.get(descriptor.action);
-    if (!action) {
-        console.error(`No button action registered for "${descriptor.action}"`);
-        return { ...descriptor, action: () => { } };
+    const resolved = { ...descriptor };
+    if (hasAction) {
+        const name = descriptor.action;
+        const action = buttonActions.get(name);
+        if (!action) {
+            console.error(`No button action registered for "${name}"`);
+            resolved.action = () => { };
+        }
+        else {
+            resolved.action = action;
+        }
     }
-    return { ...descriptor, action };
+    for (const key of nestedKeys) {
+        resolved[key] = descriptor[key].map(resolveButtonDescriptor);
+    }
+    return resolved;
 }
 function resolveButtonsArray(buttons) {
     return Array.isArray(buttons) ? buttons.map(resolveButtonDescriptor) : buttons;
