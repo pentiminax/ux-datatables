@@ -73,6 +73,40 @@ final class AbstractColumnTest extends TestCase
     }
 
     #[Test]
+    public function it_overrides_column_control_content_for_a_single_column(): void
+    {
+        $column = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('actions');
+
+        $this->assertNull($column->getColumnControl());
+
+        $this->assertSame($column, $column->setColumnControl(['colvisDropdown']));
+
+        $this->assertSame(['colvisDropdown'], $column->getColumnControl());
+        $this->assertSame(['colvisDropdown'], $column->jsonSerialize()['columnControl']);
+    }
+
+    #[Test]
+    public function setting_column_control_content_wins_over_disabling_it_regardless_of_call_order(): void
+    {
+        $disableThenOverride = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('foo')
+            ->disableColumnControl()
+            ->setColumnControl(['order']);
+
+        $overrideThenDisable = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('foo')
+            ->setColumnControl(['order'])
+            ->disableColumnControl();
+
+        $this->assertSame(['order'], $disableThenOverride->jsonSerialize()['columnControl']);
+        $this->assertSame(['order'], $overrideThenDisable->jsonSerialize()['columnControl']);
+    }
+
+    #[Test]
     public function it_exposes_mutated_getter_values(): void
     {
         $column = (new class extends AbstractColumn {})
