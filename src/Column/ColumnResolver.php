@@ -189,10 +189,54 @@ final class ColumnResolver
         }
 
         if (!\is_array($row[$segment])) {
-            return;
+            $normalized = $this->arrayFromNestedValue($row[$segment]);
+            if (null === $normalized) {
+                return;
+            }
+
+            $row[$segment] = $normalized;
         }
 
         $this->unsetNestedSegments($row[$segment], $segments);
+    }
+
+    /**
+     * Copy an object-backed nested segment into an array without mutating the original.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function arrayFromNestedValue(mixed $value): ?array
+    {
+        if ($value instanceof \JsonSerializable) {
+            $serialized = $value->jsonSerialize();
+
+            return \is_array($serialized) ? $serialized : null;
+        }
+
+        if ($value instanceof \ArrayObject) {
+            return $value->getArrayCopy();
+        }
+
+        if ($value instanceof \Traversable && !$value instanceof \Generator) {
+            return iterator_to_array($value);
+        }
+
+        if (!\is_object($value)) {
+            return null;
+        }
+
+        $publicProperties = get_object_vars($value);
+        if ([] !== $publicProperties) {
+            return $publicProperties;
+        }
+
+        try {
+            $decoded = json_decode(json_encode($value, \JSON_THROW_ON_ERROR), true);
+        } catch (\JsonException) {
+            return null;
+        }
+
+        return \is_array($decoded) ? $decoded : null;
     }
 
     /**
