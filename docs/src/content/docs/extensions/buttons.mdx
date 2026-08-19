@@ -209,6 +209,25 @@ PHP-side `$action` string exactly, and that the registration code runs before th
 `ButtonsExtension::withCustomButton(string $action)` is the fluent-collection shortcut, equivalent
 to `Button::custom($action)` with no further options.
 
+### Nesting Inside A Collection Button
+
+A collection-type button (`Button::colVis()`, or anything using `extend: 'collection'`) can nest
+further buttons under `buttons`, `postfixButtons`, or `prefixButtons`. `Button` objects placed in
+those arrays serialize correctly at any depth — `Button` implements `JsonSerializable`, and PHP's
+`json_encode()` resolves nested `JsonSerializable` values automatically:
+
+```php
+Button::colVis()
+    ->text('Columns')
+    ->option('postfixButtons', [
+        ['extend' => 'colvisRestore'],
+        Button::custom('restoreOrder')->text('Restore order'),
+    ]);
+```
+
+The frontend resolver walks `buttons`/`postfixButtons`/`prefixButtons` recursively, so a custom
+action nested this way is registered exactly like a top-level one.
+
 ## Frequent Pitfalls
 
 - Adding `ButtonsExtension` without adding `Feature::BUTTONS` to the layout.
