@@ -142,12 +142,57 @@ final class ColumnResolver
             }
 
             $key = ColumnKeyResolver::rowKey($column);
-            if (null !== $key) {
-                unset($row[$key]);
+            if (null === $key) {
+                continue;
+            }
+
+            $this->unsetRowPath($row, $key);
+
+            $readPath = ColumnKeyResolver::readPath($column, $key);
+            if ($readPath !== $key) {
+                $this->unsetRowPath($row, $readPath);
             }
         }
 
         return $row;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function unsetRowPath(array &$row, string $path): void
+    {
+        unset($row[$path]);
+
+        if (!str_contains($path, '.')) {
+            return;
+        }
+
+        $this->unsetNestedSegments($row, explode('.', $path));
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param list<string>         $segments
+     */
+    private function unsetNestedSegments(array &$row, array $segments): void
+    {
+        $segment = array_shift($segments);
+        if (!\is_string($segment) || !\array_key_exists($segment, $row)) {
+            return;
+        }
+
+        if ([] === $segments) {
+            unset($row[$segment]);
+
+            return;
+        }
+
+        if (!\is_array($row[$segment])) {
+            return;
+        }
+
+        $this->unsetNestedSegments($row[$segment], $segments);
     }
 
     /**

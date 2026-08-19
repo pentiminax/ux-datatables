@@ -196,20 +196,63 @@ final class ColumnResolverTest extends TestCase
         $this->assertSame(ActionType::Edit, $filtered[0]->getActions()?->getActions()[0]->getType());
     }
 
+    /**
+     * @param array<string, mixed> $row
+     * @param ColumnInterface[]    $columns
+     * @param array<string, mixed> $expected
+     */
     #[Test]
-    public function remove_denied_column_values_drops_unauthorized_keys_only(): void
+    #[DataProvider('provideDeniedColumnValueRemovals')]
+    public function remove_denied_column_values_drops_unauthorized_keys_only(array $row, array $columns, array $expected): void
     {
         $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
 
-        $row = $resolver->removeDeniedColumnValues(
-            ['salary' => 120000, 'name' => 'Ada', 'extra' => 'kept'],
-            [
-                TextColumn::new('salary', 'Salary')->permission('ROLE_HR'),
-                TextColumn::new('name', 'Name'),
-            ],
-        );
+        $this->assertSame($expected, $resolver->removeDeniedColumnValues($row, $columns));
+    }
 
-        $this->assertSame(['name' => 'Ada', 'extra' => 'kept'], $row);
+    /**
+     * @return iterable<string, array{array<string, mixed>, list<ColumnInterface>, array<string, mixed>}>
+     */
+    public static function provideDeniedColumnValueRemovals(): iterable
+    {
+        $salary = TextColumn::new('salary', 'Salary')->permission('ROLE_HR');
+        $name   = TextColumn::new('name', 'Name');
+
+        yield 'flat unauthorized key' => [
+            ['salary' => 120000, 'name' => 'Ada', 'extra' => 'kept'],
+            [$salary, $name],
+            ['name' => 'Ada', 'extra' => 'kept'],
+        ];
+
+        yield 'literal dotted unauthorized key' => [
+            ['user.email' => 'secret', 'name' => 'Ada'],
+            [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
+            ['name' => 'Ada'],
+        ];
+
+        yield 'nested unauthorized dotted path' => [
+            ['user' => ['email' => 'secret', 'role' => 'admin'], 'name' => 'Ada'],
+            [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
+            ['user' => ['role' => 'admin'], 'name' => 'Ada'],
+        ];
+
+        yield 'literal and nested representations of the same path' => [
+            ['user.email' => 'literal', 'user' => ['email' => 'nested', 'role' => 'admin'], 'name' => 'Ada'],
+            [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
+            ['user' => ['role' => 'admin'], 'name' => 'Ada'],
+        ];
+
+        yield 'nested field path when the row key differs' => [
+            ['email' => 'top-level', 'user' => ['email' => 'secret', 'role' => 'admin'], 'name' => 'Ada'],
+            [TextColumn::new('email', 'Email')->setField('user.email')->permission('ROLE_HR'), $name],
+            ['user' => ['role' => 'admin'], 'name' => 'Ada'],
+        ];
+
+        yield 'missing nested path is a no-op' => [
+            ['name' => 'Ada', 'extra' => 'kept'],
+            [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
+            ['name' => 'Ada', 'extra' => 'kept'],
+        ];
     }
 
     #[Test]
