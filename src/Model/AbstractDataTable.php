@@ -85,11 +85,11 @@ abstract class AbstractDataTable
         $actions = $this->configureActions(new Actions());
 
         $columnResolver->configureActionEntityClass($actions, $this->asDataTable);
-        $columnResolver->filterActionsByStaticPermissions($actions);
 
+        // Permission filtering is request-scoped and happens at the serialization
+        // and query boundaries. Applying it here would lock this container-shared
+        // instance to the first user who initialized it.
         $this->configureActionColumn($actions);
-
-        $this->columns = $columnResolver->filterStaticPermissions($this->columns);
 
         $this->table->columns($this->columns);
 
@@ -317,7 +317,7 @@ abstract class AbstractDataTable
         return $this->infrastructure()->queryFilterPipeline()->apply(
             qb: $qb,
             request: $request,
-            columns: $this->columns,
+            columns: $this->infrastructure()->columnResolver()->filterStaticPermissions($this->columns),
             filters: $this->filters ?? null,
             registry: $this->createSearchStrategyRegistry(),
         );

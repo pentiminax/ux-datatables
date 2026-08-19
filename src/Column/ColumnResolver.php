@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
+use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\PermissionAwareColumnInterface;
@@ -89,8 +89,11 @@ final class ColumnResolver
     }
 
     /**
-     * Filter columns whose static permission is not granted, and filter actions
-     * with static permissions inside any remaining ActionColumn.
+     * Return the columns (and nested actions) the current user may see.
+     *
+     * The original column objects are left unchanged: ActionColumn instances are
+     * cloned before their action collections are filtered, so a container-shared
+     * table can be re-filtered on every request.
      *
      * @param ColumnInterface[] $columns
      *
@@ -107,7 +110,8 @@ final class ColumnResolver
                 continue;
             }
 
-            if ($column instanceof ActionsProvidingColumnInterface) {
+            if ($column instanceof ActionColumn && null !== $column->getActions()) {
+                $column = clone $column;
                 $column->getActions()?->filterStaticPermissions($this->permissionChecker);
             }
 
@@ -115,6 +119,35 @@ final class ColumnResolver
         }
 
         return array_values($filtered);
+    }
+
+    /**
+     * Drop values whose column is not authorized, leaving unrelated extra keys intact.
+     *
+     * @param array<string, mixed> $row
+     * @param ColumnInterface[]    $columns
+     *
+     * @return array<string, mixed>
+     */
+    public function removeDeniedColumnValues(array $row, array $columns): array
+    {
+        $visibleNames = [];
+        foreach ($this->filterStaticPermissions($columns) as $column) {
+            $visibleNames[$column->getName()] = true;
+        }
+
+        foreach ($columns as $column) {
+            if (isset($visibleNames[$column->getName()])) {
+                continue;
+            }
+
+            $key = ColumnKeyResolver::rowKey($column);
+            if (null !== $key) {
+                unset($row[$key]);
+            }
+        }
+
+        return $row;
     }
 
     /**

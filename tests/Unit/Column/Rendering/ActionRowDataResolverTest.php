@@ -94,7 +94,7 @@ final class ActionRowDataResolverTest extends TestCase
 
         yield 'id read from an array source row' => [
             [Action::delete()],
-            ['id'     => 9],
+            ['id' => 9],
             ['DELETE' => ['id' => 9]],
         ];
 
@@ -135,6 +135,34 @@ final class ActionRowDataResolverTest extends TestCase
             ->permission('EDIT', static fn ($r) => $r);
 
         $result = $this->resolveRow(new ActionRowDataResolver(new PermissionChecker($inner)), $sourceRow, $action);
+
+        $this->assertSame(
+            $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]] : null,
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
+        );
+    }
+
+    #[Test]
+    #[TestWith([true])]
+    #[TestWith([false])]
+    public function static_permission_decides_action_exposure(bool $granted): void
+    {
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner
+            ->expects($this->once())
+            ->method('isGranted')
+            ->with('ROLE_EDITOR', null)
+            ->willReturn($granted);
+
+        $action = Action::edit()
+            ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
+            ->permission('ROLE_EDITOR');
+
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(new PermissionChecker($inner)),
+            (object) ['id' => 7],
+            $action,
+        );
 
         $this->assertSame(
             $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]] : null,

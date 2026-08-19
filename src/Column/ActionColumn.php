@@ -45,6 +45,13 @@ class ActionColumn extends AbstractColumn implements ActionsProvidingColumnInter
         return $this->actions;
     }
 
+    public function __clone(): void
+    {
+        if (null !== $this->actions) {
+            $this->actions = clone $this->actions;
+        }
+    }
+
     public function jsonSerialize(): array
     {
         return array_merge(parent::jsonSerialize(), [
