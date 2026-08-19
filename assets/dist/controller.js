@@ -18,6 +18,7 @@ import { fetchEditForm } from './functions/fetchEditForm.js';
 import { registerFilterFeature } from './functions/filterFeature.js';
 import { applyFilterLayout } from './functions/filterLayout.js';
 import { FilterBar, hasFilters } from './functions/filters.js';
+import { isFixedHeaderClone } from './functions/isFixedHeaderClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { applyLocalLanguage } from './functions/localLanguage.js';
 import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js';
@@ -52,6 +53,9 @@ class default_1 extends Controller {
         }
         if (!(this.element instanceof HTMLTableElement)) {
             throw new Error('Invalid element');
+        }
+        if (isFixedHeaderClone(this.element)) {
+            return;
         }
         const payload = this.viewValue;
         this.dispatchEvent('pre-connect', {
