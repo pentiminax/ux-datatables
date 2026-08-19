@@ -66,6 +66,37 @@ describe('applyCustomButtonActions', () => {
         expect(JSON.stringify(payload)).toBe(before)
     })
 
+    it('resolves a custom action nested inside a colvis dropdown postfixButtons entry', () => {
+        const action = vi.fn()
+        buttonActions.register('restoreOrder', action)
+
+        const payload = {
+            layout: {
+                topStart: {
+                    buttons: [
+                        {
+                            extend: 'colvis',
+                            text: 'Columns',
+                            postfixButtons: [
+                                { extend: 'colvisRestore' },
+                                { action: 'restoreOrder', text: 'Restore order' },
+                            ],
+                        },
+                    ],
+                },
+            },
+        }
+
+        applyCustomButtonActions(payload)
+
+        const colvis = (payload.layout.topStart.buttons[0] as unknown as Record<string, unknown>)
+        const postfix = colvis.postfixButtons as Record<string, unknown>[]
+        expect(postfix[0].extend).toBe('colvisRestore')
+        expect(postfix[0].action).toBeUndefined()
+        expect(postfix[1].action).toBe(action)
+        expect(postfix[1].text).toBe('Restore order')
+    })
+
     it('resolves nested layout groups (arrays of items within one position)', () => {
         const action = vi.fn()
         buttonActions.register('clearFilters', action)
