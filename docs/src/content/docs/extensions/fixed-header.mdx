@@ -34,6 +34,14 @@ $dataTable->addExtension(
 Set `headerOffset` when another fixed element, such as a sticky navigation bar, already occupies
 space at the top of the page, so the fixed header docks below it instead of underneath it.
 
+## Behavior
+
+FixedHeader builds its floating header by cloning the live `<table>` element and appending the
+clone to `<body>`, reparenting the real `<thead>` into it while scrolling. The Stimulus controller
+recognizes and ignores this clone automatically (it carries the `aria-hidden="true"` marker
+FixedHeader sets on it), so it never tries to initialize a second DataTable on it. No application
+code is needed to handle this.
+
 ## Frequent Pitfalls
 
 - Combining Fixed Header with the core `scrollY` / `scrollX` scrolling feature or with the Scroller
