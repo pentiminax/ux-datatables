@@ -73,6 +73,16 @@ new FixedHeaderExtension(header: true, footer: false, headerOffset: 0, footerOff
 
 Not intended to be combined with `ScrollerExtension` or the core `scrollY` / `scrollX` scrolling feature.
 
+## ColReorder — drag to reorder columns
+
+```php
+new ColReorderExtension(enable: true, columns: '');  // both are defaults
+```
+
+`enable: false` loads ColReorder locked; toggle at runtime with the JS API
+(`dt.colReorder.enable()`/`.disable()`, e.g. via `Button::custom()`). `columns` is a DataTables
+column-selector string restricting which columns can be dragged.
+
 ## Responsive — collapse columns on small screens
 
 ```php
@@ -108,10 +118,9 @@ No constructor args needed:
 | Extension | Effect |
 |-----------|--------|
 | `ColumnControlExtension` | per-column order/search controls (`$table->columnControl()`) |
-| `ColReorderExtension` | drag to reorder columns |
 
 ```php
-$extensions->addExtension(new ColReorderExtension());
+$extensions->addExtension(new ColumnControlExtension());
 ```
 
 See `docs/src/content/docs/extensions/combining-extensions.mdx` for compatible combinations.

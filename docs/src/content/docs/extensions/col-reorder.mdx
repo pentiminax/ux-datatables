@@ -17,6 +17,19 @@ use Pentiminax\UX\DataTables\Model\Extensions\ColReorderExtension;
 $dataTable->addExtension(new ColReorderExtension());
 ```
 
+## Advanced Example
+
+```php
+$dataTable->addExtension(
+    new ColReorderExtension(enable: false, columns: ':not(:first-child)')
+);
+```
+
+`enable: false` loads ColReorder but leaves it initially disabled — pair with the DataTables API
+(`dt.colReorder.enable()` / `.disable()`, e.g. from a `Button::custom()` toggle) to lock and unlock
+reordering at runtime. `columns` is a DataTables column-selector string restricting which columns
+can be dragged; the default `''` allows every column.
+
 ## Frequent Pitfalls
 
 - Not validating interactions with fixed columns and saved states.
