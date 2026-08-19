@@ -52,6 +52,7 @@ const EXTENSION_MAP: Record<string, string> = {
     responsive: 'responsive',
     columnControl: 'columnControl',
     fixedColumns: 'fixedColumns',
+    fixedHeader: 'fixedHeader',
     colReorder: 'colReorder',
     keys: 'keyTable',
     rowGroup: 'rowGroup',

@@ -1,0 +1,48 @@
+---
+title: Fixed Header Extension
+description: Keep the table header (and optionally footer) pinned while vertically scrolling the page
+order: 95
+navTitle: Fixed Header
+---
+
+## When To Use
+
+Use Fixed Header for long tables where column headers must stay visible as the page scrolls, without
+relying on the DataTables core `scrollY` scrolling feature.
+
+## Minimal Example
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\FixedHeaderExtension;
+
+$dataTable->addExtension(new FixedHeaderExtension());
+```
+
+## Advanced Example
+
+```php
+$dataTable->addExtension(
+    new FixedHeaderExtension(
+        header: true,
+        footer: true,
+        headerOffset: 56,
+        footerOffset: 0,
+    )
+);
+```
+
+Set `headerOffset` when another fixed element, such as a sticky navigation bar, already occupies
+space at the top of the page, so the fixed header docks below it instead of underneath it.
+
+## Frequent Pitfalls
+
+- Combining Fixed Header with the core `scrollY` / `scrollX` scrolling feature or with the Scroller
+  extension: all three manage header positioning and are not intended to be used together.
+- Forgetting `headerOffset` when a sticky site header overlaps the fixed table header.
+
+## Cross Links
+
+- [/ux-datatables/extensions/fixed-columns/](/ux-datatables/extensions/fixed-columns/)
+- [/ux-datatables/extensions/scroller/](/ux-datatables/extensions/scroller/)
+- [/ux-datatables/extensions/combining-extensions/](/ux-datatables/extensions/combining-extensions/)
+- [DataTables FixedHeader reference](https://datatables.net/extensions/fixedheader/)

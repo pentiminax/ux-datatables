@@ -73,7 +73,7 @@ Scaffold from an entity: `php bin/console make:datatable`.
 - `references/defining-a-datatable.md` — `AbstractDataTable`, `#[AsDataTable]`, the `configure*()` hooks, data providers, `customizeQueryBuilder()`, page projection (`projectPage()`).
 - `references/columns.md` — all 11 column types + shared `AbstractColumn` methods.
 - `references/server-side.md` — server-side wiring, route import, Stimulus events, custom Ajax, computed columns (`setOrderExpression()`).
-- `references/extensions.md` — Buttons, Select, Responsive, ColumnControl, Scroller, KeyTable, ColReorder, FixedColumns.
+- `references/extensions.md` — Buttons, Select, Responsive, RowGroup, ColumnControl, Scroller, KeyTable, ColReorder, FixedColumns, FixedHeader.
 - `references/actions.md` — row actions, permissions, conditional display.
 - `references/filters.md` — declarative filter bar (`configureFilters()`): Text, Select, Ternary, DateRange, generic Filter (server-side Doctrine).
 - `references/api-platform.md` — API Platform + Mercure integration (both opt-in).
