@@ -75,5 +75,18 @@ final class ButtonTest extends TestCase
                 'text'   => 'Columns',
             ],
         ];
+
+        yield 'plain columncontrol search clear is a string' => [
+            Button::ccSearchClear(),
+            'ccSearchClear',
+        ];
+
+        yield 'customized columncontrol search clear is an object without export options' => [
+            Button::ccSearchClear()->text('Clear filters'),
+            [
+                'extend' => 'ccSearchClear',
+                'text'   => 'Clear filters',
+            ],
+        ];
     }
 }
