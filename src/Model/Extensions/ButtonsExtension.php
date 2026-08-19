@@ -47,6 +47,16 @@ final class ButtonsExtension extends AbstractExtension implements LayoutAwareExt
         return $this;
     }
 
+    /**
+     * @see Button::ccSearchClear()
+     */
+    public function withCcSearchClearButton(): self
+    {
+        $this->buttons[] = Button::ccSearchClear();
+
+        return $this;
+    }
+
     public function withCopyButton(): self
     {
         $this->buttons[] = Button::copy();
