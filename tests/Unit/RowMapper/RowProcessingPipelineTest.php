@@ -95,6 +95,29 @@ final class RowProcessingPipelineTest extends TestCase
     }
 
     #[Test]
+    public function it_strips_denied_nested_paths_from_object_backed_array_rows(): void
+    {
+        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker->method('isGranted')->willReturnCallback(
+            static fn (mixed $attribute): bool => 'ROLE_HR' !== $attribute
+        );
+
+        $pipeline = new RowProcessingPipeline(
+            baseMapper: static fn (array $row): array => $row,
+            columns: [
+                TextColumn::new('value.name', 'Name')->permission('ROLE_HR'),
+                TextColumn::new('name', 'Name'),
+            ],
+            columnResolver: new ColumnResolver(permissionChecker: new PermissionChecker($checker)),
+        );
+
+        $this->assertSame(
+            ['value' => ['role' => 'admin'], 'name' => 'Ada'],
+            $pipeline->map(['value' => (object) ['name' => 'secret', 'role' => 'admin'], 'name' => 'Ada']),
+        );
+    }
+
+    #[Test]
     #[DataProvider('normalizedValueProvider')]
     public function it_normalizes_the_base_mapper_output_through_the_normalization_stage(mixed $row, ColumnInterface $column, mixed $expected): void
     {

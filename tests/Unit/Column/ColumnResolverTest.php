@@ -253,6 +253,60 @@ final class ColumnResolverTest extends TestCase
             [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
             ['name' => 'Ada', 'extra' => 'kept'],
         ];
+
+        yield 'object-backed nested path' => [
+            ['value' => (object) ['name' => 'secret', 'role' => 'admin'], 'kept' => true],
+            [TextColumn::new('value.name', 'Name')->permission('ROLE_HR'), $name],
+            ['value' => ['role' => 'admin'], 'kept' => true],
+        ];
+
+        yield 'array-object nested path' => [
+            ['value' => new \ArrayObject(['name' => 'secret', 'role' => 'admin']), 'kept' => true],
+            [TextColumn::new('value.name', 'Name')->permission('ROLE_HR'), $name],
+            ['value' => ['role' => 'admin'], 'kept' => true],
+        ];
+
+        yield 'json-serializable nested path' => [
+            ['value' => new class implements \JsonSerializable {
+                public function jsonSerialize(): array
+                {
+                    return ['name' => 'secret', 'role' => 'admin'];
+                }
+            }, 'kept' => true],
+            [TextColumn::new('value.name', 'Name')->permission('ROLE_HR'), $name],
+            ['value' => ['role' => 'admin'], 'kept' => true],
+        ];
+
+        yield 'nested object two levels deep' => [
+            [
+                'user' => (object) [
+                    'profile' => (object) ['email' => 'secret', 'id' => 7],
+                    'role'    => 'admin',
+                ],
+                'name' => 'Ada',
+            ],
+            [TextColumn::new('user.profile.email', 'Email')->permission('ROLE_HR'), $name],
+            ['user' => ['profile' => ['id' => 7], 'role' => 'admin'], 'name' => 'Ada'],
+        ];
+    }
+
+    #[Test]
+    public function remove_denied_column_values_does_not_mutate_nested_objects(): void
+    {
+        $value    = (object) ['name' => 'secret', 'role' => 'admin'];
+        $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
+
+        $filtered = $resolver->removeDeniedColumnValues(
+            ['value' => $value, 'name' => 'Ada'],
+            [
+                TextColumn::new('value.name', 'Name')->permission('ROLE_HR'),
+                TextColumn::new('name', 'Name'),
+            ],
+        );
+
+        $this->assertSame(['value' => ['role' => 'admin'], 'name' => 'Ada'], $filtered);
+        $this->assertSame('secret', $value->name);
+        $this->assertSame('admin', $value->role);
     }
 
     #[Test]
