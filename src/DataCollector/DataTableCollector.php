@@ -18,12 +18,24 @@ final class DataTableCollector extends AbstractDataCollector
 
     public function collect(Request $request, Response $response, ?\Throwable $exception = null): void
     {
-        $tables = $this->profiler->getRenderedTables();
+        $tables = array_map(function (array $table): array {
+            $table['ajax'] = null === $table['ajax'] ? null : $this->cloneVar($table['ajax']);
 
-        // Rendered-table records hold only scalars/arrays, so they serialize as-is.
-        // AJAX query records carry a DataTableRequest object -> clone that field only.
+            $table['extensions'] = array_map(function (array $extension): array {
+                $extension['options'] = $this->cloneVar($extension['options']);
+
+                return $extension;
+            }, $table['extensions']);
+
+            return $table;
+        }, $this->profiler->getRenderedTables());
+
         $queries = array_map(function (array $query): array {
             $query['request'] = $this->cloneVar($query['request']);
+
+            if (isset($query['requestSummary']['filters'])) {
+                $query['requestSummary']['filters'] = $this->cloneVar($query['requestSummary']['filters']);
+            }
 
             return $query;
         }, $this->profiler->getAjaxQueries());

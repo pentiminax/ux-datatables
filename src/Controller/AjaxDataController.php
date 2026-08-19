@@ -56,6 +56,8 @@ final class AjaxDataController
         $payload = json_decode((string) $response->getContent(), true);
         $payload = \is_array($payload) ? $payload : [];
 
+        $provider = $table->getDataProvider();
+
         $this->profiler->collectAjaxQuery(
             class: $table::class,
             token: $token,
@@ -63,6 +65,11 @@ final class AjaxDataController
             recordsTotal: (int) ($payload['recordsTotal'] ?? 0),
             recordsFiltered: (int) ($payload['recordsFiltered'] ?? 0),
             durationMs: $durationMs,
+            providerClass: null !== $provider ? $provider::class : null,
+            entityClass: $table->getEntityClass(),
+            rowCount: \is_array($payload['data'] ?? null) ? \count($payload['data']) : 0,
+            payloadBytes: \strlen((string) $response->getContent()),
+            httpStatus: $response->getStatusCode(),
         );
     }
 }

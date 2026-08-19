@@ -44,6 +44,7 @@ class DataTablesExtension extends AbstractExtension
     public function renderDataTable(AbstractDataTable|DataTable $table, array $attributes = []): string
     {
         $dataTableClass = $table instanceof AbstractDataTable ? $table::class : $table->getDataTableClass();
+        $abstractTable  = $table instanceof AbstractDataTable ? $table : null;
 
         if ($table instanceof AbstractDataTable) {
             $table = $table->getDataTable();
@@ -120,7 +121,11 @@ class DataTablesExtension extends AbstractExtension
             }
         }
 
-        $this->profiler?->collectRenderedTable($dataTableClass ?? $table->getId(), $table);
+        $this->profiler?->collectRenderedTable($dataTableClass ?? $table->getId(), $table, [
+            'entityClass'     => $abstractTable?->getEntityClass(),
+            'originalColumns' => $originalColumns,
+            'allowedColumns'  => $columns,
+        ]);
 
         return \sprintf('<table id="%s" %s></table>', $table->getId(), $stimulusAttributes);
     }
