@@ -31,6 +31,7 @@ const EXTENSION_MAP = {
     responsive: 'responsive',
     columnControl: 'columnControl',
     fixedColumns: 'fixedColumns',
+    fixedHeader: 'fixedHeader',
     colReorder: 'colReorder',
     keys: 'keyTable',
     rowGroup: 'rowGroup',
