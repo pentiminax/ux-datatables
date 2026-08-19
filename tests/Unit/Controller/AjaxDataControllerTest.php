@@ -56,6 +56,11 @@ final class AjaxDataControllerTest extends TestCase
         $dataTable->expects($this->once())->method('isRequestHandled')->willReturn(true);
         $dataTable->expects($this->once())->method('getResponse')->willReturn($expectedResponse);
 
+        // The profiler reads the resolved provider, which boots the runtime.
+        $dataTable->method('configureActions')->willReturnArgument(0);
+        $dataTable->method('configureFilters')->willReturnArgument(0);
+        $dataTable->method('configureDataTable')->willReturnArgument(0);
+
         $registry = $this->createRegistry($dataTable);
         $token    = $registry->getToken('App\\UserDataTable');
 

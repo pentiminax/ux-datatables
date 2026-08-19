@@ -2,6 +2,8 @@
 
 {% block toolbar %}
     {% if collector.tableCount > 0 or collector.queryCount > 0 %}
+        {% set totalDuration = collector.queries|reduce((carry, query) => carry + query.durationMs, 0) %}
+
         {% set icon %}
             {{ source('@DataTables/Collector/icon.svg') }}
             <span class="sf-toolbar-value">{{ collector.tableCount }}</span>
@@ -16,6 +18,12 @@
                 <b class="sf-toolbar-label">AJAX queries</b>
                 <span class="sf-toolbar-status">{{ collector.queryCount }}</span>
             </div>
+            {% if collector.queryCount > 0 %}
+                <div class="sf-toolbar-info-piece">
+                    <b class="sf-toolbar-label">AJAX duration</b>
+                    <span>{{ totalDuration|number_format(2) }} ms</span>
+                </div>
+            {% endif %}
         {% endset %}
 
         {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', { link: profiler_url }) }}
@@ -42,7 +50,7 @@
                     <th>Server side</th>
                     <th>Columns</th>
                     <th>Extensions</th>
-                    <th>Inline data</th>
+                    <th>Inline rows</th>
                 </tr>
             </thead>
             <tbody>
@@ -52,12 +60,167 @@
                         <td><code>{{ table.class }}</code></td>
                         <td>{{ table.serverSide ? 'yes' : 'no' }}</td>
                         <td>{{ table.columnCount }}</td>
-                        <td>{{ table.extensions is empty ? '—' : table.extensions|join(', ') }}</td>
-                        <td>{{ table.hasData ? 'yes' : 'no' }}</td>
+                        <td>
+                            {%- if table.extensions is empty -%}
+                                —
+                            {%- else -%}
+                                {{ table.extensions|map(extension => extension.key)|join(', ') }}
+                            {%- endif -%}
+                        </td>
+                        <td>{{ table.hasData ? table.rowCount : 'no' }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
+
+        {% for table in collector.tables %}
+            <h3>
+                {{ table.id }}
+                <a class="sf-toggle" data-toggle-selector="#datatable-detail-{{ loop.index }}" data-toggle-alt-content="[-] Collapse">[+] Expand</a>
+            </h3>
+
+            <div id="datatable-detail-{{ loop.index }}" class="sf-toggle-content sf-toggle-hidden">
+                <table>
+                    <tbody>
+                        <tr><th>Class</th><td><code>{{ table.class }}</code></td></tr>
+                        {% if table.entityClass %}
+                            <tr><th>Entity</th><td><code>{{ table.entityClass }}</code></td></tr>
+                        {% endif %}
+                        <tr><th>Server side</th><td>{{ table.serverSide ? 'yes' : 'no' }}</td></tr>
+                        <tr><th>Inline rows</th><td>{{ table.rowCount }}</td></tr>
+                        {% if table.dataController %}
+                            <tr><th>Data controller</th><td><code>{{ table.dataController }}</code></td></tr>
+                        {% endif %}
+                        {% if table.ajax %}
+                            <tr><th>Ajax</th><td>{{ profiler_dump(table.ajax, 3) }}</td></tr>
+                        {% endif %}
+                        {% if table.forwardedQueryParameters is not empty %}
+                            <tr><th>Forwarded query parameters</th><td><code>{{ table.forwardedQueryParameters|join(', ') }}</code></td></tr>
+                        {% endif %}
+                        {% if table.editModal.template or table.editModal.adapter %}
+                            <tr>
+                                <th>Edit modal</th>
+                                <td>
+                                    adapter: <code>{{ table.editModal.adapter ?? 'default' }}</code>
+                                    {% if table.editModal.template %} — template: <code>{{ table.editModal.template }}</code>{% endif %}
+                                </td>
+                            </tr>
+                        {% endif %}
+                        {% if table.mercure %}
+                            <tr>
+                                <th>Mercure</th>
+                                <td>
+                                    topics: <code>{{ table.mercure.topics|join(', ') }}</code>
+                                    {% if table.mercure.hubUrl %} — hub: <code>{{ table.mercure.hubUrl }}</code>{% endif %}
+                                    {% if table.mercure.debounceMs is not null %} — debounce: {{ table.mercure.debounceMs }} ms{% endif %}
+                                    {% if table.mercure.withCredentials %} — with credentials{% endif %}
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+
+                {% if table.serverSide %}
+                    <p class="help">
+                        This table fetches its rows over AJAX. Its query details are collected in the
+                        profile of the AJAX request itself, reachable from the toolbar's AJAX tab, not in
+                        this page profile.
+                    </p>
+                {% endif %}
+
+                <h4>Columns</h4>
+                {% if table.columns is empty %}
+                    <div class="empty"><p>This table declares no column.</p></div>
+                {% else %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Data</th>
+                                <th>Type</th>
+                                <th>Field</th>
+                                <th>Orderable</th>
+                                <th>Searchable</th>
+                                <th>Visible</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for column in table.columns %}
+                                <tr>
+                                    <td>{{ loop.index0 }}</td>
+                                    <td><code>{{ column.name ?? '—' }}</code></td>
+                                    <td>{{ column.data ?? '—' }}</td>
+                                    <td>{{ column.type ?? '—' }}</td>
+                                    <td>{{ column.field ?? '—' }}</td>
+                                    <td>{{ (column.orderable ?? true) ? 'yes' : 'no' }}</td>
+                                    <td>{{ (column.searchable ?? true) ? 'yes' : 'no' }}</td>
+                                    <td>{{ (column.visible ?? true) ? 'yes' : 'no' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+
+                {% if table.deniedColumns is not empty %}
+                    <p class="help">
+                        Removed by static permission filtering:
+                        <code>{{ table.deniedColumns|join(', ') }}</code>
+                    </p>
+                {% endif %}
+
+                <h4>Extensions</h4>
+                {% if table.extensions is empty %}
+                    <div class="empty"><p>No DataTables.net extension is enabled on this table.</p></div>
+                {% else %}
+                    {% for extension in table.extensions %}
+                        <table>
+                            <tbody>
+                                <tr><th>Key</th><td><code>{{ extension.key }}</code></td></tr>
+                                <tr><th>Class</th><td><code>{{ extension.class }}</code></td></tr>
+                                <tr>
+                                    <th>Layout aware</th>
+                                    <td>
+                                        {{ extension.layoutAware ? 'yes' : 'no' }}
+                                        {%- if extension.layoutAware %} (injected into the table layout, absent from the extensions payload){% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Options</th>
+                                    <td>{{ profiler_dump(extension.options, 3) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    {% endfor %}
+                {% endif %}
+
+                <h4>Filters</h4>
+                {% if table.filters is empty %}
+                    <div class="empty"><p>This table declares no filter.</p></div>
+                {% else %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Label</th>
+                                <th>Placeholder</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for filter in table.filters %}
+                                <tr>
+                                    <td><code>{{ filter.name }}</code></td>
+                                    <td>{{ filter.type ?? '—' }}</td>
+                                    <td>{{ filter.label ?? '—' }}</td>
+                                    <td>{{ filter.placeholder ?? '—' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        {% endfor %}
     {% endif %}
 
     <h2>AJAX queries</h2>
@@ -69,12 +232,117 @@
             <table>
                 <tbody>
                     <tr><th>Token</th><td><code>{{ query.token }}</code></td></tr>
+                    {% if query.providerClass %}
+                        <tr><th>Data provider</th><td><code>{{ query.providerClass }}</code></td></tr>
+                    {% endif %}
+                    {% if query.entityClass %}
+                        <tr><th>Entity</th><td><code>{{ query.entityClass }}</code></td></tr>
+                    {% endif %}
                     <tr><th>Records total</th><td>{{ query.recordsTotal }}</td></tr>
                     <tr><th>Records filtered</th><td>{{ query.recordsFiltered }}</td></tr>
+                    <tr><th>Returned rows</th><td>{{ query.rowCount }}</td></tr>
+                    <tr><th>Payload size</th><td>{{ query.payloadBytes }} B</td></tr>
+                    {% if query.httpStatus %}
+                        <tr><th>HTTP status</th><td>{{ query.httpStatus }}</td></tr>
+                    {% endif %}
                     <tr><th>Duration</th><td>{{ query.durationMs|number_format(2) }} ms</td></tr>
-                    <tr><th>Request</th><td>{{ profiler_dump(query.request) }}</td></tr>
+                    {% if query.requestSummary %}
+                        <tr><th>Draw</th><td>{{ query.requestSummary.draw ?? '—' }}</td></tr>
+                        <tr>
+                            <th>Pagination</th>
+                            <td>
+                                page {{ query.requestSummary.page }} — start {{ query.requestSummary.start }},
+                                length {{ query.requestSummary.length }}
+                            </td>
+                        </tr>
+                    {% endif %}
                 </tbody>
             </table>
+
+            {% if query.requestSummary %}
+                <h4>Global search</h4>
+                {% if query.requestSummary.search is null or query.requestSummary.search.value is empty %}
+                    <div class="empty"><p>No global search term was submitted.</p></div>
+                {% else %}
+                    <table>
+                        <tbody>
+                            <tr><th>Value</th><td><code>{{ query.requestSummary.search.value }}</code></td></tr>
+                            <tr><th>Regex</th><td>{{ query.requestSummary.search.regex ? 'yes' : 'no' }}</td></tr>
+                        </tbody>
+                    </table>
+                {% endif %}
+
+                <h4>Order</h4>
+                {% if query.requestSummary.order is empty %}
+                    <div class="empty"><p>No ordering was requested.</p></div>
+                {% else %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Priority</th>
+                                <th>Column index</th>
+                                <th>Column name</th>
+                                <th>Direction</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in query.requestSummary.order %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ order.column }}</td>
+                                    <td><code>{{ order.name }}</code></td>
+                                    <td>{{ order.dir }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+
+                <h4>Request columns</h4>
+                {% if query.requestSummary.columns is empty %}
+                    <div class="empty"><p>The request carried no column definition.</p></div>
+                {% else %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Data</th>
+                                <th>Searchable</th>
+                                <th>Orderable</th>
+                                <th>Column search</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for column in query.requestSummary.columns %}
+                                <tr>
+                                    <td>{{ column.index }}</td>
+                                    <td><code>{{ column.name }}</code></td>
+                                    <td>{{ column.data }}</td>
+                                    <td>{{ column.searchable ? 'yes' : 'no' }}</td>
+                                    <td>{{ column.orderable ? 'yes' : 'no' }}</td>
+                                    <td>{{ column.searchValue is empty ? '—' : column.searchValue }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+
+                <h4>Filters</h4>
+                <table>
+                    <tbody>
+                        <tr><th>Submitted values</th><td>{{ profiler_dump(query.requestSummary.filters, 3) }}</td></tr>
+                    </tbody>
+                </table>
+            {% endif %}
+
+            <h4>
+                Raw DataTableRequest
+                <a class="sf-toggle" data-toggle-selector="#datatable-raw-request-{{ loop.index }}" data-toggle-alt-content="[-] Collapse">[+] Expand</a>
+            </h4>
+            <div id="datatable-raw-request-{{ loop.index }}" class="sf-toggle-content sf-toggle-hidden">
+                {{ profiler_dump(query.request, 3) }}
+            </div>
         {% endfor %}
     {% endif %}
 {% endblock %}

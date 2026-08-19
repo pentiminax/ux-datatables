@@ -24,6 +24,14 @@ final readonly class Columns
         return new self($columns);
     }
 
+    /**
+     * @return array<string, Column> request columns keyed by column name
+     */
+    public function all(): array
+    {
+        return $this->columns;
+    }
+
     public function getColumnByName(string $name): ?Column
     {
         return $this->columns[$name] ?? null;
