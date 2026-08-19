@@ -303,6 +303,27 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
+    public function it_strips_denied_nested_dotted_paths_from_embedded_rows(): void
+    {
+        $table = $this->builder()->createDataTable('nested_permission_table');
+        $table->columns([
+            TextColumn::new('name'),
+            TextColumn::new('user.email')->permission('ROLE_DENIED'),
+        ]);
+        $table->data([
+            ['name' => 'Ada', 'user' => ['email' => 'secret', 'role' => 'admin']],
+        ]);
+
+        $actual = $this->renderPayload($table);
+
+        $this->assertSame(['name'], array_column($actual['columns'], 'name'));
+        $this->assertSame(
+            ['name' => 'Ada', 'user' => ['role' => 'admin']],
+            $actual['data'][0],
+        );
+    }
+
+    #[Test]
     public function it_filters_denied_static_actions_on_direct_datatable_rendering(): void
     {
         $actions = (new Actions())->add(
