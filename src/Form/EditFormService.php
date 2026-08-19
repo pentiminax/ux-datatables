@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Form;
 
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
@@ -97,7 +98,8 @@ final class EditFormService
     {
         return $this->builder->buildForm(
             entity: $context->entity,
-            columns: $this->templateResolver->resolveColumns($dataTable->dataTableClass),
+            columns: (new ColumnResolver(permissionChecker: $this->permissionChecker))
+                ->filterStaticPermissions($this->templateResolver->resolveColumns($dataTable->dataTableClass)),
             identifierFields: $context->manager->getClassMetadata($dataTable->requireEntityClass())->getIdentifierFieldNames(),
         );
     }

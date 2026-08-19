@@ -167,6 +167,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.mutation.boolean_context_resolver', BooleanMutationContextResolver::class)
         ->arg(0, service('datatables.ajax.registry'))
+        ->arg(1, service('datatables.security.permission_checker'))
         ->private();
 
     $services->alias(BooleanMutationContextResolver::class, 'datatables.mutation.boolean_context_resolver')
@@ -283,6 +284,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(1, service('datatables.column.template_column_renderer'))
         ->arg(2, service('datatables.column.action_row_data_resolver'))
         ->arg(3, service(UrlColumnDataResolver::class)->nullOnInvalid())
+        ->arg(4, service('datatables.security.permission_checker'))
         ->private();
 
     $services->alias(DataTableRuntimeFactory::class, 'datatables.runtime.factory')

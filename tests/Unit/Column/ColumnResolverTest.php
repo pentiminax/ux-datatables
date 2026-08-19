@@ -189,8 +189,124 @@ final class ColumnResolverTest extends TestCase
         $filtered = $resolver->filterStaticPermissions([ActionColumn::fromActions('actions', '', $actions)]);
 
         $this->assertCount(1, $filtered);
-        $this->assertSame(1, $actions->count());
-        $this->assertSame(ActionType::Edit, $actions->getActions()[0]->getType());
+        $this->assertSame(2, $actions->count());
+        $this->assertSame(ActionType::Delete, $actions->getActions()[0]->getType());
+        $this->assertInstanceOf(ActionColumn::class, $filtered[0]);
+        $this->assertSame(1, $filtered[0]->getActions()?->count());
+        $this->assertSame(ActionType::Edit, $filtered[0]->getActions()?->getActions()[0]->getType());
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param ColumnInterface[]    $columns
+     * @param array<string, mixed> $expected
+     */
+    #[Test]
+    #[DataProvider('provideDeniedColumnValueRemovals')]
+    public function remove_denied_column_values_drops_unauthorized_keys_only(array $row, array $columns, array $expected): void
+    {
+        $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
+
+        $this->assertSame($expected, $resolver->removeDeniedColumnValues($row, $columns));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>, list<ColumnInterface>, array<string, mixed>}>
+     */
+    public static function provideDeniedColumnValueRemovals(): iterable
+    {
+        $salary = TextColumn::new('salary', 'Salary')->permission('ROLE_HR');
+        $name   = TextColumn::new('name', 'Name');
+
+        yield 'flat unauthorized key' => [
+            ['salary' => 120000, 'name' => 'Ada', 'extra' => 'kept'],
+            [$salary, $name],
+            ['name' => 'Ada', 'extra' => 'kept'],
+        ];
+
+        yield 'literal dotted unauthorized key' => [
+            ['user.email' => 'secret', 'name' => 'Ada'],
+            [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
+            ['name' => 'Ada'],
+        ];
+
+        yield 'nested unauthorized dotted path' => [
+            ['user' => ['email' => 'secret', 'role' => 'admin'], 'name' => 'Ada'],
+            [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
+            ['user' => ['role' => 'admin'], 'name' => 'Ada'],
+        ];
+
+        yield 'literal and nested representations of the same path' => [
+            ['user.email' => 'literal', 'user' => ['email' => 'nested', 'role' => 'admin'], 'name' => 'Ada'],
+            [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
+            ['user' => ['role' => 'admin'], 'name' => 'Ada'],
+        ];
+
+        yield 'nested field path when the row key differs' => [
+            ['email' => 'top-level', 'user' => ['email' => 'secret', 'role' => 'admin'], 'name' => 'Ada'],
+            [TextColumn::new('email', 'Email')->setField('user.email')->permission('ROLE_HR'), $name],
+            ['user' => ['role' => 'admin'], 'name' => 'Ada'],
+        ];
+
+        yield 'missing nested path is a no-op' => [
+            ['name' => 'Ada', 'extra' => 'kept'],
+            [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
+            ['name' => 'Ada', 'extra' => 'kept'],
+        ];
+
+        yield 'object-backed nested path' => [
+            ['value' => (object) ['name' => 'secret', 'role' => 'admin'], 'kept' => true],
+            [TextColumn::new('value.name', 'Name')->permission('ROLE_HR'), $name],
+            ['value' => ['role' => 'admin'], 'kept' => true],
+        ];
+
+        yield 'array-object nested path' => [
+            ['value' => new \ArrayObject(['name' => 'secret', 'role' => 'admin']), 'kept' => true],
+            [TextColumn::new('value.name', 'Name')->permission('ROLE_HR'), $name],
+            ['value' => ['role' => 'admin'], 'kept' => true],
+        ];
+
+        yield 'json-serializable nested path' => [
+            ['value' => new class implements \JsonSerializable {
+                public function jsonSerialize(): array
+                {
+                    return ['name' => 'secret', 'role' => 'admin'];
+                }
+            }, 'kept' => true],
+            [TextColumn::new('value.name', 'Name')->permission('ROLE_HR'), $name],
+            ['value' => ['role' => 'admin'], 'kept' => true],
+        ];
+
+        yield 'nested object two levels deep' => [
+            [
+                'user' => (object) [
+                    'profile' => (object) ['email' => 'secret', 'id' => 7],
+                    'role'    => 'admin',
+                ],
+                'name' => 'Ada',
+            ],
+            [TextColumn::new('user.profile.email', 'Email')->permission('ROLE_HR'), $name],
+            ['user' => ['profile' => ['id' => 7], 'role' => 'admin'], 'name' => 'Ada'],
+        ];
+    }
+
+    #[Test]
+    public function remove_denied_column_values_does_not_mutate_nested_objects(): void
+    {
+        $value    = (object) ['name' => 'secret', 'role' => 'admin'];
+        $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
+
+        $filtered = $resolver->removeDeniedColumnValues(
+            ['value' => $value, 'name' => 'Ada'],
+            [
+                TextColumn::new('value.name', 'Name')->permission('ROLE_HR'),
+                TextColumn::new('name', 'Name'),
+            ],
+        );
+
+        $this->assertSame(['value' => ['role' => 'admin'], 'name' => 'Ada'], $filtered);
+        $this->assertSame('secret', $value->name);
+        $this->assertSame('admin', $value->role);
     }
 
     #[Test]
