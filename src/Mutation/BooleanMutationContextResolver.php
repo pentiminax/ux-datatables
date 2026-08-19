@@ -7,11 +7,13 @@ namespace Pentiminax\UX\DataTables\Mutation;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 
 final readonly class BooleanMutationContextResolver
 {
     public function __construct(
         private AjaxDataTableRegistry $registry,
+        private readonly PermissionChecker $permissionChecker = new PermissionChecker(),
     ) {
     }
 
@@ -21,6 +23,11 @@ final readonly class BooleanMutationContextResolver
 
         foreach ($resolved->table->getConfiguredDataTable()->getColumns() as $column) {
             if (!$column instanceof BooleanColumn || !$column->isRenderedAsSwitch()) {
+                continue;
+            }
+
+            $permission = $column->getPermission();
+            if (null !== $permission && !$this->permissionChecker->isGranted($permission)) {
                 continue;
             }
 

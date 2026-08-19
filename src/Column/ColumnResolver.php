@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
+use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\PermissionAwareColumnInterface;
@@ -89,8 +89,11 @@ final class ColumnResolver
     }
 
     /**
-     * Filter columns whose static permission is not granted, and filter actions
-     * with static permissions inside any remaining ActionColumn.
+     * Return the columns (and nested actions) the current user may see.
+     *
+     * The original column objects are left unchanged: ActionColumn instances are
+     * cloned before their action collections are filtered, so a container-shared
+     * table can be re-filtered on every request.
      *
      * @param ColumnInterface[] $columns
      *
@@ -107,7 +110,8 @@ final class ColumnResolver
                 continue;
             }
 
-            if ($column instanceof ActionsProvidingColumnInterface) {
+            if ($column instanceof ActionColumn && null !== $column->getActions()) {
+                $column = clone $column;
                 $column->getActions()?->filterStaticPermissions($this->permissionChecker);
             }
 
@@ -115,6 +119,124 @@ final class ColumnResolver
         }
 
         return array_values($filtered);
+    }
+
+    /**
+     * Drop values whose column is not authorized, leaving unrelated extra keys intact.
+     *
+     * @param array<string, mixed> $row
+     * @param ColumnInterface[]    $columns
+     *
+     * @return array<string, mixed>
+     */
+    public function removeDeniedColumnValues(array $row, array $columns): array
+    {
+        $visibleNames = [];
+        foreach ($this->filterStaticPermissions($columns) as $column) {
+            $visibleNames[$column->getName()] = true;
+        }
+
+        foreach ($columns as $column) {
+            if (isset($visibleNames[$column->getName()])) {
+                continue;
+            }
+
+            $key = ColumnKeyResolver::rowKey($column);
+            if (null === $key) {
+                continue;
+            }
+
+            $this->unsetRowPath($row, $key);
+
+            $readPath = ColumnKeyResolver::readPath($column, $key);
+            if ($readPath !== $key) {
+                $this->unsetRowPath($row, $readPath);
+            }
+        }
+
+        return $row;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function unsetRowPath(array &$row, string $path): void
+    {
+        unset($row[$path]);
+
+        if (!str_contains($path, '.')) {
+            return;
+        }
+
+        $this->unsetNestedSegments($row, explode('.', $path));
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param list<string>         $segments
+     */
+    private function unsetNestedSegments(array &$row, array $segments): void
+    {
+        $segment = array_shift($segments);
+        if (!\is_string($segment) || !\array_key_exists($segment, $row)) {
+            return;
+        }
+
+        if ([] === $segments) {
+            unset($row[$segment]);
+
+            return;
+        }
+
+        if (!\is_array($row[$segment])) {
+            $normalized = $this->arrayFromNestedValue($row[$segment]);
+            if (null === $normalized) {
+                return;
+            }
+
+            $row[$segment] = $normalized;
+        }
+
+        $this->unsetNestedSegments($row[$segment], $segments);
+    }
+
+    /**
+     * Copy an object-backed nested segment into an array without mutating the original.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function arrayFromNestedValue(mixed $value): ?array
+    {
+        if ($value instanceof \JsonSerializable) {
+            $serialized = $value->jsonSerialize();
+
+            return \is_array($serialized) ? $serialized : null;
+        }
+
+        if ($value instanceof \ArrayObject) {
+            return $value->getArrayCopy();
+        }
+
+        if ($value instanceof \Traversable && !$value instanceof \Generator) {
+            return iterator_to_array($value);
+        }
+
+        if (!\is_object($value)) {
+            return null;
+        }
+
+        $publicProperties = get_object_vars($value);
+        if ([] !== $publicProperties) {
+            return $publicProperties;
+        }
+
+        try {
+            $decoded = json_decode(json_encode($value, \JSON_THROW_ON_ERROR), true);
+        } catch (\JsonException) {
+            return null;
+        }
+
+        return \is_array($decoded) ? $decoded : null;
     }
 
     /**

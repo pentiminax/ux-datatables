@@ -14,11 +14,13 @@ use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContext;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * @internal
@@ -113,6 +115,19 @@ final class BooleanMutationContextResolverTest extends TestCase
         $this->resolve(MissingEffectiveFieldDataTableFixture::class, '');
     }
 
+    #[Test]
+    public function it_rejects_a_switchable_column_whose_static_permission_is_denied(): void
+    {
+        $this->expectException(InvalidBooleanMutationContextException::class);
+        $this->expectExceptionMessage('is not a switchable boolean column');
+
+        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker->expects($this->once())->method('isGranted')->with('ROLE_ADMIN', null)->willReturn(false);
+
+        $this->resolver(PermissionGatedBooleanDataTableFixture::class, new PermissionChecker($checker))
+            ->resolve($this->token(PermissionGatedBooleanDataTableFixture::class), 'enabled');
+    }
+
     /**
      * @param class-string<AbstractDataTable> $dataTableClass
      */
@@ -124,16 +139,19 @@ final class BooleanMutationContextResolverTest extends TestCase
     /**
      * @param class-string<AbstractDataTable> $dataTableClass
      */
-    private function resolver(string $dataTableClass): BooleanMutationContextResolver
+    private function resolver(string $dataTableClass, ?PermissionChecker $permissionChecker = null): BooleanMutationContextResolver
     {
         $locator = $this->createMock(ContainerInterface::class);
         $locator->method('get')->with('table')->willReturn(new $dataTableClass());
 
-        return new BooleanMutationContextResolver(new AjaxDataTableRegistry(
-            $locator,
-            new AjaxDataTableTokenManager(self::TOKEN_SECRET),
-            [$dataTableClass => 'table'],
-        ));
+        return new BooleanMutationContextResolver(
+            new AjaxDataTableRegistry(
+                $locator,
+                new AjaxDataTableTokenManager(self::TOKEN_SECRET),
+                [$dataTableClass => 'table'],
+            ),
+            $permissionChecker ?? new PermissionChecker(),
+        );
     }
 
     /**
@@ -236,6 +254,15 @@ final class EmptyToggleFieldDataTableFixture extends AbstractDataTable
         yield BooleanColumn::new('enabled')
             ->setCustomOption(BooleanColumn::OPTION_TOGGLE_FIELD, '')
             ->renderAsSwitch();
+    }
+}
+
+#[AsDataTable(entityClass: BooleanMutationEntityFixture::class)]
+final class PermissionGatedBooleanDataTableFixture extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield BooleanColumn::new('enabled')->permission('ROLE_ADMIN')->renderAsSwitch();
     }
 }
 

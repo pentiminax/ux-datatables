@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Enum\Icon;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
@@ -50,5 +51,18 @@ final class ActionColumnTest extends TestCase
         $this->assertSame('DETAIL', $data['actions'][0]['type']);
         $this->assertSame('eye', $data['actions'][0]['lucideIcon']);
         $this->assertSame('/books/42', $data['actions'][0]['url']);
+    }
+
+    #[Test]
+    public function it_clones_the_actions_collection(): void
+    {
+        $actions = (new Actions())->add(Action::delete());
+        $column  = ActionColumn::fromActions('actions', '', $actions);
+
+        $clone = clone $column;
+        $clone->getActions()?->remove(ActionType::Delete);
+
+        $this->assertSame(1, $actions->count());
+        $this->assertTrue($clone->getActions()?->isEmpty());
     }
 }
