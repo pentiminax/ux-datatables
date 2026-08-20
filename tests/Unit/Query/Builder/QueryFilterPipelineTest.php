@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
+use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -56,6 +57,7 @@ final class QueryFilterPipelineTest extends TestCase
             columns: [TextColumn::new('name', 'Name')->setField('name')],
             filters: (new Filters())->add($filter),
             registry: new DefaultSearchStrategyRegistry(),
+            predicateBuilder: new DefaultSearchPredicateBuilder(),
         );
 
         $expected = array_map(static fn (string $applied): array => [$qb, $applied, 'e'], $expectedValues);
@@ -79,6 +81,7 @@ final class QueryFilterPipelineTest extends TestCase
             columns: $columns,
             filters: null,
             registry: new DefaultSearchStrategyRegistry(),
+            predicateBuilder: new DefaultSearchPredicateBuilder(),
         );
 
         $this->assertSame($qb, $result);

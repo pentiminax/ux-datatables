@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Query\Builder;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnControlSearchFilter;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnSearchFilter;
 use Pentiminax\UX\DataTables\Query\Filter\GlobalSearchFilter;
@@ -61,11 +62,11 @@ final class QueryFilterChain
      * 3. ColumnSearchFilter - Applies standard DataTables column-specific searches
      * 4. ColumnControlSearchFilter - Applies column-specific filters using strategies
      */
-    public static function createDefault(SearchStrategyRegistry $registry): self
+    public static function createDefault(SearchStrategyRegistry $registry, SearchPredicateBuilderInterface $predicateBuilder): self
     {
         return (new self())
             ->addFilter(new OrderFilter())
-            ->addFilter(new GlobalSearchFilter())
+            ->addFilter(new GlobalSearchFilter($predicateBuilder))
             ->addFilter(new ColumnSearchFilter($registry))
             ->addFilter(new ColumnControlSearchFilter($registry));
     }

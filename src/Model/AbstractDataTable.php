@@ -10,11 +10,13 @@ use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
@@ -316,6 +318,7 @@ abstract class AbstractDataTable
             columns: $this->infrastructure()->columnResolver()->filterStaticPermissions($this->columns),
             filters: $this->filters ?? null,
             registry: $this->createSearchStrategyRegistry(),
+            predicateBuilder: $this->createSearchPredicateBuilder(),
         );
     }
 
@@ -332,6 +335,17 @@ abstract class AbstractDataTable
     protected function createSearchStrategyRegistry(): SearchStrategyRegistry
     {
         return new DefaultSearchStrategyRegistry();
+    }
+
+    /**
+     * Create the search predicate builder used by global search.
+     *
+     * Override this method to customize how global search builds a condition for a column,
+     * e.g. to add type handling SearchPredicateFactory does not cover.
+     */
+    protected function createSearchPredicateBuilder(): SearchPredicateBuilderInterface
+    {
+        return new DefaultSearchPredicateBuilder();
     }
 
     public function getColumnByName(string $name): ?ColumnInterface
