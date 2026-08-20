@@ -155,6 +155,46 @@ final class QueryFilterChainTest extends TestCase
         }
     }
 
+    #[Test]
+    public function it_resets_param_index_for_stability_between_filters(): void
+    {
+        $context = $this->context(new DataTableRequest(1, new Columns([])), [
+            TextColumn::new('name', 'Name')->setField('name'),
+        ]);
+
+        $indices          = [];
+        $paramIndexFilter = function () use (&$indices): QueryFilterInterface {
+            return new class($indices) implements QueryFilterInterface {
+                public function __construct(private array &$indices)
+                {
+                }
+
+                public function apply(QueryBuilder $qb, QueryFilterContext $context): void
+                {
+                    $column = $context->intent->columns[0];
+
+                    // Same reference requested twice within this one filter -- stable, as a
+                    // filter building one bound parameter referenced by two DQL fragments
+                    // needs. Recorded to distinguish from the cross-filter case below.
+                    $this->indices[] = [$context->paramIndexFor($column), $context->paramIndexFor($column)];
+                }
+            };
+        };
+
+        $chain = (new QueryFilterChain())
+            ->addFilter($paramIndexFilter())
+            ->addFilter($paramIndexFilter());
+
+        $chain->apply($this->createMock(QueryBuilder::class), $context);
+
+        // Each filter is internally stable (both entries in a pair match), but the two
+        // filters never share a value with each other -- QueryFilterChain::apply() resets
+        // the scope between them, so the second filter draws fresh indices even though it
+        // asked about the exact same column reference the first filter already used.
+        $this->assertSame([0, 0], $indices[0]);
+        $this->assertSame([1, 1], $indices[1]);
+    }
+
     /**
      * @param list<string> $calls
      */

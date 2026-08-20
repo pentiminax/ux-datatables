@@ -21,6 +21,9 @@ final class QueryFilterContext
 {
     private int $paramIndexCursor = 0;
 
+    /** @var array<int, int> spl_object_id(ColumnReadReference) => index, scoped to one filter */
+    private array $paramIndexScope = [];
+
     /**
      * @param array<string, ColumnInterface> $columns Configured columns indexed by name
      */
@@ -53,21 +56,30 @@ final class QueryFilterContext
     }
 
     /**
-     * @deprecated Use {@see self::nextParamIndex()} instead. Kept callable, rather than
-     * removed, for any existing custom {@see \Pentiminax\UX\DataTables\Contracts\QueryFilterInterface}
-     * implementation still calling this method directly — removing it outright turned into
-     * an undefined-method error instead of a parameter index.
+     * A parameter index stable within one filter's apply() call: requesting the same
+     * $reference more than once while building and binding a single parameter returns the
+     * same index every time, so the Doctrine placeholder and the setParameter() call keep
+     * agreeing. Use this instead of {@see self::nextParamIndex()} when one QueryFilterInterface
+     * implementation needs to reference one bound value from more than one DQL fragment.
      *
-     * $reference is accepted but no longer used to compute the index: this method now
-     * draws from the same shared counter as nextParamIndex() rather than $reference's fixed
-     * position in the column list. Restoring the old position-based value here would bring
-     * back the exact collision nextParamIndex() exists to prevent — a caller still on
-     * paramIndexFor() could once again mint the same parameter name as a built-in filter
-     * processing the same column, just with the collision moved to a third-party filter
-     * instead of two built-in ones.
+     * {@see QueryFilterChain::apply()} clears that stability between filters, so a second
+     * filter processing the same column still draws a genuinely fresh index from the shared
+     * counter — the stability here is scoped to a single apply() call and never leaks across
+     * filter boundaries, which is what keeps two different filters from colliding on the
+     * same column.
      */
     public function paramIndexFor(ColumnReadReference $reference): int
     {
-        return $this->nextParamIndex();
+        return $this->paramIndexScope[spl_object_id($reference)] ??= $this->nextParamIndex();
+    }
+
+    /**
+     * @internal called by {@see QueryFilterChain::apply()} between filters so
+     * paramIndexFor()'s per-reference stability is scoped to a single filter's apply() call
+     * and never leaks across filter boundaries
+     */
+    public function resetParamIndexScope(): void
+    {
+        $this->paramIndexScope = [];
     }
 }

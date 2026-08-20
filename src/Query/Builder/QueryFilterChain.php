@@ -46,6 +46,7 @@ final class QueryFilterChain
     {
         foreach ($this->filters as $filter) {
             $filter->apply($qb, $context);
+            $context->resetParamIndexScope();
         }
 
         return $qb;
