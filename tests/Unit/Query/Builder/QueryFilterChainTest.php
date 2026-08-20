@@ -18,6 +18,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsQueryFilterContext;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -85,6 +86,73 @@ final class QueryFilterChainTest extends TestCase
             ['name', 'ali'],
             ['email', 'bob'],
         ], $calls);
+    }
+
+    /**
+     * Regression test: ColumnSearchFilter and ColumnControlSearchFilter both resolve their
+     * strategy from the same registry and, for a while, both let the strategy mint a
+     * column_control_param_N name from a shared, column-position-based index. A column with
+     * both an ordinary search box value and a scalar ColumnControl search reused the exact
+     * same parameter name for both conditions; ColumnControlSearchFilter runs after
+     * ColumnSearchFilter, so its setParameter() call silently overwrote the ordinary search's
+     * bound value, leaving both andWhere() conditions evaluated against the ColumnControl term.
+     */
+    #[Test]
+    public function it_keeps_ordinary_and_column_control_search_parameters_distinct_for_the_same_column(): void
+    {
+        $requestColumns = new Columns([
+            'name' => new Column(
+                'name',
+                'name',
+                true,
+                true,
+                search: new Search('ali', false),
+                columnControl: new ColumnControl(search: new ColumnControlSearch('Alice', ColumnControlLogic::Equal, 'text')),
+            ),
+        ]);
+
+        $context = $this->context(new DataTableRequest(1, $requestColumns), [
+            TextColumn::new('name', 'Name')->setField('name'),
+        ]);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+
+        $conditions = [];
+        $qb->method('andWhere')->willReturnCallback(function (string $condition) use ($qb, &$conditions): QueryBuilder {
+            $conditions[] = $condition;
+
+            return $qb;
+        });
+
+        $parameters = [];
+        $qb->method('setParameter')->willReturnCallback(
+            function (string $name, mixed $value) use ($qb, &$parameters): QueryBuilder {
+                $parameters[$name] = $value;
+
+                return $qb;
+            }
+        );
+
+        QueryFilterChain::createDefault(new DefaultSearchStrategyRegistry())->apply($qb, $context);
+
+        $this->assertCount(
+            2,
+            $parameters,
+            'ordinary search and column control search collapsed onto the same parameter name: '
+                .implode(', ', array_keys($parameters))
+        );
+        // The ordinary search box always goes through the 'contains' strategy (LIKE), while
+        // the ColumnControl search used ColumnControlLogic::Equal (exact match) -- confirming
+        // each parameter still carries the value and shape its own search form produced.
+        $this->assertSame(['%ali%', 'Alice'], array_values($parameters));
+
+        // Every parameter name the conditions reference must actually have been bound --
+        // the bug this guards was never a missing bind, it was two DQL fragments sharing
+        // one name while only the last setParameter() call for that name took effect.
+        foreach (array_keys($parameters) as $paramName) {
+            $this->assertStringContainsString(":{$paramName}", implode(' ', $conditions));
+        }
     }
 
     /**
