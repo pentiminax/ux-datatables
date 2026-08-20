@@ -56,6 +56,7 @@ const docRoutes = [
   'extensions/fixed-columns/',
   'extensions/col-reorder/',
   'extensions/row-group/',
+  'extensions/fixed-header/',
   'extensions/combining-extensions/',
   'integrations/api-platform/',
   'integrations/mercure/',
@@ -82,7 +83,7 @@ const sectionRoutes = [
 
 test('every route is built', async () => {
   assert.equal(existsSync(dist), true, 'run npm run build before npm run test:build')
-  assert.equal(docRoutes.length, 57)
+  assert.equal(docRoutes.length, 58)
 
   for (const route of [...docRoutes, ...sectionRoutes]) {
     assert.equal(existsSync(new URL(`${route}index.html`, dist)), true, `missing ${route}`)
@@ -147,10 +148,10 @@ test('row-group is reachable, not only built', async () => {
   // It shipped as an orphan page: present on disk, absent from the sidebar and
   // skipped by the pager. The navigation is derived from the collection now.
   const colReorder = await readDistFile('extensions/col-reorder/index.html')
-  const combining = await readDistFile('extensions/combining-extensions/index.html')
+  const fixedHeader = await readDistFile('extensions/fixed-header/index.html')
 
   assert.match(colReorder, /pager-next"[^>]*href="[^"]*extensions\/row-group\//)
-  assert.match(combining, /pager-prev"[^>]*href="[^"]*extensions\/row-group\//)
+  assert.match(fixedHeader, /pager-prev"[^>]*href="[^"]*extensions\/row-group\//)
   assert.match(colReorder, /docs-nav[\s\S]*extensions\/row-group\//)
 })
 
