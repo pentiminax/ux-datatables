@@ -81,4 +81,17 @@ final class ButtonsExtensionTest extends DataTableTestCase
 
         $this->assertExtensionPayload(['ccSearchClear'], $extension);
     }
+
+    #[Test]
+    public function it_adds_a_collection_button_via_the_fluent_helper(): void
+    {
+        $extension = (new ButtonsExtension([]))->withCollectionButton(['colvis', 'csv']);
+
+        $this->assertExtensionPayload([
+            [
+                'extend'  => 'collection',
+                'buttons' => ['colvis', 'csv'],
+            ],
+        ], $extension);
+    }
 }

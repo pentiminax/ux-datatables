@@ -31,7 +31,7 @@ new ButtonsExtension([
 ]);
 ```
 
-`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`), `COLUMN_CONTROL_SEARCH_CLEAR` (value `'ccSearchClear'`). The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton()`, `withExcelButton()`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`, `withCcSearchClearButton()`.
+`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`), `COLUMN_CONTROL_SEARCH_CLEAR` (value `'ccSearchClear'`), `COLLECTION` (value `'collection'`). The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton()`, `withExcelButton()`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`, `withCcSearchClearButton()`, `withCollectionButton(array $buttons)`.
 
 Fine-grained config via `Button`:
 ```php
@@ -46,6 +46,17 @@ To position buttons, place `Feature::BUTTONS` in `layout()` (see options).
 `Button::ccSearchClear()` clears the global search plus every ColumnControl per-column search in
 one click, using ColumnControl's own native Buttons entry (no JS needed). Requires
 `ColumnControlExtension` on the table.
+
+`Button::collection(array $buttons)` groups other buttons in a dropdown (the same mechanism
+`colVis()` builds on). `buttons` accepts `Button` objects, raw arrays, or extend-name strings, mixed
+freely — nested buttons serialize correctly at any depth since `Button` is `JsonSerializable`.
+
+```php
+Button::collection([
+    Button::custom('lockColumns')->text('Lock Columns'),
+    Button::custom('restoreOrder')->text('Restore order'),
+])->text('Reorder');
+```
 
 ## Select — row/cell selection
 
