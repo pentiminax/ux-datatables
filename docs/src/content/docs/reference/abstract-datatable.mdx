@@ -293,6 +293,28 @@ into each action. See the [Action Columns](../action-columns/) reference for the
   ]}
 />
 
+#### Configuration Methods Must Be Pure
+
+DataTable services are shared in the container: `configure*()` runs once and its
+result is reused. Under PHP-FPM the process dies after each request, so the
+configuration is rebuilt anyway. Under a worker runtime (FrankenPHP worker mode,
+Swoole, RoadRunner) the same instance serves many requests, for many users.
+
+The bundle tags every autoconfigured table with `kernel.reset`, so Symfony's
+`ServicesResetter` clears the per-request state between requests and the
+configuration is rebuilt each time. Still, treat `configure*()` as pure: define
+columns, actions, filters, extensions, and table options, and nothing else.
+
+Do not read the current HTTP request, the security token, the session, the
+locale, or any other per-request service from a `configure*()` method. Configure
+the table declaratively and let the request-scoped boundaries do the rest:
+
+- `permission()` on columns and actions for authorization -- it is evaluated per
+  request, per row, at the output boundary.
+- `customizeQueryBuilder()` and `getRequest()` for anything that depends on the
+  incoming request.
+- `setData()` for data resolved by the controller.
+
 ### Data Methods
 
 <Table
