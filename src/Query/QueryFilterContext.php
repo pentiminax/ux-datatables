@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Query\Intent\ColumnReadReference;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent;
 
 /**
@@ -49,5 +50,24 @@ final class QueryFilterContext
     public function nextParamIndex(): int
     {
         return $this->paramIndexCursor++;
+    }
+
+    /**
+     * @deprecated Use {@see self::nextParamIndex()} instead. Kept callable, rather than
+     * removed, for any existing custom {@see \Pentiminax\UX\DataTables\Contracts\QueryFilterInterface}
+     * implementation still calling this method directly — removing it outright turned into
+     * an undefined-method error instead of a parameter index.
+     *
+     * $reference is accepted but no longer used to compute the index: this method now
+     * draws from the same shared counter as nextParamIndex() rather than $reference's fixed
+     * position in the column list. Restoring the old position-based value here would bring
+     * back the exact collision nextParamIndex() exists to prevent — a caller still on
+     * paramIndexFor() could once again mint the same parameter name as a built-in filter
+     * processing the same column, just with the collision moved to a third-party filter
+     * instead of two built-in ones.
+     */
+    public function paramIndexFor(ColumnReadReference $reference): int
+    {
+        return $this->nextParamIndex();
     }
 }

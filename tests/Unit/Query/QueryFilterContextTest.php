@@ -71,4 +71,25 @@ final class QueryFilterContextTest extends TestCase
         $this->assertSame([0, 1], $first);
         $this->assertSame([2, 3], $second);
     }
+
+    /**
+     * @deprecated coverage: paramIndexFor() must stay callable for a custom
+     * QueryFilterInterface implementation that predates nextParamIndex() and never got
+     * updated -- an undefined-method error is worse than a deprecated method that still works
+     */
+    #[Test]
+    public function it_keeps_param_index_for_callable_and_drawing_from_the_shared_counter(): void
+    {
+        $column    = TextColumn::new('name', 'Name')->setField('name');
+        $context   = $this->context(new DataTableRequest(1, new Columns([])), [$column]);
+        $reference = $context->intent->columns[0];
+
+        // paramIndexFor() no longer returns a value stable per reference -- it now draws
+        // from the exact same counter as nextParamIndex(), so a legacy caller can never
+        // collide with a built-in filter processing the same column, at the cost of no
+        // longer getting the same number back for the same reference on a second call.
+        $this->assertSame(0, $context->paramIndexFor($reference));
+        $this->assertSame(1, $context->nextParamIndex());
+        $this->assertSame(2, $context->paramIndexFor($reference));
+    }
 }
