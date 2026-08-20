@@ -123,6 +123,57 @@ final class ComparisonSearchStrategyTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('date_skip_cases')]
+    public function it_skips_an_unbindable_predicate_on_a_date_column(ColumnControlLogic $logic, string $value): void
+    {
+        $qb = $this->queryBuilderWithFieldType('birthDate', 'date');
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+
+        $strategy = new ComparisonSearchStrategy($logic);
+        $column   = TextColumn::new('birthDate')->setField('birthDate');
+        $search   = new ColumnControlSearch($value, $logic, 'text');
+
+        $strategy->apply($qb, $column, $search, 3, 'e');
+    }
+
+    #[Test]
+    public function it_applies_equality_on_a_date_column_with_the_doctrine_type_and_a_parsed_value(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('birthDate', 'date');
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('e.birthDate = :column_control_param_3');
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with(
+                'column_control_param_3',
+                $this->callback(static fn (\DateTimeImmutable $value): bool => '2026-08-19' === $value->format('Y-m-d')),
+                'date',
+            );
+
+        $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
+        $column   = TextColumn::new('birthDate')->setField('birthDate');
+        $search   = new ColumnControlSearch('2026-08-19', ColumnControlLogic::Equal, 'text');
+
+        $strategy->apply($qb, $column, $search, 3, 'e');
+    }
+
+    /**
+     * @return iterable<string, array{ColumnControlLogic, string}>
+     */
+    public static function date_skip_cases(): iterable
+    {
+        yield 'starts (LIKE on a date column)' => [ColumnControlLogic::Starts, '2026'];
+        yield 'ends (LIKE on a date column)' => [ColumnControlLogic::Ends, '2026'];
+        yield 'notContains (LIKE on a date column)' => [ColumnControlLogic::NotContains, '2026'];
+        yield 'equal (unparsable value)' => [ColumnControlLogic::Equal, 'not-a-date'];
+        yield 'greater (unparsable value)' => [ColumnControlLogic::Greater, 'not-a-date'];
+    }
+
+    #[Test]
     public function it_returns_logic_value(): void
     {
         $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Ends);
