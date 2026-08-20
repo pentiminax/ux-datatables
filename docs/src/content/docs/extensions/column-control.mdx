@@ -49,6 +49,63 @@ require `ColumnControlExtension` to be added to the table — the frontend only 
 ColumnControl plugin bundle when the table-level extension is present, so a column-level override
 or a disabled column stays inert without it.
 
+## Custom Content Types
+
+ColumnControl resolves the content descriptors above against `DataTable.ColumnControl.content`, a
+plugin registry ([see the DataTables.net docs](https://datatables.net/manual/extensions/columncontrol/custom))
+— registering a custom type means adding to that object before the table is constructed. Neither
+existing controller event fits: `datatables:pre-connect` fires before ColumnControl's plugin bundle
+has loaded, so `DataTable.ColumnControl` doesn't exist yet; `datatables:connect` fires after the
+table is already constructed, which is too late — an unregistered content type makes construction
+throw. Use `datatables:pre-init`, which fires once extension plugins have loaded but before the
+table is built:
+
+```javascript
+// assets/controllers/mytable_controller.js
+import { Controller } from '@hotwired/stimulus'
+
+export default class extends Controller {
+  connect() {
+    this.element.addEventListener('datatables:pre-init', this._onPreInit)
+  }
+
+  disconnect() {
+    this.element.removeEventListener('datatables:pre-init', this._onPreInit)
+  }
+
+  _onPreInit(event) {
+    const { DataTable } = event.detail
+
+    DataTable.ColumnControl.content.myRating = {
+      defaults: { min: 1, max: 5 },
+      init(config) {
+        const el = document.createElement('input')
+        el.type = 'number'
+        el.min = String(config.min)
+        el.max = String(config.max)
+
+        el.addEventListener('change', () => {
+          this.dt().column(this.idx()).search(el.value).draw()
+        })
+
+        return el
+      },
+    }
+  }
+}
+```
+
+Then reference the type by name from PHP, same as any built-in content descriptor:
+
+```php
+TextColumn::new('rating', 'Rating')
+    ->setColumnControl(['myRating']);
+```
+
+Registering onto `DataTable.ColumnControl.content` only needs to happen once per page, not once
+per table — a listener attached to one table's controller instance still runs before that table's
+own construction, which is all a plugin registration needs.
+
 ## Frequent Pitfalls
 
 - Calling `setColumnControl()` or `disableColumnControl()` without also enabling
@@ -56,8 +113,13 @@ or a disabled column stays inert without it.
   silently inert because the frontend never loads the plugin bundle.
 - Enabling it without ensuring the target columns are searchable/orderable.
 - Expecting partial search (`contains`, `starts`) to work on a UUID or ULID column.
+- Registering a custom content type on `datatables:pre-connect` instead of `datatables:pre-init` —
+  `pre-connect` fires before the DataTable library and its extensions have even loaded, so its
+  event detail has no `DataTable` reference to register against. The table then throws
+  `Unknown ColumnControl content type` once it's constructed.
 
 ## Cross Links
 
 - [/ux-datatables/columns/overview/](/ux-datatables/columns/overview/)
 - [/ux-datatables/reference/datatable-request/](/ux-datatables/reference/datatable-request/)
+- [/ux-datatables/guide/usage/](/ux-datatables/guide/usage/)
