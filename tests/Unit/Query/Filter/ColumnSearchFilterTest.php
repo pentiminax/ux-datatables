@@ -34,6 +34,21 @@ final class ColumnSearchFilterTest extends TestCase
         return new ColumnSearchFilter(new SearchStrategyRegistry([new ContainsSearchStrategy()]));
     }
 
+    #[Test]
+    public function it_can_be_constructed_with_no_arguments(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('e.name LIKE :column_control_param_0');
+
+        $context = $this->singleColumnContext(TextColumn::new('name', 'Name')->setField('name'), new Search('ali', false));
+
+        (new ColumnSearchFilter())->apply($qb, $context);
+    }
+
     /**
      * @return iterable<string, array{ColumnInterface, string, string, string, ?array{string, string}}>
      */
