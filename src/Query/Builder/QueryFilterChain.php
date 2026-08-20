@@ -65,7 +65,7 @@ final class QueryFilterChain
         return (new self())
             ->addFilter(new OrderFilter())
             ->addFilter(new GlobalSearchFilter())
-            ->addFilter(new ColumnSearchFilter())
+            ->addFilter(new ColumnSearchFilter($registry))
             ->addFilter(new ColumnControlSearchFilter($registry));
     }
 }
