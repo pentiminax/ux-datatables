@@ -18,10 +18,6 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ColumnSearchResolver::class)]
 final class ColumnSearchResolverTest extends TestCase
 {
-    // -----------------------------------------------------------------------
-    // resolveField
-    // -----------------------------------------------------------------------
-
     #[Test]
     public function resolve_field_returns_search_field_when_set(): void
     {
@@ -46,10 +42,6 @@ final class ColumnSearchResolverTest extends TestCase
 
         $this->assertSame('email', ColumnSearchResolver::resolveField($column));
     }
-
-    // -----------------------------------------------------------------------
-    // applySearchJoins
-    // -----------------------------------------------------------------------
 
     #[Test]
     public function apply_search_joins_is_noop_when_column_has_no_joins(): void

@@ -6,18 +6,23 @@ namespace Pentiminax\UX\DataTables\Query;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchAwareColumnInterface;
 
 /**
  * Central helper that encapsulates two search-specific concerns:
  *
  * 1. Applying any column-declared search joins to the QueryBuilder (idempotent).
  * 2. Resolving the effective field path for search — using the column's
- *    dedicated {@see ColumnInterface::getSearchField()} when set, or falling
- *    back to {@see ColumnInterface::getField()} otherwise.
+ *    dedicated {@see SearchAwareColumnInterface::getSearchField()} when set, or
+ *    falling back to {@see ColumnInterface::getField()} otherwise.
  *
  * All search filters and strategies delegate to this class so the resolution
  * logic lives in exactly one place. Row mapping, form mapping, ordering, and the
  * serialized client payload are unaffected.
+ *
+ * Columns that implement only {@see ColumnInterface} (without
+ * {@see SearchAwareColumnInterface}) are supported: applySearchJoins() is a
+ * no-op for them and resolveField() falls back to getField().
  */
 final class ColumnSearchResolver
 {
@@ -27,9 +32,15 @@ final class ColumnSearchResolver
      * Each join is idempotent: if the alias is already registered on the
      * QueryBuilder (either from customizeQueryBuilder() or a previous
      * applySearchJoins() call), the join is silently skipped.
+     *
+     * Columns that do not implement {@see SearchAwareColumnInterface} are skipped.
      */
     public static function applySearchJoins(QueryBuilder $qb, ColumnInterface $column): void
     {
+        if (!$column instanceof SearchAwareColumnInterface) {
+            return;
+        }
+
         $joins = $column->getSearchJoins();
         if ([] === $joins) {
             return;
@@ -55,14 +66,19 @@ final class ColumnSearchResolver
     /**
      * Resolve the effective field path for a search predicate.
      *
-     * Returns {@see ColumnInterface::getSearchField()} when it has been set,
+     * Returns {@see SearchAwareColumnInterface::getSearchField()} when the column
+     * implements {@see SearchAwareColumnInterface} and the value is non-null,
      * otherwise falls back to {@see ColumnInterface::getField()}.
      *
-     * Returns null when neither method yields a non-null, non-empty value.
+     * Returns null when neither yields a non-null, non-empty value.
      */
     public static function resolveField(ColumnInterface $column): ?string
     {
-        $field = $column->getSearchField() ?? $column->getField();
+        $searchField = $column instanceof SearchAwareColumnInterface
+            ? $column->getSearchField()
+            : null;
+
+        $field = $searchField ?? $column->getField();
 
         return (null !== $field && '' !== $field) ? $field : null;
     }

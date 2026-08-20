@@ -7,13 +7,14 @@ namespace Pentiminax\UX\DataTables\Column;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\PermissionAwareColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchAwareColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 /**
  * @internal
  */
-abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnInterface, SearchableColumnInterface
+abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnInterface, SearchableColumnInterface, SearchAwareColumnInterface
 {
     protected ColumnType $type;
     protected ?string $cellType        = null;
