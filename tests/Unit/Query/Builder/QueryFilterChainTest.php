@@ -17,6 +17,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
+use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
@@ -77,7 +78,7 @@ final class QueryFilterChainTest extends TestCase
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->willReturn([]);
 
-        QueryFilterChain::createDefault($registry)->apply($qb, $context);
+        QueryFilterChain::createDefault($registry, new DefaultSearchPredicateBuilder())->apply($qb, $context);
 
         // Both ColumnSearchFilter (always 'contains') and ColumnControlSearchFilter (logic
         // 'contains' picked for the 'email' column) resolve the strategy from the same
