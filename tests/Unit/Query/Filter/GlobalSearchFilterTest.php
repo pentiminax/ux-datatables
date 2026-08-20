@@ -8,9 +8,11 @@ use Doctrine\ORM\Query\Expr;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
+use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\Filter\GlobalSearchFilter;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsQueryFilterContext;
@@ -26,6 +28,11 @@ use PHPUnit\Framework\TestCase;
 final class GlobalSearchFilterTest extends TestCase
 {
     use BuildsQueryFilterContext;
+
+    private function filter(): GlobalSearchFilter
+    {
+        return new GlobalSearchFilter(new DefaultSearchPredicateBuilder());
+    }
 
     /**
      * @return iterable<string, array{ColumnInterface, string, string, string, ?array{string, string}}>
@@ -94,7 +101,41 @@ final class GlobalSearchFilterTest extends TestCase
             ->method('setParameter')
             ->with('search_param_0', $expectedParameterValue);
 
-        (new GlobalSearchFilter())->apply($qb, $this->globalSearchContext($column, $value));
+        $this->filter()->apply($qb, $this->globalSearchContext($column, $value));
+    }
+
+    #[Test]
+    public function it_builds_conditions_through_the_injected_predicate_builder(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+
+        $expr = $this->createMock(Expr::class);
+        $expr->expects($this->once())
+            ->method('orX')
+            ->with('e.name = :search_param_0')
+            ->willReturn(new Expr\Orx(['e.name = :search_param_0']));
+
+        $qb->method('expr')->willReturn($expr);
+        $qb->expects($this->once())->method('andWhere')->willReturn($qb);
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('search_param_0', 'exact');
+
+        $predicateBuilder = new class implements SearchPredicateBuilderInterface {
+            public function build(QueryBuilder $qb, ColumnInterface $column, string $alias, string $field, string $value, string $paramName, bool $forceNumeric = false): ?string
+            {
+                $qb->setParameter($paramName, $value);
+
+                return \sprintf('%s.%s = :%s', $alias, $field, $paramName);
+            }
+        };
+
+        $filter = new GlobalSearchFilter($predicateBuilder);
+        $column = TextColumn::new('name', 'Name')->setField('name');
+
+        $filter->apply($qb, $this->globalSearchContext($column, 'exact'));
     }
 
     #[Test]
@@ -107,7 +148,7 @@ final class GlobalSearchFilterTest extends TestCase
 
         $context = $this->globalSearchContext(TextColumn::new('client', 'Client'), 'acme');
 
-        (new GlobalSearchFilter())->apply($qb, $context);
+        $this->filter()->apply($qb, $context);
     }
 
     private function globalSearchContext(ColumnInterface $column, string $value): QueryFilterContext
