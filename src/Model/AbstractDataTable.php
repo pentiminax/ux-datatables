@@ -64,26 +64,6 @@ abstract class AbstractDataTable
         $this->infrastructure = $infrastructure;
     }
 
-    /**
-     * Clear every piece of per-request state so a container-shared table behaves
-     * identically under PHP-FPM and long-running workers (FrankenPHP worker mode,
-     * Swoole, RoadRunner).
-     *
-     * Wired through the `kernel.reset` tag: `ServicesResetter` calls this between
-     * requests, so the next request re-runs `configure*()` and hydrates its own
-     * rows instead of re-serving the previous request's payload -- along with the
-     * action URLs and CSRF tokens resolved for the previous user.
-     *
-     * Deliberately not named `reset()`: that name is common enough on user tables
-     * (`ResetInterface`, filter resets) that adding it as a final method would break
-     * existing subclasses on upgrade. A subclass method must never win here either,
-     * since silently skipping this would reintroduce the cross-request leak, hence
-     * both the distinctive name and `final`.
-     *
-     * `$infrastructure` is deliberately kept: it is injected once by a
-     * construction-time method call that is never replayed. `static::$attributeCache`
-     * is kept too, being keyed by class and holding an immutable value object.
-     */
     final public function resetDataTableState(): void
     {
         unset($this->table, $this->columns, $this->filters);
@@ -194,21 +174,6 @@ abstract class AbstractDataTable
     }
 
     /**
-     * Resolve the Mercure configuration exactly as the render path would
-     * serialize it to the browser, WITHOUT hydrating client-side data and
-     * WITHOUT mutating this container-shared instance.
-     *
-     * Delegates to the same pure RenderingPreparer::resolveMercureConfig() the
-     * render path uses, so published topics always match the ones the client
-     * subscribed to, but deliberately skips hydrateClientSideData() so resolving
-     * topics for a mutation never triggers a data-provider / DB query as a side
-     * effect. When the render path would embed static client-side data — which
-     * disables Mercure live updates — this returns null, mirroring
-     * RenderingPreparer::configureMercure().
-     *
-     * Callers that must not fail (e.g. after a committed mutation) should guard
-     * against the LogicException that Mercure hub-URL resolution can throw.
-     *
      * @throws \LogicException if Mercure is enabled but the hub URL cannot be resolved
      */
     public function resolveMercureConfigWithoutHydration(): ?MercureConfig
