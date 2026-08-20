@@ -72,24 +72,63 @@ final class QueryFilterContextTest extends TestCase
         $this->assertSame([2, 3], $second);
     }
 
-    /**
-     * @deprecated coverage: paramIndexFor() must stay callable for a custom
-     * QueryFilterInterface implementation that predates nextParamIndex() and never got
-     * updated -- an undefined-method error is worse than a deprecated method that still works
-     */
     #[Test]
-    public function it_keeps_param_index_for_callable_and_drawing_from_the_shared_counter(): void
+    public function it_returns_the_same_index_for_the_same_reference_within_one_scope(): void
     {
         $column    = TextColumn::new('name', 'Name')->setField('name');
         $context   = $this->context(new DataTableRequest(1, new Columns([])), [$column]);
         $reference = $context->intent->columns[0];
 
-        // paramIndexFor() no longer returns a value stable per reference -- it now draws
-        // from the exact same counter as nextParamIndex(), so a legacy caller can never
-        // collide with a built-in filter processing the same column, at the cost of no
-        // longer getting the same number back for the same reference on a second call.
+        // A legacy filter building one bound parameter referenced by more than one DQL
+        // fragment calls paramIndexFor($reference) more than once expecting the same
+        // placeholder name back both times -- otherwise the Doctrine placeholder and the
+        // later setParameter() call diverge, leaving the query with an unbound parameter.
         $this->assertSame(0, $context->paramIndexFor($reference));
-        $this->assertSame(1, $context->nextParamIndex());
-        $this->assertSame(2, $context->paramIndexFor($reference));
+        $this->assertSame(0, $context->paramIndexFor($reference));
+        $this->assertSame(0, $context->paramIndexFor($reference));
+    }
+
+    #[Test]
+    public function it_draws_distinct_indices_for_distinct_references_within_one_scope(): void
+    {
+        $columnA = TextColumn::new('name', 'Name')->setField('name');
+        $columnB = TextColumn::new('email', 'Email')->setField('email');
+        $context = $this->context(new DataTableRequest(1, new Columns([])), [$columnA, $columnB]);
+
+        [$referenceA, $referenceB] = $context->intent->columns;
+
+        $this->assertSame(0, $context->paramIndexFor($referenceA));
+        $this->assertSame(1, $context->paramIndexFor($referenceB));
+        $this->assertSame(0, $context->paramIndexFor($referenceA));
+    }
+
+    #[Test]
+    public function it_shares_the_counter_between_next_param_index_and_param_index_for(): void
+    {
+        $column    = TextColumn::new('name', 'Name')->setField('name');
+        $context   = $this->context(new DataTableRequest(1, new Columns([])), [$column]);
+        $reference = $context->intent->columns[0];
+
+        $this->assertSame(0, $context->nextParamIndex());
+        $this->assertSame(1, $context->paramIndexFor($reference));
+        $this->assertSame(1, $context->paramIndexFor($reference));
+        $this->assertSame(2, $context->nextParamIndex());
+    }
+
+    #[Test]
+    public function it_forgets_param_index_for_stability_after_reset_param_index_scope(): void
+    {
+        $column    = TextColumn::new('name', 'Name')->setField('name');
+        $context   = $this->context(new DataTableRequest(1, new Columns([])), [$column]);
+        $reference = $context->intent->columns[0];
+
+        // QueryFilterChain::apply() calls this between filters. A second filter processing
+        // the same column after the reset must draw a genuinely fresh index -- this is the
+        // guarantee that keeps two different filters from colliding on the same column,
+        // even though each one individually sees stable, repeatable indices.
+        $this->assertSame(0, $context->paramIndexFor($reference));
+        $context->resetParamIndexScope();
+        $this->assertSame(1, $context->paramIndexFor($reference));
+        $this->assertSame(1, $context->paramIndexFor($reference));
     }
 }
