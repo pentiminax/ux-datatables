@@ -13,6 +13,8 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnSearchFilter;
+use Pentiminax\UX\DataTables\Query\Strategy\ContainsSearchStrategy;
+use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsQueryFilterContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -27,6 +29,11 @@ final class ColumnSearchFilterTest extends TestCase
 {
     use BuildsQueryFilterContext;
 
+    private function filter(): ColumnSearchFilter
+    {
+        return new ColumnSearchFilter(new SearchStrategyRegistry([new ContainsSearchStrategy()]));
+    }
+
     /**
      * @return iterable<string, array{ColumnInterface, string, string, string, ?array{string, string}}>
      */
@@ -35,7 +42,7 @@ final class ColumnSearchFilterTest extends TestCase
         yield 'text field' => [
             TextColumn::new('name', 'Name')->setField('name'),
             'test',
-            'e.name LIKE :column_search_param_0',
+            'e.name LIKE :column_control_param_0',
             '%test%',
             null,
         ];
@@ -43,7 +50,7 @@ final class ColumnSearchFilterTest extends TestCase
         yield 'numeric field with a numeric value' => [
             NumberColumn::new('id', 'ID')->setField('id'),
             '123',
-            'e.id = :column_search_param_0',
+            'e.id = :column_control_param_0',
             '123',
             null,
         ];
@@ -51,7 +58,7 @@ final class ColumnSearchFilterTest extends TestCase
         yield 'dot notation field' => [
             TextColumn::new('authorName', 'Author')->setField('author.firstName'),
             'john',
-            'author.firstName LIKE :column_search_param_0',
+            'author.firstName LIKE :column_control_param_0',
             '%john%',
             ['e.author', 'author'],
         ];
@@ -129,11 +136,11 @@ final class ColumnSearchFilterTest extends TestCase
 
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with('column_search_param_0', $expectedParameterValue);
+            ->with('column_control_param_0', $expectedParameterValue);
 
         $context = $this->singleColumnContext($column, new Search($value, false));
 
-        (new ColumnSearchFilter())->apply($qb, $context);
+        $this->filter()->apply($qb, $context);
     }
 
     #[Test]
@@ -148,7 +155,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $context = $this->singleColumnContext($column, $search, inRequest: $inRequest);
 
-        (new ColumnSearchFilter())->apply($qb, $context);
+        $this->filter()->apply($qb, $context);
     }
 
     #[Test]
@@ -161,7 +168,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $context = $this->singleColumnContext(TextColumn::new('client', 'Client'), new Search('acme', false));
 
-        (new ColumnSearchFilter())->apply($qb, $context);
+        $this->filter()->apply($qb, $context);
     }
 
     #[Test]
@@ -172,11 +179,11 @@ final class ColumnSearchFilterTest extends TestCase
 
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with('e.name LIKE :column_search_param_0');
+            ->with('e.name LIKE :column_control_param_0');
 
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with('column_search_param_0', '%alice%');
+            ->with('column_control_param_0', '%alice%');
 
         $requestColumns = new Columns([
             ''     => new Column('', '', false, false),
@@ -187,7 +194,7 @@ final class ColumnSearchFilterTest extends TestCase
             TextColumn::new('name', 'Name')->setField('name'),
         ]);
 
-        (new ColumnSearchFilter())->apply($qb, $context);
+        $this->filter()->apply($qb, $context);
     }
 
     #[Test]
@@ -225,16 +232,16 @@ final class ColumnSearchFilterTest extends TestCase
             TextColumn::new('email', 'Email')->setField('email'),
         ]);
 
-        (new ColumnSearchFilter())->apply($qb, $context);
+        $this->filter()->apply($qb, $context);
 
         self::assertSame([
-            'e.name LIKE :column_search_param_0',
-            'e.email LIKE :column_search_param_1',
+            'e.name LIKE :column_control_param_0',
+            'e.email LIKE :column_control_param_1',
         ], $conditions);
 
         self::assertSame([
-            'column_search_param_0' => '%alice%',
-            'column_search_param_1' => '%example.com%',
+            'column_control_param_0' => '%alice%',
+            'column_control_param_1' => '%example.com%',
         ], $parameters);
     }
 }
