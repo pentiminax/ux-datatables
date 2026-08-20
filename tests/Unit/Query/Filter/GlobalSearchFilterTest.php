@@ -34,6 +34,25 @@ final class GlobalSearchFilterTest extends TestCase
         return new GlobalSearchFilter(new DefaultSearchPredicateBuilder());
     }
 
+    #[Test]
+    public function it_can_be_constructed_with_no_arguments(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+
+        $qb->method('expr')->willReturn(new Expr());
+        $qb->expects($this->once())->method('andWhere')->willReturn($qb);
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('search_param_0', '%ali%');
+
+        $column  = TextColumn::new('name', 'Name')->setField('name');
+        $context = $this->globalSearchContext($column, 'ali');
+
+        (new GlobalSearchFilter())->apply($qb, $context);
+    }
+
     /**
      * @return iterable<string, array{ColumnInterface, string, string, string, ?array{string, string}}>
      */
