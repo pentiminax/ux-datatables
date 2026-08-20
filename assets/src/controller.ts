@@ -92,7 +92,7 @@ export default class extends Controller {
             config: payload,
         })
 
-        const framework = detectStyleFramework()
+        const framework = await detectStyleFramework()
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)

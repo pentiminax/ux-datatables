@@ -61,7 +61,7 @@ class default_1 extends Controller {
         this.dispatchEvent('pre-connect', {
             config: payload,
         });
-        const framework = detectStyleFramework();
+        const framework = await detectStyleFramework();
         this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
         registerFilterFeature(DataTable);
