@@ -29,7 +29,7 @@ final class SearchConditionBuilderTest extends TestCase
             'text',
             'name',
             'hello',
-            'e.name LIKE :param_0',
+            "e.name LIKE :param_0 ESCAPE '\\'",
             ['param_0', '%hello%'],
             null,
         ];
@@ -38,9 +38,18 @@ final class SearchConditionBuilderTest extends TestCase
             'text',
             'author.firstName',
             'john',
-            'author.firstName LIKE :param_0',
+            "author.firstName LIKE :param_0 ESCAPE '\\'",
             ['param_0', '%john%'],
             ['e.author', 'author'],
+        ];
+
+        yield 'text with like wildcards is escaped, not interpreted' => [
+            'text',
+            'name',
+            '50%_off',
+            "e.name LIKE :param_0 ESCAPE '\\'",
+            ['param_0', '%50\%\_off%'],
+            null,
         ];
 
         yield 'numeric on a simple field' => [

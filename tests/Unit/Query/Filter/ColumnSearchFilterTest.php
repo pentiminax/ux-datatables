@@ -57,8 +57,16 @@ final class ColumnSearchFilterTest extends TestCase
         yield 'text field' => [
             TextColumn::new('name', 'Name')->setField('name'),
             'test',
-            'e.name LIKE :column_control_param_0',
+            "e.name LIKE :column_control_param_0 ESCAPE '\\'",
             '%test%',
+            null,
+        ];
+
+        yield 'text field with like wildcards is escaped, not interpreted' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            '50%_off',
+            "e.name LIKE :column_control_param_0 ESCAPE '\\'",
+            '%50\%\_off%',
             null,
         ];
 
@@ -73,7 +81,7 @@ final class ColumnSearchFilterTest extends TestCase
         yield 'dot notation field' => [
             TextColumn::new('authorName', 'Author')->setField('author.firstName'),
             'john',
-            'author.firstName LIKE :column_control_param_0',
+            "author.firstName LIKE :column_control_param_0 ESCAPE '\\'",
             '%john%',
             ['e.author', 'author'],
         ];
@@ -194,7 +202,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with('e.name LIKE :column_control_param_0');
+            ->with("e.name LIKE :column_control_param_0 ESCAPE '\\'");
 
         $qb->expects($this->once())
             ->method('setParameter')
@@ -250,8 +258,8 @@ final class ColumnSearchFilterTest extends TestCase
         $this->filter()->apply($qb, $context);
 
         self::assertSame([
-            'e.name LIKE :column_control_param_0',
-            'e.email LIKE :column_control_param_1',
+            "e.name LIKE :column_control_param_0 ESCAPE '\\'",
+            "e.email LIKE :column_control_param_1 ESCAPE '\\'",
         ], $conditions);
 
         self::assertSame([

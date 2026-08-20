@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\DateSearchTerm;
+use Pentiminax\UX\DataTables\Query\LikeValueEscaper;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
 
@@ -40,7 +41,9 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        if ($this->logic->usesLikeOperator() && !RelationFieldResolver::supportsTextSearch($qb, $fieldPath)) {
+        $usesLike = $this->logic->usesLikeOperator();
+
+        if ($usesLike && !RelationFieldResolver::supportsTextSearch($qb, $fieldPath)) {
             return;
         }
 
@@ -53,10 +56,19 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
         $field     = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
         $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
-        $qb->andWhere(\sprintf('%s %s :%s', $field, $this->logic->operator(), $paramName));
+        $condition = \sprintf('%s %s :%s', $field, $this->logic->operator(), $paramName);
+        if ($usesLike) {
+            $condition .= \sprintf(" ESCAPE '%s'", LikeValueEscaper::ESCAPE_CHARACTER);
+        }
+
+        $qb->andWhere($condition);
         $qb->setParameter(
             $paramName,
-            $bindValue instanceof \DateTimeImmutable ? $bindValue : \sprintf($this->logic->paramFormat(), $bindValue),
+            match (true) {
+                $bindValue instanceof \DateTimeImmutable => $bindValue,
+                $usesLike                                => \sprintf($this->logic->paramFormat(), LikeValueEscaper::escape($bindValue)),
+                default                                  => \sprintf($this->logic->paramFormat(), $bindValue),
+            },
             $bindType,
         );
     }
