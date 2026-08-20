@@ -17,10 +17,17 @@ namespace Pentiminax\UX\DataTables\Query;
  * Every generated LIKE condition must add `ESCAPE '{@see self::ESCAPE_CHARACTER}'` for this
  * escaping to take effect — without it, the database still treats the doubled escape
  * character and the escaped wildcards literally rather than as an escape sequence.
+ *
+ * `!` is the escape character, not the more conventional backslash: MySQL's default SQL mode
+ * treats backslash as a string-literal escape character, so embedding a raw backslash inside
+ * the quoted `ESCAPE '\'` literal is parsed as escaping the closing quote instead of closing
+ * the string, breaking the query with a syntax error on every LIKE search. `!` has no special
+ * meaning in any supported platform's string literal syntax, so the same generated SQL is
+ * correct everywhere without needing to detect which database is actually connected.
  */
 final class LikeValueEscaper
 {
-    public const string ESCAPE_CHARACTER = '\\';
+    public const string ESCAPE_CHARACTER = '!';
 
     public static function escape(string $value): string
     {

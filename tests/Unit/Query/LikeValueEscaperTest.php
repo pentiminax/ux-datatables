@@ -22,17 +22,18 @@ final class LikeValueEscaperTest extends TestCase
     public static function values(): iterable
     {
         yield 'no special characters' => ['hello', 'hello'];
-        yield 'percent sign' => ['50%', '50\%'];
-        yield 'underscore' => ['a_b', 'a\_b'];
-        yield 'backslash' => ['a\b', 'a\\\\b'];
-        yield 'percent, underscore, and backslash together' => [
-            '50%_off\sale',
-            '50\%\_off\\\\sale',
+        yield 'percent sign' => ['50%', '50!%'];
+        yield 'underscore' => ['a_b', 'a!_b'];
+        yield 'backslash is not special' => ['a\b', 'a\b'];
+        yield 'exclamation mark, the escape character itself' => ['great!', 'great!!'];
+        yield 'percent, underscore, and exclamation mark together' => [
+            '50%_off!sale',
+            '50!%!_off!!sale',
         ];
-        yield 'only wildcards' => ['%_', '\%\_'];
-        yield 'backslash immediately before a wildcard' => [
-            '\%',
-            '\\\\\%',
+        yield 'only wildcards' => ['%_', '!%!_'];
+        yield 'exclamation mark immediately before a wildcard' => [
+            '!%',
+            '!!!%',
         ];
         yield 'empty string' => ['', ''];
     }
@@ -57,16 +58,31 @@ final class LikeValueEscaperTest extends TestCase
         // The escaped pattern reads back as a literal match for "50% off" bracketed by
         // wildcards this call added itself -- not "50", then anything, then " off", which
         // is what wrapping the raw, unescaped value in %...% would produce instead.
-        $this->assertSame('%50\% off%', $pattern);
+        $this->assertSame('%50!% off%', $pattern);
         $this->assertStringNotContainsString('%50%', $pattern);
+    }
+
+    /**
+     * ! rather than the more conventional backslash is deliberate: MySQL's default SQL mode
+     * treats a raw backslash inside a quoted string literal as escaping the closing quote,
+     * so ESCAPE '\' breaks with a syntax error on every LIKE search on that platform. ! has
+     * no special meaning in any supported platform's string literal syntax, so the same
+     * generated ESCAPE clause is correct everywhere without detecting which database is
+     * connected.
+     */
+    #[Test]
+    public function it_uses_an_escape_character_with_no_special_meaning_in_sql_string_literals(): void
+    {
+        $this->assertSame('!', LikeValueEscaper::ESCAPE_CHARACTER);
     }
 
     #[Test]
     public function it_is_reversible_by_removing_the_escape_character(): void
     {
-        // Sanity check on the escaping scheme itself for a value with no literal backslash of
-        // its own: removing every escape character this call introduced recovers the original
-        // value exactly, confirming no wildcard or character was dropped or duplicated.
+        // Sanity check on the escaping scheme itself for a value with no literal exclamation
+        // mark of its own: removing every escape character this call introduced recovers the
+        // original value exactly, confirming no wildcard or character was dropped or
+        // duplicated.
         $value   = 'a_b%c';
         $escaped = LikeValueEscaper::escape($value);
 

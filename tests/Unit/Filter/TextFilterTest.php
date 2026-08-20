@@ -55,7 +55,7 @@ final class TextFilterTest extends TestCase
             'name',
             'John',
             null,
-            ["LOWER(e.name) LIKE :filter_name ESCAPE '\\'"],
+            ["LOWER(e.name) LIKE :filter_name ESCAPE '!'"],
             ['filter_name' => '%john%'],
         ];
 
@@ -63,8 +63,8 @@ final class TextFilterTest extends TestCase
             'name',
             '50%_off',
             null,
-            ["LOWER(e.name) LIKE :filter_name ESCAPE '\\'"],
-            ['filter_name' => '%50\%\_off%'],
+            ["LOWER(e.name) LIKE :filter_name ESCAPE '!'"],
+            ['filter_name' => '%50!%!_off%'],
         ];
 
         yield 'uuid field' => ['id', '018f2c3e', 'uuid', [], []];

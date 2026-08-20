@@ -77,7 +77,7 @@ final class ContainsSearchStrategyTest extends TestCase
             'text',
             3,
             'foo',
-            "e.name LIKE :column_control_param_3 ESCAPE '\\'",
+            "e.name LIKE :column_control_param_3 ESCAPE '!'",
             ['column_control_param_3', '%foo%'],
         ];
 
@@ -86,8 +86,8 @@ final class ContainsSearchStrategyTest extends TestCase
             'text',
             3,
             '50%_off',
-            "e.name LIKE :column_control_param_3 ESCAPE '\\'",
-            ['column_control_param_3', '%50\%\_off%'],
+            "e.name LIKE :column_control_param_3 ESCAPE '!'",
+            ['column_control_param_3', '%50!%!_off%'],
         ];
 
         yield 'numeric column uses exact match' => [

@@ -29,7 +29,7 @@ final class SearchConditionBuilderTest extends TestCase
             'text',
             'name',
             'hello',
-            "e.name LIKE :param_0 ESCAPE '\\'",
+            "e.name LIKE :param_0 ESCAPE '!'",
             ['param_0', '%hello%'],
             null,
         ];
@@ -38,7 +38,7 @@ final class SearchConditionBuilderTest extends TestCase
             'text',
             'author.firstName',
             'john',
-            "author.firstName LIKE :param_0 ESCAPE '\\'",
+            "author.firstName LIKE :param_0 ESCAPE '!'",
             ['param_0', '%john%'],
             ['e.author', 'author'],
         ];
@@ -47,8 +47,8 @@ final class SearchConditionBuilderTest extends TestCase
             'text',
             'name',
             '50%_off',
-            "e.name LIKE :param_0 ESCAPE '\\'",
-            ['param_0', '%50\%\_off%'],
+            "e.name LIKE :param_0 ESCAPE '!'",
+            ['param_0', '%50!%!_off%'],
             null,
         ];
 
