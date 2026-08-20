@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Query\Filter;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\Query\ColumnSearchResolver;
 use Pentiminax\UX\DataTables\Query\Intent\ColumnControlIntent;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
@@ -18,6 +19,17 @@ use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
  * Consumes the normalized {@see ColumnControlIntent} criteria. List criteria are
  * applied through an explicit IN branch; scalar criteria delegate to the registered
  * search strategy for their logic.
+ *
+ * Per-column, both branches respect search joins declared via
+ * {@see \Pentiminax\UX\DataTables\Column\AbstractColumn::addSearchJoin()} and the
+ * effective field override from
+ * {@see \Pentiminax\UX\DataTables\Column\AbstractColumn::setSearchField()}.
+ *
+ * Note: the {@see \Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface}
+ * custom predicate is intentionally not invoked here. Column-control strategies
+ * encode their own predicate shapes (IN, comparison, nullness) that a generic
+ * open-ended closure cannot safely compose. The Contains strategy does delegate
+ * to the custom predicate via SearchPredicateFactory.
  */
 final class ColumnControlSearchFilter implements QueryFilterInterface
 {
@@ -29,7 +41,17 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
         foreach ($context->intent->columnControls as $control) {
-            $field = $control->column->fieldPath;
+            $column = $context->columnByName($control->column->name);
+            if (null === $column) {
+                continue;
+            }
+
+            // Apply any column-declared search joins before resolving predicates.
+            ColumnSearchResolver::applySearchJoins($qb, $column);
+
+            // Resolve the effective field path (setSearchField() > getField() > reference fieldPath).
+            $field = ColumnSearchResolver::resolveField($column) ?? $control->column->fieldPath;
+
             if (null === $field) {
                 continue;
             }

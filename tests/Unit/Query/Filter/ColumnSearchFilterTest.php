@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Filter;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -353,6 +354,187 @@ final class ColumnSearchFilterTest extends TestCase
         $request = new DataTableRequest(1, $columns);
 
         $context = $this->context($request, [$nameColumn, $emailColumn]);
+
+        $filter->apply($qb, $context);
+    }
+
+    // -----------------------------------------------------------------------
+    // setSearchField override
+    // -----------------------------------------------------------------------
+
+    #[Test]
+    public function it_uses_search_field_instead_of_field_for_column_search(): void
+    {
+        $filter = new ColumnSearchFilter();
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('leftJoin')
+            ->with('e.donorProvider', 'donorProvider')
+            ->willReturn($qb);
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('donorProvider.name LIKE :column_search_param_0');
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_search_param_0', '%acme%');
+
+        $column        = TextColumn::new('donorProviderName', 'Donor')->setSearchField('donorProvider.name');
+        $search        = new Search('acme', false);
+        $requestColumn = new Column('donorProviderName', 'donorProviderName', true, true, $search);
+
+        $columns = new Columns(['donorProviderName' => $requestColumn]);
+        $request = new DataTableRequest(1, $columns);
+        $context = $this->context($request, [$column]);
+
+        $filter->apply($qb, $context);
+    }
+
+    // -----------------------------------------------------------------------
+    // setSearchPredicate / SearchableColumnInterface
+    // -----------------------------------------------------------------------
+
+    #[Test]
+    public function it_uses_custom_predicate_and_and_wheres_the_result(): void
+    {
+        $filter = new ColumnSearchFilter();
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('dp.name LIKE :column_search_param_0');
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_search_param_0', '%acme%');
+
+        $column = TextColumn::new('donorProviderName', 'Donor')
+            ->setSearchPredicate(
+                function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
+                    $qb->setParameter($paramName, '%'.$value.'%');
+
+                    return "dp.name LIKE :{$paramName}";
+                }
+            );
+
+        $search        = new Search('acme', false);
+        $requestColumn = new Column('donorProviderName', 'donorProviderName', true, true, $search);
+
+        $columns = new Columns(['donorProviderName' => $requestColumn]);
+        $request = new DataTableRequest(1, $columns);
+        $context = $this->context($request, [$column]);
+
+        $filter->apply($qb, $context);
+    }
+
+    #[Test]
+    public function it_falls_back_to_field_when_custom_predicate_returns_null(): void
+    {
+        $filter = new ColumnSearchFilter();
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('e.name LIKE :column_search_param_0');
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_search_param_0', '%test%');
+
+        $column = TextColumn::new('name', 'Name')
+            ->setField('name')
+            ->setSearchPredicate(static fn () => null);
+
+        $search        = new Search('test', false);
+        $requestColumn = new Column('name', 'name', true, true, $search);
+
+        $columns = new Columns(['name' => $requestColumn]);
+        $request = new DataTableRequest(1, $columns);
+        $context = $this->context($request, [$column]);
+
+        $filter->apply($qb, $context);
+    }
+
+    // -----------------------------------------------------------------------
+    // addSearchJoin
+    // -----------------------------------------------------------------------
+
+    #[Test]
+    public function it_applies_search_joins_before_column_search_predicate(): void
+    {
+        $filter = new ColumnSearchFilter();
+
+        // Track joins so RelationFieldResolver sees 'dp' after applySearchJoins runs.
+        $addedJoin = $this->createMock(Join::class);
+        $addedJoin->method('getAlias')->willReturn('dp');
+        $addedJoin->method('getJoin')->willReturn('e.donorProvider');
+
+        $joinParts = [];
+        $qb        = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturnCallback(function () use (&$joinParts) {
+            return $joinParts;
+        });
+
+        $qb->expects($this->once())
+            ->method('leftJoin')
+            ->with('e.donorProvider', 'dp')
+            ->willReturnCallback(function () use ($qb, $addedJoin, &$joinParts) {
+                $joinParts['e'][] = $addedJoin;
+
+                return $qb;
+            });
+
+        $qb->expects($this->once())->method('andWhere')->willReturn($qb);
+        $qb->expects($this->once())->method('setParameter');
+
+        $column = TextColumn::new('donorProviderName', 'Donor')
+            ->addSearchJoin('e.donorProvider', 'dp')
+            ->setSearchField('dp.name');
+
+        $search        = new Search('acme', false);
+        $requestColumn = new Column('donorProviderName', 'donorProviderName', true, true, $search);
+
+        $columns = new Columns(['donorProviderName' => $requestColumn]);
+        $request = new DataTableRequest(1, $columns);
+        $context = $this->context($request, [$column]);
+
+        $filter->apply($qb, $context);
+    }
+
+    #[Test]
+    public function it_skips_search_join_when_alias_already_registered(): void
+    {
+        $filter = new ColumnSearchFilter();
+
+        $existingJoin = $this->createMock(Join::class);
+        $existingJoin->method('getAlias')->willReturn('dp');
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn(['e' => [$existingJoin]]);
+
+        // dp already present — leftJoin must NOT be called.
+        $qb->expects($this->never())->method('leftJoin');
+        $qb->expects($this->once())->method('andWhere')->willReturn($qb);
+        $qb->expects($this->once())->method('setParameter');
+
+        $column = TextColumn::new('donorProviderName', 'Donor')
+            ->addSearchJoin('e.donorProvider', 'dp')
+            ->setSearchField('dp.name');
+
+        $search        = new Search('acme', false);
+        $requestColumn = new Column('donorProviderName', 'donorProviderName', true, true, $search);
+
+        $columns = new Columns(['donorProviderName' => $requestColumn]);
+        $request = new DataTableRequest(1, $columns);
+        $context = $this->context($request, [$column]);
 
         $filter->apply($qb, $context);
     }

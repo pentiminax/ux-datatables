@@ -86,4 +86,33 @@ final class ComparisonSearchStrategyTest extends TestCase
             'Ali%',
         ];
     }
+
+    // -----------------------------------------------------------------------
+    // setSearchField override
+    // -----------------------------------------------------------------------
+
+    #[Test]
+    public function it_uses_search_field_override_for_comparison(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('leftJoin')
+            ->with('e.donorProvider', 'donorProvider')
+            ->willReturn($qb);
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('donorProvider.name = :column_control_param_0');
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_control_param_0', 'Acme');
+
+        $column = TextColumn::new('donorProviderName')->setSearchField('donorProvider.name');
+        $search = new ColumnControlSearch('Acme', ColumnControlLogic::Equal, 'text');
+
+        (new ComparisonSearchStrategy(ColumnControlLogic::Equal))->apply($qb, $column, $search, 0, 'e');
+    }
 }

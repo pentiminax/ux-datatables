@@ -265,6 +265,16 @@ final class ColumnResolverTest extends TestCase
                 return $this;
             }
 
+            public function getSearchField(): ?string
+            {
+                return null;
+            }
+
+            public function getSearchJoins(): array
+            {
+                return [];
+            }
+
             public function getOrderExpression(): ?string
             {
                 return null;

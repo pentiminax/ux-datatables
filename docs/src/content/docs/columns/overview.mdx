@@ -92,6 +92,80 @@ NumberColumn::new('invoiceCount', 'Invoices')
 See [Sorting computed columns](/ux-datatables/guide/server-side-processing/#sorting-computed-columns)
 for the matching `customizeQueryBuilder()` setup.
 
+#### Searching a relation or with a custom predicate
+
+When a column displays a value from a related entity (e.g. `getDonorProvider()->getName()`),
+the default search resolves `getField()` as a direct entity field and throws:
+
+```
+[Semantical Error] … Class App\Entity\ContractTermination has no field or
+association named donorProviderName
+```
+
+**Layer 1 — `setSearchField(string $path)` (search-only field override)**
+
+Provide the dot-notation path used exclusively by search filters. Does not affect row mapping,
+form mapping, ordering, or the serialized client payload:
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+TextColumn::new('donorProviderName', 'Donor Provider')
+    ->setSearchField('donorProvider.name'); // LEFT JOIN added automatically
+```
+
+The resolver adds `LEFT JOIN e.donorProvider AS donorProvider` and searches on
+`donorProvider.name`. Your `mapRow()` can still call `getDonorProvider()->getName()` — unchanged.
+
+**Layer 1.5 — `addSearchJoin(string $join, string $alias)` (explicit join control)**
+
+When the relation is already joined under a custom alias in `customizeQueryBuilder()`, or when
+you need a `WITH` condition, declare the join on the column instead:
+
+```php
+TextColumn::new('donorProviderName', 'Donor Provider')
+    ->addSearchJoin('e.donorProvider', 'dp')  // idempotent: skipped if 'dp' already present
+    ->setSearchField('dp.name');
+```
+
+`RelationFieldResolver` also automatically reuses an existing join whose expression matches (e.g.
+`e.donorProvider AS dp` added in `customizeQueryBuilder()`) when you pass
+`setSearchField('donorProvider.name')` — no duplicate join is added.
+
+**Layer 2 — `setSearchPredicate(Closure $fn)` (full custom predicate)**
+
+For multi-field search, custom SQL functions, or any case the default LIKE predicate cannot cover:
+
+```php
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+TextColumn::new('donorProviderName', 'Donor Provider')
+    ->addSearchJoin('e.donorProvider', 'dp')
+    ->setSearchPredicate(
+        function (QueryBuilder $qb, string $alias, string $value, string $paramName): ?string {
+            $qb->setParameter($paramName.'_n', '%'.$value.'%');
+            $qb->setParameter($paramName.'_l', '%'.$value.'%');
+
+            return "dp.name LIKE :{$paramName}_n OR dp.legalName LIKE :{$paramName}_l";
+        }
+    );
+```
+
+The closure receives the QueryBuilder, root alias, search value, and a unique parameter name.
+Return a DQL fragment string, or `null` to skip this column for the given value.
+The filter decides how the fragment composes: global search **OR**-combines fragments from all
+searchable columns; per-column search **AND**-combines each fragment.
+
+Returning `null` from the predicate falls back to the standard field-based LIKE predicate —
+useful when you only want custom behavior for non-empty values.
+
+<Aside type="note">
+`setSearchField()` and `addSearchJoin()` affect search filters only. They have no effect on
+`setOrderExpression()` / ordering, row mapping, form mapping, or the serialized client payload.
+Use `setOrderExpression()` separately if you also need custom ordering on the same column.
+</Aside>
+
 ### Cell Type
 
 ```php
