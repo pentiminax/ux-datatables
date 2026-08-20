@@ -73,23 +73,45 @@ new FixedHeaderExtension(header: true, footer: false, headerOffset: 0, footerOff
 
 Not intended to be combined with `ScrollerExtension` or the core `scrollY` / `scrollX` scrolling feature.
 
+## Responsive — collapse columns on small screens
+
+```php
+new ResponsiveExtension(auto: true, detailsTarget: 0, detailsType: 'inline', orthogonal: 'display');
+```
+
+All params optional — `$table->responsive()` uses every default. `detailsType` also accepts
+`'column'`, `'colvis'`, or `false` to disable the hidden-column details control. Pass `breakpoints`
+(list of `['name' => string, 'width' => int]`) to override DataTables' built-in list; omit to keep it.
+
+## KeyTable — keyboard cell navigation
+
+```php
+new KeyTableExtension(blurable: true, className: 'focus', clipboard: true, columns: '', keys: null);
+```
+
+All params optional. `columns` is a column-selector string restricting which columns can be
+focused. `focus` (`[row, column]`) and `keys` (key codes to listen for) default to `null`, omitted
+from the payload unless set.
+
+## Scroller — virtual scrolling for large tables
+
+```php
+new ScrollerExtension(boundaryScale: 0.5, displayBuffer: 9, rowHeight: 'auto', serverWait: 200);
+```
+
+All params optional and match DataTables' own defaults.
+
 ## Toggle-only extensions
 
 No constructor args needed:
 
 | Extension | Effect |
 |-----------|--------|
-| `ResponsiveExtension` | collapse columns on small screens (`$table->responsive()`) |
 | `ColumnControlExtension` | per-column order/search controls (`$table->columnControl()`) |
-| `ScrollerExtension` | virtual scrolling for large tables |
-| `KeyTableExtension` | keyboard cell navigation |
 | `ColReorderExtension` | drag to reorder columns |
 
 ```php
-$extensions
-    ->addExtension(new ScrollerExtension())
-    ->addExtension(new KeyTableExtension())
-    ->addExtension(new ColReorderExtension());
+$extensions->addExtension(new ColReorderExtension());
 ```
 
 See `docs/src/content/docs/extensions/combining-extensions.mdx` for compatible combinations.

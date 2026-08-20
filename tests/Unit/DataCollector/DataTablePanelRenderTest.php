@@ -85,8 +85,6 @@ final class DataTablePanelRenderTest extends TestCase
         $table->data([['name' => 'Sensitive-Row-Value']]);
         $table->setFilters((new Filters())->add(TextFilter::new('name')));
         $table->getExtensionsCollection()->addButtonsExtension([ButtonType::CSV]);
-        // Options serialize to `true`, which is not countable: the panel must
-        // dump them without testing their emptiness.
         $table->getExtensionsCollection()->addResponsiveExtension();
 
         return $table;

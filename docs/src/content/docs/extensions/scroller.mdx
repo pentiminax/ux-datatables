@@ -19,6 +19,24 @@ $dataTable
     ->scrollY('480px');
 ```
 
+## Advanced Example
+
+```php
+$dataTable
+    ->addExtension(
+        new ScrollerExtension(
+            boundaryScale: 0.5,
+            displayBuffer: 9,
+            rowHeight: 'auto',
+            serverWait: 200,
+        )
+    )
+    ->scrollY('480px');
+```
+
+`rowHeight` accepts a pixel integer or `'auto'` to measure it from the rendered rows. `serverWait`
+is the minimum milliseconds Scroller waits between Ajax requests while scrolling quickly.
+
 ## Frequent Pitfalls
 
 - Using Scroller without vertical scroll (`scrollY`).
