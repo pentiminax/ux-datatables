@@ -57,26 +57,31 @@ final class RelationFieldResolverTest extends TestCase
     }
 
     /**
-     * Each case gives the Doctrine type of the field, whether it supports SQL LIKE and the
-     * UUID type it must be bound with. A null type stands for unavailable root metadata.
+     * Each case gives the Doctrine type of the field, whether it supports SQL LIKE, the
+     * UUID type it must be bound with, and the date type it must be bound with. A null type
+     * stands for unavailable root metadata.
      *
-     * @return iterable<string, array{?string, bool, ?string}>
+     * @return iterable<string, array{?string, bool, ?string, ?string}>
      */
     public static function fieldTypes(): iterable
     {
-        yield 'unavailable root entity metadata' => [null, true, null];
+        yield 'unavailable root entity metadata' => [null, true, null, null];
 
-        yield 'string' => ['string', true, null];
+        yield 'string' => ['string', true, null, null];
 
-        yield 'boolean' => ['boolean', false, null];
+        yield 'boolean' => ['boolean', false, null, null];
 
-        yield 'guid' => ['guid', false, 'guid'];
+        yield 'guid' => ['guid', false, 'guid', null];
 
-        yield 'uuid' => ['uuid', false, 'uuid'];
+        yield 'uuid' => ['uuid', false, 'uuid', null];
 
-        yield 'ulid' => ['ulid', false, 'ulid'];
+        yield 'ulid' => ['ulid', false, 'ulid', null];
 
-        yield 'binary uuid' => ['uuid_binary_ordered_time', false, 'uuid_binary_ordered_time'];
+        yield 'binary uuid' => ['uuid_binary_ordered_time', false, 'uuid_binary_ordered_time', null];
+
+        yield 'date' => ['date', false, null, 'date'];
+
+        yield 'datetime_immutable' => ['datetime_immutable', false, null, 'datetime_immutable'];
     }
 
     /**
@@ -119,12 +124,14 @@ final class RelationFieldResolverTest extends TestCase
         ?string $fieldType,
         bool $supportsTextSearch,
         ?string $expectedUuidType,
+        ?string $expectedDateType,
     ): void {
         $qb = $this->queryBuilderWithFieldType('id', $fieldType);
 
         $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'id'));
         $this->assertSame($supportsTextSearch, RelationFieldResolver::supportsTextSearch($qb, 'id'));
         $this->assertSame($expectedUuidType, RelationFieldResolver::resolveUuidFieldType($qb, 'id'));
+        $this->assertSame($expectedDateType, RelationFieldResolver::resolveDateFieldType($qb, 'id'));
     }
 
     #[Test]
@@ -135,6 +142,7 @@ final class RelationFieldResolverTest extends TestCase
         $this->assertFalse(RelationFieldResolver::supportsSearchFiltering($qb, 'client'));
         $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'client'));
         $this->assertNull(RelationFieldResolver::resolveUuidFieldType($qb, 'client'));
+        $this->assertNull(RelationFieldResolver::resolveDateFieldType($qb, 'client'));
     }
 
     #[Test]
