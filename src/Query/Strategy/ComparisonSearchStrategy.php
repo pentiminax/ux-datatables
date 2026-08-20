@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
+use Pentiminax\UX\DataTables\Query\DateSearchTerm;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
 
@@ -43,26 +44,48 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $fieldPath);
-        $value    = $search->value;
+        [$bindValue, $bindType] = $this->resolveBindValue($qb, $fieldPath, $search->value);
 
-        if (null !== $uuidType) {
-            $value = UuidSearchTerm::normalize($value, $uuidType);
-
-            if (null === $value) {
-                return;
-            }
+        if (null === $bindValue) {
+            return;
         }
 
         $field     = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
         $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
         $qb->andWhere(\sprintf('%s %s :%s', $field, $this->logic->operator(), $paramName));
-        $qb->setParameter($paramName, \sprintf($this->logic->paramFormat(), $value), $uuidType);
+        $qb->setParameter(
+            $paramName,
+            $bindValue instanceof \DateTimeImmutable ? $bindValue : \sprintf($this->logic->paramFormat(), $bindValue),
+            $bindType,
+        );
     }
 
     public function getLogic(): string
     {
         return $this->logic->value;
+    }
+
+    /**
+     * Resolves the value to bind and its Doctrine type hint, or [null, null] when the raw
+     * search term cannot be bound to the field's actual column type. LIKE-incompatible types
+     * (uuid, date, etc.) are already filtered above; this only normalizes the value for the
+     * types that still need a specific Doctrine type on setParameter().
+     *
+     * @return array{0: string|\DateTimeImmutable|null, 1: ?string}
+     */
+    private function resolveBindValue(QueryBuilder $qb, string $fieldPath, string $rawValue): array
+    {
+        $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $fieldPath);
+        if (null !== $uuidType) {
+            return [UuidSearchTerm::normalize($rawValue, $uuidType), $uuidType];
+        }
+
+        $dateType = RelationFieldResolver::resolveDateFieldType($qb, $fieldPath);
+        if (null !== $dateType) {
+            return [DateSearchTerm::normalize($rawValue), $dateType];
+        }
+
+        return [$rawValue, null];
     }
 }
