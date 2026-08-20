@@ -149,9 +149,10 @@ use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 $dataTable
     ->addExtension(new ButtonsExtension([
         Button::collection([
-            Button::custom('lockColumns')->text('Lock Columns'),
-            Button::custom('restoreOrder')->text('Restore order'),
-        ])->text('Reorder'),
+            Button::csv(),
+            Button::excel(),
+            'colvis',
+        ])->text('Export'),
     ]))
     ->layout([
         'topStart' => Feature::BUTTONS,
@@ -159,9 +160,9 @@ $dataTable
 ```
 
 `buttons` accepts `Button` objects, raw arrays, or bare extend-name strings, mixed freely — they
-serialize the same way whether nested here or at the top level, including custom actions (the
-frontend resolver walks into a collection's `buttons` array recursively, exactly like it does for
-`postfixButtons`/`prefixButtons`). `text` defaults to DataTables' own "Collection" label if omitted.
+serialize the same way whether nested here or at the top level, since `Button` implements
+`JsonSerializable` and PHP's `json_encode()` resolves nested `JsonSerializable` values
+automatically. `text` defaults to DataTables' own "Collection" label if omitted.
 `ButtonsExtension::withCollectionButton(array $buttons)` is the fluent-collection shortcut.
 
 ## Frequent Pitfalls

@@ -52,10 +52,7 @@ one click, using ColumnControl's own native Buttons entry (no JS needed). Requir
 freely — nested buttons serialize correctly at any depth since `Button` is `JsonSerializable`.
 
 ```php
-Button::collection([
-    Button::custom('lockColumns')->text('Lock Columns'),
-    Button::custom('restoreOrder')->text('Restore order'),
-])->text('Reorder');
+Button::collection([Button::csv(), Button::excel(), 'colvis'])->text('Export');
 ```
 
 ## Select — row/cell selection
