@@ -40,7 +40,7 @@ final class SearchPredicateFactoryTest extends TestCase
             null,
             'hello',
             false,
-            "e.name LIKE :p_0 ESCAPE '\\'",
+            "e.name LIKE :p_0 ESCAPE '!'",
             ['p_0', '%hello%'],
         ];
 
@@ -49,8 +49,8 @@ final class SearchPredicateFactoryTest extends TestCase
             null,
             '50%_off',
             false,
-            "e.name LIKE :p_0 ESCAPE '\\'",
-            ['p_0', '%50\%\_off%'],
+            "e.name LIKE :p_0 ESCAPE '!'",
+            ['p_0', '%50!%!_off%'],
         ];
 
         yield 'numeric column with numeric value' => [
