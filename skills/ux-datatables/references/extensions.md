@@ -61,6 +61,14 @@ Constructor also exposes `blurable`, `className`, `info`, `items`, `keys`, `sele
 new FixedColumnsExtension(start: 1, end: 0);  // freeze N leftmost / rightmost
 ```
 
+## FixedHeader — pin the header while scrolling
+
+```php
+new FixedHeaderExtension(header: true, footer: false, headerOffset: 0, footerOffset: 0);
+```
+
+Not intended to be combined with `ScrollerExtension` or the core `scrollY` / `scrollX` scrolling feature.
+
 ## Toggle-only extensions
 
 No constructor args needed:
