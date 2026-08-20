@@ -70,6 +70,7 @@ class default_1 extends Controller {
             return;
         }
         await this.loadExtensions(payload, framework, DataTable);
+        this.dispatchEvent('pre-init', { config: payload, DataTable });
         if (this.isApiPlatformEnabled(payload)) {
             const columns = Array.isArray(payload.columns) ? payload.columns : [];
             new ApiPlatformAdapter(columns).configure(payload);
