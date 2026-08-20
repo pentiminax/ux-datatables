@@ -118,6 +118,6 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
         $strategy = $this->registry->get($control->logic->value);
         $search   = new ColumnControlSearch($control->value ?? '', $control->logic, $control->valueType);
 
-        $strategy->apply($qb, $column, $search, $context->paramIndexFor($control->column), $context->alias);
+        $strategy->apply($qb, $column, $search, $context->nextParamIndex(), $context->alias);
     }
 }

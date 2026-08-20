@@ -45,7 +45,7 @@ final class ColumnSearchFilter implements QueryFilterInterface
 
             $search = new ColumnControlSearch($columnSearch->value, ColumnControlLogic::Contains, 'text');
 
-            $strategy->apply($qb, $column, $search, $context->paramIndexFor($reference), $context->alias);
+            $strategy->apply($qb, $column, $search, $context->nextParamIndex(), $context->alias);
         }
     }
 }
