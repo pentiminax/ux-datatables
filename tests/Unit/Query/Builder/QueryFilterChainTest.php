@@ -89,6 +89,30 @@ final class QueryFilterChainTest extends TestCase
         ], $calls);
     }
 
+    #[Test]
+    public function it_builds_the_default_chain_with_only_a_registry_argument(): void
+    {
+        $requestColumns = new Columns([
+            'name' => new Column('name', 'name', true, true, new Search('ali', false)),
+        ]);
+
+        $context = $this->context(new DataTableRequest(1, $requestColumns), [
+            TextColumn::new('name', 'Name')->setField('name'),
+        ]);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+
+        $qb->expects($this->atLeastOnce())
+            ->method('andWhere')
+            ->with('e.name LIKE :column_control_param_0');
+
+        // predicateBuilder defaults to DefaultSearchPredicateBuilder() -- callers who only
+        // ever passed a registry before GlobalSearchFilter took a second constructor
+        // argument must keep working unchanged.
+        QueryFilterChain::createDefault(new DefaultSearchStrategyRegistry())->apply($qb, $context);
+    }
+
     /**
      * Regression test: ColumnSearchFilter and ColumnControlSearchFilter both resolve their
      * strategy from the same registry and, for a while, both let the strategy mint a

@@ -87,6 +87,24 @@ final class QueryFilterPipelineTest extends TestCase
         $this->assertSame($qb, $result);
     }
 
+    #[Test]
+    public function it_applies_without_a_predicate_builder_argument(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+
+        // predicateBuilder defaults to DefaultSearchPredicateBuilder() -- callers who only
+        // ever passed a registry before this parameter was added must keep working unchanged.
+        $result = $this->pipeline()->apply(
+            qb: $qb,
+            request: $this->request(),
+            columns: [TextColumn::new('name', 'Name')->setField('name')],
+            filters: null,
+            registry: new DefaultSearchStrategyRegistry(),
+        );
+
+        $this->assertSame($qb, $result);
+    }
+
     private function pipeline(): QueryFilterPipeline
     {
         return new QueryFilterPipeline(new DefaultDataTableQueryIntentFactory());

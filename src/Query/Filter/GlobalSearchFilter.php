@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Query\Filter;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
+use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 
 /**
@@ -23,7 +24,7 @@ use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 final class GlobalSearchFilter implements QueryFilterInterface
 {
     public function __construct(
-        private readonly SearchPredicateBuilderInterface $predicateBuilder,
+        private readonly SearchPredicateBuilderInterface $predicateBuilder = new DefaultSearchPredicateBuilder(),
     ) {
     }
 
