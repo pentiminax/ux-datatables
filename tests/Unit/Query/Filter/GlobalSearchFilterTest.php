@@ -35,15 +35,23 @@ final class GlobalSearchFilterTest extends TestCase
         yield 'simple field' => [
             TextColumn::new('name', 'Name')->setField('name'),
             'test',
-            'e.name LIKE :search_param_0',
+            "e.name LIKE :search_param_0 ESCAPE '!'",
             '%test%',
+            null,
+        ];
+
+        yield 'field with like wildcards is escaped, not interpreted' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            '50%_off',
+            "e.name LIKE :search_param_0 ESCAPE '!'",
+            '%50!%!_off%',
             null,
         ];
 
         yield 'dot notation field' => [
             TextColumn::new('authorName', 'Author')->setField('author.firstName'),
             'john',
-            'author.firstName LIKE :search_param_0',
+            "author.firstName LIKE :search_param_0 ESCAPE '!'",
             '%john%',
             ['e.author', 'author'],
         ];

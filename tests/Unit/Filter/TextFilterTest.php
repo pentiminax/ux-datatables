@@ -55,8 +55,16 @@ final class TextFilterTest extends TestCase
             'name',
             'John',
             null,
-            ['LOWER(e.name) LIKE :filter_name'],
+            ["LOWER(e.name) LIKE :filter_name ESCAPE '!'"],
             ['filter_name' => '%john%'],
+        ];
+
+        yield 'value with like wildcards is escaped, not interpreted' => [
+            'name',
+            '50%_off',
+            null,
+            ["LOWER(e.name) LIKE :filter_name ESCAPE '!'"],
+            ['filter_name' => '%50!%!_off%'],
         ];
 
         yield 'uuid field' => ['id', '018f2c3e', 'uuid', [], []];
