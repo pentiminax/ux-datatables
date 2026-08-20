@@ -45,6 +45,7 @@ generated.
     ['`ButtonType::PRINT`', 'Open print view'],
     ['`ButtonType::COLUMN_VISIBILITY`', 'Toggle column visibility'],
     ['`ButtonType::COLUMN_CONTROL_SEARCH_CLEAR`', 'Clear every active search — see below'],
+    ['`ButtonType::COLLECTION`', 'Group other buttons in a dropdown — see below'],
   ]}
 />
 
@@ -133,6 +134,35 @@ clears ColumnControl's own search state. It enables and disables itself automati
 whether any search (global or per-column) is currently active, and defaults to the text "Clear
 search" (localized). `ButtonsExtension::withCcSearchClearButton()` is the fluent-collection
 shortcut.
+
+## Grouping Buttons In A Dropdown
+
+`Button::collection(array $buttons)` builds a dropdown that groups other buttons together, using
+DataTables' generic collection button type — the same mechanism `Button::colVis()` builds on
+internally, made directly available for a plain grouping menu:
+
+```php
+use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Model\Extensions\Button;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+
+$dataTable
+    ->addExtension(new ButtonsExtension([
+        Button::collection([
+            Button::custom('lockColumns')->text('Lock Columns'),
+            Button::custom('restoreOrder')->text('Restore order'),
+        ])->text('Reorder'),
+    ]))
+    ->layout([
+        'topStart' => Feature::BUTTONS,
+    ]);
+```
+
+`buttons` accepts `Button` objects, raw arrays, or bare extend-name strings, mixed freely — they
+serialize the same way whether nested here or at the top level, including custom actions (the
+frontend resolver walks into a collection's `buttons` array recursively, exactly like it does for
+`postfixButtons`/`prefixButtons`). `text` defaults to DataTables' own "Collection" label if omitted.
+`ButtonsExtension::withCollectionButton(array $buttons)` is the fluent-collection shortcut.
 
 ## Frequent Pitfalls
 
