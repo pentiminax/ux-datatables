@@ -205,8 +205,29 @@ final class ComparisonSearchStrategyTest extends TestCase
         yield 'starts' => [
             ColumnControlLogic::Starts,
             'Ali',
-            'e.name LIKE :column_control_param_3',
+            "e.name LIKE :column_control_param_3 ESCAPE '!'",
             'Ali%',
+        ];
+
+        yield 'ends' => [
+            ColumnControlLogic::Ends,
+            'ice',
+            "e.name LIKE :column_control_param_3 ESCAPE '!'",
+            '%ice',
+        ];
+
+        yield 'notContains' => [
+            ColumnControlLogic::NotContains,
+            'ali',
+            "e.name NOT LIKE :column_control_param_3 ESCAPE '!'",
+            '%ali%',
+        ];
+
+        yield 'starts with like wildcards is escaped, not interpreted' => [
+            ColumnControlLogic::Starts,
+            '50%_off',
+            "e.name LIKE :column_control_param_3 ESCAPE '!'",
+            '50!%!_off%',
         ];
     }
 

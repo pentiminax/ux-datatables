@@ -77,8 +77,17 @@ final class ContainsSearchStrategyTest extends TestCase
             'text',
             3,
             'foo',
-            'e.name LIKE :column_control_param_3',
+            "e.name LIKE :column_control_param_3 ESCAPE '!'",
             ['column_control_param_3', '%foo%'],
+        ];
+
+        yield 'text column with like wildcards is escaped, not interpreted' => [
+            TextColumn::new('name')->setField('name'),
+            'text',
+            3,
+            '50%_off',
+            "e.name LIKE :column_control_param_3 ESCAPE '!'",
+            ['column_control_param_3', '%50!%!_off%'],
         ];
 
         yield 'numeric column uses exact match' => [

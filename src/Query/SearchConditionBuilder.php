@@ -15,13 +15,17 @@ final class SearchConditionBuilder
 {
     /**
      * Build a LIKE %value% condition, set the parameter, return the DQL expression.
+     *
+     * $value is escaped so a literal `%` or `_` in the search term is matched literally
+     * rather than treated as a wildcard; the ESCAPE clause is what makes the database honor
+     * that escaping — see {@see LikeValueEscaper}.
      */
     public static function text(QueryBuilder $qb, string $alias, string $fieldPath, string $value, string $paramName): string
     {
         $field = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
-        $qb->setParameter($paramName, \sprintf('%%%s%%', $value));
+        $qb->setParameter($paramName, \sprintf('%%%s%%', LikeValueEscaper::escape($value)));
 
-        return \sprintf('%s LIKE :%s', $field, $paramName);
+        return \sprintf("%s LIKE :%s ESCAPE '%s'", $field, $paramName, LikeValueEscaper::ESCAPE_CHARACTER);
     }
 
     /**
