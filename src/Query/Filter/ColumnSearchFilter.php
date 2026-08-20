@@ -6,21 +6,34 @@ namespace Pentiminax\UX\DataTables\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
-use Pentiminax\UX\DataTables\Query\SearchPredicateFactory;
+use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
+use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 
 /**
  * Filter that applies standard DataTables column-specific searches.
  *
  * Consumes the normalized {@see \Pentiminax\UX\DataTables\Query\Intent\ColumnSearchIntent}
- * criteria with AND logic. Delegates condition building to SearchPredicateFactory.
+ * criteria with AND logic, one condition per column search box. Delegates condition
+ * building to the registry's 'contains' strategy, so overriding
+ * AbstractDataTable::createSearchStrategyRegistry() customizes this search alongside
+ * ColumnControl search instead of only the latter.
  *
  * Distinct from ColumnControlSearchFilter which handles custom column control searches.
  */
 final class ColumnSearchFilter implements QueryFilterInterface
 {
+    public function __construct(
+        private readonly SearchStrategyRegistry $registry = new DefaultSearchStrategyRegistry(),
+    ) {
+    }
+
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
+        $strategy = $this->registry->get(ColumnControlLogic::Contains->value);
+
         foreach ($context->intent->columnSearches as $columnSearch) {
             $reference = $columnSearch->column;
 
@@ -31,12 +44,9 @@ final class ColumnSearchFilter implements QueryFilterInterface
                 continue;
             }
 
-            $paramName = \sprintf('column_search_param_%d', $context->paramIndexFor($reference));
-            $condition = SearchPredicateFactory::build($qb, $column, $context->alias, $field, $columnSearch->value, $paramName);
+            $search = new ColumnControlSearch($columnSearch->value, ColumnControlLogic::Contains, 'text');
 
-            if (null !== $condition) {
-                $qb->andWhere($condition);
-            }
+            $strategy->apply($qb, $column, $search, $context->nextParamIndex(), $context->alias);
         }
     }
 }
