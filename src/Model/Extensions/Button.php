@@ -89,7 +89,7 @@ final class Button implements \JsonSerializable
     /**
      * A dropdown grouping other buttons together, using DataTables' generic collection button
      * type — the same mechanism `Button::colVis()` builds on internally, made directly available
-     * for a plain grouping dropdown (e.g. a "Reorder" menu holding custom column-reorder actions).
+     * for a plain grouping dropdown (e.g. an "Export" menu holding several export buttons).
      *
      * @param list<Button|array<string, mixed>|string> $buttons
      */
