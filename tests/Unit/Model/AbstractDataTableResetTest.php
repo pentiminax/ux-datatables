@@ -24,7 +24,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * A container-shared table serves many requests under a worker runtime
- * (FrankenPHP worker mode, Swoole, RoadRunner). `reset()` is what gives those
+ * (FrankenPHP worker mode, Swoole, RoadRunner). `resetDataTableState()` is what gives those
  * runtimes the same per-request isolation PHP-FPM gets for free.
  *
  * @internal
@@ -55,7 +55,7 @@ final class AbstractDataTableResetTest extends TestCase
             'Without a reset the first request\'s rows stay frozen on the shared instance.',
         );
 
-        $table->reset();
+        $table->resetDataTableState();
 
         $this->assertSame([['id' => 2]], $table->getDataTable()->getOption('data'));
     }
@@ -68,7 +68,7 @@ final class AbstractDataTableResetTest extends TestCase
 
         $first = $table->getDataTable();
 
-        $table->reset();
+        $table->resetDataTableState();
 
         $this->assertNotSame($first, $table->getDataTable());
     }
@@ -83,7 +83,7 @@ final class AbstractDataTableResetTest extends TestCase
 
         $this->assertNotNull($table->getRequest());
 
-        $table->reset();
+        $table->resetDataTableState();
 
         $this->assertNull($table->getRequest());
         $this->assertFalse($table->isRequestHandled());
@@ -112,7 +112,7 @@ final class AbstractDataTableResetTest extends TestCase
         );
 
         $granted = false;
-        $table->reset();
+        $table->resetDataTableState();
 
         $this->assertNull($this->rowActions($table));
     }
@@ -140,7 +140,7 @@ final class AbstractDataTableResetTest extends TestCase
         );
 
         $granted = false;
-        $table->reset();
+        $table->resetDataTableState();
 
         $this->assertNull($this->rowActions($table));
     }
@@ -152,11 +152,43 @@ final class AbstractDataTableResetTest extends TestCase
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
         $table->getDataTable();
-        $table->reset();
+        $table->resetDataTableState();
 
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
 
         $this->assertNotNull($table->getDataTable());
+    }
+
+    /**
+     * `reset()` is a common enough method name on user tables (`ResetInterface`,
+     * filter resets) that claiming it as a final method would break existing
+     * subclasses on upgrade. Declaring one here fails at class-load time if the
+     * hook is ever renamed back.
+     */
+    #[Test]
+    public function it_leaves_the_reset_method_name_to_subclasses(): void
+    {
+        $table = new class extends AbstractDataTable {
+            public bool $resetCalled = false;
+
+            public function reset(): void
+            {
+                $this->resetCalled = true;
+            }
+
+            public function configureColumns(): iterable
+            {
+                return [TextColumn::new('id')];
+            }
+        };
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
+
+        $first = $table->getDataTable();
+
+        $table->resetDataTableState();
+
+        $this->assertNotSame($first, $table->getDataTable());
+        $this->assertFalse($table->resetCalled);
     }
 
     private function tableWithAction(Action $action, bool &$granted): ConfigurableDataTable

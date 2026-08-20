@@ -93,7 +93,7 @@ class DataTablesBundle extends AbstractBundle
     {
         $builder->registerForAutoconfiguration(AbstractDataTable::class)
             ->addTag('datatables.data_table')
-            ->addTag('kernel.reset', ['method' => 'reset'])
+            ->addTag('kernel.reset', ['method' => 'resetDataTableState'])
             ->addMethodCall('setDataTableInfrastructure', [new Reference('datatables.infrastructure')]);
 
         $formAvailable    = interface_exists(FormFactoryInterface::class);
