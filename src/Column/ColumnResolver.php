@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -124,6 +125,11 @@ final class ColumnResolver
     /**
      * Drop values whose column is not authorized, leaving unrelated extra keys intact.
      *
+     * Nested action payloads on a still-visible ActionColumn are also reduced to the
+     * actions the current user may see. A shared client-side row can keep a previously
+     * resolved `__ux_datatables_actions` map from a privileged mapping, and that key is
+     * not removed when only some nested actions are denied.
+     *
      * @param array<string, mixed> $row
      * @param ColumnInterface[]    $columns
      *
@@ -131,8 +137,9 @@ final class ColumnResolver
      */
     public function removeDeniedColumnValues(array $row, array $columns): array
     {
-        $visibleNames = [];
-        foreach ($this->filterStaticPermissions($columns) as $column) {
+        $visibleColumns = $this->filterStaticPermissions($columns);
+        $visibleNames   = [];
+        foreach ($visibleColumns as $column) {
             $visibleNames[$column->getName()] = true;
         }
 
@@ -152,6 +159,39 @@ final class ColumnResolver
             if ($readPath !== $key) {
                 $this->unsetRowPath($row, $readPath);
             }
+        }
+
+        return $this->removeDeniedActionValues($row, $visibleColumns);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param ColumnInterface[]    $visibleColumns
+     *
+     * @return array<string, mixed>
+     */
+    private function removeDeniedActionValues(array $row, array $visibleColumns): array
+    {
+        $key = ActionRowDataResolver::ROW_ACTIONS_KEY;
+        if (!isset($row[$key]) || !\is_array($row[$key])) {
+            return $row;
+        }
+
+        $allowed = [];
+        foreach ($visibleColumns as $column) {
+            if (!$column instanceof ActionColumn) {
+                continue;
+            }
+
+            foreach ($column->getActions()?->getActions() ?? [] as $action) {
+                $allowed[$action->getName()] = true;
+            }
+        }
+
+        $row[$key] = array_intersect_key($row[$key], $allowed);
+
+        if ([] === $row[$key]) {
+            unset($row[$key]);
         }
 
         return $row;

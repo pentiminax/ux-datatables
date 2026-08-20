@@ -288,6 +288,49 @@ final class ColumnResolverTest extends TestCase
             [TextColumn::new('user.profile.email', 'Email')->permission('ROLE_HR'), $name],
             ['user' => ['profile' => ['id' => 7], 'role' => 'admin'], 'name' => 'Ada'],
         ];
+
+        $actions = (new Actions())
+            ->add(Action::delete()->permission('ROLE_HR'))
+            ->add(Action::edit())
+        ;
+
+        yield 'denied nested action payloads on a visible action column' => [
+            [
+                'id'                      => 5,
+                '__ux_datatables_actions' => [
+                    'DELETE' => ['url' => '/admin/delete/5', 'token' => 'admin-csrf'],
+                    'EDIT'   => ['url' => '/edit/5'],
+                ],
+            ],
+            [
+                TextColumn::new('id'),
+                ActionColumn::fromActions('actions', '', $actions),
+            ],
+            [
+                'id'                      => 5,
+                '__ux_datatables_actions' => [
+                    'EDIT' => ['url' => '/edit/5'],
+                ],
+            ],
+        ];
+
+        $deniedActions = (new Actions())
+            ->add(Action::delete()->permission('ROLE_HR'))
+        ;
+
+        yield 'all nested action payloads denied' => [
+            [
+                'id'                      => 5,
+                '__ux_datatables_actions' => [
+                    'DELETE' => ['url' => '/admin/delete/5', 'token' => 'admin-csrf'],
+                ],
+            ],
+            [
+                TextColumn::new('id'),
+                ActionColumn::fromActions('actions', '', $deniedActions),
+            ],
+            ['id' => 5],
+        ];
     }
 
     #[Test]

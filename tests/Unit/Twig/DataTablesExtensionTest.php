@@ -378,6 +378,38 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
+    public function it_strips_denied_action_payloads_from_embedded_rows(): void
+    {
+        $actions = (new Actions())
+            ->add(Action::delete()->permission('ROLE_DENIED')->linkToUrl('/admin/delete'))
+            ->add(Action::edit()->linkToUrl('/edit'))
+        ;
+
+        $table = $this->builder()->createDataTable('baked_actions_table');
+        $table->columns([
+            TextColumn::new('id'),
+            ActionColumn::fromActions('actions', 'Actions', $actions),
+        ]);
+        $table->data([
+            [
+                'id'                      => 5,
+                '__ux_datatables_actions' => [
+                    'DELETE' => ['url' => '/admin/delete/5', 'token' => 'admin-csrf'],
+                    'EDIT'   => ['url' => '/edit/5'],
+                ],
+            ],
+        ]);
+
+        $actual = $this->renderPayload($table);
+
+        $this->assertSame(['EDIT' => ['url' => '/edit/5']], $actual['data'][0]['__ux_datatables_actions']);
+
+        $configuredActionColumn = $table->getColumnByName('actions');
+        $this->assertInstanceOf(ActionColumn::class, $configuredActionColumn);
+        $this->assertSame(2, $configuredActionColumn->getActions()?->count());
+    }
+
+    #[Test]
     public function it_keeps_unauthorized_columns_on_a_shared_abstract_datatable_after_render(): void
     {
         $table = new ConfigurableDataTable(
