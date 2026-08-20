@@ -16,10 +16,45 @@ use PHPUnit\Framework\TestCase;
 final class KeyTableExtensionTest extends TestCase
 {
     #[Test]
-    public function it_serializes_to_true(): void
+    public function it_serializes_with_default_options(): void
     {
         $extension = new KeyTableExtension();
 
-        $this->assertTrue($extension->jsonSerialize());
+        $this->assertSame([
+            'blurable'            => true,
+            'className'           => 'focus',
+            'clipboard'           => true,
+            'clipboardOrthogonal' => 'display',
+            'columns'             => '',
+            'editOnFocus'         => false,
+        ], $extension->jsonSerialize());
+    }
+
+    #[Test]
+    public function it_serializes_custom_options(): void
+    {
+        $extension = new KeyTableExtension(
+            blurable: false,
+            className: 'cell-focus',
+            clipboard: false,
+            clipboardOrthogonal: 'filter',
+            columns: ':not(:first-child)',
+            editOnFocus: true,
+            focus: [0, 1],
+            keys: [37, 38, 39, 40],
+            tabIndex: 0,
+        );
+
+        $this->assertSame([
+            'blurable'            => false,
+            'className'           => 'cell-focus',
+            'clipboard'           => false,
+            'clipboardOrthogonal' => 'filter',
+            'columns'             => ':not(:first-child)',
+            'editOnFocus'         => true,
+            'focus'               => [0, 1],
+            'keys'                => [37, 38, 39, 40],
+            'tabIndex'            => 0,
+        ], $extension->jsonSerialize());
     }
 }
