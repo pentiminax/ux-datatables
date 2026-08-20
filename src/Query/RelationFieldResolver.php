@@ -30,6 +30,21 @@ final class RelationFieldResolver
     ];
 
     /**
+     * Doctrine date/time types. Comparison values must be converted to a DateTimeInterface
+     * before binding: setParameter() throws when a date-typed parameter is given a raw string.
+     *
+     * @var list<string>
+     */
+    private const array DATE_FIELD_TYPES = [
+        'date',
+        'date_immutable',
+        'datetime',
+        'datetime_immutable',
+        'datetimetz',
+        'datetimetz_immutable',
+    ];
+
+    /**
      * Doctrine field types that cannot be used with SQL LIKE without an explicit cast.
      *
      * @var list<string>
@@ -39,12 +54,6 @@ final class RelationFieldResolver
         'binary',
         'blob',
         'boolean',
-        'date',
-        'date_immutable',
-        'datetime',
-        'datetime_immutable',
-        'datetimetz',
-        'datetimetz_immutable',
         'decimal',
         'float',
         'integer',
@@ -52,6 +61,7 @@ final class RelationFieldResolver
         'smallint',
         'time',
         'time_immutable',
+        ...self::DATE_FIELD_TYPES,
         ...self::UUID_FIELD_TYPES,
     ];
 
@@ -143,6 +153,27 @@ final class RelationFieldResolver
         $fieldType = self::resolveFieldType($qb, $fieldPath);
 
         if (null === $fieldType || !\in_array($fieldType, self::UUID_FIELD_TYPES, true)) {
+            return null;
+        }
+
+        return $fieldType;
+    }
+
+    /**
+     * Returns the Doctrine type of a date/time field path, or null when the field is not one.
+     *
+     * Callers need the type name itself, not only the answer, because setParameter() must
+     * bind with it: a DateTimeInterface value converts to the wrong column type otherwise.
+     */
+    public static function resolveDateFieldType(QueryBuilder $qb, string $fieldPath): ?string
+    {
+        if (!self::supportsSearchFiltering($qb, $fieldPath)) {
+            return null;
+        }
+
+        $fieldType = self::resolveFieldType($qb, $fieldPath);
+
+        if (null === $fieldType || !\in_array($fieldType, self::DATE_FIELD_TYPES, true)) {
             return null;
         }
 
