@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchAwareColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
@@ -18,7 +19,7 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  * Replaces individual strategy classes (Equal, NotEqual, StartsWith, etc.)
  * that differ only in their SQL operator and parameter wrapping format.
  *
- * Respects {@see ColumnInterface::getSearchField()} for field resolution and
+ * Respects {@see SearchAwareColumnInterface::getSearchField()} for field resolution and
  * applies any column-declared search joins before building the predicate.
  * The {@see \Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface}
  * custom predicate is intentionally not invoked: this strategy encodes a

@@ -318,6 +318,24 @@ class DataTable
     }
 
     /**
+     * Render a search input below each searchable column header.
+     *
+     * When enabled, the Stimulus controller injects a <tfoot> row containing
+     * one search input per column whose searchable flag is true. Each input
+     * triggers a server-side column search using the same rules as the column's
+     * searchable, setSearchField(), addSearchJoin(), and setSearchPredicate()
+     * configuration — processed by ColumnSearchFilter on the backend.
+     *
+     * Has no effect when called with false (default: false).
+     */
+    public function columnSearchInputs(bool $enabled = true): static
+    {
+        $this->options->set('tfootSearch', $enabled);
+
+        return $this;
+    }
+
+    /**
      * Feature control table information display field.
      */
     public function serverSide(bool $serverSide = true): static

@@ -39,7 +39,7 @@ function isBootstrap(framework: StyleFramework): boolean {
     return BOOTSTRAP_FRAMEWORKS.includes(framework)
 }
 
-function inputClass(framework: StyleFramework): string {
+export function inputClass(framework: StyleFramework): string {
     return isBootstrap(framework) ? 'form-control' : 'dt-filter-input'
 }
 

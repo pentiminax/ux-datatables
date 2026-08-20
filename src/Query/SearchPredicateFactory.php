@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Query;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchAwareColumnInterface;
 
 /**
  * Builds a DQL search condition for a column based on its type.
@@ -20,7 +21,7 @@ use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
  *
  *  2. Otherwise, the effective field path is resolved via
  *     {@see ColumnSearchResolver::resolveField()} (respecting
- *     {@see ColumnInterface::getSearchField()} before falling back to
+ *     {@see SearchAwareColumnInterface::getSearchField()} before falling back to
  *     {@see ColumnInterface::getField()}), and the standard type-based predicate
  *     is built:
  *       - Numeric columns: exact match when the value is numeric, null otherwise.

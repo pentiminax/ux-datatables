@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Query\ColumnSearchResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -116,6 +117,32 @@ final class ColumnSearchResolverTest extends TestCase
             ->method('leftJoin')
             ->with('dp.address', 'dp_addr')
             ->willReturn($qb);
+
+        ColumnSearchResolver::applySearchJoins($qb, $column);
+    }
+
+    #[Test]
+    public function resolve_field_falls_back_to_get_field_for_bare_column_interface_implementation(): void
+    {
+        // A column that implements only ColumnInterface (no SearchAwareColumnInterface)
+        // must fall back to getField() so existing downstream implementations are not broken.
+        $column = $this->createStub(ColumnInterface::class);
+        $column->method('getField')->willReturn('email');
+
+        $this->assertSame('email', ColumnSearchResolver::resolveField($column));
+    }
+
+    #[Test]
+    public function apply_search_joins_is_noop_for_bare_column_interface_implementation(): void
+    {
+        // A column that does not implement SearchAwareColumnInterface must never trigger
+        // a leftJoin call — the resolver must guard with instanceof before calling
+        // getSearchJoins(), which does not exist on the base ColumnInterface contract.
+        $column = $this->createStub(ColumnInterface::class);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->expects($this->never())->method('leftJoin');
+        $qb->expects($this->never())->method('getDQLPart');
 
         ColumnSearchResolver::applySearchJoins($qb, $column);
     }

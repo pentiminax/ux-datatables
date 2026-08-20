@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchAwareColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Query\ColumnSearchResolver;
@@ -17,7 +18,7 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  * For numeric columns, only checks NULL / NOT NULL.
  * For text columns, also includes empty-string checks.
  *
- * Respects {@see ColumnInterface::getSearchField()} for field resolution and
+ * Respects {@see SearchAwareColumnInterface::getSearchField()} for field resolution and
  * applies any column-declared search joins before building the predicate.
  * The {@see \Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface}
  * custom predicate is intentionally not invoked: nullness checks are inherently

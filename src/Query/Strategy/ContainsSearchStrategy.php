@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchAwareColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Query\ColumnSearchResolver;
@@ -21,7 +22,7 @@ use Pentiminax\UX\DataTables\Query\SearchPredicateFactory;
  *
  *  1. Any search joins declared on the column are applied first.
  *  2. {@see SearchPredicateFactory::build()} is called with the effective field
- *     path (from {@see ColumnInterface::getSearchField()} or
+ *     path (from {@see SearchAwareColumnInterface::getSearchField()} or
  *     {@see ColumnInterface::getField()}). That factory also delegates to the
  *     column's {@see \Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface}
  *     custom predicate when one is set.

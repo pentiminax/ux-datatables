@@ -383,4 +383,28 @@ final class DataTableTest extends TestCase
 
         $this->assertNull($table->getOption('ajax'));
     }
+
+    #[Test]
+    public function it_enables_column_search_inputs(): void
+    {
+        $table = (new DataTable('users'))->columnSearchInputs();
+
+        $this->assertTrue($table->getOption('tfootSearch'));
+    }
+
+    #[Test]
+    public function it_disables_column_search_inputs_when_called_with_false(): void
+    {
+        $table = (new DataTable('users'))->columnSearchInputs(false);
+
+        $this->assertFalse($table->getOption('tfootSearch'));
+    }
+
+    #[Test]
+    public function it_returns_static_for_column_search_inputs_chaining(): void
+    {
+        $table = new DataTable('users');
+
+        $this->assertSame($table, $table->columnSearchInputs());
+    }
 }
