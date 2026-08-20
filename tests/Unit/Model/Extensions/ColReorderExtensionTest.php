@@ -36,4 +36,27 @@ final class ColReorderExtensionTest extends TestCase
             'columns' => ':not(:first-child)',
         ], $extension->jsonSerialize());
     }
+
+    #[Test]
+    public function it_omits_header_rows_and_order_when_not_set(): void
+    {
+        $extension = new ColReorderExtension();
+        $payload   = $extension->jsonSerialize();
+
+        $this->assertArrayNotHasKey('headerRows', $payload);
+        $this->assertArrayNotHasKey('order', $payload);
+    }
+
+    #[Test]
+    public function it_serializes_restricted_header_rows_and_an_initial_order(): void
+    {
+        $extension = new ColReorderExtension(headerRows: [0], order: [2, 0, 1]);
+
+        $this->assertSame([
+            'enable'     => true,
+            'columns'    => '',
+            'headerRows' => [0],
+            'order'      => [2, 0, 1],
+        ], $extension->jsonSerialize());
+    }
 }
