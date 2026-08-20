@@ -39,7 +39,7 @@ final class GlobalSearchFilter implements QueryFilterInterface
                 continue;
             }
 
-            $paramName = \sprintf('search_param_%d', $context->paramIndexFor($reference));
+            $paramName = \sprintf('search_param_%d', $context->nextParamIndex());
             $condition = SearchPredicateFactory::build($qb, $column, $context->alias, $field, $globalSearch->value, $paramName);
 
             if (null !== $condition) {
