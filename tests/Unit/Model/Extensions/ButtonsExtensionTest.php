@@ -31,6 +31,7 @@ final class ButtonsExtensionTest extends DataTableTestCase
                 ->exportOptions(['columns' => ':visible']),
             Button::excel()->option('filename', 'users-export'),
             Button::colVis()->text('Columns'),
+            Button::ccSearchClear()->text('Clear filters'),
         ]);
 
         $this->assertExtensionPayload([
@@ -66,6 +67,18 @@ final class ButtonsExtensionTest extends DataTableTestCase
                 'extend' => 'colvis',
                 'text'   => 'Columns',
             ],
+            [
+                'extend' => 'ccSearchClear',
+                'text'   => 'Clear filters',
+            ],
         ], $extension);
+    }
+
+    #[Test]
+    public function it_adds_a_columncontrol_search_clear_button_via_the_fluent_helper(): void
+    {
+        $extension = (new ButtonsExtension([]))->withCcSearchClearButton();
+
+        $this->assertExtensionPayload(['ccSearchClear'], $extension);
     }
 }

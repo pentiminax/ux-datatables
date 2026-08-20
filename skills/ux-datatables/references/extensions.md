@@ -31,7 +31,7 @@ new ButtonsExtension([
 ]);
 ```
 
-`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`). The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton()`, `withExcelButton()`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`.
+`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`), `COLUMN_CONTROL_SEARCH_CLEAR` (value `'ccSearchClear'`). The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton()`, `withExcelButton()`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`, `withCcSearchClearButton()`.
 
 Fine-grained config via `Button`:
 ```php
@@ -42,6 +42,10 @@ new ButtonsExtension([
 ```
 
 To position buttons, place `Feature::BUTTONS` in `layout()` (see options).
+
+`Button::ccSearchClear()` clears the global search plus every ColumnControl per-column search in
+one click, using ColumnControl's own native Buttons entry (no JS needed). Requires
+`ColumnControlExtension` on the table.
 
 ## Select — row/cell selection
 
