@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Filter;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Query\LikeValueEscaper;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
@@ -37,7 +38,7 @@ final class TextFilter extends AbstractFilter
 
         $param = $this->parameterName();
 
-        $qb->andWhere(\sprintf('LOWER(%s) LIKE :%s', $expr, $param));
-        $qb->setParameter($param, '%'.mb_strtolower(trim($value)).'%');
+        $qb->andWhere(\sprintf("LOWER(%s) LIKE :%s ESCAPE '%s'", $expr, $param, LikeValueEscaper::ESCAPE_CHARACTER));
+        $qb->setParameter($param, '%'.LikeValueEscaper::escape(mb_strtolower(trim($value))).'%');
     }
 }

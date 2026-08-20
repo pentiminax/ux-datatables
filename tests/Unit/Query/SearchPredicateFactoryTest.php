@@ -40,8 +40,17 @@ final class SearchPredicateFactoryTest extends TestCase
             null,
             'hello',
             false,
-            'e.name LIKE :p_0',
+            "e.name LIKE :p_0 ESCAPE '\\'",
             ['p_0', '%hello%'],
+        ];
+
+        yield 'text column with like wildcards is escaped, not interpreted' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            null,
+            '50%_off',
+            false,
+            "e.name LIKE :p_0 ESCAPE '\\'",
+            ['p_0', '%50\%\_off%'],
         ];
 
         yield 'numeric column with numeric value' => [
