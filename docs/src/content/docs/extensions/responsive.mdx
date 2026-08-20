@@ -20,8 +20,19 @@ $dataTable->responsive();
 ```php
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 
-$dataTable->addExtension(new ResponsiveExtension());
+$dataTable->addExtension(
+    new ResponsiveExtension(
+        auto: true,
+        detailsTarget: 0,
+        detailsType: 'inline',
+        orthogonal: 'display',
+    )
+);
 ```
+
+`detailsType` accepts `'inline'`, `'column'`, `'colvis'`, or `false` to disable the hidden-column
+details control entirely. Pass `breakpoints` (a list of `['name' => string, 'width' => int]` pairs)
+to override DataTables' built-in breakpoint list; omit it to keep the defaults.
 
 ## Frequent Pitfalls
 
