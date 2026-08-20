@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 
 /**
@@ -25,7 +26,7 @@ use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 final class ColumnSearchFilter implements QueryFilterInterface
 {
     public function __construct(
-        private readonly SearchStrategyRegistry $registry,
+        private readonly SearchStrategyRegistry $registry = new DefaultSearchStrategyRegistry(),
     ) {
     }
 
