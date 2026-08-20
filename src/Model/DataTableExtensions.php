@@ -91,6 +91,17 @@ class DataTableExtensions implements \JsonSerializable
         return $this;
     }
 
+    /**
+     * Every registered extension, including layout-aware ones that
+     * {@see self::jsonSerialize()} deliberately omits from the client payload.
+     *
+     * @return array<string, ExtensionInterface>
+     */
+    public function all(): array
+    {
+        return $this->extensions;
+    }
+
     public function getButtonsExtension(): ?ButtonsExtension
     {
         return $this->extensions['buttons'] ?? null;
