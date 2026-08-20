@@ -64,6 +64,31 @@ abstract class AbstractDataTable
         $this->infrastructure = $infrastructure;
     }
 
+    /**
+     * Clear every piece of per-request state so a container-shared table behaves
+     * identically under PHP-FPM and long-running workers (FrankenPHP worker mode,
+     * Swoole, RoadRunner).
+     *
+     * Wired through the `kernel.reset` tag: `ServicesResetter` calls this between
+     * requests, so the next request re-runs `configure*()` and hydrates its own
+     * rows instead of re-serving the previous request's payload -- along with the
+     * action URLs and CSRF tokens resolved for the previous user.
+     *
+     * `$infrastructure` is deliberately kept: it is injected once by a
+     * construction-time method call that is never replayed. `static::$attributeCache`
+     * is kept too, being keyed by class and holding an immutable value object.
+     */
+    final public function reset(): void
+    {
+        unset($this->table, $this->columns, $this->filters);
+
+        $this->defaultRowMapper  = null;
+        $this->asDataTable       = null;
+        $this->runtime           = null;
+        $this->initialized       = false;
+        $this->renderingPrepared = false;
+    }
+
     private function initialize(): void
     {
         if ($this->initialized) {
