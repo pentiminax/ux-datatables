@@ -74,11 +74,17 @@ abstract class AbstractDataTable
      * rows instead of re-serving the previous request's payload -- along with the
      * action URLs and CSRF tokens resolved for the previous user.
      *
+     * Deliberately not named `reset()`: that name is common enough on user tables
+     * (`ResetInterface`, filter resets) that adding it as a final method would break
+     * existing subclasses on upgrade. A subclass method must never win here either,
+     * since silently skipping this would reintroduce the cross-request leak, hence
+     * both the distinctive name and `final`.
+     *
      * `$infrastructure` is deliberately kept: it is injected once by a
      * construction-time method call that is never replayed. `static::$attributeCache`
      * is kept too, being keyed by class and holding an immutable value object.
      */
-    final public function reset(): void
+    final public function resetDataTableState(): void
     {
         unset($this->table, $this->columns, $this->filters);
 
