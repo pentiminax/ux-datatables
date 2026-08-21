@@ -105,7 +105,7 @@ final class QueryFilterChainTest extends TestCase
 
         $qb->expects($this->atLeastOnce())
             ->method('andWhere')
-            ->with('e.name LIKE :column_control_param_0');
+            ->with("e.name LIKE :column_control_param_0 ESCAPE '!'");
 
         // predicateBuilder defaults to DefaultSearchPredicateBuilder() -- callers who only
         // ever passed a registry before GlobalSearchFilter took a second constructor
