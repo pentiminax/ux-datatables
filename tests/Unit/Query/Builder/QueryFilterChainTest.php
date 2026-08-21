@@ -17,6 +17,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterChain;
+use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
@@ -77,7 +78,7 @@ final class QueryFilterChainTest extends TestCase
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->willReturn([]);
 
-        QueryFilterChain::createDefault($registry)->apply($qb, $context);
+        QueryFilterChain::createDefault($registry, new DefaultSearchPredicateBuilder())->apply($qb, $context);
 
         // Both ColumnSearchFilter (always 'contains') and ColumnControlSearchFilter (logic
         // 'contains' picked for the 'email' column) resolve the strategy from the same
@@ -86,6 +87,30 @@ final class QueryFilterChainTest extends TestCase
             ['name', 'ali'],
             ['email', 'bob'],
         ], $calls);
+    }
+
+    #[Test]
+    public function it_builds_the_default_chain_with_only_a_registry_argument(): void
+    {
+        $requestColumns = new Columns([
+            'name' => new Column('name', 'name', true, true, new Search('ali', false)),
+        ]);
+
+        $context = $this->context(new DataTableRequest(1, $requestColumns), [
+            TextColumn::new('name', 'Name')->setField('name'),
+        ]);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+
+        $qb->expects($this->atLeastOnce())
+            ->method('andWhere')
+            ->with("e.name LIKE :column_control_param_0 ESCAPE '!'");
+
+        // predicateBuilder defaults to DefaultSearchPredicateBuilder() -- callers who only
+        // ever passed a registry before GlobalSearchFilter took a second constructor
+        // argument must keep working unchanged.
+        QueryFilterChain::createDefault(new DefaultSearchStrategyRegistry())->apply($qb, $context);
     }
 
     /**

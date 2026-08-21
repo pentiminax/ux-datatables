@@ -72,7 +72,7 @@ protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $req
 }
 ```
 
-The root alias is `e`. The bundle's search/order filters run *after* this hook via `QueryFilterChain`. To register custom search strategies, override `createSearchStrategyRegistry()`.
+The root alias is `e`. The bundle's search/order filters run *after* this hook via `QueryFilterChain`. To register custom search strategies for ColumnControl and standard column search, override `createSearchStrategyRegistry()`; to customize how global search builds a condition per column, override `createSearchPredicateBuilder()`.
 
 ## Page projection (server-side)
 
