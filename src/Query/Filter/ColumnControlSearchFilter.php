@@ -22,6 +22,13 @@ use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
  * expand to typed equalities so invalid terms never reach setParameter() and
  * binary identifier types still match. Scalar criteria delegate to the registered
  * search strategy for their logic.
+ *
+ * A list value of '' (the empty string) is matched with IS NULL rather than being
+ * bound into the IN clause: an optional relation's dot-path field (e.g. a
+ * ColumnControl searchList option representing "no value assigned") resolves to
+ * NULL through its LEFT JOIN, never to an empty string, so IN ('') would silently
+ * match nothing. This mirrors ColumnControl's own client-side convention, where an
+ * option with an empty label/value already renders as a distinct "Empty" entry.
  */
 final class ColumnControlSearchFilter implements QueryFilterInterface
 {
@@ -68,11 +75,31 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
             return;
         }
 
-        $expr      = RelationFieldResolver::resolve($qb, $alias, $field);
+        $expr           = RelationFieldResolver::resolve($qb, $alias, $field);
+        $nonEmptyValues = array_values(array_filter($values, static fn (mixed $value): bool => '' !== $value));
+
+        if (\count($nonEmptyValues) === \count($values)) {
+            $paramName = \sprintf(':%s_in', str_replace('.', '_', $field));
+
+            $qb->andWhere(\sprintf('%s IN (%s)', $expr, $paramName));
+            $qb->setParameter($paramName, $values);
+
+            return;
+        }
+
+        if ([] === $nonEmptyValues) {
+            $qb->andWhere($qb->expr()->isNull($expr));
+
+            return;
+        }
+
         $paramName = \sprintf(':%s_in', str_replace('.', '_', $field));
 
-        $qb->andWhere(\sprintf('%s IN (%s)', $expr, $paramName));
-        $qb->setParameter($paramName, $values);
+        $qb->andWhere($qb->expr()->orX(
+            \sprintf('%s IN (%s)', $expr, $paramName),
+            $qb->expr()->isNull($expr),
+        ));
+        $qb->setParameter($paramName, $nonEmptyValues);
     }
 
     /**

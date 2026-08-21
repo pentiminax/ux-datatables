@@ -95,6 +95,34 @@ final class ColumnControlSearchFilterTest extends TestCase
         $this->applyList($qb, TextColumn::new('name')->setField('name'), ['acme', 'beta']);
     }
 
+    #[Test]
+    public function it_matches_is_null_for_a_text_column_list_of_only_the_empty_value(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('name', 'string');
+        $qb->method('expr')->willReturn(new Expr());
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with(new Expr\Comparison('e.name', 'IS', 'NULL'));
+        $qb->expects($this->never())->method('setParameter');
+
+        $this->applyList($qb, TextColumn::new('name')->setField('name'), ['']);
+    }
+
+    #[Test]
+    public function it_combines_an_in_clause_with_is_null_when_the_empty_value_is_selected_alongside_others(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('name', 'string');
+        $qb->method('expr')->willReturn(new Expr());
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with(new Expr\Orx(['e.name IN (:name_in)', new Expr\Comparison('e.name', 'IS', 'NULL')]));
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with(':name_in', ['acme']);
+
+        $this->applyList($qb, TextColumn::new('name')->setField('name'), ['acme', '']);
+    }
+
     /**
      * Column Control searchList on a native UUID/ULID column used to bind the raw list
      * with IN. An empty option or a partial identifier then 500s (SQLSTATE 22P02 /
