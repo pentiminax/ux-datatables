@@ -22,3 +22,12 @@ export const STYLE_FRAMEWORKS: StyleFrameworkConfig[] = [
     { key: 'se', cssPattern: 'dataTables.semanticui' },
     { key: 'dt', cssPattern: 'dataTables.dataTables' },
 ]
+
+/**
+ * Whether a value is a framework key the app declared explicitly (e.g. via the PHP
+ * `styleFramework()` option), as opposed to `undefined` or some other payload value that
+ * means autodetection should run instead.
+ */
+export function isStyleFramework(value: unknown): value is StyleFramework {
+    return typeof value === 'string' && STYLE_FRAMEWORKS.some(({ key }) => key === value)
+}

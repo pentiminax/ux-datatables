@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Enum\StyleFramework;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicFactory;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
@@ -596,6 +597,21 @@ class DataTable
     public function language(Language $language): static
     {
         $this->options->setLanguage($language);
+
+        return $this;
+    }
+
+    /**
+     * Declare the CSS framework this table renders against, skipping the frontend's
+     * stylesheet-sniffing autodetection.
+     *
+     * Autodetection inspects document.styleSheets at connect() time, which can race a
+     * lazily-loaded framework stylesheet that has not finished importing yet. Set this
+     * whenever the framework is already known so the frontend never has to guess.
+     */
+    public function styleFramework(StyleFramework $framework): static
+    {
+        $this->options->set('styleFramework', $framework->value);
 
         return $this;
     }
