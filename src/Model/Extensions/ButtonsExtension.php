@@ -103,4 +103,14 @@ final class ButtonsExtension extends AbstractExtension implements LayoutAwareExt
 
         return $this;
     }
+
+    /**
+     * @see Button::custom()
+     */
+    public function withCustomButton(string $action): self
+    {
+        $this->buttons[] = Button::custom($action);
+
+        return $this;
+    }
 }
