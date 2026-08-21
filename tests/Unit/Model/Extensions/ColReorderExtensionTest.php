@@ -37,6 +37,23 @@ final class ColReorderExtensionTest extends TestCase
         ], $extension->jsonSerialize());
     }
 
+    /**
+     * DataTables' colReorder.columns option is a column-selector, which natively accepts a
+     * list of column indexes as well as a selector string -- the constructor only accepted a
+     * string, forcing callers to build a selector expression for what is otherwise a plain
+     * list<int>, the same shape Button::colVis()->option('columns', ...) already accepts.
+     */
+    #[Test]
+    public function it_serializes_a_list_of_column_indexes(): void
+    {
+        $extension = new ColReorderExtension(columns: [0, 2, 3]);
+
+        $this->assertSame([
+            'enable'  => true,
+            'columns' => [0, 2, 3],
+        ], $extension->jsonSerialize());
+    }
+
     #[Test]
     public function it_omits_header_rows_and_order_when_not_set(): void
     {
