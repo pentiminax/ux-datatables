@@ -6,8 +6,10 @@ namespace Pentiminax\UX\DataTables\Query\Builder;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\Filters;
+use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntentFactoryInterface;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
@@ -34,6 +36,7 @@ final class QueryFilterPipeline
         array $columns,
         ?Filters $filters,
         SearchStrategyRegistry $registry,
+        SearchPredicateBuilderInterface $predicateBuilder = new DefaultSearchPredicateBuilder(),
     ): QueryBuilder {
         $intent = $this->intentFactory->create($request, array_values($columns));
 
@@ -48,7 +51,7 @@ final class QueryFilterPipeline
             alias: self::ROOT_ALIAS,
         );
 
-        $qb = QueryFilterChain::createDefault($registry)->apply($qb, $context);
+        $qb = QueryFilterChain::createDefault($registry, $predicateBuilder)->apply($qb, $context);
 
         $this->applyConfiguredFilters($qb, $request, $filters);
 
