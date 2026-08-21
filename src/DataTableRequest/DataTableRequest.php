@@ -25,21 +25,22 @@ final readonly class DataTableRequest
 
     public static function fromRequest(Request $request): self
     {
+        $bag     = RequestInputBag::resolve($request);
         $columns = Columns::fromRequest($request);
 
         $orders = [];
-        foreach ($request->query->all('order') as $orderData) {
+        foreach ($bag->all('order') as $orderData) {
             $orders[] = Order::fromArray($orderData, $columns);
         }
 
         return new self(
-            draw: $request->query->getInt('draw'),
+            draw: $bag->getInt('draw'),
             columns: $columns,
-            start: $request->query->getInt('start'),
-            length: $request->query->getInt('length'),
+            start: $bag->getInt('start'),
+            length: $bag->getInt('length'),
             search: Search::fromRequest($request),
             order: $orders,
-            filters: $request->query->all('filters'),
+            filters: $bag->all('filters'),
         );
     }
 }

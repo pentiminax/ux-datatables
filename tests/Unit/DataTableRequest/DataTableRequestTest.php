@@ -92,11 +92,84 @@ final class DataTableRequestTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $overrides query parameters replacing the baseline payload
+     * DataTable::ajax()'s $type parameter lets an app configure a body-carrying method;
+     * DataTables then puts the same parameters in the request body instead of the query
+     * string. Regression test: fromRequest() used to hardcode $request->query, so a
+     * POST/PUT/PATCH-configured table always parsed an empty parameter set.
      */
-    private static function createRequest(array $overrides = []): Request
+    #[Test]
+    #[DataProvider('provideBodyCarryingMethods')]
+    public function it_parses_all_properties_from_a_body_carrying_request(string $method): void
     {
-        return new Request(query: array_replace([
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest([
+            'draw'   => 5,
+            'start'  => 20,
+            'length' => 25,
+            'order'  => [['column' => 2, 'dir' => 'desc']],
+            'search' => ['value' => 'test', 'regex' => false],
+        ], $method));
+
+        $this->assertSame(5, $dataTableRequest->draw);
+        $this->assertSame(20, $dataTableRequest->start);
+        $this->assertSame(25, $dataTableRequest->length);
+        $this->assertSame('test', $dataTableRequest->search->value);
+        $this->assertEquals([new Order(column: 2, dir: 'desc', name: 'email')], $dataTableRequest->order);
+    }
+
+    public static function provideBodyCarryingMethods(): iterable
+    {
+        yield 'POST' => ['POST'];
+        yield 'PUT' => ['PUT'];
+        yield 'PATCH' => ['PATCH'];
+    }
+
+    #[Test]
+    public function it_ignores_query_string_parameters_on_a_post_request(): void
+    {
+        $request = Request::create('/ajax?draw=99', 'POST', array_replace([
+            'draw'    => 1,
+            'start'   => 0,
+            'length'  => 10,
+            'columns' => [],
+            'order'   => [],
+            'search'  => ['value' => '', 'regex' => false],
+        ], ['draw' => 5]));
+
+        $dataTableRequest = DataTableRequest::fromRequest($request);
+
+        $this->assertSame(5, $dataTableRequest->draw);
+    }
+
+    /**
+     * Unlike POST/PUT/PATCH, DataTables' client-side ajax() helper moves DELETE's
+     * parameters onto the URL by default (some servers reject a request body on DELETE),
+     * so a DELETE-configured table must still parse from the query string.
+     */
+    #[Test]
+    public function it_parses_all_properties_from_a_delete_request(): void
+    {
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest([
+            'draw'   => 5,
+            'start'  => 20,
+            'length' => 25,
+            'order'  => [['column' => 2, 'dir' => 'desc']],
+            'search' => ['value' => 'test', 'regex' => false],
+        ], 'DELETE'));
+
+        $this->assertSame(5, $dataTableRequest->draw);
+        $this->assertSame(20, $dataTableRequest->start);
+        $this->assertSame(25, $dataTableRequest->length);
+        $this->assertSame('test', $dataTableRequest->search->value);
+        $this->assertEquals([new Order(column: 2, dir: 'desc', name: 'email')], $dataTableRequest->order);
+    }
+
+    /**
+     * @param array<string, mixed> $overrides query (or, for a body-carrying method, request
+     *                                        body) parameters replacing the baseline payload
+     */
+    private static function createRequest(array $overrides = [], string $method = 'GET'): Request
+    {
+        $parameters = array_replace([
             'draw'    => 1,
             'start'   => 0,
             'length'  => 10,
@@ -107,6 +180,10 @@ final class DataTableRequestTest extends TestCase
             ],
             'order'  => [],
             'search' => ['value' => '', 'regex' => false],
-        ], $overrides));
+        ], $overrides);
+
+        return \in_array($method, ['POST', 'PUT', 'PATCH'], true)
+            ? new Request(request: $parameters, server: ['REQUEST_METHOD' => $method])
+            : new Request(query: $parameters, server: ['REQUEST_METHOD' => $method]);
     }
 }
