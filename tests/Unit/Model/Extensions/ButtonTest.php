@@ -88,5 +88,31 @@ final class ButtonTest extends TestCase
                 'text'   => 'Clear filters',
             ],
         ];
+
+        yield 'collection with no options is still an object, not a bare string' => [
+            Button::collection([]),
+            [
+                'extend'  => 'collection',
+                'buttons' => [],
+            ],
+        ];
+    }
+
+    #[Test]
+    public function it_serializes_a_collection_with_nested_button_objects_and_raw_strings(): void
+    {
+        $button = Button::collection([Button::csv(), 'colvis'])->text('Export');
+
+        $this->assertSame([
+            'extend'  => 'collection',
+            'buttons' => [
+                [
+                    'extend'        => 'csv',
+                    'exportOptions' => ['columns' => ':visible:not(.not-exportable)'],
+                ],
+                'colvis',
+            ],
+            'text' => 'Export',
+        ], json_decode(json_encode($button), true));
     }
 }
