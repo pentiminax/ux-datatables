@@ -11,12 +11,24 @@ final class Button implements \JsonSerializable
     private const DEFAULT_EXPORT_COLUMNS = ':visible:not(.not-exportable)';
 
     /**
-     * Utility button types that never export data: no default `exportOptions`, and serialized as
-     * a bare extend string when no other option is set.
+     * Button types that never export data: no default `exportOptions` is injected for these.
      *
      * @var list<ButtonType>
      */
     private const NON_EXPORT_TYPES = [
+        ButtonType::COLLECTION,
+        ButtonType::COLUMN_CONTROL_SEARCH_CLEAR,
+        ButtonType::COLUMN_VISIBILITY,
+    ];
+
+    /**
+     * Utility button types serialized as a bare extend string when no other option is set. A
+     * collection is never bare — its `buttons` array is the point of the button — so it is a
+     * NON_EXPORT_TYPES member but not one of these.
+     *
+     * @var list<ButtonType>
+     */
+    private const BARE_STRING_TYPES = [
         ButtonType::COLUMN_CONTROL_SEARCH_CLEAR,
         ButtonType::COLUMN_VISIBILITY,
     ];
@@ -74,6 +86,21 @@ final class Button implements \JsonSerializable
         return self::fromType(ButtonType::COLUMN_CONTROL_SEARCH_CLEAR);
     }
 
+    /**
+     * A dropdown grouping other buttons together, using DataTables' generic collection button
+     * type — the same mechanism `Button::colVis()` builds on internally, made directly available
+     * for a plain grouping dropdown (e.g. an "Export" menu holding several export buttons).
+     *
+     * @param list<Button|array<string, mixed>|string> $buttons
+     */
+    public static function collection(array $buttons): self
+    {
+        $button                     = self::fromType(ButtonType::COLLECTION);
+        $button->options['buttons'] = $buttons;
+
+        return $button;
+    }
+
     public function text(string $text): self
     {
         $this->options['text'] = $text;
@@ -107,9 +134,7 @@ final class Button implements \JsonSerializable
 
     public function jsonSerialize(): array|string
     {
-        $isNonExport = \in_array($this->type, self::NON_EXPORT_TYPES, true);
-
-        if ($isNonExport && [] === $this->options) {
+        if (\in_array($this->type, self::BARE_STRING_TYPES, true) && [] === $this->options) {
             return $this->type->value;
         }
 
@@ -117,7 +142,7 @@ final class Button implements \JsonSerializable
             'extend' => $this->type->value,
         ];
 
-        if (!$isNonExport && !\array_key_exists('exportOptions', $this->options)) {
+        if (!\in_array($this->type, self::NON_EXPORT_TYPES, true) && !\array_key_exists('exportOptions', $this->options)) {
             $config['exportOptions'] = [
                 'columns' => self::DEFAULT_EXPORT_COLUMNS,
             ];
