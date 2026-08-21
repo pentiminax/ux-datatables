@@ -51,6 +51,14 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
         $field     = RelationFieldResolver::resolve($qb, $alias, $effectiveField);
         $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
+        if ($this->logic->usesTextSearch()) {
+            $comparison = ColumnControlLogic::NotContains === $this->logic ? '0' : '1';
+            $qb->andWhere(\sprintf('UX_DATATABLES_SEARCH(%s, :%s) = %s', $field, $paramName, $comparison));
+            $qb->setParameter($paramName, \sprintf($this->logic->paramFormat(), mb_strtolower(trim($search->value))));
+
+            return;
+        }
+
         $qb->andWhere(\sprintf('%s %s :%s', $field, $this->logic->operator(), $paramName));
         $qb->setParameter($paramName, \sprintf($this->logic->paramFormat(), $search->value));
     }

@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\CsrfTokenManagerPass;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\DataTableRegistryPass;
+use Pentiminax\UX\DataTables\Doctrine\Function\UxDataTablesSearchFunction;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Symfony\Bundle\MakerBundle\Maker\AbstractMaker;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
@@ -123,6 +124,18 @@ class DataTablesBundle extends AbstractBundle
                 'asset_mapper' => [
                     'paths' => [
                         __DIR__.'/../assets/dist' => '@pentiminax/ux-datatables',
+                    ],
+                ],
+            ]);
+        }
+
+        if ($builder->hasExtension('doctrine')) {
+            $builder->prependExtensionConfig('doctrine', [
+                'orm' => [
+                    'dql' => [
+                        'string_functions' => [
+                            'UX_DATATABLES_SEARCH' => UxDataTablesSearchFunction::class,
+                        ],
                     ],
                 ],
             ]);

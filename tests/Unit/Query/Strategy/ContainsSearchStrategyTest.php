@@ -33,7 +33,7 @@ final class ContainsSearchStrategyTest extends TestCase
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->with('join')->willReturn([]);
         $qb->expects($this->once())->method('setParameter')->with('column_control_param_3', '%foo%');
-        $qb->expects($this->once())->method('andWhere')->with('e.name LIKE :column_control_param_3');
+        $qb->expects($this->once())->method('andWhere')->with('UX_DATATABLES_SEARCH(e.name, :column_control_param_3) = 1');
 
         $column = TextColumn::new('name')->setField('name');
         $search = new ColumnControlSearch('foo', ColumnControlLogic::Contains, 'text');
@@ -136,7 +136,7 @@ final class ContainsSearchStrategyTest extends TestCase
 
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with('donorProvider.name LIKE :column_control_param_0');
+            ->with('UX_DATATABLES_SEARCH(donorProvider.name, :column_control_param_0) = 1');
 
         $qb->expects($this->once())
             ->method('setParameter')

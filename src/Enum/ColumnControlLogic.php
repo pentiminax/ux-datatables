@@ -36,6 +36,24 @@ enum ColumnControlLogic: string
         };
     }
 
+    /**
+     * Returns true for the logics that require a text-search LIKE predicate via
+     * UX_DATATABLES_SEARCH rather than a raw SQL comparison operator.
+     *
+     * Contains is intentionally excluded here because it is dispatched through
+     * ContainsSearchStrategy → SearchPredicateFactory → SearchConditionBuilder,
+     * which already emits UX_DATATABLES_SEARCH.
+     */
+    public function usesTextSearch(): bool
+    {
+        return match ($this) {
+            self::Ends,
+            self::NotContains,
+            self::Starts => true,
+            default      => false,
+        };
+    }
+
     public function operator(): string
     {
         if (!$this->supportsComparisonStrategy()) {

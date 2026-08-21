@@ -20,7 +20,20 @@ $dataTable->columnControl();
 The bundled `ColumnControlExtension` serializes default controls for:
 
 - ordering actions (asc, desc, add/remove order)
-- per-column search input
+- per-column search input with `Contains`, `Starts`, `Ends`, `NotContains`,
+  `Equal`, `NotEqual`, `Greater`, `GreaterOrEqual`, `Less`, `LessOrEqual`,
+  `Empty`, and `NotEmpty` logics
+
+### Search case sensitivity and PostgreSQL compatibility
+
+The LIKE-based logics (`Contains`, `Starts`, `Ends`, `NotContains`) are
+**case-insensitive** and routed through the `UX_DATATABLES_SEARCH` DQL function.
+This function applies `LOWER()` to the field and, on PostgreSQL, wraps it in
+`CAST(… AS TEXT)` before the LIKE comparison. The cast resolves the
+`operator does not exist: uuid ~~ text` error that occurs when a column is
+mapped with Doctrine type `uuid` or `guid`.
+
+No configuration is required. The function is registered automatically.
 
 ## Frequent Pitfalls
 

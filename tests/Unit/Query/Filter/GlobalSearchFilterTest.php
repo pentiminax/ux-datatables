@@ -42,8 +42,8 @@ final class GlobalSearchFilterTest extends TestCase
         $expr = $this->createMock(Expr::class);
         $expr->expects($this->once())
             ->method('orX')
-            ->with('author.firstName LIKE :search_param_0')
-            ->willReturn(new Expr\Orx(['author.firstName LIKE :search_param_0']));
+            ->with('UX_DATATABLES_SEARCH(author.firstName, :search_param_0) = 1')
+            ->willReturn(new Expr\Orx(['UX_DATATABLES_SEARCH(author.firstName, :search_param_0) = 1']));
 
         $qb->method('expr')->willReturn($expr);
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);
@@ -101,8 +101,8 @@ final class GlobalSearchFilterTest extends TestCase
         $expr = $this->createMock(Expr::class);
         $expr->expects($this->once())
             ->method('orX')
-            ->with('e.name LIKE :search_param_0')
-            ->willReturn(new Expr\Orx(['e.name LIKE :search_param_0']));
+            ->with('UX_DATATABLES_SEARCH(e.name, :search_param_0) = 1')
+            ->willReturn(new Expr\Orx(['UX_DATATABLES_SEARCH(e.name, :search_param_0) = 1']));
 
         $qb->method('expr')->willReturn($expr);
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);
@@ -142,8 +142,8 @@ final class GlobalSearchFilterTest extends TestCase
         $expr = $this->createMock(Expr::class);
         $expr->expects($this->once())
             ->method('orX')
-            ->with('donorProvider.name LIKE :search_param_0')
-            ->willReturn(new Expr\Orx(['donorProvider.name LIKE :search_param_0']));
+            ->with('UX_DATATABLES_SEARCH(donorProvider.name, :search_param_0) = 1')
+            ->willReturn(new Expr\Orx(['UX_DATATABLES_SEARCH(donorProvider.name, :search_param_0) = 1']));
 
         $qb->method('expr')->willReturn($expr);
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);
@@ -222,8 +222,8 @@ final class GlobalSearchFilterTest extends TestCase
         $expr = $this->createMock(Expr::class);
         $expr->expects($this->once())
             ->method('orX')
-            ->with('e.name LIKE :search_param_0')
-            ->willReturn(new Expr\Orx(['e.name LIKE :search_param_0']));
+            ->with('UX_DATATABLES_SEARCH(e.name, :search_param_0) = 1')
+            ->willReturn(new Expr\Orx(['UX_DATATABLES_SEARCH(e.name, :search_param_0) = 1']));
 
         $qb->method('expr')->willReturn($expr);
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);
@@ -231,7 +231,7 @@ final class GlobalSearchFilterTest extends TestCase
             ->method('setParameter')
             ->with('search_param_0', '%test%');
 
-        // Predicate returns null → standard LIKE predicate on the resolved field.
+        // Predicate returns null → standard UX_DATATABLES_SEARCH predicate on the resolved field.
         $column = TextColumn::new('name', 'Name')
             ->setField('name')
             ->setSearchPredicate(static fn () => null);

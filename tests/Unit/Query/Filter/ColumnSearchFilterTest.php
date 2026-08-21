@@ -42,7 +42,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with($this->equalTo('author.firstName LIKE :column_search_param_0'));
+            ->with($this->equalTo('UX_DATATABLES_SEARCH(author.firstName, :column_search_param_0) = 1'));
 
         $qb->expects($this->once())
             ->method('setParameter')
@@ -100,7 +100,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with($this->equalTo('e.name LIKE :column_search_param_0'));
+            ->with($this->equalTo('UX_DATATABLES_SEARCH(e.name, :column_search_param_0) = 1'));
 
         $qb->expects($this->once())
             ->method('setParameter')
@@ -313,9 +313,9 @@ final class ColumnSearchFilterTest extends TestCase
                 static $callCount = 0;
                 ++$callCount;
                 if (1 === $callCount) {
-                    $this->assertEquals('e.name LIKE :column_search_param_0', $condition);
+                    $this->assertEquals('UX_DATATABLES_SEARCH(e.name, :column_search_param_0) = 1', $condition);
                 } elseif (2 === $callCount) {
-                    $this->assertEquals('e.email LIKE :column_search_param_1', $condition);
+                    $this->assertEquals('UX_DATATABLES_SEARCH(e.email, :column_search_param_1) = 1', $condition);
                 }
 
                 return $this->createMock(QueryBuilder::class);
@@ -377,7 +377,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with('donorProvider.name LIKE :column_search_param_0');
+            ->with('UX_DATATABLES_SEARCH(donorProvider.name, :column_search_param_0) = 1');
 
         $qb->expects($this->once())
             ->method('setParameter')
@@ -443,7 +443,7 @@ final class ColumnSearchFilterTest extends TestCase
 
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with('e.name LIKE :column_search_param_0');
+            ->with('UX_DATATABLES_SEARCH(e.name, :column_search_param_0) = 1');
 
         $qb->expects($this->once())
             ->method('setParameter')

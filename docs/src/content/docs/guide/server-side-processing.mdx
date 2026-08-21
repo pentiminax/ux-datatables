@@ -196,6 +196,32 @@ when `mapRow()` already handles the value.
 See [Searching a relation or with a custom predicate](/ux-datatables/columns/overview/#searching-a-relation-or-with-a-custom-predicate)
 for `addSearchJoin()` (custom alias control) and `setSearchPredicate()` (multi-field / custom SQL).
 
+## Search Behavior
+
+### Case sensitivity
+
+All server-side text searches are **case-insensitive** — global search, per-column
+DataTables search, column control Contains/Starts/Ends/NotContains, and
+`TextFilter`. The bundle applies `LOWER()` to both the field and the search term
+so results are consistent regardless of how values were stored.
+
+### PostgreSQL and typed fields (uuid, guid)
+
+The bundle automatically registers a Doctrine DQL function,
+`UX_DATATABLES_SEARCH`, that wraps the field in `CAST(… AS TEXT)` on PostgreSQL
+before applying `LOWER(… ) LIKE ?`. This resolves the common runtime error:
+
+```
+operator does not exist: uuid ~~ text
+```
+
+…that occurs when a column is mapped with Doctrine type `uuid` or `guid` and a
+LIKE search is applied without an explicit cast. No configuration is required;
+the function is registered automatically when DoctrineBundle is present.
+
+The cast is a no-op for ordinary `string` and `text` fields in PostgreSQL, so
+there is no performance difference for those columns.
+
 ## Sorting Computed Columns
 
 Server-side ordering resolves a column to `<alias>.<field>` and runs `ORDER BY` on it. A column

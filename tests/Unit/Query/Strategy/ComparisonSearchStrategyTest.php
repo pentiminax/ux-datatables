@@ -72,6 +72,7 @@ final class ComparisonSearchStrategyTest extends TestCase
      */
     public static function comparison_cases(): iterable
     {
+        // Non-text-search logics: use raw operator, value is NOT lower-cased.
         yield 'equal' => [
             ColumnControlLogic::Equal,
             'Alice',
@@ -79,11 +80,40 @@ final class ComparisonSearchStrategyTest extends TestCase
             'Alice',
         ];
 
+        yield 'not_equal' => [
+            ColumnControlLogic::NotEqual,
+            'Alice',
+            'e.name != :column_control_param_3',
+            'Alice',
+        ];
+
+        yield 'greater' => [
+            ColumnControlLogic::Greater,
+            '10',
+            'e.name > :column_control_param_3',
+            '10',
+        ];
+
+        // Text-search logics: delegate to UX_DATATABLES_SEARCH, value IS lower-cased.
         yield 'starts' => [
             ColumnControlLogic::Starts,
             'Ali',
-            'e.name LIKE :column_control_param_3',
-            'Ali%',
+            'UX_DATATABLES_SEARCH(e.name, :column_control_param_3) = 1',
+            'ali%',
+        ];
+
+        yield 'ends' => [
+            ColumnControlLogic::Ends,
+            'Ice',
+            'UX_DATATABLES_SEARCH(e.name, :column_control_param_3) = 1',
+            '%ice',
+        ];
+
+        yield 'not_contains' => [
+            ColumnControlLogic::NotContains,
+            'Spam',
+            'UX_DATATABLES_SEARCH(e.name, :column_control_param_3) = 0',
+            '%spam%',
         ];
     }
 
