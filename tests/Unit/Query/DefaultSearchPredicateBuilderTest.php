@@ -39,7 +39,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
             'p_0',
         );
 
-        $this->assertSame('e.name LIKE :p_0', $result);
+        $this->assertSame("e.name LIKE :p_0 ESCAPE '!'", $result);
     }
 
     #[Test]
