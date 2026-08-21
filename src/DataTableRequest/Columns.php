@@ -17,7 +17,7 @@ final readonly class Columns
     public static function fromRequest(Request $request): self
     {
         $columns = [];
-        foreach ($request->query->all('columns') as $column) {
+        foreach (RequestInputBag::resolve($request)->all('columns') as $column) {
             $columns[$column['name']] = Column::fromArray($column);
         }
 

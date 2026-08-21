@@ -33,4 +33,20 @@ final class SearchTest extends TestCase
         $this->assertEquals('test', $search->value);
         $this->assertFalse($search->regex);
     }
+
+    #[Test]
+    public function it_parses_from_a_post_request_body(): void
+    {
+        $request = Request::create('/ajax', 'POST', [
+            'search' => [
+                'value' => 'test',
+                'regex' => false,
+            ],
+        ]);
+
+        $search = Search::fromRequest($request);
+
+        $this->assertEquals('test', $search->value);
+        $this->assertFalse($search->regex);
+    }
 }

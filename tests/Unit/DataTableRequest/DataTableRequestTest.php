@@ -92,11 +92,53 @@ final class DataTableRequestTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $overrides query parameters replacing the baseline payload
+     * DataTable::ajax()'s $type parameter lets an app configure a POST request; DataTables
+     * then puts the same parameters in the request body instead of the query string.
+     * Regression test: fromRequest() used to hardcode $request->query, so a POST-configured
+     * table always parsed an empty parameter set.
      */
-    private static function createRequest(array $overrides = []): Request
+    #[Test]
+    public function it_parses_all_properties_from_a_post_request(): void
     {
-        return new Request(query: array_replace([
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest([
+            'draw'   => 5,
+            'start'  => 20,
+            'length' => 25,
+            'order'  => [['column' => 2, 'dir' => 'desc']],
+            'search' => ['value' => 'test', 'regex' => false],
+        ], 'POST'));
+
+        $this->assertSame(5, $dataTableRequest->draw);
+        $this->assertSame(20, $dataTableRequest->start);
+        $this->assertSame(25, $dataTableRequest->length);
+        $this->assertSame('test', $dataTableRequest->search->value);
+        $this->assertEquals([new Order(column: 2, dir: 'desc', name: 'email')], $dataTableRequest->order);
+    }
+
+    #[Test]
+    public function it_ignores_query_string_parameters_on_a_post_request(): void
+    {
+        $request = Request::create('/ajax?draw=99', 'POST', array_replace([
+            'draw'    => 1,
+            'start'   => 0,
+            'length'  => 10,
+            'columns' => [],
+            'order'   => [],
+            'search'  => ['value' => '', 'regex' => false],
+        ], ['draw' => 5]));
+
+        $dataTableRequest = DataTableRequest::fromRequest($request);
+
+        $this->assertSame(5, $dataTableRequest->draw);
+    }
+
+    /**
+     * @param array<string, mixed> $overrides query (or, for POST, request body) parameters
+     *                                        replacing the baseline payload
+     */
+    private static function createRequest(array $overrides = [], string $method = 'GET'): Request
+    {
+        $parameters = array_replace([
             'draw'    => 1,
             'start'   => 0,
             'length'  => 10,
@@ -107,6 +149,10 @@ final class DataTableRequestTest extends TestCase
             ],
             'order'  => [],
             'search' => ['value' => '', 'regex' => false],
-        ], $overrides));
+        ], $overrides);
+
+        return 'POST' === $method
+            ? Request::create('/ajax', 'POST', $parameters)
+            : new Request(query: $parameters);
     }
 }

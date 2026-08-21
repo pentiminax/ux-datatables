@@ -59,9 +59,21 @@ $dataTable
 
 ## How Request Handling Works
 
-With the current bundle defaults, `ajax()` configures a `GET` request. DataTables sends
-server-side parameters such as `draw`, `start`, `length`, `search`, and `order` to that URL,
-and `DataTableRequest::fromRequest()` reads them from the query string.
+`ajax()` defaults to a `GET` request. DataTables sends server-side parameters such as `draw`,
+`start`, `length`, `search`, and `order` to that URL, and `DataTableRequest::fromRequest()` reads
+them from the query string.
+
+Pass `type: 'POST'` to send the same parameters as the request body instead —
+`DataTableRequest::fromRequest()` reads from the request body on a `POST` request, so no other
+configuration is needed:
+
+```php
+$dataTable->ajax('/api/products', type: 'POST');
+```
+
+Symfony's routing must allow `POST` on that route (add it to `methods:` if the route currently
+only allows `GET`) — the bundle only handles which request bag it reads from, not which methods
+the route accepts.
 
 With automatic Ajax wiring, the page controller only renders the table. Manual request handling is
 still useful when your table posts back to the same route or when you configured a custom Ajax URL.
