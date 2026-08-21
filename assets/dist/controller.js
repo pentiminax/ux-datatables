@@ -27,6 +27,7 @@ import { submitEditForm } from './functions/submitEditForm.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
 import { applyUrlStateToPayload, isUrlStateEnabled, readUrlState, writeUrlState, } from './functions/urlState.js';
 import { resolveModalAdapter } from './modal/resolveModalAdapter.js';
+import { isStyleFramework } from './types/styleFramework.js';
 const EXTENSION_MAP = {
     select: 'select',
     responsive: 'responsive',
@@ -61,7 +62,9 @@ class default_1 extends Controller {
         this.dispatchEvent('pre-connect', {
             config: payload,
         });
-        const framework = detectStyleFramework();
+        const framework = isStyleFramework(payload.styleFramework)
+            ? payload.styleFramework
+            : detectStyleFramework();
         this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
         registerFilterFeature(DataTable);
