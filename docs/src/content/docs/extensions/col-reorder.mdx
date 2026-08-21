@@ -27,8 +27,9 @@ $dataTable->addExtension(
 
 `enable: false` loads ColReorder but leaves it initially disabled — pair with the DataTables API
 (`dt.colReorder.enable()` / `.disable()`, e.g. from a `Button::custom()` toggle) to lock and unlock
-reordering at runtime. `columns` is a DataTables column-selector string restricting which columns
-can be dragged; the default `''` allows every column.
+reordering at runtime. `columns` restricts which columns can be dragged, either as a DataTables
+column-selector string (`':not(:first-child)'`) or a plain list of column indexes (`[1, 2, 3]`);
+the default `''` allows every column.
 
 ```php
 $dataTable->addExtension(

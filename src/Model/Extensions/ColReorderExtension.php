@@ -7,14 +7,17 @@ namespace Pentiminax\UX\DataTables\Model\Extensions;
 class ColReorderExtension extends AbstractExtension
 {
     /**
-     * @param list<int>|null $headerRows restricts reordering to these header row indexes, or null
-     *                                   for every row
-     * @param list<int>|null $order      initial column order (original column indexes in their new
-     *                                   positions), or null to keep document order
+     * @param string|list<int> $columns    column selector restricting which columns end users can
+     *                                     reorder — a DataTables column-selector string (e.g.
+     *                                     ':not(:first-child)') or a list of column indexes
+     * @param list<int>|null   $headerRows restricts reordering to these header row indexes, or null
+     *                                     for every row
+     * @param list<int>|null   $order      initial column order (original column indexes in their
+     *                                     new positions), or null to keep document order
      */
     public function __construct(
         private readonly bool $enable = true,
-        private readonly string $columns = '',
+        private readonly string|array $columns = '',
         private readonly ?array $headerRows = null,
         private readonly ?array $order = null,
     ) {

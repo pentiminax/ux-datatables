@@ -88,8 +88,9 @@ new ColReorderExtension(enable: true, columns: '', headerRows: null, order: null
 ```
 
 `enable: false` loads ColReorder locked; toggle at runtime with the JS API
-(`dt.colReorder.enable()`/`.disable()`, e.g. via `Button::custom()`). `columns` is a DataTables
-column-selector string restricting which columns can be dragged. `headerRows` restricts reordering
+(`dt.colReorder.enable()`/`.disable()`, e.g. via `Button::custom()`). `columns` restricts which
+columns can be dragged: a DataTables column-selector string or a plain `list<int>` of column
+indexes. `headerRows` restricts reordering
 to specific header row indexes (multi-row headers); `order` sets the initial column order (original
 indexes in their new positions). Both default to `null` (every row / document order) and are
 omitted from the payload unless set.
