@@ -6,8 +6,10 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchAwareColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\Query\ColumnSearchResolver;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
@@ -15,6 +17,12 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  *
  * For numeric columns, only checks NULL / NOT NULL.
  * For text columns, also includes empty-string checks.
+ *
+ * Respects {@see SearchAwareColumnInterface::getSearchField()} for field resolution and
+ * applies any column-declared search joins before building the predicate.
+ * The {@see \Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface}
+ * custom predicate is intentionally not invoked: nullness checks are inherently
+ * field-level operations that a generic open-ended closure cannot safely compose.
  */
 final class NullnessSearchStrategy implements SearchStrategyInterface
 {
@@ -27,7 +35,14 @@ final class NullnessSearchStrategy implements SearchStrategyInterface
 
     public function apply(QueryBuilder $qb, ColumnInterface $column, ColumnControlSearch $search, int $paramIndex, string $alias): void
     {
-        $field      = RelationFieldResolver::resolve($qb, $alias, $column->getField());
+        ColumnSearchResolver::applySearchJoins($qb, $column);
+
+        $effectiveField = ColumnSearchResolver::resolveField($column);
+        if (null === $effectiveField) {
+            return;
+        }
+
+        $field      = RelationFieldResolver::resolve($qb, $alias, $effectiveField);
         $expr       = $qb->expr();
         $isNullOnly = $column->isNumber() || $column->isDate() || \in_array(strtolower($search->type), self::NULL_ONLY_TYPES, true);
 

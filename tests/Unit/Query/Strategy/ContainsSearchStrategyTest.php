@@ -33,7 +33,7 @@ final class ContainsSearchStrategyTest extends TestCase
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->with('join')->willReturn([]);
         $qb->expects($this->once())->method('setParameter')->with('column_control_param_3', '%foo%');
-        $qb->expects($this->once())->method('andWhere')->with('e.name LIKE :column_control_param_3');
+        $qb->expects($this->once())->method('andWhere')->with('UX_DATATABLES_SEARCH(e.name, :column_control_param_3) = 1');
 
         $column = TextColumn::new('name')->setField('name');
         $search = new ColumnControlSearch('foo', ColumnControlLogic::Contains, 'text');
@@ -115,6 +115,69 @@ final class ContainsSearchStrategyTest extends TestCase
 
         $column = TextColumn::new('name')->setField('name');
         $search = new ColumnControlSearch('   ', ColumnControlLogic::Contains, 'text');
+
+        (new ContainsSearchStrategy())->apply($qb, $column, $search, 0, 'e');
+    }
+
+    // -----------------------------------------------------------------------
+    // setSearchField override
+    // -----------------------------------------------------------------------
+
+    #[Test]
+    public function it_uses_search_field_override_for_field_resolution(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('leftJoin')
+            ->with('e.donorProvider', 'donorProvider')
+            ->willReturn($qb);
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('UX_DATATABLES_SEARCH(donorProvider.name, :column_control_param_0) = 1');
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_control_param_0', '%acme%');
+
+        // setSearchField() used; setField() left at column name default.
+        $column = TextColumn::new('donorProviderName')->setSearchField('donorProvider.name');
+        $search = new ColumnControlSearch('acme', ColumnControlLogic::Contains, 'text');
+
+        (new ContainsSearchStrategy())->apply($qb, $column, $search, 0, 'e');
+    }
+
+    // -----------------------------------------------------------------------
+    // setSearchPredicate / SearchableColumnInterface via SearchPredicateFactory
+    // -----------------------------------------------------------------------
+
+    #[Test]
+    public function it_delegates_to_custom_predicate_when_set(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_control_param_0', '%acme%');
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('dp.name LIKE :column_control_param_0');
+
+        $column = TextColumn::new('donorProviderName')
+            ->setSearchField('dp.name')
+            ->setSearchPredicate(
+                function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
+                    $qb->setParameter($paramName, '%'.$value.'%');
+
+                    return "dp.name LIKE :{$paramName}";
+                }
+            );
+
+        $search = new ColumnControlSearch('acme', ColumnControlLogic::Contains, 'text');
 
         (new ContainsSearchStrategy())->apply($qb, $column, $search, 0, 'e');
     }

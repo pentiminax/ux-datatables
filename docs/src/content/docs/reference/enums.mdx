@@ -37,6 +37,19 @@ description: Public enum values used by UX DataTables
 `Icon` enumerates Lucide icon names used by `IconColumn` and action buttons. Prefer `Icon::CircleCheck`
 over raw strings when the icon ships with the bundle.
 
+## ColumnControlLogic methods
+
+| Method | Returns | Description |
+|---|---|---|
+| `operator(): string` | SQL operator string | Raw SQL operator for comparison-based logics (`=`, `>`, `LIKE`, …). Throws for non-comparison logics (`Empty`, `NotEmpty`, `In`). |
+| `paramFormat(): string` | `sprintf` format string | Wraps the search value with the appropriate `%` pattern (`%s%%`, `%%%s`, …). Throws for non-comparison logics. |
+| `supportsComparisonStrategy(): bool` | `bool` | Whether the logic can be handled by `ComparisonSearchStrategy` (all except `Empty`, `NotEmpty`, `In`, `Contains`). |
+| `usesTextSearch(): bool` | `bool` | Whether the logic uses `UX_DATATABLES_SEARCH` for a case-insensitive, platform-aware LIKE predicate. True for `Ends`, `Starts`, and `NotContains`. |
+
+`Contains` is dispatched through `ContainsSearchStrategy` → `SearchPredicateFactory` →
+`SearchConditionBuilder`, which also emits `UX_DATATABLES_SEARCH`. The `usesTextSearch()` method
+covers only the subset handled by `ComparisonSearchStrategy`.
+
 ## Cross Links
 
 - [/ux-datatables/guide/options/](/ux-datatables/guide/options/)

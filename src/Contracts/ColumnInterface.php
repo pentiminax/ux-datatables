@@ -6,6 +6,15 @@ namespace Pentiminax\UX\DataTables\Contracts;
 
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
+/**
+ * Core contract that every column must satisfy.
+ *
+ * STABILITY NOTICE — adding required methods to this interface is a breaking change
+ * for any downstream class that implements it directly. Before adding a method here,
+ * consider whether the capability can instead be expressed as a separate opt-in
+ * interface (as {@see SearchAwareColumnInterface} and {@see SearchableColumnInterface}
+ * do). Reserve additions to this interface for truly universal column behaviour.
+ */
 interface ColumnInterface extends \JsonSerializable
 {
     public function getName(): string;

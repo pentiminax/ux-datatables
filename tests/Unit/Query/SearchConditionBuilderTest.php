@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 final class SearchConditionBuilderTest extends TestCase
 {
     #[Test]
-    public function text_returns_like_condition_and_sets_wrapped_parameter(): void
+    public function text_returns_ux_search_condition_and_sets_lower_cased_wrapped_parameter(): void
     {
         $qb = $this->createMock(QueryBuilder::class);
 
@@ -27,7 +27,19 @@ final class SearchConditionBuilderTest extends TestCase
 
         $result = SearchConditionBuilder::text($qb, 'e', 'name', 'hello', 'param_0');
 
-        $this->assertSame('e.name LIKE :param_0', $result);
+        $this->assertSame('UX_DATATABLES_SEARCH(e.name, :param_0) = 1', $result);
+    }
+
+    #[Test]
+    public function text_lower_cases_the_value_before_binding(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('param_0', '%john doe%');
+
+        SearchConditionBuilder::text($qb, 'e', 'name', 'John Doe', 'param_0');
     }
 
     #[Test]
@@ -61,7 +73,7 @@ final class SearchConditionBuilderTest extends TestCase
 
         $result = SearchConditionBuilder::text($qb, 'e', 'author.firstName', 'john', 'param_0');
 
-        $this->assertSame('author.firstName LIKE :param_0', $result);
+        $this->assertSame('UX_DATATABLES_SEARCH(author.firstName, :param_0) = 1', $result);
     }
 
     #[Test]

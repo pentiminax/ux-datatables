@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Strategy;
 
 use Doctrine\ORM\Query\Expr;
+use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
@@ -144,5 +145,51 @@ final class NullnessSearchStrategyTest extends TestCase
     {
         yield 'empty' => [false, 'empty'];
         yield 'not empty' => [true, 'notEmpty'];
+    }
+
+    // -----------------------------------------------------------------------
+    // setSearchField override
+    // -----------------------------------------------------------------------
+
+    #[Test]
+    public function it_uses_search_field_override_for_nullness_check(): void
+    {
+        $strategy = new NullnessSearchStrategy(false);
+
+        $expr = $this->createMock(Expr::class);
+        $expr->method('isNull')
+            ->with('donorProvider.amount')
+            ->willReturn('donorProvider.amount IS NULL');
+
+        // Track joins added dynamically so RelationFieldResolver sees them.
+        $addedJoin = $this->createMock(Join::class);
+        $addedJoin->method('getAlias')->willReturn('donorProvider');
+        $addedJoin->method('getJoin')->willReturn('e.donorProvider');
+
+        $joinParts = [];
+        $qb        = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturnCallback(function () use (&$joinParts) {
+            return $joinParts;
+        });
+        $qb->method('expr')->willReturn($expr);
+
+        $qb->expects($this->once())
+            ->method('leftJoin')
+            ->with('e.donorProvider', 'donorProvider')
+            ->willReturnCallback(function () use ($qb, $addedJoin, &$joinParts) {
+                $joinParts['e'][] = $addedJoin;
+
+                return $qb;
+            });
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('donorProvider.amount IS NULL');
+
+        // NumberColumn triggers the null-only IS NULL path (no orX wrapping).
+        $column = NumberColumn::new('donorProviderAmount')->setSearchField('donorProvider.amount');
+        $search = new ColumnControlSearch('', ColumnControlLogic::Empty, 'text');
+
+        $strategy->apply($qb, $column, $search, 0, 'e');
     }
 }

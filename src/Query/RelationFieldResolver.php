@@ -54,17 +54,28 @@ final class RelationFieldResolver
             return \sprintf('%s.%s', $rootAlias, $fieldPath);
         }
 
-        $segments      = explode('.', $fieldPath);
-        $leafField     = array_pop($segments);
-        $currentAlias  = $rootAlias;
-        $existingJoins = self::getExistingJoinAliases($qb);
+        $segments        = explode('.', $fieldPath);
+        $leafField       = array_pop($segments);
+        $currentAlias    = $rootAlias;
+        $existingByAlias = self::getExistingJoinAliases($qb);
+        $existingByJoin  = self::getExistingJoinsByExpression($qb);
 
         foreach ($segments as $segment) {
+            $joinExpression = \sprintf('%s.%s', $currentAlias, $segment);
+
+            // Prefer an existing join that targets the same expression, even when
+            // it was added under a user-chosen alias (e.g. 'dp' for 'e.donorProvider').
+            if (isset($existingByJoin[$joinExpression])) {
+                $currentAlias = $existingByJoin[$joinExpression];
+                continue;
+            }
+
             $joinAlias = $currentAlias === $rootAlias ? $segment : \sprintf('%s_%s', $currentAlias, $segment);
 
-            if (!isset($existingJoins[$joinAlias])) {
-                $qb->leftJoin(\sprintf('%s.%s', $currentAlias, $segment), $joinAlias);
-                $existingJoins[$joinAlias] = true;
+            if (!isset($existingByAlias[$joinAlias])) {
+                $qb->leftJoin($joinExpression, $joinAlias);
+                $existingByAlias[$joinAlias]     = true;
+                $existingByJoin[$joinExpression] = $joinAlias;
             }
 
             $currentAlias = $joinAlias;
@@ -164,6 +175,13 @@ final class RelationFieldResolver
     }
 
     /**
+     * Return a map of existing join aliases and their join expressions.
+     *
+     * Keys are join aliases (e.g. 'dp'). Values are always true, but the map is
+     * supplemented by {@see self::getExistingJoinsByExpression()} when resolving
+     * relation paths, so that a join already present under a different alias is
+     * reused rather than duplicated.
+     *
      * @return array<string, true>
      */
     private static function getExistingJoinAliases(QueryBuilder $qb): array
@@ -177,5 +195,27 @@ final class RelationFieldResolver
         }
 
         return $aliases;
+    }
+
+    /**
+     * Return a map from join expression (e.g. 'e.donorProvider') to its alias (e.g. 'dp').
+     *
+     * Used by {@see self::resolve()} to reuse an existing join that targets the
+     * same association even when it was added under a user-chosen alias in
+     * customizeQueryBuilder() instead of the auto-generated one.
+     *
+     * @return array<string, string>
+     */
+    private static function getExistingJoinsByExpression(QueryBuilder $qb): array
+    {
+        $byExpression = [];
+
+        foreach ($qb->getDQLPart('join') as $joinParts) {
+            foreach ($joinParts as $join) {
+                $byExpression[$join->getJoin()] = $join->getAlias();
+            }
+        }
+
+        return $byExpression;
     }
 }

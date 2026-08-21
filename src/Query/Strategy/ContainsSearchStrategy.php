@@ -6,8 +6,10 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchAwareColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\Query\ColumnSearchResolver;
 use Pentiminax\UX\DataTables\Query\SearchPredicateFactory;
 
 /**
@@ -16,8 +18,15 @@ use Pentiminax\UX\DataTables\Query\SearchPredicateFactory;
  * Performs a case-sensitive substring search using SQL LIKE %value%.
  * For numeric columns, performs exact match if the value is numeric.
  *
- * Predicate construction is delegated to {@see SearchPredicateFactory} so the
- * "numeric → exact / date → skip / text → LIKE" branching lives in a single place.
+ * Resolution order:
+ *
+ *  1. Any search joins declared on the column are applied first.
+ *  2. {@see SearchPredicateFactory::build()} is called with the effective field
+ *     path (from {@see SearchAwareColumnInterface::getSearchField()} or
+ *     {@see ColumnInterface::getField()}). That factory also delegates to the
+ *     column's {@see \Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface}
+ *     custom predicate when one is set.
+ *
  * In addition to the column's own type, a search type hint of number/numeric/num
  * forces numeric handling.
  */
@@ -31,7 +40,10 @@ final class ContainsSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $field = $column->getField();
+        // Apply any column-declared search joins before resolving the predicate.
+        ColumnSearchResolver::applySearchJoins($qb, $column);
+
+        $field = ColumnSearchResolver::resolveField($column);
         if (null === $field) {
             return;
         }

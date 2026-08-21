@@ -8,6 +8,9 @@ use Doctrine\ORM\QueryBuilder;
 
 /**
  * Free-text filter applying a case-insensitive LIKE %value% condition.
+ *
+ * Delegates to the UX_DATATABLES_SEARCH DQL function which handles
+ * platform-specific casting (CAST AS TEXT on PostgreSQL) and LOWER internally.
  */
 final class TextFilter extends AbstractFilter
 {
@@ -29,7 +32,7 @@ final class TextFilter extends AbstractFilter
 
         $param = $this->parameterName();
 
-        $qb->andWhere(\sprintf('LOWER(%s) LIKE :%s', $expr, $param));
+        $qb->andWhere(\sprintf('UX_DATATABLES_SEARCH(%s, :%s) = 1', $expr, $param));
         $qb->setParameter($param, '%'.mb_strtolower(trim($value)).'%');
     }
 }

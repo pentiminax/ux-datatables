@@ -173,6 +173,55 @@ protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $req
 
 The forwarded values are a snapshot taken when the page renders and are sent unchanged on every paging/search/sort reload. Only parameters actually present in the request are forwarded. This works with automatic Ajax and with manual `ajax()` / `ajaxRequestData()`; it is not applied in API Platform mode.
 
+## Searching on a Relation
+
+When a column's display value comes from a related entity (e.g. `getDonorProvider()->getName()`),
+the default search resolves `getField()` against the root entity and throws a
+`[Semantical Error] … has no field or association named donorProviderName`.
+
+Use `setSearchField()` to provide the dot-notation path for search resolution independently of
+row mapping:
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+yield TextColumn::new('donorProviderName', 'Donor Provider')
+    ->setSearchField('donorProvider.name'); // LEFT JOIN added automatically; mapRow() unchanged
+```
+
+`setField()` also works here and is available in older bundle versions, but it additionally
+affects row mapping, form mapping, and the serialized client payload — prefer `setSearchField()`
+when `mapRow()` already handles the value.
+
+See [Searching a relation or with a custom predicate](/ux-datatables/columns/overview/#searching-a-relation-or-with-a-custom-predicate)
+for `addSearchJoin()` (custom alias control) and `setSearchPredicate()` (multi-field / custom SQL).
+
+## Search Behavior
+
+### Case sensitivity
+
+All server-side text searches are **case-insensitive** — global search, per-column
+DataTables search, column control Contains/Starts/Ends/NotContains, and
+`TextFilter`. The bundle applies `LOWER()` to both the field and the search term
+so results are consistent regardless of how values were stored.
+
+### PostgreSQL and typed fields (uuid, guid)
+
+The bundle automatically registers a Doctrine DQL function,
+`UX_DATATABLES_SEARCH`, that wraps the field in `CAST(… AS TEXT)` on PostgreSQL
+before applying `LOWER(… ) LIKE ?`. This resolves the common runtime error:
+
+```
+operator does not exist: uuid ~~ text
+```
+
+…that occurs when a column is mapped with Doctrine type `uuid` or `guid` and a
+LIKE search is applied without an explicit cast. No configuration is required;
+the function is registered automatically when DoctrineBundle is present.
+
+The cast is a no-op for ordinary `string` and `text` fields in PostgreSQL, so
+there is no performance difference for those columns.
+
 ## Sorting Computed Columns
 
 Server-side ordering resolves a column to `<alias>.<field>` and runs `ORDER BY` on it. A column

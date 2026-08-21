@@ -22,7 +22,7 @@ use PHPUnit\Framework\TestCase;
 final class SearchPredicateFactoryTest extends TestCase
 {
     #[Test]
-    public function it_returns_like_condition_for_text_column(): void
+    public function it_returns_ux_search_condition_for_text_column(): void
     {
         $qb = $this->createMock(QueryBuilder::class);
         $qb->method('getDQLPart')->with('join')->willReturn([]);
@@ -31,7 +31,7 @@ final class SearchPredicateFactoryTest extends TestCase
         $column = TextColumn::new('name', 'Name')->setField('name');
         $result = SearchPredicateFactory::build($qb, $column, 'e', 'name', 'hello', 'p_0');
 
-        $this->assertSame('e.name LIKE :p_0', $result);
+        $this->assertSame('UX_DATATABLES_SEARCH(e.name, :p_0) = 1', $result);
     }
 
     #[Test]

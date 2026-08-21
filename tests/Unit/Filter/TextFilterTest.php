@@ -31,13 +31,13 @@ final class TextFilterTest extends TestCase
     }
 
     #[Test]
-    public function it_applies_a_case_insensitive_like(): void
+    public function it_applies_a_case_insensitive_like_via_ux_datatables_search(): void
     {
         $qb = $this->createScalarFieldQueryBuilder();
 
         TextFilter::new('name')->apply($qb, 'John', 'e');
 
-        $this->assertSame(['LOWER(e.name) LIKE :filter_name'], $this->capturedWhere);
+        $this->assertSame(['UX_DATATABLES_SEARCH(e.name, :filter_name) = 1'], $this->capturedWhere);
         $this->assertSame(['filter_name' => '%john%'], $this->capturedParams);
     }
 

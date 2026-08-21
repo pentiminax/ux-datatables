@@ -11,6 +11,7 @@ import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js'
 import { ApiPlatformAdapter, type ColumnConfig } from './functions/apiPlatformAdapter.js'
 import { normalizeDisabledColumnControls } from './functions/columnControl.js'
+import { applyTfootColumnSearch, hasTfootSearch } from './functions/columnSearch.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
 import { ExtensionRegistry } from './functions/extensionRegistry.js'
@@ -96,7 +97,9 @@ export default class extends Controller {
         await this.loadExtensions(payload, framework, DataTable)
 
         if (this.isApiPlatformEnabled(payload)) {
-            const columns = Array.isArray(payload.columns) ? (payload.columns as ColumnConfig[]) : []
+            const columns = Array.isArray(payload.columns)
+                ? (payload.columns as ColumnConfig[])
+                : []
             new ApiPlatformAdapter(columns).configure(payload)
         }
 
@@ -118,6 +121,10 @@ export default class extends Controller {
         }
 
         await applyLocalLanguage(payload)
+
+        if (hasTfootSearch(payload)) {
+            applyTfootColumnSearch(payload, framework, DataTable)
+        }
 
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
 
@@ -207,8 +214,8 @@ export default class extends Controller {
             createBooleanColumnRenderer(
                 this.getBooleanToggleUrl(),
                 this.areMutationsEnabled(payload) &&
-                typeof payload.dataTable === 'string' &&
-                payload.dataTable.length > 0,
+                    typeof payload.dataTable === 'string' &&
+                    payload.dataTable.length > 0,
                 style
             ),
             createChoiceColumnRenderer(style),

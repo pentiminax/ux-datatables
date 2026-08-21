@@ -6,9 +6,11 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchAwareColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
+use Pentiminax\UX\DataTables\Query\ColumnSearchResolver;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
@@ -16,6 +18,12 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  *
  * Replaces individual strategy classes (Equal, NotEqual, StartsWith, etc.)
  * that differ only in their SQL operator and parameter wrapping format.
+ *
+ * Respects {@see SearchAwareColumnInterface::getSearchField()} for field resolution and
+ * applies any column-declared search joins before building the predicate.
+ * The {@see \Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface}
+ * custom predicate is intentionally not invoked: this strategy encodes a
+ * specific comparison shape that a generic open-ended closure cannot safely compose.
  */
 final class ComparisonSearchStrategy implements SearchStrategyInterface
 {
@@ -33,8 +41,23 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $field     = RelationFieldResolver::resolve($qb, $alias, $column->getField());
+        ColumnSearchResolver::applySearchJoins($qb, $column);
+
+        $effectiveField = ColumnSearchResolver::resolveField($column);
+        if (null === $effectiveField) {
+            return;
+        }
+
+        $field     = RelationFieldResolver::resolve($qb, $alias, $effectiveField);
         $paramName = \sprintf('column_control_param_%d', $paramIndex);
+
+        if ($this->logic->usesTextSearch()) {
+            $comparison = ColumnControlLogic::NotContains === $this->logic ? '0' : '1';
+            $qb->andWhere(\sprintf('UX_DATATABLES_SEARCH(%s, :%s) = %s', $field, $paramName, $comparison));
+            $qb->setParameter($paramName, \sprintf($this->logic->paramFormat(), mb_strtolower(trim($search->value))));
+
+            return;
+        }
 
         $qb->andWhere(\sprintf('%s %s :%s', $field, $this->logic->operator(), $paramName));
         $qb->setParameter($paramName, \sprintf($this->logic->paramFormat(), $search->value));

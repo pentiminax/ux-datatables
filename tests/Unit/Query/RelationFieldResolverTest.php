@@ -212,4 +212,55 @@ final class RelationFieldResolverTest extends TestCase
 
         $this->assertSame('author_address.city', $result);
     }
+
+    // -----------------------------------------------------------------------
+    // Reuse join by expression (user-chosen alias in customizeQueryBuilder)
+    // -----------------------------------------------------------------------
+
+    #[Test]
+    public function it_reuses_existing_join_under_custom_alias_matching_join_expression(): void
+    {
+        // Simulate: customizeQueryBuilder() already joined e.donorProvider AS dp.
+        $existingJoin = $this->createMock(Join::class);
+        $existingJoin->method('getAlias')->willReturn('dp');
+        $existingJoin->method('getJoin')->willReturn('e.donorProvider');
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([
+            'e' => [$existingJoin],
+        ]);
+
+        // resolve() MUST NOT add a duplicate join for the same expression.
+        $qb->expects($this->never())->method('leftJoin');
+
+        // The returned expression must use the existing 'dp' alias, not the
+        // auto-generated 'donorProvider' alias.
+        $result = RelationFieldResolver::resolve($qb, 'e', 'donorProvider.name');
+
+        $this->assertSame('dp.name', $result);
+    }
+
+    #[Test]
+    public function it_reuses_existing_join_for_multi_segment_path_when_first_segment_has_custom_alias(): void
+    {
+        // Simulate: customizeQueryBuilder() joined e.author AS a.
+        $authorJoin = $this->createMock(Join::class);
+        $authorJoin->method('getAlias')->willReturn('a');
+        $authorJoin->method('getJoin')->willReturn('e.author');
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([
+            'e' => [$authorJoin],
+        ]);
+
+        // Only a.address needs a new join (a_address), not e.author again.
+        $qb->expects($this->once())
+            ->method('leftJoin')
+            ->with('a.address', 'a_address')
+            ->willReturn($qb);
+
+        $result = RelationFieldResolver::resolve($qb, 'e', 'author.address.city');
+
+        $this->assertSame('a_address.city', $result);
+    }
 }

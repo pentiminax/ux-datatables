@@ -72,7 +72,10 @@ A `query()` closure fully replaces the default behaviour of the filter type.
 
 ### TextFilter
 
-Case-insensitive `LIKE %value%` on the target field.
+Case-insensitive substring match on the target field. Delegates to the
+`UX_DATATABLES_SEARCH` DQL function (see [Search behavior](#search-behavior)),
+so the condition is safe on every supported database including PostgreSQL with
+UUID-typed fields.
 
 ```php
 TextFilter::new('name')->label('Name');
@@ -182,3 +185,55 @@ $dataTable->layout([
     'topEnd'   => Feature::SEARCH,
 ]);
 ```
+
+## Search behavior
+
+### Case sensitivity
+
+All text-based search in UX DataTables is **case-insensitive**. This covers:
+
+- `TextFilter` — has always been case-insensitive.
+- Global search and per-column DataTables search — apply `LOWER()` to both the
+  field and the search term.
+- Column control `Contains`, `Starts`, `Ends`, and `NotContains` logics — also
+  case-insensitive.
+
+### PostgreSQL and UUID field types
+
+The bundle registers a Doctrine DQL function named `UX_DATATABLES_SEARCH` that
+generates a platform-aware, case-insensitive LIKE predicate. No configuration is
+required; the function is wired automatically when DoctrineBundle is present.
+
+| Platform | Generated SQL |
+|---|---|
+| PostgreSQL | `CASE WHEN LOWER(CAST(field AS TEXT)) LIKE ? THEN 1 ELSE 0 END` |
+| MySQL / MariaDB / SQLite | `CASE WHEN LOWER(field) LIKE ? THEN 1 ELSE 0 END` |
+
+The `CAST(… AS TEXT)` on PostgreSQL resolves a runtime type error that would
+otherwise occur when a Doctrine field has type `uuid` or `guid`: PostgreSQL
+stores those as a native `uuid` column, and applying `LIKE` directly on it
+without a cast raises `operator does not exist: uuid ~~ text`. Casting any
+string-compatible column (including plain `varchar` / `text`) to `TEXT` is a
+no-op in PostgreSQL, so the cast adds no overhead for ordinary string fields.
+
+Because the function always returns an integer (1 = match, 0 = no match), the
+comparison is `= 1` / `= 0`, which is unambiguous on every platform and is not
+affected by Doctrine DBAL's `useBooleanTrueFalseStrings` configuration.
+
+### Custom search on a filter field
+
+If the default LIKE behavior does not fit your use case (e.g. you need a
+full-text index query, or want a case-sensitive match), use the `query()` escape
+hatch:
+
+```php
+use Doctrine\ORM\QueryBuilder;
+
+TextFilter::new('name')->query(
+    fn (QueryBuilder $qb, mixed $value, string $alias) =>
+        $qb->andWhere("$alias.name = :name")->setParameter('name', $value)
+);
+```
+
+The `query()` closure fully replaces the default condition — no LIKE or CAST is
+applied. The same pattern works on all other filter types.
