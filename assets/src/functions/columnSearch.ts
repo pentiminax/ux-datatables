@@ -26,11 +26,11 @@ export function hasTfootSearch(payload: Record<string, any>): boolean {
  * per column: a <input type="search"> for searchable columns, an empty <th>
  * for non-searchable ones (action columns, checkbox columns, etc.).
  *
- * Each input fires an `input` event handler that calls
- * api.column(i, { search: 'applied' }).search(value).draw(false), which sends
- * columns[i][search][value] in the next Ajax request. The backend's
- * ColumnSearchFilter picks this up and applies the column's configured search
- * field, joins, and predicate.
+ * Each input fires a debounced `input` event handler that calls
+ * api.column(i).search(value).draw(), which sends columns[i][search][value]
+ * in the next Ajax request. The backend's ColumnSearchFilter picks this up
+ * and applies the column's configured search field, joins, and predicate.
+ * Paging is reset on each new search so the user always sees page 1 of results.
  *
  * Any existing payload.initComplete callback (set via customOptions or the
  * datatables:pre-connect event) is called first so user-defined callbacks are
@@ -40,6 +40,16 @@ export function hasTfootSearch(payload: Record<string, any>): boolean {
  * @param framework The detected style framework for input CSS classes
  * @param DataTable The DataTables constructor (used to wrap settings into an Api instance)
  */
+const DEBOUNCE_MS = 300
+
+function debounce(fn: () => void, delay: number): () => void {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    return () => {
+        clearTimeout(timer)
+        timer = setTimeout(fn, delay)
+    }
+}
+
 export function applyTfootColumnSearch(
     payload: Record<string, any>,
     framework: StyleFramework,
@@ -74,9 +84,12 @@ export function applyTfootColumnSearch(
                 input.placeholder = typeof column.title === 'string' ? column.title : ''
                 input.setAttribute('aria-label', input.placeholder)
 
-                input.addEventListener('input', () => {
-                    api.column(index, { search: 'applied' }).search(input.value).draw(false)
-                })
+                input.addEventListener(
+                    'input',
+                    debounce(() => {
+                        api.column(index).search(input.value).draw()
+                    }, DEBOUNCE_MS),
+                )
 
                 th.appendChild(input)
             }

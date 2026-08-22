@@ -2,6 +2,14 @@ import { inputClass } from './filters.js';
 export function hasTfootSearch(payload) {
     return payload.tfootSearch === true;
 }
+const DEBOUNCE_MS = 300;
+function debounce(fn, delay) {
+    let timer;
+    return () => {
+        clearTimeout(timer);
+        timer = setTimeout(fn, delay);
+    };
+}
 export function applyTfootColumnSearch(payload, framework, DataTable) {
     const columns = Array.isArray(payload.columns) ? payload.columns : [];
     const prior = payload.initComplete;
@@ -25,9 +33,9 @@ export function applyTfootColumnSearch(payload, framework, DataTable) {
                 input.className = inputClass(framework);
                 input.placeholder = typeof column.title === 'string' ? column.title : '';
                 input.setAttribute('aria-label', input.placeholder);
-                input.addEventListener('input', () => {
-                    api.column(index, { search: 'applied' }).search(input.value).draw(false);
-                });
+                input.addEventListener('input', debounce(() => {
+                    api.column(index).search(input.value).draw();
+                }, DEBOUNCE_MS));
                 th.appendChild(input);
             }
             row.appendChild(th);
