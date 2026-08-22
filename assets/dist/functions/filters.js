@@ -2,7 +2,7 @@ const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
 function isBootstrap(framework) {
     return BOOTSTRAP_FRAMEWORKS.includes(framework);
 }
-function inputClass(framework) {
+export function inputClass(framework) {
     return isBootstrap(framework) ? 'form-control' : 'dt-filter-input';
 }
 function selectClass(framework) {
