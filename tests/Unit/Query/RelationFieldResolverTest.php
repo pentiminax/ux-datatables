@@ -95,6 +95,7 @@ final class RelationFieldResolverTest extends TestCase
     {
         $metadata = $this->createMock(ClassMetadata::class);
         $metadata->method('hasAssociation')->with('name')->willReturn(false);
+        $metadata->method('hasField')->with('name')->willReturn(true);
 
         $em = $this->createMock(EntityManagerInterface::class);
         $em->method('getClassMetadata')->with('App\\Entity\\Project')->willReturn($metadata);
@@ -104,6 +105,26 @@ final class RelationFieldResolverTest extends TestCase
         $qb->method('getEntityManager')->willReturn($em);
 
         $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'name'));
+    }
+
+    #[Test]
+    public function it_throws_for_virtual_column_not_mapped_to_a_doctrine_field(): void
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->with('donorProviderName')->willReturn(false);
+        $metadata->method('hasField')->with('donorProviderName')->willReturn(false);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->with('App\\Entity\\Project')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/donorProviderName.*does not exist as a mapped field/');
+
+        RelationFieldResolver::supportsSearchFiltering($qb, 'donorProviderName');
     }
 
     #[Test]

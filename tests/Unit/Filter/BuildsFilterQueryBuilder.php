@@ -24,6 +24,7 @@ trait BuildsFilterQueryBuilder
     {
         $metadata = $this->createMock(ClassMetadata::class);
         $metadata->method('hasAssociation')->willReturn(false);
+        $metadata->method('hasField')->willReturn(true);
 
         $em = $this->createMock(EntityManagerInterface::class);
         $em->method('getClassMetadata')->willReturn($metadata);
