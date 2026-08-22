@@ -9,7 +9,15 @@ use Pentiminax\UX\DataTables\Contracts\PermissionAwareColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 /**
- * @internal
+ * Base implementation shared by every bundled column type (TextColumn, DateColumn, ...).
+ *
+ * Not meant to be extended directly to build a custom column type — extend a concrete column
+ * class instead, or implement {@see ColumnInterface} directly for something that shares nothing
+ * with the bundled types. Every public method here (setField(), setColumnControl(),
+ * setClassName(), setCustomOption(), setVisible(), disableGlobalSearch(), ...) is part of the
+ * bundle's documented column-configuration API and is inherited unchanged by every concrete
+ * column — see the "Columns" documentation for usage. Only createWithType() below is genuinely
+ * internal, restricted to how the bundled column types build themselves.
  */
 abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnInterface
 {

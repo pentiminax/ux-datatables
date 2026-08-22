@@ -147,4 +147,23 @@ final class AbstractColumnTest extends TestCase
         $this->assertSame('ROLE_HR', $column->getPermission());
         $this->assertArrayNotHasKey('permission', $column->jsonSerialize());
     }
+
+    /**
+     * setField(), setColumnControl(), setClassName(), setCustomOption(), setVisible(), and
+     * disableGlobalSearch() are documented public API (see columns/overview.mdx) inherited
+     * unchanged by every concrete column type. A class-level @internal here previously made
+     * static analysis tools such as Psalm flag every one of those calls from application code
+     * as touching an internal class, even though only createWithType() is actually meant to
+     * stay restricted to the bundle's own column types.
+     */
+    #[Test]
+    public function the_class_itself_is_not_marked_internal_but_create_with_type_still_is(): void
+    {
+        $class = new \ReflectionClass(AbstractColumn::class);
+
+        $this->assertStringNotContainsString('@internal', (string) $class->getDocComment());
+
+        $factory = $class->getMethod('createWithType');
+        $this->assertStringContainsString('@internal', (string) $factory->getDocComment());
+    }
 }
