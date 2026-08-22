@@ -10,6 +10,7 @@ import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
 import { ApiPlatformAdapter } from './functions/apiPlatformAdapter.js';
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
+import { applyTfootColumnSearch, hasTfootSearch } from './functions/columnSearch.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
 import { ExtensionRegistry } from './functions/extensionRegistry.js';
@@ -66,7 +67,9 @@ class default_1 extends Controller {
         }
         await this.loadExtensions(payload, framework, DataTable);
         if (this.isApiPlatformEnabled(payload)) {
-            const columns = Array.isArray(payload.columns) ? payload.columns : [];
+            const columns = Array.isArray(payload.columns)
+                ? payload.columns
+                : [];
             new ApiPlatformAdapter(columns).configure(payload);
         }
         this.configureColumns(payload);
@@ -83,6 +86,9 @@ class default_1 extends Controller {
             applyFilterLayout(payload, filterBar);
         }
         await applyLocalLanguage(payload);
+        if (hasTfootSearch(payload)) {
+            applyTfootColumnSearch(payload, framework, DataTable);
+        }
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
         if (urlStateCfg && this.table) {

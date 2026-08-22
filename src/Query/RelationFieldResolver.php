@@ -90,6 +90,16 @@ final class RelationFieldResolver
      * Bare association fields such as "client" are rejected because they do not
      * resolve to a scalar column. Explicit scalar paths such as "client.name"
      * remain supported through join resolution.
+     *
+     * @throws \InvalidArgumentException when the field name has no dot but is neither a
+     *                                   mapped Doctrine field nor an association on the root
+     *                                   entity. This typically means the column is a virtual
+     *                                   field assembled in mapRow() that was not configured
+     *                                   for server-side search. Use one of:
+     *                                   ->setSearchField('relation.fieldName')
+     *                                   ->addSearchJoin() + ->setSearchField()
+     *                                   ->setSearchPredicate()
+     *                                   ->setSearchable(false)
      */
     public static function supportsSearchFiltering(QueryBuilder $qb, ?string $fieldPath): bool
     {
@@ -101,7 +111,19 @@ final class RelationFieldResolver
             return true;
         }
 
-        return !self::isRootAssociationField($qb, $fieldPath);
+        // Bare association field (e.g. "donorProvider") — not directly searchable as a scalar.
+        if (self::isRootAssociationField($qb, $fieldPath)) {
+            return false;
+        }
+
+        // Field does not exist on the entity at all — configuration error.
+        // This commonly happens when a column name is a virtual key used only in mapRow()
+        // (e.g. "donorProviderName" assembled from $row->getDonorProvider()->getName()).
+        if (!self::isRootMappedField($qb, $fieldPath)) {
+            throw new \InvalidArgumentException(\sprintf('Column "%s" does not exist as a mapped field or association on entity "%s". Virtual columns assembled in mapRow() must be configured for search explicitly using one of:'."\n".'  ->setSearchField(\'relation.fieldName\')  — search via association dot-path (auto-joins)'."\n".'  ->addSearchJoin() + ->setSearchField()    — explicit LEFT JOIN with custom alias'."\n".'  ->setSearchPredicate()                    — fully custom DQL predicate closure'."\n".'  ->setSearchable(false)                    — exclude this column from search entirely', $fieldPath, !empty($qb->getRootEntities()) ? $qb->getRootEntities()[0] : 'unknown'));
+        }
+
+        return true;
     }
 
     /**
@@ -171,6 +193,28 @@ final class RelationFieldResolver
                 ->hasAssociation($fieldPath);
         } catch (\Throwable) {
             return false;
+        }
+    }
+
+    /**
+     * Returns true when $fieldPath is a Doctrine-mapped scalar field on the root entity.
+     *
+     * Returns true (passes through) when metadata cannot be determined, so that the
+     * caller never silently rejects a legitimately valid field due to a transient error.
+     */
+    private static function isRootMappedField(QueryBuilder $qb, string $fieldPath): bool
+    {
+        try {
+            $rootEntities = $qb->getRootEntities();
+            if (empty($rootEntities)) {
+                return true; // cannot validate — pass through safely
+            }
+
+            return $qb->getEntityManager()
+                ->getClassMetadata($rootEntities[0])
+                ->hasField($fieldPath);
+        } catch (\Throwable) {
+            return true; // metadata unavailable — pass through safely
         }
     }
 
