@@ -27,7 +27,10 @@ export function applyTfootColumnSearch(payload, framework, DataTable) {
         const row = document.createElement('tr');
         columns.forEach((column, index) => {
             const th = document.createElement('th');
-            if (column.searchable) {
+            if (!column.visible) {
+                th.style.display = 'none';
+            }
+            else if (column.searchable) {
                 const input = document.createElement('input');
                 input.type = 'search';
                 input.className = inputClass(framework);

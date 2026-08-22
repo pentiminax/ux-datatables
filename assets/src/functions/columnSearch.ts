@@ -7,6 +7,7 @@ import { inputClass } from './filters.js'
  */
 interface ColumnDefinition {
     searchable: boolean
+    visible: boolean
     title?: string
     [key: string]: unknown
 }
@@ -77,7 +78,10 @@ export function applyTfootColumnSearch(
         columns.forEach((column, index) => {
             const th = document.createElement('th')
 
-            if (column.searchable) {
+            if (!column.visible) {
+                // Mirror DataTables' hidden-column behaviour so tfoot cells stay aligned.
+                th.style.display = 'none'
+            } else if (column.searchable) {
                 const input = document.createElement('input')
                 input.type = 'search'
                 input.className = inputClass(framework)
