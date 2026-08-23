@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Enum\StyleFramework;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
@@ -317,5 +318,23 @@ final class DataTableTest extends TestCase
         $table = (new DataTable('users'))->mergeAjaxData(['q' => 'foo']);
 
         $this->assertNull($table->getOption('ajax'));
+    }
+
+    #[Test]
+    public function it_serializes_an_explicit_style_framework_as_its_frontend_key(): void
+    {
+        $table = (new DataTable('users'))->styleFramework(StyleFramework::Bootstrap5);
+
+        $this->assertSame('bs5', $table->getOption('styleFramework'));
+        $this->assertSame('bs5', $table->getOptions()['styleFramework']);
+    }
+
+    #[Test]
+    public function it_has_no_style_framework_option_when_not_set(): void
+    {
+        $table = new DataTable('users');
+
+        $this->assertNull($table->getOption('styleFramework'));
+        $this->assertArrayNotHasKey('styleFramework', $table->getOptions());
     }
 }

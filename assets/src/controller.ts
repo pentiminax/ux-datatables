@@ -38,7 +38,7 @@ import {
     writeUrlState,
 } from './functions/urlState.js'
 import { resolveModalAdapter } from './modal/resolveModalAdapter.js'
-import type { StyleFramework } from './types/styleFramework.js'
+import { isStyleFramework, type StyleFramework } from './types/styleFramework.js'
 
 /**
  * Maps DataTables payload property keys to their corresponding extension names
@@ -92,7 +92,9 @@ export default class extends Controller {
             config: payload,
         })
 
-        const framework = detectStyleFramework()
+        const framework = isStyleFramework(payload.styleFramework)
+            ? payload.styleFramework
+            : detectStyleFramework()
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)
