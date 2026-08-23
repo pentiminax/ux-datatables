@@ -333,6 +333,29 @@ $dataTable->language(Language::ES); // Spanish
 $dataTable->language(Language::EN); // British English
 ```
 
+## Styling
+
+### styleFramework
+
+Declare which CSS framework the table renders against, instead of relying on the frontend to
+detect it from the page's stylesheets:
+
+```php
+use Pentiminax\UX\DataTables\Enum\StyleFramework;
+
+$dataTable->styleFramework(StyleFramework::Bootstrap5);
+```
+
+Autodetection inspects `document.styleSheets` at connect time, looking for a recognized DataTables
+stylesheet href. Under a lazily-loaded Stimulus controller (`fetch: "lazy"`), the app's own
+stylesheet import can still be in flight when detection runs, which can misdetect the framework or
+fall back to the plain `dt` styling. Setting `styleFramework()` skips detection entirely for that
+table, so there's nothing to race. Tables that don't set it keep using autodetection as before —
+this option is purely additive.
+
+Available cases: `DataTables` (`dt`), `Bootstrap` (`bs`), `Bootstrap4` (`bs4`), `Bootstrap5`
+(`bs5`), `Foundation` (`zf`), `JQueryUI` (`jqui`), `SemanticUI` (`se`).
+
 ## Layout
 
 ### layout

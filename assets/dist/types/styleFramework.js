@@ -7,4 +7,7 @@ export const STYLE_FRAMEWORKS = [
     { key: 'se', cssPattern: 'dataTables.semanticui' },
     { key: 'dt', cssPattern: 'dataTables.dataTables' },
 ];
+export function isStyleFramework(value) {
+    return typeof value === 'string' && STYLE_FRAMEWORKS.some(({ key }) => key === value);
+}
 //# sourceMappingURL=styleFramework.js.map
