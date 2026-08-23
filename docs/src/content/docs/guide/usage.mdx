@@ -1,9 +1,8 @@
 ---
 title: Usage
 description: Learn how to build and render DataTables in your Symfony application
+order: 10
 ---
-
-# Usage
 
 This guide covers the main ways to create and render DataTables in your Symfony application.
 
@@ -127,9 +126,16 @@ Then attach your controller in Twig:
   headers={['Event', 'Description', 'Detail Properties']}
   rows={[
     ['datatables:pre-connect', 'Fired before table initialization', 'config: Configuration object'],
+    ['datatables:pre-init', 'Fired after extension plugins have loaded, just before the table is constructed', 'config: Configuration object, DataTable: the loaded DataTable class'],
     ['datatables:connect', 'Fired after table is created', 'table: DataTable instance'],
   ]}
 />
+
+`pre-connect` fires before extension plugins (like ColumnControl) have loaded, so `DataTable.ext`
+and extension-specific registries such as `DataTable.ColumnControl.content` aren't populated yet.
+Use `pre-init` instead when you need one of those to exist — for example, registering a custom
+ColumnControl content type. See
+[Custom Content Types](/ux-datatables/extensions/column-control/#custom-content-types).
 
 ## Working with Multiple Tables
 

@@ -17,11 +17,19 @@ final readonly class Columns
     public static function fromRequest(Request $request): self
     {
         $columns = [];
-        foreach ($request->query->all('columns') as $column) {
+        foreach (RequestInputBag::resolve($request)->all('columns') as $column) {
             $columns[$column['name']] = Column::fromArray($column);
         }
 
         return new self($columns);
+    }
+
+    /**
+     * @return array<string, Column> request columns keyed by column name
+     */
+    public function all(): array
+    {
+        return $this->columns;
     }
 
     public function getColumnByName(string $name): ?Column

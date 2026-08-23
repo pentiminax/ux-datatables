@@ -1,9 +1,8 @@
 ---
 title: Server-Side Processing
 description: Handle pagination, search, and ordering in your Symfony backend
+order: 70
 ---
-
-# Server-Side Processing
 
 Move filtering, ordering, and paging to the backend for large datasets.
 
@@ -60,9 +59,27 @@ $dataTable
 
 ## How Request Handling Works
 
-With the current bundle defaults, `ajax()` configures a `GET` request. DataTables sends
-server-side parameters such as `draw`, `start`, `length`, `search`, and `order` to that URL,
-and `DataTableRequest::fromRequest()` reads them from the query string.
+`ajax()` defaults to a `GET` request. DataTables sends server-side parameters such as `draw`,
+`start`, `length`, `search`, and `order` to that URL, and `DataTableRequest::fromRequest()` reads
+them from the query string.
+
+Pass a different `type` to use another HTTP method — `DataTableRequest::fromRequest()` reads from
+whichever bag DataTables' own client-side `ajax()` helper puts that method's parameters in, so no
+other configuration is needed:
+
+```php
+$dataTable->ajax('/api/products', type: 'POST');
+```
+
+`POST`, `PUT`, and `PATCH` send parameters as the request body. `DELETE` is the one exception:
+DataTables moves `DELETE`'s parameters onto the URL by default, since some servers reject a
+request body on `DELETE` — so a `DELETE` table still reads from the query string, the same as
+`GET`. (This only changes if the app explicitly sets `ajax.deleteBody = false` through raw
+JavaScript configuration, which the bundle's `ajax()` option has no PHP-level equivalent for.)
+
+Symfony's routing must allow the configured method on that route (add it to `methods:` if the
+route currently only allows `GET`) — the bundle only handles which request bag it reads from, not
+which methods the route accepts.
 
 With automatic Ajax wiring, the page controller only renders the table. Manual request handling is
 still useful when your table posts back to the same route or when you configured a custom Ajax URL.
@@ -205,22 +222,41 @@ DataTables search, column control Contains/Starts/Ends/NotContains, and
 `TextFilter`. The bundle applies `LOWER()` to both the field and the search term
 so results are consistent regardless of how values were stored.
 
-### PostgreSQL and typed fields (uuid, guid)
+### PostgreSQL typed fields
 
 The bundle automatically registers a Doctrine DQL function,
 `UX_DATATABLES_SEARCH`, that wraps the field in `CAST(… AS TEXT)` on PostgreSQL
-before applying `LOWER(… ) LIKE ?`. This resolves the common runtime error:
+before applying `LOWER(… ) LIKE ? ESCAPE '!'`. This is a no-op for ordinary
+`string` and `text` fields. Native UUID/ULID columns are not searched with this
+function; they use exact identifier matching instead (see below).
+
+## Searching UUID And ULID Columns
+
+Columns mapped to a native identifier type — `guid`, `uuid`, `ulid`, `uuid_binary`, and
+`uuid_binary_ordered_time` — are searched by **exact identifier only**. Global search, per-column
+search, and text filters compare them with `=`, never with `LIKE`. Column Control `empty` /
+`notEmpty` only test `IS NULL` / `IS NOT NULL`; they do not compare the identifier to `''`.
+
+PostgreSQL and SQL Server reject `LIKE` on those columns, which previously made any search request
+fail with an error such as:
 
 ```
-operator does not exist: uuid ~~ text
+SQLSTATE[42883]: Undefined function: operator does not exist: uuid ~~ unknown
 ```
 
-…that occurs when a column is mapped with Doctrine type `uuid` or `guid` and a
-LIKE search is applied without an explicit cast. No configuration is required;
-the function is registered automatically when DoctrineBundle is present.
+What this means for a search term:
 
-The cast is a no-op for ordinary `string` and `text` fields in PostgreSQL, so
-there is no performance difference for those columns.
+- A complete identifier (`018f2c3e-1234-7abc-9def-0123456789ab`, `01ARZ3NDEKTSV4RRFFQ69G5FAV`)
+  matches the row. Surrounding whitespace is trimmed.
+- A fragment (`018f2c3e`) matches nothing on that column; the condition is skipped instead of
+  raising an error. Other searchable columns still apply.
+- Hyphens are required in UUIDs: `018f2c3e12347abc9def0123456789ab` is not recognized.
+
+<Aside type="caution">
+On MySQL and SQLite, where UUIDs are usually stored as text, partial search on these columns worked
+before and no longer does. Add a searchable text column (a slug, a reference number, or a
+`string` copy of the identifier) when users need partial matching.
+</Aside>
 
 ## Sorting Computed Columns
 

@@ -33,6 +33,7 @@ use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
@@ -49,48 +50,28 @@ final class AjaxEditControllerTest extends TestCase
 {
     private const string TOKEN_SECRET = 'test-secret';
 
-    #[Test]
-    public function it_returns_zero_when_updating_boolean_field_to_false(): void
+    /**
+     * @return iterable<string, array{bool, int|string, string}>
+     */
+    public static function booleanUpdateScenarios(): iterable
     {
-        $entity = new ToggleBooleanEntityFixture();
-
-        $accessor = $this->createMock(PropertyAccessorInterface::class);
-        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
-        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', false);
-
-        $controller = $this->controller($entity, 799, $accessor, expectFlush: true);
-
-        $response = $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            field: 'isEmailAuthEnabled',
-            id: 799,
-            newValue: false,
-            dataTable: $this->dataTableToken(),
-        ));
-
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('0', (string) $response->getContent());
+        yield 'false value' => [false, 799, '0'];
+        yield 'true value' => [true, 799, '1'];
+        yield 'true value with a string identifier' => [true, '018f2c3e-1234-7abc-9def-0123456789ab', '1'];
     }
 
     #[Test]
-    public function it_returns_one_when_updating_boolean_field_to_true(): void
+    #[DataProvider('booleanUpdateScenarios')]
+    public function it_updates_the_boolean_field_and_returns_its_new_value(bool $newValue, int|string $id, string $expectedContent): void
     {
         $entity = new ToggleBooleanEntityFixture();
 
-        $accessor = $this->createMock(PropertyAccessorInterface::class);
-        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
-        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', true);
+        $controller = $this->controller($entity, $id, $this->writableAccessor($entity, $newValue), expectFlush: true);
 
-        $controller = $this->controller($entity, 799, $accessor, expectFlush: true);
-
-        $response = $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            field: 'isEmailAuthEnabled',
-            id: 799,
-            newValue: true,
-            dataTable: $this->dataTableToken(),
-        ));
+        $response = $controller($this->validTokenRequest(), $this->payload($newValue, $id));
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('1', (string) $response->getContent());
+        $this->assertSame($expectedContent, (string) $response->getContent());
     }
 
     #[Test]
@@ -98,48 +79,14 @@ final class AjaxEditControllerTest extends TestCase
     {
         $entity = new ToggleBooleanEntityFixture();
 
-        $accessor = $this->createMock(PropertyAccessorInterface::class);
-        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
-        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', true);
-
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')
             ->with(new CsrfToken(MutationTokenValidator::TOKEN_ID, 'valid-token'))
             ->willReturn(true);
 
-        $controller = $this->controller($entity, 799, $accessor, expectFlush: true, csrfTokenManager: $csrfTokenManager);
+        $controller = $this->controller($entity, 799, $this->writableAccessor($entity, true), expectFlush: true, csrfTokenManager: $csrfTokenManager);
 
-        $request = new Request();
-        $request->headers->set(MutationTokenValidator::HEADER, 'valid-token');
-
-        $response = $controller($request, new AjaxEditRequestDto(
-            field: 'isEmailAuthEnabled',
-            id: 799,
-            newValue: true,
-            dataTable: $this->dataTableToken(),
-        ));
-
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('1', (string) $response->getContent());
-    }
-
-    #[Test]
-    public function it_returns_one_when_updating_boolean_field_to_true_with_a_string_id(): void
-    {
-        $entity = new ToggleBooleanEntityFixture();
-
-        $accessor = $this->createMock(PropertyAccessorInterface::class);
-        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
-        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', true);
-
-        $controller = $this->controller($entity, '018f2c3e-1234-7abc-9def-0123456789ab', $accessor, expectFlush: true);
-
-        $response = $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            field: 'isEmailAuthEnabled',
-            id: '018f2c3e-1234-7abc-9def-0123456789ab',
-            newValue: true,
-            dataTable: $this->dataTableToken(),
-        ));
+        $response = $controller($this->validTokenRequest(), $this->payload(true));
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('1', (string) $response->getContent());
@@ -148,8 +95,7 @@ final class AjaxEditControllerTest extends TestCase
     #[Test]
     public function it_rejects_the_request_and_does_not_update_when_the_csrf_token_is_invalid(): void
     {
-        $accessor = $this->createMock(PropertyAccessorInterface::class);
-        $accessor->expects($this->never())->method('setValue');
+        $accessor = $this->readOnlyAccessor();
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(false);
@@ -160,12 +106,19 @@ final class AjaxEditControllerTest extends TestCase
         $request->headers->set(MutationTokenValidator::HEADER, 'wrong-token');
 
         $this->expectException(InvalidCsrfTokenException::class);
-        $controller($request, new AjaxEditRequestDto(
-            field: 'isEmailAuthEnabled',
-            id: 799,
-            newValue: true,
-            dataTable: $this->dataTableToken(),
-        ));
+        $controller($request, $this->payload(true));
+    }
+
+    #[Test]
+    public function it_rejects_the_request_and_does_not_update_when_the_token_header_is_missing(): void
+    {
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->expects($this->never())->method('isTokenValid');
+
+        $controller = $this->controller(new ToggleBooleanEntityFixture(), 799, $this->readOnlyAccessor(), expectFlush: false, csrfTokenManager: $csrfTokenManager);
+
+        $this->expectException(InvalidCsrfTokenException::class);
+        $controller(new Request(), $this->payload(false));
     }
 
     #[Test]
@@ -173,100 +126,40 @@ final class AjaxEditControllerTest extends TestCase
     {
         $entity = new ToggleBooleanEntityFixture();
 
-        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor = $this->readOnlyAccessor();
         $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(false);
-        $accessor->expects($this->never())->method('setValue');
 
         $controller = $this->controller($entity, 799, $accessor, expectFlush: false);
 
         $this->expectException(PropertyNotWritableException::class);
-        $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            field: 'isEmailAuthEnabled',
-            id: 799,
-            newValue: false,
-            dataTable: $this->dataTableToken(),
-        ));
+        $controller($this->validTokenRequest(), $this->payload(false));
     }
 
     #[Test]
     public function it_rejects_a_field_that_is_not_a_mapped_boolean(): void
     {
-        $entity = new ToggleBooleanEntityFixture();
-
-        $accessor = $this->createMock(PropertyAccessorInterface::class);
-        $accessor->expects($this->never())->method('setValue');
-
-        $controller = $this->controller($entity, 799, $accessor, expectFlush: false);
+        $controller = $this->controller(new ToggleBooleanEntityFixture(), 799, $this->readOnlyAccessor(), expectFlush: false);
 
         $this->expectException(InvalidBooleanMutationContextException::class);
-        $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            field: 'admin',
-            id: 799,
-            newValue: true,
-            dataTable: $this->dataTableToken(),
-        ));
+        $controller($this->validTokenRequest(), $this->payload(true, field: 'admin'));
     }
 
     #[Test]
     public function it_lets_a_missing_entity_bubble_as_an_exception(): void
     {
-        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor = $this->readOnlyAccessor();
         $accessor->expects($this->never())->method('isWritable');
 
         $controller = $this->controller(null, 799, $accessor, expectFlush: false);
 
         $this->expectException(EntityNotFoundException::class);
-        $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            field: 'isEmailAuthEnabled',
-            id: 799,
-            newValue: false,
-            dataTable: $this->dataTableToken(),
-        ));
-    }
-
-    #[Test]
-    public function it_rejects_the_request_and_does_not_update_when_the_token_header_is_missing(): void
-    {
-        $accessor = $this->createMock(PropertyAccessorInterface::class);
-        $accessor->expects($this->never())->method('setValue');
-
-        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
-        $csrfTokenManager->expects($this->never())->method('isTokenValid');
-
-        $controller = $this->controller(new ToggleBooleanEntityFixture(), 799, $accessor, expectFlush: false, csrfTokenManager: $csrfTokenManager);
-
-        $this->expectException(InvalidCsrfTokenException::class);
-        $controller(new Request(), new AjaxEditRequestDto(
-            field: 'isEmailAuthEnabled',
-            id: 799,
-            newValue: false,
-            dataTable: $this->dataTableToken(),
-        ));
+        $controller($this->validTokenRequest(), $this->payload(false));
     }
 
     #[Test]
     public function it_forwards_the_data_table_class_from_the_payload_and_publishes_its_own_mercure_topics(): void
     {
         $entity = new ToggleBooleanEntityFixture();
-
-        $accessor = $this->createMock(PropertyAccessorInterface::class);
-        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
-        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', true);
-
-        $repository = $this->createMock(EntityRepository::class);
-        $repository->method('find')->with(799)->willReturn($entity);
-
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasField')->willReturnCallback(static fn (string $name): bool => 'isEmailAuthEnabled' === $name);
-        $metadata->method('getTypeOfField')->willReturnCallback(static fn (string $name): ?string => 'isEmailAuthEnabled' === $name ? 'boolean' : null);
-
-        $manager = $this->createMock(EntityManagerInterface::class);
-        $manager->method('getRepository')->with(ToggleBooleanEntityFixture::class)->willReturn($repository);
-        $manager->method('getClassMetadata')->willReturn($metadata);
-        $manager->expects($this->once())->method('flush');
-
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($manager);
 
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->once())
@@ -286,25 +179,21 @@ final class AjaxEditControllerTest extends TestCase
         $dataTables->method('get')->with(ToggleBooleanEntityFixtureDataTable::class)->willReturn($dataTable);
 
         $mutator = new EntityMutator(
-            new EntityLocator($registry),
-            $accessor,
+            new EntityLocator($this->managerRegistry($entity, 799, expectFlush: true)),
+            $this->writableAccessor($entity, true),
             $publisher,
             new PermissionChecker(),
             mercureConfigResolver: $resolver,
             dataTables: $dataTables,
         );
 
-        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
-        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+        $controller = new AjaxEditController(
+            $mutator,
+            new MutationTokenValidator($this->validCsrfTokenManager()),
+            $this->contextResolver($dataTable),
+        );
 
-        $controller = new AjaxEditController($mutator, new MutationTokenValidator($csrfTokenManager), $this->contextResolver($dataTable));
-
-        $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            field: 'isEmailAuthEnabled',
-            id: 799,
-            newValue: true,
-            dataTable: $this->dataTableToken(),
-        ));
+        $controller($this->validTokenRequest(), $this->payload(true));
     }
 
     private function controller(
@@ -314,6 +203,22 @@ final class AjaxEditControllerTest extends TestCase
         bool $expectFlush,
         ?CsrfTokenManagerInterface $csrfTokenManager = null,
     ): AjaxEditController {
+        $mutator = new EntityMutator(
+            new EntityLocator($this->managerRegistry($entity, $id, $expectFlush)),
+            $accessor,
+            new NullMercurePublisher(),
+            new PermissionChecker(),
+        );
+
+        return new AjaxEditController(
+            $mutator,
+            new MutationTokenValidator($csrfTokenManager ?? $this->validCsrfTokenManager()),
+            $this->contextResolver(),
+        );
+    }
+
+    private function managerRegistry(?object $entity, int|string $id, bool $expectFlush): ManagerRegistry
+    {
         $repository = $this->createMock(EntityRepository::class);
         $repository->method('find')->with($id)->willReturn($entity);
 
@@ -329,14 +234,42 @@ final class AjaxEditControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($manager);
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $accessor, new NullMercurePublisher(), new PermissionChecker());
+        return $registry;
+    }
 
-        if (null === $csrfTokenManager) {
-            $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
-            $csrfTokenManager->method('isTokenValid')->willReturn(true);
-        }
+    private function writableAccessor(object $entity, bool $expectedValue): PropertyAccessorInterface
+    {
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
+        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', $expectedValue);
 
-        return new AjaxEditController($mutator, new MutationTokenValidator($csrfTokenManager), $this->contextResolver());
+        return $accessor;
+    }
+
+    private function readOnlyAccessor(): PropertyAccessorInterface
+    {
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->expects($this->never())->method('setValue');
+
+        return $accessor;
+    }
+
+    private function validCsrfTokenManager(): CsrfTokenManagerInterface
+    {
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+
+        return $csrfTokenManager;
+    }
+
+    private function payload(bool $newValue, int|string $id = 799, string $field = 'isEmailAuthEnabled'): AjaxEditRequestDto
+    {
+        return new AjaxEditRequestDto(
+            field: $field,
+            id: $id,
+            newValue: $newValue,
+            dataTable: $this->dataTableToken(),
+        );
     }
 
     private function contextResolver(?AbstractDataTable $dataTable = null): BooleanMutationContextResolver
@@ -359,7 +292,7 @@ final class AjaxEditControllerTest extends TestCase
     private function dataTableToken(): string
     {
         $token = $this->registry(new ToggleBooleanEntityFixtureDataTable())
-            ->getBooleanMutationToken(ToggleBooleanEntityFixtureDataTable::class);
+            ->getActionToken(ToggleBooleanEntityFixtureDataTable::class);
 
         $this->assertNotNull($token);
 

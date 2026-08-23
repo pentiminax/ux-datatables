@@ -1,9 +1,8 @@
 ---
 title: AI-Assisted Development
 description: Use the bundled AI agent skill to build DataTables correctly with Claude Code, Cursor, and other coding agents
+order: 60
 ---
-
-# AI-Assisted Development
 
 AI coding agents like Claude Code, Cursor, and GitHub Copilot can significantly accelerate your development — but only if they understand the bundle's API. To help them get it right, this repository ships a dedicated **agent skill** that teaches them exactly how UX DataTables works.
 
@@ -22,7 +21,7 @@ The skill captures the conventions you would otherwise have to explain to an age
     ['Defining a DataTable', 'Extending `AbstractDataTable`, the `#[AsDataTable(Entity::class)]` attribute, and the `configure*()` hooks'],
     ['Columns', 'The available column types and shared `AbstractColumn` methods'],
     ['Processing mode', 'When to use client-side vs server-side rendering'],
-    ['Extensions', 'Buttons, Select, Responsive, RowGroup, ColumnControl, Scroller, KeyTable, ColReorder, FixedColumns'],
+    ['Extensions', 'Buttons, Select, Responsive, RowGroup, ColumnControl, Scroller, KeyTable, ColReorder, FixedColumns, FixedHeader'],
     ['Row actions', 'Edit/delete actions, permissions, and conditional display'],
     ['Integrations', 'API Platform and Mercure (both opt-in)'],
     ['Gotchas', 'Common mistakes and their fixes'],

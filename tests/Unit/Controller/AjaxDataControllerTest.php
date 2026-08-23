@@ -12,7 +12,7 @@ use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -56,6 +56,11 @@ final class AjaxDataControllerTest extends TestCase
         $dataTable->expects($this->once())->method('isRequestHandled')->willReturn(true);
         $dataTable->expects($this->once())->method('getResponse')->willReturn($expectedResponse);
 
+        // The profiler reads the resolved provider, which boots the runtime.
+        $dataTable->method('configureActions')->willReturnArgument(0);
+        $dataTable->method('configureFilters')->willReturnArgument(0);
+        $dataTable->method('configureDataTable')->willReturnArgument(0);
+
         $registry = $this->createRegistry($dataTable);
         $token    = $registry->getToken('App\\UserDataTable');
 
@@ -85,30 +90,11 @@ final class AjaxDataControllerTest extends TestCase
 
     private function createRegistry(?AbstractDataTable $table = null): AjaxDataTableRegistry
     {
-        $services = [];
-        $map      = [];
-
-        if (null !== $table) {
-            $services['app.user_datatable'] = $table;
-            $map['App\\UserDataTable']      = 'app.user_datatable';
-        }
+        $services = null === $table ? [] : ['app.user_datatable' => static fn (): AbstractDataTable => $table];
+        $map      = null === $table ? [] : ['App\\UserDataTable' => 'app.user_datatable'];
 
         return new AjaxDataTableRegistry(
-            new class($services) implements ContainerInterface {
-                public function __construct(private readonly array $services)
-                {
-                }
-
-                public function get(string $id): mixed
-                {
-                    return $this->services[$id];
-                }
-
-                public function has(string $id): bool
-                {
-                    return isset($this->services[$id]);
-                }
-            },
+            new ServiceLocator($services),
             new AjaxDataTableTokenManager('test-secret'),
             $map,
         );

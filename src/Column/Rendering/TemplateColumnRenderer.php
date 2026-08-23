@@ -34,8 +34,12 @@ final class TemplateColumnRenderer
                 continue;
             }
 
-            $field = $column->getField();
-            $data  = $this->resolveData(mappedRow: $item, row: $contextRow, field: $field);
+            $rowKey = ColumnKeyResolver::rowKey($column);
+            if (null === $rowKey) {
+                continue;
+            }
+
+            $data = $this->resolveData(mappedRow: $item, row: $contextRow, field: ColumnKeyResolver::readPath($column, $rowKey));
 
             $context = [
                 'entity' => $item,
@@ -52,7 +56,7 @@ final class TemplateColumnRenderer
                 }
             }
 
-            $renderedRow[$field] = $this->renderTemplate($column->getTemplate(), $context);
+            $renderedRow[$rowKey] = $this->renderTemplate($column->getTemplate(), $context);
         }
 
         return $renderedRow;

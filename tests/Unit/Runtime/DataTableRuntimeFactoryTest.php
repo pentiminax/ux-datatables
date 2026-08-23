@@ -8,7 +8,6 @@ use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
@@ -18,6 +17,7 @@ use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -28,25 +28,14 @@ use PHPUnit\Framework\TestCase;
 final class DataTableRuntimeFactoryTest extends TestCase
 {
     #[Test]
-    public function create_row_mapper_returns_row_processing_pipeline(): void
-    {
-        $factory    = new DataTableRuntimeFactory();
-        $baseMapper = static fn (mixed $row): array => ['id' => $row];
-
-        $mapper = $factory->createRowMapper($baseMapper, []);
-
-        $this->assertInstanceOf(RowMapperInterface::class, $mapper);
-        $this->assertInstanceOf(RowProcessingPipeline::class, $mapper);
-    }
-
-    #[Test]
-    public function create_row_mapper_applies_base_mapper(): void
+    public function create_row_mapper_returns_a_pipeline_applying_the_base_mapper(): void
     {
         $factory    = new DataTableRuntimeFactory();
         $baseMapper = static fn (mixed $row): array => ['value' => $row * 2];
 
         $mapper = $factory->createRowMapper($baseMapper, []);
 
+        $this->assertInstanceOf(RowProcessingPipeline::class, $mapper);
         $this->assertSame(['value' => 10], $mapper->map(5));
     }
 
@@ -67,41 +56,41 @@ final class DataTableRuntimeFactoryTest extends TestCase
     }
 
     #[Test]
-    public function create_runtime_returns_data_table_runtime(): void
+    #[DataProvider('manualProviderCases')]
+    public function create_runtime_returns_the_manual_data_provider(?DataProviderInterface $manualProvider): void
     {
-        $factory = new DataTableRuntimeFactory();
-        $table   = new DataTable('movies');
+        $runtime = $this->createRuntime(static fn (): ?DataProviderInterface => $manualProvider);
 
-        $runtime = $factory->createRuntime(
-            table: $table,
-            columns: [],
-            asDataTable: null,
-            baseMapper: static fn ($r): array => [],
-            manualDataProviderFactory: static fn (): ?DataProviderInterface => null,
-            configureQueryBuilder: static fn ($qb, $req) => $qb,
-        );
+        $this->assertSame($manualProvider, $runtime->getDataProvider());
+    }
 
-        $this->assertInstanceOf(DataTableRuntime::class, $runtime);
+    /**
+     * @return iterable<string, array{0: ?DataProviderInterface}>
+     */
+    public static function manualProviderCases(): iterable
+    {
+        yield 'no manual provider and no AsDataTable attribute' => [null];
+
+        yield 'manual provider supplied' => [
+            new class implements DataProviderInterface {
+                public function fetchData(DataTableRequest $request): DataTableResult
+                {
+                    return new DataTableResult(recordsTotal: 0, recordsFiltered: 0, data: []);
+                }
+            },
+        ];
     }
 
     #[Test]
-    public function create_runtime_is_lazy_provider_factory_not_called_before_get_data_provider(): void
+    public function create_runtime_resolves_the_data_provider_lazily_and_only_once(): void
     {
         $factoryCalls = 0;
-        $factory      = new DataTableRuntimeFactory();
 
-        $runtime = $factory->createRuntime(
-            table: new DataTable('movies'),
-            columns: [],
-            asDataTable: null,
-            baseMapper: static fn ($r): array => [],
-            manualDataProviderFactory: static function () use (&$factoryCalls): ?DataProviderInterface {
-                ++$factoryCalls;
+        $runtime = $this->createRuntime(static function () use (&$factoryCalls): ?DataProviderInterface {
+            ++$factoryCalls;
 
-                return null;
-            },
-            configureQueryBuilder: static fn ($qb, $req) => $qb,
-        );
+            return null;
+        });
 
         $this->assertSame(0, $factoryCalls, 'Factory must not be called before getDataProvider()');
 
@@ -115,62 +104,31 @@ final class DataTableRuntimeFactoryTest extends TestCase
     }
 
     #[Test]
-    public function create_runtime_returns_manual_provider_when_supplied(): void
-    {
-        $manualProvider = new class implements DataProviderInterface {
-            public function fetchData(DataTableRequest $request): DataTableResult
-            {
-                return new DataTableResult(recordsTotal: 0, recordsFiltered: 0, data: []);
-            }
-        };
-
-        $factory = new DataTableRuntimeFactory();
-        $runtime = $factory->createRuntime(
-            table: new DataTable('movies'),
-            columns: [],
-            asDataTable: null,
-            baseMapper: static fn ($r): array => [],
-            manualDataProviderFactory: static fn (): ?DataProviderInterface => $manualProvider,
-            configureQueryBuilder: static fn ($qb, $req) => $qb,
-        );
-
-        $this->assertSame($manualProvider, $runtime->getDataProvider());
-    }
-
-    #[Test]
-    public function create_runtime_returns_null_provider_when_no_manual_provider_and_no_asset_data_table(): void
-    {
-        $factory = new DataTableRuntimeFactory();
-        $runtime = $factory->createRuntime(
-            table: new DataTable('movies'),
-            columns: [],
-            asDataTable: null,
-            baseMapper: static fn ($r): array => [],
-            manualDataProviderFactory: static fn (): ?DataProviderInterface => null,
-            configureQueryBuilder: static fn ($qb, $req) => $qb,
-        );
-
-        $this->assertNull($runtime->getDataProvider());
-    }
-
-    #[Test]
     public function injected_data_provider_resolver_enables_auto_provider_resolution(): void
     {
-        $em      = $this->createMock(EntityManagerInterface::class);
-        $factory = new DataTableRuntimeFactory(
-            dataProviderResolver: new DataProviderResolver(new AutoDataProviderFactory($em))
-        );
-
-        $runtime = $factory->createRuntime(
-            table: new DataTable('movies'),
-            columns: [],
+        $runtime = $this->createRuntime(
             asDataTable: new AsDataTable(entityClass: 'App\Entity\Movie'),
-            baseMapper: static fn ($r): array => [],
-            manualDataProviderFactory: static fn (): ?DataProviderInterface => null,
-            configureQueryBuilder: static fn ($qb, $req) => $qb,
+            dataProviderResolver: new DataProviderResolver(
+                new AutoDataProviderFactory($this->createStub(EntityManagerInterface::class))
+            ),
         );
 
         $this->assertInstanceOf(DataProviderInterface::class, $runtime->getDataProvider());
+    }
+
+    private function createRuntime(
+        ?\Closure $manualDataProviderFactory = null,
+        ?AsDataTable $asDataTable = null,
+        ?DataProviderResolver $dataProviderResolver = null,
+    ): DataTableRuntime {
+        return (new DataTableRuntimeFactory(dataProviderResolver: $dataProviderResolver))->createRuntime(
+            table: new DataTable('movies'),
+            columns: [],
+            asDataTable: $asDataTable,
+            baseMapper: static fn ($r): array => [],
+            manualDataProviderFactory: $manualDataProviderFactory ?? static fn (): ?DataProviderInterface => null,
+            configureQueryBuilder: static fn ($qb, $req) => $qb,
+        );
     }
 }
 

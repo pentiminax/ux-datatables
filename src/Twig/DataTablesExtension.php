@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
@@ -43,12 +44,14 @@ class DataTablesExtension extends AbstractExtension
     public function renderDataTable(AbstractDataTable|DataTable $table, array $attributes = []): string
     {
         $dataTableClass = $table instanceof AbstractDataTable ? $table::class : $table->getDataTableClass();
+        $abstractTable  = $table instanceof AbstractDataTable ? $table : null;
 
         if ($table instanceof AbstractDataTable) {
             $table = $table->getDataTable();
         }
 
-        $table->columns($this->columnResolver->filterStaticPermissions($table->getColumns()));
+        $originalColumns = array_values($table->getColumns());
+        $columns         = $this->columnResolver->filterStaticPermissions($originalColumns);
 
         $table->setAttributes(array_merge($table->getAttributes(), $attributes));
 
@@ -58,17 +61,21 @@ class DataTablesExtension extends AbstractExtension
             $controllers[$table->getDataController()] = [];
         }
 
-        $options = $table->getOptions();
+        $options            = $table->getOptions();
+        $options['columns'] = array_values(array_map(
+            static fn (ColumnInterface $column): array => $column->jsonSerialize(),
+            $columns,
+        ));
 
         if (!empty($options['data'])) {
-            $columns         = $table->getColumns();
             $renderTemplates = !$table->areTemplateColumnsRendered();
-            $options['data'] = array_map(function (array $row) use ($columns, $renderTemplates): array {
+            $options['data'] = array_map(function (array $row) use ($columns, $originalColumns, $renderTemplates): array {
                 $resolvedRow = $renderTemplates
                     ? $this->templateColumnRenderer->renderRow($row, $row, $columns)
                     : $row;
+                $resolvedRow = $this->actionRowDataResolver->resolveRow($resolvedRow, $row, $columns);
 
-                return $this->actionRowDataResolver->resolveRow($resolvedRow, $row, $columns);
+                return $this->columnResolver->removeDeniedColumnValues($resolvedRow, $originalColumns);
             }, $options['data']);
 
             if ($renderTemplates) {
@@ -77,9 +84,8 @@ class DataTablesExtension extends AbstractExtension
         }
 
         $view = array_merge($options, $table->getExtensions(), [
-            'dataTableClass' => $dataTableClass,
-            'dataTable'      => null !== $dataTableClass ? $this->ajaxRegistry?->getBooleanMutationToken($dataTableClass) : null,
-            'editModal'      => [
+            'dataTable' => null !== $dataTableClass ? $this->ajaxRegistry?->getActionToken($dataTableClass) : null,
+            'editModal' => [
                 'adapter' => $table->getEditModalAdapter(),
             ],
             'mutationsEnabled' => false,
@@ -115,7 +121,11 @@ class DataTablesExtension extends AbstractExtension
             }
         }
 
-        $this->profiler?->collectRenderedTable($dataTableClass ?? $table->getId(), $table);
+        $this->profiler?->collectRenderedTable($dataTableClass ?? $table->getId(), $table, [
+            'entityClass'     => $abstractTable?->getEntityClass(),
+            'originalColumns' => $originalColumns,
+            'allowedColumns'  => $columns,
+        ]);
 
         return \sprintf('<table id="%s" %s></table>', $table->getId(), $stimulusAttributes);
     }

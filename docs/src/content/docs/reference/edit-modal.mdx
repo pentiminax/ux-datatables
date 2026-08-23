@@ -1,9 +1,8 @@
 ---
 title: Edit Modal
 description: Inline edit modal configuration, template overrides, form mapping, and customization
+order: 60
 ---
-
-# Edit Modal
 
 `Action::edit()` opens a configured edit modal containing an auto-generated Symfony Form. The bundle ships with a framework-agnostic `<dialog>` template and a native `DialogModalAdapter` by default — no Bootstrap or extra JavaScript setup required. Both the Twig template and the JavaScript adapter can be overridden.
 
@@ -16,7 +15,7 @@ description: Inline edit modal configuration, template overrides, form mapping, 
 ## How It Works
 
 1. User clicks the Edit button on a row
-2. The Stimulus controller fetches a pre-filled form from `GET /datatables/ajax/edit-form`
+2. The Stimulus controller fetches a pre-filled form from `POST /datatables/ajax/edit-form/view`
 3. The modal adapter matching the detected CSS framework opens the returned modal HTML (`dt` by default, `bs5` when Bootstrap is detected)
 4. On submit, a `POST /datatables/ajax/edit-form` validates and persists the changes
 5. If the form is invalid, only the modal body is re-rendered and replaced in place
@@ -159,7 +158,7 @@ public function configureColumns(): iterable
 
 ## Ajax Endpoints
 
-- `GET /datatables/ajax/edit-form` — returns the rendered modal HTML
+- `POST /datatables/ajax/edit-form/view` — returns the rendered modal HTML
 - `POST /datatables/ajax/edit-form` — validates and persists the form data, returns only the modal body HTML when invalid
 
 These endpoints are only available when `symfony/form` is installed.

@@ -11,7 +11,10 @@ use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\ColumnSearchResolver;
+use Pentiminax\UX\DataTables\Query\DateSearchTerm;
+use Pentiminax\UX\DataTables\Query\LikeValueEscaper;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
+use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
 
 /**
  * Parameterized search strategy for simple comparison operators.
@@ -43,28 +46,74 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
 
         ColumnSearchResolver::applySearchJoins($qb, $column);
 
-        $effectiveField = ColumnSearchResolver::resolveField($column);
-        if (null === $effectiveField) {
+        $fieldPath = ColumnSearchResolver::resolveField($column);
+        if (null === $fieldPath) {
             return;
         }
-
-        $field     = RelationFieldResolver::resolve($qb, $alias, $effectiveField);
-        $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
         if ($this->logic->usesTextSearch()) {
+            if (!RelationFieldResolver::supportsTextSearch($qb, $fieldPath)) {
+                return;
+            }
+
+            $field      = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
+            $paramName  = \sprintf('column_control_param_%d', $paramIndex);
             $comparison = ColumnControlLogic::NotContains === $this->logic ? '0' : '1';
+
             $qb->andWhere(\sprintf('UX_DATATABLES_SEARCH(%s, :%s) = %s', $field, $paramName, $comparison));
-            $qb->setParameter($paramName, \sprintf($this->logic->paramFormat(), mb_strtolower(trim($search->value))));
+            $qb->setParameter(
+                $paramName,
+                \sprintf($this->logic->paramFormat(), LikeValueEscaper::escape(mb_strtolower(trim($search->value)))),
+            );
 
             return;
         }
 
+        [$bindValue, $bindType] = $this->resolveBindValue($qb, $fieldPath, $search->value);
+
+        if (null === $bindValue) {
+            return;
+        }
+
+        $field     = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
+        $paramName = \sprintf('column_control_param_%d', $paramIndex);
+
         $qb->andWhere(\sprintf('%s %s :%s', $field, $this->logic->operator(), $paramName));
-        $qb->setParameter($paramName, \sprintf($this->logic->paramFormat(), $search->value));
+        $qb->setParameter(
+            $paramName,
+            match (true) {
+                $bindValue instanceof \DateTimeImmutable => $bindValue,
+                default                                  => \sprintf($this->logic->paramFormat(), $bindValue),
+            },
+            $bindType,
+        );
     }
 
     public function getLogic(): string
     {
         return $this->logic->value;
+    }
+
+    /**
+     * Resolves the value to bind and its Doctrine type hint, or [null, null] when the raw
+     * search term cannot be bound to the field's actual column type. LIKE-incompatible types
+     * (uuid, date, etc.) are already filtered above for text-search logics; this only
+     * normalizes the value for the types that still need a specific Doctrine type on setParameter().
+     *
+     * @return array{0: string|\DateTimeImmutable|null, 1: ?string}
+     */
+    private function resolveBindValue(QueryBuilder $qb, string $fieldPath, string $rawValue): array
+    {
+        $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $fieldPath);
+        if (null !== $uuidType) {
+            return [UuidSearchTerm::normalize($rawValue, $uuidType), $uuidType];
+        }
+
+        $dateType = RelationFieldResolver::resolveDateFieldType($qb, $fieldPath);
+        if (null !== $dateType) {
+            return [DateSearchTerm::normalize($rawValue), $dateType];
+        }
+
+        return [$rawValue, null];
     }
 }

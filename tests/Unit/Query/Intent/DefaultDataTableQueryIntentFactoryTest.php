@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Intent;
 
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Column;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
@@ -14,11 +15,12 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
-use Pentiminax\UX\DataTables\Query\Intent\ColumnControlIntent;
+use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Query\Intent\InvalidQueryIntentException;
 use Pentiminax\UX\DataTables\Query\Intent\SortDirection;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -30,273 +32,275 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(DefaultDataTableQueryIntentFactory::class)]
 final class DefaultDataTableQueryIntentFactoryTest extends TestCase
 {
-    #[Test]
-    public function it_emits_a_single_order_intent_for_one_valid_order(): void
+    /**
+     * @return iterable<string, array{ColumnInterface, list<Order>, ?SortDirection}>
+     */
+    public static function orderRequests(): iterable
     {
-        $column        = TextColumn::new('name', 'Name')->setField('name');
-        $requestColumn = new Column('name', 'name', true, true);
-        $columns       = new Columns(['name' => $requestColumn]);
-        $order         = new Order(0, 'desc', 'name');
+        yield 'single valid order' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            [new Order(0, 'desc', 'name')],
+            SortDirection::Desc,
+        ];
 
-        $request = new DataTableRequest(1, $columns, order: [$order]);
+        yield 'multiple orders' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            [new Order(0, 'asc', 'name'), new Order(0, 'desc', 'name')],
+            null,
+        ];
 
-        $intent = $this->factory()->create($request, [$column]);
+        yield 'unknown column name' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            [new Order(5, 'asc', 'column_5')],
+            null,
+        ];
+
+        yield 'order index shifted by a leading client column' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            [new Order(1, 'desc', 'name')],
+            SortDirection::Desc,
+        ];
+
+        yield 'non orderable column' => [
+            TextColumn::new('name', 'Name')->setField('name')->setOrderable(false),
+            [new Order(0, 'asc', 'name')],
+            null,
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{ColumnInterface, string, ?string}>
+     */
+    public static function globalSearchRequests(): iterable
+    {
+        yield 'empty value' => [TextColumn::new('name', 'Name')->setField('name'), '', null];
+
+        yield 'whitespace value' => [TextColumn::new('name', 'Name')->setField('name'), '   ', null];
+
+        yield 'non empty value' => [TextColumn::new('name', 'Name')->setField('name'), 'john', 'john'];
+
+        yield 'no globally searchable column' => [
+            TextColumn::new('name', 'Name')->setField('name')->disableGlobalSearch(),
+            'john',
+            null,
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{ColumnInterface, string, ?string}>
+     */
+    public static function columnSearchRequests(): iterable
+    {
+        yield 'empty value' => [TextColumn::new('name', 'Name')->setField('name'), '', null];
+
+        yield 'whitespace value' => [TextColumn::new('name', 'Name')->setField('name'), '   ', null];
+
+        yield 'non searchable column' => [
+            TextColumn::new('name', 'Name')->setField('name')->setSearchable(false),
+            'john',
+            null,
+        ];
+
+        yield 'searchable column' => [TextColumn::new('name', 'Name')->setField('name'), 'john', 'john'];
+    }
+
+    /**
+     * @return iterable<string, array{ColumnControl, ColumnControlLogic, bool, ?string, list<string>}>
+     */
+    public static function columnControlRequests(): iterable
+    {
+        yield 'list wins over scalar search' => [
+            new ColumnControl(
+                search: new ColumnControlSearch('active', ColumnControlLogic::Contains, 'text'),
+                list: ['active', 'pending'],
+            ),
+            ColumnControlLogic::In,
+            true,
+            null,
+            ['active', 'pending'],
+        ];
+
+        yield 'scalar search without list' => [
+            new ColumnControl(search: new ColumnControlSearch('active', ColumnControlLogic::Contains, 'text')),
+            ColumnControlLogic::Contains,
+            false,
+            'active',
+            [],
+        ];
+
+        yield 'nullness logic keeps the empty value' => [
+            new ColumnControl(search: new ColumnControlSearch('', ColumnControlLogic::Empty, 'text')),
+            ColumnControlLogic::Empty,
+            false,
+            '',
+            [],
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{int, int, int, ?int}>
+     */
+    public static function paginationRequests(): iterable
+    {
+        yield 'zero length' => [0, 0, 0, null];
+
+        yield 'negative length' => [0, -5, 0, null];
+
+        yield 'positive length' => [20, 10, 20, 10];
+
+        yield 'negative start' => [-3, 10, 0, 10];
+    }
+
+    /**
+     * @param list<Order> $order
+     */
+    #[Test]
+    #[DataProvider('orderRequests')]
+    public function it_builds_the_order_intent(ColumnInterface $column, array $order, ?SortDirection $expectedDirection): void
+    {
+        $request = new DataTableRequest(1, $this->requestColumns($column), order: $order);
+
+        $intent = $this->intent($request, $column);
+
+        if (null === $expectedDirection) {
+            self::assertNull($intent->order);
+
+            return;
+        }
 
         self::assertNotNull($intent->order);
-        self::assertSame('name', $intent->order->column->name);
-        self::assertSame(SortDirection::Desc, $intent->order->direction);
+        self::assertSame($column->getName(), $intent->order->column->name);
+        self::assertSame($expectedDirection, $intent->order->direction);
     }
 
     #[Test]
-    public function it_drops_order_when_multiple_orders_are_requested(): void
+    #[DataProvider('globalSearchRequests')]
+    public function it_builds_the_global_search_intent(ColumnInterface $column, string $value, ?string $expectedValue): void
     {
-        $column        = TextColumn::new('name', 'Name')->setField('name');
-        $requestColumn = new Column('name', 'name', true, true);
-        $columns       = new Columns(['name' => $requestColumn]);
+        $request = new DataTableRequest(1, $this->requestColumns($column), search: new Search($value, false));
 
-        $request = new DataTableRequest(1, $columns, order: [
-            new Order(0, 'asc', 'name'),
-            new Order(0, 'desc', 'name'),
-        ]);
+        $globalSearch = $this->intent($request, $column)->globalSearch;
 
-        $intent = $this->factory()->create($request, [$column]);
+        if (null === $expectedValue) {
+            self::assertNull($globalSearch);
 
-        self::assertNull($intent->order);
+            return;
+        }
+
+        self::assertNotNull($globalSearch);
+        self::assertSame($expectedValue, $globalSearch->value);
     }
 
     #[Test]
-    public function it_drops_order_for_an_unknown_column_index(): void
+    #[DataProvider('columnSearchRequests')]
+    public function it_builds_the_column_search_intents(ColumnInterface $column, string $value, ?string $expectedValue): void
     {
-        $column        = TextColumn::new('name', 'Name')->setField('name');
-        $requestColumn = new Column('name', 'name', true, true);
-        $columns       = new Columns(['name' => $requestColumn]);
+        $request = new DataTableRequest(1, $this->requestColumns($column, new Search($value, false)));
 
-        $request = new DataTableRequest(1, $columns, order: [new Order(5, 'asc', 'name')]);
+        $columnSearches = $this->intent($request, $column)->columnSearches;
 
-        $intent = $this->factory()->create($request, [$column]);
+        if (null === $expectedValue) {
+            self::assertSame([], $columnSearches);
 
-        self::assertNull($intent->order);
+            return;
+        }
+
+        self::assertCount(1, $columnSearches);
+        self::assertSame($column->getName(), $columnSearches[0]->column->name);
+        self::assertSame($expectedValue, $columnSearches[0]->value);
     }
 
+    /**
+     * @param list<string> $expectedValues
+     */
     #[Test]
-    public function it_drops_order_for_a_non_orderable_column(): void
-    {
-        $column        = TextColumn::new('name', 'Name')->setField('name')->setOrderable(false);
-        $requestColumn = new Column('name', 'name', true, false);
-        $columns       = new Columns(['name' => $requestColumn]);
+    #[DataProvider('columnControlRequests')]
+    public function it_builds_the_column_control_intent(
+        ColumnControl $columnControl,
+        ColumnControlLogic $expectedLogic,
+        bool $expectedIsList,
+        ?string $expectedValue,
+        array $expectedValues,
+    ): void {
+        $column  = TextColumn::new('status', 'Status')->setField('status');
+        $request = new DataTableRequest(1, $this->requestColumns($column, columnControl: $columnControl));
 
-        $request = new DataTableRequest(1, $columns, order: [new Order(0, 'asc', 'name')]);
-
-        $intent = $this->factory()->create($request, [$column]);
-
-        self::assertNull($intent->order);
-    }
-
-    #[Test]
-    public function it_drops_empty_and_whitespace_global_search(): void
-    {
-        $column        = TextColumn::new('name', 'Name')->setField('name');
-        $requestColumn = new Column('name', 'name', true, true);
-        $columns       = new Columns(['name' => $requestColumn]);
-
-        $emptyRequest = new DataTableRequest(1, $columns, search: new Search('', false));
-        self::assertNull($this->factory()->create($emptyRequest, [$column])->globalSearch);
-
-        $whitespaceRequest = new DataTableRequest(1, $columns, search: new Search('   ', false));
-        self::assertNull($this->factory()->create($whitespaceRequest, [$column])->globalSearch);
-    }
-
-    #[Test]
-    public function it_emits_global_search_for_a_non_empty_value(): void
-    {
-        $column        = TextColumn::new('name', 'Name')->setField('name');
-        $requestColumn = new Column('name', 'name', true, true);
-        $columns       = new Columns(['name' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns, search: new Search('john', false));
-
-        $intent = $this->factory()->create($request, [$column]);
-
-        self::assertNotNull($intent->globalSearch);
-        self::assertSame('john', $intent->globalSearch->value);
-    }
-
-    #[Test]
-    public function it_drops_global_search_when_no_column_is_globally_searchable(): void
-    {
-        $column        = TextColumn::new('name', 'Name')->setField('name')->disableGlobalSearch();
-        $requestColumn = new Column('name', 'name', true, true);
-        $columns       = new Columns(['name' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns, search: new Search('john', false));
-
-        self::assertNull($this->factory()->create($request, [$column])->globalSearch);
-    }
-
-    #[Test]
-    public function it_drops_empty_and_whitespace_column_searches(): void
-    {
-        $column      = TextColumn::new('name', 'Name')->setField('name');
-        $emptyColumn = new Column('name', 'name', true, true, new Search('', false));
-        $columns     = new Columns(['name' => $emptyColumn]);
-        $request     = new DataTableRequest(1, $columns);
-
-        self::assertSame([], $this->factory()->create($request, [$column])->columnSearches);
-
-        $whitespaceColumn = new Column('name', 'name', true, true, new Search('   ', false));
-        $request          = new DataTableRequest(1, new Columns(['name' => $whitespaceColumn]));
-
-        self::assertSame([], $this->factory()->create($request, [$column])->columnSearches);
-    }
-
-    #[Test]
-    public function it_skips_non_searchable_columns_for_column_searches(): void
-    {
-        $column        = TextColumn::new('name', 'Name')->setField('name')->setSearchable(false);
-        $requestColumn = new Column('name', 'name', true, true, new Search('john', false));
-        $columns       = new Columns(['name' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns);
-
-        self::assertSame([], $this->factory()->create($request, [$column])->columnSearches);
-    }
-
-    #[Test]
-    public function it_emits_a_column_search_intent_for_a_searchable_column(): void
-    {
-        $column        = TextColumn::new('name', 'Name')->setField('name');
-        $requestColumn = new Column('name', 'name', true, true, new Search('john', false));
-        $columns       = new Columns(['name' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns);
-
-        $intent = $this->factory()->create($request, [$column]);
-
-        self::assertCount(1, $intent->columnSearches);
-        self::assertSame('name', $intent->columnSearches[0]->column->name);
-        self::assertSame('john', $intent->columnSearches[0]->value);
-    }
-
-    #[Test]
-    public function it_lets_column_control_list_win_over_scalar_search(): void
-    {
-        $column = TextColumn::new('status', 'Status')->setField('status');
-
-        $columnControl = new ColumnControl(
-            search: new ColumnControlSearch('active', ColumnControlLogic::Contains, 'text'),
-            list: ['active', 'pending'],
-        );
-        $requestColumn = new Column('status', 'status', true, true, columnControl: $columnControl);
-        $columns       = new Columns(['status' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns);
-
-        $intent = $this->factory()->create($request, [$column]);
+        $intent = $this->intent($request, $column);
 
         self::assertCount(1, $intent->columnControls);
+
         $control = $intent->columnControls[0];
-        self::assertInstanceOf(ColumnControlIntent::class, $control);
-        self::assertTrue($control->isList());
-        self::assertSame(ColumnControlLogic::In, $control->logic);
-        self::assertSame(['active', 'pending'], $control->values);
-        self::assertNull($control->value);
+        self::assertSame($expectedLogic, $control->logic);
+        self::assertSame($expectedIsList, $control->isList());
+        self::assertSame($expectedValue, $control->value);
+        self::assertSame($expectedValues, $control->values);
         self::assertSame([], $intent->columnSearches);
     }
 
     #[Test]
-    public function it_emits_a_scalar_column_control_when_no_list_is_present(): void
-    {
-        $column = TextColumn::new('status', 'Status')->setField('status');
-
-        $columnControl = new ColumnControl(
-            search: new ColumnControlSearch('active', ColumnControlLogic::Contains, 'text'),
-        );
-        $requestColumn = new Column('status', 'status', true, true, columnControl: $columnControl);
-        $columns       = new Columns(['status' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns);
-
-        $intent = $this->factory()->create($request, [$column]);
-
-        self::assertCount(1, $intent->columnControls);
-        $control = $intent->columnControls[0];
-        self::assertFalse($control->isList());
-        self::assertSame(ColumnControlLogic::Contains, $control->logic);
-        self::assertSame('active', $control->value);
-        self::assertSame([], $control->values);
-    }
-
-    #[Test]
-    public function it_keeps_empty_value_for_nullness_column_control(): void
-    {
-        $column = TextColumn::new('status', 'Status')->setField('status');
-
-        $columnControl = new ColumnControl(
-            search: new ColumnControlSearch('', ColumnControlLogic::Empty, 'text'),
-        );
-        $requestColumn = new Column('status', 'status', true, true, columnControl: $columnControl);
-        $columns       = new Columns(['status' => $requestColumn]);
-
-        $request = new DataTableRequest(1, $columns);
-
-        $intent = $this->factory()->create($request, [$column]);
-
-        self::assertCount(1, $intent->columnControls);
-        self::assertSame(ColumnControlLogic::Empty, $intent->columnControls[0]->logic);
-    }
-
-    #[Test]
-    public function it_normalizes_a_non_positive_length_to_no_limit(): void
+    #[DataProvider('paginationRequests')]
+    public function it_normalizes_pagination(int $start, int $length, int $expectedOffset, ?int $expectedLimit): void
     {
         $column  = TextColumn::new('name', 'Name')->setField('name');
-        $columns = new Columns(['name' => new Column('name', 'name', true, true)]);
+        $request = new DataTableRequest(1, $this->requestColumns($column), start: $start, length: $length);
 
-        $zeroLength = new DataTableRequest(1, $columns, start: 0, length: 0);
-        self::assertNull($this->factory()->create($zeroLength, [$column])->pagination->limit);
+        $pagination = $this->intent($request, $column)->pagination;
 
-        $negativeLength = new DataTableRequest(1, $columns, start: 0, length: -5);
-        self::assertNull($this->factory()->create($negativeLength, [$column])->pagination->limit);
-    }
-
-    #[Test]
-    public function it_keeps_a_positive_length_as_the_limit(): void
-    {
-        $column  = TextColumn::new('name', 'Name')->setField('name');
-        $columns = new Columns(['name' => new Column('name', 'name', true, true)]);
-
-        $request = new DataTableRequest(1, $columns, start: 20, length: 10);
-
-        $pagination = $this->factory()->create($request, [$column])->pagination;
-
-        self::assertSame(20, $pagination->offset);
-        self::assertSame(10, $pagination->limit);
-    }
-
-    #[Test]
-    public function it_normalizes_a_negative_start_to_zero(): void
-    {
-        $column  = TextColumn::new('name', 'Name')->setField('name');
-        $columns = new Columns(['name' => new Column('name', 'name', true, true)]);
-
-        $request = new DataTableRequest(1, $columns, start: -3, length: 10);
-
-        self::assertSame(0, $this->factory()->create($request, [$column])->pagination->offset);
+        self::assertSame($expectedOffset, $pagination->offset);
+        self::assertSame($expectedLimit, $pagination->limit);
     }
 
     #[Test]
     public function it_builds_column_read_references_in_display_order(): void
     {
-        $name    = TextColumn::new('name', 'Name')->setField('name');
-        $id      = NumberColumn::new('id', 'ID')->setField('id');
-        $columns = new Columns([]);
+        $name = TextColumn::new('name', 'Name')->setField('name');
+        $id   = NumberColumn::new('id', 'ID')->setField('id');
 
-        $request = new DataTableRequest(1, $columns);
+        $request = new DataTableRequest(1, new Columns([]));
 
-        $intent = $this->factory()->create($request, [$name, $id]);
+        $intent = $this->intent($request, $name, $id);
 
         self::assertCount(2, $intent->columns);
         self::assertSame('name', $intent->columns[0]->name);
         self::assertSame('id', $intent->columns[1]->name);
+    }
+
+    #[Test]
+    public function it_maps_shifted_request_columns_by_name(): void
+    {
+        $name  = TextColumn::new('name', 'Name')->setField('name');
+        $email = TextColumn::new('email', 'Email')->setField('email');
+
+        $request = new DataTableRequest(
+            draw: 1,
+            columns: new Columns([
+                ''      => new Column('', '', false, false),
+                'name'  => new Column('name', 'name', true, true, new Search('alice', false)),
+                'email' => new Column(
+                    'email',
+                    'email',
+                    true,
+                    true,
+                    columnControl: new ColumnControl(search: new ColumnControlSearch('acme', ColumnControlLogic::Contains, 'text')),
+                ),
+            ]),
+            order: [new Order(2, 'asc', 'email')],
+        );
+
+        $intent = $this->intent($request, $name, $email);
+
+        self::assertNotNull($intent->order);
+        self::assertSame('email', $intent->order->column->name);
+        self::assertSame(SortDirection::Asc, $intent->order->direction);
+
+        self::assertCount(1, $intent->columnSearches);
+        self::assertSame('name', $intent->columnSearches[0]->column->name);
+        self::assertSame('alice', $intent->columnSearches[0]->value);
+
+        self::assertCount(1, $intent->columnControls);
+        self::assertSame('email', $intent->columnControls[0]->column->name);
+        self::assertSame(ColumnControlLogic::Contains, $intent->columnControls[0]->logic);
+        self::assertSame('acme', $intent->columnControls[0]->value);
     }
 
     #[Test]
@@ -307,13 +311,25 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
         $first  = TextColumn::new('name', 'Name')->setField('name');
         $second = TextColumn::new('name', 'Other')->setField('other');
 
-        $request = new DataTableRequest(1, new Columns([]));
-
-        $this->factory()->create($request, [$first, $second]);
+        $this->intent(new DataTableRequest(1, new Columns([])), $first, $second);
     }
 
-    private function factory(): DefaultDataTableQueryIntentFactory
+    private function intent(DataTableRequest $request, ColumnInterface ...$columns): DataTableQueryIntent
     {
-        return new DefaultDataTableQueryIntentFactory();
+        return (new DefaultDataTableQueryIntentFactory())->create($request, $columns);
+    }
+
+    /**
+     * Request payload for a single configured column, always searchable and orderable so
+     * only the configured column drives what the intent keeps.
+     */
+    private function requestColumns(
+        ColumnInterface $column,
+        ?Search $search = null,
+        ?ColumnControl $columnControl = null,
+    ): Columns {
+        $name = $column->getName();
+
+        return new Columns([$name => new Column($name, $name, true, true, $search, $columnControl)]);
     }
 }

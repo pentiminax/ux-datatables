@@ -16,10 +16,33 @@ use PHPUnit\Framework\TestCase;
 final class ScrollerExtensionTest extends TestCase
 {
     #[Test]
-    public function it_serializes_to_true(): void
+    public function it_serializes_with_default_options(): void
     {
         $extension = new ScrollerExtension();
 
-        $this->assertTrue($extension->jsonSerialize());
+        $this->assertSame([
+            'boundaryScale' => 0.5,
+            'displayBuffer' => 9,
+            'rowHeight'     => 'auto',
+            'serverWait'    => 200,
+        ], $extension->jsonSerialize());
+    }
+
+    #[Test]
+    public function it_serializes_custom_options(): void
+    {
+        $extension = new ScrollerExtension(
+            boundaryScale: 0.75,
+            displayBuffer: 12,
+            rowHeight: 32,
+            serverWait: 500,
+        );
+
+        $this->assertSame([
+            'boundaryScale' => 0.75,
+            'displayBuffer' => 12,
+            'rowHeight'     => 32,
+            'serverWait'    => 500,
+        ], $extension->jsonSerialize());
     }
 }

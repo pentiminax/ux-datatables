@@ -1,9 +1,9 @@
 ---
 title: Select Extension
 description: Enable row, column, or cell selection workflows
+order: 20
+navTitle: Select
 ---
-
-# Select Extension
 
 ## When To Use
 
@@ -46,6 +46,10 @@ $dataTable->addExtension($select);
 
 - Enabling checkbox mode without confirming responsive column behavior.
 - Not handling `select`/`deselect` events in custom controllers when needed.
+
+Checkbox mode prepends a client-only column. Server-side order, column search, and
+Column Control criteria are matched by column name, so they stay aligned with that extra
+column.
 
 ## Cross Links
 

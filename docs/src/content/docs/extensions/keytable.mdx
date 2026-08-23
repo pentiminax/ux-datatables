@@ -1,9 +1,9 @@
 ---
 title: KeyTable Extension
 description: Keyboard navigation for DataTables cells and rows
+order: 50
+navTitle: KeyTable
 ---
-
-# KeyTable Extension
 
 ## When To Use
 
@@ -16,6 +16,29 @@ use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
 
 $dataTable->addExtension(new KeyTableExtension());
 ```
+
+## Advanced Example
+
+```php
+$dataTable->addExtension(
+    new KeyTableExtension(
+        blurable: false,
+        className: 'cell-focus',
+        clipboard: true,
+        clipboardOrthogonal: 'display',
+        columns: ':not(:first-child)',
+        editOnFocus: false,
+        focus: [0, 1],
+        keys: [37, 38, 39, 40],
+        tabIndex: 0,
+    )
+);
+```
+
+`columns` is a DataTables column-selector string restricting which columns can be focused (default
+`''` allows every column). `focus` is a `[row, column]` pair to focus on load. `keys` restricts
+which key codes KeyTable listens for; omit either to keep DataTables' defaults (no initial focus,
+every key).
 
 ## Frequent Pitfalls
 

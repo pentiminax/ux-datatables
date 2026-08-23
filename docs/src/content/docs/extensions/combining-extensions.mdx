@@ -1,9 +1,9 @@
 ---
 title: Combining Extensions
 description: Recommended extension combinations and integration notes
+order: 100
+navTitle: Combining Extensions
 ---
-
-# Combining Extensions
 
 ## Recommended Combination
 
@@ -37,6 +37,8 @@ $dataTable
 - `FixedColumnsExtension` plus `ColReorderExtension` on narrow screens.
 - `ScrollerExtension` with custom row rendering.
 - `RowGroupExtension` is incompatible with `ScrollerExtension`; Buttons exports omit group rows.
+- `FixedHeaderExtension` is not intended to be combined with `ScrollerExtension` or the core
+  `scrollY` / `scrollX` scrolling feature, since all three manage header positioning.
 
 ## Cross Links
 

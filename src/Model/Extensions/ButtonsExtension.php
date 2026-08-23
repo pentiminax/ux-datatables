@@ -47,6 +47,28 @@ final class ButtonsExtension extends AbstractExtension implements LayoutAwareExt
         return $this;
     }
 
+    /**
+     * @param list<Button|array<string, mixed>|string> $buttons
+     *
+     * @see Button::collection()
+     */
+    public function withCollectionButton(array $buttons): self
+    {
+        $this->buttons[] = Button::collection($buttons);
+
+        return $this;
+    }
+
+    /**
+     * @see Button::ccSearchClear()
+     */
+    public function withCcSearchClearButton(): self
+    {
+        $this->buttons[] = Button::ccSearchClear();
+
+        return $this;
+    }
+
     public function withCopyButton(): self
     {
         $this->buttons[] = Button::copy();

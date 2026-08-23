@@ -39,7 +39,7 @@ describe('actionColumnRenderer', () => {
 
       const html = column.render(null, 'display', { id: 42 })
       expect(html).toContain('data-action-type="DELETE"')
-      expect(html).toContain('data-entity="App\\Entity\\User"')
+      expect(html).not.toContain('data-entity=')
       expect(html).toContain('data-id="42"')
       expect(html).toContain('Delete')
       expect(html).toContain('btn btn-danger')
@@ -262,7 +262,7 @@ describe('actionColumnRenderer', () => {
       expect(html).toContain('View')
     })
 
-    it('renders a collapsible detail action as a button with entity and id', () => {
+    it('renders a collapsible detail action as a button with an id', () => {
       const column: Record<string, any> = {
         actions: [
           {
@@ -282,7 +282,7 @@ describe('actionColumnRenderer', () => {
       expect(html).toContain('<button ')
       expect(html).toContain('type="button"')
       expect(html).toContain('data-action-type="DETAIL"')
-      expect(html).toContain('data-entity="App\\Entity\\Book"')
+      expect(html).not.toContain('data-entity=')
       expect(html).toContain('data-id="42"')
       expect(html).not.toContain('href=')
     })

@@ -4,20 +4,23 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Form;
 
+use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
-use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
-use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
+use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Form\FormInterface;
 
 final class EditFormService
 {
+    private readonly PermissionChecker $permissionChecker;
+
     public function __construct(
         private readonly EntityLocator $locator,
         private readonly EditFormBuilder $builder,
@@ -26,64 +29,55 @@ final class EditFormService
         private readonly MercurePublisherInterface $publisher,
         private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
         private readonly ?ContainerInterface $dataTables = null,
+        ?PermissionChecker $permissionChecker = null,
     ) {
+        $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
     }
 
-    public function handleView(AjaxEditFormQueryDto $payload): EditFormResult
+    public function handleView(ResolvedDataTable $dataTable, int|string $id): EditFormResult
     {
-        if (null === $payload->dataTableClass) {
-            return EditFormResult::badRequest('Edit modal requires a DataTable class (AbstractDataTable).');
-        }
-
         try {
-            $context = $this->locator->locate($payload->entity, $payload->id);
+            $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
         } catch (EntityNotFoundException) {
             return EditFormResult::notFound();
         }
 
-        $columns = $this->templateResolver->resolveColumns($payload->dataTableClass);
-
-        $form = $this->builder->buildForm(
-            entity: $context->entity,
-            columns: $columns,
-            identifierFields: $this->identifierFields($context, $payload->entity),
-        );
+        if (!$this->permissionChecker->isGranted('EDIT', $context->entity)) {
+            return EditFormResult::forbidden();
+        }
 
         return EditFormResult::success($this->renderer->render($this->createRenderRequest(
             entity: $context->entity,
-            form: $form,
-            dataTableClass: $payload->dataTableClass,
+            form: $this->buildForm($dataTable, $context),
+            dataTableClass: $dataTable->dataTableClass,
         )));
     }
 
-    public function handleSubmit(AjaxEditFormRequestDto $payload): EditFormResult
+    /**
+     * @param array<string, mixed> $formData
+     */
+    public function handleSubmit(ResolvedDataTable $dataTable, int|string $id, array $formData): EditFormResult
     {
-        if (null === $payload->dataTableClass) {
-            return EditFormResult::badRequest('Edit modal requires a DataTable class (AbstractDataTable).');
-        }
-
         try {
-            $context = $this->locator->locate($payload->entity, $payload->id);
+            $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
         } catch (EntityNotFoundException) {
             return EditFormResult::notFound();
         }
 
-        $columns = $this->templateResolver->resolveColumns($payload->dataTableClass);
+        if (!$this->permissionChecker->isGranted('EDIT', $context->entity)) {
+            return EditFormResult::forbidden();
+        }
 
-        $form = $this->builder->buildForm(
-            entity: $context->entity,
-            columns: $columns,
-            identifierFields: $this->identifierFields($context, $payload->entity),
-        );
+        $form = $this->buildForm($dataTable, $context);
 
-        $form->submit($payload->formData);
+        $form->submit($formData);
 
         if (!$form->isValid()) {
             $html = $this->renderer->renderBody(
                 $this->createRenderRequest(
                     entity: $context->entity,
                     form: $form,
-                    dataTableClass: $payload->dataTableClass,
+                    dataTableClass: $dataTable->dataTableClass,
                 )
             );
 
@@ -92,20 +86,22 @@ final class EditFormService
 
         $context->manager->flush();
 
-        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $payload->entity, $this->dataTables, $payload->dataTableClass), [
+        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $dataTable->requireEntityClass(), $this->dataTables, $dataTable->dataTableClass), [
             'type' => 'edit',
-            'id'   => $payload->id,
+            'id'   => $id,
         ]);
 
         return EditFormResult::success();
     }
 
-    /**
-     * @return string[]
-     */
-    private function identifierFields(MutationContext $context, string $entityClass): array
+    private function buildForm(ResolvedDataTable $dataTable, MutationContext $context): FormInterface
     {
-        return $context->manager->getClassMetadata($entityClass)->getIdentifierFieldNames();
+        return $this->builder->buildForm(
+            entity: $context->entity,
+            columns: (new ColumnResolver(permissionChecker: $this->permissionChecker))
+                ->filterStaticPermissions($this->templateResolver->resolveColumns($dataTable->dataTableClass)),
+            identifierFields: $context->manager->getClassMetadata($dataTable->requireEntityClass())->getIdentifierFieldNames(),
+        );
     }
 
     private function createRenderRequest(

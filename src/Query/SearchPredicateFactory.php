@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Query;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\SearchAwareColumnInterface;
 
 /**
  * Builds a DQL search condition for a column based on its type.
@@ -19,14 +18,13 @@ use Pentiminax\UX\DataTables\Contracts\SearchAwareColumnInterface;
  *     DQL fragment, that fragment is returned verbatim. The caller is responsible
  *     for binding any parameters on the QueryBuilder inside the predicate.
  *
- *  2. Otherwise, the effective field path is resolved via
- *     {@see ColumnSearchResolver::resolveField()} (respecting
- *     {@see SearchAwareColumnInterface::getSearchField()} before falling back to
- *     {@see ColumnInterface::getField()}), and the standard type-based predicate
- *     is built:
+ *  2. Otherwise the supplied field path is used to build a type-based predicate:
  *       - Numeric columns: exact match when the value is numeric, null otherwise.
  *       - Date columns: always null (unsupported by default text search).
- *       - Other columns: LIKE %value% when the field supports text search.
+ *       - Native UUID/ULID columns: exact match when the value is a well-formed
+ *         identifier of that field's type, null otherwise.
+ *       - Other columns: LIKE %value% via UX_DATATABLES_SEARCH when the field
+ *         supports text search, null otherwise.
  *
  * A column is treated as numeric when {@see ColumnInterface::isNumber()} is true or
  * when the caller forces numeric handling via $forceNumeric.
@@ -61,6 +59,18 @@ final class SearchPredicateFactory
 
         if ($column->isDate()) {
             return null;
+        }
+
+        $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $field);
+
+        if (null !== $uuidType) {
+            $identifier = UuidSearchTerm::normalize($value, $uuidType);
+
+            if (null === $identifier) {
+                return null;
+            }
+
+            return SearchConditionBuilder::equality($qb, $alias, $field, $identifier, $paramName, $uuidType);
         }
 
         if (!RelationFieldResolver::supportsTextSearch($qb, $field)) {

@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Query\SearchConditionBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -16,83 +17,115 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SearchConditionBuilder::class)]
 final class SearchConditionBuilderTest extends TestCase
 {
-    #[Test]
-    public function text_returns_ux_search_condition_and_sets_lower_cased_wrapped_parameter(): void
+    /**
+     * Each case gives the builder method, the searched field path and value, the expected
+     * DQL fragment, the exact setParameter() arguments and the expected left join.
+     *
+     * @return iterable<string, array{string, string, string, string, array<int, mixed>, ?array{string, string}}>
+     */
+    public static function conditions(): iterable
     {
+        yield 'text on a simple field' => [
+            'text',
+            'name',
+            'hello',
+            'UX_DATATABLES_SEARCH(e.name, :param_0) = 1',
+            ['param_0', '%hello%'],
+            null,
+        ];
+
+        yield 'text on a relation path' => [
+            'text',
+            'author.firstName',
+            'john',
+            'UX_DATATABLES_SEARCH(author.firstName, :param_0) = 1',
+            ['param_0', '%john%'],
+            ['e.author', 'author'],
+        ];
+
+        yield 'text with like wildcards is escaped, not interpreted' => [
+            'text',
+            'name',
+            '50%_off',
+            'UX_DATATABLES_SEARCH(e.name, :param_0) = 1',
+            ['param_0', '%50!%!_off%'],
+            null,
+        ];
+
+        yield 'text is lower-cased before binding' => [
+            'text',
+            'name',
+            'John Doe',
+            'UX_DATATABLES_SEARCH(e.name, :param_0) = 1',
+            ['param_0', '%john doe%'],
+            null,
+        ];
+
+        yield 'numeric on a simple field' => [
+            'numeric',
+            'id',
+            '42',
+            'e.id = :param_0',
+            ['param_0', '42', null],
+            null,
+        ];
+
+        yield 'numeric on a relation path' => [
+            'numeric',
+            'order.total',
+            '99',
+            'order.total = :param_0',
+            ['param_0', '99', null],
+            ['e.order', 'order'],
+        ];
+    }
+
+    /**
+     * @param array<int, mixed>      $expectedParameter
+     * @param ?array{string, string} $expectedJoin
+     */
+    #[Test]
+    #[DataProvider('conditions')]
+    public function it_builds_the_condition_and_binds_the_value(
+        string $method,
+        string $fieldPath,
+        string $value,
+        string $expectedCondition,
+        array $expectedParameter,
+        ?array $expectedJoin,
+    ): void {
         $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+
+        if (null === $expectedJoin) {
+            $qb->expects($this->never())->method('leftJoin');
+        } else {
+            $qb->expects($this->once())
+                ->method('leftJoin')
+                ->with($expectedJoin[0], $expectedJoin[1])
+                ->willReturn($qb);
+        }
 
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with('param_0', '%hello%');
+            ->with(...$expectedParameter);
 
-        $result = SearchConditionBuilder::text($qb, 'e', 'name', 'hello', 'param_0');
+        $result = SearchConditionBuilder::$method($qb, 'e', $fieldPath, $value, 'param_0');
 
-        $this->assertSame('UX_DATATABLES_SEARCH(e.name, :param_0) = 1', $result);
+        $this->assertSame($expectedCondition, $result);
     }
 
     #[Test]
-    public function text_lower_cases_the_value_before_binding(): void
+    public function equality_binds_the_given_doctrine_type(): void
     {
         $qb = $this->createMock(QueryBuilder::class);
 
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with('param_0', '%john doe%');
+            ->with('param_0', '01ARZ3NDEKTSV4RRFFQ69G5FAV', 'ulid');
 
-        SearchConditionBuilder::text($qb, 'e', 'name', 'John Doe', 'param_0');
-    }
-
-    #[Test]
-    public function numeric_returns_exact_condition_and_sets_raw_parameter(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-
-        $qb->expects($this->once())
-            ->method('setParameter')
-            ->with('param_0', '42');
-
-        $result = SearchConditionBuilder::numeric($qb, 'e', 'id', '42', 'param_0');
+        $result = SearchConditionBuilder::equality($qb, 'e', 'id', '01ARZ3NDEKTSV4RRFFQ69G5FAV', 'param_0', 'ulid');
 
         $this->assertSame('e.id = :param_0', $result);
-    }
-
-    #[Test]
-    public function text_with_dot_notation_triggers_join(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-
-        $qb->expects($this->once())
-            ->method('leftJoin')
-            ->with('e.author', 'author')
-            ->willReturn($qb);
-
-        $qb->expects($this->once())
-            ->method('setParameter')
-            ->with('param_0', '%john%');
-
-        $result = SearchConditionBuilder::text($qb, 'e', 'author.firstName', 'john', 'param_0');
-
-        $this->assertSame('UX_DATATABLES_SEARCH(author.firstName, :param_0) = 1', $result);
-    }
-
-    #[Test]
-    public function numeric_with_dot_notation_triggers_join(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-
-        $qb->expects($this->once())
-            ->method('leftJoin')
-            ->with('e.order', 'order')
-            ->willReturn($qb);
-
-        $qb->expects($this->once())
-            ->method('setParameter')
-            ->with('param_0', '99');
-
-        $result = SearchConditionBuilder::numeric($qb, 'e', 'order.total', '99', 'param_0');
-
-        $this->assertSame('order.total = :param_0', $result);
     }
 }

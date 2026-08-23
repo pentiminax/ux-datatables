@@ -11,6 +11,7 @@ use Doctrine\ORM\Query\AST\Node;
 use Doctrine\ORM\Query\Parser;
 use Doctrine\ORM\Query\SqlWalker;
 use Doctrine\ORM\Query\TokenType;
+use Pentiminax\UX\DataTables\Query\LikeValueEscaper;
 
 /**
  * DQL function: UX_DATATABLES_SEARCH(columnRef, searchValue).
@@ -18,8 +19,8 @@ use Doctrine\ORM\Query\TokenType;
  * Returns an integer (1 = match, 0 = no match) wrapping a case-insensitive,
  * platform-aware LIKE predicate:
  *
- *   PostgreSQL : CASE WHEN LOWER(CAST(field AS TEXT)) LIKE ? THEN 1 ELSE 0 END
- *   MySQL / MariaDB / SQLite : CASE WHEN LOWER(field) LIKE ? THEN 1 ELSE 0 END
+ *   PostgreSQL : CASE WHEN LOWER(CAST(field AS TEXT)) LIKE ? ESCAPE '!' THEN 1 ELSE 0 END
+ *   MySQL / MariaDB / SQLite : CASE WHEN LOWER(field) LIKE ? ESCAPE '!' THEN 1 ELSE 0 END
  *
  * Returning an integer instead of a raw boolean expression avoids a type mismatch
  * on PostgreSQL: LIKE yields a native boolean there, and comparing it with the
@@ -66,9 +67,19 @@ final class UxDataTablesSearchFunction extends FunctionNode
         $platform = $sqlWalker->getConnection()->getDatabasePlatform();
 
         if ($platform instanceof PostgreSQLPlatform) {
-            return \sprintf('CASE WHEN LOWER(CAST(%s AS TEXT)) LIKE %s THEN 1 ELSE 0 END', $field, $value);
+            return \sprintf(
+                "CASE WHEN LOWER(CAST(%s AS TEXT)) LIKE %s ESCAPE '%s' THEN 1 ELSE 0 END",
+                $field,
+                $value,
+                LikeValueEscaper::ESCAPE_CHARACTER,
+            );
         }
 
-        return \sprintf('CASE WHEN LOWER(%s) LIKE %s THEN 1 ELSE 0 END', $field, $value);
+        return \sprintf(
+            "CASE WHEN LOWER(%s) LIKE %s ESCAPE '%s' THEN 1 ELSE 0 END",
+            $field,
+            $value,
+            LikeValueEscaper::ESCAPE_CHARACTER,
+        );
     }
 }

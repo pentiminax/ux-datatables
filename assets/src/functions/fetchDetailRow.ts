@@ -1,7 +1,6 @@
 type FetchDetailRowPayload = {
-    entity: string
+    dataTable: string
     id: string
-    dataTableClass: string | null
 }
 
 type FetchDetailRowResponse = {
@@ -12,17 +11,13 @@ type FetchDetailRowResponse = {
 export async function fetchDetailRow(
     payload: FetchDetailRowPayload
 ): Promise<FetchDetailRowResponse> {
-    const params = new URLSearchParams({
-        entity: payload.entity,
-        id: payload.id,
-    })
-
-    if (payload.dataTableClass) {
-        params.append('dataTableClass', payload.dataTableClass)
-    }
-
-    const response = await fetch(`/datatables/ajax/detail?${params}`, {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    const response = await fetch('/datatables/ajax/detail', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ dataTable: payload.dataTable, id: payload.id }),
     })
 
     return response.json()

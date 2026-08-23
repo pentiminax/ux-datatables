@@ -5,223 +5,137 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\UrlColumn;
+use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * @internal
  */
 #[CoversClass(UrlColumn::class)]
-final class UrlColumnTest extends TestCase
+final class UrlColumnTest extends DataTableTestCase
 {
     #[Test]
-    public function it_creates_html_type_column(): void
+    public function it_creates_html_type_column_with_only_the_url_marker(): void
     {
-        $data = UrlColumn::new('website', 'Website')->jsonSerialize();
+        $column = UrlColumn::new('website', 'Website');
 
-        $this->assertSame('html', $data['type']);
-        $this->assertSame('website', $data['data']);
-        $this->assertSame('website', $data['name']);
-        $this->assertSame('Website', $data['title']);
-        $this->assertTrue($data['customOptions']['isUrl']);
+        $this->assertColumnHeader($column, 'html', 'website', 'Website');
+        $this->assertCustomOptions(['isUrl' => true], $column);
     }
 
     #[Test]
-    public function it_falls_back_to_name_as_title(): void
+    #[DataProvider('provideCustomOptions')]
+    public function it_serializes_custom_options(string $method, mixed $argument, string $option, mixed $expected): void
     {
-        $data = UrlColumn::new('website')->jsonSerialize();
+        $column = UrlColumn::new('website')->{$method}($argument);
 
-        $this->assertSame('website', $data['title']);
+        $this->assertCustomOption($expected, $option, $column);
+    }
+
+    /**
+     * @return iterable<string, array{string, mixed, string, mixed}>
+     */
+    public static function provideCustomOptions(): iterable
+    {
+        yield 'new tab' => ['openInNewTab', true, 'target', '_blank'];
+        yield 'display value' => ['setDisplayValue', 'Visit', 'displayValue', 'Visit'];
+        yield 'default protocol' => ['setDefaultProtocol', 'https', 'defaultProtocol', 'https'];
+        yield 'default protocol is normalized' => ['setDefaultProtocol', '  HTTPS:  ', 'defaultProtocol', 'https'];
+        yield 'allowed protocols' => ['allowedProtocols', ['http', 'https'], 'allowedProtocols', ['http', 'https']];
+        yield 'allowed protocols are normalized and deduplicated' => ['allowedProtocols', ['HTTP', 'http', ' https: '], 'allowedProtocols', ['http', 'https']];
+        yield 'external icon shown' => ['showExternalIcon', true, 'showExternalIcon', true];
+        yield 'external icon hidden' => ['showExternalIcon', false, 'showExternalIcon', false];
+        yield 'empty rendered as anchor' => ['renderEmptyAsAnchor', true, 'renderEmptyAsAnchor', true];
+        yield 'empty not rendered as anchor' => ['renderEmptyAsAnchor', false, 'renderEmptyAsAnchor', false];
     }
 
     #[Test]
-    public function it_sets_target_blank_when_opening_in_new_tab(): void
+    #[TestWith(['renderEmptyAsAnchor'])]
+    #[TestWith(['hasUrlResolver'])]
+    public function it_omits_optional_custom_options_by_default(string $option): void
     {
-        $data = UrlColumn::new('website')
-            ->openInNewTab()
-            ->jsonSerialize();
-
-        $this->assertSame('_blank', $data['customOptions']['target']);
+        $this->assertNoCustomOption($option, UrlColumn::new('website'));
     }
 
     #[Test]
-    public function it_stores_display_value_text(): void
-    {
-        $data = UrlColumn::new('website')
-            ->setDisplayValue('Visit')
-            ->jsonSerialize();
-
-        $this->assertSame('Visit', $data['customOptions']['displayValue']);
-    }
-
-    #[Test]
-    public function it_stores_default_protocol(): void
-    {
-        $data = UrlColumn::new('website')
-            ->setDefaultProtocol('https')
-            ->jsonSerialize();
-
-        $this->assertSame('https', $data['customOptions']['defaultProtocol']);
-    }
-
-    #[Test]
-    public function it_stores_allowed_protocols(): void
-    {
-        $data = UrlColumn::new('website')
-            ->allowedProtocols(['http', 'https'])
-            ->jsonSerialize();
-
-        $this->assertSame(['http', 'https'], $data['customOptions']['allowedProtocols']);
-    }
-
-    #[Test]
-    public function it_normalizes_default_protocol(): void
-    {
-        $data = UrlColumn::new('website')
-            ->setDefaultProtocol('  HTTPS:  ')
-            ->jsonSerialize();
-
-        $this->assertSame('https', $data['customOptions']['defaultProtocol']);
-    }
-
-    #[Test]
-    public function it_rejects_empty_default_protocol(): void
+    #[DataProvider('provideInvalidProtocols')]
+    public function it_rejects_invalid_protocols(string $method, mixed $argument, string $message): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Protocol cannot be empty.');
+        $this->expectExceptionMessage($message);
 
-        UrlColumn::new('website')->setDefaultProtocol('   ');
+        UrlColumn::new('website')->{$method}($argument);
+    }
+
+    /**
+     * @return iterable<string, array{string, mixed, string}>
+     */
+    public static function provideInvalidProtocols(): iterable
+    {
+        yield 'empty default protocol' => ['setDefaultProtocol', '   ', 'Protocol cannot be empty.'];
+        yield 'malformed default protocol' => ['setDefaultProtocol', 'http://', 'Invalid protocol format: "http://".'];
+        yield 'unsafe default protocol' => ['setDefaultProtocol', 'JavaScript', 'Unsafe protocol "javascript" is not allowed.'];
+        yield 'unsafe allowed protocol' => ['allowedProtocols', ['https', 'data'], 'Unsafe protocol "data" is not allowed.'];
     }
 
     #[Test]
-    public function it_rejects_default_protocol_with_invalid_format(): void
+    #[DataProvider('provideUrlResolvers')]
+    public function it_resolves_url_without_a_generator(string|\Closure $url, ?string $expected): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Invalid protocol format: "http://".');
+        $column = UrlColumn::new('website')->linkToUrl($url);
 
-        UrlColumn::new('website')->setDefaultProtocol('http://');
-    }
-
-    #[Test]
-    public function it_rejects_unsafe_default_protocol(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unsafe protocol "javascript" is not allowed.');
-
-        UrlColumn::new('website')->setDefaultProtocol('JavaScript');
-    }
-
-    #[Test]
-    public function it_normalizes_and_deduplicates_allowed_protocols(): void
-    {
-        $data = UrlColumn::new('website')
-            ->allowedProtocols(['HTTP', 'http', ' https: '])
-            ->jsonSerialize();
-
-        $this->assertSame(['http', 'https'], $data['customOptions']['allowedProtocols']);
-    }
-
-    #[Test]
-    public function it_rejects_unsafe_allowed_protocols(): void
-    {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Unsafe protocol "data" is not allowed.');
-
-        UrlColumn::new('website')->allowedProtocols(['https', 'data']);
-    }
-
-    #[Test]
-    public function it_stores_external_icon_flag(): void
-    {
-        $data = UrlColumn::new('website')
-            ->showExternalIcon()
-            ->jsonSerialize();
-
-        $this->assertTrue($data['customOptions']['showExternalIcon']);
-    }
-
-    #[Test]
-    public function it_can_disable_external_icon(): void
-    {
-        $data = UrlColumn::new('website')
-            ->showExternalIcon(false)
-            ->jsonSerialize();
-
-        $this->assertFalse($data['customOptions']['showExternalIcon']);
-    }
-
-    #[Test]
-    public function it_resolves_static_url(): void
-    {
-        $column = UrlColumn::new('website')
-            ->linkToUrl('/users');
-
-        $this->assertSame('/users', $column->resolveUrl((object) ['id' => 7]));
+        $this->assertSame($expected, $column->resolveUrl((object) ['id' => 7]));
         $this->assertTrue($column->hasUrlResolver());
-        $this->assertArrayNotHasKey('url', $column->jsonSerialize()['customOptions']);
+        $this->assertNoCustomOption('url', $column);
+        $this->assertCustomOption(true, 'hasUrlResolver', $column);
+    }
+
+    /**
+     * @return iterable<string, array{string|\Closure, string|null}>
+     */
+    public static function provideUrlResolvers(): iterable
+    {
+        yield 'static url' => ['/users', '/users'];
+        yield 'callable url' => [static fn (object $row): string => '/users/'.$row->id, '/users/7'];
+        yield 'blank url is discarded' => [static fn (): string => '   ', null];
     }
 
     #[Test]
-    public function it_resolves_url_from_callable(): void
+    #[DataProvider('provideRouteParameters')]
+    public function it_resolves_route(\Closure|array $parameters, array $expectedParameters): void
     {
-        $column = UrlColumn::new('website')
-            ->linkToUrl(static fn (object $row): string => '/users/'.$row->id);
-
-        $this->assertSame('/users/7', $column->resolveUrl((object) ['id' => 7]));
-        $this->assertTrue($column->hasUrlResolver());
-        $this->assertArrayNotHasKey('url', $column->jsonSerialize()['customOptions']);
-    }
-
-    #[Test]
-    public function it_resolves_route_from_callable_params(): void
-    {
-        $column = UrlColumn::new('website')
-            ->linkToRoute('app_user_show', static fn (object $row): array => ['id' => $row->id]);
+        $column = UrlColumn::new('website')->linkToRoute('app_user_show', $parameters);
 
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $urlGenerator
             ->expects($this->once())
             ->method('generate')
-            ->with('app_user_show', ['id' => 7])
-            ->willReturn('/users/7');
+            ->with('app_user_show', $expectedParameters)
+            ->willReturn('/generated');
 
-        $this->assertSame('/users/7', $column->resolveUrl((object) ['id' => 7], $urlGenerator));
+        $this->assertSame('/generated', $column->resolveUrl((object) ['id' => 7], $urlGenerator));
         $this->assertTrue($column->hasUrlResolver());
-        $this->assertArrayNotHasKey('routeName', $column->jsonSerialize()['customOptions']);
+        $this->assertNoCustomOption('routeName', $column);
+        $this->assertCustomOption(true, 'hasUrlResolver', $column);
     }
 
-    #[Test]
-    public function it_resolves_route_from_array_params(): void
+    /**
+     * @return iterable<string, array{\Closure|array<string, mixed>, array<string, mixed>}>
+     */
+    public static function provideRouteParameters(): iterable
     {
-        $column = UrlColumn::new('website')
-            ->linkToRoute('app_user_index', ['type' => 'admin']);
-
-        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $urlGenerator
-            ->expects($this->once())
-            ->method('generate')
-            ->with('app_user_index', ['type' => 'admin'])
-            ->willReturn('/users?type=admin');
-
-        $this->assertSame('/users?type=admin', $column->resolveUrl((object) ['id' => 7], $urlGenerator));
-    }
-
-    #[Test]
-    public function it_returns_null_for_blank_url(): void
-    {
-        $column = UrlColumn::new('website')
-            ->linkToUrl(static fn (): string => '   ');
-
-        $this->assertNull($column->resolveUrl((object) ['id' => 7]));
+        yield 'callable parameters' => [static fn (object $row): array => ['id' => $row->id], ['id' => 7]];
+        yield 'array parameters' => [['type' => 'admin'], ['type' => 'admin']];
     }
 
     #[Test]
     public function it_fails_when_route_is_resolved_without_url_generator(): void
     {
-        $column = UrlColumn::new('website')
-            ->linkToRoute('app_user_show');
+        $column = UrlColumn::new('website')->linkToRoute('app_user_show');
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('UrlGeneratorInterface is required to resolve UrlColumn routes.');

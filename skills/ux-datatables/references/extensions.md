@@ -31,7 +31,7 @@ new ButtonsExtension([
 ]);
 ```
 
-`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`). The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton()`, `withExcelButton()`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`.
+`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`), `COLUMN_CONTROL_SEARCH_CLEAR` (value `'ccSearchClear'`), `COLLECTION` (value `'collection'`). The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton()`, `withExcelButton()`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`, `withCcSearchClearButton()`, `withCollectionButton(array $buttons)`.
 
 Fine-grained config via `Button`:
 ```php
@@ -42,6 +42,18 @@ new ButtonsExtension([
 ```
 
 To position buttons, place `Feature::BUTTONS` in `layout()` (see options).
+
+`Button::ccSearchClear()` clears the global search plus every ColumnControl per-column search in
+one click, using ColumnControl's own native Buttons entry (no JS needed). Requires
+`ColumnControlExtension` on the table.
+
+`Button::collection(array $buttons)` groups other buttons in a dropdown (the same mechanism
+`colVis()` builds on). `buttons` accepts `Button` objects, raw arrays, or extend-name strings, mixed
+freely — nested buttons serialize correctly at any depth since `Button` is `JsonSerializable`.
+
+```php
+Button::collection([Button::csv(), Button::excel(), 'colvis'])->text('Export');
+```
 
 ## Select — row/cell selection
 
@@ -61,23 +73,66 @@ Constructor also exposes `blurable`, `className`, `info`, `items`, `keys`, `sele
 new FixedColumnsExtension(start: 1, end: 0);  // freeze N leftmost / rightmost
 ```
 
+## FixedHeader — pin the header while scrolling
+
+```php
+new FixedHeaderExtension(header: true, footer: false, headerOffset: 0, footerOffset: 0);
+```
+
+Not intended to be combined with `ScrollerExtension` or the core `scrollY` / `scrollX` scrolling feature.
+
+## ColReorder — drag to reorder columns
+
+```php
+new ColReorderExtension(enable: true, columns: '', headerRows: null, order: null);  // all defaults
+```
+
+`enable: false` loads ColReorder locked; toggle at runtime with the JS API
+(`dt.colReorder.enable()`/`.disable()`, e.g. via `Button::custom()`). `columns` restricts which
+columns can be dragged: a DataTables column-selector string or a plain `list<int>` of column
+indexes. `headerRows` restricts reordering
+to specific header row indexes (multi-row headers); `order` sets the initial column order (original
+indexes in their new positions). Both default to `null` (every row / document order) and are
+omitted from the payload unless set.
+
+## Responsive — collapse columns on small screens
+
+```php
+new ResponsiveExtension(auto: true, detailsTarget: 0, detailsType: 'inline', orthogonal: 'display');
+```
+
+All params optional — `$table->responsive()` uses every default. `detailsType` also accepts
+`'column'`, `'colvis'`, or `false` to disable the hidden-column details control. Pass `breakpoints`
+(list of `['name' => string, 'width' => int]`) to override DataTables' built-in list; omit to keep it.
+
+## KeyTable — keyboard cell navigation
+
+```php
+new KeyTableExtension(blurable: true, className: 'focus', clipboard: true, columns: '', keys: null);
+```
+
+All params optional. `columns` is a column-selector string restricting which columns can be
+focused. `focus` (`[row, column]`) and `keys` (key codes to listen for) default to `null`, omitted
+from the payload unless set.
+
+## Scroller — virtual scrolling for large tables
+
+```php
+new ScrollerExtension(boundaryScale: 0.5, displayBuffer: 9, rowHeight: 'auto', serverWait: 200);
+```
+
+All params optional and match DataTables' own defaults.
+
 ## Toggle-only extensions
 
 No constructor args needed:
 
 | Extension | Effect |
 |-----------|--------|
-| `ResponsiveExtension` | collapse columns on small screens (`$table->responsive()`) |
 | `ColumnControlExtension` | per-column order/search controls (`$table->columnControl()`) |
-| `ScrollerExtension` | virtual scrolling for large tables |
-| `KeyTableExtension` | keyboard cell navigation |
-| `ColReorderExtension` | drag to reorder columns |
 
 ```php
-$extensions
-    ->addExtension(new ScrollerExtension())
-    ->addExtension(new KeyTableExtension())
-    ->addExtension(new ColReorderExtension());
+$extensions->addExtension(new ColumnControlExtension());
 ```
 
 See `docs/src/content/docs/extensions/combining-extensions.mdx` for compatible combinations.

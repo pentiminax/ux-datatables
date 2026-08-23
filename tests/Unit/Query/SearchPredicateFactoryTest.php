@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Mapping\ClassMetadata;
-use Doctrine\ORM\Mapping\FieldMapping;
-use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Query\SearchPredicateFactory;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -21,109 +20,192 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SearchPredicateFactory::class)]
 final class SearchPredicateFactoryTest extends TestCase
 {
-    #[Test]
-    public function it_returns_ux_search_condition_for_text_column(): void
+    use BuildsTypedFieldQueryBuilder;
+
+    private const string UUID = '018f2c3e-1234-7abc-9def-0123456789ab';
+
+    private const string ULID = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
+
+    /**
+     * Each case gives the configured column, the Doctrine type of its field, the searched
+     * value, whether numeric handling is forced, the expected DQL fragment and the exact
+     * setParameter() arguments, or null when nothing may be bound.
+     *
+     * @return iterable<string, array{ColumnInterface, ?string, string, bool, ?string, ?array<int, mixed>}>
+     */
+    public static function searchPredicates(): iterable
     {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->once())->method('setParameter')->with('p_0', '%hello%');
+        yield 'text column' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            null,
+            'hello',
+            false,
+            'UX_DATATABLES_SEARCH(e.name, :p_0) = 1',
+            ['p_0', '%hello%'],
+        ];
 
-        $column = TextColumn::new('name', 'Name')->setField('name');
-        $result = SearchPredicateFactory::build($qb, $column, 'e', 'name', 'hello', 'p_0');
+        yield 'text column with like wildcards is escaped, not interpreted' => [
+            TextColumn::new('name', 'Name')->setField('name'),
+            null,
+            '50%_off',
+            false,
+            'UX_DATATABLES_SEARCH(e.name, :p_0) = 1',
+            ['p_0', '%50!%!_off%'],
+        ];
 
-        $this->assertSame('UX_DATATABLES_SEARCH(e.name, :p_0) = 1', $result);
+        yield 'numeric column with numeric value' => [
+            NumberColumn::new('id', 'ID')->setField('id'),
+            null,
+            '42',
+            false,
+            'e.id = :p_0',
+            ['p_0', '42', null],
+        ];
+
+        yield 'numeric column with non-numeric value' => [
+            NumberColumn::new('id', 'ID')->setField('id'),
+            null,
+            'abc',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'non-numeric column forced to numeric' => [
+            TextColumn::new('score', 'Score')->setField('score'),
+            null,
+            '42',
+            true,
+            'e.score = :p_0',
+            ['p_0', '42', null],
+        ];
+
+        yield 'non-numeric value forced to numeric' => [
+            TextColumn::new('score', 'Score')->setField('score'),
+            null,
+            'abc',
+            true,
+            null,
+            null,
+        ];
+
+        yield 'non-text field' => [
+            TextColumn::new('active', 'Active')->setField('active'),
+            'boolean',
+            'true',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'guid field with uuid value' => [
+            TextColumn::new('id', 'ID')->setField('id'),
+            'guid',
+            self::UUID,
+            false,
+            'e.id = :p_0',
+            ['p_0', self::UUID, 'guid'],
+        ];
+
+        yield 'guid field with partial text value' => [
+            TextColumn::new('id', 'ID')->setField('id'),
+            'guid',
+            'hello',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'guid field with ulid value' => [
+            TextColumn::new('id', 'ID')->setField('id'),
+            'guid',
+            self::ULID,
+            false,
+            null,
+            null,
+        ];
+
+        yield 'ulid field with ulid value' => [
+            TextColumn::new('id', 'ID')->setField('id'),
+            'ulid',
+            self::ULID,
+            false,
+            'e.id = :p_0',
+            ['p_0', self::ULID, 'ulid'],
+        ];
+
+        yield 'ulid field with uuid value' => [
+            TextColumn::new('id', 'ID')->setField('id'),
+            'ulid',
+            self::UUID,
+            false,
+            null,
+            null,
+        ];
+
+        yield 'binary uuid field with uuid value' => [
+            TextColumn::new('id', 'ID')->setField('id'),
+            'uuid_binary',
+            self::UUID,
+            false,
+            'e.id = :p_0',
+            ['p_0', self::UUID, 'uuid_binary'],
+        ];
+
+        yield 'uuid field with padded value' => [
+            TextColumn::new('id', 'ID')->setField('id'),
+            'uuid',
+            '  '.self::UUID.'  ',
+            false,
+            'e.id = :p_0',
+            ['p_0', self::UUID, 'uuid'],
+        ];
+
+        yield 'uuid field with unhyphenated value' => [
+            TextColumn::new('id', 'ID')->setField('id'),
+            'uuid',
+            '018f2c3e12347abc9def0123456789ab',
+            false,
+            null,
+            null,
+        ];
+    }
+
+    /**
+     * @param ?array<int, mixed> $expectedParameter
+     */
+    #[Test]
+    #[DataProvider('searchPredicates')]
+    public function it_builds_the_search_predicate(
+        ColumnInterface $column,
+        ?string $fieldType,
+        string $value,
+        bool $forceNumeric,
+        ?string $expectedCondition,
+        ?array $expectedParameter,
+    ): void {
+        $field = (string) $column->getField();
+        $qb    = $this->queryBuilderWithFieldType($field, $fieldType);
+
+        if (null === $expectedParameter) {
+            $qb->expects($this->never())->method('setParameter');
+        } else {
+            $qb->expects($this->once())->method('setParameter')->with(...$expectedParameter);
+        }
+
+        $result = SearchPredicateFactory::build($qb, $column, 'e', $field, $value, 'p_0', $forceNumeric);
+
+        $this->assertSame($expectedCondition, $result);
     }
 
     #[Test]
     public function it_returns_null_for_text_column_with_association_field(): void
     {
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with('client')->willReturn(true);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getClassMetadata')->willReturn($metadata);
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
-        $qb->method('getEntityManager')->willReturn($em);
+        $qb = $this->queryBuilderWithAssociationField('client');
         $qb->expects($this->never())->method('setParameter');
 
         $column = TextColumn::new('client', 'Client')->setField('client');
         $result = SearchPredicateFactory::build($qb, $column, 'e', 'client', 'acme', 'p_0');
-
-        $this->assertNull($result);
-    }
-
-    #[Test]
-    public function it_returns_exact_condition_for_numeric_column_with_numeric_value(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->once())->method('setParameter')->with('p_0', '42');
-
-        $column = NumberColumn::new('id', 'ID')->setField('id');
-        $result = SearchPredicateFactory::build($qb, $column, 'e', 'id', '42', 'p_0');
-
-        $this->assertSame('e.id = :p_0', $result);
-    }
-
-    #[Test]
-    public function it_returns_null_for_numeric_column_with_non_numeric_value(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->expects($this->never())->method('setParameter');
-
-        $column = NumberColumn::new('id', 'ID')->setField('id');
-        $result = SearchPredicateFactory::build($qb, $column, 'e', 'id', 'abc', 'p_0');
-
-        $this->assertNull($result);
-    }
-
-    #[Test]
-    public function it_returns_exact_condition_for_non_numeric_column_when_forcing_numeric(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->once())->method('setParameter')->with('p_0', '42');
-
-        $column = TextColumn::new('score', 'Score')->setField('score');
-        $result = SearchPredicateFactory::build($qb, $column, 'e', 'score', '42', 'p_0', true);
-
-        $this->assertSame('e.score = :p_0', $result);
-    }
-
-    #[Test]
-    public function it_returns_null_when_forcing_numeric_with_non_numeric_value(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->expects($this->never())->method('setParameter');
-
-        $column = TextColumn::new('score', 'Score')->setField('score');
-        $result = SearchPredicateFactory::build($qb, $column, 'e', 'score', 'abc', 'p_0', true);
-
-        $this->assertNull($result);
-    }
-
-    #[Test]
-    public function it_returns_null_for_non_text_field(): void
-    {
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with('active')->willReturn(false);
-        $metadata->method('hasField')->with('active')->willReturn(true);
-        $metadata->method('getFieldMapping')->with('active')->willReturn(new FieldMapping('boolean', 'active', 'active'));
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getClassMetadata')->with('App\\Entity\\User')->willReturn($metadata);
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->method('getRootEntities')->willReturn(['App\\Entity\\User']);
-        $qb->method('getEntityManager')->willReturn($em);
-        $qb->expects($this->never())->method('setParameter');
-
-        $column = TextColumn::new('active', 'Active')->setField('active');
-        $result = SearchPredicateFactory::build($qb, $column, 'e', 'active', 'true', 'p_0');
 
         $this->assertNull($result);
     }

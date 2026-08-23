@@ -15,7 +15,7 @@ use Pentiminax\UX\DataTables\Query\SearchPredicateFactory;
 /**
  * Strategy for 'contains' search logic.
  *
- * Performs a case-sensitive substring search using SQL LIKE %value%.
+ * Performs a case-insensitive substring search via UX_DATATABLES_SEARCH.
  * For numeric columns, performs exact match if the value is numeric.
  *
  * Resolution order:

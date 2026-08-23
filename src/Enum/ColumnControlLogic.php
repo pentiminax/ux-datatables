@@ -37,7 +37,7 @@ enum ColumnControlLogic: string
     }
 
     /**
-     * Returns true for the logics that require a text-search LIKE predicate via
+     * Returns true for the logics that ComparisonSearchStrategy expresses with
      * UX_DATATABLES_SEARCH rather than a raw SQL comparison operator.
      *
      * Contains is intentionally excluded here because it is dispatched through
@@ -47,6 +47,23 @@ enum ColumnControlLogic: string
     public function usesTextSearch(): bool
     {
         return match ($this) {
+            self::Ends,
+            self::NotContains,
+            self::Starts => true,
+            default      => false,
+        };
+    }
+
+    /**
+     * Whether the logic is expressed with SQL LIKE, which strict engines reject on
+     * non-text columns such as PostgreSQL's native uuid type.
+     *
+     * Includes Contains in addition to the ComparisonSearchStrategy text-search logics.
+     */
+    public function usesLikeOperator(): bool
+    {
+        return match ($this) {
+            self::Contains,
             self::Ends,
             self::NotContains,
             self::Starts => true,

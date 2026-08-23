@@ -51,15 +51,19 @@ return static function (ContainerConfigurator $container): void {
         ->arg(4, service(MercurePublisherInterface::class))
         ->arg(5, service(MercureConfigResolverInterface::class)->nullOnInvalid())
         ->arg(6, tagged_locator('datatables.data_table'))
+        ->arg(7, service('datatables.security.permission_checker'))
         ->private();
 
     $services->set('datatables.controller.ajax_edit_form', AjaxEditFormController::class)
         ->arg(0, service('datatables.form.edit_form_service'))
+        ->arg(1, service('datatables.ajax.registry'))
         ->tag('controller.service_arguments')
         ->public();
 
     $services->set('datatables.controller.ajax_edit_form_submit', AjaxEditFormSubmitController::class)
         ->arg(0, service('datatables.form.edit_form_service'))
+        ->arg(1, service('datatables.security.mutation_token_validator'))
+        ->arg(2, service('datatables.ajax.registry'))
         ->tag('controller.service_arguments')
         ->public();
 };

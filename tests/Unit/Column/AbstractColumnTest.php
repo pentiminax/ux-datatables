@@ -73,6 +73,40 @@ final class AbstractColumnTest extends TestCase
     }
 
     #[Test]
+    public function it_overrides_column_control_content_for_a_single_column(): void
+    {
+        $column = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('actions');
+
+        $this->assertNull($column->getColumnControl());
+
+        $this->assertSame($column, $column->setColumnControl(['colvisDropdown']));
+
+        $this->assertSame(['colvisDropdown'], $column->getColumnControl());
+        $this->assertSame(['colvisDropdown'], $column->jsonSerialize()['columnControl']);
+    }
+
+    #[Test]
+    public function setting_column_control_content_wins_over_disabling_it_regardless_of_call_order(): void
+    {
+        $disableThenOverride = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('foo')
+            ->disableColumnControl()
+            ->setColumnControl(['order']);
+
+        $overrideThenDisable = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('foo')
+            ->setColumnControl(['order'])
+            ->disableColumnControl();
+
+        $this->assertSame(['order'], $disableThenOverride->jsonSerialize()['columnControl']);
+        $this->assertSame(['order'], $overrideThenDisable->jsonSerialize()['columnControl']);
+    }
+
+    #[Test]
     public function it_exposes_mutated_getter_values(): void
     {
         $column = (new class extends AbstractColumn {})
@@ -101,7 +135,7 @@ final class AbstractColumnTest extends TestCase
     }
 
     #[Test]
-    public function permission_setter_is_chainable_and_stores_attribute(): void
+    public function permission_is_stored_server_side_and_never_serialized(): void
     {
         $column = (new class extends AbstractColumn {})
             ->setType(ColumnType::STRING)
@@ -111,16 +145,25 @@ final class AbstractColumnTest extends TestCase
 
         $this->assertSame($column, $column->permission('ROLE_HR'));
         $this->assertSame('ROLE_HR', $column->getPermission());
+        $this->assertArrayNotHasKey('permission', $column->jsonSerialize());
     }
 
+    /**
+     * setField(), setColumnControl(), setClassName(), setCustomOption(), setVisible(), and
+     * disableGlobalSearch() are documented public API (see columns/overview.mdx) inherited
+     * unchanged by every concrete column type. A class-level @internal here previously made
+     * static analysis tools such as Psalm flag every one of those calls from application code
+     * as touching an internal class, even though only createWithType() is actually meant to
+     * stay restricted to the bundle's own column types.
+     */
     #[Test]
-    public function permission_is_not_serialized_to_client(): void
+    public function the_class_itself_is_not_marked_internal_but_create_with_type_still_is(): void
     {
-        $column = (new class extends AbstractColumn {})
-            ->setType(ColumnType::STRING)
-            ->setName('salary')
-            ->permission('ROLE_HR');
+        $class = new \ReflectionClass(AbstractColumn::class);
 
-        $this->assertArrayNotHasKey('permission', $column->jsonSerialize());
+        $this->assertStringNotContainsString('@internal', (string) $class->getDocComment());
+
+        $factory = $class->getMethod('createWithType');
+        $this->assertStringContainsString('@internal', (string) $factory->getDocComment());
     }
 }

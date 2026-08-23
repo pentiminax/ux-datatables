@@ -7,12 +7,13 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
-use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -58,7 +59,7 @@ final class DataTableTest extends TestCase
         $expectedExtensions = [
             'columnControl' => (new ColumnControlExtension())->jsonSerialize(),
             'select'        => $selectExtension->jsonSerialize(),
-            'responsive'    => true,
+            'responsive'    => (new ResponsiveExtension())->jsonSerialize(),
         ];
 
         $this->assertEquals($expectedExtensions, $table->getExtensions());
@@ -77,57 +78,23 @@ final class DataTableTest extends TestCase
     }
 
     #[Test]
-    public function it_configures_layout_with_array(): void
+    public function it_normalizes_the_configured_layout(): void
     {
-        $table = new DataTable('testTable');
-
-        $table->layout([
-            'topStart'    => Feature::BUTTONS,
-            'topEnd'      => Feature::PAGE_LENGTH,
-            'bottomStart' => Feature::PAGING,
-            'bottomEnd'   => Feature::INFO,
-        ]);
-
-        $this->assertSame([
-            'topStart'    => 'buttons',
-            'topEnd'      => 'pageLength',
-            'bottomStart' => 'paging',
-            'bottomEnd'   => 'info',
-        ], $table->getOptions()['layout']);
-    }
-
-    #[Test]
-    public function it_configures_layout_with_multi_features(): void
-    {
-        $table = new DataTable('testTable');
-
-        $table->layout([
-            'topEnd' => [Feature::SEARCH, Feature::BUTTONS],
-        ]);
-
-        $this->assertSame([
-            'topEnd' => ['search', 'buttons'],
-        ], $table->getOptions()['layout']);
-    }
-
-    #[Test]
-    public function it_configures_layout_with_null_and_custom_strings(): void
-    {
-        $table = new DataTable('testTable');
-
-        $table->layout([
+        $table = (new DataTable('testTable'))->layout([
             'top'         => '<h2>Title</h2>',
-            'topStart'    => Feature::PAGE_LENGTH,
+            'topStart'    => Feature::BUTTONS,
+            'topEnd'      => [Feature::SEARCH, Feature::PAGE_LENGTH],
             'bottomStart' => null,
             'bottomEnd'   => Feature::PAGING,
         ]);
 
-        $layout = $table->getOptions()['layout'];
-
-        $this->assertSame('<h2>Title</h2>', $layout['top']);
-        $this->assertSame('pageLength', $layout['topStart']);
-        $this->assertNull($layout['bottomStart']);
-        $this->assertSame('paging', $layout['bottomEnd']);
+        $this->assertSame([
+            'top'         => '<h2>Title</h2>',
+            'topStart'    => 'buttons',
+            'topEnd'      => ['search', 'pageLength'],
+            'bottomStart' => null,
+            'bottomEnd'   => 'paging',
+        ], $table->getOptions()['layout']);
     }
 
     #[Test]
@@ -154,41 +121,33 @@ final class DataTableTest extends TestCase
         $this->assertSame($expectedPaging, $table->getOption('paging'));
     }
 
+    /**
+     * @param string[] $topics
+     * @param string[] $expectedTopics
+     */
     #[Test]
-    public function it_configures_mercure_with_default_topic(): void
+    #[DataProvider('provideMercureTopics')]
+    public function it_configures_mercure_topics(array $topics, array $expectedTopics): void
     {
-        $table = (new DataTable('ProductDataTable'))
-            ->mercure();
+        $config = (new DataTable('ProductDataTable'))->mercure(topics: $topics)->getMercureConfig();
 
-        $config = $table->getMercureConfig();
-
-        $this->assertInstanceOf(MercureConfig::class, $config);
-        $this->assertNull($config->hubUrl);
-        $this->assertSame(['/datatables/product-data-tables/{id}'], $config->topics);
-        $this->assertFalse($config->withCredentials);
-        $this->assertNull($config->debounceMs);
+        $this->assertSame($expectedTopics, $config?->topics);
+        $this->assertNull($config?->hubUrl);
+        $this->assertFalse($config?->withCredentials);
+        $this->assertNull($config?->debounceMs);
     }
 
-    #[Test]
-    public function it_configures_mercure_with_custom_topic(): void
+    /**
+     * @return iterable<string, array{string[], string[]}>
+     */
+    public static function provideMercureTopics(): iterable
     {
-        $table = (new DataTable('ProductDataTable'))
-            ->mercure(topics: ['my/custom/topic']);
-
-        $config = $table->getMercureConfig();
-
-        $this->assertSame(['my/custom/topic'], $config?->topics);
-    }
-
-    #[Test]
-    public function it_configures_mercure_with_multiple_topics(): void
-    {
-        $table = (new DataTable('ProductDataTable'))
-            ->mercure(topics: ['/api/products/{id}', '/api/categories/{id}']);
-
-        $config = $table->getMercureConfig();
-
-        $this->assertSame(['/api/products/{id}', '/api/categories/{id}'], $config?->topics);
+        yield 'default topic' => [[], ['/datatables/product-data-tables/{id}']];
+        yield 'custom topic' => [['my/custom/topic'], ['my/custom/topic']];
+        yield 'multiple topics' => [
+            ['/api/products/{id}', '/api/categories/{id}'],
+            ['/api/products/{id}', '/api/categories/{id}'],
+        ];
     }
 
     #[Test]
@@ -219,15 +178,7 @@ final class DataTableTest extends TestCase
     }
 
     #[Test]
-    public function mercure_method_is_fluent(): void
-    {
-        $table = new DataTable('test');
-
-        $this->assertSame($table, $table->mercure());
-    }
-
-    #[Test]
-    public function it_returns_column_objects_as_the_single_source_of_truth(): void
+    public function it_exposes_configured_columns_as_objects_and_definitions(): void
     {
         $firstColumn  = TextColumn::new('first_name', 'First name');
         $secondColumn = TextColumn::new('last_name', 'Last name');
@@ -238,28 +189,21 @@ final class DataTableTest extends TestCase
             'first_name' => $firstColumn,
             'last_name'  => $secondColumn,
         ], $table->getColumns());
-    }
 
-    #[Test]
-    public function it_builds_column_definitions_from_column_objects(): void
-    {
-        $table = (new DataTable('users'))->columns([
-            TextColumn::new('first_name', 'First name'),
-        ]);
+        $definitions = $table->getColumnDefinitions();
 
+        $this->assertCount(2, $definitions);
         $this->assertSame([
-            [
-                'data'       => 'first_name',
-                'name'       => 'first_name',
-                'orderable'  => true,
-                'searchable' => true,
-                'title'      => 'First name',
-                'type'       => 'string',
-                'visible'    => true,
-                'field'      => 'first_name',
-            ],
-        ], $table->getColumnDefinitions());
-        $this->assertSame($table->getColumnDefinitions(), $table->getOptions()['columns']);
+            'data'       => 'first_name',
+            'name'       => 'first_name',
+            'orderable'  => true,
+            'searchable' => true,
+            'title'      => 'First name',
+            'type'       => 'string',
+            'visible'    => true,
+            'field'      => 'first_name',
+        ], $definitions[0]);
+        $this->assertSame($definitions, $table->getOptions()['columns']);
     }
 
     #[Test]
@@ -284,76 +228,67 @@ final class DataTableTest extends TestCase
         $this->assertSame('Email', $table->getColumnDefinitions()[0]['title']);
     }
 
+    /**
+     * @param array<string, bool>  $keys
+     * @param array<string, mixed> $expected
+     */
     #[Test]
-    public function it_configures_url_state_with_all_keys_enabled_by_default(): void
+    #[DataProvider('provideUrlStates')]
+    public function it_configures_url_state(array $keys, string $prefix, array $expected): void
     {
-        $table = (new DataTable('users'))->urlState();
+        $table = (new DataTable('users'))->urlState($keys, $prefix);
 
-        $this->assertSame([
+        $this->assertSame($expected, $table->getOption('urlState'));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, bool>, string, array<string, mixed>}>
+     */
+    public static function provideUrlStates(): iterable
+    {
+        yield 'all keys enabled by default' => [[], '', [
             'search'     => true,
             'order'      => true,
             'page'       => true,
             'pageLength' => true,
             'prefix'     => '',
-        ], $table->getOption('urlState'));
-    }
+        ]];
 
-    #[Test]
-    public function it_configures_url_state_with_partial_keys(): void
-    {
-        $table = (new DataTable('users'))->urlState(['page' => false]);
-
-        $this->assertSame([
+        yield 'partial keys' => [['page' => false], '', [
             'search'     => true,
             'order'      => true,
             'page'       => false,
             'pageLength' => true,
             'prefix'     => '',
-        ], $table->getOption('urlState'));
-    }
+        ]];
 
-    #[Test]
-    public function it_configures_url_state_with_prefix(): void
-    {
-        $table = (new DataTable('users'))->urlState(prefix: 'usersTable');
+        yield 'prefix only' => [[], 'usersTable', [
+            'search'     => true,
+            'order'      => true,
+            'page'       => true,
+            'pageLength' => true,
+            'prefix'     => 'usersTable',
+        ]];
 
-        $this->assertSame('usersTable', $table->getOption('urlState')['prefix']);
-    }
-
-    #[Test]
-    public function it_configures_url_state_with_granular_keys_and_prefix(): void
-    {
-        $table = (new DataTable('users'))->urlState(['search' => true, 'order' => false], 'u');
-
-        $this->assertSame([
+        yield 'granular keys and prefix' => [['search' => true, 'order' => false], 'u', [
             'search'     => true,
             'order'      => false,
             'page'       => true,
             'pageLength' => true,
             'prefix'     => 'u',
-        ], $table->getOption('urlState'));
-    }
-
-    #[Test]
-    public function it_returns_static_for_url_state_chaining(): void
-    {
-        $table = new DataTable('users');
-
-        $this->assertSame($table, $table->urlState());
+        ]];
     }
 
     #[Test]
     public function it_stores_forwarded_query_parameters(): void
     {
-        $table = (new DataTable('users'))->forwardQueryParameters(['q', 'pending']);
+        $table = new DataTable('users');
+
+        $this->assertSame([], $table->getForwardedQueryParameters());
+
+        $table->forwardQueryParameters(['q', 'pending']);
 
         $this->assertSame(['q', 'pending'], $table->getForwardedQueryParameters());
-    }
-
-    #[Test]
-    public function it_defaults_forwarded_query_parameters_to_an_empty_array(): void
-    {
-        $this->assertSame([], (new DataTable('users'))->getForwardedQueryParameters());
     }
 
     #[Test]

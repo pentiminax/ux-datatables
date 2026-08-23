@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
 final class MakeDataTableServiceWiringTest extends TestCase
 {
     #[Test]
-    public function test_give_n_bundle_kernel_with_maker_whe_n_make_data_table_service_is_resolved_the_n_service_is_instantiated(): void
+    public function it_registers_the_make_datatable_maker_when_the_maker_bundle_is_installed(): void
     {
         $kernel = new MakerAppKernel('test', true);
 

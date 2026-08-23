@@ -9,7 +9,11 @@ import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js'
 import type { ColumnRenderer } from './columnRenderers/types.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js'
-import { ApiPlatformAdapter, type ColumnConfig } from './functions/apiPlatformAdapter.js'
+import {
+    ApiPlatformAdapter,
+    type ColumnConfig,
+    resolveColumnDataKey,
+} from './functions/apiPlatformAdapter.js'
 import { normalizeDisabledColumnControls } from './functions/columnControl.js'
 import { applyTfootColumnSearch, hasTfootSearch } from './functions/columnSearch.js'
 import { deleteEntity } from './functions/deleteEntity.js'
@@ -20,6 +24,7 @@ import { fetchEditForm } from './functions/fetchEditForm.js'
 import { registerFilterFeature } from './functions/filterFeature.js'
 import { applyFilterLayout } from './functions/filterLayout.js'
 import { FilterBar, hasFilters } from './functions/filters.js'
+import { isFixedHeaderClone } from './functions/isFixedHeaderClone.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
 import { applyLocalLanguage } from './functions/localLanguage.js'
 import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js'
@@ -49,6 +54,7 @@ const EXTENSION_MAP: Record<string, string> = {
     responsive: 'responsive',
     columnControl: 'columnControl',
     fixedColumns: 'fixedColumns',
+    fixedHeader: 'fixedHeader',
     colReorder: 'colReorder',
     keys: 'keyTable',
     rowGroup: 'rowGroup',
@@ -77,6 +83,10 @@ export default class extends Controller {
             throw new Error('Invalid element')
         }
 
+        if (isFixedHeaderClone(this.element)) {
+            return
+        }
+
         const payload = this.viewValue
 
         this.dispatchEvent('pre-connect', {
@@ -95,6 +105,8 @@ export default class extends Controller {
         }
 
         await this.loadExtensions(payload, framework, DataTable)
+
+        this.dispatchEvent('pre-init', { config: payload, DataTable })
 
         if (this.isApiPlatformEnabled(payload)) {
             const columns = Array.isArray(payload.columns)
@@ -238,7 +250,7 @@ export default class extends Controller {
         if (this.isApiPlatformEnabled(payload) && Array.isArray(payload.columns)) {
             payload.columns = (payload.columns as ColumnConfig[]).map((column) => ({
                 ...column,
-                data: column.field ?? column.data,
+                data: resolveColumnDataKey(column),
             }))
         }
     }
@@ -265,8 +277,8 @@ export default class extends Controller {
                 }
 
                 const actionType = actionButton.getAttribute('data-action-type')
-                const entity = actionButton.getAttribute('data-entity')
                 const id = actionButton.getAttribute('data-id')
+                const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : ''
                 const confirmMessage = actionButton.getAttribute('data-confirm')
 
                 if (confirmMessage && !confirm(confirmMessage)) {
@@ -283,7 +295,7 @@ export default class extends Controller {
                     return
                 }
 
-                if (actionType === 'DETAIL' && entity && id) {
+                if (actionType === 'DETAIL' && dataTable && id) {
                     e.preventDefault()
 
                     const rowElement = actionButton.closest('tr')
@@ -299,11 +311,7 @@ export default class extends Controller {
                         return
                     }
 
-                    const result = await fetchDetailRow({
-                        entity,
-                        id,
-                        dataTableClass: payload.dataTableClass ?? null,
-                    })
+                    const result = await fetchDetailRow({ dataTable, id })
 
                     if (result.success) {
                         row.child(result.html).show()
@@ -311,12 +319,11 @@ export default class extends Controller {
                     }
                 }
 
-                if (actionType === 'DELETE' && entity && id) {
+                if (actionType === 'DELETE' && dataTable && id) {
                     e.preventDefault()
                     const response = await deleteEntity({
-                        entity,
+                        dataTable,
                         id,
-                        dataTableClass: payload.dataTableClass ?? null,
                         csrfToken: this.getCsrfToken(payload),
                     })
 
@@ -325,7 +332,7 @@ export default class extends Controller {
                     }
                 }
 
-                if (actionType === 'EDIT' && entity && id) {
+                if (actionType === 'EDIT' && dataTable && id) {
                     e.preventDefault()
                     const modalConfig = payload.editModal ?? {}
                     const modal = await resolveModalAdapter(
@@ -334,20 +341,16 @@ export default class extends Controller {
                     )
                     if (!modal) return
 
-                    const result = await fetchEditForm({
-                        entity,
-                        id,
-                        dataTableClass: payload.dataTableClass ?? null,
-                    })
+                    const result = await fetchEditForm({ dataTable, id })
 
                     if (result.success) {
                         await modal.show(result.html, {
                             onSubmit: async (formData) => {
                                 const submitResult = await submitEditForm({
-                                    entity,
+                                    dataTable,
                                     id,
                                     formData,
-                                    dataTableClass: payload.dataTableClass ?? null,
+                                    csrfToken: this.getCsrfToken(payload),
                                 })
 
                                 if (submitResult.success) {

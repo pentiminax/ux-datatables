@@ -32,6 +32,7 @@ use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
@@ -44,96 +45,39 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[CoversClass(EntityMutator::class)]
 final class EntityMutatorTest extends TestCase
 {
+    /**
+     * The topics the bare entity-class resolver produces.
+     */
+    private const BARE_RESOLVER_TOPICS = ['/server/entity-mutator-fixtures/{id}'];
+
+    private const HUB_URL = 'https://hub.example/.well-known/mercure';
+
+    /**
+     * A table class the test locator never knows about, so topic resolution
+     * falls back to the bare entity-class resolver.
+     */
+    private const UNREGISTERED_TABLE_CLASS = 'App\\DataTable\\UnregisteredDataTable';
+
     #[Test]
     public function it_deletes_flushes_and_publishes(): void
     {
-        $entity = new EntityMutatorFixture();
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->once())->method('remove')->with($entity);
-        $manager->expects($this->once())->method('flush');
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->once())
-            ->method('publish')
-            ->with(['/server/entity-mutator-fixtures/{id}'], ['type' => 'delete', 'id' => 5]);
-
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $this->createMock(PropertyAccessorInterface::class),
-            $publisher,
-            new PermissionChecker(),
-            mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
-        );
-
-        $mutator->delete(EntityMutatorFixture::class, 5);
-    }
-
-    #[Test]
-    public function it_publishes_only_the_server_resolved_topics_and_never_client_input(): void
-    {
-        $entity = new EntityMutatorFixture();
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->once())->method('remove')->with($entity);
-        $manager->expects($this->once())->method('flush');
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->once())
-            ->method('publish')
-            ->with(['/server/only'], ['type' => 'delete', 'id' => 5]);
-
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $this->createMock(PropertyAccessorInterface::class),
-            $publisher,
-            new PermissionChecker(),
-            mercureConfigResolver: $this->resolverReturning(['/server/only']),
-        );
-
-        // The delete() signature no longer accepts client topics: the only
+        // The delete() signature does not accept client topics: the only
         // possible publish target is the server-resolved configuration.
-        $mutator->delete(EntityMutatorFixture::class, 5);
+        $this->assertDeletePublishesTopics(
+            self::BARE_RESOLVER_TOPICS,
+            resolver: $this->resolverReturning(self::BARE_RESOLVER_TOPICS),
+        );
     }
 
     #[Test]
     public function it_does_not_publish_when_no_mercure_resolver_is_available(): void
     {
-        $entity = new EntityMutatorFixture();
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->once())->method('remove')->with($entity);
-        $manager->expects($this->once())->method('flush');
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->once())
-            ->method('publish')
-            ->with([], ['type' => 'delete', 'id' => 5]);
-
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $this->createMock(PropertyAccessorInterface::class),
-            $publisher,
-            new PermissionChecker(),
-        );
-
-        $mutator->delete(EntityMutatorFixture::class, 5);
+        $this->assertDeletePublishesTopics([]);
     }
 
     #[Test]
     public function it_publishes_the_datatables_own_mercure_topics_instead_of_the_bare_resolver_ones(): void
     {
-        $entity = new EntityMutatorFixture();
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->once())->method('remove')->with($entity);
-        $manager->expects($this->once())->method('flush');
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->once())
-            ->method('publish')
-            ->with(['/datatable-instance/topic'], ['type' => 'delete', 'id' => 5]);
-
         // The bare entity-class resolver would produce a *different* topic;
         // it must never be consulted once the DataTable instance resolves.
         $resolver = $this->createMock(MercureConfigResolverInterface::class);
@@ -142,112 +86,19 @@ final class EntityMutatorTest extends TestCase
         $dataProviderSpy = $this->createMock(DataProviderInterface::class);
         $dataProviderSpy->expects($this->never())->method('fetchData');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
+        $dataTable = new EntityMutatorServerSideFixtureDataTable($this->hubUrlResolver(self::HUB_URL), $dataProviderSpy);
 
-        $dataTable = new EntityMutatorServerSideFixtureDataTable($hubUrlResolver, $dataProviderSpy);
-
-        $dataTables = $this->createMock(ContainerInterface::class);
-        $dataTables->method('has')->with(EntityMutatorServerSideFixtureDataTable::class)->willReturn(true);
-        $dataTables->method('get')->with(EntityMutatorServerSideFixtureDataTable::class)->willReturn($dataTable);
-
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $this->createMock(PropertyAccessorInterface::class),
-            $publisher,
-            new PermissionChecker(),
-            mercureConfigResolver: $resolver,
-            dataTables: $dataTables,
+        $this->assertDeletePublishesTopics(
+            ['/datatable-instance/topic'],
+            resolver: $resolver,
+            dataTables: $this->dataTablesContaining($dataTable),
+            dataTableClass: $dataTable::class,
         );
-
-        $mutator->delete(EntityMutatorFixture::class, 5, EntityMutatorServerSideFixtureDataTable::class);
-    }
-
-    #[Test]
-    public function it_falls_back_to_the_bare_resolver_when_the_datatable_class_entity_does_not_match(): void
-    {
-        $entity = new EntityMutatorFixture();
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->once())->method('remove')->with($entity);
-        $manager->expects($this->once())->method('flush');
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->once())
-            ->method('publish')
-            ->with(['/server/entity-mutator-fixtures/{id}'], ['type' => 'delete', 'id' => 5]);
-
-        $resolver = $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']);
-
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
-
-        // Registered, but configured for a different entity class than the
-        // one being mutated: the guard must reject it and fall through.
-        $mismatchedDataTable = new EntityMutatorMismatchedFixtureDataTable($hubUrlResolver);
-
-        $dataTables = $this->createMock(ContainerInterface::class);
-        $dataTables->method('has')->with(EntityMutatorMismatchedFixtureDataTable::class)->willReturn(true);
-        $dataTables->method('get')->with(EntityMutatorMismatchedFixtureDataTable::class)->willReturn($mismatchedDataTable);
-
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $this->createMock(PropertyAccessorInterface::class),
-            $publisher,
-            new PermissionChecker(),
-            mercureConfigResolver: $resolver,
-            dataTables: $dataTables,
-        );
-
-        $mutator->delete(EntityMutatorFixture::class, 5, EntityMutatorMismatchedFixtureDataTable::class);
-    }
-
-    #[Test]
-    public function it_falls_back_to_the_bare_resolver_when_the_datatable_class_is_not_registered(): void
-    {
-        $entity = new EntityMutatorFixture();
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->once())->method('remove')->with($entity);
-        $manager->expects($this->once())->method('flush');
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->once())
-            ->method('publish')
-            ->with(['/server/entity-mutator-fixtures/{id}'], ['type' => 'delete', 'id' => 5]);
-
-        $resolver = $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']);
-
-        $dataTables = $this->createMock(ContainerInterface::class);
-        $dataTables->method('has')->with(EntityMutatorServerSideFixtureDataTable::class)->willReturn(false);
-        $dataTables->expects($this->never())->method('get');
-
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $this->createMock(PropertyAccessorInterface::class),
-            $publisher,
-            new PermissionChecker(),
-            mercureConfigResolver: $resolver,
-            dataTables: $dataTables,
-        );
-
-        $mutator->delete(EntityMutatorFixture::class, 5, EntityMutatorServerSideFixtureDataTable::class);
     }
 
     #[Test]
     public function it_resolves_client_side_datatable_topics_without_hydrating_data(): void
     {
-        $entity = new EntityMutatorFixture();
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->once())->method('remove')->with($entity);
-        $manager->expects($this->once())->method('flush');
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->once())
-            ->method('publish')
-            ->with(['/client-side/topic'], ['type' => 'delete', 'id' => 5]);
-
         // The bare resolver must never be consulted once the DataTable resolves.
         $resolver = $this->createMock(MercureConfigResolverInterface::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
@@ -257,65 +108,60 @@ final class EntityMutatorTest extends TestCase
         $dataProviderSpy = $this->createMock(DataProviderInterface::class);
         $dataProviderSpy->expects($this->never())->method('fetchData');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
+        $dataTable = new EntityMutatorClientSideFixtureDataTable($this->hubUrlResolver(self::HUB_URL), $dataProviderSpy);
 
-        $dataTable = new EntityMutatorClientSideFixtureDataTable($hubUrlResolver, $dataProviderSpy);
-
-        $dataTables = $this->createMock(ContainerInterface::class);
-        $dataTables->method('has')->with(EntityMutatorClientSideFixtureDataTable::class)->willReturn(true);
-        $dataTables->method('get')->with(EntityMutatorClientSideFixtureDataTable::class)->willReturn($dataTable);
-
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $this->createMock(PropertyAccessorInterface::class),
-            $publisher,
-            new PermissionChecker(),
-            mercureConfigResolver: $resolver,
-            dataTables: $dataTables,
+        $this->assertDeletePublishesTopics(
+            ['/client-side/topic'],
+            resolver: $resolver,
+            dataTables: $this->dataTablesContaining($dataTable),
+            dataTableClass: $dataTable::class,
         );
+    }
 
-        $mutator->delete(EntityMutatorFixture::class, 5, EntityMutatorClientSideFixtureDataTable::class);
+    #[Test]
+    public function it_falls_back_to_the_bare_resolver_when_the_datatable_class_entity_does_not_match(): void
+    {
+        // Registered, but configured for a different entity class than the
+        // one being mutated: the guard must reject it and fall through.
+        $mismatchedDataTable = new EntityMutatorMismatchedFixtureDataTable($this->hubUrlResolver(self::HUB_URL));
+
+        $this->assertDeletePublishesTopics(
+            self::BARE_RESOLVER_TOPICS,
+            resolver: $this->resolverReturning(self::BARE_RESOLVER_TOPICS),
+            dataTables: $this->dataTablesContaining($mismatchedDataTable),
+            dataTableClass: $mismatchedDataTable::class,
+        );
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_bare_resolver_when_the_datatable_class_is_not_registered(): void
+    {
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with(EntityMutatorServerSideFixtureDataTable::class)->willReturn(false);
+        $dataTables->expects($this->never())->method('get');
+
+        $this->assertDeletePublishesTopics(
+            self::BARE_RESOLVER_TOPICS,
+            resolver: $this->resolverReturning(self::BARE_RESOLVER_TOPICS),
+            dataTables: $dataTables,
+            dataTableClass: EntityMutatorServerSideFixtureDataTable::class,
+        );
     }
 
     #[Test]
     public function it_falls_back_to_the_bare_resolver_when_the_datatable_mercure_hub_url_is_unresolvable(): void
     {
-        $entity = new EntityMutatorFixture();
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->once())->method('remove')->with($entity);
-        $manager->expects($this->once())->method('flush');
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->once())
-            ->method('publish')
-            ->with(['/server/entity-mutator-fixtures/{id}'], ['type' => 'delete', 'id' => 5]);
-
         // The DataTable's own resolution throws (unresolvable hub URL). Because
         // this runs AFTER flush(), it must never bubble up and turn an
         // already-committed mutation into a 500 — it degrades to the bare resolver.
-        $resolver = $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']);
+        $dataTable = new EntityMutatorServerSideFixtureDataTable($this->hubUrlResolver(null));
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn(null);
-
-        $dataTable = new EntityMutatorUnresolvableHubFixtureDataTable($hubUrlResolver);
-
-        $dataTables = $this->createMock(ContainerInterface::class);
-        $dataTables->method('has')->with(EntityMutatorUnresolvableHubFixtureDataTable::class)->willReturn(true);
-        $dataTables->method('get')->with(EntityMutatorUnresolvableHubFixtureDataTable::class)->willReturn($dataTable);
-
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $this->createMock(PropertyAccessorInterface::class),
-            $publisher,
-            new PermissionChecker(),
-            mercureConfigResolver: $resolver,
-            dataTables: $dataTables,
+        $this->assertDeletePublishesTopics(
+            self::BARE_RESOLVER_TOPICS,
+            resolver: $this->resolverReturning(self::BARE_RESOLVER_TOPICS),
+            dataTables: $this->dataTablesContaining($dataTable),
+            dataTableClass: $dataTable::class,
         );
-
-        $mutator->delete(EntityMutatorFixture::class, 5, EntityMutatorUnresolvableHubFixtureDataTable::class);
     }
 
     #[Test]
@@ -334,17 +180,16 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->once())
             ->method('publish')
-            ->with(['/server/entity-mutator-fixtures/{id}'], ['type' => 'edit', 'id' => 5, 'field' => 'enabled']);
+            ->with(self::BARE_RESOLVER_TOPICS, ['type' => 'edit', 'id' => 5, 'field' => 'enabled']);
 
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $accessor,
+        $mutator = $this->mutator(
+            $manager,
             $publisher,
-            new PermissionChecker(),
-            mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
+            accessor: $accessor,
+            resolver: $this->resolverReturning(self::BARE_RESOLVER_TOPICS),
         );
 
-        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
+        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::UNREGISTERED_TABLE_CLASS);
     }
 
     #[Test]
@@ -362,10 +207,10 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->never())->method('publish');
 
-        $mutator = new EntityMutator(new EntityLocator($this->registry($manager)), $accessor, $publisher, new PermissionChecker());
+        $mutator = $this->mutator($manager, $publisher, accessor: $accessor);
 
         $this->expectException(PropertyNotWritableException::class);
-        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
+        $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::UNREGISTERED_TABLE_CLASS);
     }
 
     #[Test]
@@ -382,10 +227,10 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->never())->method('publish');
 
-        $mutator = new EntityMutator(new EntityLocator($this->registry($manager)), $accessor, $publisher, new PermissionChecker());
+        $mutator = $this->mutator($manager, $publisher, accessor: $accessor);
 
         $this->expectException(FieldNotToggleableException::class);
-        $mutator->setProperty(EntityMutatorFixture::class, 5, 'admin', true);
+        $mutator->setProperty(EntityMutatorFixture::class, 5, 'admin', true, self::UNREGISTERED_TABLE_CLASS);
     }
 
     #[Test]
@@ -400,17 +245,12 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->never())->method('publish');
 
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $this->createMock(PropertyAccessorInterface::class),
-            $publisher,
-            $this->denyingChecker('DELETE', $entity),
-        );
+        $mutator = $this->mutator($manager, $publisher, permissionChecker: $this->denyingChecker('DELETE', $entity));
 
         $this->expectException(MutationNotAllowedException::class);
 
         try {
-            $mutator->delete(EntityMutatorFixture::class, 5);
+            $mutator->delete(EntityMutatorFixture::class, 5, self::UNREGISTERED_TABLE_CLASS);
         } catch (MutationNotAllowedException $exception) {
             $this->assertSame(403, $exception->getStatusCode());
 
@@ -433,17 +273,17 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->never())->method('publish');
 
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $accessor,
+        $mutator = $this->mutator(
+            $manager,
             $publisher,
-            $this->denyingChecker('EDIT', $entity),
+            accessor: $accessor,
+            permissionChecker: $this->denyingChecker('EDIT', $entity),
         );
 
         $this->expectException(MutationNotAllowedException::class);
 
         try {
-            $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true);
+            $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::UNREGISTERED_TABLE_CLASS);
         } catch (MutationNotAllowedException $exception) {
             $this->assertSame(403, $exception->getStatusCode());
 
@@ -452,31 +292,24 @@ final class EntityMutatorTest extends TestCase
     }
 
     #[Test]
-    public function it_maps_a_flush_failure_to_a_persistence_exception_on_delete(): void
+    #[DataProvider('flushFailures')]
+    public function it_maps_a_flush_failure_to_a_persistence_exception_on_delete(\Throwable $failure): void
     {
         $entity = new EntityMutatorFixture();
 
-        $dbalException = $this->dbalException();
-
         $manager = $this->managerReturning($entity, 5);
         $manager->expects($this->once())->method('remove')->with($entity);
-        $manager->expects($this->once())->method('flush')->willThrowException($dbalException);
+        $manager->expects($this->once())->method('flush')->willThrowException($failure);
 
         // A failed persistence must never surface as a published mutation event.
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->never())->method('publish');
 
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $this->createMock(PropertyAccessorInterface::class),
-            $publisher,
-            new PermissionChecker(),
-            mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
-        );
+        $mutator = $this->mutator($manager, $publisher, resolver: $this->resolverReturning(self::BARE_RESOLVER_TOPICS));
 
         $this->assertMapsToPersistenceException(
-            fn () => $mutator->delete(EntityMutatorFixture::class, 5),
-            $dbalException,
+            fn () => $mutator->delete(EntityMutatorFixture::class, 5, self::UNREGISTERED_TABLE_CLASS),
+            $failure,
         );
     }
 
@@ -485,7 +318,7 @@ final class EntityMutatorTest extends TestCase
     {
         $entity = new EntityMutatorFixture();
 
-        $dbalException = $this->dbalException();
+        $dbalException = self::dbalException();
 
         $manager = $this->managerReturning($entity, 5);
         $manager->expects($this->once())->method('flush')->willThrowException($dbalException);
@@ -497,71 +330,96 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->never())->method('publish');
 
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $accessor,
+        $mutator = $this->mutator(
+            $manager,
             $publisher,
-            new PermissionChecker(),
-            mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
+            accessor: $accessor,
+            resolver: $this->resolverReturning(self::BARE_RESOLVER_TOPICS),
         );
 
         $this->assertMapsToPersistenceException(
-            fn () => $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true),
+            fn () => $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::UNREGISTERED_TABLE_CLASS),
             $dbalException,
-        );
-    }
-
-    #[Test]
-    public function it_maps_an_optimistic_lock_failure_to_a_persistence_exception_on_delete(): void
-    {
-        $entity = new EntityMutatorFixture();
-
-        // OptimisticLockException is an ORMException, NOT a DBAL\Exception: it is
-        // the canonical 409 "data conflict" and must be mapped, not leaked as 500.
-        $lockException = OptimisticLockException::lockFailed($entity);
-
-        $manager = $this->managerReturning($entity, 5);
-        $manager->expects($this->once())->method('remove')->with($entity);
-        $manager->expects($this->once())->method('flush')->willThrowException($lockException);
-
-        $publisher = $this->createMock(MercurePublisherInterface::class);
-        $publisher->expects($this->never())->method('publish');
-
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $this->createMock(PropertyAccessorInterface::class),
-            $publisher,
-            new PermissionChecker(),
-            mercureConfigResolver: $this->resolverReturning(['/server/entity-mutator-fixtures/{id}']),
-        );
-
-        $this->assertMapsToPersistenceException(
-            fn () => $mutator->delete(EntityMutatorFixture::class, 5),
-            $lockException,
         );
     }
 
     #[Test]
     public function it_propagates_not_found_from_the_locator_on_delete(): void
     {
-        $manager    = $this->createMock(EntityManagerInterface::class);
         $repository = $this->createMock(EntityRepository::class);
         $repository->method('find')->willReturn(null);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
         $manager->method('getRepository')->willReturn($repository);
         $manager->expects($this->never())->method('flush');
 
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->never())->method('publish');
 
-        $mutator = new EntityMutator(
-            new EntityLocator($this->registry($manager)),
-            $this->createMock(PropertyAccessorInterface::class),
-            $publisher,
-            new PermissionChecker(),
-        );
+        $mutator = $this->mutator($manager, $publisher);
 
         $this->expectException(EntityNotFoundException::class);
-        $mutator->delete(EntityMutatorFixture::class, 404);
+        $mutator->delete(EntityMutatorFixture::class, 404, self::UNREGISTERED_TABLE_CLASS);
+    }
+
+    /**
+     * Both failure families reach flush() and must be mapped identically.
+     *
+     * @return iterable<string, array{\Throwable}>
+     */
+    public static function flushFailures(): iterable
+    {
+        yield 'DBAL unique constraint violation' => [self::dbalException()];
+
+        // OptimisticLockException is an ORMException, NOT a DBAL\Exception: it is
+        // the canonical 409 "data conflict" and must be mapped, not leaked as 500.
+        yield 'ORM optimistic lock failure' => [OptimisticLockException::lockFailed(new EntityMutatorFixture())];
+    }
+
+    private static function dbalException(): DBALException
+    {
+        // A genuine Doctrine\DBAL\Exception subtype that exists as such in both
+        // DBAL 3 and 4. It must never `implements Doctrine\DBAL\Exception`,
+        // which is a class in DBAL 3 (fatal) and only an interface in DBAL 4.
+        return new UniqueConstraintViolationException(self::driverException(), null);
+    }
+
+    private static function driverException(): DriverException
+    {
+        return new class('constraint violation') extends \RuntimeException implements DriverException {
+            public function getSQLState(): ?string
+            {
+                return '23505';
+            }
+        };
+    }
+
+    /**
+     * Deletes entity #5 and asserts it was removed, flushed once, and published
+     * on exactly $expectedTopics.
+     *
+     * @param string[] $expectedTopics
+     */
+    private function assertDeletePublishesTopics(
+        array $expectedTopics,
+        ?MercureConfigResolverInterface $resolver = null,
+        ?ContainerInterface $dataTables = null,
+        string $dataTableClass = self::UNREGISTERED_TABLE_CLASS,
+    ): void {
+        $entity = new EntityMutatorFixture();
+
+        $manager = $this->managerReturning($entity, 5);
+        $manager->expects($this->once())->method('remove')->with($entity);
+        $manager->expects($this->once())->method('flush');
+
+        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher->expects($this->once())
+            ->method('publish')
+            ->with($expectedTopics, ['type' => 'delete', 'id' => 5]);
+
+        $mutator = $this->mutator($manager, $publisher, resolver: $resolver, dataTables: $dataTables);
+
+        $mutator->delete(EntityMutatorFixture::class, 5, $dataTableClass);
     }
 
     /**
@@ -584,22 +442,22 @@ final class EntityMutatorTest extends TestCase
         $this->assertSame($expectedPrevious, $caught->getPrevious());
     }
 
-    private function dbalException(): DBALException
-    {
-        // A genuine Doctrine\DBAL\Exception subtype that exists as such in both
-        // DBAL 3 and 4. It must never `implements Doctrine\DBAL\Exception`,
-        // which is a class in DBAL 3 (fatal) and only an interface in DBAL 4.
-        return new UniqueConstraintViolationException($this->driverException(), null);
-    }
-
-    private function driverException(): DriverException
-    {
-        return new class('constraint violation') extends \RuntimeException implements DriverException {
-            public function getSQLState(): ?string
-            {
-                return '23505';
-            }
-        };
+    private function mutator(
+        EntityManagerInterface $manager,
+        MercurePublisherInterface $publisher,
+        ?PropertyAccessorInterface $accessor = null,
+        ?PermissionChecker $permissionChecker = null,
+        ?MercureConfigResolverInterface $resolver = null,
+        ?ContainerInterface $dataTables = null,
+    ): EntityMutator {
+        return new EntityMutator(
+            new EntityLocator($this->registry($manager)),
+            $accessor ?? $this->createStub(PropertyAccessorInterface::class),
+            $publisher,
+            $permissionChecker ?? new PermissionChecker(),
+            mercureConfigResolver: $resolver,
+            dataTables: $dataTables,
+        );
     }
 
     private function managerReturning(object $entity, int|string $id): EntityManagerInterface
@@ -647,9 +505,26 @@ final class EntityMutatorTest extends TestCase
         $resolver = $this->createMock(MercureConfigResolverInterface::class);
         $resolver->method('resolveMercureConfig')
             ->with(EntityMutatorFixture::class)
-            ->willReturn(new MercureConfig(topics: $topics, hubUrl: 'https://hub.example/.well-known/mercure'));
+            ->willReturn(new MercureConfig(topics: $topics, hubUrl: self::HUB_URL));
 
         return $resolver;
+    }
+
+    private function hubUrlResolver(?string $hubUrl): MercureHubUrlResolverInterface
+    {
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn($hubUrl);
+
+        return $hubUrlResolver;
+    }
+
+    private function dataTablesContaining(AbstractDataTable $dataTable): ContainerInterface
+    {
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with($dataTable::class)->willReturn(true);
+        $dataTables->method('get')->with($dataTable::class)->willReturn($dataTable);
+
+        return $dataTables;
     }
 }
 
@@ -662,6 +537,10 @@ final class EntityMutatorFixture
  * exactly what RenderingPreparer::configureMercure() would resolve at
  * render time. Server-side so that getDataTable() never triggers a data
  * fetch (AbstractDataTable::shouldHydrateClientSideData() short-circuits).
+ *
+ * Constructed with a hub URL resolver returning null, configureMercure()
+ * throws a LogicException instead: the topic resolution must swallow it and
+ * fall back to the bare entity-class resolver rather than bubbling up.
  */
 #[AsDataTable(entityClass: EntityMutatorFixture::class, mercure: true)]
 final class EntityMutatorServerSideFixtureDataTable extends AbstractDataTable
@@ -751,43 +630,6 @@ final class EntityMutatorClientSideFixtureDataTable extends AbstractDataTable
     {
         return $table
             ->mercure(topics: ['/client-side/topic']);
-    }
-
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-
-    protected function createDataProvider(): ?DataProviderInterface
-    {
-        return $this->dataProviderSpy;
-    }
-}
-
-/**
- * A DataTable whose Mercure hub URL cannot be resolved: configureMercure()
- * throws a LogicException while resolving topics. The resolver must swallow it
- * and fall back to the bare entity-class resolver rather than bubbling up.
- */
-#[AsDataTable(entityClass: EntityMutatorFixture::class, mercure: true)]
-final class EntityMutatorUnresolvableHubFixtureDataTable extends AbstractDataTable
-{
-    public function __construct(
-        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
-    ) {
-        parent::__construct();
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(
-                mercureHubUrlResolver: $this->mercureHubUrlResolver,
-            )
-        ));
-    }
-
-    public function configureDataTable(DataTable $table): DataTable
-    {
-        return $table
-            ->serverSide()
-            ->mercure(topics: ['/datatable-instance/topic']);
     }
 
     public function configureColumns(): iterable

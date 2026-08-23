@@ -6,12 +6,14 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
-use Doctrine\ORM\Mapping\FieldMapping;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -20,91 +22,158 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(RelationFieldResolver::class)]
 final class RelationFieldResolverTest extends TestCase
 {
-    #[Test]
-    public function it_returns_alias_and_field_for_simple_field(): void
+    use BuildsTypedFieldQueryBuilder;
+
+    /**
+     * Each case gives the aliases already joined on the query builder, the resolved field
+     * path, the expected DQL expression and the expected left join calls in order.
+     *
+     * @return iterable<string, array{list<string>, string, string, list<array{string, string}>}>
+     */
+    public static function resolvedFieldPaths(): iterable
     {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
-        $qb->expects($this->never())->method('leftJoin');
+        yield 'simple field' => [[], 'name', 'e.name', []];
 
-        $result = RelationFieldResolver::resolve($qb, 'e', 'name');
+        yield 'single level relation' => [
+            [],
+            'author.firstName',
+            'author.firstName',
+            [['e.author', 'author']],
+        ];
 
-        $this->assertSame('e.name', $result);
+        yield 'multi level relation' => [
+            [],
+            'author.address.city',
+            'author_address.city',
+            [['e.author', 'author'], ['author.address', 'author_address']],
+        ];
+
+        yield 'already joined relation' => [['author'], 'author.firstName', 'author.firstName', []];
+
+        yield 'partially joined relation' => [
+            ['author'],
+            'author.address.city',
+            'author_address.city',
+            [['author.address', 'author_address']],
+        ];
     }
 
-    #[Test]
-    public function it_adds_join_for_single_level_relation(): void
+    /**
+     * Each case gives the Doctrine type of the field, whether it supports SQL LIKE, the
+     * UUID type it must be bound with, and the date type it must be bound with. A null type
+     * stands for unavailable root metadata.
+     *
+     * @return iterable<string, array{?string, bool, ?string, ?string}>
+     */
+    public static function fieldTypes(): iterable
     {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
+        yield 'unavailable root entity metadata' => [null, true, null, null];
 
-        $qb->expects($this->once())
-            ->method('leftJoin')
-            ->with('e.author', 'author')
-            ->willReturn($qb);
+        yield 'string' => ['string', true, null, null];
 
-        $result = RelationFieldResolver::resolve($qb, 'e', 'author.firstName');
+        yield 'boolean' => ['boolean', false, null, null];
 
-        $this->assertSame('author.firstName', $result);
+        yield 'guid' => ['guid', false, 'guid', null];
+
+        yield 'uuid' => ['uuid', false, 'uuid', null];
+
+        yield 'ulid' => ['ulid', false, 'ulid', null];
+
+        yield 'binary uuid' => ['uuid_binary_ordered_time', false, 'uuid_binary_ordered_time', null];
+
+        yield 'date' => ['date', false, null, 'date'];
+
+        yield 'datetime_immutable' => ['datetime_immutable', false, null, 'datetime_immutable'];
     }
 
+    /**
+     * @param list<string>                $existingJoinAliases
+     * @param list<array{string, string}> $expectedJoins
+     */
     #[Test]
-    public function it_adds_multiple_joins_for_multi_level_relation(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([]);
+    #[DataProvider('resolvedFieldPaths')]
+    public function it_resolves_field_paths_and_joins_missing_relations(
+        array $existingJoinAliases,
+        string $fieldPath,
+        string $expectedExpression,
+        array $expectedJoins,
+    ): void {
+        $qb = $this->queryBuilderWithJoinAliases($existingJoinAliases);
 
         $joinCalls = [];
-        $qb->expects($this->exactly(2))
-            ->method('leftJoin')
-            ->willReturnCallback(function (string $join, string $alias) use ($qb, &$joinCalls) {
-                $joinCalls[] = [$join, $alias];
 
-                return $qb;
-            });
+        if ([] === $expectedJoins) {
+            $qb->expects($this->never())->method('leftJoin');
+        } else {
+            $qb->expects($this->exactly(\count($expectedJoins)))
+                ->method('leftJoin')
+                ->willReturnCallback(function (string $join, string $alias) use ($qb, &$joinCalls) {
+                    $joinCalls[] = [$join, $alias];
 
-        $result = RelationFieldResolver::resolve($qb, 'e', 'author.address.city');
+                    return $qb;
+                });
+        }
 
-        $this->assertSame('author_address.city', $result);
-        $this->assertSame([
-            ['e.author', 'author'],
-            ['author.address', 'author_address'],
-        ], $joinCalls);
+        $result = RelationFieldResolver::resolve($qb, 'e', $fieldPath);
+
+        $this->assertSame($expectedExpression, $result);
+        $this->assertSame($expectedJoins, $joinCalls);
     }
 
     #[Test]
-    public function it_does_not_add_duplicate_join(): void
-    {
-        $existingJoin = $this->createMock(Join::class);
-        $existingJoin->method('getAlias')->willReturn('author');
+    #[DataProvider('fieldTypes')]
+    public function it_classifies_a_scalar_field_by_doctrine_type(
+        ?string $fieldType,
+        bool $supportsTextSearch,
+        ?string $expectedUuidType,
+        ?string $expectedDateType,
+    ): void {
+        $qb = $this->queryBuilderWithFieldType('id', $fieldType);
 
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([
-            'e' => [$existingJoin],
-        ]);
-
-        $qb->expects($this->never())->method('leftJoin');
-
-        $result = RelationFieldResolver::resolve($qb, 'e', 'author.firstName');
-
-        $this->assertSame('author.firstName', $result);
+        $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'id'));
+        $this->assertSame($supportsTextSearch, RelationFieldResolver::supportsTextSearch($qb, 'id'));
+        $this->assertSame($expectedUuidType, RelationFieldResolver::resolveUuidFieldType($qb, 'id'));
+        $this->assertSame($expectedDateType, RelationFieldResolver::resolveDateFieldType($qb, 'id'));
     }
 
     #[Test]
-    public function it_supports_search_filtering_for_scalar_field(): void
+    public function it_rejects_a_bare_association_field(): void
     {
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with('name')->willReturn(false);
-        $metadata->method('hasField')->with('name')->willReturn(true);
+        $qb = $this->queryBuilderWithAssociationField('client');
 
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getClassMetadata')->with('App\\Entity\\Project')->willReturn($metadata);
+        $this->assertFalse(RelationFieldResolver::supportsSearchFiltering($qb, 'client'));
+        $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'client'));
+        $this->assertNull(RelationFieldResolver::resolveUuidFieldType($qb, 'client'));
+        $this->assertNull(RelationFieldResolver::resolveDateFieldType($qb, 'client'));
+    }
+
+    #[Test]
+    public function it_supports_search_filtering_for_a_dot_notation_path_without_reading_metadata(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->expects($this->never())->method('getRootEntities');
+
+        $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'client.name'));
+    }
+
+    /**
+     * @param list<string> $aliases
+     */
+    private function queryBuilderWithJoinAliases(array $aliases): MockObject&QueryBuilder
+    {
+        $joins = [];
+
+        foreach ($aliases as $alias) {
+            $join = $this->createMock(Join::class);
+            $join->method('getAlias')->willReturn($alias);
+
+            $joins[] = $join;
+        }
 
         $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
-        $qb->method('getEntityManager')->willReturn($em);
+        $qb->method('getDQLPart')->with('join')->willReturn([] === $joins ? [] : ['e' => $joins]);
 
-        $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'name'));
+        return $qb;
     }
 
     #[Test]
@@ -128,120 +197,8 @@ final class RelationFieldResolverTest extends TestCase
     }
 
     #[Test]
-    public function it_does_not_support_search_filtering_for_association_field(): void
-    {
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with('client')->willReturn(true);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getClassMetadata')->willReturn($metadata);
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
-        $qb->method('getEntityManager')->willReturn($em);
-
-        $this->assertFalse(RelationFieldResolver::supportsSearchFiltering($qb, 'client'));
-    }
-
-    #[Test]
-    public function it_supports_search_filtering_for_dot_notation_path(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->expects($this->never())->method('getRootEntities');
-
-        $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'client.name'));
-    }
-
-    #[Test]
-    public function it_supports_search_filtering_when_root_entity_is_unavailable(): void
-    {
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getRootEntities')->willReturn([]);
-
-        $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'client'));
-    }
-
-    #[Test]
-    public function it_supports_text_search_for_string_field(): void
-    {
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with('email')->willReturn(false);
-        $metadata->method('hasField')->with('email')->willReturn(true);
-        $metadata->method('getFieldMapping')->with('email')->willReturn(new FieldMapping('string', 'email', 'email'));
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getClassMetadata')->with('App\\Entity\\User')->willReturn($metadata);
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getRootEntities')->willReturn(['App\\Entity\\User']);
-        $qb->method('getEntityManager')->willReturn($em);
-
-        $this->assertTrue(RelationFieldResolver::supportsTextSearch($qb, 'email'));
-    }
-
-    #[Test]
-    public function it_does_not_support_text_search_for_boolean_field(): void
-    {
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with('active')->willReturn(false);
-        $metadata->method('hasField')->with('active')->willReturn(true);
-        $metadata->method('getFieldMapping')->with('active')->willReturn(new FieldMapping('boolean', 'active', 'active'));
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getClassMetadata')->with('App\\Entity\\User')->willReturn($metadata);
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getRootEntities')->willReturn(['App\\Entity\\User']);
-        $qb->method('getEntityManager')->willReturn($em);
-
-        $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'active'));
-    }
-
-    #[Test]
-    public function it_does_not_support_text_search_for_association_field(): void
-    {
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('hasAssociation')->with('client')->willReturn(true);
-
-        $em = $this->createMock(EntityManagerInterface::class);
-        $em->method('getClassMetadata')->willReturn($metadata);
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
-        $qb->method('getEntityManager')->willReturn($em);
-
-        $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'client'));
-    }
-
-    #[Test]
-    public function it_only_adds_new_join_when_partial_duplicate(): void
-    {
-        $existingJoin = $this->createMock(Join::class);
-        $existingJoin->method('getAlias')->willReturn('author');
-
-        $qb = $this->createMock(QueryBuilder::class);
-        $qb->method('getDQLPart')->with('join')->willReturn([
-            'e' => [$existingJoin],
-        ]);
-
-        $qb->expects($this->once())
-            ->method('leftJoin')
-            ->with('author.address', 'author_address')
-            ->willReturn($qb);
-
-        $result = RelationFieldResolver::resolve($qb, 'e', 'author.address.city');
-
-        $this->assertSame('author_address.city', $result);
-    }
-
-    // -----------------------------------------------------------------------
-    // Reuse join by expression (user-chosen alias in customizeQueryBuilder)
-    // -----------------------------------------------------------------------
-
-    #[Test]
     public function it_reuses_existing_join_under_custom_alias_matching_join_expression(): void
     {
-        // Simulate: customizeQueryBuilder() already joined e.donorProvider AS dp.
         $existingJoin = $this->createMock(Join::class);
         $existingJoin->method('getAlias')->willReturn('dp');
         $existingJoin->method('getJoin')->willReturn('e.donorProvider');
@@ -251,11 +208,8 @@ final class RelationFieldResolverTest extends TestCase
             'e' => [$existingJoin],
         ]);
 
-        // resolve() MUST NOT add a duplicate join for the same expression.
         $qb->expects($this->never())->method('leftJoin');
 
-        // The returned expression must use the existing 'dp' alias, not the
-        // auto-generated 'donorProvider' alias.
         $result = RelationFieldResolver::resolve($qb, 'e', 'donorProvider.name');
 
         $this->assertSame('dp.name', $result);
@@ -264,7 +218,6 @@ final class RelationFieldResolverTest extends TestCase
     #[Test]
     public function it_reuses_existing_join_for_multi_segment_path_when_first_segment_has_custom_alias(): void
     {
-        // Simulate: customizeQueryBuilder() joined e.author AS a.
         $authorJoin = $this->createMock(Join::class);
         $authorJoin->method('getAlias')->willReturn('a');
         $authorJoin->method('getJoin')->willReturn('e.author');
@@ -274,7 +227,6 @@ final class RelationFieldResolverTest extends TestCase
             'e' => [$authorJoin],
         ]);
 
-        // Only a.address needs a new join (a_address), not e.author again.
         $qb->expects($this->once())
             ->method('leftJoin')
             ->with('a.address', 'a_address')

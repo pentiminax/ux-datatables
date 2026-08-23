@@ -1,9 +1,9 @@
 ---
 title: Action Column
 description: Configure built-in row actions (edit, delete, detail) for AbstractDataTable and manual tables
+order: 130
+navTitle: Action
 ---
-
-# Action Column
 
 UX DataTables builds row actions from an `Actions` collection. The recommended entry point is `AbstractDataTable::configureActions()`.
 
@@ -420,7 +420,7 @@ return static function (RoutingConfigurator $routes): void {
 
 ### Edit Form Endpoints
 
-- `GET /datatables/ajax/edit-form` — returns the rendered modal HTML
+- `POST /datatables/ajax/edit-form/view` — returns the rendered modal HTML
 - `POST /datatables/ajax/edit-form` — validates and persists the form data
 
 These endpoints are only available when `symfony/form` is installed.

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Filter;
 
 use Pentiminax\UX\DataTables\Filter\TextFilter;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsFilterQueryBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -30,25 +32,43 @@ final class TextFilterTest extends TestCase
         ], $filter->jsonSerialize());
     }
 
+    /**
+     * The uuid case matters because PostgreSQL rejects both LOWER(uuid) and
+     * uuid LIKE, so a native uuid column must not produce a text condition.
+     *
+     * @param list<string>         $expectedWhere
+     * @param array<string, mixed> $expectedParams
+     */
     #[Test]
-    public function it_applies_a_case_insensitive_like_via_ux_datatables_search(): void
+    #[DataProvider('provideConditions')]
+    public function it_applies_a_condition(string $field, string $value, ?string $fieldType, array $expectedWhere, array $expectedParams): void
     {
-        $qb = $this->createScalarFieldQueryBuilder();
-
-        TextFilter::new('name')->apply($qb, 'John', 'e');
-
-        $this->assertSame(['UX_DATATABLES_SEARCH(e.name, :filter_name) = 1'], $this->capturedWhere);
-        $this->assertSame(['filter_name' => '%john%'], $this->capturedParams);
+        $this->assertFilterProduces(TextFilter::new($field), $value, $expectedWhere, $expectedParams, $fieldType);
     }
 
-    #[Test]
-    public function it_is_a_no_op_for_blank_values(): void
+    /**
+     * @return iterable<string, array{string, string, string|null, list<string>, array<string, mixed>}>
+     */
+    public static function provideConditions(): iterable
     {
-        $qb = $this->createScalarFieldQueryBuilder();
+        yield 'case insensitive like' => [
+            'name',
+            'John',
+            null,
+            ['UX_DATATABLES_SEARCH(e.name, :filter_name) = 1'],
+            ['filter_name' => '%john%'],
+        ];
 
-        TextFilter::new('name')->apply($qb, '   ', 'e');
+        yield 'value with like wildcards is escaped, not interpreted' => [
+            'name',
+            '50%_off',
+            null,
+            ['UX_DATATABLES_SEARCH(e.name, :filter_name) = 1'],
+            ['filter_name' => '%50!%!_off%'],
+        ];
 
-        $this->assertSame([], $this->capturedWhere);
-        $this->assertSame([], $this->capturedParams);
+        yield 'uuid field' => ['id', '018f2c3e', 'uuid', [], []];
+
+        yield 'blank value' => ['name', '   ', null, [], []];
     }
 }

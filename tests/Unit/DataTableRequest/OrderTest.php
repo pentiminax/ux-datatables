@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,90 +18,55 @@ use Symfony\Component\HttpFoundation\Request;
 #[CoversClass(Order::class)]
 final class OrderTest extends TestCase
 {
+    /**
+     * @param list<string>         $columnNames the requested columns, in payload order
+     * @param array<string, mixed> $orderData   the raw DataTables.net order entry
+     */
     #[Test]
-    public function it_parses_from_array_with_valid_column(): void
+    #[DataProvider('provideOrderEntries')]
+    public function it_parses_from_array(array $columnNames, array $orderData, Order $expected): void
     {
-        $request = new Request(
-            query: [
-                'columns' => [
-                    ['data' => 'email', 'name' => 'email', 'searchable' => true, 'orderable' => true],
-                    ['data' => 'username', 'name' => 'username', 'searchable' => true, 'orderable' => true],
-                ],
-            ]
-        );
+        $this->assertEquals($expected, Order::fromArray($orderData, self::createColumns(...$columnNames)));
+    }
 
-        $columns   = Columns::fromRequest($request);
-        $orderData = ['column' => 0, 'dir' => 'asc'];
+    public static function provideOrderEntries(): iterable
+    {
+        yield 'first column' => [
+            ['email', 'username'],
+            ['column' => 0, 'dir' => 'asc'],
+            new Order(column: 0, dir: 'asc', name: 'email'),
+        ];
 
-        $order = Order::fromArray($orderData, $columns);
+        yield 'last column' => [
+            ['id', 'name', 'email'],
+            ['column' => 2, 'dir' => 'desc'],
+            new Order(column: 2, dir: 'desc', name: 'email'),
+        ];
 
-        $this->assertEquals(0, $order->column);
-        $this->assertEquals('asc', $order->dir);
-        $this->assertEquals('email', $order->name);
+        yield 'missing direction defaults to asc' => [
+            ['id'],
+            ['column' => 0],
+            new Order(column: 0, dir: 'asc', name: 'id'),
+        ];
     }
 
     #[Test]
     public function it_handles_invalid_column_index(): void
     {
-        $request = new Request(
-            query: [
-                'columns' => [
-                    ['data' => 'email', 'name' => 'email', 'searchable' => true, 'orderable' => true],
-                ],
-            ]
-        );
+        $order = Order::fromArray(['column' => 5, 'dir' => 'desc'], self::createColumns('email'));
 
-        $columns   = Columns::fromRequest($request);
-        $orderData = ['column' => 5, 'dir' => 'desc'];
-
-        $order = Order::fromArray($orderData, $columns);
-
-        $this->assertEquals(5, $order->column);
-        $this->assertEquals('desc', $order->dir);
-        $this->assertEquals('column_5', $order->name);
+        $this->assertSame(5, $order->column);
+        $this->assertSame('desc', $order->dir);
+        $this->assertSame('column_5', $order->name);
     }
 
-    #[Test]
-    public function it_defaults_direction_when_missing(): void
+    private static function createColumns(string ...$names): Columns
     {
-        $request = new Request(
-            query: [
-                'columns' => [
-                    ['data' => 'id', 'name' => 'id', 'searchable' => true, 'orderable' => true],
-                ],
-            ]
-        );
-
-        $columns   = Columns::fromRequest($request);
-        $orderData = ['column' => 0];
-
-        $order = Order::fromArray($orderData, $columns);
-
-        $this->assertEquals(0, $order->column);
-        $this->assertEquals('asc', $order->dir);
-        $this->assertEquals('id', $order->name);
-    }
-
-    #[Test]
-    public function it_parses_from_array_with_multiple_columns(): void
-    {
-        $request = new Request(
-            query: [
-                'columns' => [
-                    ['data' => 'id', 'name' => 'id', 'searchable' => true, 'orderable' => true],
-                    ['data' => 'name', 'name' => 'name', 'searchable' => true, 'orderable' => true],
-                    ['data' => 'email', 'name' => 'email', 'searchable' => true, 'orderable' => true],
-                ],
-            ]
-        );
-
-        $columns   = Columns::fromRequest($request);
-        $orderData = ['column' => 2, 'dir' => 'desc'];
-
-        $order = Order::fromArray($orderData, $columns);
-
-        $this->assertEquals(2, $order->column);
-        $this->assertEquals('desc', $order->dir);
-        $this->assertEquals('email', $order->name);
+        return Columns::fromRequest(new Request(query: [
+            'columns' => array_map(
+                static fn (string $name): array => ['data' => $name, 'name' => $name, 'searchable' => true, 'orderable' => true],
+                $names,
+            ),
+        ]));
     }
 }

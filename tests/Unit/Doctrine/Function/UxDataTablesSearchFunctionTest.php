@@ -28,7 +28,7 @@ final class UxDataTablesSearchFunctionTest extends TestCase
     {
         $sql = $this->invoke_get_sql(new PostgreSQLPlatform(), 'e0_.id', '?');
 
-        $this->assertSame('CASE WHEN LOWER(CAST(e0_.id AS TEXT)) LIKE ? THEN 1 ELSE 0 END', $sql);
+        $this->assertSame("CASE WHEN LOWER(CAST(e0_.id AS TEXT)) LIKE ? ESCAPE '!' THEN 1 ELSE 0 END", $sql);
     }
 
     #[Test]
@@ -37,7 +37,7 @@ final class UxDataTablesSearchFunctionTest extends TestCase
     {
         $sql = $this->invoke_get_sql($platform, 'e0_.name', '?');
 
-        $this->assertSame('CASE WHEN LOWER(e0_.name) LIKE ? THEN 1 ELSE 0 END', $sql, $label);
+        $this->assertSame("CASE WHEN LOWER(e0_.name) LIKE ? ESCAPE '!' THEN 1 ELSE 0 END", $sql, $label);
     }
 
     /**
@@ -54,7 +54,7 @@ final class UxDataTablesSearchFunctionTest extends TestCase
     {
         $sql = $this->invoke_get_sql(new PostgreSQLPlatform(), 'e0_.email', ':search_0');
 
-        $this->assertSame('CASE WHEN LOWER(CAST(e0_.email AS TEXT)) LIKE :search_0 THEN 1 ELSE 0 END', $sql);
+        $this->assertSame("CASE WHEN LOWER(CAST(e0_.email AS TEXT)) LIKE :search_0 ESCAPE '!' THEN 1 ELSE 0 END", $sql);
     }
 
     #[Test]
@@ -62,7 +62,7 @@ final class UxDataTablesSearchFunctionTest extends TestCase
     {
         $sql = $this->invoke_get_sql(new \Doctrine\DBAL\Platforms\PostgreSQL120Platform(), 'e0_.uuid', '?');
 
-        $this->assertSame('CASE WHEN LOWER(CAST(e0_.uuid AS TEXT)) LIKE ? THEN 1 ELSE 0 END', $sql);
+        $this->assertSame("CASE WHEN LOWER(CAST(e0_.uuid AS TEXT)) LIKE ? ESCAPE '!' THEN 1 ELSE 0 END", $sql);
     }
 
     #[Test]

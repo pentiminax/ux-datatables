@@ -4,12 +4,19 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Ajax;
 
+use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Psr\Container\ContainerInterface;
 
 final class AjaxDataTableRegistry
 {
-    private const string BOOLEAN_MUTATION_TOKEN_PREFIX = 'boolean-mutation:';
+    /**
+     * Action tokens are signed under their own prefix so that the read token — which
+     * travels in a query string on /ajax/data, and therefore leaks through logs and
+     * the Referer header — can never be replayed against an action route. Every route
+     * accepting an action token reads it from the request body for the same reason.
+     */
+    private const string ACTION_TOKEN_PREFIX = 'action:';
 
     /**
      * @param array<class-string<AbstractDataTable>, string> $serviceIdsByClass
@@ -23,36 +30,40 @@ final class AjaxDataTableRegistry
 
     public function getToken(string $dataTableClass): ?string
     {
-        $dataTableClass = ltrim($dataTableClass, '\\');
+        return $this->generateToken('', $dataTableClass);
+    }
 
-        if (!isset($this->serviceIdsByClass[$dataTableClass])) {
-            return null;
-        }
-
-        return $this->tokenManager->generateHmacSignature($dataTableClass);
+    public function getActionToken(string $dataTableClass): ?string
+    {
+        return $this->generateToken(self::ACTION_TOKEN_PREFIX, $dataTableClass);
     }
 
     public function get(string $token): ?AbstractDataTable
     {
-        foreach ($this->serviceIdsByClass as $dataTableClass => $serviceId) {
-            $generatedSignature = $this->tokenManager->generateHmacSignature($dataTableClass);
-            if (!$this->validateSignature($generatedSignature, $token)) {
-                continue;
-            }
-
-            $table = $this->locator->get($serviceId);
-
-            if (!$table instanceof AbstractDataTable) {
-                throw new \LogicException(\sprintf('Service "%s" must be an instance of "%s".', $serviceId, AbstractDataTable::class));
-            }
-
-            return $table;
-        }
-
-        return null;
+        return $this->findByToken('', $token);
     }
 
-    public function getBooleanMutationToken(string $dataTableClass): ?string
+    /**
+     * @throws InvalidDataTableTokenException
+     */
+    public function resolveAction(string $token): ResolvedDataTable
+    {
+        $table = $this->findByToken(self::ACTION_TOKEN_PREFIX, $token);
+
+        if (null === $table) {
+            throw InvalidDataTableTokenException::invalidToken();
+        }
+
+        $entityClass = $table->getEntityClass();
+
+        return new ResolvedDataTable(
+            $table,
+            null === $entityClass ? null : ltrim($entityClass, '\\'),
+            $table::class,
+        );
+    }
+
+    private function generateToken(string $prefix, string $dataTableClass): ?string
     {
         $dataTableClass = ltrim($dataTableClass, '\\');
 
@@ -60,14 +71,15 @@ final class AjaxDataTableRegistry
             return null;
         }
 
-        return $this->tokenManager->generateHmacSignature(self::BOOLEAN_MUTATION_TOKEN_PREFIX.$dataTableClass);
+        return $this->tokenManager->generateHmacSignature($prefix.$dataTableClass);
     }
 
-    public function getForBooleanMutation(string $token): ?AbstractDataTable
+    private function findByToken(string $prefix, string $token): ?AbstractDataTable
     {
         foreach ($this->serviceIdsByClass as $dataTableClass => $serviceId) {
-            $generatedSignature = $this->tokenManager->generateHmacSignature(self::BOOLEAN_MUTATION_TOKEN_PREFIX.$dataTableClass);
-            if (!$this->validateSignature($generatedSignature, $token)) {
+            $generatedSignature = $this->tokenManager->generateHmacSignature($prefix.$dataTableClass);
+
+            if (!hash_equals($generatedSignature, $token)) {
                 continue;
             }
 
@@ -81,10 +93,5 @@ final class AjaxDataTableRegistry
         }
 
         return null;
-    }
-
-    private function validateSignature($generatedSignature, string $token): bool
-    {
-        return hash_equals($generatedSignature, $token);
     }
 }

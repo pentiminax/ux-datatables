@@ -167,6 +167,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.mutation.boolean_context_resolver', BooleanMutationContextResolver::class)
         ->arg(0, service('datatables.ajax.registry'))
+        ->arg(1, service('datatables.security.permission_checker'))
         ->private();
 
     $services->alias(BooleanMutationContextResolver::class, 'datatables.mutation.boolean_context_resolver')
@@ -186,6 +187,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.controller.ajax_delete', AjaxDeleteController::class)
         ->arg(0, service('datatables.mutation.mutator'))
         ->arg(1, service('datatables.security.mutation_token_validator'))
+        ->arg(2, service('datatables.ajax.registry'))
         ->tag('controller.service_arguments')
         ->public();
 
@@ -196,13 +198,14 @@ return static function (ContainerConfigurator $container): void {
         ->public();
 
     $services->set('datatables.detail.row_service', DetailRowService::class)
-        ->arg(0, tagged_locator('datatables.data_table'))
-        ->arg(1, service('datatables.mutation.locator'))
-        ->arg(2, service('twig')->nullOnInvalid())
+        ->arg(0, service('datatables.mutation.locator'))
+        ->arg(1, service('twig')->nullOnInvalid())
+        ->arg(2, service('datatables.security.permission_checker'))
         ->private();
 
     $services->set('datatables.controller.ajax_detail', AjaxDetailController::class)
         ->arg(0, service('datatables.detail.row_service'))
+        ->arg(1, service('datatables.ajax.registry'))
         ->tag('controller.service_arguments')
         ->public();
 
@@ -281,6 +284,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(1, service('datatables.column.template_column_renderer'))
         ->arg(2, service('datatables.column.action_row_data_resolver'))
         ->arg(3, service(UrlColumnDataResolver::class)->nullOnInvalid())
+        ->arg(4, service('datatables.security.permission_checker'))
         ->private();
 
     $services->alias(DataTableRuntimeFactory::class, 'datatables.runtime.factory')
@@ -292,6 +296,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(2, service('datatables.runtime.factory'))
         ->arg(3, service('datatables.query.intent_factory'))
         ->arg(4, service('datatables.query.filter_pipeline'))
+        ->arg(5, service('datatables.builder'))
         ->private();
 
     $services->alias(DataTableInfrastructure::class, 'datatables.infrastructure')

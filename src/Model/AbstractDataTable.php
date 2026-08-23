@@ -10,11 +10,13 @@ use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
@@ -64,6 +66,17 @@ abstract class AbstractDataTable
         $this->infrastructure = $infrastructure;
     }
 
+    final public function resetDataTableState(): void
+    {
+        unset($this->table, $this->columns, $this->filters);
+
+        $this->defaultRowMapper  = null;
+        $this->asDataTable       = null;
+        $this->runtime           = null;
+        $this->initialized       = false;
+        $this->renderingPrepared = false;
+    }
+
     private function initialize(): void
     {
         if ($this->initialized) {
@@ -73,7 +86,7 @@ abstract class AbstractDataTable
         $this->asDataTable = $this->resolveAsDataTable();
 
         $this->table = $this->configureDataTable(
-            new DataTable($this->getClassName())
+            $this->infrastructure()->builder()->createDataTable($this->getClassName())
         );
 
         $this->table->setDataTableClass(static::class);
@@ -85,11 +98,11 @@ abstract class AbstractDataTable
         $actions = $this->configureActions(new Actions());
 
         $columnResolver->configureActionEntityClass($actions, $this->asDataTable);
-        $columnResolver->filterActionsByStaticPermissions($actions);
 
+        // Permission filtering is request-scoped and happens at the serialization
+        // and query boundaries. Applying it here would lock this container-shared
+        // instance to the first user who initialized it.
         $this->configureActionColumn($actions);
-
-        $this->columns = $columnResolver->filterStaticPermissions($this->columns);
 
         $this->table->columns($this->columns);
 
@@ -97,7 +110,7 @@ abstract class AbstractDataTable
         $this->table->setFilters($this->filters);
 
         $this->table->setExtensions(
-            $this->configureExtensions(new DataTableExtensions())
+            $this->configureExtensions($this->table->getExtensionsCollection())
         );
 
         $this->initialized = true;
@@ -163,21 +176,6 @@ abstract class AbstractDataTable
     }
 
     /**
-     * Resolve the Mercure configuration exactly as the render path would
-     * serialize it to the browser, WITHOUT hydrating client-side data and
-     * WITHOUT mutating this container-shared instance.
-     *
-     * Delegates to the same pure RenderingPreparer::resolveMercureConfig() the
-     * render path uses, so published topics always match the ones the client
-     * subscribed to, but deliberately skips hydrateClientSideData() so resolving
-     * topics for a mutation never triggers a data-provider / DB query as a side
-     * effect. When the render path would embed static client-side data — which
-     * disables Mercure live updates — this returns null, mirroring
-     * RenderingPreparer::configureMercure().
-     *
-     * Callers that must not fail (e.g. after a committed mutation) should guard
-     * against the LogicException that Mercure hub-URL resolution can throw.
-     *
      * @throws \LogicException if Mercure is enabled but the hub URL cannot be resolved
      */
     public function resolveMercureConfigWithoutHydration(): ?MercureConfig
@@ -317,9 +315,10 @@ abstract class AbstractDataTable
         return $this->infrastructure()->queryFilterPipeline()->apply(
             qb: $qb,
             request: $request,
-            columns: $this->columns,
+            columns: $this->infrastructure()->columnResolver()->filterStaticPermissions($this->columns),
             filters: $this->filters ?? null,
             registry: $this->createSearchStrategyRegistry(),
+            predicateBuilder: $this->createSearchPredicateBuilder(),
         );
     }
 
@@ -336,6 +335,17 @@ abstract class AbstractDataTable
     protected function createSearchStrategyRegistry(): SearchStrategyRegistry
     {
         return new DefaultSearchStrategyRegistry();
+    }
+
+    /**
+     * Create the search predicate builder used by global search.
+     *
+     * Override this method to customize how global search builds a condition for a column,
+     * e.g. to add type handling SearchPredicateFactory does not cover.
+     */
+    protected function createSearchPredicateBuilder(): SearchPredicateBuilderInterface
+    {
+        return new DefaultSearchPredicateBuilder();
     }
 
     public function getColumnByName(string $name): ?ColumnInterface

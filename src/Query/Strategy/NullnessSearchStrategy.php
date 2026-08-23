@@ -15,7 +15,7 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 /**
  * Strategy for null/empty search logic.
  *
- * For numeric columns, only checks NULL / NOT NULL.
+ * For numeric, date, and other non-text Doctrine columns, only checks NULL / NOT NULL.
  * For text columns, also includes empty-string checks.
  *
  * Respects {@see SearchAwareColumnInterface::getSearchField()} for field resolution and
@@ -23,6 +23,9 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  * The {@see \Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface}
  * custom predicate is intentionally not invoked: nullness checks are inherently
  * field-level operations that a generic open-ended closure cannot safely compose.
+ *
+ * Native UUID/ULID columns must stay on the NULL-only path: PostgreSQL and SQL Server
+ * reject `uuid = ''` the same way they reject `uuid LIKE`.
  */
 final class NullnessSearchStrategy implements SearchStrategyInterface
 {
@@ -44,7 +47,10 @@ final class NullnessSearchStrategy implements SearchStrategyInterface
 
         $field      = RelationFieldResolver::resolve($qb, $alias, $effectiveField);
         $expr       = $qb->expr();
-        $isNullOnly = $column->isNumber() || $column->isDate() || \in_array(strtolower($search->type), self::NULL_ONLY_TYPES, true);
+        $isNullOnly = $column->isNumber()
+            || $column->isDate()
+            || \in_array(strtolower($search->type), self::NULL_ONLY_TYPES, true)
+            || !RelationFieldResolver::supportsTextSearch($qb, $effectiveField);
 
         if ($isNullOnly) {
             $qb->andWhere($this->negated ? $expr->isNotNull($field) : $expr->isNull($field));

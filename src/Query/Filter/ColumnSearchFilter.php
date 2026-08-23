@@ -6,22 +6,26 @@ namespace Pentiminax\UX\DataTables\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
-use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
-use Pentiminax\UX\DataTables\Query\ColumnSearchResolver;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
-use Pentiminax\UX\DataTables\Query\SearchPredicateFactory;
+use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
+use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 
 /**
  * Filter that applies standard DataTables column-specific searches.
  *
  * Consumes the normalized {@see \Pentiminax\UX\DataTables\Query\Intent\ColumnSearchIntent}
- * criteria with AND logic. Delegates condition building to SearchPredicateFactory.
+ * criteria with AND logic, one condition per column search box. Delegates condition
+ * building to the registry's 'contains' strategy, so overriding
+ * AbstractDataTable::createSearchStrategyRegistry() customizes this search alongside
+ * ColumnControl search instead of only the latter.
  *
- * Per-column resolution order:
+ * Per-column resolution (handled by {@see \Pentiminax\UX\DataTables\Query\Strategy\ContainsSearchStrategy}):
  *
  *  1. Any search joins declared via {@see \Pentiminax\UX\DataTables\Column\AbstractColumn::addSearchJoin()}
  *     are applied to the QueryBuilder first (idempotent).
- *  2. If the column implements {@see SearchableColumnInterface} and returns a
+ *  2. If the column implements {@see \Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface} and returns a
  *     non-null DQL fragment, that fragment is used verbatim.
  *  3. Otherwise the effective field path (from
  *     {@see \Pentiminax\UX\DataTables\Column\AbstractColumn::setSearchField()} or
@@ -32,8 +36,15 @@ use Pentiminax\UX\DataTables\Query\SearchPredicateFactory;
  */
 final class ColumnSearchFilter implements QueryFilterInterface
 {
+    public function __construct(
+        private readonly SearchStrategyRegistry $registry = new DefaultSearchStrategyRegistry(),
+    ) {
+    }
+
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
+        $strategy = $this->registry->get(ColumnControlLogic::Contains->value);
+
         foreach ($context->intent->columnSearches as $columnSearch) {
             $reference = $columnSearch->column;
 
@@ -42,31 +53,9 @@ final class ColumnSearchFilter implements QueryFilterInterface
                 continue;
             }
 
-            // Apply any column-declared search joins before resolving the predicate.
-            ColumnSearchResolver::applySearchJoins($qb, $column);
+            $search = new ColumnControlSearch($columnSearch->value, ColumnControlLogic::Contains, 'text');
 
-            $paramName = \sprintf('column_search_param_%d', $context->paramIndexFor($reference));
-
-            // Custom predicate (SearchableColumnInterface / setSearchPredicate()).
-            if ($column instanceof SearchableColumnInterface) {
-                $custom = $column->buildSearchPredicate($qb, $context->alias, $columnSearch->value, $paramName);
-                if (null !== $custom) {
-                    $qb->andWhere($custom);
-                    continue;
-                }
-            }
-
-            // Standard field-based predicate.
-            $field = ColumnSearchResolver::resolveField($column);
-            if (null === $field) {
-                continue;
-            }
-
-            $condition = SearchPredicateFactory::build($qb, $column, $context->alias, $field, $columnSearch->value, $paramName);
-
-            if (null !== $condition) {
-                $qb->andWhere($condition);
-            }
+            $strategy->apply($qb, $column, $search, $context->nextParamIndex(), $context->alias);
         }
     }
 }

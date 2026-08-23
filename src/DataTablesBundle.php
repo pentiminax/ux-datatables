@@ -48,6 +48,15 @@ class DataTablesBundle extends AbstractBundle
                             ->scalarPrototype()->end()
                         ->end()
                         ->integerNode('pageLength')->end()
+                        ->arrayNode('paging')
+                            ->children()
+                                ->booleanNode('boundaryNumbers')->defaultTrue()->end()
+                                ->integerNode('buttons')->defaultValue(7)->end()
+                                ->booleanNode('firstLast')->defaultTrue()->end()
+                                ->booleanNode('numbers')->defaultTrue()->end()
+                                ->booleanNode('previousNext')->defaultTrue()->end()
+                            ->end()
+                        ->end()
                     ->end()
                 ->end()
                 ->arrayNode('template_parameters')
@@ -85,6 +94,7 @@ class DataTablesBundle extends AbstractBundle
     {
         $builder->registerForAutoconfiguration(AbstractDataTable::class)
             ->addTag('datatables.data_table')
+            ->addTag('kernel.reset', ['method' => 'resetDataTableState'])
             ->addMethodCall('setDataTableInfrastructure', [new Reference('datatables.infrastructure')]);
 
         $formAvailable    = interface_exists(FormFactoryInterface::class);

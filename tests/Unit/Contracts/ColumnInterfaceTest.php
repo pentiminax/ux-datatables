@@ -10,7 +10,6 @@ use Pentiminax\UX\DataTables\Column\EmailColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\Enum\ColumnType;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -22,6 +21,14 @@ use PHPUnit\Framework\TestCase;
 #[CoversNothing]
 final class ColumnInterfaceTest extends TestCase
 {
+    #[Test]
+    #[DataProvider('provideConcretColumns')]
+    public function it_returns_null_for_an_unknown_custom_option(ColumnInterface $column): void
+    {
+        $this->assertArrayNotHasKey('nonexistent', $column->getCustomOptions());
+        $this->assertNull($column->getCustomOption('nonexistent'));
+    }
+
     /**
      * @return iterable<string, array{ColumnInterface}>
      */
@@ -35,27 +42,21 @@ final class ColumnInterfaceTest extends TestCase
     }
 
     #[Test]
-    #[DataProvider('provideConcretColumns')]
-    public function it_satisfies_column_interface(ColumnInterface $column): void
+    #[DataProvider('provideColumnKindFlags')]
+    public function it_identifies_number_and_date_columns(ColumnInterface $column, bool $isNumber, bool $isDate): void
     {
-        $this->assertInstanceOf(ColumnInterface::class, $column);
+        $this->assertSame($isNumber, $column->isNumber());
+        $this->assertSame($isDate, $column->isDate());
     }
 
-    #[Test]
-    #[DataProvider('provideConcretColumns')]
-    public function it_exposes_readable_state_via_interface(ColumnInterface $column): void
+    /**
+     * @return iterable<string, array{ColumnInterface, bool, bool}>
+     */
+    public static function provideColumnKindFlags(): iterable
     {
-        $this->assertInstanceOf(ColumnType::class, $column->getType());
-        $this->assertIsBool($column->isVisible());
-        $this->assertIsBool($column->isOrderable());
-        $this->assertIsBool($column->isSearchable());
-        $this->assertIsBool($column->isGlobalSearchable());
-        $this->assertIsBool($column->isExportable());
-        $this->assertIsBool($column->isNumber());
-        $this->assertIsBool($column->isDate());
-        $this->assertIsString($column->getName());
-        $this->assertIsArray($column->getCustomOptions());
-        $this->assertNull($column->getCustomOption('nonexistent'));
+        yield 'number' => [NumberColumn::new('amount', 'Amount'), true, false];
+        yield 'date' => [DateColumn::new('created_at', 'Created at'), false, true];
+        yield 'text' => [TextColumn::new('name', 'Name'), false, false];
     }
 
     #[Test]
@@ -74,36 +75,16 @@ final class ColumnInterfaceTest extends TestCase
 
         $column->setCustomOption('highlight', true);
 
-        $interface = $column;
-
-        $this->assertFalse($interface->isVisible());
-        $this->assertFalse($interface->isOrderable());
-        $this->assertFalse($interface->isSearchable());
-        $this->assertFalse($interface->isGlobalSearchable());
-        $this->assertFalse($interface->isExportable());
-        $this->assertSame('200px', $interface->getWidth());
-        $this->assertSame('col-title', $interface->getClassName());
-        $this->assertSame('th', $interface->getCellType());
-        $this->assertSame('N/A', $interface->getDefaultContent());
-        $this->assertSame(['highlight' => true], $interface->getCustomOptions());
-        $this->assertTrue($interface->getCustomOption('highlight'));
-    }
-
-    #[Test]
-    public function it_correctly_identifies_numeric_column_type(): void
-    {
-        $col = NumberColumn::new('amount', 'Amount');
-
-        $this->assertTrue($col->isNumber());
-        $this->assertFalse($col->isDate());
-    }
-
-    #[Test]
-    public function it_correctly_identifies_date_column_type(): void
-    {
-        $col = DateColumn::new('created_at', 'Created at');
-
-        $this->assertTrue($col->isDate());
-        $this->assertFalse($col->isNumber());
+        $this->assertFalse($column->isVisible());
+        $this->assertFalse($column->isOrderable());
+        $this->assertFalse($column->isSearchable());
+        $this->assertFalse($column->isGlobalSearchable());
+        $this->assertFalse($column->isExportable());
+        $this->assertSame('200px', $column->getWidth());
+        $this->assertSame('col-title', $column->getClassName());
+        $this->assertSame('th', $column->getCellType());
+        $this->assertSame('N/A', $column->getDefaultContent());
+        $this->assertSame(['highlight' => true], $column->getCustomOptions());
+        $this->assertTrue($column->getCustomOption('highlight'));
     }
 }

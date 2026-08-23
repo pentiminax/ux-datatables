@@ -568,6 +568,19 @@ class DataTable
         return $this->extensions->jsonSerialize();
     }
 
+    /**
+     * Mutable extension collection, already seeded with the bundle-wide
+     * `data_tables.extensions` configuration.
+     *
+     * @internal used by {@see AbstractDataTable::initialize()} to seed
+     *           `configureExtensions()`. Use {@see self::getExtensions()} or the
+     *           fluent extension methods instead.
+     */
+    public function getExtensionsCollection(): DataTableExtensions
+    {
+        return $this->extensions;
+    }
+
     public function setExtensions(DataTableExtensions $extensions): static
     {
         $this->extensions = $extensions;
@@ -624,8 +637,6 @@ class DataTable
      *   - An array of Feature enums (e.g. [Feature::SEARCH, Feature::BUTTONS])
      *   - null to hide the position
      *   - A DataTables feature object (e.g. ['div' => ['html' => '<h2>Title</h2>']])
-     *
-     * @param array<string, Feature|Feature[]|array<string, mixed>|null> $layout
      */
     public function layout(array $layout): static
     {

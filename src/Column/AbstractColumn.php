@@ -12,7 +12,15 @@ use Pentiminax\UX\DataTables\Contracts\SearchAwareColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 /**
- * @internal
+ * Base implementation shared by every bundled column type (TextColumn, DateColumn, ...).
+ *
+ * Not meant to be extended directly to build a custom column type — extend a concrete column
+ * class instead, or implement {@see ColumnInterface} directly for something that shares nothing
+ * with the bundled types. Every public method here (setField(), setColumnControl(),
+ * setClassName(), setCustomOption(), setVisible(), disableGlobalSearch(), ...) is part of the
+ * bundle's documented column-configuration API and is inherited unchanged by every concrete
+ * column — see the "Columns" documentation for usage. Only createWithType() below is genuinely
+ * internal, restricted to how the bundled column types build themselves.
  */
 abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnInterface, SearchableColumnInterface, SearchAwareColumnInterface
 {
@@ -37,6 +45,7 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
     protected ?\Closure $searchPredicate = null;
     protected bool $globalSearchable     = true;
     protected bool $columnControlEnabled = true;
+    protected ?array $columnControl      = null;
     protected array $customOptions       = [];
     protected ?string $permission        = null;
 
@@ -134,6 +143,33 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
         $this->columnControlEnabled = false;
 
         return $this;
+    }
+
+    /**
+     * Override the ColumnControl content for this column only, bypassing the table-level
+     * `ColumnControlExtension` default for it.
+     *
+     * Accepts the same content descriptors as the DataTables `columns.columnControl` option: an
+     * array of content items (e.g. `['orderAsc', 'orderDesc']`), nested arrays for multiple
+     * target areas, or extension descriptors such as `['colvisDropdown']`. Takes precedence over
+     * disableColumnControl() regardless of call order.
+     *
+     * Has no visible effect unless `ColumnControlExtension` is also added to the table (e.g. via
+     * `$table->columnControl()`) — the frontend only loads the ColumnControl plugin bundle when
+     * the table-level extension is present, so this column-level content stays inert otherwise.
+     *
+     * @param list<mixed> $columnControl
+     */
+    public function setColumnControl(array $columnControl): static
+    {
+        $this->columnControl = $columnControl;
+
+        return $this;
+    }
+
+    public function getColumnControl(): ?array
+    {
+        return $this->columnControl;
     }
 
     /**
@@ -482,7 +518,9 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
             'customOptions'  => $this->customOptions,
         ], static fn (mixed $value) => null !== $value && '' !== $value && [] !== $value);
 
-        if (!$this->columnControlEnabled) {
+        if (null !== $this->columnControl) {
+            $options['columnControl'] = $this->columnControl;
+        } elseif (!$this->columnControlEnabled) {
             $options['columnControl'] = [];
         }
 

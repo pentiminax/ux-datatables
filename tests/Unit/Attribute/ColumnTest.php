@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Attribute;
 use Pentiminax\UX\DataTables\Attribute\Column;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -16,78 +17,91 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(Column::class)]
 final class ColumnTest extends TestCase
 {
+    /**
+     * @param array<string, mixed> $expected
+     */
     #[Test]
-    public function it_has_default_values(): void
+    #[DataProvider('provideColumnAttributes')]
+    public function it_exposes_the_configured_metadata(Column $attribute, array $expected): void
     {
-        $attr = new Column();
-
-        $this->assertNull($attr->type);
-        $this->assertNull($attr->name);
-        $this->assertNull($attr->title);
-        $this->assertTrue($attr->orderable);
-        $this->assertTrue($attr->searchable);
-        $this->assertTrue($attr->visible);
-        $this->assertTrue($attr->exportable);
-        $this->assertTrue($attr->globalSearchable);
-        $this->assertNull($attr->width);
-        $this->assertNull($attr->className);
-        $this->assertNull($attr->cellType);
-        $this->assertNull($attr->defaultContent);
-        $this->assertNull($attr->field);
-        $this->assertNull($attr->format);
-        $this->assertNull($attr->position);
+        foreach ($expected as $property => $value) {
+            $this->assertSame($value, $attribute->{$property}, $property);
+        }
     }
 
-    #[Test]
-    public function it_accepts_explicit_values(): void
+    /**
+     * @return iterable<string, array{Column, array<string, mixed>}>
+     */
+    public static function provideColumnAttributes(): iterable
     {
-        $attr = new Column(
-            type: NumberColumn::class,
-            name: 'price',
-            title: 'Product Price',
-            orderable: false,
-            searchable: false,
-            visible: false,
-            exportable: false,
-            globalSearchable: false,
-            width: '120px',
-            className: 'text-right',
-            cellType: 'th',
-            defaultContent: 'N/A',
-            field: 'product.price',
-            format: 'Y-m-d',
-            position: 10,
-        );
+        yield 'defaults' => [
+            new Column(),
+            [
+                'type'             => null,
+                'name'             => null,
+                'title'            => null,
+                'orderable'        => true,
+                'searchable'       => true,
+                'visible'          => true,
+                'exportable'       => true,
+                'globalSearchable' => true,
+                'width'            => null,
+                'className'        => null,
+                'cellType'         => null,
+                'defaultContent'   => null,
+                'field'            => null,
+                'format'           => null,
+                'position'         => null,
+            ],
+        ];
 
-        $this->assertSame(NumberColumn::class, $attr->type);
-        $this->assertSame('price', $attr->name);
-        $this->assertSame('Product Price', $attr->title);
-        $this->assertFalse($attr->orderable);
-        $this->assertFalse($attr->searchable);
-        $this->assertFalse($attr->visible);
-        $this->assertFalse($attr->exportable);
-        $this->assertFalse($attr->globalSearchable);
-        $this->assertSame('120px', $attr->width);
-        $this->assertSame('text-right', $attr->className);
-        $this->assertSame('th', $attr->cellType);
-        $this->assertSame('N/A', $attr->defaultContent);
-        $this->assertSame('product.price', $attr->field);
-        $this->assertSame('Y-m-d', $attr->format);
-        $this->assertSame(10, $attr->position);
+        yield 'explicit values' => [
+            new Column(
+                type: NumberColumn::class,
+                name: 'price',
+                title: 'Product Price',
+                orderable: false,
+                searchable: false,
+                visible: false,
+                exportable: false,
+                globalSearchable: false,
+                width: '120px',
+                className: 'text-right',
+                cellType: 'th',
+                defaultContent: 'N/A',
+                field: 'product.price',
+                format: 'Y-m-d',
+                position: 10,
+            ),
+            [
+                'type'             => NumberColumn::class,
+                'name'             => 'price',
+                'title'            => 'Product Price',
+                'orderable'        => false,
+                'searchable'       => false,
+                'visible'          => false,
+                'exportable'       => false,
+                'globalSearchable' => false,
+                'width'            => '120px',
+                'className'        => 'text-right',
+                'cellType'         => 'th',
+                'defaultContent'   => 'N/A',
+                'field'            => 'product.price',
+                'format'           => 'Y-m-d',
+                'position'         => 10,
+            ],
+        ];
     }
 
     #[Test]
     public function it_can_be_read_via_reflection(): void
     {
-        $reflection = new \ReflectionClass(ColumnAttributeFixture::class);
-        $property   = $reflection->getProperty('title');
-        $attributes = $property->getAttributes(Column::class);
+        $attributes = (new \ReflectionClass(ColumnAttributeFixture::class))
+            ->getProperty('title')
+            ->getAttributes(Column::class);
 
         $this->assertCount(1, $attributes);
-
-        $instance = $attributes[0]->newInstance();
-        $this->assertInstanceOf(Column::class, $instance);
-        $this->assertSame('Title', $instance->title);
+        $this->assertSame('Title', $attributes[0]->newInstance()->title);
     }
 }
 

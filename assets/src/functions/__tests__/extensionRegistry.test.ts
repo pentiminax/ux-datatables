@@ -16,6 +16,7 @@ const extensionFamilies = [
     { name: 'colReorder', packageKey: 'colreorder', fileBase: 'colReorder' },
     { name: 'columnControl', packageKey: 'columncontrol', fileBase: 'columnControl' },
     { name: 'fixedColumns', packageKey: 'fixedcolumns', fileBase: 'fixedColumns' },
+    { name: 'fixedHeader', packageKey: 'fixedheader', fileBase: 'fixedHeader' },
     { name: 'keyTable', packageKey: 'keytable', fileBase: 'keyTable' },
     { name: 'responsive', packageKey: 'responsive', fileBase: 'responsive' },
     { name: 'rowGroup', packageKey: 'rowgroup', fileBase: 'rowGroup' },

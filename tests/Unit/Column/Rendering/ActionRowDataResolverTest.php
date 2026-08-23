@@ -11,7 +11,9 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -29,196 +31,148 @@ final class ActionRowDataResolverTest extends TestCase
     #[Test]
     public function row_unchanged_when_no_action_column(): void
     {
-        $resolver = new ActionRowDataResolver();
-
         $row = ['id' => 1];
 
-        $result = $resolver->resolveRow($row, (object) ['id' => 1], [TextColumn::new('name', 'Name')]);
+        $result = (new ActionRowDataResolver())->resolveRow($row, (object) ['id' => 1], [TextColumn::new('name', 'Name')]);
 
         $this->assertSame($row, $result);
     }
 
+    /**
+     * @param Action[]              $actions
+     * @param ?array<string, mixed> $expected null when the row must not expose any action
+     */
     #[Test]
-    public function adds_authorized_action_to_row(): void
+    #[DataProvider('provideActionsToMap')]
+    public function it_maps_resolvable_actions_into_the_row(array $actions, mixed $sourceRow, ?array $expected): void
     {
-        $actions = new Actions();
-        $actions->add(Action::detail()->linkToUrl(static fn (object $r) => '/items/'.$r->id));
+        $result = $this->resolveRow(new ActionRowDataResolver(), $sourceRow, ...$actions);
 
-        $column = ActionColumn::fromActions('actions', '', $actions);
-
-        $result = (new ActionRowDataResolver())->resolveRow(
-            ['id' => 7],
-            (object) ['id' => 7],
-            [$column],
-        );
-
-        $this->assertArrayHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
-        $this->assertSame(['DETAIL' => ['url' => '/items/7']], $result[ActionRowDataResolver::ROW_ACTIONS_KEY]);
+        $this->assertSame($expected, $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null);
     }
 
-    #[Test]
-    public function custom_actions_are_keyed_by_name_with_url_only(): void
+    /**
+     * @return iterable<string, array{Action[], mixed, ?array<string, mixed>}>
+     */
+    public static function provideActionsToMap(): iterable
     {
-        $actions = new Actions();
-        $actions->add(Action::new('view', 'View')->linkToUrl(static fn (object $r) => '/invoices/'.$r->id));
-        $actions->add(Action::new('download', 'Download')->linkToUrl(static fn (object $r) => '/invoices/'.$r->id.'/download'));
+        yield 'built-in action keyed by type' => [
+            [Action::detail()->linkToUrl(static fn (object $r) => '/items/'.$r->id)],
+            (object) ['id' => 7],
+            ['DETAIL' => ['url' => '/items/7']],
+        ];
 
-        $column = ActionColumn::fromActions('actions', '', $actions);
-
-        $result = (new ActionRowDataResolver())->resolveRow(['id' => 7], (object) ['id' => 7], [$column]);
-
-        $this->assertSame(
+        yield 'custom actions keyed by name' => [
+            [
+                Action::new('view', 'View')->linkToUrl(static fn (object $r) => '/invoices/'.$r->id),
+                Action::new('download', 'Download')->linkToUrl(static fn (object $r) => '/invoices/'.$r->id.'/download'),
+            ],
+            (object) ['id' => 7],
             [
                 'view'     => ['url' => '/invoices/7'],
                 'download' => ['url' => '/invoices/7/download'],
             ],
-            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
-        );
-    }
+        ];
 
-    #[Test]
-    public function resolves_id_for_collapsible_detail_action(): void
-    {
-        $actions = new Actions();
-        $actions->add(Action::detail()->collapsible('book/detail.html.twig'));
-
-        $column = ActionColumn::fromActions('actions', '', $actions);
-
-        $result = (new ActionRowDataResolver())->resolveRow(['id' => 7], (object) ['id' => 7], [$column]);
-
-        $this->assertSame(
+        yield 'collapsible detail action exposes the id' => [
+            [Action::detail()->collapsible('book/detail.html.twig')],
+            (object) ['id' => 7],
             ['DETAIL' => ['id' => 7]],
-            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
-        );
+        ];
+
+        yield 'id read from the default entity identifier' => [
+            [Action::edit()],
+            new ActionRowDataResolverEntity(7),
+            ['EDIT' => ['id' => 7]],
+        ];
+
+        yield 'id read from a custom entity identifier' => [
+            [Action::delete()->setIdField('uuid')],
+            new ActionRowDataResolverEntity(7, 'abc-123'),
+            ['DELETE' => ['id' => 'abc-123']],
+        ];
+
+        yield 'id read from an array source row' => [
+            [Action::delete()],
+            ['id' => 9],
+            ['DELETE' => ['id' => 9]],
+        ];
+
+        // A PermissionChecker without inner checker grants everything.
+        yield 'per row permission without authorization checker' => [
+            [
+                Action::edit()
+                    ->linkToUrl(static fn (object $r) => '/items/'.$r->id)
+                    ->permission('EDIT', static fn ($r) => $r),
+            ],
+            (object) ['id' => 7],
+            ['EDIT' => ['url' => '/items/7', 'id' => 7]],
+        ];
+
+        yield 'action with neither url nor readable id' => [
+            [Action::edit()->setIdField('missing')],
+            new ActionRowDataResolverEntity(7),
+            null,
+        ];
     }
 
     #[Test]
-    public function excludes_per_row_action_when_denied(): void
+    #[TestWith([true])]
+    #[TestWith([false])]
+    public function per_row_permission_decides_action_exposure(bool $granted): void
     {
-        $row = (object) ['id' => 7];
+        $sourceRow = (object) ['id' => 7];
 
         $inner = $this->createMock(AuthorizationCheckerInterface::class);
         $inner
             ->expects($this->once())
             ->method('isGranted')
-            ->with('EDIT', $row)
-            ->willReturn(false);
+            ->with('EDIT', $sourceRow)
+            ->willReturn($granted);
 
-        $actions = new Actions();
-        $actions->add(
-            Action::edit()
-                ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
-                ->permission('EDIT', static fn ($r) => $r)
+        $action = Action::edit()
+            ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
+            ->permission('EDIT', static fn ($r) => $r);
+
+        $result = $this->resolveRow(new ActionRowDataResolver(new PermissionChecker($inner)), $sourceRow, $action);
+
+        $this->assertSame(
+            $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]] : null,
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
         );
-
-        $column   = ActionColumn::fromActions('actions', '', $actions);
-        $resolver = new ActionRowDataResolver(new PermissionChecker($inner));
-
-        $result = $resolver->resolveRow(['id' => 7], $row, [$column]);
-
-        $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
     }
 
     #[Test]
-    public function includes_per_row_action_when_granted(): void
+    #[TestWith([true])]
+    #[TestWith([false])]
+    public function static_permission_decides_action_exposure(bool $granted): void
     {
-        $row = (object) ['id' => 7];
-
         $inner = $this->createMock(AuthorizationCheckerInterface::class);
-        $inner->method('isGranted')->with('EDIT', $row)->willReturn(true);
+        $inner
+            ->expects($this->once())
+            ->method('isGranted')
+            ->with('ROLE_EDITOR', null)
+            ->willReturn($granted);
 
-        $actions = new Actions();
-        $actions->add(
-            Action::edit()
-                ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
-                ->permission('EDIT', static fn ($r) => $r)
-        );
+        $action = Action::edit()
+            ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
+            ->permission('ROLE_EDITOR');
 
-        $column   = ActionColumn::fromActions('actions', '', $actions);
-        $resolver = new ActionRowDataResolver(new PermissionChecker($inner));
-
-        $result = $resolver->resolveRow(['id' => 7], $row, [$column]);
-
-        $this->assertSame(
-            ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]],
-            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
-        );
-    }
-
-    #[Test]
-    public function adds_action_id_from_default_entity_identifier_without_url(): void
-    {
-        $actions = new Actions();
-        $actions->add(Action::edit());
-
-        $column = ActionColumn::fromActions('actions', '', $actions);
-
-        $result = (new ActionRowDataResolver())->resolveRow(
-            [],
-            new ActionRowDataResolverEntity(7),
-            [$column],
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(new PermissionChecker($inner)),
+            (object) ['id' => 7],
+            $action,
         );
 
         $this->assertSame(
-            ['EDIT' => ['id' => 7]],
-            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
+            $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]] : null,
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
         );
-    }
-
-    #[Test]
-    public function adds_action_id_from_custom_entity_identifier(): void
-    {
-        $actions = new Actions();
-        $actions->add(Action::delete()->setIdField('uuid'));
-
-        $column = ActionColumn::fromActions('actions', '', $actions);
-
-        $result = (new ActionRowDataResolver())->resolveRow(
-            [],
-            new ActionRowDataResolverEntity(7, 'abc-123'),
-            [$column],
-        );
-
-        $this->assertSame(
-            ['DELETE' => ['id' => 'abc-123']],
-            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
-        );
-    }
-
-    #[Test]
-    public function adds_action_id_from_source_array(): void
-    {
-        $actions = new Actions();
-        $actions->add(Action::delete());
-
-        $column = ActionColumn::fromActions('actions', '', $actions);
-
-        $result = (new ActionRowDataResolver())->resolveRow([], ['id' => 9], [$column]);
-
-        $this->assertSame(
-            ['DELETE' => ['id' => 9]],
-            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
-        );
-    }
-
-    #[Test]
-    public function leaves_row_unchanged_when_action_has_neither_url_nor_readable_id(): void
-    {
-        $actions = new Actions();
-        $actions->add(Action::edit()->setIdField('missing'));
-
-        $column = ActionColumn::fromActions('actions', '', $actions);
-
-        $result = (new ActionRowDataResolver())->resolveRow([], new ActionRowDataResolverEntity(7), [$column]);
-
-        $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
     }
 
     #[Test]
     public function passes_resolved_subject_to_authorization_checker(): void
     {
-        $row = (object) ['owner' => 'alice'];
-
         $inner = $this->createMock(AuthorizationCheckerInterface::class);
         $inner
             ->expects($this->once())
@@ -226,46 +180,16 @@ final class ActionRowDataResolverTest extends TestCase
             ->with('OWNS', 'alice')
             ->willReturn(true);
 
-        $actions = new Actions();
-        $actions->add(
-            Action::edit()
-                ->linkToUrl(static fn (object $r) => '/items/'.$r->owner)
-                ->permission('OWNS', static fn (object $r) => $r->owner)
-        );
+        $action = Action::edit()
+            ->linkToUrl(static fn (object $r) => '/items/'.$r->owner)
+            ->permission('OWNS', static fn (object $r) => $r->owner);
 
-        $column   = ActionColumn::fromActions('actions', '', $actions);
-        $resolver = new ActionRowDataResolver(new PermissionChecker($inner));
-
-        $resolver->resolveRow([], $row, [$column]);
+        $this->resolveRow(new ActionRowDataResolver(new PermissionChecker($inner)), (object) ['owner' => 'alice'], $action);
     }
 
     #[Test]
-    public function no_op_fallback_when_permission_checker_is_null(): void
-    {
-        // The PermissionChecker without inner checker grants everything; per-row permission still appears.
-        $actions = new Actions();
-        $actions->add(
-            Action::edit()
-                ->linkToUrl(static fn (object $r) => '/items/'.$r->id)
-                ->permission('EDIT', static fn ($r) => $r)
-        );
-
-        $column = ActionColumn::fromActions('actions', '', $actions);
-
-        $result = (new ActionRowDataResolver())->resolveRow(
-            [],
-            (object) ['id' => 7],
-            [$column],
-        );
-
-        $this->assertSame(
-            ['EDIT' => ['url' => '/items/7', 'id' => 7]],
-            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
-        );
-    }
-
-    #[Test]
-    public function generates_route_url_with_static_parameters(): void
+    #[DataProvider('provideRouteParameters')]
+    public function generates_route_url(array|\Closure $routeParameters): void
     {
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $urlGenerator
@@ -274,15 +198,12 @@ final class ActionRowDataResolverTest extends TestCase
             ->with('book_publish', ['id' => 42])
             ->willReturn('/books/42/publish');
 
-        $actions = new Actions();
-        $actions->add(Action::new('publish', 'Publish')->linkToRoute('book_publish', ['id' => 42]));
+        $action = Action::new('publish', 'Publish')->linkToRoute('book_publish', $routeParameters);
 
-        $resolver = new ActionRowDataResolver(null, null, $urlGenerator);
-
-        $result = $resolver->resolveRow(
-            ['id' => 42],
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(null, null, $urlGenerator),
             (object) ['id' => 42],
-            [ActionColumn::fromActions('actions', '', $actions)],
+            $action,
         );
 
         $this->assertSame(
@@ -291,66 +212,31 @@ final class ActionRowDataResolverTest extends TestCase
         );
     }
 
-    #[Test]
-    public function generates_route_url_with_per_row_parameters(): void
+    /**
+     * @return iterable<string, array{array<string, mixed>|\Closure}>
+     */
+    public static function provideRouteParameters(): iterable
     {
-        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $urlGenerator
-            ->method('generate')
-            ->willReturnCallback(static fn (string $route, array $params): string => '/books/'.$params['id'].'/publish');
-
-        $actions = new Actions();
-        $actions->add(
-            Action::new('publish', 'Publish')
-                ->linkToRoute('book_publish', static fn (object $row): array => ['id' => $row->id])
-        );
-
-        $resolver = new ActionRowDataResolver(null, null, $urlGenerator);
-
-        $result = $resolver->resolveRow(
-            ['id' => 7],
-            (object) ['id' => 7],
-            [ActionColumn::fromActions('actions', '', $actions)],
-        );
-
-        $this->assertSame(
-            ['publish' => ['url' => '/books/7/publish']],
-            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
-        );
+        yield 'static parameters' => [['id' => 42]];
+        yield 'per row parameters' => [static fn (object $row): array => ['id' => $row->id]];
     }
 
     #[Test]
-    public function skips_route_action_when_router_is_missing(): void
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function skips_route_action_when_url_cannot_be_generated(bool $withFailingRouter): void
     {
-        $actions = new Actions();
-        $actions->add(Action::new('publish', 'Publish')->linkToRoute('book_publish', ['id' => 42]));
+        $urlGenerator = null;
 
-        $result = (new ActionRowDataResolver())->resolveRow(
-            ['id' => 42],
+        if ($withFailingRouter) {
+            $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+            $urlGenerator->method('generate')->willThrowException(new RouteNotFoundException());
+        }
+
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(null, null, $urlGenerator),
             (object) ['id' => 42],
-            [ActionColumn::fromActions('actions', '', $actions)],
-        );
-
-        $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
-    }
-
-    #[Test]
-    public function skips_route_action_when_url_generation_fails(): void
-    {
-        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $urlGenerator
-            ->method('generate')
-            ->willThrowException(new RouteNotFoundException());
-
-        $actions = new Actions();
-        $actions->add(Action::new('publish', 'Publish')->linkToRoute('book_publish', ['id' => 42]));
-
-        $resolver = new ActionRowDataResolver(null, null, $urlGenerator);
-
-        $result = $resolver->resolveRow(
-            ['id' => 42],
-            (object) ['id' => 42],
-            [ActionColumn::fromActions('actions', '', $actions)],
+            Action::new('publish', 'Publish')->linkToRoute('book_publish', ['id' => 42]),
         );
 
         $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
@@ -359,24 +245,21 @@ final class ActionRowDataResolverTest extends TestCase
     #[Test]
     public function adds_csrf_token_to_ajax_action(): void
     {
-        $actions = new Actions();
-        $actions->add(
-            Action::new('publish', 'Publish')
-                ->linkToUrl('/books/42/publish')
-                ->asAjaxRequest(static fn (object $row): string => 'publish_book_'.$row->id)
-        );
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager
+            ->expects($this->once())
+            ->method('getToken')
+            ->with('publish_book_42')
+            ->willReturn(new CsrfToken('publish_book_42', 'token-value'));
 
-        $resolver = new ActionRowDataResolver(
-            null,
-            null,
-            null,
-            $this->createCsrfTokenManager('publish_book_42', 'token-value'),
-        );
+        $action = Action::new('publish', 'Publish')
+            ->linkToUrl('/books/42/publish')
+            ->asAjaxRequest(static fn (object $row): string => 'publish_book_'.$row->id);
 
-        $result = $resolver->resolveRow(
-            ['id' => 42],
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(null, null, null, $csrfTokenManager),
             (object) ['id' => 42],
-            [ActionColumn::fromActions('actions', '', $actions)],
+            $action,
         );
 
         $this->assertSame(
@@ -386,45 +269,25 @@ final class ActionRowDataResolverTest extends TestCase
     }
 
     #[Test]
-    public function skips_ajax_action_when_csrf_token_manager_is_missing(): void
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function skips_ajax_action_when_csrf_token_is_unavailable(bool $withFailingTokenManager): void
     {
-        $actions = new Actions();
-        $actions->add(
-            Action::new('publish', 'Publish')
-                ->linkToUrl('/books/42/publish')
-                ->asAjaxRequest('publish_book')
-        );
+        $csrfTokenManager = null;
 
-        $result = (new ActionRowDataResolver())->resolveRow(
-            ['id' => 42],
+        if ($withFailingTokenManager) {
+            $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+            $csrfTokenManager->method('getToken')->willThrowException(new SessionNotFoundException());
+        }
+
+        $action = Action::new('publish', 'Publish')
+            ->linkToUrl('/books/42/publish')
+            ->asAjaxRequest('publish_book');
+
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(null, null, null, $csrfTokenManager),
             (object) ['id' => 42],
-            [ActionColumn::fromActions('actions', '', $actions)],
-        );
-
-        $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
-    }
-
-    #[Test]
-    public function skips_ajax_action_when_session_is_missing(): void
-    {
-        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
-        $csrfTokenManager
-            ->method('getToken')
-            ->willThrowException(new SessionNotFoundException());
-
-        $actions = new Actions();
-        $actions->add(
-            Action::new('publish', 'Publish')
-                ->linkToUrl('/books/42/publish')
-                ->asAjaxRequest('publish_book')
-        );
-
-        $resolver = new ActionRowDataResolver(null, null, null, $csrfTokenManager);
-
-        $result = $resolver->resolveRow(
-            ['id' => 42],
-            (object) ['id' => 42],
-            [ActionColumn::fromActions('actions', '', $actions)],
+            $action,
         );
 
         $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
@@ -433,33 +296,27 @@ final class ActionRowDataResolverTest extends TestCase
     #[Test]
     public function skips_ajax_action_when_url_cannot_be_resolved(): void
     {
-        $actions = new Actions();
-        $actions->add(Action::new('publish', 'Publish')->asAjaxRequest('publish_book'));
-
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->expects($this->never())->method('getToken');
 
-        $resolver = new ActionRowDataResolver(null, null, null, $csrfTokenManager);
-
-        $result = $resolver->resolveRow(
-            ['id' => 42],
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(null, null, null, $csrfTokenManager),
             (object) ['id' => 42],
-            [ActionColumn::fromActions('actions', '', $actions)],
+            Action::new('publish', 'Publish')->asAjaxRequest('publish_book'),
         );
 
         $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
     }
 
-    private function createCsrfTokenManager(string $tokenId, string $value): CsrfTokenManagerInterface
+    private function resolveRow(ActionRowDataResolver $resolver, mixed $sourceRow, Action ...$actions): array
     {
-        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
-        $csrfTokenManager
-            ->expects($this->once())
-            ->method('getToken')
-            ->with($tokenId)
-            ->willReturn(new CsrfToken($tokenId, $value));
+        $collection = new Actions();
 
-        return $csrfTokenManager;
+        foreach ($actions as $action) {
+            $collection->add($action);
+        }
+
+        return $resolver->resolveRow([], $sourceRow, [ActionColumn::fromActions('actions', '', $collection)]);
     }
 }
 
