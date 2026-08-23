@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { applyTfootColumnSearch, hasTfootSearch } from '../columnSearch.js'
 
 // ---------------------------------------------------------------------------
@@ -35,7 +35,7 @@ function makeDataTable(tableEl: HTMLTableElement) {
 // Build a payload with the given columns and call applyTfootColumnSearch.
 // Returns the payload (with initComplete set) and the table element.
 function setup(
-    columnDefs: Array<{ searchable: boolean; title?: string }>,
+    columnDefs: Array<{ searchable: boolean; visible?: boolean; title?: string }>,
     framework: 'dt' | 'bs5' = 'dt',
 ) {
     const tableEl = document.createElement('table')
@@ -66,7 +66,7 @@ describe('hasTfootSearch', () => {
 
 describe('applyTfootColumnSearch — DOM structure', () => {
     it('creates a <tfoot> with a <tr> when none exists', () => {
-        const { tableEl } = setup([{ searchable: true, title: 'Name' }])
+        const { tableEl } = setup([{ searchable: true, visible: true, title: 'Name' }])
         expect(tableEl.querySelector('tfoot')).not.toBeNull()
         expect(tableEl.querySelector('tfoot tr')).not.toBeNull()
     })
@@ -78,7 +78,7 @@ describe('applyTfootColumnSearch — DOM structure', () => {
 
         const payload: Record<string, any> = {
             tfootSearch: true,
-            columns: [{ searchable: true, title: 'Name' }],
+            columns: [{ searchable: true, visible: true, title: 'Name' }],
         }
         const { DataTable } = makeDataTable(tableEl)
         applyTfootColumnSearch(payload, 'dt', DataTable)
@@ -89,35 +89,35 @@ describe('applyTfootColumnSearch — DOM structure', () => {
 
     it('renders one <th> per column', () => {
         const { tableEl } = setup([
-            { searchable: true, title: 'Name' },
-            { searchable: false },
-            { searchable: true, title: 'Email' },
+            { searchable: true, visible: true, title: 'Name' },
+            { searchable: false, visible: true },
+            { searchable: true, visible: true, title: 'Email' },
         ])
         const ths = tableEl.querySelectorAll('tfoot tr th')
         expect(ths).toHaveLength(3)
     })
 
     it('renders a search input inside searchable columns', () => {
-        const { tableEl } = setup([{ searchable: true, title: 'Name' }])
+        const { tableEl } = setup([{ searchable: true, visible: true, title: 'Name' }])
         const input = tableEl.querySelector('tfoot tr th input[type="search"]')
         expect(input).not.toBeNull()
     })
 
     it('leaves non-searchable column cells empty', () => {
-        const { tableEl } = setup([{ searchable: false }])
+        const { tableEl } = setup([{ searchable: false, visible: true }])
         const th = tableEl.querySelector('tfoot tr th')!
         expect(th.children).toHaveLength(0)
     })
 
     it('sets placeholder and aria-label from the column title', () => {
-        const { tableEl } = setup([{ searchable: true, title: 'Email address' }])
+        const { tableEl } = setup([{ searchable: true, visible: true, title: 'Email address' }])
         const input = tableEl.querySelector('tfoot tr th input') as HTMLInputElement
         expect(input.placeholder).toBe('Email address')
         expect(input.getAttribute('aria-label')).toBe('Email address')
     })
 
     it('uses an empty placeholder when the column has no title', () => {
-        const { tableEl } = setup([{ searchable: true }])
+        const { tableEl } = setup([{ searchable: true, visible: true }])
         const input = tableEl.querySelector('tfoot tr th input') as HTMLInputElement
         expect(input.placeholder).toBe('')
     })
@@ -129,13 +129,13 @@ describe('applyTfootColumnSearch — DOM structure', () => {
 
 describe('applyTfootColumnSearch — CSS classes', () => {
     it('applies dt-filter-input class for the default dt framework', () => {
-        const { tableEl } = setup([{ searchable: true, title: 'Name' }], 'dt')
+        const { tableEl } = setup([{ searchable: true, visible: true, title: 'Name' }], 'dt')
         const input = tableEl.querySelector('tfoot tr th input') as HTMLInputElement
         expect(input.className).toBe('dt-filter-input')
     })
 
     it('applies form-control class for the bs5 framework', () => {
-        const { tableEl } = setup([{ searchable: true, title: 'Name' }], 'bs5')
+        const { tableEl } = setup([{ searchable: true, visible: true, title: 'Name' }], 'bs5')
         const input = tableEl.querySelector('tfoot tr th input') as HTMLInputElement
         expect(input.className).toBe('form-control')
     })
@@ -146,28 +146,41 @@ describe('applyTfootColumnSearch — CSS classes', () => {
 // ---------------------------------------------------------------------------
 
 describe('applyTfootColumnSearch — search behaviour', () => {
-    it('calls column(index).search(value).draw(false) on input', () => {
+    beforeEach(() => {
+        vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+        vi.useRealTimers()
+    })
+
+    it('calls column(index).search(value).draw() on input after debounce', () => {
         const { tableEl, columnFn, searchFn, drawFn } = setup([
-            { searchable: false },
-            { searchable: true, title: 'Email' },
+            { searchable: false, visible: true },
+            { searchable: true, visible: true, title: 'Email' },
         ])
 
         const input = tableEl.querySelector('tfoot tr th:nth-child(2) input') as HTMLInputElement
         input.value = 'foo@example.com'
         input.dispatchEvent(new Event('input'))
 
-        // Column index 1 (second column), with { search: 'applied' } scope
-        expect(columnFn).toHaveBeenCalledWith(1, { search: 'applied' })
+        // Handler is debounced — assert nothing has fired yet, then advance the clock.
+        expect(columnFn).not.toHaveBeenCalled()
+        vi.advanceTimersByTime(300)
+
+        expect(columnFn).toHaveBeenCalledWith(1)
         expect(searchFn).toHaveBeenCalledWith('foo@example.com')
-        expect(drawFn).toHaveBeenCalledWith(false)
+        expect(drawFn).toHaveBeenCalled()
     })
 
     it('searches with an empty string when the input is cleared', () => {
-        const { tableEl, searchFn } = setup([{ searchable: true, title: 'Name' }])
+        const { tableEl, searchFn } = setup([{ searchable: true, visible: true, title: 'Name' }])
 
         const input = tableEl.querySelector('tfoot tr th input') as HTMLInputElement
         input.value = ''
         input.dispatchEvent(new Event('input'))
+
+        vi.advanceTimersByTime(300)
 
         expect(searchFn).toHaveBeenCalledWith('')
     })
@@ -184,7 +197,7 @@ describe('applyTfootColumnSearch — initComplete chaining', () => {
         const tableEl = document.createElement('table')
         const payload: Record<string, any> = {
             tfootSearch: true,
-            columns: [{ searchable: true, title: 'Name' }],
+            columns: [{ searchable: true, visible: true, title: 'Name' }],
             initComplete: () => calls.push('prior'),
         }
 
@@ -207,7 +220,7 @@ describe('applyTfootColumnSearch — initComplete chaining', () => {
         const tableEl = document.createElement('table')
         const payload: Record<string, any> = {
             tfootSearch: true,
-            columns: [{ searchable: true }],
+            columns: [{ searchable: true, visible: true }],
         }
         const { DataTable } = makeDataTable(tableEl)
         applyTfootColumnSearch(payload, 'dt', DataTable)
