@@ -151,7 +151,7 @@
     "datatables.net-fixedheader-bs5": "^4.0.0",
     "datatables.net-fixedheader-dt": "^4.0.0",
     "datatables.net-fixedheader-jqui": "^4.0.0",
-    "datatables.net-fixedheader-se": "^4.0.0",
+    "datatables.net-fixedheader-se": "^5.0.0",
     "datatables.net-fixedheader-zf": "^4.0.0",
     "datatables.net-jqui": "^3.0.1",
     "datatables.net-keytable-bs": "^3.0.0",
