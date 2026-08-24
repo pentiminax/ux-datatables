@@ -70,6 +70,7 @@ final class DataTableRuntimeFactory
         \Closure $manualDataProviderFactory,
         callable $configureQueryBuilder,
         ?\Closure $pageProjector = null,
+        ?callable $configureBaseQueryBuilder = null,
     ): DataTableRuntime {
         $rowMapper = $this->createRowMapper($baseMapper, $columns);
 
@@ -81,6 +82,7 @@ final class DataTableRuntimeFactory
                 rowMapper: $rowMapper,
                 configureQueryBuilder: $configureQueryBuilder,
                 pageProjector: $pageProjector,
+                configureBaseQueryBuilder: $configureBaseQueryBuilder,
             ),
         );
     }
@@ -91,6 +93,7 @@ final class DataTableRuntimeFactory
         RowMapperInterface $rowMapper,
         callable $configureQueryBuilder,
         ?\Closure $pageProjector = null,
+        ?callable $configureBaseQueryBuilder = null,
     ): ?DataProviderInterface {
         return $this->getDataProviderResolver()->resolve(
             manualDataProvider: $manualDataProviderFactory(),
@@ -98,6 +101,7 @@ final class DataTableRuntimeFactory
             rowMapper: $rowMapper,
             configureQueryBuilder: $configureQueryBuilder,
             pageProjector: $pageProjector,
+            configureBaseQueryBuilder: $configureBaseQueryBuilder,
         );
     }
 
