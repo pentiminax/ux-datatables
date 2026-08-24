@@ -65,4 +65,22 @@ final class ActionColumnTest extends TestCase
         $this->assertSame(1, $actions->count());
         $this->assertTrue($clone->getActions()?->isEmpty());
     }
+
+    #[Test]
+    public function it_allows_overriding_the_default_responsive_priority(): void
+    {
+        $column = ActionColumn::fromActions(
+            'actions',
+            'Actions',
+            (new Actions())->add(Action::detail()->linkToUrl('/books/42'))
+        );
+
+        $this->assertSame(1, $column->getResponsivePriority());
+        $this->assertSame(1, $column->jsonSerialize()['responsivePriority']);
+
+        $column->setResponsivePriority(2);
+
+        $this->assertSame(2, $column->getResponsivePriority());
+        $this->assertSame(2, $column->jsonSerialize()['responsivePriority']);
+    }
 }

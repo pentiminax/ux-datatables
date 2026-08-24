@@ -14,7 +14,8 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
  * Not meant to be extended directly to build a custom column type — extend a concrete column
  * class instead, or implement {@see ColumnInterface} directly for something that shares nothing
  * with the bundled types. Every public method here (setField(), setColumnControl(),
- * setClassName(), setCustomOption(), setVisible(), disableGlobalSearch(), ...) is part of the
+ * setClassName(), setCustomOption(), setVisible(), setResponsivePriority(),
+ * disableGlobalSearch(), ...) is part of the
  * bundle's documented column-configuration API and is inherited unchanged by every concrete
  * column — see the "Columns" documentation for usage. Only createWithType() below is genuinely
  * internal, restricted to how the bundled column types build themselves.
@@ -40,6 +41,7 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
     protected ?array $columnControl      = null;
     protected array $customOptions       = [];
     protected ?string $permission        = null;
+    protected ?int $responsivePriority   = null;
 
     /**
      * Convenient factory helper used by concrete columns to set their type.
@@ -182,6 +184,25 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
         $this->width = $width;
 
         return $this;
+    }
+
+    /**
+     * Set the DataTables Responsive visibility priority for this column.
+     *
+     * Lower numbers stay visible longer. Omitted (null) lets Responsive use its default of 10000.
+     * Negative values are allowed and increase priority further. Has a visible effect only when
+     * the Responsive extension is enabled on the table.
+     */
+    public function setResponsivePriority(?int $priority): static
+    {
+        $this->responsivePriority = $priority;
+
+        return $this;
+    }
+
+    public function getResponsivePriority(): ?int
+    {
+        return $this->responsivePriority;
     }
 
     public function getTitle(): ?string
@@ -371,19 +392,20 @@ abstract class AbstractColumn implements ColumnInterface, PermissionAwareColumnI
         }
 
         $options = array_filter([
-            'cellType'       => $this->cellType,
-            'className'      => $className,
-            'data'           => $this->data,
-            'defaultContent' => $this->defaultContent,
-            'name'           => $this->name,
-            'orderable'      => $this->orderable,
-            'searchable'     => $this->searchable,
-            'title'          => $this->title,
-            'type'           => $this->type->value,
-            'visible'        => $this->visible,
-            'width'          => $this->width,
-            'field'          => $this->getField(),
-            'customOptions'  => $this->customOptions,
+            'cellType'           => $this->cellType,
+            'className'          => $className,
+            'data'               => $this->data,
+            'defaultContent'     => $this->defaultContent,
+            'name'               => $this->name,
+            'orderable'          => $this->orderable,
+            'searchable'         => $this->searchable,
+            'title'              => $this->title,
+            'type'               => $this->type->value,
+            'visible'            => $this->visible,
+            'width'              => $this->width,
+            'field'              => $this->getField(),
+            'customOptions'      => $this->customOptions,
+            'responsivePriority' => $this->responsivePriority,
         ], static fn (mixed $value) => null !== $value && '' !== $value && [] !== $value);
 
         if (null !== $this->columnControl) {

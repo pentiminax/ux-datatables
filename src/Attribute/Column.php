@@ -25,6 +25,7 @@ final class Column
         public readonly array|bool $renderAsBadges = false,
         public readonly bool $hideWhenUpdating = false,
         public readonly ?int $position = null,
+        public readonly ?int $responsivePriority = null,
     ) {
     }
 }
