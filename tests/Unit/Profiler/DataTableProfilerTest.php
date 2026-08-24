@@ -229,6 +229,36 @@ final class DataTableProfilerTest extends TestCase
         ], $summary['columns'][0]['columnControl']);
     }
 
+    /**
+     * ColumnControl::$list is unvalidated request input -- ColumnControl::fromArray() reads
+     * $data['list'] ?? [] verbatim, so a client can submit a nested array for one entry. The
+     * panel's join() filter cannot render an array as a string and used to crash the whole
+     * profiler panel; every entry must reduce to a safe scalar before it ever reaches Twig.
+     */
+    #[Test]
+    public function it_normalizes_a_non_scalar_search_list_entry_instead_of_forwarding_it_unchanged(): void
+    {
+        $request = DataTableRequest::fromRequest(Request::create('/datatables', 'GET', [
+            'draw'    => '1',
+            'columns' => [
+                [
+                    'data'          => '0', 'name' => 'department', 'searchable' => 'true', 'orderable' => 'true',
+                    'columnControl' => ['list' => ['Sales', ['nested' => 'value']]],
+                ],
+            ],
+        ]));
+
+        $profiler = new DataTableProfiler();
+        $profiler->collectAjaxQuery('App\\ProductDataTable', 'token', $request, 10, 10, 1.0);
+
+        $summary = $profiler->getAjaxQueries()[0]['requestSummary'];
+
+        $this->assertSame(
+            ['Sales', '(invalid array value)'],
+            $summary['columns'][0]['columnControl']['list'],
+        );
+    }
+
     #[Test]
     public function it_omits_column_control_when_the_column_declares_it_without_a_search_or_list(): void
     {
