@@ -22,6 +22,17 @@ class DoctrineDataProvider implements DataProviderInterface
         private $configureQueryBuilder = null,
         /** @var (\Closure(list<object>):(list<mixed>|null))|null */
         private readonly ?\Closure $pageProjector = null,
+        /**
+         * Applied to recordsTotal's count query. Unlike $configureQueryBuilder (the app's
+         * customizeQueryBuilder() plus the bundle's own interactive search/order/filter
+         * pipeline), this never includes request-driven search terms -- only the app's own
+         * permanent scoping (customizeQueryBuilder() alone), matching what DataTables expects
+         * recordsTotal to mean: the size of the developer's own base dataset, before the
+         * user's interactive search narrows it further.
+         *
+         * @var callable(QueryBuilder, DataTableRequest):QueryBuilder|null
+         */
+        private $configureBaseQueryBuilder = null,
     ) {
     }
 
@@ -29,12 +40,24 @@ class DoctrineDataProvider implements DataProviderInterface
     {
         $alias = 'e';
 
-        $countQb = $this->em
+        $baseQb = $this->em
             ->createQueryBuilder()
-            ->select("COUNT($alias)")
+            ->select($alias)
             ->from($this->entityClass, $alias);
 
-        $recordsTotal = (int) $countQb->getQuery()->getSingleScalarResult();
+        if ($this->configureBaseQueryBuilder) {
+            $baseQb = ($this->configureBaseQueryBuilder)($baseQb, $request);
+        }
+
+        // A to-many join added by configureBaseQueryBuilder() (permanent business-rule
+        // scoping, e.g. an active-only filter joining a relation) would inflate a plain
+        // COUNT(e) the same way a searchable join does for $filteredCountQb below --
+        // COUNT(DISTINCT e) counts distinct root entities instead.
+        $recordsTotal = (int) (clone $baseQb)
+            ->select("COUNT(DISTINCT $alias)")
+            ->resetDQLPart('orderBy')
+            ->getQuery()
+            ->getSingleScalarResult();
 
         $qb = $this->em
             ->createQueryBuilder()

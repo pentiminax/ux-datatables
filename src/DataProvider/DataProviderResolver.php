@@ -18,7 +18,8 @@ final class DataProviderResolver
     }
 
     /**
-     * @param callable(QueryBuilder, DataTableRequest):QueryBuilder $configureQueryBuilder
+     * @param callable(QueryBuilder, DataTableRequest):QueryBuilder      $configureQueryBuilder
+     * @param callable(QueryBuilder, DataTableRequest):QueryBuilder|null $configureBaseQueryBuilder
      */
     public function resolve(
         ?DataProviderInterface $manualDataProvider,
@@ -26,7 +27,8 @@ final class DataProviderResolver
         RowMapperInterface $rowMapper,
         callable $configureQueryBuilder,
         ?\Closure $pageProjector = null,
+        ?callable $configureBaseQueryBuilder = null,
     ): ?DataProviderInterface {
-        return $manualDataProvider ?? $this->autoDataProviderFactory->create($asDataTable, $rowMapper, $configureQueryBuilder, $pageProjector);
+        return $manualDataProvider ?? $this->autoDataProviderFactory->create($asDataTable, $rowMapper, $configureQueryBuilder, $pageProjector, $configureBaseQueryBuilder);
     }
 }

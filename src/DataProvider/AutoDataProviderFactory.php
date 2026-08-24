@@ -19,13 +19,15 @@ final class AutoDataProviderFactory
     }
 
     /**
-     * @param callable(QueryBuilder, DataTableRequest):QueryBuilder $configureQueryBuilder
+     * @param callable(QueryBuilder, DataTableRequest):QueryBuilder      $configureQueryBuilder
+     * @param callable(QueryBuilder, DataTableRequest):QueryBuilder|null $configureBaseQueryBuilder
      */
     public function create(
         ?AsDataTable $asDataTable,
         RowMapperInterface $rowMapper,
         callable $configureQueryBuilder,
         ?\Closure $pageProjector = null,
+        ?callable $configureBaseQueryBuilder = null,
     ): ?DataProviderInterface {
         if (null === $asDataTable) {
             return null;
@@ -41,6 +43,7 @@ final class AutoDataProviderFactory
             rowMapper: $rowMapper,
             configureQueryBuilder: $configureQueryBuilder,
             pageProjector: $pageProjector,
+            configureBaseQueryBuilder: $configureBaseQueryBuilder,
         );
     }
 }
