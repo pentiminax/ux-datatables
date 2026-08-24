@@ -125,7 +125,13 @@ $dataTable->withoutOrdering();
 
 ### paging / withoutPaging
 
-Configure pagination:
+Configure the DataTables **paging layout feature** (number of page buttons, first/last,
+previous/next, …). These keys are not the top-level boolean `paging` option: the bundle
+rewrites unmarked `layout` slots (`'paging'`, `{ paging: true }`, `{ paging: [] }`) to
+`{ paging: { … } }` when the table is serialized.
+
+An explicit `{ paging: { buttons: 3 } }` already placed in `layout()` is left as-is.
+`withoutPaging()` still disables pagination with `paging: false`.
 
 ```php
 $dataTable->paging(

@@ -35,13 +35,19 @@ final class AbstractDataTableConfigDefaultsTest extends TestCase
     {
         $table = $this->configuredDataTable();
 
-        self::assertEquals([
+        $expectedPaging = [
             'boundaryNumbers' => true,
             'buttons'         => 5,
             'firstLast'       => false,
             'numbers'         => true,
             'previousNext'    => true,
-        ], $table->getOption('paging'));
+        ];
+
+        $paging = $table->getOption('paging');
+
+        self::assertEquals($expectedPaging, $paging);
+        self::assertTrue($table->getOptions()['paging']);
+        self::assertSame(['paging' => $paging], $table->getOptions()['layout']['bottomEnd']);
         self::assertSame(25, $table->getOption('pageLength'));
         self::assertSame(['class' => 'table table-striped'], $table->getAttributes());
         self::assertSame('multi', $table->getExtensions()['select']['style'] ?? null);
