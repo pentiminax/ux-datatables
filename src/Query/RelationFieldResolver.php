@@ -45,6 +45,37 @@ final class RelationFieldResolver
     ];
 
     /**
+     * Doctrine integer types. A non-numeric string bound without conversion makes PostgreSQL
+     * reject the query (`invalid input syntax for type integer`) and makes MySQL silently
+     * coerce the term to 0, matching the wrong rows.
+     *
+     * @var list<string>
+     */
+    private const array INTEGER_FIELD_TYPES = [
+        'bigint',
+        'integer',
+        'smallint',
+    ];
+
+    /**
+     * Doctrine floating-point / decimal types. Same bind contract as integers: the raw
+     * search string must be numeric or the predicate is skipped.
+     *
+     * @var list<string>
+     */
+    private const array FLOAT_FIELD_TYPES = [
+        'decimal',
+        'float',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    private const array BOOLEAN_FIELD_TYPES = [
+        'boolean',
+    ];
+
+    /**
      * Doctrine field types that cannot be used with SQL LIKE without an explicit cast.
      *
      * @var list<string>
@@ -174,6 +205,48 @@ final class RelationFieldResolver
         $fieldType = self::resolveFieldType($qb, $fieldPath);
 
         if (null === $fieldType || !\in_array($fieldType, self::DATE_FIELD_TYPES, true)) {
+            return null;
+        }
+
+        return $fieldType;
+    }
+
+    /**
+     * Returns the Doctrine type of an integer field path, or null when the field is not one.
+     */
+    public static function resolveIntegerFieldType(QueryBuilder $qb, string $fieldPath): ?string
+    {
+        return self::resolveListedFieldType($qb, $fieldPath, self::INTEGER_FIELD_TYPES);
+    }
+
+    /**
+     * Returns the Doctrine type of a float/decimal field path, or null when the field is not one.
+     */
+    public static function resolveFloatFieldType(QueryBuilder $qb, string $fieldPath): ?string
+    {
+        return self::resolveListedFieldType($qb, $fieldPath, self::FLOAT_FIELD_TYPES);
+    }
+
+    /**
+     * Returns the Doctrine type of a boolean field path, or null when the field is not one.
+     */
+    public static function resolveBooleanFieldType(QueryBuilder $qb, string $fieldPath): ?string
+    {
+        return self::resolveListedFieldType($qb, $fieldPath, self::BOOLEAN_FIELD_TYPES);
+    }
+
+    /**
+     * @param list<string> $types
+     */
+    private static function resolveListedFieldType(QueryBuilder $qb, string $fieldPath, array $types): ?string
+    {
+        if (!self::supportsSearchFiltering($qb, $fieldPath)) {
+            return null;
+        }
+
+        $fieldType = self::resolveFieldType($qb, $fieldPath);
+
+        if (null === $fieldType || !\in_array($fieldType, $types, true)) {
             return null;
         }
 
