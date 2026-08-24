@@ -163,6 +163,43 @@ final class DataTableRequestTest extends TestCase
         $this->assertEquals([new Order(column: 2, dir: 'desc', name: 'email')], $dataTableRequest->order);
     }
 
+    #[Test]
+    #[DataProvider('providePageLengths')]
+    public function it_resolves_page_length(int $length, int $default, int $expected): void
+    {
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest(['length' => $length]));
+
+        $this->assertSame($expected, $dataTableRequest->pageLength($default));
+    }
+
+    public static function providePageLengths(): iterable
+    {
+        yield 'falls back to the default when DataTables sends 0 (its "show all")' => [0, 25, 25];
+        yield 'falls back to the default when negative' => [-1, 25, 25];
+        yield 'keeps a positive length as-is' => [10, 25, 10];
+        yield 'honors a custom default' => [0, 100, 100];
+    }
+
+    #[Test]
+    #[DataProvider('provideSearchTerms')]
+    public function it_resolves_search_term(?string $rawSearch, ?string $expected): void
+    {
+        $overrides = null === $rawSearch ? [] : ['search' => ['value' => $rawSearch, 'regex' => false]];
+
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest($overrides));
+
+        $this->assertSame($expected, $dataTableRequest->searchTerm());
+    }
+
+    public static function provideSearchTerms(): iterable
+    {
+        yield 'no search parameter at all' => [null, null];
+        yield 'empty search value' => ['', null];
+        yield 'blank search value' => ['   ', null];
+        yield 'trims surrounding whitespace' => ['  john  ', 'john'];
+        yield 'preserves the literal zero' => ['0', '0'];
+    }
+
     /**
      * @param array<string, mixed> $overrides query (or, for a body-carrying method, request
      *                                        body) parameters replacing the baseline payload
