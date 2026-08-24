@@ -147,7 +147,7 @@
     "datatables.net-fixedcolumns-se": "^6.0.0",
     "datatables.net-fixedcolumns-zf": "^6.0.0",
     "datatables.net-fixedheader-bs": "^4.0.0",
-    "datatables.net-fixedheader-bs4": "^4.0.0",
+    "datatables.net-fixedheader-bs4": "^5.0.0",
     "datatables.net-fixedheader-bs5": "^4.0.0",
     "datatables.net-fixedheader-dt": "^4.0.0",
     "datatables.net-fixedheader-jqui": "^4.0.0",
