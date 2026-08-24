@@ -312,6 +312,7 @@
                                 <th>Searchable</th>
                                 <th>Orderable</th>
                                 <th>Column search</th>
+                                <th>ColumnControl</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -323,6 +324,17 @@
                                     <td>{{ column.searchable ? 'yes' : 'no' }}</td>
                                     <td>{{ column.orderable ? 'yes' : 'no' }}</td>
                                     <td>{{ column.searchValue is empty ? '—' : column.searchValue }}</td>
+                                    <td>
+                                        {%- if column.columnControl is empty -%}
+                                            —
+                                        {%- elseif column.columnControl.list is not empty -%}
+                                            list: {{ column.columnControl.list|map(v => v == '' ? '(empty)' : v)|join(', ') }}
+                                        {%- elseif column.columnControl.value is not empty -%}
+                                            {{ column.columnControl.logic }}: <code>{{ column.columnControl.value }}</code>
+                                        {%- else -%}
+                                            —
+                                        {%- endif -%}
+                                    </td>
                                 </tr>
                             {% endfor %}
                         </tbody>
