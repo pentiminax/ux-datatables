@@ -37,7 +37,8 @@ class ActionColumn extends AbstractColumn implements ActionsProvidingColumnInter
             ->disableGlobalSearch()
             ->disableColumnControl()
             ->setType(ColumnType::STRING)
-            ->setExportable(false);
+            ->setExportable(false)
+            ->setResponsivePriority(1);
     }
 
     public function getActions(): ?Actions
@@ -55,8 +56,7 @@ class ActionColumn extends AbstractColumn implements ActionsProvidingColumnInter
     public function jsonSerialize(): array
     {
         return array_merge(parent::jsonSerialize(), [
-            'actions'            => $this->actions?->jsonSerialize(),
-            'responsivePriority' => 1,
+            'actions' => $this->actions?->jsonSerialize(),
         ]);
     }
 }

@@ -81,6 +81,10 @@ final class AttributeColumnReader
             $column->setWidth($attr->width);
         }
 
+        if (null !== $attr->responsivePriority) {
+            $column->setResponsivePriority($attr->responsivePriority);
+        }
+
         if (null !== $attr->className) {
             $column->setClassName($attr->className);
         }
