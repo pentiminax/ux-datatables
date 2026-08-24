@@ -548,6 +548,12 @@ abstract class AbstractDataTable
             $actionColumn->setClassName($className);
         }
 
+        $columnControl = $actions->getColumnControl();
+
+        if (null !== $columnControl) {
+            $actionColumn->setColumnControl($columnControl);
+        }
+
         return $actionColumn;
     }
 }
