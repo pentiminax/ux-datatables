@@ -27,4 +27,37 @@ final readonly class Column
             columnControl: isset($data['columnControl']) ? ColumnControl::fromArray($data['columnControl']) : null,
         );
     }
+
+    /**
+     * Search values carried on this column's search box, decoded.
+     *
+     * DataTables only ever transports one string per column: a multi-value facet
+     * (checkbox group, multi-select) encodes its selection as a JSON array in that
+     * string. Returns the decoded, trimmed, non-empty values either way — a plain
+     * string search yields a single-element list, a JSON array yields one element
+     * per entry, and no active search yields an empty list.
+     *
+     * Empty entries are dropped. A facet that depends on positional emptiness
+     * (e.g. a `['', '2026-01-01']` date-range pair where the first slot means
+     * "no lower bound") must not use this method — decode `search->value` directly.
+     *
+     * @return list<string>
+     */
+    public function searchValues(): array
+    {
+        $value = trim(($this->search?->value ?? ''));
+        if ('' === $value) {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+        if (!\is_array($decoded)) {
+            return [$value];
+        }
+
+        return array_values(array_filter(
+            array_map(static fn (mixed $item): string => trim((string) $item), $decoded),
+            static fn (string $item): bool => '' !== $item,
+        ));
+    }
 }

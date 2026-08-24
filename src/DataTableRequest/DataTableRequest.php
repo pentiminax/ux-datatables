@@ -43,4 +43,26 @@ final readonly class DataTableRequest
             filters: $bag->all('filters'),
         );
     }
+
+    /**
+     * Requested page size, falling back to $default when DataTables sent 0 or less
+     * (its "show all" length, which providers built on LIMIT/OFFSET can't honor).
+     */
+    public function pageLength(int $default = 25): int
+    {
+        return $this->length > 0 ? $this->length : $default;
+    }
+
+    /**
+     * Trimmed global search term, or null when empty/absent.
+     *
+     * Tests for emptiness explicitly rather than via a falsy check, so a search
+     * for the literal string "0" is preserved instead of being treated as empty.
+     */
+    public function searchTerm(): ?string
+    {
+        $value = trim(($this->search?->value ?? ''));
+
+        return '' !== $value ? $value : null;
+    }
 }
