@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Contracts\LayoutAwareExtensionInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Column;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -227,15 +228,65 @@ final class DataTableProfiler
             \assert($column instanceof Column);
 
             $columns[] = [
-                'index'       => $index++,
-                'data'        => $column->data,
-                'name'        => $column->name,
-                'searchable'  => $column->searchable,
-                'orderable'   => $column->orderable,
-                'searchValue' => $column->search?->value,
+                'index'         => $index++,
+                'data'          => $column->data,
+                'name'          => $column->name,
+                'searchable'    => $column->searchable,
+                'orderable'     => $column->orderable,
+                'searchValue'   => $column->search?->value,
+                'columnControl' => $this->summarizeColumnControl($column->columnControl),
             ];
         }
 
         return $columns;
+    }
+
+    /**
+     * ColumnControl submits its own scalar search (value/logic/type) and searchList
+     * (checkbox list of selected values) independently of the plain column search box
+     * above -- summarized separately here so it shows up in the panel at all instead of
+     * being silently dropped alongside the request.
+     *
+     * @return array{value: ?string, logic: ?string, type: ?string, list: list<string>}|null
+     */
+    private function summarizeColumnControl(?ColumnControl $columnControl): ?array
+    {
+        if (null === $columnControl) {
+            return null;
+        }
+
+        $search = $columnControl->search;
+
+        if (null === $search && [] === $columnControl->list) {
+            return null;
+        }
+
+        return [
+            'value' => $search?->value,
+            'logic' => $search?->logic->value,
+            'type'  => $search?->type,
+            'list'  => $this->normalizeColumnControlList($columnControl->list),
+        ];
+    }
+
+    /**
+     * ColumnControl::$list is unvalidated request input (ColumnControl::fromArray() reads
+     * $data['list'] ?? [] verbatim) -- a client can submit a nested array for one entry (e.g.
+     * columns[0][columnControl][list][0][x]=y), which the panel's join() filter cannot render
+     * as a string. Reduce every entry to a safe scalar here so the template never has to
+     * account for what a request happened to send.
+     *
+     * @param list<mixed> $list
+     *
+     * @return list<string>
+     */
+    private function normalizeColumnControlList(array $list): array
+    {
+        return array_map(
+            static fn (mixed $value): string => \is_scalar($value) || null === $value
+                ? (string) $value
+                : \sprintf('(invalid %s value)', get_debug_type($value)),
+            $list,
+        );
     }
 }
