@@ -187,6 +187,11 @@ final class ActiveUsersDataTable extends AbstractDataTable
 }
 ```
 
+`customizeQueryBuilder()`'s constraints apply to `recordsTotal` as well as `recordsFiltered` and the
+returned page — the deleted/inactive rows excluded above are never counted at all, not just hidden
+from search results. Only the bundle's own interactive search, ordering, and column/user filters
+are layered on top for `recordsFiltered`; `recordsTotal` reflects your base dataset alone.
+
 ### Dynamic Filtering
 
 Use request parameters for dynamic filters:

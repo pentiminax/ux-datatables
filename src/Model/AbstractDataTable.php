@@ -456,6 +456,7 @@ abstract class AbstractDataTable
             manualDataProviderFactory: $this->createDataProvider(...),
             configureQueryBuilder: $this->configureQueryBuilder(...),
             pageProjector: $this->projectPage(...),
+            configureBaseQueryBuilder: $this->customizeQueryBuilder(...),
         );
     }
 
