@@ -109,6 +109,13 @@ class DataTablesBundle extends AbstractBundle
 
         $container->import('../config/services.php');
 
+        // Profiler/data-collector recording is a direct, eager call from application code
+        // (not just a pull triggered by Symfony's own profiler), so it is only worth the
+        // per-request cost when kernel.debug is on -- see config/profiler.php.
+        if ($builder->getParameter('kernel.debug')) {
+            $container->import('../config/profiler.php');
+        }
+
         if ($this->isApiPlatformAvailable($builder)) {
             $container->import('../config/api_platform.php');
         }

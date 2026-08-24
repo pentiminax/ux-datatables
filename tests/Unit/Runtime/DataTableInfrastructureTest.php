@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
@@ -30,6 +31,7 @@ final class DataTableInfrastructureTest extends TestCase
         $this->assertInstanceOf(DataTableRuntimeFactory::class, $infrastructure->runtimeFactory());
         $this->assertInstanceOf(DefaultDataTableQueryIntentFactory::class, $infrastructure->queryIntentFactory());
         $this->assertInstanceOf(QueryFilterPipeline::class, $infrastructure->queryFilterPipeline());
+        $this->assertNull($infrastructure->profiler());
     }
 
     #[Test]
@@ -40,6 +42,7 @@ final class DataTableInfrastructureTest extends TestCase
         $runtimeFactory      = new DataTableRuntimeFactory();
         $intentFactory       = new DefaultDataTableQueryIntentFactory();
         $queryFilterPipeline = new QueryFilterPipeline($intentFactory);
+        $profiler            = new DataTableProfiler();
 
         $infrastructure = DataTableInfrastructure::createDefault(
             columnResolver: $columnResolver,
@@ -47,6 +50,7 @@ final class DataTableInfrastructureTest extends TestCase
             runtimeFactory: $runtimeFactory,
             queryIntentFactory: $intentFactory,
             queryFilterPipeline: $queryFilterPipeline,
+            profiler: $profiler,
         );
 
         $this->assertSame($columnResolver, $infrastructure->columnResolver());
@@ -54,5 +58,6 @@ final class DataTableInfrastructureTest extends TestCase
         $this->assertSame($runtimeFactory, $infrastructure->runtimeFactory());
         $this->assertSame($intentFactory, $infrastructure->queryIntentFactory());
         $this->assertSame($queryFilterPipeline, $infrastructure->queryFilterPipeline());
+        $this->assertSame($profiler, $infrastructure->profiler());
     }
 }
