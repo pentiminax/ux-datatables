@@ -247,7 +247,7 @@ final class DataTableProfiler
      * above -- summarized separately here so it shows up in the panel at all instead of
      * being silently dropped alongside the request.
      *
-     * @return array{value: ?string, logic: ?string, type: ?string, list: list<mixed>}|null
+     * @return array{value: ?string, logic: ?string, type: ?string, list: list<string>}|null
      */
     private function summarizeColumnControl(?ColumnControl $columnControl): ?array
     {
@@ -265,7 +265,28 @@ final class DataTableProfiler
             'value' => $search?->value,
             'logic' => $search?->logic->value,
             'type'  => $search?->type,
-            'list'  => $columnControl->list,
+            'list'  => $this->normalizeColumnControlList($columnControl->list),
         ];
+    }
+
+    /**
+     * ColumnControl::$list is unvalidated request input (ColumnControl::fromArray() reads
+     * $data['list'] ?? [] verbatim) -- a client can submit a nested array for one entry (e.g.
+     * columns[0][columnControl][list][0][x]=y), which the panel's join() filter cannot render
+     * as a string. Reduce every entry to a safe scalar here so the template never has to
+     * account for what a request happened to send.
+     *
+     * @param list<mixed> $list
+     *
+     * @return list<string>
+     */
+    private function normalizeColumnControlList(array $list): array
+    {
+        return array_map(
+            static fn (mixed $value): string => \is_scalar($value) || null === $value
+                ? (string) $value
+                : \sprintf('(invalid %s value)', get_debug_type($value)),
+            $list,
+        );
     }
 }
