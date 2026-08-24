@@ -59,7 +59,7 @@ final class UsersDataTable extends AbstractDataTable
 }
 ```
 
-When `configureActions()` returns at least one action, `AbstractDataTable` automatically appends an `ActionColumn` named `actions`.
+When `configureActions()` returns at least one action, `AbstractDataTable` automatically appends an `ActionColumn` named `actions`. That column serializes with `responsivePriority: 1` so action buttons stay visible when the Responsive extension hides overflow columns. Override it with `setResponsivePriority()` if another column should remain visible first.
 
 <Aside type="tip">
   When your table uses `#[AsDataTable(Entity::class)]`, the entity class is injected automatically
