@@ -49,6 +49,24 @@ require `ColumnControlExtension` to be added to the table — the frontend only 
 ColumnControl plugin bundle when the table-level extension is present, so a column-level override
 or a disabled column stays inert without it.
 
+### Overriding The Actions Column
+
+The auto-generated actions column is built internally and has ColumnControl disabled by default, so
+`setColumnControl()` on `AbstractColumn` doesn't reach it. Use `Actions::setColumnControl()` in
+`configureActions()` instead — it flows through to the generated column the same way
+`setColumnClassName()` already does:
+
+```php
+use Pentiminax\UX\DataTables\Model\Actions;
+
+public function configureActions(Actions $actions): Actions
+{
+    return $actions
+        ->setColumnControl(['colvisDropdown'])
+        ->add(Action::edit());
+}
+```
+
 ## Custom Content Types
 
 ColumnControl resolves the content descriptors above against `DataTable.ColumnControl.content`, a

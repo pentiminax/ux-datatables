@@ -76,6 +76,32 @@ final class AbstractDataTableActionsTest extends TestCase
     }
 
     #[Test]
+    public function it_applies_the_actions_column_control_override(): void
+    {
+        $table = self::tableWith(static fn (Actions $actions): Actions => $actions
+            ->setColumnControl(['colvisDropdown'])
+            ->add(Action::detail()));
+
+        $column = $table->getColumnByName('actions');
+
+        $this->assertInstanceOf(ActionColumn::class, $column);
+        $this->assertSame(['colvisDropdown'], $column->getColumnControl());
+        $this->assertSame(['colvisDropdown'], $column->jsonSerialize()['columnControl']);
+    }
+
+    #[Test]
+    public function it_leaves_the_actions_column_control_disabled_by_default(): void
+    {
+        $table = self::tableWith(static fn (Actions $actions): Actions => $actions->add(Action::detail()));
+
+        $column = $table->getColumnByName('actions');
+
+        $this->assertInstanceOf(ActionColumn::class, $column);
+        $this->assertNull($column->getColumnControl());
+        $this->assertSame([], $column->jsonSerialize()['columnControl']);
+    }
+
+    #[Test]
     public function it_keeps_explicit_action_entity_class(): void
     {
         $column = (new ExplicitActionEntityClassTestTable())->getColumnByName('actions');

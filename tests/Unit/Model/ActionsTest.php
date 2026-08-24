@@ -34,6 +34,7 @@ final class ActionsTest extends TestCase
         $this->assertNull($actions->getColumnClassName());
         $this->assertSame(ActionsPosition::AfterColumns, $actions->getPosition());
         $this->assertNull($actions->getAlignment());
+        $this->assertNull($actions->getColumnControl());
     }
 
     #[Test]
@@ -58,13 +59,15 @@ final class ActionsTest extends TestCase
             ->setColumnLabel('Operations')
             ->setColumnClassName('dt-center')
             ->position(ActionsPosition::BeforeColumns)
-            ->alignment(ActionsAlignment::Center);
+            ->alignment(ActionsAlignment::Center)
+            ->setColumnControl(['colvisDropdown']);
 
         $this->assertSame('Operations', $actions->getColumnLabel());
         $this->assertSame('dt-center', $actions->getColumnClassName());
         $this->assertSame(ActionsPosition::BeforeColumns, $actions->getPosition());
         $this->assertSame(ActionsAlignment::Center, $actions->getAlignment());
         $this->assertSame('dt-center', $actions->getAlignment()->cssClass());
+        $this->assertSame(['colvisDropdown'], $actions->getColumnControl());
     }
 
     #[Test]
@@ -198,6 +201,7 @@ final class ActionsTest extends TestCase
             ->setColumnLabel('Ops')
             ->setColumnClassName('dt-center')
             ->alignment(ActionsAlignment::Center)
+            ->setColumnControl(['colvisDropdown'])
             ->add(Action::detail()->position(ActionsPosition::BeforeColumns));
 
         $group = $actions->partitionByPosition()[ActionsPosition::BeforeColumns->value];
@@ -205,5 +209,6 @@ final class ActionsTest extends TestCase
         $this->assertSame('Ops', $group->getColumnLabel());
         $this->assertSame('dt-center', $group->getColumnClassName());
         $this->assertSame(ActionsAlignment::Center, $group->getAlignment());
+        $this->assertSame(['colvisDropdown'], $group->getColumnControl());
     }
 }
