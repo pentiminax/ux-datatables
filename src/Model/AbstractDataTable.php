@@ -481,12 +481,19 @@ abstract class AbstractDataTable
         $payload = json_decode((string) $response->getContent(), true);
         $payload = \is_array($payload) ? $payload : [];
 
-        $provider = $this->getDataProvider();
+        // Mirrors DataTableRuntime::getResponse()'s own guard: it only resolves a data
+        // provider once a request has actually been handled, short-circuiting to the empty
+        // response otherwise. Resolving unconditionally here would call getDataProvider()
+        // even on that empty-response path -- for an attributed table with no manual
+        // provider and no EntityManager, resolution throws, so getResponse() would behave
+        // differently depending on whether a profiler happens to be wired.
+        $request  = $this->getRequest();
+        $provider = null !== $request ? $this->getDataProvider() : null;
 
         $profiler->collectAjaxQuery(
             class: static::class,
             token: $this->getHttpRequest()?->query->getString('table') ?: null,
-            request: $this->getRequest(),
+            request: $request,
             recordsTotal: (int) ($payload['recordsTotal'] ?? 0),
             recordsFiltered: (int) ($payload['recordsFiltered'] ?? 0),
             durationMs: (hrtime(true) - $start) / 1_000_000,

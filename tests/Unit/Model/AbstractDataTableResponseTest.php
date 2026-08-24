@@ -129,6 +129,30 @@ final class AbstractDataTableResponseTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
     }
 
+    /**
+     * Regression test: DataTableRuntime::getResponse() only resolves a data provider once a
+     * request has actually been handled -- calling getResponse() without handleRequest()
+     * first short-circuits straight to the empty response, never touching the provider.
+     * Profiler collection used to call getDataProvider() unconditionally, so for an
+     * attributed table with no manual provider and no EntityManager, wiring a profiler alone
+     * turned this safe, documented no-op call into a thrown LogicException -- application
+     * behavior silently depending on whether profiling happened to be enabled.
+     */
+    #[Test]
+    public function it_returns_the_empty_response_without_a_handled_request_even_with_a_profiler_wired(): void
+    {
+        $profiler = new DataTableProfiler();
+        $table    = new MissingEntityManagerHydrationTestTable();
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(profiler: $profiler));
+
+        $response = $table->getResponse();
+
+        $this->assertSame(
+            ['draw' => 1, 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => []],
+            json_decode((string) $response->getContent(), true),
+        );
+    }
+
     #[Test]
     public function it_throws_when_client_side_auto_provider_cannot_be_created(): void
     {
