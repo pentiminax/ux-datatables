@@ -122,8 +122,9 @@
 
                 {% if table.serverSide %}
                     <p class="help">
-                        This table fetches its rows over AJAX. Its query details are collected in the
-                        profile of the AJAX request itself, reachable from the toolbar's AJAX tab, not in
+                        This table fetches its rows over AJAX — through the bundle's own endpoint or a
+                        custom ajax() URL, both are covered. Its query details are collected in the
+                        profile of that AJAX request itself, reachable from the toolbar's AJAX tab, not in
                         this page profile.
                     </p>
                 {% endif %}

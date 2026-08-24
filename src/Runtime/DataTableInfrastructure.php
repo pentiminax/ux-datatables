@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntentFactoryInterface;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
@@ -21,6 +22,7 @@ final class DataTableInfrastructure
         private readonly DataTableQueryIntentFactoryInterface $queryIntentFactory,
         private readonly QueryFilterPipeline $queryFilterPipeline,
         private ?DataTableBuilderInterface $builder = null,
+        private readonly ?DataTableProfiler $profiler = null,
     ) {
     }
 
@@ -31,6 +33,7 @@ final class DataTableInfrastructure
         ?DataTableQueryIntentFactoryInterface $queryIntentFactory = null,
         ?QueryFilterPipeline $queryFilterPipeline = null,
         ?DataTableBuilderInterface $builder = null,
+        ?DataTableProfiler $profiler = null,
     ): self {
         $queryIntentFactory ??= new DefaultDataTableQueryIntentFactory();
 
@@ -41,6 +44,7 @@ final class DataTableInfrastructure
             queryIntentFactory: $queryIntentFactory,
             queryFilterPipeline: $queryFilterPipeline ?? new QueryFilterPipeline($queryIntentFactory),
             builder: $builder,
+            profiler: $profiler,
         );
     }
 
@@ -67,6 +71,16 @@ final class DataTableInfrastructure
     public function queryFilterPipeline(): QueryFilterPipeline
     {
         return $this->queryFilterPipeline;
+    }
+
+    /**
+     * Null outside a real DI container (e.g. {@see self::createDefault()} without one), so
+     * profiling is a no-op rather than a hard dependency for tables built without the bundle's
+     * service wiring.
+     */
+    public function profiler(): ?DataTableProfiler
+    {
+        return $this->profiler;
     }
 
     /**
