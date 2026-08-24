@@ -9,6 +9,7 @@ import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
 import { ApiPlatformAdapter, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
+import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js';
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
@@ -92,6 +93,7 @@ class default_1 extends Controller {
             applyFilterLayout(payload, filterBar);
         }
         await applyLocalLanguage(payload);
+        applyCustomButtonActions(payload);
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
         if (urlStateCfg && this.table) {

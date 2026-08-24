@@ -31,7 +31,7 @@ new ButtonsExtension([
 ]);
 ```
 
-`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`), `COLUMN_CONTROL_SEARCH_CLEAR` (value `'ccSearchClear'`), `COLLECTION` (value `'collection'`). The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton()`, `withExcelButton()`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`, `withCcSearchClearButton()`, `withCollectionButton(array $buttons)`.
+`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`), `COLUMN_CONTROL_SEARCH_CLEAR` (value `'ccSearchClear'`), `COLLECTION` (value `'collection'`), `CUSTOM`. The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton()`, `withExcelButton()`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`, `withCcSearchClearButton()`, `withCollectionButton(array $buttons)`, `withCustomButton(string $action)`.
 
 Fine-grained config via `Button`:
 ```php
@@ -54,6 +54,23 @@ freely — nested buttons serialize correctly at any depth since `Button` is `Js
 ```php
 Button::collection([Button::csv(), Button::excel(), 'colvis'])->text('Export');
 ```
+
+### Custom button with app-defined behavior
+
+`Button::custom(string $action)` — no JS closures can cross the PHP→JSON boundary, so `$action` is a
+name, not a callback. Register the real function once in JS before any table connects:
+
+```php
+Button::custom('restoreOrder')->text('Restore order');
+```
+
+```javascript
+import { buttonActions } from '@pentiminax/ux-datatables'
+buttonActions.register('restoreOrder', (e, dt) => dt.colReorder.reset())
+```
+
+Signature matches native DataTables Buttons `action`: `(e, dt, node, config)`. An unregistered name
+renders but no-ops with a console error, not a crash.
 
 ## Select — row/cell selection
 

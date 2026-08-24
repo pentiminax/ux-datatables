@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 
+use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -96,6 +97,15 @@ final class ButtonTest extends TestCase
                 'buttons' => [],
             ],
         ];
+
+        yield 'custom action button has no extend or export options' => [
+            Button::custom('restoreOrder')->text('Restore order')->className('btn btn-sm'),
+            [
+                'action'    => 'restoreOrder',
+                'text'      => 'Restore order',
+                'className' => 'btn btn-sm',
+            ],
+        ];
     }
 
     #[Test]
@@ -114,5 +124,45 @@ final class ButtonTest extends TestCase
             ],
             'text' => 'Export',
         ], json_decode(json_encode($button), true));
+    }
+
+    #[Test]
+    public function it_rejects_an_empty_custom_action_name(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Custom button action must not be empty.');
+
+        Button::custom('   ');
+    }
+
+    #[Test]
+    public function it_rejects_serializing_a_custom_button_built_without_an_action(): void
+    {
+        $button = Button::fromType(ButtonType::CUSTOM)->text('Restore order');
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('A custom button must have an "action" name set. Use Button::custom().');
+
+        $button->jsonSerialize();
+    }
+
+    #[Test]
+    public function it_serializes_a_custom_button_nested_inside_a_collection_option(): void
+    {
+        $colVis = Button::colVis()
+            ->text('Columns')
+            ->option('postfixButtons', [
+                ['extend' => 'colvisRestore'],
+                Button::custom('restoreOrder')->text('Restore order'),
+            ]);
+
+        $this->assertSame([
+            'extend'         => 'colvis',
+            'text'           => 'Columns',
+            'postfixButtons' => [
+                ['extend' => 'colvisRestore'],
+                ['action' => 'restoreOrder', 'text' => 'Restore order'],
+            ],
+        ], json_decode(json_encode($colVis), true));
     }
 }

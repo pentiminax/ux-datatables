@@ -46,6 +46,7 @@ generated.
     ['`ButtonType::COLUMN_VISIBILITY`', 'Toggle column visibility'],
     ['`ButtonType::COLUMN_CONTROL_SEARCH_CLEAR`', 'Clear every active search — see below'],
     ['`ButtonType::COLLECTION`', 'Group other buttons in a dropdown — see below'],
+    ['`ButtonType::CUSTOM`', 'App-defined click behavior — see Custom Buttons below'],
   ]}
 />
 
@@ -91,7 +92,8 @@ $dataTable
 ```
 
 Button options must be JSON-serializable. JavaScript callbacks such as
-DataTables `action` or `customize` functions cannot be serialized from PHP.
+DataTables `customize` functions cannot be serialized from PHP. For a
+button whose click behavior lives in JavaScript, see Custom Buttons below.
 
 For options not covered by the typed API, you can still pass a raw DataTables
 layout object:
@@ -165,12 +167,75 @@ serialize the same way whether nested here or at the top level, since `Button` i
 automatically. `text` defaults to DataTables' own "Collection" label if omitted.
 `ButtonsExtension::withCollectionButton(array $buttons)` is the fluent-collection shortcut.
 
+## Custom Buttons
+
+`Button::custom(string $action)` adds a button whose click behavior is defined in JavaScript, for
+cases the typed export/visibility buttons don't cover — for example resetting `ColReorder`'s column
+order. (For clearing `ColumnControl` searches specifically, prefer `Button::ccSearchClear()` above
+— it's a native plugin button, not app-defined behavior.)
+
+```php
+use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Model\Extensions\Button;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+
+$dataTable
+    ->addExtension(new ButtonsExtension([
+        Button::custom('restoreOrder')->text('Restore order')->className('btn btn-sm'),
+    ]))
+    ->layout([
+        'topStart' => Feature::BUTTONS,
+    ]);
+```
+
+`$action` isn't a callback — PHP can't serialize JavaScript functions — it's a name the frontend
+resolves against a registry. Register the real callback once, in your own JavaScript entrypoint,
+before any table connects:
+
+```javascript
+import { buttonActions } from '@pentiminax/ux-datatables'
+
+buttonActions.register('restoreOrder', (e, dt) => {
+    dt.colReorder.reset()
+})
+```
+
+The callback receives the same `(e, dt, node, config)` arguments as a native DataTables Buttons
+`action` function. If `$action` has no matching registration when the table connects, the button
+renders but does nothing, and the frontend logs
+`No button action registered for "<name>"` to the console — check the registered name matches the
+PHP-side `$action` string exactly, and that the registration code runs before the table connects.
+
+`ButtonsExtension::withCustomButton(string $action)` is the fluent-collection shortcut, equivalent
+to `Button::custom($action)` with no further options.
+
+### Nesting Inside A Collection Button
+
+A collection-type button (`Button::colVis()`, or anything using `extend: 'collection'`) can nest
+further buttons under `buttons`, `postfixButtons`, or `prefixButtons`. `Button` objects placed in
+those arrays serialize correctly at any depth — `Button` implements `JsonSerializable`, and PHP's
+`json_encode()` resolves nested `JsonSerializable` values automatically:
+
+```php
+Button::colVis()
+    ->text('Columns')
+    ->option('postfixButtons', [
+        ['extend' => 'colvisRestore'],
+        Button::custom('restoreOrder')->text('Restore order'),
+    ]);
+```
+
+The frontend resolver walks `buttons`/`postfixButtons`/`prefixButtons` recursively, so a custom
+action nested this way is registered exactly like a top-level one.
+
 ## Frequent Pitfalls
 
 - Adding `ButtonsExtension` without adding `Feature::BUTTONS` to the layout.
 - Mixing button values as invalid strings.
 - Forgetting that non-column-visibility buttons apply export filtering by default.
 - Using `Button::ccSearchClear()` without also enabling `ColumnControlExtension` on the table.
+- Using `Button::custom()` without registering a matching `buttonActions` callback, or registering
+  it after the table has already connected.
 
 ## Cross Links
 
