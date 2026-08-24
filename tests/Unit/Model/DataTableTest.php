@@ -122,6 +122,96 @@ final class DataTableTest extends TestCase
         $this->assertSame($expectedPaging, $table->getOption('paging'));
     }
 
+    #[Test]
+    public function it_rewrites_paging_markers_into_the_layout_feature(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout([
+                'topStart'    => Feature::PAGE_LENGTH,
+                'topEnd'      => Feature::SEARCH,
+                'bottomStart' => Feature::INFO,
+                'bottomEnd'   => Feature::PAGING,
+            ])
+            ->paging(buttons: 5, firstLast: false);
+
+        $expectedPaging = [
+            'boundaryNumbers' => true,
+            'buttons'         => 5,
+            'firstLast'       => false,
+            'numbers'         => true,
+            'previousNext'    => true,
+        ];
+
+        $this->assertSame($expectedPaging, $table->getOption('paging'));
+        $this->assertTrue($table->getOptions()['paging']);
+        $this->assertSame(['paging' => $expectedPaging], $table->getOptions()['layout']['bottomEnd']);
+    }
+
+    #[Test]
+    public function without_paging_leaves_the_layout_marker_and_disables_pagination(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout(['bottomEnd' => Feature::PAGING])
+            ->withoutPaging();
+
+        $this->assertFalse($table->getOptions()['paging']);
+        $this->assertSame('paging', $table->getOptions()['layout']['bottomEnd']);
+    }
+
+    #[Test]
+    public function an_explicit_layout_paging_object_wins_over_paging_options(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout(['bottomEnd' => ['paging' => ['buttons' => 3]]])
+            ->paging(buttons: 5);
+
+        $this->assertTrue($table->getOptions()['paging']);
+        $this->assertSame(['paging' => ['buttons' => 3]], $table->getOptions()['layout']['bottomEnd']);
+    }
+
+    #[Test]
+    public function paging_options_do_not_invent_a_layout_slot(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout(['bottomEnd' => Feature::INFO])
+            ->paging(buttons: 5);
+
+        $this->assertTrue($table->getOptions()['paging']);
+        $this->assertSame('info', $table->getOptions()['layout']['bottomEnd']);
+        $this->assertArrayNotHasKey('bottomStart', $table->getOptions()['layout']);
+    }
+
+    #[Test]
+    public function paging_options_replace_a_marker_inside_a_layout_list(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout(['bottomEnd' => [Feature::INFO, Feature::PAGING]])
+            ->paging(buttons: 5, firstLast: false);
+
+        $expectedPaging = [
+            'boundaryNumbers' => true,
+            'buttons'         => 5,
+            'firstLast'       => false,
+            'numbers'         => true,
+            'previousNext'    => true,
+        ];
+
+        $this->assertSame(
+            ['info', ['paging' => $expectedPaging]],
+            $table->getOptions()['layout']['bottomEnd']
+        );
+    }
+
+    #[Test]
+    public function paging_options_fill_a_boolean_paging_feature_object(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout(['bottomEnd' => ['paging' => true]])
+            ->paging(buttons: 5);
+
+        $this->assertSame(5, $table->getOptions()['layout']['bottomEnd']['paging']['buttons']);
+    }
+
     /**
      * @param string[] $topics
      * @param string[] $expectedTopics
