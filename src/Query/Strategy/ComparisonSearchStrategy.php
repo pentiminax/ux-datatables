@@ -9,8 +9,10 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
+use Pentiminax\UX\DataTables\Query\BooleanSearchTerm;
 use Pentiminax\UX\DataTables\Query\DateSearchTerm;
 use Pentiminax\UX\DataTables\Query\LikeValueEscaper;
+use Pentiminax\UX\DataTables\Query\NumericSearchTerm;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
 
@@ -66,6 +68,7 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
             $paramName,
             match (true) {
                 $bindValue instanceof \DateTimeImmutable => $bindValue,
+                \is_bool($bindValue)                     => $bindValue,
                 $usesLike                                => \sprintf($this->logic->paramFormat(), LikeValueEscaper::escape($bindValue)),
                 default                                  => \sprintf($this->logic->paramFormat(), $bindValue),
             },
@@ -80,11 +83,11 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
 
     /**
      * Resolves the value to bind and its Doctrine type hint, or [null, null] when the raw
-     * search term cannot be bound to the field's actual column type. LIKE-incompatible types
-     * (uuid, date, etc.) are already filtered above; this only normalizes the value for the
-     * types that still need a specific Doctrine type on setParameter().
+     * search term cannot be bound to the field's actual column type. LIKE on non-text
+     * columns is already skipped above; this normalizes UUID, date, numeric, and boolean
+     * values so a garbage term is a no-match instead of a driver error or a coerced 0.
      *
-     * @return array{0: string|\DateTimeImmutable|null, 1: ?string}
+     * @return array{0: string|\DateTimeImmutable|bool|null, 1: ?string}
      */
     private function resolveBindValue(QueryBuilder $qb, string $fieldPath, string $rawValue): array
     {
@@ -96,6 +99,21 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
         $dateType = RelationFieldResolver::resolveDateFieldType($qb, $fieldPath);
         if (null !== $dateType) {
             return [DateSearchTerm::normalize($rawValue), $dateType];
+        }
+
+        $integerType = RelationFieldResolver::resolveIntegerFieldType($qb, $fieldPath);
+        if (null !== $integerType) {
+            return [NumericSearchTerm::normalize($rawValue, $integerType), $integerType];
+        }
+
+        $floatType = RelationFieldResolver::resolveFloatFieldType($qb, $fieldPath);
+        if (null !== $floatType) {
+            return [NumericSearchTerm::normalize($rawValue, $floatType), $floatType];
+        }
+
+        $booleanType = RelationFieldResolver::resolveBooleanFieldType($qb, $fieldPath);
+        if (null !== $booleanType) {
+            return [BooleanSearchTerm::normalize($rawValue), $booleanType];
         }
 
         return [$rawValue, null];
