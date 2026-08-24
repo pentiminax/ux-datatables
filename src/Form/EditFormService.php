@@ -96,11 +96,17 @@ final class EditFormService
 
     private function buildForm(ResolvedDataTable $dataTable, MutationContext $context): FormInterface
     {
+        $columns = (new ColumnResolver(permissionChecker: $this->permissionChecker))
+            ->filterStaticPermissions($this->templateResolver->resolveColumns($dataTable->dataTableClass));
+
+        $identifierFields = $context->manager
+            ->getClassMetadata($dataTable->requireEntityClass())
+            ->getIdentifierFieldNames();
+
         return $this->builder->buildForm(
             entity: $context->entity,
-            columns: (new ColumnResolver(permissionChecker: $this->permissionChecker))
-                ->filterStaticPermissions($this->templateResolver->resolveColumns($dataTable->dataTableClass)),
-            identifierFields: $context->manager->getClassMetadata($dataTable->requireEntityClass())->getIdentifierFieldNames(),
+            columns: $columns,
+            identifierFields: $identifierFields,
         );
     }
 

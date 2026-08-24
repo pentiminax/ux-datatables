@@ -94,7 +94,7 @@ final class ActionRowDataResolverTest extends TestCase
 
         yield 'id read from an array source row' => [
             [Action::delete()],
-            ['id' => 9],
+            ['id'     => 9],
             ['DELETE' => ['id' => 9]],
         ];
 
