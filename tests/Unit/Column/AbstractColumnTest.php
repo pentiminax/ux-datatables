@@ -55,9 +55,11 @@ final class AbstractColumnTest extends TestCase
         $this->assertNull($column->getClassName());
         $this->assertNull($column->getCellType());
         $this->assertNull($column->getDefaultContent());
+        $this->assertNull($column->getResponsivePriority());
         $this->assertSame([], $column->getCustomOptions());
         $this->assertNull($column->getCustomOption('unknown'));
         $this->assertArrayNotHasKey('columnControl', $column->jsonSerialize());
+        $this->assertArrayNotHasKey('responsivePriority', $column->jsonSerialize());
     }
 
     #[Test]
@@ -135,6 +137,31 @@ final class AbstractColumnTest extends TestCase
     }
 
     #[Test]
+    public function it_omits_responsive_priority_until_it_is_set(): void
+    {
+        $column = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('email');
+
+        $this->assertNull($column->getResponsivePriority());
+        $this->assertArrayNotHasKey('responsivePriority', $column->jsonSerialize());
+
+        $this->assertSame($column, $column->setResponsivePriority(1));
+        $this->assertSame(1, $column->getResponsivePriority());
+        $this->assertSame(1, $column->jsonSerialize()['responsivePriority']);
+
+        $column->setResponsivePriority(0);
+        $this->assertSame(0, $column->jsonSerialize()['responsivePriority']);
+
+        $column->setResponsivePriority(-1);
+        $this->assertSame(-1, $column->jsonSerialize()['responsivePriority']);
+
+        $column->setResponsivePriority(null);
+        $this->assertNull($column->getResponsivePriority());
+        $this->assertArrayNotHasKey('responsivePriority', $column->jsonSerialize());
+    }
+
+    #[Test]
     public function permission_is_stored_server_side_and_never_serialized(): void
     {
         $column = (new class extends AbstractColumn {})
@@ -149,8 +176,9 @@ final class AbstractColumnTest extends TestCase
     }
 
     /**
-     * setField(), setColumnControl(), setClassName(), setCustomOption(), setVisible(), and
-     * disableGlobalSearch() are documented public API (see columns/overview.mdx) inherited
+     * setField(), setColumnControl(), setClassName(), setCustomOption(), setVisible(),
+     * setResponsivePriority(), and disableGlobalSearch() are documented public API
+     * (see columns/overview.mdx) inherited
      * unchanged by every concrete column type. A class-level @internal here previously made
      * static analysis tools such as Psalm flag every one of those calls from application code
      * as touching an internal class, even though only createWithType() is actually meant to
