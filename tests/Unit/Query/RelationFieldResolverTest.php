@@ -135,6 +135,36 @@ final class RelationFieldResolverTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('numeric_and_boolean_field_types')]
+    public function it_classifies_numeric_and_boolean_doctrine_types(
+        string $fieldType,
+        ?string $expectedIntegerType,
+        ?string $expectedFloatType,
+        ?string $expectedBooleanType,
+    ): void {
+        $qb = $this->queryBuilderWithFieldType('id', $fieldType);
+
+        $this->assertSame($expectedIntegerType, RelationFieldResolver::resolveIntegerFieldType($qb, 'id'));
+        $this->assertSame($expectedFloatType, RelationFieldResolver::resolveFloatFieldType($qb, 'id'));
+        $this->assertSame($expectedBooleanType, RelationFieldResolver::resolveBooleanFieldType($qb, 'id'));
+    }
+
+    /**
+     * @return iterable<string, array{string, ?string, ?string, ?string}>
+     */
+    public static function numeric_and_boolean_field_types(): iterable
+    {
+        yield 'integer' => ['integer', 'integer', null, null];
+        yield 'smallint' => ['smallint', 'smallint', null, null];
+        yield 'bigint' => ['bigint', 'bigint', null, null];
+        yield 'float' => ['float', null, 'float', null];
+        yield 'decimal' => ['decimal', null, 'decimal', null];
+        yield 'boolean' => ['boolean', null, null, 'boolean'];
+        yield 'string' => ['string', null, null, null];
+        yield 'date' => ['date', null, null, null];
+    }
+
+    #[Test]
     public function it_rejects_a_bare_association_field(): void
     {
         $qb = $this->queryBuilderWithAssociationField('client');
@@ -143,6 +173,9 @@ final class RelationFieldResolverTest extends TestCase
         $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'client'));
         $this->assertNull(RelationFieldResolver::resolveUuidFieldType($qb, 'client'));
         $this->assertNull(RelationFieldResolver::resolveDateFieldType($qb, 'client'));
+        $this->assertNull(RelationFieldResolver::resolveIntegerFieldType($qb, 'client'));
+        $this->assertNull(RelationFieldResolver::resolveFloatFieldType($qb, 'client'));
+        $this->assertNull(RelationFieldResolver::resolveBooleanFieldType($qb, 'client'));
     }
 
     #[Test]

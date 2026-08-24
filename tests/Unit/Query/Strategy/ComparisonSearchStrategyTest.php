@@ -161,6 +161,97 @@ final class ComparisonSearchStrategyTest extends TestCase
         $strategy->apply($qb, $column, $search, 3, 'e');
     }
 
+    #[Test]
+    #[DataProvider('integer_skip_cases')]
+    public function it_skips_an_unbindable_predicate_on_an_integer_column(ColumnControlLogic $logic, string $value): void
+    {
+        $qb = $this->queryBuilderWithFieldType('age', 'integer');
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+
+        $strategy = new ComparisonSearchStrategy($logic);
+        $column   = TextColumn::new('age')->setField('age');
+        $search   = new ColumnControlSearch($value, $logic, 'text');
+
+        $strategy->apply($qb, $column, $search, 3, 'e');
+    }
+
+    #[Test]
+    public function it_applies_equality_on_an_integer_column_with_the_doctrine_type(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('age', 'integer');
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('e.age = :column_control_param_3');
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_control_param_3', '42', 'integer');
+
+        $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
+        $column   = TextColumn::new('age')->setField('age');
+        $search   = new ColumnControlSearch('  42  ', ColumnControlLogic::Equal, 'text');
+
+        $strategy->apply($qb, $column, $search, 3, 'e');
+    }
+
+    #[Test]
+    public function it_applies_equality_on_a_float_column_with_the_doctrine_type(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('price', 'float');
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('e.price = :column_control_param_3');
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_control_param_3', '19.99', 'float');
+
+        $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
+        $column   = TextColumn::new('price')->setField('price');
+        $search   = new ColumnControlSearch('19.99', ColumnControlLogic::Equal, 'text');
+
+        $strategy->apply($qb, $column, $search, 3, 'e');
+    }
+
+    #[Test]
+    #[DataProvider('boolean_skip_cases')]
+    public function it_skips_an_unbindable_predicate_on_a_boolean_column(ColumnControlLogic $logic, string $value): void
+    {
+        $qb = $this->queryBuilderWithFieldType('active', 'boolean');
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+
+        $strategy = new ComparisonSearchStrategy($logic);
+        $column   = TextColumn::new('active')->setField('active');
+        $search   = new ColumnControlSearch($value, $logic, 'text');
+
+        $strategy->apply($qb, $column, $search, 3, 'e');
+    }
+
+    #[Test]
+    #[DataProvider('boolean_bind_cases')]
+    public function it_applies_equality_on_a_boolean_column_with_a_parsed_value(string $value, bool $expected): void
+    {
+        $qb = $this->queryBuilderWithFieldType('active', 'boolean');
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('e.active = :column_control_param_3');
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_control_param_3', $expected, 'boolean');
+
+        $strategy = new ComparisonSearchStrategy(ColumnControlLogic::Equal);
+        $column   = TextColumn::new('active')->setField('active');
+        $search   = new ColumnControlSearch($value, ColumnControlLogic::Equal, 'text');
+
+        $strategy->apply($qb, $column, $search, 3, 'e');
+    }
+
     /**
      * @return iterable<string, array{ColumnControlLogic, string}>
      */
@@ -171,6 +262,39 @@ final class ComparisonSearchStrategyTest extends TestCase
         yield 'notContains (LIKE on a date column)' => [ColumnControlLogic::NotContains, '2026'];
         yield 'equal (unparsable value)' => [ColumnControlLogic::Equal, 'not-a-date'];
         yield 'greater (unparsable value)' => [ColumnControlLogic::Greater, 'not-a-date'];
+    }
+
+    /**
+     * @return iterable<string, array{ColumnControlLogic, string}>
+     */
+    public static function integer_skip_cases(): iterable
+    {
+        yield 'starts (LIKE on an integer column)' => [ColumnControlLogic::Starts, '42'];
+        yield 'equal (non-numeric value)' => [ColumnControlLogic::Equal, 'abc'];
+        yield 'greater (decimal on an integer column)' => [ColumnControlLogic::Greater, '1.5'];
+        yield 'equal (empty-looking garbage)' => [ColumnControlLogic::Equal, '42abc'];
+    }
+
+    /**
+     * @return iterable<string, array{ColumnControlLogic, string}>
+     */
+    public static function boolean_skip_cases(): iterable
+    {
+        yield 'starts (LIKE on a boolean column)' => [ColumnControlLogic::Starts, 'true'];
+        yield 'equal (unparsable value)' => [ColumnControlLogic::Equal, 'yes please'];
+        yield 'equal (empty-adjacent garbage)' => [ColumnControlLogic::Equal, 'not-a-boolean'];
+    }
+
+    /**
+     * @return iterable<string, array{string, bool}>
+     */
+    public static function boolean_bind_cases(): iterable
+    {
+        yield 'true' => ['true', true];
+        yield 'false' => ['false', false];
+        yield '1' => ['1', true];
+        yield '0' => ['0', false];
+        yield 'padded false' => ['  false  ', false];
     }
 
     #[Test]
