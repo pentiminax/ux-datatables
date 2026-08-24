@@ -22,6 +22,17 @@ class DoctrineDataProvider implements DataProviderInterface
         private $configureQueryBuilder = null,
         /** @var (\Closure(list<object>):(list<mixed>|null))|null */
         private readonly ?\Closure $pageProjector = null,
+        /**
+         * Applied to recordsTotal's count query. Unlike $configureQueryBuilder (the app's
+         * customizeQueryBuilder() plus the bundle's own interactive search/order/filter
+         * pipeline), this never includes request-driven search terms -- only the app's own
+         * permanent scoping (customizeQueryBuilder() alone), matching what DataTables expects
+         * recordsTotal to mean: the size of the developer's own base dataset, before the
+         * user's interactive search narrows it further.
+         *
+         * @var callable(QueryBuilder, DataTableRequest):QueryBuilder|null
+         */
+        private $configureBaseQueryBuilder = null,
     ) {
     }
 
@@ -29,12 +40,16 @@ class DoctrineDataProvider implements DataProviderInterface
     {
         $alias = 'e';
 
-        $countQb = $this->em
+        $baseQb = $this->em
             ->createQueryBuilder()
-            ->select("COUNT($alias)")
+            ->select($alias)
             ->from($this->entityClass, $alias);
 
-        $recordsTotal = (int) $countQb->getQuery()->getSingleScalarResult();
+        if ($this->configureBaseQueryBuilder) {
+            $baseQb = ($this->configureBaseQueryBuilder)($baseQb, $request);
+        }
+
+        $recordsTotal = $this->count($baseQb, $alias);
 
         $qb = $this->em
             ->createQueryBuilder()
@@ -45,19 +60,7 @@ class DoctrineDataProvider implements DataProviderInterface
             $qb = ($this->configureQueryBuilder)($qb, $request);
         }
 
-        // Filters supplied by configureQueryBuilder may add joins (e.g. searching over a
-        // relation). When such a join traverses a to-many association, a plain COUNT(e) is
-        // inflated by row multiplication. COUNT(DISTINCT e) counts distinct root entities, so
-        // recordsFiltered stays correct and pagination does not break.
-        // Note: this assumes a single-column primary key (Doctrine resolves COUNT(DISTINCT e) to
-        // the first identifier column); entities with composite keys would need a subquery over
-        // the identifiers instead.
-        $filteredCountQb = clone $qb;
-        $filteredCount   = (int) $filteredCountQb
-            ->select("COUNT(DISTINCT $alias)")
-            ->resetDQLPart('orderBy')
-            ->getQuery()
-            ->getSingleScalarResult();
+        $filteredCount = $this->count($qb, $alias);
 
         if ($request->start) {
             $qb->setFirstResult($request->start);
@@ -89,5 +92,34 @@ class DoctrineDataProvider implements DataProviderInterface
             recordsFiltered: $filteredCount,
             data: $rows
         );
+    }
+
+    /**
+     * A permanent GROUP BY/HAVING added by customizeQueryBuilder() (e.g. grouping by a related
+     * entity and using HAVING to filter groups by an aggregate condition) already collapses the
+     * dataset into one row per qualifying group. Re-selecting COUNT(DISTINCT $alias) on top of
+     * that GROUP BY still returns one count per group, so getSingleScalarResult() throws
+     * NonUniqueResultException once there is more than one group. In that case the number of
+     * groups the query already yields IS the correct total, so the count is the row count of the
+     * query's own result instead of a re-selected aggregate.
+     *
+     * A to-many join (searchable or permanent) would inflate a plain COUNT($alias) by row
+     * multiplication when there's no GROUP BY; COUNT(DISTINCT $alias) counts distinct root
+     * entities instead. This assumes a single-column primary key (Doctrine resolves
+     * COUNT(DISTINCT $alias) to the first identifier column); entities with composite keys would
+     * need a subquery over the identifiers instead.
+     */
+    private function count(QueryBuilder $qb, string $alias): int
+    {
+        $qb = (clone $qb)->resetDQLPart('orderBy');
+
+        if ([] !== $qb->getDQLPart('groupBy')) {
+            return \count($qb->getQuery()->getScalarResult());
+        }
+
+        return (int) $qb
+            ->select("COUNT(DISTINCT $alias)")
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 }
