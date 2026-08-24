@@ -161,9 +161,123 @@ final class DataTableProfilerTest extends TestCase
         $this->assertSame([['column' => 1, 'name' => 'name', 'dir' => 'desc']], $summary['order']);
         $this->assertSame(['status' => 'active'], $summary['filters']);
         $this->assertSame([
-            ['index' => 0, 'data' => '0', 'name' => 'id', 'searchable' => false, 'orderable' => true, 'searchValue' => null],
-            ['index' => 1, 'data' => '1', 'name' => 'name', 'searchable' => true, 'orderable' => true, 'searchValue' => 'bar'],
+            ['index' => 0, 'data' => '0', 'name' => 'id', 'searchable' => false, 'orderable' => true, 'searchValue' => null, 'columnControl' => null],
+            ['index' => 1, 'data' => '1', 'name' => 'name', 'searchable' => true, 'orderable' => true, 'searchValue' => 'bar', 'columnControl' => null],
         ], $summary['columns']);
+    }
+
+    /**
+     * ColumnControl submits its own scalar search (value/logic/type) independently of the
+     * plain column search box above -- summarizeRequestColumns() used to read only
+     * $column->search, silently dropping this even though it drives real query filtering
+     * via ColumnControlSearchFilter.
+     */
+    #[Test]
+    public function it_summarizes_a_column_controls_scalar_search(): void
+    {
+        $request = DataTableRequest::fromRequest(Request::create('/datatables', 'GET', [
+            'draw'    => '1',
+            'columns' => [
+                [
+                    'data'          => '0', 'name' => 'status', 'searchable' => 'true', 'orderable' => 'true',
+                    'columnControl' => ['search' => ['value' => 'active', 'logic' => 'equal', 'type' => 'text']],
+                ],
+            ],
+        ]));
+
+        $profiler = new DataTableProfiler();
+        $profiler->collectAjaxQuery('App\\ProductDataTable', 'token', $request, 10, 10, 1.0);
+
+        $summary = $profiler->getAjaxQueries()[0]['requestSummary'];
+
+        $this->assertSame([
+            'value' => 'active',
+            'logic' => 'equal',
+            'type'  => 'text',
+            'list'  => [],
+        ], $summary['columns'][0]['columnControl']);
+    }
+
+    /**
+     * ColumnControl's searchList (a checkbox list of selected values, e.g. the "Empty"
+     * option matching NULL rows) is a second, independent piece of ColumnControl state --
+     * also dropped before this, alongside the scalar search.
+     */
+    #[Test]
+    public function it_summarizes_a_column_controls_search_list(): void
+    {
+        $request = DataTableRequest::fromRequest(Request::create('/datatables', 'GET', [
+            'draw'    => '1',
+            'columns' => [
+                [
+                    'data'          => '0', 'name' => 'department', 'searchable' => 'true', 'orderable' => 'true',
+                    'columnControl' => ['list' => ['Sales', '']],
+                ],
+            ],
+        ]));
+
+        $profiler = new DataTableProfiler();
+        $profiler->collectAjaxQuery('App\\ProductDataTable', 'token', $request, 10, 10, 1.0);
+
+        $summary = $profiler->getAjaxQueries()[0]['requestSummary'];
+
+        $this->assertSame([
+            'value' => null,
+            'logic' => null,
+            'type'  => null,
+            'list'  => ['Sales', ''],
+        ], $summary['columns'][0]['columnControl']);
+    }
+
+    /**
+     * ColumnControl::$list is unvalidated request input -- ColumnControl::fromArray() reads
+     * $data['list'] ?? [] verbatim, so a client can submit a nested array for one entry. The
+     * panel's join() filter cannot render an array as a string and used to crash the whole
+     * profiler panel; every entry must reduce to a safe scalar before it ever reaches Twig.
+     */
+    #[Test]
+    public function it_normalizes_a_non_scalar_search_list_entry_instead_of_forwarding_it_unchanged(): void
+    {
+        $request = DataTableRequest::fromRequest(Request::create('/datatables', 'GET', [
+            'draw'    => '1',
+            'columns' => [
+                [
+                    'data'          => '0', 'name' => 'department', 'searchable' => 'true', 'orderable' => 'true',
+                    'columnControl' => ['list' => ['Sales', ['nested' => 'value']]],
+                ],
+            ],
+        ]));
+
+        $profiler = new DataTableProfiler();
+        $profiler->collectAjaxQuery('App\\ProductDataTable', 'token', $request, 10, 10, 1.0);
+
+        $summary = $profiler->getAjaxQueries()[0]['requestSummary'];
+
+        $this->assertSame(
+            ['Sales', '(invalid array value)'],
+            $summary['columns'][0]['columnControl']['list'],
+        );
+    }
+
+    #[Test]
+    public function it_omits_column_control_when_the_column_declares_it_without_a_search_or_list(): void
+    {
+        $request = DataTableRequest::fromRequest(Request::create('/datatables', 'GET', [
+            'draw'    => '1',
+            'columns' => [
+                [
+                    'data'          => '0', 'name' => 'status', 'searchable' => 'true', 'orderable' => 'true',
+                    'columnControl' => [],
+                ],
+            ],
+        ]));
+
+        $profiler = new DataTableProfiler();
+        $profiler->collectAjaxQuery('App\\ProductDataTable', 'token', $request, 10, 10, 1.0);
+
+        $summary = $profiler->getAjaxQueries()[0]['requestSummary'];
+
+        $this->assertNull($summary['columns'][0]['columnControl']);
     }
 
     #[Test]
