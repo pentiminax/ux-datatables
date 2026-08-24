@@ -193,7 +193,6 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_data', AjaxDataController::class)
         ->arg(0, service('datatables.ajax.registry'))
-        ->arg(1, service('datatables.profiler'))
         ->tag('controller.service_arguments')
         ->public();
 
@@ -297,6 +296,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(3, service('datatables.query.intent_factory'))
         ->arg(4, service('datatables.query.filter_pipeline'))
         ->arg(5, service('datatables.builder'))
+        ->arg(6, service('datatables.profiler'))
         ->private();
 
     $services->alias(DataTableInfrastructure::class, 'datatables.infrastructure')

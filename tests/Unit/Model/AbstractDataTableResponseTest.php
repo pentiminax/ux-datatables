@@ -11,6 +11,8 @@ use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
+use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -88,6 +90,43 @@ final class AbstractDataTableResponseTest extends TestCase
         $table->getDataTable();
 
         $this->assertSame(2, $table->providerCalls);
+    }
+
+    /**
+     * Regression test: profiler collection used to live only in AjaxDataController, so a
+     * table using a custom ajax() URL -- calling handleRequest()/getResponse() directly, the
+     * documented "Manual Same-Route Handling" pattern, without ever going through that
+     * controller -- never reached the profiler at all. Collection now lives inside
+     * getResponse() itself, so this path is captured the same as the built-in route.
+     */
+    #[Test]
+    public function it_records_the_ajax_query_with_the_profiler_regardless_of_which_controller_calls_it(): void
+    {
+        $profiler = new DataTableProfiler();
+        $table    = new ResponseTestTable(new FixedResultDataProvider());
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(profiler: $profiler));
+
+        $table->handleRequest(new Request(query: ['draw' => 3]));
+        $table->getResponse();
+
+        $queries = $profiler->getAjaxQueries();
+
+        $this->assertCount(1, $queries);
+        $this->assertSame(ResponseTestTable::class, $queries[0]['class']);
+        $this->assertSame(10, $queries[0]['recordsTotal']);
+        $this->assertSame(4, $queries[0]['recordsFiltered']);
+        $this->assertSame(2, $queries[0]['rowCount']);
+    }
+
+    #[Test]
+    public function it_builds_the_response_without_a_profiler_wired(): void
+    {
+        $table = new ResponseTestTable(new FixedResultDataProvider());
+        $table->handleRequest(new Request(query: ['draw' => 3]));
+
+        $response = $table->getResponse();
+
+        $this->assertSame(200, $response->getStatusCode());
     }
 
     #[Test]
