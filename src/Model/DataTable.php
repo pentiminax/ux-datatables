@@ -72,6 +72,7 @@ class DataTable
         $options['columns'] = $this->getColumnDefinitions();
 
         $this->addButtonsToLayout($options);
+        $this->applyPagingFeatureToLayout($options);
 
         if (null !== $this->mercureConfig) {
             $options['mercure'] = $this->mercureConfig->jsonSerialize();
@@ -250,6 +251,15 @@ class DataTable
         return $this;
     }
 
+    /**
+     * Configure DataTables paging feature options (boundaryNumbers, buttons, firstLast, numbers, previousNext).
+     *
+     * Stored internally as the top-level `paging` option. {@see getOptions()} rewrites
+     * unmarked `layout` paging slots to `{ paging: $options }` and sets top-level
+     * `paging` to `true`, which is the path DataTables 2/3 actually reads. An explicit
+     * `{ paging: { ... } }` layout object is left untouched. {@see withoutPaging()}
+     * still disables pagination via `paging: false`.
+     */
     public function paging(
         bool $boundaryNumbers = true,
         int $buttons = 7,
@@ -736,5 +746,58 @@ class DataTable
                 }
             }
         }
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private function applyPagingFeatureToLayout(array &$options): void
+    {
+        $paging = $options['paging'] ?? null;
+
+        if (!\is_array($paging)) {
+            return;
+        }
+
+        $layout = $options['layout'] ?? null;
+
+        if (\is_array($layout)) {
+            foreach ($layout as $position => $value) {
+                $options['layout'][$position] = $this->injectPagingFeature($value, $paging);
+            }
+        }
+
+        $options['paging'] = true;
+    }
+
+    private function injectPagingFeature(mixed $value, array $pagingOptions): mixed
+    {
+        if (Feature::PAGING->value === $value) {
+            return ['paging' => $pagingOptions];
+        }
+
+        if (!\is_array($value)) {
+            return $value;
+        }
+
+        if (array_is_list($value)) {
+            foreach ($value as $index => $item) {
+                $value[$index] = $this->injectPagingFeature($item, $pagingOptions);
+            }
+
+            return $value;
+        }
+
+        if (!\array_key_exists('paging', $value)) {
+            return $value;
+        }
+
+        $pagingSlot = $value['paging'];
+
+        if (true === $pagingSlot || [] === $pagingSlot) {
+            $value['paging'] = $pagingOptions;
+        }
+
+        return $value;
     }
 }
