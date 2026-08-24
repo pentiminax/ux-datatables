@@ -140,7 +140,12 @@ abstract class AbstractDataTable
 
     public function getResponse(): JsonResponse
     {
-        return $this->runtime()->getResponse();
+        $start    = hrtime(true);
+        $response = $this->runtime()->getResponse();
+
+        $this->collectAjaxQueryForProfiler($response, $start);
+
+        return $response;
     }
 
     public function prepareForRendering(): void
@@ -457,6 +462,40 @@ abstract class AbstractDataTable
     private function infrastructure(): DataTableInfrastructure
     {
         return $this->infrastructure ??= DataTableInfrastructure::createDefault();
+    }
+
+    /**
+     * Records this Ajax response with the Web Profiler, regardless of which route or
+     * controller called getResponse() -- the bundle's own AjaxDataController, or a custom
+     * ajax() endpoint that calls handleRequest()/getResponse() directly. A no-op when no
+     * profiler is wired (e.g. a table built outside the bundle's DI container).
+     */
+    private function collectAjaxQueryForProfiler(JsonResponse $response, float $start): void
+    {
+        $profiler = $this->infrastructure()->profiler();
+
+        if (null === $profiler) {
+            return;
+        }
+
+        $payload = json_decode((string) $response->getContent(), true);
+        $payload = \is_array($payload) ? $payload : [];
+
+        $provider = $this->getDataProvider();
+
+        $profiler->collectAjaxQuery(
+            class: static::class,
+            token: $this->getHttpRequest()?->query->getString('table') ?: null,
+            request: $this->getRequest(),
+            recordsTotal: (int) ($payload['recordsTotal'] ?? 0),
+            recordsFiltered: (int) ($payload['recordsFiltered'] ?? 0),
+            durationMs: (hrtime(true) - $start) / 1_000_000,
+            providerClass: null !== $provider ? $provider::class : null,
+            entityClass: $this->getEntityClass(),
+            rowCount: \is_array($payload['data'] ?? null) ? \count($payload['data']) : 0,
+            payloadBytes: \strlen((string) $response->getContent()),
+            httpStatus: $response->getStatusCode(),
+        );
     }
 
     private function configureActionColumn(Actions $actions): void

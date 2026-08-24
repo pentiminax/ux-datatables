@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Controller;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
-use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -16,10 +14,15 @@ final class AjaxDataController
 {
     public function __construct(
         private readonly AjaxDataTableRegistry $registry,
-        private readonly DataTableProfiler $profiler,
     ) {
     }
 
+    /**
+     * Profiler collection happens inside {@see AbstractDataTable::getResponse()} itself, not
+     * here -- that way a custom ajax() endpoint calling handleRequest()/getResponse() directly
+     * (bypassing this controller entirely) still gets profiled, which this controller alone
+     * could never guarantee.
+     */
     public function __invoke(Request $request): JsonResponse
     {
         $token = $request->query->getString('table');
@@ -34,42 +37,12 @@ final class AjaxDataController
             throw new NotFoundHttpException('DataTable not found.');
         }
 
-        $start = hrtime(true);
-
         $table->handleRequest($request);
 
         if (!$table->isRequestHandled()) {
             throw new BadRequestHttpException('Invalid DataTables request.');
         }
 
-        $response = $table->getResponse();
-
-        $this->collect($table, $token, $response, $start);
-
-        return $response;
-    }
-
-    private function collect(AbstractDataTable $table, string $token, JsonResponse $response, float $start): void
-    {
-        $durationMs = (hrtime(true) - $start) / 1_000_000;
-
-        $payload = json_decode((string) $response->getContent(), true);
-        $payload = \is_array($payload) ? $payload : [];
-
-        $provider = $table->getDataProvider();
-
-        $this->profiler->collectAjaxQuery(
-            class: $table::class,
-            token: $token,
-            request: $table->getRequest(),
-            recordsTotal: (int) ($payload['recordsTotal'] ?? 0),
-            recordsFiltered: (int) ($payload['recordsFiltered'] ?? 0),
-            durationMs: $durationMs,
-            providerClass: null !== $provider ? $provider::class : null,
-            entityClass: $table->getEntityClass(),
-            rowCount: \is_array($payload['data'] ?? null) ? \count($payload['data']) : 0,
-            payloadBytes: \strlen((string) $response->getContent()),
-            httpStatus: $response->getStatusCode(),
-        );
+        return $table->getResponse();
     }
 }
