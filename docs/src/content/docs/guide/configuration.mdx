@@ -135,8 +135,12 @@ data_tables:
 
 ### paging
 
-Sets the default pagination control layout for every table. Only the keys you declare need to be
-listed; the others keep their defaults.
+Sets the default **paging layout feature** for every table (button count, first/last, …), not the
+top-level DataTables boolean. At render time the bundle injects these keys into unmarked `layout`
+paging slots (`bottomEnd: paging` by default). An explicit `{ paging: { … } }` object in `layout`
+wins and is not overwritten.
+
+Only the keys you declare need to be listed; the others keep their defaults.
 
 ```yaml
 data_tables:
