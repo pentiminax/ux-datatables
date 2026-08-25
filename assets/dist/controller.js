@@ -26,6 +26,7 @@ import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js';
 import { runAjaxAction } from './functions/runAjaxAction.js';
 import { submitEditForm } from './functions/submitEditForm.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
+import { unwrapStaleDataTableMarkup } from './functions/unwrapStaleDataTableMarkup.js';
 import { applyUrlStateToPayload, isUrlStateEnabled, readUrlState, writeUrlState, } from './functions/urlState.js';
 import { resolveModalAdapter } from './modal/resolveModalAdapter.js';
 import { isStyleFramework } from './types/styleFramework.js';
@@ -48,6 +49,7 @@ class default_1 extends Controller {
         this.eventSource = null;
         this.framework = 'dt';
         this.popstateHandler = null;
+        this.beforeCacheHandler = null;
     }
     async connect() {
         if (this.isDataTableInitialized) {
@@ -59,6 +61,7 @@ class default_1 extends Controller {
         if (isFixedHeaderClone(this.element)) {
             return;
         }
+        unwrapStaleDataTableMarkup(this.element);
         const payload = this.viewValue;
         this.dispatchEvent('pre-connect', {
             config: payload,
@@ -104,6 +107,8 @@ class default_1 extends Controller {
         await this.initMercure(payload);
         this.bindActionHandler(payload);
         this.bindBooleanToggleHandler(payload);
+        this.beforeCacheHandler = () => this.destroyDataTable();
+        document.addEventListener('turbo:before-cache', this.beforeCacheHandler);
         this.isDataTableInitialized = true;
     }
     disconnect() {
@@ -113,6 +118,16 @@ class default_1 extends Controller {
             window.removeEventListener('popstate', this.popstateHandler);
             this.popstateHandler = null;
         }
+        this.destroyDataTable();
+    }
+    destroyDataTable() {
+        if (this.beforeCacheHandler) {
+            document.removeEventListener('turbo:before-cache', this.beforeCacheHandler);
+            this.beforeCacheHandler = null;
+        }
+        this.table?.destroy();
+        this.table = null;
+        this.isDataTableInitialized = false;
     }
     applyUrlStateToTable(cfg) {
         if (!this.table)
