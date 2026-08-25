@@ -31,6 +31,7 @@ import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
 import { submitEditForm } from './functions/submitEditForm.js'
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js'
+import { unwrapStaleDataTableMarkup } from './functions/unwrapStaleDataTableMarkup.js'
 import {
     applyUrlStateToPayload,
     isUrlStateEnabled,
@@ -73,6 +74,7 @@ export default class extends Controller {
     private eventSource: EventSource | null = null
     private framework: StyleFramework = 'dt'
     private popstateHandler: (() => void) | null = null
+    private beforeCacheHandler: (() => void) | null = null
 
     async connect() {
         if (this.isDataTableInitialized) {
@@ -86,6 +88,8 @@ export default class extends Controller {
         if (isFixedHeaderClone(this.element)) {
             return
         }
+
+        unwrapStaleDataTableMarkup(this.element)
 
         const payload = this.viewValue
 
@@ -150,6 +154,9 @@ export default class extends Controller {
         this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
 
+        this.beforeCacheHandler = () => this.destroyDataTable()
+        document.addEventListener('turbo:before-cache', this.beforeCacheHandler)
+
         this.isDataTableInitialized = true
     }
 
@@ -161,6 +168,28 @@ export default class extends Controller {
             window.removeEventListener('popstate', this.popstateHandler)
             this.popstateHandler = null
         }
+
+        this.destroyDataTable()
+    }
+
+    /**
+     * Turbo Drive caches a snapshot of the page's DOM before navigating away. If a DataTable
+     * is still mounted (wrapper, controls, and markup DataTables generated on init) at that
+     * moment, the cached snapshot is "dirty". Restoring it on Back/Forward reconnects a fresh
+     * Stimulus controller onto an already-wrapped table, and `DataTable.isDataTable()` returns
+     * false for it because DataTables' internal registry still tracks the original detached
+     * node — so the table gets initialized a second time, duplicating the wrapper and controls.
+     * Destroying the instance here restores the plain `<table>` before the snapshot is taken.
+     */
+    private destroyDataTable(): void {
+        if (this.beforeCacheHandler) {
+            document.removeEventListener('turbo:before-cache', this.beforeCacheHandler)
+            this.beforeCacheHandler = null
+        }
+
+        this.table?.destroy()
+        this.table = null
+        this.isDataTableInitialized = false
     }
 
     private applyUrlStateToTable(cfg: UrlStateConfig): void {
@@ -524,6 +553,7 @@ type DataTableWithAjax = {
     order: (order: any) => DataTableWithAjax
     page: ((page?: number) => DataTableWithAjax) & { len: (len?: number) => number }
     draw: (resetPaging?: boolean | string) => DataTableWithAjax
+    destroy: (remove?: boolean) => void
     row: (selector: any) => {
         data: () => Record<string, any>
         child: ((content?: any) => { show: () => void; hide: () => void }) & {
