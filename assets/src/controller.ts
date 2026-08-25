@@ -31,7 +31,6 @@ import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
 import { submitEditForm } from './functions/submitEditForm.js'
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js'
-import { unwrapStaleDataTableMarkup } from './functions/unwrapStaleDataTableMarkup.js'
 import {
     applyUrlStateToPayload,
     isUrlStateEnabled,
@@ -71,19 +70,28 @@ export default class extends Controller {
 
     private table: DataTableWithAjax | null = null
     private isDataTableInitialized = false
-    private isConnected = false
     private eventSource: EventSource | null = null
     private framework: StyleFramework = 'dt'
     private popstateHandler: (() => void) | null = null
-    private beforeCacheHandler: (() => void) | null = null
-    private actionClickHandler: ((e: MouseEvent) => void) | null = null
-    private booleanChangeHandler: ((e: Event) => void) | null = null
+
+    /**
+     * Turbo Drive caches a DOM snapshot before rendering the next page. A mounted DataTable makes
+     * that snapshot dirty: it holds the generated wrapper and controls, and on Back/Forward a fresh
+     * controller initializes on the restored clone because `DataTable.isDataTable()` reports false
+     * for it — DataTables still tracks the original, now-detached node. Restoring the plain
+     * `<table>` here keeps the snapshot clean. Never fires when Turbo is absent.
+     *
+     * `isDataTableInitialized` deliberately stays true. Turbo clones the DOM one event-loop tick
+     * after dispatching this event, so the reparenting `destroy()` performs makes Stimulus
+     * reconnect first, and re-initializing would put the wrapper straight back into the snapshot.
+     * Turbo replaces the whole body a tick later, so the bare table is never rendered.
+     */
+    private readonly onTurboBeforeCache = (): void => {
+        this.table?.destroy()
+        this.table = null
+    }
 
     async connect() {
-        if (this.isDataTableInitialized) {
-            return
-        }
-
         if (!(this.element instanceof HTMLTableElement)) {
             throw new Error('Invalid element')
         }
@@ -92,9 +100,16 @@ export default class extends Controller {
             return
         }
 
-        unwrapStaleDataTableMarkup(this.element)
+        // Registered before the initialized guard on purpose. DataTables' own DOM work reparents
+        // the table, which Stimulus reports as disconnect + reconnect on a live table; the
+        // reconnect early-returns below, so registering after the guard would drop this listener
+        // for good on the first such cycle. A stable arrow property lets the DOM deduplicate
+        // repeat registrations of the identical listener.
+        document.addEventListener('turbo:before-cache', this.onTurboBeforeCache)
 
-        this.isConnected = true
+        if (this.isDataTableInitialized) {
+            return
+        }
 
         const payload = this.viewValue
 
@@ -108,7 +123,6 @@ export default class extends Controller {
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)
-        if (!this.isConnected) return
         registerFilterFeature(DataTable)
 
         if (DataTable.isDataTable(this.element)) {
@@ -117,7 +131,6 @@ export default class extends Controller {
         }
 
         await this.loadExtensions(payload, framework, DataTable)
-        if (!this.isConnected) return
 
         this.dispatchEvent('pre-init', { config: payload, DataTable })
 
@@ -132,7 +145,6 @@ export default class extends Controller {
 
         if (hasLucideIcons(payload.columns)) {
             await loadLucideIcons()
-            if (!this.isConnected) return
         }
 
         const urlStateCfg = isUrlStateEnabled(payload)
@@ -147,7 +159,6 @@ export default class extends Controller {
         }
 
         await applyLocalLanguage(payload)
-        if (!this.isConnected) return
 
         applyCustomButtonActions(payload)
 
@@ -162,19 +173,14 @@ export default class extends Controller {
         }
 
         await this.initMercure(payload)
-        if (!this.isConnected) return
-
         this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
-
-        this.beforeCacheHandler = () => this.destroyDataTable()
-        document.addEventListener('turbo:before-cache', this.beforeCacheHandler)
 
         this.isDataTableInitialized = true
     }
 
     disconnect() {
-        this.isConnected = false
+        document.removeEventListener('turbo:before-cache', this.onTurboBeforeCache)
 
         this.eventSource?.close()
         this.eventSource = null
@@ -183,38 +189,6 @@ export default class extends Controller {
             window.removeEventListener('popstate', this.popstateHandler)
             this.popstateHandler = null
         }
-
-        if (this.actionClickHandler) {
-            this.element.removeEventListener('click', this.actionClickHandler as EventListener)
-            this.actionClickHandler = null
-        }
-
-        if (this.booleanChangeHandler) {
-            this.element.removeEventListener('change', this.booleanChangeHandler)
-            this.booleanChangeHandler = null
-        }
-
-        this.destroyDataTable()
-    }
-
-    /**
-     * Turbo Drive caches a snapshot of the page's DOM before navigating away. If a DataTable
-     * is still mounted (wrapper, controls, and markup DataTables generated on init) at that
-     * moment, the cached snapshot is "dirty". Restoring it on Back/Forward reconnects a fresh
-     * Stimulus controller onto an already-wrapped table, and `DataTable.isDataTable()` returns
-     * false for it because DataTables' internal registry still tracks the original detached
-     * node — so the table gets initialized a second time, duplicating the wrapper and controls.
-     * Destroying the instance here restores the plain `<table>` before the snapshot is taken.
-     */
-    private destroyDataTable(): void {
-        if (this.beforeCacheHandler) {
-            document.removeEventListener('turbo:before-cache', this.beforeCacheHandler)
-            this.beforeCacheHandler = null
-        }
-
-        this.table?.destroy()
-        this.table = null
-        this.isDataTableInitialized = false
     }
 
     private applyUrlStateToTable(cfg: UrlStateConfig): void {
@@ -318,101 +292,105 @@ export default class extends Controller {
     }
 
     private bindActionHandler(payload: Record<string, any>): void {
-        this.actionClickHandler = async (e: MouseEvent): Promise<void> => {
-            const target = e.target as HTMLElement
-            const actionButton = target.closest('[data-action-type]') as HTMLElement | null
+        ;(this.element as HTMLElement).addEventListener(
+            'click',
+            async (e: MouseEvent): Promise<void> => {
+                const target = e.target as HTMLElement
+                const actionButton = target.closest('[data-action-type]') as HTMLElement | null
 
-            if (!actionButton) {
-                return
-            }
-
-            const actionType = actionButton.getAttribute('data-action-type')
-            const id = actionButton.getAttribute('data-id')
-            const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : ''
-            const confirmMessage = actionButton.getAttribute('data-confirm')
-
-            if (confirmMessage && !confirm(confirmMessage)) {
-                e.preventDefault()
-                return
-            }
-
-            const ajaxMethod = actionButton.getAttribute('data-ajax-method')
-
-            if (ajaxMethod) {
-                e.preventDefault()
-                await this.executeAjaxAction(actionButton, ajaxMethod, payload)
-
-                return
-            }
-
-            if (actionType === 'DETAIL' && dataTable && id) {
-                e.preventDefault()
-
-                const rowElement = actionButton.closest('tr')
-                const row = rowElement ? this.table?.row(rowElement) : null
-
-                if (!row) {
+                if (!actionButton) {
                     return
                 }
 
-                if (row.child.isShown()) {
-                    row.child.hide()
-                    actionButton.classList.remove('expanded')
+                const actionType = actionButton.getAttribute('data-action-type')
+                const id = actionButton.getAttribute('data-id')
+                const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : ''
+                const confirmMessage = actionButton.getAttribute('data-confirm')
+
+                if (confirmMessage && !confirm(confirmMessage)) {
+                    e.preventDefault()
                     return
                 }
 
-                const result = await fetchDetailRow({ dataTable, id })
+                const ajaxMethod = actionButton.getAttribute('data-ajax-method')
 
-                if (result.success) {
-                    row.child(result.html).show()
-                    actionButton.classList.add('expanded')
+                if (ajaxMethod) {
+                    e.preventDefault()
+                    await this.executeAjaxAction(actionButton, ajaxMethod, payload)
+
+                    return
                 }
-            }
 
-            if (actionType === 'DELETE' && dataTable && id) {
-                e.preventDefault()
-                const response = await deleteEntity({
-                    dataTable,
-                    id,
-                    csrfToken: this.getCsrfToken(payload),
-                })
+                if (actionType === 'DETAIL' && dataTable && id) {
+                    e.preventDefault()
 
-                if (response.ok) {
-                    this.table?.ajax?.reload(null, false)
+                    const rowElement = actionButton.closest('tr')
+                    const row = rowElement ? this.table?.row(rowElement) : null
+
+                    if (!row) {
+                        return
+                    }
+
+                    if (row.child.isShown()) {
+                        row.child.hide()
+                        actionButton.classList.remove('expanded')
+                        return
+                    }
+
+                    const result = await fetchDetailRow({ dataTable, id })
+
+                    if (result.success) {
+                        row.child(result.html).show()
+                        actionButton.classList.add('expanded')
+                    }
                 }
-            }
 
-            if (actionType === 'EDIT' && dataTable && id) {
-                e.preventDefault()
-                const modalConfig = payload.editModal ?? {}
-                const modal = await resolveModalAdapter(modalConfig.adapter ?? null, this.framework)
-                if (!modal) return
-
-                const result = await fetchEditForm({ dataTable, id })
-
-                if (result.success) {
-                    await modal.show(result.html, {
-                        onSubmit: async (formData) => {
-                            const submitResult = await submitEditForm({
-                                dataTable,
-                                id,
-                                formData,
-                                csrfToken: this.getCsrfToken(payload),
-                            })
-
-                            if (submitResult.success) {
-                                await modal.hide()
-                                this.table?.ajax?.reload(null, false)
-                            } else if (submitResult.html) {
-                                modal.replaceBody(submitResult.html)
-                            }
-                        },
+                if (actionType === 'DELETE' && dataTable && id) {
+                    e.preventDefault()
+                    const response = await deleteEntity({
+                        dataTable,
+                        id,
+                        csrfToken: this.getCsrfToken(payload),
                     })
+
+                    if (response.ok) {
+                        this.table?.ajax?.reload(null, false)
+                    }
+                }
+
+                if (actionType === 'EDIT' && dataTable && id) {
+                    e.preventDefault()
+                    const modalConfig = payload.editModal ?? {}
+                    const modal = await resolveModalAdapter(
+                        modalConfig.adapter ?? null,
+                        this.framework
+                    )
+                    if (!modal) return
+
+                    const result = await fetchEditForm({ dataTable, id })
+
+                    if (result.success) {
+                        await modal.show(result.html, {
+                            onSubmit: async (formData) => {
+                                const submitResult = await submitEditForm({
+                                    dataTable,
+                                    id,
+                                    formData,
+                                    csrfToken: this.getCsrfToken(payload),
+                                })
+
+                                if (submitResult.success) {
+                                    await modal.hide()
+                                    this.table?.ajax?.reload(null, false)
+                                } else if (submitResult.html) {
+                                    modal.replaceBody(submitResult.html)
+                                }
+                            },
+                        })
+                    }
                 }
             }
-        }
-
-        this.element.addEventListener('click', this.actionClickHandler as EventListener)
+        )
     }
 
     private async executeAjaxAction(
@@ -447,7 +425,7 @@ export default class extends Controller {
     }
 
     private bindBooleanToggleHandler(payload: Record<string, any>): void {
-        this.booleanChangeHandler = async (e: Event): Promise<void> => {
+        this.element.addEventListener('change', async (e: Event): Promise<void> => {
             const target = e.target as EventTarget | null
             if (
                 !(target instanceof HTMLInputElement) ||
@@ -500,9 +478,7 @@ export default class extends Controller {
             } finally {
                 target.disabled = false
             }
-        }
-
-        this.element.addEventListener('change', this.booleanChangeHandler)
+        })
     }
 
     private hasButtonsInLayout(payload: Record<string, any>): boolean {
