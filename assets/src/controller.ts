@@ -71,10 +71,13 @@ export default class extends Controller {
 
     private table: DataTableWithAjax | null = null
     private isDataTableInitialized = false
+    private isConnected = false
     private eventSource: EventSource | null = null
     private framework: StyleFramework = 'dt'
     private popstateHandler: (() => void) | null = null
     private beforeCacheHandler: (() => void) | null = null
+    private actionClickHandler: ((e: MouseEvent) => void) | null = null
+    private booleanChangeHandler: ((e: Event) => void) | null = null
 
     async connect() {
         if (this.isDataTableInitialized) {
@@ -91,6 +94,8 @@ export default class extends Controller {
 
         unwrapStaleDataTableMarkup(this.element)
 
+        this.isConnected = true
+
         const payload = this.viewValue
 
         this.dispatchEvent('pre-connect', {
@@ -103,6 +108,7 @@ export default class extends Controller {
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)
+        if (!this.isConnected) return
         registerFilterFeature(DataTable)
 
         if (DataTable.isDataTable(this.element)) {
@@ -111,11 +117,14 @@ export default class extends Controller {
         }
 
         await this.loadExtensions(payload, framework, DataTable)
+        if (!this.isConnected) return
 
         this.dispatchEvent('pre-init', { config: payload, DataTable })
 
         if (this.isApiPlatformEnabled(payload)) {
-            const columns = Array.isArray(payload.columns) ? (payload.columns as ColumnConfig[]) : []
+            const columns = Array.isArray(payload.columns)
+                ? (payload.columns as ColumnConfig[])
+                : []
             new ApiPlatformAdapter(columns).configure(payload)
         }
 
@@ -123,6 +132,7 @@ export default class extends Controller {
 
         if (hasLucideIcons(payload.columns)) {
             await loadLucideIcons()
+            if (!this.isConnected) return
         }
 
         const urlStateCfg = isUrlStateEnabled(payload)
@@ -137,6 +147,7 @@ export default class extends Controller {
         }
 
         await applyLocalLanguage(payload)
+        if (!this.isConnected) return
 
         applyCustomButtonActions(payload)
 
@@ -151,6 +162,8 @@ export default class extends Controller {
         }
 
         await this.initMercure(payload)
+        if (!this.isConnected) return
+
         this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
 
@@ -161,12 +174,24 @@ export default class extends Controller {
     }
 
     disconnect() {
+        this.isConnected = false
+
         this.eventSource?.close()
         this.eventSource = null
 
         if (this.popstateHandler) {
             window.removeEventListener('popstate', this.popstateHandler)
             this.popstateHandler = null
+        }
+
+        if (this.actionClickHandler) {
+            this.element.removeEventListener('click', this.actionClickHandler as EventListener)
+            this.actionClickHandler = null
+        }
+
+        if (this.booleanChangeHandler) {
+            this.element.removeEventListener('change', this.booleanChangeHandler)
+            this.booleanChangeHandler = null
         }
 
         this.destroyDataTable()
@@ -253,8 +278,8 @@ export default class extends Controller {
             createBooleanColumnRenderer(
                 this.getBooleanToggleUrl(),
                 this.areMutationsEnabled(payload) &&
-                typeof payload.dataTable === 'string' &&
-                payload.dataTable.length > 0,
+                    typeof payload.dataTable === 'string' &&
+                    payload.dataTable.length > 0,
                 style
             ),
             createChoiceColumnRenderer(style),
@@ -293,105 +318,101 @@ export default class extends Controller {
     }
 
     private bindActionHandler(payload: Record<string, any>): void {
-        ;(this.element as HTMLElement).addEventListener(
-            'click',
-            async (e: MouseEvent): Promise<void> => {
-                const target = e.target as HTMLElement
-                const actionButton = target.closest('[data-action-type]') as HTMLElement | null
+        this.actionClickHandler = async (e: MouseEvent): Promise<void> => {
+            const target = e.target as HTMLElement
+            const actionButton = target.closest('[data-action-type]') as HTMLElement | null
 
-                if (!actionButton) {
+            if (!actionButton) {
+                return
+            }
+
+            const actionType = actionButton.getAttribute('data-action-type')
+            const id = actionButton.getAttribute('data-id')
+            const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : ''
+            const confirmMessage = actionButton.getAttribute('data-confirm')
+
+            if (confirmMessage && !confirm(confirmMessage)) {
+                e.preventDefault()
+                return
+            }
+
+            const ajaxMethod = actionButton.getAttribute('data-ajax-method')
+
+            if (ajaxMethod) {
+                e.preventDefault()
+                await this.executeAjaxAction(actionButton, ajaxMethod, payload)
+
+                return
+            }
+
+            if (actionType === 'DETAIL' && dataTable && id) {
+                e.preventDefault()
+
+                const rowElement = actionButton.closest('tr')
+                const row = rowElement ? this.table?.row(rowElement) : null
+
+                if (!row) {
                     return
                 }
 
-                const actionType = actionButton.getAttribute('data-action-type')
-                const id = actionButton.getAttribute('data-id')
-                const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : ''
-                const confirmMessage = actionButton.getAttribute('data-confirm')
-
-                if (confirmMessage && !confirm(confirmMessage)) {
-                    e.preventDefault()
+                if (row.child.isShown()) {
+                    row.child.hide()
+                    actionButton.classList.remove('expanded')
                     return
                 }
 
-                const ajaxMethod = actionButton.getAttribute('data-ajax-method')
+                const result = await fetchDetailRow({ dataTable, id })
 
-                if (ajaxMethod) {
-                    e.preventDefault()
-                    await this.executeAjaxAction(actionButton, ajaxMethod, payload)
-
-                    return
-                }
-
-                if (actionType === 'DETAIL' && dataTable && id) {
-                    e.preventDefault()
-
-                    const rowElement = actionButton.closest('tr')
-                    const row = rowElement ? this.table?.row(rowElement) : null
-
-                    if (!row) {
-                        return
-                    }
-
-                    if (row.child.isShown()) {
-                        row.child.hide()
-                        actionButton.classList.remove('expanded')
-                        return
-                    }
-
-                    const result = await fetchDetailRow({ dataTable, id })
-
-                    if (result.success) {
-                        row.child(result.html).show()
-                        actionButton.classList.add('expanded')
-                    }
-                }
-
-                if (actionType === 'DELETE' && dataTable && id) {
-                    e.preventDefault()
-                    const response = await deleteEntity({
-                        dataTable,
-                        id,
-                        csrfToken: this.getCsrfToken(payload),
-                    })
-
-                    if (response.ok) {
-                        this.table?.ajax?.reload(null, false)
-                    }
-                }
-
-                if (actionType === 'EDIT' && dataTable && id) {
-                    e.preventDefault()
-                    const modalConfig = payload.editModal ?? {}
-                    const modal = await resolveModalAdapter(
-                        modalConfig.adapter ?? null,
-                        this.framework
-                    )
-                    if (!modal) return
-
-                    const result = await fetchEditForm({ dataTable, id })
-
-                    if (result.success) {
-                        await modal.show(result.html, {
-                            onSubmit: async (formData) => {
-                                const submitResult = await submitEditForm({
-                                    dataTable,
-                                    id,
-                                    formData,
-                                    csrfToken: this.getCsrfToken(payload),
-                                })
-
-                                if (submitResult.success) {
-                                    await modal.hide()
-                                    this.table?.ajax?.reload(null, false)
-                                } else if (submitResult.html) {
-                                    modal.replaceBody(submitResult.html)
-                                }
-                            },
-                        })
-                    }
+                if (result.success) {
+                    row.child(result.html).show()
+                    actionButton.classList.add('expanded')
                 }
             }
-        )
+
+            if (actionType === 'DELETE' && dataTable && id) {
+                e.preventDefault()
+                const response = await deleteEntity({
+                    dataTable,
+                    id,
+                    csrfToken: this.getCsrfToken(payload),
+                })
+
+                if (response.ok) {
+                    this.table?.ajax?.reload(null, false)
+                }
+            }
+
+            if (actionType === 'EDIT' && dataTable && id) {
+                e.preventDefault()
+                const modalConfig = payload.editModal ?? {}
+                const modal = await resolveModalAdapter(modalConfig.adapter ?? null, this.framework)
+                if (!modal) return
+
+                const result = await fetchEditForm({ dataTable, id })
+
+                if (result.success) {
+                    await modal.show(result.html, {
+                        onSubmit: async (formData) => {
+                            const submitResult = await submitEditForm({
+                                dataTable,
+                                id,
+                                formData,
+                                csrfToken: this.getCsrfToken(payload),
+                            })
+
+                            if (submitResult.success) {
+                                await modal.hide()
+                                this.table?.ajax?.reload(null, false)
+                            } else if (submitResult.html) {
+                                modal.replaceBody(submitResult.html)
+                            }
+                        },
+                    })
+                }
+            }
+        }
+
+        this.element.addEventListener('click', this.actionClickHandler as EventListener)
     }
 
     private async executeAjaxAction(
@@ -426,7 +447,7 @@ export default class extends Controller {
     }
 
     private bindBooleanToggleHandler(payload: Record<string, any>): void {
-        this.element.addEventListener('change', async (e: Event): Promise<void> => {
+        this.booleanChangeHandler = async (e: Event): Promise<void> => {
             const target = e.target as EventTarget | null
             if (
                 !(target instanceof HTMLInputElement) ||
@@ -479,7 +500,9 @@ export default class extends Controller {
             } finally {
                 target.disabled = false
             }
-        })
+        }
+
+        this.element.addEventListener('change', this.booleanChangeHandler)
     }
 
     private hasButtonsInLayout(payload: Record<string, any>): boolean {

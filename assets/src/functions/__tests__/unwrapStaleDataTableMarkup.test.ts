@@ -50,4 +50,21 @@ describe('unwrapStaleDataTableMarkup', () => {
         expect(() => unwrapStaleDataTableMarkup(table)).not.toThrow()
         expect(table.parentNode).toBe(container)
     })
+
+    it('does not unwrap a distant ancestor sharing the wrapper class name', () => {
+        const appContainer = document.createElement('div')
+        appContainer.className = 'dt-container'
+        const sibling = document.createElement('span')
+        sibling.textContent = 'application content'
+        const wrapper = document.createElement('div')
+        const table = document.createElement('table')
+        wrapper.appendChild(table)
+        appContainer.appendChild(sibling)
+        appContainer.appendChild(wrapper)
+
+        unwrapStaleDataTableMarkup(table)
+
+        expect(appContainer.contains(sibling)).toBe(true)
+        expect(table.parentNode).toBe(wrapper)
+    })
 })

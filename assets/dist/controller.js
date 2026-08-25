@@ -46,10 +46,13 @@ class default_1 extends Controller {
         super(...arguments);
         this.table = null;
         this.isDataTableInitialized = false;
+        this.isConnected = false;
         this.eventSource = null;
         this.framework = 'dt';
         this.popstateHandler = null;
         this.beforeCacheHandler = null;
+        this.actionClickHandler = null;
+        this.booleanChangeHandler = null;
     }
     async connect() {
         if (this.isDataTableInitialized) {
@@ -62,6 +65,7 @@ class default_1 extends Controller {
             return;
         }
         unwrapStaleDataTableMarkup(this.element);
+        this.isConnected = true;
         const payload = this.viewValue;
         this.dispatchEvent('pre-connect', {
             config: payload,
@@ -71,20 +75,28 @@ class default_1 extends Controller {
             : detectStyleFramework();
         this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
+        if (!this.isConnected)
+            return;
         registerFilterFeature(DataTable);
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true;
             return;
         }
         await this.loadExtensions(payload, framework, DataTable);
+        if (!this.isConnected)
+            return;
         this.dispatchEvent('pre-init', { config: payload, DataTable });
         if (this.isApiPlatformEnabled(payload)) {
-            const columns = Array.isArray(payload.columns) ? payload.columns : [];
+            const columns = Array.isArray(payload.columns)
+                ? payload.columns
+                : [];
             new ApiPlatformAdapter(columns).configure(payload);
         }
         this.configureColumns(payload);
         if (hasLucideIcons(payload.columns)) {
             await loadLucideIcons();
+            if (!this.isConnected)
+                return;
         }
         const urlStateCfg = isUrlStateEnabled(payload);
         if (urlStateCfg) {
@@ -96,6 +108,8 @@ class default_1 extends Controller {
             applyFilterLayout(payload, filterBar);
         }
         await applyLocalLanguage(payload);
+        if (!this.isConnected)
+            return;
         applyCustomButtonActions(payload);
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
@@ -105,6 +119,8 @@ class default_1 extends Controller {
             window.addEventListener('popstate', this.popstateHandler);
         }
         await this.initMercure(payload);
+        if (!this.isConnected)
+            return;
         this.bindActionHandler(payload);
         this.bindBooleanToggleHandler(payload);
         this.beforeCacheHandler = () => this.destroyDataTable();
@@ -112,11 +128,20 @@ class default_1 extends Controller {
         this.isDataTableInitialized = true;
     }
     disconnect() {
+        this.isConnected = false;
         this.eventSource?.close();
         this.eventSource = null;
         if (this.popstateHandler) {
             window.removeEventListener('popstate', this.popstateHandler);
             this.popstateHandler = null;
+        }
+        if (this.actionClickHandler) {
+            this.element.removeEventListener('click', this.actionClickHandler);
+            this.actionClickHandler = null;
+        }
+        if (this.booleanChangeHandler) {
+            this.element.removeEventListener('change', this.booleanChangeHandler);
+            this.booleanChangeHandler = null;
         }
         this.destroyDataTable();
     }
@@ -213,8 +238,7 @@ class default_1 extends Controller {
         }
     }
     bindActionHandler(payload) {
-        ;
-        this.element.addEventListener('click', async (e) => {
+        this.actionClickHandler = async (e) => {
             const target = e.target;
             const actionButton = target.closest('[data-action-type]');
             if (!actionButton) {
@@ -290,7 +314,8 @@ class default_1 extends Controller {
                     });
                 }
             }
-        });
+        };
+        this.element.addEventListener('click', this.actionClickHandler);
     }
     async executeAjaxAction(button, method, payload) {
         const url = button.getAttribute('data-ajax-url');
@@ -315,7 +340,7 @@ class default_1 extends Controller {
         });
     }
     bindBooleanToggleHandler(payload) {
-        this.element.addEventListener('change', async (e) => {
+        this.booleanChangeHandler = async (e) => {
             const target = e.target;
             if (!(target instanceof HTMLInputElement) ||
                 !target.matches('.boolean-switch-action')) {
@@ -360,7 +385,8 @@ class default_1 extends Controller {
             finally {
                 target.disabled = false;
             }
-        });
+        };
+        this.element.addEventListener('change', this.booleanChangeHandler);
     }
     hasButtonsInLayout(payload) {
         const layout = payload?.layout;
