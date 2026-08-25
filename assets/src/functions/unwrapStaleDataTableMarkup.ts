@@ -6,10 +6,15 @@
 // so the table gets initialized a second time, duplicating the wrapper and controls. This
 // unwraps any such leftover markup before init, as a safety net for snapshots already cached
 // before the fix that destroys the DataTable instance on `turbo:before-cache`.
+//
+// Only the table's immediate parent is checked (not `closest()`) because DataTables always
+// wraps the table directly — the table is the wrapper's own child. Walking further up the
+// tree risks matching an unrelated ancestor that an application happens to name `dt-container`
+// or `dataTables_wrapper`, and replacing that ancestor would discard its other children.
 export function unwrapStaleDataTableMarkup(table: HTMLTableElement): void {
-    const container = table.closest('.dt-container, .dataTables_wrapper')
+    const container = table.parentElement
 
-    if (!container?.parentNode) {
+    if (!container?.matches('.dt-container, .dataTables_wrapper') || !container.parentNode) {
         return
     }
 
