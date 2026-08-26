@@ -48,15 +48,20 @@ class default_1 extends Controller {
         this.eventSource = null;
         this.framework = 'dt';
         this.popstateHandler = null;
+        this.onTurboBeforeCache = () => {
+            this.table?.destroy();
+            this.table = null;
+        };
     }
     async connect() {
-        if (this.isDataTableInitialized) {
-            return;
-        }
         if (!(this.element instanceof HTMLTableElement)) {
             throw new Error('Invalid element');
         }
         if (isFixedHeaderClone(this.element)) {
+            return;
+        }
+        document.addEventListener('turbo:before-cache', this.onTurboBeforeCache);
+        if (this.isDataTableInitialized) {
             return;
         }
         const payload = this.viewValue;
@@ -76,7 +81,9 @@ class default_1 extends Controller {
         await this.loadExtensions(payload, framework, DataTable);
         this.dispatchEvent('pre-init', { config: payload, DataTable });
         if (this.isApiPlatformEnabled(payload)) {
-            const columns = Array.isArray(payload.columns) ? payload.columns : [];
+            const columns = Array.isArray(payload.columns)
+                ? payload.columns
+                : [];
             new ApiPlatformAdapter(columns).configure(payload);
         }
         this.configureColumns(payload);
@@ -107,6 +114,7 @@ class default_1 extends Controller {
         this.isDataTableInitialized = true;
     }
     disconnect() {
+        document.removeEventListener('turbo:before-cache', this.onTurboBeforeCache);
         this.eventSource?.close();
         this.eventSource = null;
         if (this.popstateHandler) {
