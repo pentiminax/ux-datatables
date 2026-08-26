@@ -10,7 +10,12 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 /**
  * Builds a DQL search condition for a column based on its type.
  *
- * For numeric columns: exact match when the value is numeric, null otherwise.
+ * For numeric columns: exact match when the value can be bound to the field's Doctrine
+ * type, null otherwise. {@see is_numeric()} is not enough on its own: "1.5" and "1e2"
+ * are numeric, but PostgreSQL rejects them on integer columns (`invalid input syntax
+ * for type integer`) and MySQL coerces the decimal to an integer, matching the wrong
+ * rows. When the mapped type is known, {@see NumericSearchTerm} applies the same
+ * skip/normalize contract as {@see ComparisonSearchStrategy}.
  * For native UUID/ULID columns: exact match when the value is a well-formed identifier of
  * that field's type, null otherwise.
  * For other columns: LIKE %value% when the field supports search filtering, null otherwise.
@@ -30,11 +35,7 @@ final class SearchPredicateFactory
         bool $forceNumeric = false,
     ): ?string {
         if ($column->isNumber() || $forceNumeric) {
-            if (!is_numeric($value)) {
-                return null;
-            }
-
-            return SearchConditionBuilder::numeric($qb, $alias, $field, $value, $paramName);
+            return self::buildNumeric($qb, $alias, $field, $value, $paramName);
         }
 
         if ($column->isDate()) {
@@ -58,5 +59,48 @@ final class SearchPredicateFactory
         }
 
         return SearchConditionBuilder::text($qb, $alias, $field, $value, $paramName);
+    }
+
+    /**
+     * Exact-match a numeric search term, or return null when it cannot be bound to the
+     * field's mapped type. The unknown-type fallback keeps the historical is_numeric()
+     * gate used when the query builder has no root-entity metadata (unit tests, non-Doctrine
+     * builders): without a type we cannot tell integer from float, so a decimal term is
+     * still bound rather than skipped.
+     */
+    private static function buildNumeric(
+        QueryBuilder $qb,
+        string $alias,
+        string $field,
+        string $value,
+        string $paramName,
+    ): ?string {
+        $integerType = RelationFieldResolver::resolveIntegerFieldType($qb, $field);
+        if (null !== $integerType) {
+            $normalized = NumericSearchTerm::normalize($value, $integerType);
+
+            if (null === $normalized) {
+                return null;
+            }
+
+            return SearchConditionBuilder::equality($qb, $alias, $field, $normalized, $paramName, $integerType);
+        }
+
+        $floatType = RelationFieldResolver::resolveFloatFieldType($qb, $field);
+        if (null !== $floatType) {
+            $normalized = NumericSearchTerm::normalize($value, $floatType);
+
+            if (null === $normalized) {
+                return null;
+            }
+
+            return SearchConditionBuilder::equality($qb, $alias, $field, $normalized, $paramName, $floatType);
+        }
+
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        return SearchConditionBuilder::numeric($qb, $alias, $field, $value, $paramName);
     }
 }
