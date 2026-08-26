@@ -169,6 +169,78 @@ final class SearchPredicateFactoryTest extends TestCase
             null,
             null,
         ];
+
+        yield 'integer field with integer value' => [
+            NumberColumn::new('age', 'Age')->setField('age'),
+            'integer',
+            '42',
+            false,
+            'e.age = :p_0',
+            ['p_0', '42', 'integer'],
+        ];
+
+        yield 'integer field with padded integer value' => [
+            NumberColumn::new('age', 'Age')->setField('age'),
+            'integer',
+            '  42  ',
+            false,
+            'e.age = :p_0',
+            ['p_0', '42', 'integer'],
+        ];
+
+        yield 'integer field with decimal value' => [
+            NumberColumn::new('age', 'Age')->setField('age'),
+            'integer',
+            '1.5',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'integer field with scientific notation' => [
+            NumberColumn::new('age', 'Age')->setField('age'),
+            'integer',
+            '1e2',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'integer field with non-numeric value' => [
+            NumberColumn::new('age', 'Age')->setField('age'),
+            'integer',
+            'abc',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'forced numeric on integer field with decimal value' => [
+            TextColumn::new('age', 'Age')->setField('age'),
+            'integer',
+            '1.5',
+            true,
+            null,
+            null,
+        ];
+
+        yield 'float field with decimal value' => [
+            NumberColumn::new('price', 'Price')->setField('price'),
+            'float',
+            '19.99',
+            false,
+            'e.price = :p_0',
+            ['p_0', '19.99', 'float'],
+        ];
+
+        yield 'float field with non-numeric value' => [
+            NumberColumn::new('price', 'Price')->setField('price'),
+            'float',
+            'abc',
+            false,
+            null,
+            null,
+        ];
     }
 
     /**
