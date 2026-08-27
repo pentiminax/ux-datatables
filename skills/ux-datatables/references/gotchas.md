@@ -42,5 +42,8 @@ The enum case is `COLUMN_VISIBILITY` (serialized value `'colvis'`), not `COL_VIS
 ## `projectPage()` must preserve page size and order
 A page projector that returns a different count (or reordered rows) throws `LogicException`. Map one-to-one. Remember the split: columns and TemplateColumn Twig (`row`) read the projected DTO, but actions/`UrlColumn`/`permission()` still receive the **source** entity — don't move identifiers needed by actions into the DTO only.
 
+## TemplateColumn Twig `row` is the object, not the `mapRow()` array
+`row` is the object passed to `mapRow()`; the array it returned is `payload`. A template reading a mapped key must use `{{ data }}` (this cell) or `{{ payload.someKey }}` (any other key) — `{{ row.someMappedKey }}` renders empty for computed keys with no DB counterpart. `entity` is a deprecated alias of `row` here only; the `entity` of detail rows and edit modals is unrelated. Never authorize on `payload`: on the API Platform render route it is the browser-posted row.
+
 ## Sorting a computed column needs `setOrderExpression()`
 A column with no real entity property (e.g. an `addSelect(... AS HIDDEN <alias>)` subquery) can't sort via the default `<alias>.<field>` — it resolves to a nonexistent `e.<field>` and errors. Either `->setOrderExpression('<alias>')` (and `->setSearchable(false)`), or `->setOrderable(false)->setSearchable(false)`.
