@@ -38,14 +38,14 @@ final class UsersDataTable extends AbstractDataTable
         yield TextColumn::new('email', 'Email');
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
-        /** @var User $item */
+        /** @var User $row */
         return [
-            'id' => $item->getId(),
-            'lastName' => $item->getLastName(),
-            'firstName' => $item->getFirstName(),
-            'email' => $item->getEmail(),
+            'id' => $row->getId(),
+            'lastName' => $row->getLastName(),
+            'firstName' => $row->getFirstName(),
+            'email' => $row->getEmail(),
         ];
     }
 }
@@ -330,7 +330,7 @@ the table declaratively and let the request-scoped boundaries do the rest:
     ['`fetchData(DataTableRequest $request)`', 'Fetch data using the provider'],
     ['`getRequest()`', 'Get the parsed DataTables request'],
     ['`getHttpRequest()`', 'Get the current Symfony HTTP request after `handleRequest()`'],
-    ['`mapRow(mixed $item)`', 'Map a single entity to array'],
+    ['`mapRow(mixed $row)`', 'Map a single row to array'],
     ['`setData(array $data)`', 'Set inline data through the same row-processing pipeline used by providers'],
     ['`createRowMapper()`', 'Protected helper returning the internal row-processing mapper'],
     ['`customizeQueryBuilder(QueryBuilder $qb, ...)`', 'Modify Doctrine query before DataTables filters are applied'],
@@ -372,10 +372,10 @@ final class CustomUsersDataTable extends AbstractDataTable
         return new ArrayDataProvider($rows, $this->createRowMapper());
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
         // For arrays, just return as-is
-        return is_array($item) ? $item : (array) $item;
+        return is_array($row) ? $row : (array) $row;
     }
 }
 ```

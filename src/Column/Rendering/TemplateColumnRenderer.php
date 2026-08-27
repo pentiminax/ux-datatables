@@ -11,7 +11,12 @@ use Twig\Environment;
 
 final class TemplateColumnRenderer
 {
-    public const array RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row', 'source', 'item'];
+    /**
+     * Twig keys reserved by the renderer.
+     *
+     * `entity` is a deprecated alias of `row` and remains reserved until it is removed.
+     */
+    public const array RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row', 'source'];
 
     public function __construct(
         private readonly ?Environment $twig = null,
@@ -24,10 +29,10 @@ final class TemplateColumnRenderer
     public function renderRow(array $row, mixed $mappedRow, iterable $columns): array
     {
         $renderedRow = $row;
-        $contextRow  = $row;
+        $payload     = $row;
 
-        $source = $mappedRow instanceof RowContext ? $mappedRow->source : $mappedRow;
-        $item   = $mappedRow instanceof RowContext ? $mappedRow->item : $mappedRow;
+        $source     = $mappedRow instanceof RowContext ? $mappedRow->source : $mappedRow;
+        $contextRow = $mappedRow instanceof RowContext ? $mappedRow->item : $mappedRow;
 
         foreach ($columns as $column) {
             if (!$column instanceof TemplateAwareColumnInterface) {
@@ -39,15 +44,18 @@ final class TemplateColumnRenderer
                 continue;
             }
 
-            $data = $this->resolveData(mappedRow: $item, row: $contextRow, field: ColumnKeyResolver::readPath($column, $rowKey));
+            $data = $this->resolveData(
+                mappedRow: $contextRow,
+                row: $payload,
+                field: ColumnKeyResolver::readPath($column, $rowKey),
+            );
 
             $context = [
-                'entity' => $item,
-                'data'   => $data,
-                'column' => $column->jsonSerialize(),
                 'row'    => $contextRow,
                 'source' => $source,
-                'item'   => $item,
+                'data'   => $data,
+                'column' => $column->jsonSerialize(),
+                'entity' => $contextRow,
             ];
 
             foreach ($column->getTemplateParameters() as $key => $value) {

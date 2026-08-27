@@ -5,7 +5,7 @@ order: 120
 navTitle: Template
 ---
 
-`TemplateColumn` delegates cell rendering to a Twig template. Use it when you need server-side HTML that depends on entity state, complex conditionals, or components that are impractical to build as a JavaScript `render` callback.
+`TemplateColumn` delegates cell rendering to a Twig template. Use it when you need server-side HTML that depends on row state, complex conditionals, or components that are impractical to build as a JavaScript `render` callback.
 
 ## Basic Usage
 
@@ -17,7 +17,7 @@ TemplateColumn::new('status_display', 'Status')
     ->setTemplate('datatable/columns/user_status.html.twig');
 ```
 
-The column name (`status_display`) is the key used in `mapRow()`. `setField()` tells the row mapper which property to read from the entity.
+The column name (`status_display`) is the key used in `mapRow()`. `setField()` tells the row mapper which property to read from the row object.
 
 ## Template Context
 
@@ -25,10 +25,14 @@ Inside the template, the following variables are available:
 
 | Variable | Value |
 |---|---|
-| `entity` | The source object from `mapRow()` |
-| `data` | The resolved field value |
+| `row` | The object passed to `mapRow()` (the projected DTO when a page projector is active, otherwise the source object) |
+| `source` | The original hydrated object. Same reference as `row` when no projector is active |
+| `data` | The resolved field value for this cell |
 | `column` | Serialized column configuration array |
-| `row` | The full row array |
+
+`entity` is a deprecated alias of `row`. Prefer `row`.
+
+Templates do not receive the array returned by `mapRow()`. Read domain properties from `row` and this cell's value from `data`.
 
 Example template:
 
@@ -50,7 +54,7 @@ TemplateColumn::new('actions', 'Actions')
     ]);
 ```
 
-Parameters are merged into the template context.
+Parameters are merged into the template context. Keys `row`, `source`, `data`, `column`, and `entity` are reserved.
 
 ## API Reference
 
@@ -58,7 +62,7 @@ Parameters are merged into the template context.
   headers={['Method', 'Description']}
   rows={[
     ["`TemplateColumn::new(string $name, string $title = '')`", 'Creates a new TemplateColumn (type: `html`)'],
-    ['`setTemplate(string $template, array $parameters = [])`', 'Set the Twig template path and optional static parameters. Throws on empty path.'],
+    ['`setTemplate(string $template, array $parameters = [])`', 'Set the Twig template path and optional static parameters. Throws on empty path. Reserved context keys cannot be overridden.'],
     ['`getTemplate(): string`', 'Returns the configured template path. Throws if not set.'],
     ['`getTemplateParameters(): array`', 'Returns the static parameters passed to the template'],
   ]}
@@ -85,12 +89,12 @@ final class ProductsDataTable extends AbstractDataTable
             ->setTemplate('datatable/columns/stock_badge.html.twig');
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
         return [
-            'id'         => $item->getId(),
-            'name'       => $item->getName(),
-            'stock_badge' => $item->getStock(),
+            'id'         => $row->getId(),
+            'name'       => $row->getName(),
+            'stock_badge' => $row->getStock(),
         ];
     }
 }
