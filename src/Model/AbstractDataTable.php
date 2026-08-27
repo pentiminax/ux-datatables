@@ -375,8 +375,8 @@ abstract class AbstractDataTable
      *
      * Override to batch-enrich the page (load metrics, project to DTOs) without an N+1.
      * Return null (the default) to disable projection. When projecting, the returned list
-     * must preserve the count and order of $items: columns and Twig then read the projected
-     * item, while actions still receive the source entity.
+     * must preserve the count and order of $items: columns and TemplateColumn Twig (`row`) then
+     * read the projected item, while actions still receive the source entity.
      *
      * @param list<mixed> $items
      *

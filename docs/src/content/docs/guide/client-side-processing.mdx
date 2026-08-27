@@ -124,13 +124,13 @@ final class UsersDataTable extends AbstractDataTable
         yield TextColumn::new('role', 'Role');
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
-        /** @var User $item */
+        /** @var User $row */
         return [
-            'fullName' => $item->getFirstName().' '.$item->getLastName(),
-            'email' => $item->getEmail(),
-            'role' => $item->getRole()->value,
+            'fullName' => $row->getFirstName().' '.$row->getLastName(),
+            'email' => $row->getEmail(),
+            'role' => $row->getRole()->value,
         ];
     }
 

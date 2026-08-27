@@ -47,13 +47,13 @@ final class UsersDataTable extends AbstractDataTable
             );
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
-        /** @var User $item */
+        /** @var User $row */
         return [
-            'id'     => $item->getId(),
-            'email'  => $item->getEmail(),
-            'status' => $item->getStatus(),
+            'id'     => $row->getId(),
+            'email'  => $row->getEmail(),
+            'status' => $row->getStatus(),
         ];
     }
 }

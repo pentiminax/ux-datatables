@@ -98,9 +98,9 @@ Rules and routing:
 
 - Return `null` (the default) to disable projection. The returned list **must preserve the count and order** of `$items` — otherwise a `LogicException` is thrown.
 - When a projector is active, the bundle pairs each source entity with its projected item (`RowContext`, `src/RowMapper/RowContext.php`) and routes them:
-  - **Columns + Twig rendering** read the **projected** item (the DTO).
+  - **Columns + TemplateColumn Twig (`row`)** read the **projected** item (the DTO).
   - **Actions, `UrlColumn`, and `permission()`** receive the **source** entity.
-  - Without a projector, both reference the same value.
+  - Without a projector, both reference the same value. Twig `source` is that original object.
 - A projected/computed column has no DB counterpart: mark it `->setOrderable(false)->setSearchable(false)`, or sort it via `->setOrderExpression(...)` backed by an `addSelect(... AS HIDDEN ...)` — see `references/server-side.md`.
 
 ## Maker

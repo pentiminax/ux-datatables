@@ -35,12 +35,12 @@ final class UsersDataTable extends AbstractDataTable
             ->processing();
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
-        /** @var User $item */
+        /** @var User $row */
         return [
-            'id'    => $item->getId(),
-            'email' => $item->getEmail(),
+            'id'    => $row->getId(),
+            'email' => $row->getEmail(),
         ];
     }
 }

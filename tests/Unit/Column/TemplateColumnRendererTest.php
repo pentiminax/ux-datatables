@@ -128,21 +128,40 @@ final class TemplateColumnRendererTest extends TestCase
             ],
         ];
 
-        yield 'entity, row and column exposed in the twig context' => [
-            ['column.html.twig' => '{{ entity.getStatus() }}-{{ row.id }}-{{ column.name }}'],
+        yield 'row is the mapRow object, not the payload array' => [
+            ['column.html.twig' => '{{ row.getStatus() }}-{{ row.id }}-{{ column.name }}'],
             [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
             ['id' => 42],
             new TemplateEntity(id: 42, status: 'verified'),
             ['id' => 42, 'status_display' => 'verified-42-status_display'],
         ];
 
-        // entity (back-compat) and item both resolve to the projected DTO; source stays the original.
-        yield 'projected item and original source of a row context' => [
-            ['column.html.twig' => '{{ item.getStatus() }}|{{ source.getStatus() }}|{{ entity.getStatus() }}'],
+        yield 'entity remains a deprecated alias of row' => [
+            ['column.html.twig' => '{{ entity.getStatus() }}'],
+            [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
+            ['id' => 42],
+            new TemplateEntity(id: 42, status: 'verified'),
+            ['id' => 42, 'status_display' => 'verified'],
+        ];
+
+        yield 'projected row and original source of a row context' => [
+            ['column.html.twig' => '{{ row.getStatus() }}|{{ source.getStatus() }}|{{ entity.getStatus() }}'],
             [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
             ['id' => 1],
             new RowContext(new TemplateEntity(id: 1, status: 'raw'), new TemplateEntity(id: 1, status: 'projected')),
             ['id' => 1, 'status_display' => 'projected|raw|projected'],
+        ];
+
+        yield 'item is not reserved and can be passed as a template parameter' => [
+            ['column.html.twig' => '{{ item }}: {{ data }}'],
+            [
+                TemplateColumn::new('status_display')
+                    ->setField('status')
+                    ->setTemplate('column.html.twig', ['item' => 'custom']),
+            ],
+            ['status' => 'active'],
+            [],
+            ['status' => 'active', 'status_display' => 'custom: active'],
         ];
     }
 
