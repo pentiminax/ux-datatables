@@ -136,6 +136,33 @@ final class TemplateColumnRendererTest extends TestCase
             ['id' => 42, 'status_display' => 'verified-42-status_display'],
         ];
 
+        yield 'payload exposes the mapRow() array including keys of other columns' => [
+            ['column.html.twig' => '{{ payload.fullName }} ({{ payload.id }}) - {{ data }}'],
+            [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
+            ['id' => 7, 'fullName' => 'Ada Lovelace', 'status' => 'active'],
+            new TemplateEntity(id: 7, status: 'active'),
+            [
+                'id'             => 7,
+                'fullName'       => 'Ada Lovelace',
+                'status'         => 'active',
+                'status_display' => 'Ada Lovelace (7) - active',
+            ],
+        ];
+
+        yield 'payload is not mutated by a template column rendered earlier in the same row' => [
+            [
+                'first.html.twig'  => 'first:{{ data }}',
+                'second.html.twig' => 'second:{{ payload.first_badge }}|{{ data }}',
+            ],
+            [
+                TemplateColumn::new('first_badge')->setTemplate('first.html.twig'),
+                TemplateColumn::new('second_badge')->setTemplate('second.html.twig'),
+            ],
+            ['first_badge' => 'A', 'second_badge' => 'B'],
+            [],
+            ['first_badge' => 'first:A', 'second_badge' => 'second:A|B'],
+        ];
+
         yield 'entity remains a deprecated alias of row' => [
             ['column.html.twig' => '{{ entity.getStatus() }}'],
             [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],

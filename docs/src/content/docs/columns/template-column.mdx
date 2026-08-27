@@ -27,12 +27,24 @@ Inside the template, the following variables are available:
 |---|---|
 | `row` | The object passed to `mapRow()` (the projected DTO when a page projector is active, otherwise the source object) |
 | `source` | The original hydrated object. Same reference as `row` when no projector is active |
+| `payload` | The array returned by `mapRow()`. Use it to read a mapped key other than this cell's |
 | `data` | The resolved field value for this cell |
 | `column` | Serialized column configuration array |
 
-`entity` is a deprecated alias of `row`. Prefer `row`.
+Read domain properties from `row`, this cell's value from `data`, and any other mapped key from `payload`.
 
-Templates do not receive the array returned by `mapRow()`. Read domain properties from `row` and this cell's value from `data`.
+`payload` holds the row as the earlier pipeline stages left it, so cells rendered by other `TemplateColumn`s and the row action metadata are absent from it. A `payload` entry can also be `null` while `data` is set: a `null` mapped value falls back to reading the object, and normalization writes `null` for objects that are not `DateTimeInterface`, `BackedEnum`, or `Stringable`.
+
+`entity` is a deprecated alias of `row` **in `TemplateColumn` templates**. Prefer `row`. Collapsible detail rows and edit modals expose their own unrelated `entity` variable, which is not deprecated.
+
+<Aside type="caution">
+  Never branch on `payload` for authorization or visibility. On the API Platform render route the
+  rows are posted by the browser, so `payload` is client-controlled input — read `row` or `source`
+  instead. On that same route, `row`, `source`, and `entity` fall back to the posted array when the
+  row cannot be rehydrated (no identifier, a composite primary key, or no matching record), so
+  guard method calls on them. For a bare `DataTable` whose `data()` you called by hand there is no
+  `mapRow()` at all: `row`, `source`, and `payload` are the same raw array.
+</Aside>
 
 Example template:
 
@@ -54,7 +66,7 @@ TemplateColumn::new('actions', 'Actions')
     ]);
 ```
 
-Parameters are merged into the template context. Keys `row`, `source`, `data`, `column`, and `entity` are reserved.
+Parameters are merged into the template context. The keys `row`, `source`, `payload`, `data`, `column`, and `entity` are reserved: passing one throws an `InvalidArgumentException`.
 
 ## API Reference
 
@@ -62,7 +74,7 @@ Parameters are merged into the template context. Keys `row`, `source`, `data`, `
   headers={['Method', 'Description']}
   rows={[
     ["`TemplateColumn::new(string $name, string $title = '')`", 'Creates a new TemplateColumn (type: `html`)'],
-    ['`setTemplate(string $template, array $parameters = [])`', 'Set the Twig template path and optional static parameters. Throws on empty path. Reserved context keys cannot be overridden.'],
+    ['`setTemplate(string $template, array $parameters = [])`', 'Set the Twig template path and optional static parameters. Throws on an empty path, and on a parameter using a reserved context key.'],
     ['`getTemplate(): string`', 'Returns the configured template path. Throws if not set.'],
     ['`getTemplateParameters(): array`', 'Returns the static parameters passed to the template'],
   ]}

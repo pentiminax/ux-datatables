@@ -100,7 +100,7 @@ Rules and routing:
 - When a projector is active, the bundle pairs each source entity with its projected item (`RowContext`, `src/RowMapper/RowContext.php`) and routes them:
   - **Columns + TemplateColumn Twig (`row`)** read the **projected** item (the DTO).
   - **Actions, `UrlColumn`, and `permission()`** receive the **source** entity.
-  - Without a projector, both reference the same value. Twig `source` is that original object.
+  - Without a projector, both reference the same value. Twig `source` is that original object, and Twig `payload` is the array `mapRow()` returned.
 - A projected/computed column has no DB counterpart: mark it `->setOrderable(false)->setSearchable(false)`, or sort it via `->setOrderExpression(...)` backed by an `addSelect(... AS HIDDEN ...)` — see `references/server-side.md`.
 
 ## Maker
