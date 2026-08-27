@@ -8,7 +8,7 @@ namespace Pentiminax\UX\DataTables\Contracts;
  * Marker interface for columns whose cell value is rendered by a Twig template.
  *
  * Implementations are picked up by the template renderer to render their cell
- * value at row-mapping time, with the row data and any extra parameters as context.
+ * value at row-mapping time, with the mapRow object, cell value, and extra parameters as context.
  */
 interface TemplateAwareColumnInterface extends ColumnInterface
 {

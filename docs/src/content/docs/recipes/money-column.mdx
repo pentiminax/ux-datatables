@@ -23,11 +23,11 @@ public function configureColumns(): iterable
         ->storedAsCents();
 }
 
-protected function mapRow(mixed $item): array
+protected function mapRow(mixed $row): array
 {
     return [
-        'name'  => $item->getName(),
-        'price' => $item->getPriceInCents(), // e.g. 1999 → €19.99
+        'name'  => $row->getName(),
+        'price' => $row->getPriceInCents(), // e.g. 1999 → €19.99
     ];
 }
 ```
