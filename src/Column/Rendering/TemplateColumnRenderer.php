@@ -14,9 +14,13 @@ final class TemplateColumnRenderer
     /**
      * Twig keys reserved by the renderer.
      *
-     * `entity` is a deprecated alias of `row` and remains reserved until it is removed.
+     * `row` is the object passed to mapRow(), `payload` the array it returned.
+     *
+     * `entity` is a deprecated alias of `row` for TemplateColumn templates only, and remains
+     * reserved until it is removed. Detail rows and the edit modal expose their own `entity`,
+     * which is neither an alias nor deprecated.
      */
-    public const array RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row', 'source'];
+    public const array RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row', 'source', 'payload'];
 
     public function __construct(
         private readonly ?Environment $twig = null,
@@ -51,11 +55,12 @@ final class TemplateColumnRenderer
             );
 
             $context = [
-                'row'    => $contextRow,
-                'source' => $source,
-                'data'   => $data,
-                'column' => $column->jsonSerialize(),
-                'entity' => $contextRow,
+                'row'     => $contextRow,
+                'source'  => $source,
+                'payload' => $payload,
+                'data'    => $data,
+                'column'  => $column->jsonSerialize(),
+                'entity'  => $contextRow,
             ];
 
             foreach ($column->getTemplateParameters() as $key => $value) {
