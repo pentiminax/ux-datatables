@@ -91,13 +91,13 @@ final class ProductsDataTable extends AbstractDataTable
         yield NumberColumn::new('price', 'Price');
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
         return [
-            'id'    => $item->getId(),
-            'name'  => $item->getName(),
-            'stock' => $item->getStock(),
-            'price' => $item->getPrice(),
+            'id'    => $row->getId(),
+            'name'  => $row->getName(),
+            'stock' => $row->getStock(),
+            'price' => $row->getPrice(),
         ];
     }
 }

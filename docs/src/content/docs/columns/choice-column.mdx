@@ -122,12 +122,12 @@ final class OrdersDataTable extends AbstractDataTable
             ]);
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
         return [
-            'id'        => $item->getId(),
-            'reference' => $item->getReference(),
-            'status'    => $item->getStatus()->value,
+            'id'        => $row->getId(),
+            'reference' => $row->getReference(),
+            'status'    => $row->getStatus()->value,
         ];
     }
 }

@@ -70,12 +70,12 @@ final class UsersDataTable extends AbstractDataTable
         yield TextColumn::new('bio', 'Bio')->html()->utf8();
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
         return [
-            'id'   => $item->getId(),
-            'name' => $item->getName(),
-            'bio'  => $item->getBio(),
+            'id'   => $row->getId(),
+            'name' => $row->getName(),
+            'bio'  => $row->getBio(),
         ];
     }
 }

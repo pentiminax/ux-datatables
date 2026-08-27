@@ -122,12 +122,12 @@ final class UsersDataTable extends AbstractDataTable
             ->mask();
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
         return [
-            'id'    => $item->getId(),
-            'name'  => $item->getName(),
-            'email' => $item->getEmail(),
+            'id'    => $row->getId(),
+            'name'  => $row->getName(),
+            'email' => $row->getEmail(),
         ];
     }
 }

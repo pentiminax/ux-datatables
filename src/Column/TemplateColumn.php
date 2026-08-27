@@ -22,6 +22,10 @@ class TemplateColumn extends AbstractColumn implements TemplateAwareColumnInterf
             ->disableGlobalSearch();
     }
 
+    /**
+     * @param array<string, mixed> $parameters Extra Twig variables. Keys `row`, `source`, `data`,
+     *                                         `column`, and the deprecated alias `entity` are reserved.
+     */
     public function setTemplate(string $template, array $parameters = []): static
     {
         $template = trim($template);
