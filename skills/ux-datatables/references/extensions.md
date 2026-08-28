@@ -31,7 +31,7 @@ new ButtonsExtension([
 ]);
 ```
 
-`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`), `COLUMN_CONTROL_SEARCH_CLEAR` (value `'ccSearchClear'`), `COLLECTION` (value `'collection'`), `CUSTOM`. The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton()`, `withExcelButton()`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`, `withCcSearchClearButton()`, `withCollectionButton(array $buttons)`, `withCustomButton(string $action)`.
+`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`), `COLUMN_CONTROL_SEARCH_CLEAR` (value `'ccSearchClear'`), `COLLECTION` (value `'collection'`), `CUSTOM`. The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton(bool $serverSide = false)`, `withExcelButton(bool $serverSide = false)`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`, `withCcSearchClearButton()`, `withCollectionButton(array $buttons)`, `withCustomButton(string $action)`.
 
 Fine-grained config via `Button`:
 ```php
@@ -54,6 +54,24 @@ freely — nested buttons serialize correctly at any depth since `Button` is `Js
 ```php
 Button::collection([Button::csv(), Button::excel(), 'colvis'])->text('Export');
 ```
+
+### Server-side export (CSV & XLSX)
+
+`Button::csv()` / `Button::excel()` are the DataTables client exports (loaded rows only). On a
+`serverSide()` table, pass `serverSide: true` to stream every filtered row from PHP via OpenSpout.
+Columns follow `setExportable()` / `#[Column(exportable: false)]`. Set the download name with
+`filename('users')`; the extension comes from the format.
+
+```php
+Button::csv(serverSide: true)->text('Export CSV')->filename('users');
+Button::excel(serverSide: true)->text('Export XLSX')->filename('users');
+```
+
+Requires `openspout/openspout`. Each server-side button carries an `exportKey` (default: its
+format); two buttons cannot share one, `ButtonsExtension` throws on a duplicate. Values starting
+with `=`, `@`, tab, CR — and `+`/`-` on non-numeric values — are apostrophe-prefixed to defuse
+spreadsheet formula injection. XLSX is not streamed row by row: OpenSpout zips the workbook from a
+temporary folder on close.
 
 ### Custom button with app-defined behavior
 

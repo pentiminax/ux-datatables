@@ -17,11 +17,16 @@ use Pentiminax\UX\DataTables\Controller\AjaxDataController;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
+use Pentiminax\UX\DataTables\Controller\AjaxExportController;
 use Pentiminax\UX\DataTables\Controller\AjaxTemplateRenderController;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\Detail\DetailRowService;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
+use Pentiminax\UX\DataTables\Export\CsvExporter;
+use Pentiminax\UX\DataTables\Export\ExporterRegistry;
+use Pentiminax\UX\DataTables\Export\ExportService;
+use Pentiminax\UX\DataTables\Export\XlsxExporter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
@@ -179,6 +184,32 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_data', AjaxDataController::class)
         ->arg(0, service('datatables.ajax.registry'))
+        ->tag('controller.service_arguments')
+        ->public();
+
+    $services->set('datatables.export.exporter.csv', CsvExporter::class)
+        ->private();
+
+    $services->set('datatables.export.exporter.xlsx', XlsxExporter::class)
+        ->private();
+
+    $services->set('datatables.export.registry', ExporterRegistry::class)
+        ->arg(0, [
+            service('datatables.export.exporter.csv'),
+            service('datatables.export.exporter.xlsx'),
+        ])
+        ->private();
+
+    $services->set('datatables.export.service', ExportService::class)
+        ->arg(0, service('datatables.export.registry'))
+        ->private();
+
+    $services->alias(ExportService::class, 'datatables.export.service')
+        ->private();
+
+    $services->set('datatables.controller.ajax_export', AjaxExportController::class)
+        ->arg(0, service('datatables.ajax.registry'))
+        ->arg(1, service('datatables.export.service'))
         ->tag('controller.service_arguments')
         ->public();
 

@@ -464,6 +464,13 @@ class DataTable
         return $this;
     }
 
+    public function exportUrl(string $url): static
+    {
+        $this->options->set('exportUrl', $url);
+
+        return $this;
+    }
+
     /**
      * Names of current-request query parameters to capture at render time and
      * forward to the AJAX endpoint on every request. Read them server-side in

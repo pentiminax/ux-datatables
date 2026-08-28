@@ -15,6 +15,7 @@ import {
     resolveColumnDataKey,
 } from './functions/apiPlatformAdapter.js'
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js'
+import { applyServerExportUrls } from './functions/serverExport.js'
 import { normalizeDisabledColumnControls } from './functions/columnControl.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
@@ -160,6 +161,7 @@ export default class extends Controller {
 
         await applyLocalLanguage(payload)
 
+        applyServerExportUrls(payload)
         applyCustomButtonActions(payload)
 
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax

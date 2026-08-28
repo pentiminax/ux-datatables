@@ -45,7 +45,7 @@ final readonly class Column
      */
     public function searchValues(): array
     {
-        $value = trim(($this->search?->value ?? ''));
+        $value = trim($this->search?->value ?? '');
         if ('' === $value) {
             return [];
         }

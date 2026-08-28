@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Support;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -34,6 +35,7 @@ final class ConfigurableDataTable extends AbstractDataTable
         private readonly ?\Closure $actions = null,
         private readonly ?\Closure $extensions = null,
         private readonly ?\Closure $configureTable = null,
+        private readonly ?DataProviderInterface $dataProvider = null,
     ) {
         parent::__construct();
     }
@@ -56,5 +58,10 @@ final class ConfigurableDataTable extends AbstractDataTable
     public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
     {
         return null === $this->extensions ? $extensions : ($this->extensions)($extensions);
+    }
+
+    protected function createDataProvider(): ?DataProviderInterface
+    {
+        return $this->dataProvider;
     }
 }

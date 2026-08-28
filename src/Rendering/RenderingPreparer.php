@@ -13,13 +13,15 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class RenderingPreparer
 {
-    public const AJAX_DATA_ROUTE = 'ux_datatables_ajax_data';
+    public const AJAX_DATA_ROUTE   = 'ux_datatables_ajax_data';
+    public const AJAX_EXPORT_ROUTE = 'ux_datatables_ajax_export';
 
     public function __construct(
         private readonly ?ApiResourceCollectionUrlResolverInterface $urlResolver = null,
@@ -43,6 +45,7 @@ final class RenderingPreparer
         $this->configureApiPlatform($table, $asDataTable);
         $this->configureApiPlatformTemplateRendering($table);
         $this->configureAutoAjax($table);
+        $this->configureExportUrl($table);
         $this->configureForwardedQueryParameters($table);
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
@@ -155,6 +158,30 @@ final class RenderingPreparer
             && true !== $table->getOption('apiPlatform')
             && null !== $this->urlGenerator
             && null !== $this->ajaxRegistry;
+    }
+
+    private function configureExportUrl(DataTable $table): void
+    {
+        if (null !== $table->getOption('exportUrl')) {
+            return;
+        }
+
+        $buttons = $table->getExtensionsCollection()->getButtonsExtension();
+        if (!$buttons instanceof ButtonsExtension || !$buttons->hasServerExportButton()) {
+            return;
+        }
+
+        $fqcn = $table->getDataTableClass();
+        if (null === $fqcn || null === $this->urlGenerator || null === $this->ajaxRegistry) {
+            return;
+        }
+
+        $token = $this->ajaxRegistry->getToken($fqcn);
+        if (null === $token) {
+            return;
+        }
+
+        $table->exportUrl($this->urlGenerator->generate(self::AJAX_EXPORT_ROUTE, ['table' => $token]));
     }
 
     private function configureForwardedQueryParameters(DataTable $table): void
