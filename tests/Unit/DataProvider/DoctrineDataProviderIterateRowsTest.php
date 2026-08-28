@@ -113,6 +113,47 @@ final class DoctrineDataProviderIterateRowsTest extends TestCase
         $this->assertSame([1, 1], $chunkSizes);
     }
 
+    /**
+     * The documented contract: a projector deriving each item from itself returns the same rows
+     * whatever the batch size, so an export never depends on exportChunkSize. A projector deriving
+     * values from the batch's composition is out of contract -- see AbstractDataTable::projectPage().
+     */
+    #[Test]
+    public function it_projects_the_same_values_whatever_the_chunk_size(): void
+    {
+        $rowsByChunkSize = [];
+
+        foreach ([1, 2, 250] as $chunkSize) {
+            $provider = new DoctrineDataProvider(
+                em: $this->em,
+                entityClass: CountCustomer::class,
+                rowMapper: new class implements RowMapperInterface {
+                    public function map(mixed $row): array
+                    {
+                        return ['badge' => $row instanceof RowContext ? $row->item->badge : null];
+                    }
+                },
+                pageProjector: static fn (array $items): array => array_map(
+                    static fn (CountCustomer $customer): CustomerListDto => new CustomerListDto(
+                        $customer->id,
+                        $customer->name,
+                        'BADGE:'.$customer->name,
+                    ),
+                    $items,
+                ),
+                exportChunkSize: $chunkSize,
+            );
+
+            $rowsByChunkSize[$chunkSize] = iterator_to_array($provider->iterateRows($this->request()), false);
+        }
+
+        $expected = [['badge' => 'BADGE:Alpha'], ['badge' => 'BADGE:Beta']];
+
+        $this->assertSame($expected, $rowsByChunkSize[1]);
+        $this->assertSame($expected, $rowsByChunkSize[2]);
+        $this->assertSame($expected, $rowsByChunkSize[250]);
+    }
+
     #[Test]
     public function it_releases_exported_entities_without_clearing_the_entity_manager(): void
     {
