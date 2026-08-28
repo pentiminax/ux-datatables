@@ -6,10 +6,11 @@ namespace Pentiminax\UX\DataTables\DataProvider;
 
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 
-final class ArrayDataProvider implements DataProviderInterface
+final class ArrayDataProvider implements DataProviderInterface, StreamingDataProviderInterface
 {
     /**
      * @param iterable<object|array> $items
@@ -53,6 +54,11 @@ final class ArrayDataProvider implements DataProviderInterface
             recordsFiltered: $recordsTotal,
             data: $this->mapRows($this->slice($all, $request)),
         );
+    }
+
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->fetchData($request->withoutPagination())->data;
     }
 
     /**

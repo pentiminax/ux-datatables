@@ -38,10 +38,12 @@
     "symfony/maker-bundle": "^1.66",
     "symfony/mercure-bundle": "^0.5.0",
     "symfony/form": "^7.0 || ^8.0",
-    "symfony/translation": "^7.0 || ^8.0"
+    "symfony/translation": "^7.0 || ^8.0",
+    "openspout/openspout": "^4.0"
   },
   "suggest": {
     "api-platform/core": "To auto-detect columns from API Platform metadata.",
+    "openspout/openspout": "To enable server-side CSV and XLSX export via Button::csv(serverSide: true) and Button::excel(serverSide: true).",
     "symfony/maker-bundle": "To use the make:datatable command.",
     "symfony/form": "To enable inline edit modal with auto-generated forms.",
     "symfony/mercure-bundle": "To enable real-time DataTable updates via Mercure SSE.",
