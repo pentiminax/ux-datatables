@@ -378,6 +378,16 @@ abstract class AbstractDataTable
      * must preserve the count and order of $items: columns and TemplateColumn Twig (`row`) then
      * read the projected item, while actions still receive the source entity.
      *
+     * A server-side export has no page: it streams every filtered row, so the projector is called
+     * once per batch of rows rather than once over the whole result set, and the batch size is not
+     * the DataTables page length. Project each item from itself -- map it, or batch-load data keyed
+     * by it. A projector whose output depends on which other items share the call (a rank, a
+     * running total, a share of the batch's maximum) produces different values in an export than on
+     * a page, and its values already shift with the page length on screen. Buffering every row to
+     * project them together is what streaming exists to avoid; when a larger batch really is
+     * needed, build the provider in {@see self::createDataProvider()} with a bigger
+     * `exportChunkSize`.
+     *
      * @param list<mixed> $items
      *
      * @return list<mixed>|null

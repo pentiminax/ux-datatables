@@ -99,6 +99,11 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
     /**
      * Doctrine's toIterable() cannot hydrate fetch-joined collections, so a query builder that
      * fetch-joins a to-many association is not exportable through this path.
+     *
+     * $pageProjector runs once per $exportChunkSize rows rather than once over the whole result
+     * set: holding every row to project them together would defeat the streaming this method
+     * exists for. See {@see \Pentiminax\UX\DataTables\Model\AbstractDataTable::projectPage()}
+     * for what that means for a projector.
      */
     public function iterateRows(DataTableRequest $request): iterable
     {

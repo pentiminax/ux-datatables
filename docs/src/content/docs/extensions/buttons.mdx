@@ -252,6 +252,16 @@ The export reuses the request's current search, order, and filters, and ignores 
 **Filename** defaults to a slug of the table class (`UserDataTable` → `user-data-table.csv`).
 `filename('users')` becomes `users.csv` or `users.xlsx` depending on the button's format.
 
+### Page Projection
+
+`projectPage()` batch-enriches a page to avoid an N+1. An export has no page — it streams every
+filtered row — so the projector is called once per batch (250 rows by default) rather than once over
+the whole result set. Per-item mapping and batch loading are unaffected. A projector computing
+something relative to the items it received (a rank, a running total, a share of the batch maximum)
+returns different values in an export than on screen; those values already shift with the page
+length on screen. Build the provider yourself in `createDataProvider()` with a larger
+`exportChunkSize` when a bigger batch is genuinely required.
+
 ### Export Keys
 
 Each server-side button is addressed on the export endpoint by an export key, defaulting to its
@@ -310,6 +320,8 @@ action nested this way is registered exactly like a top-level one.
   use `serverSide: true` instead.
 - Declaring two server-side export buttons of the same format without giving one its own
   `exportKey()`.
+- Expecting `projectPage()` to receive the whole export in one call — it is batched; see Page
+  Projection.
 
 ## Cross Links
 
