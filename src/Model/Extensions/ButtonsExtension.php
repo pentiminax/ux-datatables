@@ -23,13 +23,42 @@ final class ButtonsExtension extends AbstractExtension implements LayoutAwareExt
                 $button = ButtonType::from($button);
             }
 
-            $this->buttons[] = $button instanceof Button ? $button : Button::fromType($button);
+            $this->addButton($button instanceof Button ? $button : Button::fromType($button));
         }
     }
 
     public function getKey(): string
     {
         return 'buttons';
+    }
+
+    public function hasServerExportButton(): bool
+    {
+        return null !== $this->findServerExportButton(null);
+    }
+
+    /**
+     * The button a given export key belongs to, or the first server-side export button when the
+     * request carries no key.
+     */
+    public function findServerExportButton(?string $exportKey): ?Button
+    {
+        $matches = iterator_to_array($this->serverExportButtons(), false);
+        if ([] === $matches) {
+            return null;
+        }
+
+        if (null === $exportKey || '' === $exportKey) {
+            return $matches[0];
+        }
+
+        foreach ($matches as $button) {
+            if ($button->getExportKey() === $exportKey) {
+                return $button;
+            }
+        }
+
+        return null;
     }
 
     public function jsonSerialize(): array
@@ -42,9 +71,7 @@ final class ButtonsExtension extends AbstractExtension implements LayoutAwareExt
 
     public function withColVisButton(): self
     {
-        $this->buttons[] = Button::colVis();
-
-        return $this;
+        return $this->addButton(Button::colVis());
     }
 
     /**
@@ -54,9 +81,7 @@ final class ButtonsExtension extends AbstractExtension implements LayoutAwareExt
      */
     public function withCollectionButton(array $buttons): self
     {
-        $this->buttons[] = Button::collection($buttons);
-
-        return $this;
+        return $this->addButton(Button::collection($buttons));
     }
 
     /**
@@ -64,44 +89,32 @@ final class ButtonsExtension extends AbstractExtension implements LayoutAwareExt
      */
     public function withCcSearchClearButton(): self
     {
-        $this->buttons[] = Button::ccSearchClear();
-
-        return $this;
+        return $this->addButton(Button::ccSearchClear());
     }
 
     public function withCopyButton(): self
     {
-        $this->buttons[] = Button::copy();
-
-        return $this;
+        return $this->addButton(Button::copy());
     }
 
-    public function withCsvButton(): self
+    public function withCsvButton(bool $serverSide = false): self
     {
-        $this->buttons[] = Button::csv();
-
-        return $this;
+        return $this->addButton(Button::csv($serverSide));
     }
 
-    public function withExcelButton(): self
+    public function withExcelButton(bool $serverSide = false): self
     {
-        $this->buttons[] = Button::excel();
-
-        return $this;
+        return $this->addButton(Button::excel($serverSide));
     }
 
     public function withPdfButton(): self
     {
-        $this->buttons[] = Button::pdf();
-
-        return $this;
+        return $this->addButton(Button::pdf());
     }
 
     public function withPrintButton(): self
     {
-        $this->buttons[] = Button::print();
-
-        return $this;
+        return $this->addButton(Button::print());
     }
 
     /**
@@ -109,8 +122,72 @@ final class ButtonsExtension extends AbstractExtension implements LayoutAwareExt
      */
     public function withCustomButton(string $action): self
     {
-        $this->buttons[] = Button::custom($action);
+        return $this->addButton(Button::custom($action));
+    }
+
+    private function addButton(Button $button): self
+    {
+        $this->assertUniqueExportKeys($button);
+
+        $this->buttons[] = $button;
 
         return $this;
+    }
+
+    /**
+     * Export keys address a specific button on the export endpoint, so two buttons cannot share
+     * one. Renaming a duplicate silently would ignore the key the developer explicitly asked for.
+     *
+     * @throws \InvalidArgumentException when the incoming button reuses a registered export key
+     */
+    private function assertUniqueExportKeys(Button $button): void
+    {
+        $used = [];
+        foreach ($this->serverExportButtons() as $registered) {
+            $used[$registered->getExportKey()] = true;
+        }
+
+        foreach ($this->walkButtons([$button]) as $candidate) {
+            if (!$candidate->isServerSideExport()) {
+                continue;
+            }
+
+            $key = $candidate->getExportKey();
+
+            if (isset($used[$key])) {
+                throw new \InvalidArgumentException(\sprintf('Duplicate server-side export key "%s". Give each server-side export button its own key with Button::exportKey().', $key));
+            }
+
+            $used[$key] = true;
+        }
+    }
+
+    /**
+     * @return \Generator<int, Button>
+     */
+    private function serverExportButtons(): \Generator
+    {
+        foreach ($this->walkButtons($this->buttons) as $button) {
+            if ($button->isServerSideExport()) {
+                yield $button;
+            }
+        }
+    }
+
+    /**
+     * @param list<Button|array<string, mixed>|string> $buttons
+     *
+     * @return \Generator<int, Button>
+     */
+    private function walkButtons(array $buttons): \Generator
+    {
+        foreach ($buttons as $button) {
+            if (!$button instanceof Button) {
+                continue;
+            }
+
+            yield $button;
+            yield from $this->walkButtons($button->getChildButtons());
+        }
     }
 }

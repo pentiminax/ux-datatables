@@ -42,6 +42,9 @@ The enum case is `COLUMN_VISIBILITY` (serialized value `'colvis'`), not `COL_VIS
 ## `projectPage()` must preserve page size and order
 A page projector that returns a different count (or reordered rows) throws `LogicException`. Map one-to-one. Remember the split: columns and TemplateColumn Twig (`row`) read the projected DTO, but actions/`UrlColumn`/`permission()` still receive the **source** entity — don't move identifiers needed by actions into the DTO only.
 
+## `projectPage()` sees batches, not the whole set, during a server-side export
+An export streams every filtered row, so the projector runs once per batch (250 rows by default) instead of once per page. Per-item mapping and batch loading behave identically; a projector computing something relative to the items it received (rank, running total, percentage of the batch maximum) returns different values than on screen. Raise `exportChunkSize` by building the provider in `createDataProvider()` if a bigger batch is required.
+
 ## TemplateColumn Twig `row` is the object, not the `mapRow()` array
 `row` is the object passed to `mapRow()`; the array it returned is `payload`. A template reading a mapped key must use `{{ data }}` (this cell) or `{{ payload.someKey }}` (any other key) — `{{ row.someMappedKey }}` renders empty for computed keys with no DB counterpart. `entity` is a deprecated alias of `row` here only; the `entity` of detail rows and edit modals is unrelated. Never authorize on `payload`: on the API Platform render route it is the browser-posted row.
 

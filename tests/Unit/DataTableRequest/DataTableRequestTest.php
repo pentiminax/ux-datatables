@@ -66,6 +66,22 @@ final class DataTableRequestTest extends TestCase
     }
 
     #[Test]
+    public function it_drops_pagination_for_export(): void
+    {
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest([
+            'draw'   => 5,
+            'start'  => 20,
+            'length' => 25,
+            'search' => ['value' => 'test', 'regex' => false],
+        ]))->withoutPagination();
+
+        $this->assertSame(5, $dataTableRequest->draw);
+        $this->assertSame(0, $dataTableRequest->start);
+        $this->assertSame(0, $dataTableRequest->length);
+        $this->assertSame('test', $dataTableRequest->search->value);
+    }
+
+    #[Test]
     public function it_parses_filters_from_request(): void
     {
         $dataTableRequest = DataTableRequest::fromRequest(self::createRequest([

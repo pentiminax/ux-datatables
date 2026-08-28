@@ -39,8 +39,8 @@ generated.
   headers={['Button type', 'Purpose']}
   rows={[
     ['`ButtonType::COPY`', 'Copy table data to clipboard'],
-    ['`ButtonType::CSV`', 'Export CSV file'],
-    ['`ButtonType::EXCEL`', 'Export Excel file'],
+    ['`ButtonType::CSV`', 'Export CSV file (see Server-Side Export for every filtered row)'],
+    ['`ButtonType::EXCEL`', 'Export Excel file (see Server-Side Export for every filtered row)'],
     ['`ButtonType::PDF`', 'Export PDF file'],
     ['`ButtonType::PRINT`', 'Open print view'],
     ['`ButtonType::COLUMN_VISIBILITY`', 'Toggle column visibility'],
@@ -209,6 +209,86 @@ PHP-side `$action` string exactly, and that the registration code runs before th
 `ButtonsExtension::withCustomButton(string $action)` is the fluent-collection shortcut, equivalent
 to `Button::custom($action)` with no further options.
 
+## Server-Side Export (CSV & XLSX)
+
+DataTables' built-in CSV and Excel buttons only see the rows currently loaded in the browser. For a
+`serverSide()` table, pass `serverSide: true` so the bundle streams every filtered row from PHP:
+
+```php
+use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Model\Extensions\Button;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+
+$dataTable
+    ->addExtension(new ButtonsExtension([
+        Button::csv(serverSide: true)
+            ->text('Export CSV')
+            ->filename('users'),
+        Button::excel(serverSide: true)
+            ->text('Export XLSX')
+            ->filename('users'),
+    ]))
+    ->layout([
+        'topStart' => Feature::BUTTONS,
+    ]);
+```
+
+`ButtonsExtension::withCsvButton(serverSide: true)` and
+`ButtonsExtension::withExcelButton(serverSide: true)` are the fluent shortcuts. Without the flag,
+`Button::csv()` and `Button::excel()` stay the DataTables client-side exports.
+
+Both formats require `openspout/openspout`:
+
+```bash
+composer require openspout/openspout
+```
+
+The export reuses the request's current search, order, and filters, and ignores pagination.
+
+**Columns** use the same `setExportable(false)` flag as client-side export (and
+`#[Column(exportable: false)]`). Action columns are already excluded. Order in the file is
+`configureColumns()` order, and headers are column titles.
+
+**Filename** defaults to a slug of the table class (`UserDataTable` → `user-data-table.csv`).
+`filename('users')` becomes `users.csv` or `users.xlsx` depending on the button's format.
+
+### Page Projection
+
+`projectPage()` batch-enriches a page to avoid an N+1. An export has no page — it streams every
+filtered row — so the projector is called once per batch (250 rows by default) rather than once over
+the whole result set. Per-item mapping and batch loading are unaffected. A projector computing
+something relative to the items it received (a rank, a running total, a share of the batch maximum)
+returns different values in an export than on screen; those values already shift with the page
+length on screen. Build the provider yourself in `createDataProvider()` with a larger
+`exportChunkSize` when a bigger batch is genuinely required.
+
+### Export Keys
+
+Each server-side button is addressed on the export endpoint by an export key, defaulting to its
+format (`csv` or `xlsx`). Two server-side buttons on the same table cannot share a key — the
+extension throws an `InvalidArgumentException` at configuration time. Give one of them its own key
+when you need two buttons of the same format:
+
+```php
+Button::csv(serverSide: true)->text('Export all')->filename('all');
+Button::csv(serverSide: true)->exportKey('subset')->text('Export subset')->filename('subset');
+```
+
+### Formula Injection
+
+Spreadsheet software evaluates a cell whose value starts with `=`, `@`, a tab, or a carriage
+return, which turns exported data into executable formulas. Those values are prefixed with an
+apostrophe so they render as text. `+` and `-` are only prefixed when the value is not a number, so
+a decimal such as `-42.50` stays a number.
+
+### XLSX Specifics
+
+The XLSX writer adds a bold header row, a frozen header, an auto-filter, and a fixed column width.
+Unlike CSV, it is not streamed row by row: OpenSpout builds the workbook in a temporary folder and
+zips it into the response on close, so the download starts only once the last row is written and
+the server needs temporary disk space for the workbook. `ext-zip` ships as an
+`openspout/openspout` requirement.
+
 ### Nesting Inside A Collection Button
 
 A collection-type button (`Button::colVis()`, or anything using `extend: 'collection'`) can nest
@@ -236,6 +316,12 @@ action nested this way is registered exactly like a top-level one.
 - Using `Button::ccSearchClear()` without also enabling `ColumnControlExtension` on the table.
 - Using `Button::custom()` without registering a matching `buttonActions` callback, or registering
   it after the table has already connected.
+- Using `Button::csv()` or `Button::excel()` on a `serverSide()` table and expecting every row —
+  use `serverSide: true` instead.
+- Declaring two server-side export buttons of the same format without giving one its own
+  `exportKey()`.
+- Expecting `projectPage()` to receive the whole export in one call — it is batched; see Page
+  Projection.
 
 ## Cross Links
 

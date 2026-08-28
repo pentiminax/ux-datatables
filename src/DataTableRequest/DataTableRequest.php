@@ -54,6 +54,22 @@ final readonly class DataTableRequest
     }
 
     /**
+     * Drop LIMIT/OFFSET so an export can stream every filtered row.
+     */
+    public function withoutPagination(): self
+    {
+        return new self(
+            draw: $this->draw,
+            columns: $this->columns,
+            start: 0,
+            length: 0,
+            search: $this->search,
+            order: $this->order,
+            filters: $this->filters,
+        );
+    }
+
+    /**
      * Trimmed global search term, or null when empty/absent.
      *
      * Tests for emptiness explicitly rather than via a falsy check, so a search
@@ -61,7 +77,7 @@ final readonly class DataTableRequest
      */
     public function searchTerm(): ?string
     {
-        $value = trim(($this->search?->value ?? ''));
+        $value = trim($this->search?->value ?? '');
 
         return '' !== $value ? $value : null;
     }
