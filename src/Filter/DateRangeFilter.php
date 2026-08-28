@@ -5,12 +5,19 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Filter;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Query\DateSearchTerm;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
  * Date range filter with optional "from" and "to" bounds.
  *
  * The submitted value is an associative array {from?: string, to?: string}.
  * Each provided bound is applied independently (>= from, <= to).
+ *
+ * Native Doctrine date/time columns bind a parsed {@see \DateTimeImmutable} with the
+ * field's type. A raw string makes Doctrine conversion throw, and PostgreSQL rejects
+ * `timestamp >= text`. Unparseable bounds are skipped instead of crashing the Ajax
+ * request, matching {@see DateSearchTerm}.
  */
 final class DateRangeFilter extends AbstractFilter
 {
@@ -30,28 +37,46 @@ final class DateRangeFilter extends AbstractFilter
             return;
         }
 
-        $from = $this->normalizeBound($value['from'] ?? null);
-        $to   = $this->normalizeBound($value['to'] ?? null);
+        $dateType = RelationFieldResolver::resolveDateFieldType($qb, $this->resolvedField());
+        $from     = $this->normalizeBound($value['from'] ?? null, $dateType);
+        $to       = $this->normalizeBound($value['to'] ?? null, $dateType);
 
         if (null !== $from) {
             $param = $this->parameterName('from');
             $qb->andWhere(\sprintf('%s >= :%s', $expr, $param));
-            $qb->setParameter($param, $from);
+            $this->bindBound($qb, $param, $from, $dateType);
         }
 
         if (null !== $to) {
             $param = $this->parameterName('to');
             $qb->andWhere(\sprintf('%s <= :%s', $expr, $param));
-            $qb->setParameter($param, $to);
+            $this->bindBound($qb, $param, $to, $dateType);
         }
     }
 
-    private function normalizeBound(mixed $value): ?string
+    private function normalizeBound(mixed $value, ?string $dateType): string|\DateTimeImmutable|null
     {
         if (!\is_string($value) || '' === trim($value)) {
             return null;
         }
 
-        return trim($value);
+        $value = trim($value);
+
+        if (null === $dateType) {
+            return $value;
+        }
+
+        return DateSearchTerm::normalize($value);
+    }
+
+    private function bindBound(QueryBuilder $qb, string $param, string|\DateTimeImmutable $value, ?string $dateType): void
+    {
+        if (null === $dateType) {
+            $qb->setParameter($param, $value);
+
+            return;
+        }
+
+        $qb->setParameter($param, $value, $dateType);
     }
 }
