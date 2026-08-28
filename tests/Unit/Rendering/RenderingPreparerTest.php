@@ -16,6 +16,8 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Extensions\Button;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
@@ -380,6 +382,62 @@ final class RenderingPreparerTest extends TestCase
         $this->assertSame('GET', $ajax['type']);
         $this->assertSame(['table' => $registry->getToken(self::TABLE_CLASS)], $ajax['data']);
         $this->assertStringNotContainsString('UserDataTable', $ajax['data']['table']);
+    }
+
+    /**
+     * @param \Closure(): Button $button
+     */
+    #[Test]
+    #[DataProvider('provideServerSideExportButtons')]
+    public function it_injects_an_export_url_when_a_server_side_export_button_is_present(\Closure $button): void
+    {
+        $registry     = $this->createAjaxRegistry(self::TABLE_SERVICE_IDS);
+        $token        = $registry->getToken(self::TABLE_CLASS);
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->expects($this->once())
+            ->method('generate')
+            ->with(RenderingPreparer::AJAX_EXPORT_ROUTE, ['table' => $token])
+            ->willReturn('/datatables/ajax/export?table='.$token);
+
+        $preparer = new RenderingPreparer(urlGenerator: $urlGenerator, ajaxRegistry: $registry);
+        $table    = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->addExtension(new ButtonsExtension([$button()]));
+
+        $preparer->prepare($table, null);
+
+        $this->assertSame('/datatables/ajax/export?table='.$token, $table->getOption('exportUrl'));
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(): Button}>
+     */
+    public static function provideServerSideExportButtons(): iterable
+    {
+        yield 'csv' => [static fn (): Button => Button::csv(serverSide: true)->filename('users')];
+        yield 'xlsx' => [static fn (): Button => Button::excel(serverSide: true)->filename('users')];
+        yield 'nested in a collection' => [
+            static fn (): Button => Button::collection([Button::excel(serverSide: true)]),
+        ];
+    }
+
+    #[Test]
+    public function it_leaves_the_export_url_alone_for_client_side_export_buttons(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->expects($this->never())->method('generate');
+
+        $preparer = new RenderingPreparer(
+            urlGenerator: $urlGenerator,
+            ajaxRegistry: $this->createAjaxRegistry(self::TABLE_SERVICE_IDS),
+        );
+        $table = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->addExtension(new ButtonsExtension([Button::csv(), Button::excel()]));
+
+        $preparer->prepare($table, null);
+
+        $this->assertNull($table->getOption('exportUrl'));
     }
 
     /**

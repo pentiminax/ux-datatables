@@ -8,11 +8,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
-class DoctrineDataProvider implements DataProviderInterface
+class DoctrineDataProvider implements DataProviderInterface, StreamingDataProviderInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -33,6 +34,7 @@ class DoctrineDataProvider implements DataProviderInterface
          * @var callable(QueryBuilder, DataTableRequest):QueryBuilder|null
          */
         private $configureBaseQueryBuilder = null,
+        private readonly int $exportChunkSize = 250,
     ) {
     }
 
@@ -92,6 +94,97 @@ class DoctrineDataProvider implements DataProviderInterface
             recordsFiltered: $filteredCount,
             data: $rows
         );
+    }
+
+    /**
+     * Doctrine's toIterable() cannot hydrate fetch-joined collections, so a query builder that
+     * fetch-joins a to-many association is not exportable through this path.
+     */
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        $alias = 'e';
+        $qb    = $this->em
+            ->createQueryBuilder()
+            ->select($alias)
+            ->from($this->entityClass, $alias);
+
+        if ($this->configureQueryBuilder) {
+            $qb = ($this->configureQueryBuilder)($qb, $request);
+        }
+
+        $chunkSize = max(1, $this->exportChunkSize);
+        $buffer    = [];
+
+        foreach ($qb->getQuery()->toIterable() as $item) {
+            $buffer[] = $this->rootEntity($item);
+            if (\count($buffer) >= $chunkSize) {
+                yield from $this->mapChunk($buffer);
+                $this->releaseChunk($buffer);
+                $buffer = [];
+            }
+        }
+
+        if ([] !== $buffer) {
+            yield from $this->mapChunk($buffer);
+            $this->releaseChunk($buffer);
+        }
+    }
+
+    /**
+     * Frees a mapped chunk one entity at a time rather than through clear(). clear() empties the
+     * shared EntityManager, which detaches everything the rest of the request still relies on --
+     * the security token's own User included -- so any voter or lazy load running after the export
+     * would fail on a detached entity. detach() only releases the roots (plus their cascade=detach
+     * associations); already-loaded associations stay in the identity map, which is the accepted
+     * trade-off. Narrow the selection through customizeQueryBuilder() when exporting deeply
+     * associated entities.
+     *
+     * @param list<object> $entities
+     */
+    private function releaseChunk(array $entities): void
+    {
+        foreach ($entities as $entity) {
+            $this->em->detach($entity);
+        }
+    }
+
+    /**
+     * @param list<object> $items
+     *
+     * @return \Generator<int, array<string, mixed>>
+     */
+    private function mapChunk(array $items): \Generator
+    {
+        $items         = array_values($items);
+        $pageProjector = $this->pageProjector;
+        $projectedRaw  = null !== $pageProjector ? ($pageProjector)($items) : null;
+        $projected     = null === $projectedRaw ? null : array_values($projectedRaw);
+
+        if (null !== $projected && \count($projected) !== \count($items)) {
+            throw new \LogicException(\sprintf('Page projector returned %d items for a source page containing %d items. Projectors must preserve page size and order.', \count($projected), \count($items)));
+        }
+
+        foreach ($items as $index => $item) {
+            yield $this->rowMapper->map(
+                null === $projected ? $item : new RowContext($item, $projected[$index]),
+            );
+        }
+    }
+
+    private function rootEntity(mixed $item): object
+    {
+        if (\is_object($item)) {
+            return $item;
+        }
+
+        if (\is_array($item)) {
+            $candidate = $item['e'] ?? reset($item);
+            if (\is_object($candidate)) {
+                return $candidate;
+            }
+        }
+
+        throw new \LogicException('Doctrine CSV export expected a root entity from toIterable().');
     }
 
     /**
