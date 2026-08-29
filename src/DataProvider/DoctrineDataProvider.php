@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\DataProvider;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
@@ -103,8 +104,14 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
     }
 
     /**
-     * Doctrine's toIterable() cannot hydrate fetch-joined collections, so a query builder that
-     * fetch-joins a to-many association is not exportable through this path.
+     * Walks distinct root entities in chunks rather than hydrating through toIterable().
+     *
+     * toIterable() throws QueryException as soon as the DQL joins a to-many association,
+     * including a LEFT JOIN added only to search or filter (no addSelect). Searching a
+     * `tags.label` column is enough: Ajax fetchData() uses getResult() and still returns
+     * unique roots, but an export would fail after the download headers were already sent.
+     * Doctrine's Paginator walks distinct root identifiers page by page, then loads those
+     * entities with getResult(), matching the uniqueness fetchData() already has.
      *
      * $pageProjector runs once per $exportChunkSize rows rather than once over the whole result
      * set: holding every row to project them together would defeat the streaming this method
@@ -124,20 +131,30 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
         }
 
         $chunkSize = max(1, $this->exportChunkSize);
-        $buffer    = [];
+        $offset    = 0;
 
-        foreach ($qb->getQuery()->toIterable() as $item) {
-            $buffer[] = $this->rootEntity($item);
-            if (\count($buffer) >= $chunkSize) {
-                yield from $this->mapChunk($buffer);
-                $this->releaseChunk($buffer);
-                $buffer = [];
+        while (true) {
+            $pageQb = (clone $qb)
+                ->setFirstResult($offset)
+                ->setMaxResults($chunkSize);
+
+            $items = [];
+            foreach (new Paginator($pageQb, true) as $item) {
+                $items[] = $this->rootEntity($item);
             }
-        }
 
-        if ([] !== $buffer) {
-            yield from $this->mapChunk($buffer);
-            $this->releaseChunk($buffer);
+            if ([] === $items) {
+                break;
+            }
+
+            yield from $this->mapChunk($items);
+            $this->releaseChunk($items);
+
+            if (\count($items) < $chunkSize) {
+                break;
+            }
+
+            $offset += $chunkSize;
         }
     }
 
@@ -197,7 +214,7 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
             }
         }
 
-        throw new \LogicException('Doctrine CSV export expected a root entity from toIterable().');
+        throw new \LogicException('Doctrine CSV export expected a root entity from the page query.');
     }
 
     /**
