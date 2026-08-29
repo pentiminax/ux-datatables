@@ -201,6 +201,98 @@ final class DoctrineDataProviderIterateRowsTest extends TestCase
         );
     }
 
+    /**
+     * Searching or scoping through a to-many association (tags.label, order items, ...) adds a
+     * LEFT JOIN. fetchData() hydrates unique roots through getResult(); toIterable() throws
+     * QueryException for that same DQL, which used to abort an export after its download headers
+     * were already sent.
+     */
+    #[Test]
+    public function it_exports_unique_roots_when_a_to_many_join_multiplies_sql_rows(): void
+    {
+        $this->seedTags();
+
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountCustomer::class,
+            rowMapper: $this->identityMapper(),
+            configureQueryBuilder: static fn (QueryBuilder $qb): QueryBuilder => $qb
+                ->leftJoin('e.tags', 't')
+                ->addOrderBy('e.id', 'ASC'),
+            exportChunkSize: 1,
+        );
+
+        $request  = $this->request();
+        $fetched  = iterator_to_array($provider->fetchData($request)->data, false);
+        $exported = iterator_to_array($provider->iterateRows($request), false);
+
+        $this->assertSame([['id' => 1], ['id' => 2]], $fetched);
+        $this->assertSame($fetched, $exported);
+    }
+
+    #[Test]
+    public function it_exports_fetch_joined_collections_without_throwing(): void
+    {
+        $this->seedTags();
+
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountCustomer::class,
+            rowMapper: $this->identityMapper(),
+            configureQueryBuilder: static fn (QueryBuilder $qb): QueryBuilder => $qb
+                ->leftJoin('e.tags', 't')
+                ->addSelect('t')
+                ->addOrderBy('e.id', 'ASC'),
+        );
+
+        $exported = iterator_to_array($provider->iterateRows($this->request()), false);
+
+        $this->assertSame([['id' => 1], ['id' => 2]], $exported);
+    }
+
+    #[Test]
+    public function it_exports_a_grouped_permanent_scope_without_throwing(): void
+    {
+        $this->seedTags();
+        $gamma = new CountCustomer(3, 'Gamma');
+        $gamma->addTag(new CountTag(30, 'red'));
+        $gamma->addTag(new CountTag(31, 'green'));
+        $this->em->persist($gamma);
+        $this->em->flush();
+        $this->em->clear();
+
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountCustomer::class,
+            rowMapper: $this->identityMapper(),
+            configureQueryBuilder: static fn (QueryBuilder $qb): QueryBuilder => $qb
+                ->leftJoin('e.tags', 't')
+                ->groupBy('e.id')
+                ->having('COUNT(t.id) > 1')
+                ->addOrderBy('e.id', 'ASC'),
+        );
+
+        $exported = iterator_to_array($provider->iterateRows($this->request()), false);
+
+        $this->assertSame([['id' => 1], ['id' => 3]], $exported);
+    }
+
+    private function seedTags(): void
+    {
+        $alpha = $this->em->find(CountCustomer::class, 1);
+        $beta  = $this->em->find(CountCustomer::class, 2);
+        \assert($alpha instanceof CountCustomer);
+        \assert($beta instanceof CountCustomer);
+
+        $alpha->addTag(new CountTag(10, 'red'));
+        $alpha->addTag(new CountTag(11, 'green'));
+        $alpha->addTag(new CountTag(12, 'blue'));
+        $beta->addTag(new CountTag(20, 'red'));
+
+        $this->em->flush();
+        $this->em->clear();
+    }
+
     private function identityMapper(): RowMapperInterface
     {
         return new class implements RowMapperInterface {
