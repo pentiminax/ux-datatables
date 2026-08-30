@@ -37,7 +37,7 @@ final class XlsxExporter extends AbstractExporter
 
     protected function createWriter(): WriterInterface
     {
-        return new Writer(new Options());
+        return new Writer();
     }
 
     protected function createHeader(array $columns): Row
