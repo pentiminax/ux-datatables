@@ -23,10 +23,6 @@ final class CsvExporter extends AbstractExporter
 
     protected function createWriter(): WriterInterface
     {
-        $options                  = new Options();
-        $options->FIELD_DELIMITER = ',';
-        $options->SHOULD_ADD_BOM  = true;
-
-        return new Writer($options);
+        return new Writer();
     }
 }
