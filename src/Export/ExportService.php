@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Export;
 
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\RequestInputBag;
@@ -19,6 +20,7 @@ final class ExportService
 {
     public function __construct(
         private readonly ExporterRegistry $exporters,
+        private readonly ColumnResolver $columnResolver = new ColumnResolver(),
     ) {
     }
 
@@ -75,10 +77,7 @@ final class ExportService
      */
     private function exportableColumns(AbstractDataTable $table): array
     {
-        $columns = array_values(array_filter(
-            $table->getConfiguredDataTable()->getColumns(),
-            static fn (ColumnInterface $column): bool => $column->isExportable(),
-        ));
+        $columns = $this->columnResolver->filterExportable($table->getConfiguredDataTable()->getColumns());
 
         if ([] === $columns) {
             throw new BadRequestHttpException('This table has no exportable column.');

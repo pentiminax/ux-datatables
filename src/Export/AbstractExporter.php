@@ -31,6 +31,12 @@ abstract class AbstractExporter implements ExporterInterface
      */
     private const SIGN_PREFIXES = '+-';
 
+    /**
+     * Rows written between two output flushes. Flushing every row costs a syscall per row for no
+     * gain; leaving the buffer alone lets it grow for the length of a full-table export.
+     */
+    private const FLUSH_EVERY_ROWS = 500;
+
     abstract public function format(): ExportFormat;
 
     final public function write(array $columns, iterable $rows): void
@@ -39,14 +45,19 @@ abstract class AbstractExporter implements ExporterInterface
         $writer->openToFile('php://output');
         $writer->addRow($this->createHeader($columns));
 
+        $written = 0;
         foreach ($rows as $row) {
             $writer->addRow(Row::fromValues($this->processRow($columns, $row)));
 
-            flush();
+            if (0 === ++$written % self::FLUSH_EVERY_ROWS) {
+                $this->flushOutput();
+            }
         }
 
         $this->configureSheet($writer, $columns);
         $writer->close();
+
+        $this->flushOutput();
     }
 
     abstract protected function createWriter(): WriterInterface;
@@ -131,9 +142,9 @@ abstract class AbstractExporter implements ExporterInterface
             return '';
         }
 
-        return $this->neutralizeFormula(
-            trim(html_entity_decode(strip_tags((string) $value), \ENT_QUOTES | \ENT_HTML5, 'UTF-8')),
-        );
+        $text = html_entity_decode(strip_tags((string) $value), \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
+
+        return $this->neutralizeFormula(trim(preg_replace('/\s+/u', ' ', $text) ?? $text));
     }
 
     /**
@@ -154,5 +165,19 @@ abstract class AbstractExporter implements ExporterInterface
         }
 
         return str_contains(self::SIGN_PREFIXES, $first) && !is_numeric($value) ? "'".$value : $value;
+    }
+
+    /**
+     * flush() only drains the SAPI's own buffer: whatever PHP holds in a userland output buffer
+     * (an active ob_start(), zlib compression) has to be pushed out first, or the export
+     * accumulates in memory instead of reaching the client.
+     */
+    private function flushOutput(): void
+    {
+        if (ob_get_level() > 0) {
+            ob_flush();
+        }
+
+        flush();
     }
 }

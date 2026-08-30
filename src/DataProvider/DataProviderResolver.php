@@ -26,9 +26,10 @@ final class DataProviderResolver
         ?AsDataTable $asDataTable,
         RowMapperInterface $rowMapper,
         callable $configureQueryBuilder,
+        ?RowMapperInterface $exportRowMapper = null,
         ?\Closure $pageProjector = null,
         ?callable $configureBaseQueryBuilder = null,
     ): ?DataProviderInterface {
-        return $manualDataProvider ?? $this->autoDataProviderFactory->create($asDataTable, $rowMapper, $configureQueryBuilder, $pageProjector, $configureBaseQueryBuilder);
+        return $manualDataProvider ?? $this->autoDataProviderFactory->create($asDataTable, $rowMapper, $configureQueryBuilder, $exportRowMapper, $pageProjector, $configureBaseQueryBuilder);
     }
 }

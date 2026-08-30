@@ -202,6 +202,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.export.service', ExportService::class)
         ->arg(0, service('datatables.export.registry'))
+        ->arg(1, service('datatables.column.resolver'))
         ->private();
 
     $services->alias(ExportService::class, 'datatables.export.service')

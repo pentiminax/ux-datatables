@@ -21,6 +21,12 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
         private readonly RowMapperInterface $rowMapper,
         /** @var callable(QueryBuilder, DataTableRequest):QueryBuilder|null */
         private $configureQueryBuilder = null,
+        /**
+         * Maps rows during an export. Defaults to $rowMapper, but the bundle builds it from the
+         * exportable columns alone, so an export skips the template rendering and action
+         * resolution the displayed table needs and an export file never contains.
+         */
+        private readonly ?RowMapperInterface $exportRowMapper = null,
         /** @var (\Closure(list<object>):(list<mixed>|null))|null */
         private readonly ?\Closure $pageProjector = null,
         /**
@@ -169,8 +175,10 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
             throw new \LogicException(\sprintf('Page projector returned %d items for a source page containing %d items. Projectors must preserve page size and order.', \count($projected), \count($items)));
         }
 
+        $rowMapper = $this->exportRowMapper ?? $this->rowMapper;
+
         foreach ($items as $index => $item) {
-            yield $this->rowMapper->map(
+            yield $rowMapper->map(
                 null === $projected ? $item : new RowContext($item, $projected[$index]),
             );
         }

@@ -175,6 +175,32 @@ final class DoctrineDataProviderIterateRowsTest extends TestCase
         $this->assertTrue($this->em->contains($bystander));
     }
 
+    #[Test]
+    public function it_maps_exported_rows_with_the_export_mapper_when_one_is_configured(): void
+    {
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountCustomer::class,
+            rowMapper: $this->identityMapper(),
+            exportRowMapper: new class implements RowMapperInterface {
+                public function map(mixed $row): array
+                {
+                    return ['name' => $row instanceof RowContext ? $row->item->name : $row->name];
+                }
+            },
+        );
+
+        $this->assertSame(
+            [['name' => 'Alpha'], ['name' => 'Beta']],
+            iterator_to_array($provider->iterateRows($this->request()), false),
+        );
+        $this->assertSame(
+            [['id' => 1], ['id' => 2]],
+            iterator_to_array($provider->fetchData($this->request())->data, false),
+            'The displayed table keeps its own mapper',
+        );
+    }
+
     private function identityMapper(): RowMapperInterface
     {
         return new class implements RowMapperInterface {

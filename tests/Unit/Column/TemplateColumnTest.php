@@ -28,6 +28,15 @@ final class TemplateColumnTest extends DataTableTestCase
         $this->assertCustomOption('datatable/columns/status_badge.html.twig', 'templatePath', $column);
     }
 
+    #[Test]
+    public function it_is_not_exportable_by_default(): void
+    {
+        $column = TemplateColumn::new('user')->setTemplate('datatable/columns/user.html.twig');
+
+        $this->assertFalse($column->isExportable());
+        $this->assertTrue($column->setExportable(true)->isExportable());
+    }
+
     /**
      * @param class-string<\Throwable> $expectedException
      */

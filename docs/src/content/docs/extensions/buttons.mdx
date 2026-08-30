@@ -246,8 +246,18 @@ composer require openspout/openspout
 The export reuses the request's current search, order, and filters, and ignores pagination.
 
 **Columns** use the same `setExportable(false)` flag as client-side export (and
-`#[Column(exportable: false)]`). Action columns are already excluded. Order in the file is
-`configureColumns()` order, and headers are column titles.
+`#[Column(exportable: false)]`). Action columns, template columns, and hidden columns
+(`setVisible(false)`) are already excluded. Order in the file is `configureColumns()` order, and
+headers are column titles.
+
+A `TemplateColumn` renders markup for the browser, so it stays out of an export unless
+`setExportable(true)` opts it back in — its rendered HTML is then stripped to text and its
+whitespace collapsed onto one line.
+
+Because the rows an export streams are mapped from the exportable columns alone, the work the
+displayed table needs — rendering a template column's Twig, resolving an action's voters, URL, and
+CSRF token — does not run for exported rows. A data provider you build yourself in
+`createDataProvider()` keeps the single mapper you gave it and pays that cost on every exported row.
 
 **Filename** defaults to a slug of the table class (`UserDataTable` → `user-data-table.csv`).
 `filename('users')` becomes `users.csv` or `users.xlsx` depending on the button's format.

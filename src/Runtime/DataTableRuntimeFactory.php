@@ -26,6 +26,8 @@ use Pentiminax\UX\DataTables\Security\PermissionChecker;
 
 final class DataTableRuntimeFactory
 {
+    private ?ColumnResolver $columnResolver = null;
+
     public function __construct(
         private ?DataProviderResolver $dataProviderResolver = null,
         private readonly ?TemplateColumnRenderer $templateColumnRenderer = null,
@@ -44,7 +46,7 @@ final class DataTableRuntimeFactory
         $pipeline = (new RowProcessingPipeline(
             $baseMapper,
             $columns,
-            new ColumnResolver(permissionChecker: $this->permissionChecker ?? new PermissionChecker()),
+            $this->columnResolver(),
         ))
             ->add(new NormalizationStage())
             ->add(new IconColumnResolutionStage())
@@ -74,6 +76,14 @@ final class DataTableRuntimeFactory
     ): DataTableRuntime {
         $rowMapper = $this->createRowMapper($baseMapper, $columns);
 
+        // An export writes only the exportable columns, so its mapper is built from them alone:
+        // template rendering and action resolution then have nothing to do, instead of running Twig,
+        // voters, URL generation and a CSRF token for every one of a full table's rows.
+        $exportRowMapper = $this->createRowMapper(
+            baseMapper: $baseMapper,
+            columns: $this->columnResolver()->filterExportable($columns),
+        );
+
         return new DataTableRuntime(
             table: $table,
             dataProviderFactory: fn (): ?DataProviderInterface => $this->createDataProvider(
@@ -81,6 +91,7 @@ final class DataTableRuntimeFactory
                 asDataTable: $asDataTable,
                 rowMapper: $rowMapper,
                 configureQueryBuilder: $configureQueryBuilder,
+                exportRowMapper: $exportRowMapper,
                 pageProjector: $pageProjector,
                 configureBaseQueryBuilder: $configureBaseQueryBuilder,
             ),
@@ -92,6 +103,7 @@ final class DataTableRuntimeFactory
         ?AsDataTable $asDataTable,
         RowMapperInterface $rowMapper,
         callable $configureQueryBuilder,
+        ?RowMapperInterface $exportRowMapper = null,
         ?\Closure $pageProjector = null,
         ?callable $configureBaseQueryBuilder = null,
     ): ?DataProviderInterface {
@@ -100,8 +112,16 @@ final class DataTableRuntimeFactory
             asDataTable: $asDataTable,
             rowMapper: $rowMapper,
             configureQueryBuilder: $configureQueryBuilder,
+            exportRowMapper: $exportRowMapper,
             pageProjector: $pageProjector,
             configureBaseQueryBuilder: $configureBaseQueryBuilder,
+        );
+    }
+
+    private function columnResolver(): ColumnResolver
+    {
+        return $this->columnResolver ??= new ColumnResolver(
+            permissionChecker: $this->permissionChecker ?? new PermissionChecker(),
         );
     }
 

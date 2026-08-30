@@ -20,6 +20,7 @@ class TemplateColumn extends AbstractColumn implements TemplateAwareColumnInterf
         return static::createWithType($name, $title, ColumnType::HTML)
             ->setOrderable(false)
             ->setSearchable(false)
+            ->setExportable(false)
             ->disableGlobalSearch();
     }
 

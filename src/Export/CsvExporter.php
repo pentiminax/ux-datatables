@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Export;
 
-use OpenSpout\Writer\CSV\Options;
 use OpenSpout\Writer\CSV\Writer;
 use OpenSpout\Writer\WriterInterface;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;

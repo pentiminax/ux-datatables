@@ -10,7 +10,6 @@ use OpenSpout\Writer\AbstractWriterMultiSheets;
 use OpenSpout\Writer\AutoFilter;
 use OpenSpout\Writer\WriterInterface;
 use OpenSpout\Writer\XLSX\Entity\SheetView;
-use OpenSpout\Writer\XLSX\Options;
 use OpenSpout\Writer\XLSX\Writer;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
 
