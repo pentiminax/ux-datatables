@@ -9,11 +9,13 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
 use Pentiminax\UX\DataTables\Export\ExporterRegistry;
 use Pentiminax\UX\DataTables\Export\ExportService;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTableExtensions;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
@@ -104,6 +106,22 @@ final class ExportServiceTest extends TestCase
         $this->send((new ExportService(new ExporterRegistry([$csv])))->export($table, $this->exportRequest()));
 
         $this->assertSame([['email' => 'all']], $csv->rows);
+    }
+
+    #[Test]
+    public function it_exposes_forwarded_post_parameters_on_the_query_bag(): void
+    {
+        $table = new QueryScopedExportTable();
+
+        $this->send($this->service()->export($table, Request::create('/datatables/ajax/export?table=token', 'POST', [
+            'draw'      => 1,
+            'start'     => 0,
+            'length'    => 10,
+            'exportKey' => 'csv',
+            'pending'   => '1',
+        ])));
+
+        $this->assertSame('1', $table->pending);
     }
 
     #[Test]
@@ -245,5 +263,55 @@ final class ExportServiceTest extends TestCase
             'length'    => 25,
             'exportKey' => $exportKey,
         ]);
+    }
+}
+
+/**
+ * Mirrors the documented customizeQueryBuilder() pattern that reads forwarded page
+ * parameters from getHttpRequest()?->query, which Auto-Ajax GET puts on the query
+ * string and the POST export endpoint puts in the body.
+ *
+ * @internal
+ */
+final class QueryScopedExportTable extends AbstractDataTable
+{
+    public ?string $pending = null;
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('email');
+    }
+
+    public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
+    {
+        return $extensions->addExtension(new ButtonsExtension([Button::csv(serverSide: true)]));
+    }
+
+    protected function createDataProvider(): DataProviderInterface
+    {
+        return new class($this) implements DataProviderInterface, StreamingDataProviderInterface {
+            public function __construct(private QueryScopedExportTable $table)
+            {
+            }
+
+            public function fetchData(DataTableRequest $request): DataTableResult
+            {
+                return new DataTableResult(1, 1, $this->iterateRows($request));
+            }
+
+            public function iterateRows(DataTableRequest $request): iterable
+            {
+                $this->table->capturePending();
+
+                return [['email' => 'ada@example.com']];
+            }
+        };
+    }
+
+    public function capturePending(): void
+    {
+        $pending = $this->getHttpRequest()?->query->get('pending');
+
+        $this->pending = \is_string($pending) ? $pending : null;
     }
 }

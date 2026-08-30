@@ -68,4 +68,45 @@ final class RequestInputBagTest extends TestCase
 
         $this->assertSame($request->query, RequestInputBag::resolve($request));
     }
+
+    #[Test]
+    public function it_copies_scalar_body_parameters_onto_the_query_bag_for_post(): void
+    {
+        $request = Request::create('/datatables/ajax/export?table=token', 'POST', [
+            'draw'      => '1',
+            'pending'   => '1',
+            'columns'   => [['data' => 'email']],
+            'exportKey' => 'csv',
+        ]);
+
+        RequestInputBag::exposeBodyParametersOnQuery($request);
+
+        $this->assertSame('token', $request->query->get('table'));
+        $this->assertSame('1', $request->query->get('pending'));
+        $this->assertSame('1', $request->query->get('draw'));
+        $this->assertFalse($request->query->has('columns'));
+    }
+
+    #[Test]
+    public function it_does_not_overwrite_existing_query_parameters(): void
+    {
+        $request = Request::create('/datatables/ajax/export?table=from-query', 'POST', [
+            'table' => 'from-body',
+        ]);
+
+        RequestInputBag::exposeBodyParametersOnQuery($request);
+
+        $this->assertSame('from-query', $request->query->get('table'));
+    }
+
+    #[Test]
+    public function it_leaves_the_query_bag_unchanged_on_get(): void
+    {
+        $request = Request::create('/datatables/ajax/data?table=token&pending=1', 'GET');
+        $request->request->set('pending', 'from-body');
+
+        RequestInputBag::exposeBodyParametersOnQuery($request);
+
+        $this->assertSame('1', $request->query->get('pending'));
+    }
 }
