@@ -107,6 +107,18 @@ final class CsvExporterTest extends TestCase
         $this->assertStringContainsString(',42', $csv);
     }
 
+    #[Test]
+    public function it_collapses_whitespace_left_by_markup(): void
+    {
+        $output = $this->export(
+            [TextColumn::new('user', 'User')],
+            [['user' => "<span>HS</span>\n\n        Henry Smith\n"]],
+        );
+
+        $this->assertStringContainsString('HS Henry Smith', $output);
+        $this->assertSame(2, substr_count($output, "\n"), 'Header and a single row, no cell spilling over lines');
+    }
+
     /**
      * @param list<\Pentiminax\UX\DataTables\Contracts\ColumnInterface> $columns
      * @param list<array<string, mixed>>                                $rows
@@ -117,11 +129,15 @@ final class CsvExporterTest extends TestCase
             $this->markTestSkipped('openspout/openspout is required for this test.');
         }
 
+        // The exporter flushes its own output buffer as it streams, so an outer buffer collects
+        // what the inner one hands off before the remainder is pushed into it.
+        ob_start();
         ob_start();
 
         try {
             (new CsvExporter())->write($columns, $rows);
         } finally {
+            ob_end_flush();
             $output = (string) ob_get_clean();
         }
 

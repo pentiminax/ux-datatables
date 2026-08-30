@@ -122,6 +122,29 @@ final class ColumnResolver
     }
 
     /**
+     * Columns a server-side export writes: exportable and visible in the table.
+     *
+     * A hidden column is not part of what the user sees, and a TemplateColumn or an ActionColumn
+     * carries markup rather than data, so both stay out unless setExportable(true) opts them back in.
+     *
+     * @param iterable<ColumnInterface> $columns
+     *
+     * @return list<ColumnInterface>
+     */
+    public function filterExportable(iterable $columns): array
+    {
+        $exportable = [];
+
+        foreach ($columns as $column) {
+            if ($column->isExportable() && $column->isVisible()) {
+                $exportable[] = $column;
+            }
+        }
+
+        return $exportable;
+    }
+
+    /**
      * Drop values whose column is not authorized, leaving unrelated extra keys intact.
      *
      * @param array<string, mixed> $row

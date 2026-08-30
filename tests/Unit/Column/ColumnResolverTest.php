@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -155,6 +156,24 @@ final class ColumnResolverTest extends TestCase
 
             $this->assertSame($entityClass, $serialized['entityClass']);
         }
+    }
+
+    #[Test]
+    public function filter_exportable_keeps_visible_exportable_columns_in_order(): void
+    {
+        $columns = [
+            TextColumn::new('email'),
+            TextColumn::new('secret')->setExportable(false),
+            TextColumn::new('internal')->setVisible(false),
+            TemplateColumn::new('user')->setTemplate('user.html.twig'),
+            ActionColumn::fromActions('actions', 'Actions', new Actions()),
+            TextColumn::new('name'),
+        ];
+
+        $this->assertSame(['email', 'name'], array_map(
+            static fn (ColumnInterface $column): string => $column->getName(),
+            (new ColumnResolver())->filterExportable($columns),
+        ));
     }
 
     #[Test]

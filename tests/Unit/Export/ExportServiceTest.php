@@ -56,6 +56,28 @@ final class ExportServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_skips_hidden_columns(): void
+    {
+        $csv     = new RecordingExporter();
+        $service = new ExportService(new ExporterRegistry([$csv]));
+
+        $table = new ConfigurableDataTable(
+            [TextColumn::new('email'), TextColumn::new('name')->setVisible(false)],
+            extensions: static fn (DataTableExtensions $extensions): DataTableExtensions => $extensions->addExtension(
+                new ButtonsExtension([Button::csv(serverSide: true)]),
+            ),
+            dataProvider: $this->provider(),
+        );
+
+        $this->send($service->export($table, $this->exportRequest()));
+
+        $this->assertSame(['email'], array_map(
+            static fn (ColumnInterface $column): string => $column->getName(),
+            $csv->columns,
+        ));
+    }
+
+    #[Test]
     public function it_selects_the_exporter_matching_the_requested_button(): void
     {
         $csv     = new RecordingExporter();
