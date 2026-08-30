@@ -277,6 +277,59 @@ final class DoctrineDataProviderIterateRowsTest extends TestCase
         $this->assertSame([['id' => 1], ['id' => 3]], $exported);
     }
 
+    /**
+     * Ordering on a non-unique column leaves ties the database may return in a different order
+     * from one query to the next; the export appends the identifier so every chunk sees the same
+     * total order and no row is exported twice or skipped.
+     */
+    #[Test]
+    public function it_exports_every_row_once_when_the_ordering_column_has_ties(): void
+    {
+        $this->em->persist(new CountCustomer(3, 'Alpha'));
+        $this->em->persist(new CountCustomer(4, 'Alpha'));
+        $this->em->flush();
+        $this->em->clear();
+
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountCustomer::class,
+            rowMapper: $this->identityMapper(),
+            configureQueryBuilder: static fn (QueryBuilder $qb): QueryBuilder => $qb
+                ->addOrderBy('e.name', 'ASC'),
+            exportChunkSize: 1,
+        );
+
+        $exported = iterator_to_array($provider->iterateRows($this->request()), false);
+
+        $this->assertSame([['id' => 1], ['id' => 3], ['id' => 4], ['id' => 2]], $exported);
+    }
+
+    /**
+     * A LIMIT/OFFSET set by customizeQueryBuilder() caps the export. It counts root entities: the
+     * to-many join multiplies SQL rows, so a LIMIT left on the query itself would have cut the
+     * export short.
+     */
+    #[Test]
+    public function it_honors_a_window_set_on_the_query_builder(): void
+    {
+        $this->seedTags();
+
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountCustomer::class,
+            rowMapper: $this->identityMapper(),
+            configureQueryBuilder: static fn (QueryBuilder $qb): QueryBuilder => $qb
+                ->leftJoin('e.tags', 't')
+                ->addOrderBy('e.id', 'ASC')
+                ->setFirstResult(1)
+                ->setMaxResults(1),
+        );
+
+        $exported = iterator_to_array($provider->iterateRows($this->request()), false);
+
+        $this->assertSame([['id' => 2]], $exported);
+    }
+
     private function seedTags(): void
     {
         $alpha = $this->em->find(CountCustomer::class, 1);
