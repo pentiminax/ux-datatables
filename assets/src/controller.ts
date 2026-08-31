@@ -109,6 +109,12 @@ export default class extends Controller {
         document.addEventListener('turbo:before-cache', this.onTurboBeforeCache)
 
         if (this.isDataTableInitialized) {
+            // The table survived the cycle, so downstream code that was torn down with the previous
+            // controller instance needs a signal to bind again. `connect` stays a build-only event.
+            if (this.table) {
+                this.dispatchEvent('reconnect', { table: this.table })
+            }
+
             return
         }
 
@@ -128,6 +134,11 @@ export default class extends Controller {
 
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true
+            // Stimulus builds a fresh controller instance when DataTables reparents the table, so
+            // adopt the live instance instead of leaving this controller without a handle.
+            this.table = new DataTable.Api(this.element) as DataTableWithAjax
+            this.dispatchEvent('reconnect', { table: this.table })
+
             return
         }
 

@@ -80,11 +80,13 @@ export default class extends Controller {
   connect() {
     this.element.addEventListener('datatables:pre-connect', this._onPreConnect)
     this.element.addEventListener('datatables:connect', this._onConnect)
+    this.element.addEventListener('datatables:reconnect', this._onConnect)
   }
 
   disconnect() {
     this.element.removeEventListener('datatables:pre-connect', this._onPreConnect)
     this.element.removeEventListener('datatables:connect', this._onConnect)
+    this.element.removeEventListener('datatables:reconnect', this._onConnect)
   }
 
   _onPreConnect(event) {
@@ -128,6 +130,7 @@ Then attach your controller in Twig:
     ['datatables:pre-connect', 'Fired before table initialization', 'config: Configuration object'],
     ['datatables:pre-init', 'Fired after extension plugins have loaded, just before the table is constructed', 'config: Configuration object, DataTable: the loaded DataTable class'],
     ['datatables:connect', 'Fired after table is created', 'table: DataTable instance'],
+    ['datatables:reconnect', 'Fired when a controller connects to a table that is already built, after DataTables restructures the DOM', 'table: DataTable instance'],
   ]}
 />
 
@@ -136,6 +139,45 @@ and extension-specific registries such as `DataTable.ColumnControl.content` aren
 Use `pre-init` instead when you need one of those to exist — for example, registering a custom
 ColumnControl content type. See
 [Custom Content Types](/ux-datatables/extensions/column-control/#custom-content-types).
+
+### Surviving the Reconnect Cycle
+
+DataTables restructures the DOM right after the table is built: it moves the `<table>` into its own
+wrapper, and extensions such as Responsive or ColumnControl add more markup. Stimulus sees the
+element leave and re-enter the document, so **every** controller declared on that table — yours
+included — is disconnected and connected again once, shortly after the initial connect.
+
+`datatables:connect` marks the table being built and therefore fires only once. The reconnect
+dispatches `datatables:reconnect` instead, with the same `table` instance in its detail. Anything
+your controller sets up in a `connect` handler and tears down in `disconnect()` must be redone on
+`reconnect`, otherwise it silently stops working a moment after page load:
+
+```javascript
+connect() {
+  this.element.addEventListener('datatables:connect', this._onTable)
+  this.element.addEventListener('datatables:reconnect', this._onTable)
+}
+
+disconnect() {
+  this.element.removeEventListener('datatables:connect', this._onTable)
+  this.element.removeEventListener('datatables:reconnect', this._onTable)
+}
+
+_onTable = (event) => {
+  this._bind(event.detail.table)
+}
+```
+
+Bind row-level listeners by delegation rather than on nodes you look up once. DataTables replaces
+the `<tbody>` rows on every draw, so a handler attached to a cached `tbody`, `tr` or cell stops
+firing after the next redraw:
+
+```javascript
+// Fires for every row, including rows drawn later
+event.detail.table.on('click', 'tbody tr', (e, dt, type, indexes) => {
+  console.log(dt.row(e.currentTarget).data())
+})
+```
 
 ## Working with Multiple Tables
 
