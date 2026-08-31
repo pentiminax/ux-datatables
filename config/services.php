@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
@@ -26,8 +27,8 @@ use Pentiminax\UX\DataTables\Export\CsvExporter;
 use Pentiminax\UX\DataTables\Export\ExporterRegistry;
 use Pentiminax\UX\DataTables\Export\ExportService;
 use Pentiminax\UX\DataTables\Export\XlsxExporter;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
@@ -150,7 +151,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(1, service('property_accessor'))
         ->arg(2, service(MercurePublisherInterface::class))
         ->arg(3, service('datatables.security.permission_checker'))
-        ->arg(4, service(MercureConfigResolverInterface::class)->nullOnInvalid())
+        ->arg(4, service(MercureConfigResolver::class)->nullOnInvalid())
         ->arg(5, tagged_locator('datatables.data_table'))
         ->private();
 
@@ -274,10 +275,10 @@ return static function (ContainerConfigurator $container): void {
     }
 
     $services->set('datatables.rendering.preparer', RenderingPreparer::class)
-        ->arg(0, service(Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface::class)->nullOnInvalid())
-        ->arg(1, service(MercureConfigResolverInterface::class)->nullOnInvalid())
+        ->arg(0, service(ApiResourceCollectionUrlResolver::class)->nullOnInvalid())
+        ->arg(1, service(MercureConfigResolver::class)->nullOnInvalid())
         ->arg(2, service(TranslatorInterface::class)->nullOnInvalid())
-        ->arg(3, service(MercureHubUrlResolverInterface::class)->nullOnInvalid())
+        ->arg(3, service(MercureHubUrlResolver::class)->nullOnInvalid())
         ->arg(4, service('router')->nullOnInvalid())
         ->arg(5, service('datatables.ajax.registry'))
         ->arg(6, service('request_stack')->nullOnInvalid())

@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformPropertyTypeMapper;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
-use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
-use Pentiminax\UX\DataTables\Mercure\ApiResourceMercureMetadataResolverInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -35,13 +33,13 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
         ->private();
 
-    $services->alias(ApiResourceCollectionUrlResolverInterface::class, 'datatables.api_platform.collection_url_resolver')
+    $services->alias(ApiResourceCollectionUrlResolver::class, 'datatables.api_platform.collection_url_resolver')
         ->private();
 
     $services->set('datatables.api_platform.mercure_metadata_resolver', ApiResourceMercureMetadataResolver::class)
         ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
         ->private();
 
-    $services->alias(ApiResourceMercureMetadataResolverInterface::class, 'datatables.api_platform.mercure_metadata_resolver')
+    $services->alias(ApiResourceMercureMetadataResolver::class, 'datatables.api_platform.mercure_metadata_resolver')
         ->private();
 };

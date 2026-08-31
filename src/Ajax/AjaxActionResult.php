@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Form;
+namespace Pentiminax\UX\DataTables\Ajax;
 
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 
-final readonly class EditFormResult
+final readonly class AjaxActionResult
 {
     private function __construct(
         public bool $success,
@@ -64,5 +65,29 @@ final readonly class EditFormResult
             message: $message,
             statusCode: Response::HTTP_FORBIDDEN,
         );
+    }
+
+    public function toJsonResponse(): JsonResponse
+    {
+        if (!$this->success) {
+            if (null !== $this->html) {
+                return new JsonResponse([
+                    'success' => false,
+                    'html'    => $this->html,
+                ], $this->statusCode);
+            }
+
+            return new JsonResponse([
+                'success' => false,
+                'message' => $this->message,
+            ], $this->statusCode);
+        }
+
+        $payload = ['success' => true];
+        if (null !== $this->html) {
+            $payload['html'] = $this->html;
+        }
+
+        return new JsonResponse($payload);
     }
 }

@@ -12,7 +12,7 @@ use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
@@ -26,7 +26,7 @@ final class EntityMutator
         private readonly PropertyAccessorInterface $propertyAccessor,
         private readonly MercurePublisherInterface $publisher,
         private readonly PermissionChecker $permissionChecker,
-        private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
+        private readonly ?MercureConfigResolver $mercureConfigResolver = null,
         private readonly ?ContainerInterface $dataTables = null,
     ) {
     }

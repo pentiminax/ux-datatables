@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Dto;
 
-final readonly class AjaxDeleteRequestDto
+final readonly class AjaxEntityQueryDto
 {
     public function __construct(
         public string $dataTable,

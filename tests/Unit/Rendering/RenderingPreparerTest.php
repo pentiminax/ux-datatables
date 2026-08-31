@@ -6,15 +6,15 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Rendering;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
-use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
@@ -72,7 +72,7 @@ final class RenderingPreparerTest extends TestCase
     #[DataProvider('provideCasesWithoutApiPlatformAjax')]
     public function it_does_not_configure_api_platform_ajax(?AsDataTable $attribute, \Closure $configure, ?array $expectedAjax): void
     {
-        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $urlResolver->expects($this->never())->method('resolveCollectionUrl');
 
         $preparer = new RenderingPreparer(urlResolver: $urlResolver);
@@ -110,7 +110,7 @@ final class RenderingPreparerTest extends TestCase
     #[DataProvider('provideApiPlatformOptIns')]
     public function it_configures_api_platform_ajax(AsDataTable $attribute, \Closure $configure): void
     {
-        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $urlResolver->method('resolveCollectionUrl')
             ->with(\stdClass::class)
             ->willReturn('/api/products');
@@ -144,7 +144,7 @@ final class RenderingPreparerTest extends TestCase
     #[DataProvider('provideColumnsForTemplateRendering')]
     public function it_configures_api_platform_template_rendering_only_for_template_columns(array $columns, bool $expectsTemplateRendering): void
     {
-        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $urlResolver->method('resolveCollectionUrl')
             ->with(\stdClass::class)
             ->willReturn('/api/users');
@@ -193,7 +193,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_skips_ajax_when_collection_url_is_null(): void
     {
-        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $urlResolver->method('resolveCollectionUrl')->willReturn(null);
 
         $preparer = new RenderingPreparer(urlResolver: $urlResolver);
@@ -210,7 +210,7 @@ final class RenderingPreparerTest extends TestCase
         $mercureConfig = (new MercureConfig(topics: ['/products/{id}']))
             ->withHubUrl('/.well-known/mercure');
 
-        $mercureResolver = $this->createMock(MercureConfigResolverInterface::class);
+        $mercureResolver = $this->createMock(MercureConfigResolver::class);
         $mercureResolver->method('resolveMercureConfig')
             ->with(\stdClass::class)
             ->willReturn($mercureConfig);
@@ -230,7 +230,7 @@ final class RenderingPreparerTest extends TestCase
         $mercureConfig = (new MercureConfig(topics: ['/products/{id}']))
             ->withHubUrl('/.well-known/mercure');
 
-        $mercureResolver = $this->createMock(MercureConfigResolverInterface::class);
+        $mercureResolver = $this->createMock(MercureConfigResolver::class);
         $mercureResolver->method('resolveMercureConfig')
             ->with(\stdClass::class)
             ->willReturn($mercureConfig);
@@ -251,10 +251,10 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_configures_explicit_mercure_topics_from_attribute(): void
     {
-        $mercureResolver = $this->createMock(MercureConfigResolverInterface::class);
+        $mercureResolver = $this->createMock(MercureConfigResolver::class);
         $mercureResolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
 
         $preparer = new RenderingPreparer(
@@ -284,7 +284,7 @@ final class RenderingPreparerTest extends TestCase
     #[DataProvider('provideCasesSkippingMercure')]
     public function it_skips_mercure_without_consulting_the_resolver(AsDataTable $attribute, \Closure $configure): void
     {
-        $mercureResolver = $this->createMock(MercureConfigResolverInterface::class);
+        $mercureResolver = $this->createMock(MercureConfigResolver::class);
         $mercureResolver->expects($this->never())->method('resolveMercureConfig');
 
         $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
@@ -311,10 +311,10 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_enriches_manual_mercure_config_with_resolved_hub_url(): void
     {
-        $mercureResolver = $this->createMock(MercureConfigResolverInterface::class);
+        $mercureResolver = $this->createMock(MercureConfigResolver::class);
         $mercureResolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
 
         $preparer = new RenderingPreparer(
@@ -333,7 +333,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_throws_when_manual_mercure_has_no_resolvable_hub_url(): void
     {
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn(null);
 
         $preparer = new RenderingPreparer(mercureHubUrlResolver: $hubUrlResolver);
@@ -349,7 +349,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_skips_mercure_when_resolver_returns_null(): void
     {
-        $mercureResolver = $this->createMock(MercureConfigResolverInterface::class);
+        $mercureResolver = $this->createMock(MercureConfigResolver::class);
         $mercureResolver->method('resolveMercureConfig')->willReturn(null);
 
         $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
@@ -513,7 +513,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_does_not_auto_configure_ajax_when_api_platform_is_enabled(): void
     {
-        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $urlResolver->method('resolveCollectionUrl')->willReturn('/api/users');
 
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
