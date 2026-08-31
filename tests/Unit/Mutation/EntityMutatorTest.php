@@ -21,8 +21,8 @@ use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -80,7 +80,7 @@ final class EntityMutatorTest extends TestCase
     {
         // The bare entity-class resolver would produce a *different* topic;
         // it must never be consulted once the DataTable instance resolves.
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
         $dataProviderSpy = $this->createMock(DataProviderInterface::class);
@@ -100,7 +100,7 @@ final class EntityMutatorTest extends TestCase
     public function it_resolves_client_side_datatable_topics_without_hydrating_data(): void
     {
         // The bare resolver must never be consulted once the DataTable resolves.
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
         // A client-side table would hydrate its rows through this provider at
@@ -402,7 +402,7 @@ final class EntityMutatorTest extends TestCase
      */
     private function assertDeletePublishesTopics(
         array $expectedTopics,
-        ?MercureConfigResolverInterface $resolver = null,
+        ?MercureConfigResolver $resolver = null,
         ?ContainerInterface $dataTables = null,
         string $dataTableClass = self::UNREGISTERED_TABLE_CLASS,
     ): void {
@@ -447,7 +447,7 @@ final class EntityMutatorTest extends TestCase
         MercurePublisherInterface $publisher,
         ?PropertyAccessorInterface $accessor = null,
         ?PermissionChecker $permissionChecker = null,
-        ?MercureConfigResolverInterface $resolver = null,
+        ?MercureConfigResolver $resolver = null,
         ?ContainerInterface $dataTables = null,
     ): EntityMutator {
         return new EntityMutator(
@@ -500,9 +500,9 @@ final class EntityMutatorTest extends TestCase
     /**
      * @param string[] $topics
      */
-    private function resolverReturning(array $topics): MercureConfigResolverInterface
+    private function resolverReturning(array $topics): MercureConfigResolver
     {
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->method('resolveMercureConfig')
             ->with(EntityMutatorFixture::class)
             ->willReturn(new MercureConfig(topics: $topics, hubUrl: self::HUB_URL));
@@ -510,9 +510,9 @@ final class EntityMutatorTest extends TestCase
         return $resolver;
     }
 
-    private function hubUrlResolver(?string $hubUrl): MercureHubUrlResolverInterface
+    private function hubUrlResolver(?string $hubUrl): MercureHubUrlResolver
     {
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn($hubUrl);
 
         return $hubUrlResolver;
@@ -546,7 +546,7 @@ final class EntityMutatorFixture
 final class EntityMutatorServerSideFixtureDataTable extends AbstractDataTable
 {
     public function __construct(
-        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
         private readonly ?DataProviderInterface $dataProviderSpy = null,
     ) {
         parent::__construct();
@@ -583,7 +583,7 @@ final class EntityMutatorServerSideFixtureDataTable extends AbstractDataTable
 final class EntityMutatorMismatchedFixtureDataTable extends AbstractDataTable
 {
     public function __construct(
-        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
     ) {
         parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
@@ -615,7 +615,7 @@ final class EntityMutatorMismatchedFixtureDataTable extends AbstractDataTable
 final class EntityMutatorClientSideFixtureDataTable extends AbstractDataTable
 {
     public function __construct(
-        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
         private readonly ?DataProviderInterface $dataProviderSpy = null,
     ) {
         parent::__construct();

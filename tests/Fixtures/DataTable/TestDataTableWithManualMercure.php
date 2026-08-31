@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Fixtures\DataTable;
 
-use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
@@ -18,9 +18,9 @@ use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 class TestDataTableWithManualMercure extends AbstractDataTable
 {
     public function __construct(
-        private readonly ?ApiResourceCollectionUrlResolverInterface $apiResourceCollectionUrlResolver = null,
-        private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
-        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?ApiResourceCollectionUrlResolver $apiResourceCollectionUrlResolver = null,
+        private readonly ?MercureConfigResolver $mercureConfigResolver = null,
+        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
     ) {
         parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(

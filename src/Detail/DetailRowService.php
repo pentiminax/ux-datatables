@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Detail;
 
+use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
@@ -26,31 +27,31 @@ final readonly class DetailRowService
         $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
     }
 
-    public function handleView(ResolvedDataTable $dataTable, int|string $id): DetailRowResult
+    public function handleView(ResolvedDataTable $dataTable, int|string $id): AjaxActionResult
     {
         if (null === $this->twig) {
-            return DetailRowResult::badRequest('Twig is required to render a detail row.');
+            return AjaxActionResult::badRequest('Twig is required to render a detail row.');
         }
 
         $action = $this->resolveCollapsibleDetailAction($dataTable->table);
 
         if (null === $action) {
-            return DetailRowResult::badRequest('No collapsible detail action is configured for this DataTable.');
+            return AjaxActionResult::badRequest('No collapsible detail action is configured for this DataTable.');
         }
 
         try {
             $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
         } catch (EntityNotFoundException) {
-            return DetailRowResult::notFound();
+            return AjaxActionResult::notFound();
         }
 
         if (!$this->isGranted($action, $context->entity)) {
-            return DetailRowResult::forbidden();
+            return AjaxActionResult::forbidden();
         }
 
         $parameters = array_merge(['entity' => $context->entity], $action->getCollapsibleParameters());
 
-        return DetailRowResult::success($this->twig->render($action->getCollapsibleTemplate(), $parameters));
+        return AjaxActionResult::success($this->twig->render($action->getCollapsibleTemplate(), $parameters));
     }
 
     /**

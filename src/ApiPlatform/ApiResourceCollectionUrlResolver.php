@@ -7,7 +7,7 @@ namespace Pentiminax\UX\DataTables\ApiPlatform;
 use ApiPlatform\Metadata\CollectionOperationInterface;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 
-final class ApiResourceCollectionUrlResolver implements ApiResourceCollectionUrlResolverInterface
+class ApiResourceCollectionUrlResolver
 {
     public function __construct(
         private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataFactory,

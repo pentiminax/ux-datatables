@@ -24,7 +24,7 @@ final class MercureTopicResolver
      * @return string[]
      */
     public static function resolve(
-        ?MercureConfigResolverInterface $resolver,
+        ?MercureConfigResolver $resolver,
         string $entityClass,
         ?ContainerInterface $dataTables = null,
         ?string $dataTableClass = null,
