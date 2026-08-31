@@ -15,7 +15,6 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
-use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\Action;
@@ -120,16 +119,28 @@ final class DataTableRuntimeFactoryTest extends TestCase
     }
 
     #[Test]
-    public function injected_data_provider_resolver_enables_auto_provider_resolution(): void
+    public function injected_auto_data_provider_factory_enables_auto_provider_resolution(): void
     {
         $runtime = $this->createRuntime(
             asDataTable: new AsDataTable(entityClass: 'App\Entity\Movie'),
-            dataProviderResolver: new DataProviderResolver(
-                new AutoDataProviderFactory($this->createStub(EntityManagerInterface::class))
-            ),
+            autoDataProviderFactory: new AutoDataProviderFactory($this->createStub(EntityManagerInterface::class)),
         );
 
         $this->assertInstanceOf(DataProviderInterface::class, $runtime->getDataProvider());
+    }
+
+    #[Test]
+    public function create_runtime_prioritizes_the_manual_provider_over_auto_configuration(): void
+    {
+        $manualProvider = $this->createMock(DataProviderInterface::class);
+
+        $runtime = $this->createRuntime(
+            manualDataProviderFactory: static fn (): DataProviderInterface => $manualProvider,
+            asDataTable: new AsDataTable(entityClass: 'App\Entity\Movie'),
+            autoDataProviderFactory: new AutoDataProviderFactory($this->createStub(EntityManagerInterface::class)),
+        );
+
+        $this->assertSame($manualProvider, $runtime->getDataProvider());
     }
 
     /**
@@ -152,7 +163,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
         $csrfTokenManager->expects($this->never())->method('getToken');
 
         $runtime = (new DataTableRuntimeFactory(
-            dataProviderResolver: new DataProviderResolver(new AutoDataProviderFactory($em)),
+            autoDataProviderFactory: new AutoDataProviderFactory($em),
             templateColumnRenderer: new TemplateColumnRenderer($twig),
             actionRowDataResolver: new ActionRowDataResolver(csrfTokenManager: $csrfTokenManager),
         ))->createRuntime(
@@ -184,9 +195,9 @@ final class DataTableRuntimeFactoryTest extends TestCase
     private function createRuntime(
         ?\Closure $manualDataProviderFactory = null,
         ?AsDataTable $asDataTable = null,
-        ?DataProviderResolver $dataProviderResolver = null,
+        ?AutoDataProviderFactory $autoDataProviderFactory = null,
     ): DataTableRuntime {
-        return (new DataTableRuntimeFactory(dataProviderResolver: $dataProviderResolver))->createRuntime(
+        return (new DataTableRuntimeFactory(autoDataProviderFactory: $autoDataProviderFactory))->createRuntime(
             table: new DataTable('movies'),
             columns: [],
             asDataTable: $asDataTable,

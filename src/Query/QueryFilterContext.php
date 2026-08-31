@@ -62,7 +62,7 @@ final class QueryFilterContext
      * agreeing. Use this instead of {@see self::nextParamIndex()} when one QueryFilterInterface
      * implementation needs to reference one bound value from more than one DQL fragment.
      *
-     * {@see QueryFilterChain::apply()} clears that stability between filters, so a second
+     * {@see QueryFilterPipeline} clears that stability between filters, so a second
      * filter processing the same column still draws a genuinely fresh index from the shared
      * counter — the stability here is scoped to a single apply() call and never leaks across
      * filter boundaries, which is what keeps two different filters from colliding on the
@@ -74,7 +74,7 @@ final class QueryFilterContext
     }
 
     /**
-     * @internal called by {@see QueryFilterChain::apply()} between filters so
+     * @internal called by {@see QueryFilterPipeline} between filters so
      * paramIndexFor()'s per-reference stability is scoped to a single filter's apply() call
      * and never leaks across filter boundaries
      */

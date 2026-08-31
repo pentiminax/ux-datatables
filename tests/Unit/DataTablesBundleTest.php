@@ -34,7 +34,7 @@ final class DataTablesBundleTest extends TestCase
 
         self::assertArrayHasKey('DataTablesBundle', $this->kernel->getBundles());
         self::assertInstanceOf(DataTableInfrastructure::class, $infrastructure);
-        self::assertInstanceOf(DefaultDataTableQueryIntentFactory::class, $infrastructure->queryIntentFactory());
+        self::assertInstanceOf(DefaultDataTableQueryIntentFactory::class, $infrastructure->queryIntentFactory);
     }
 
     /**

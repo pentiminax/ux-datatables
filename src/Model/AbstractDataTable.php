@@ -93,7 +93,7 @@ abstract class AbstractDataTable
 
         $this->columns = iterator_to_array($this->configureColumns());
 
-        $columnResolver = $this->infrastructure()->columnResolver();
+        $columnResolver = $this->infrastructure()->columnResolver;
 
         $actions = $this->configureActions(new Actions());
 
@@ -156,7 +156,7 @@ abstract class AbstractDataTable
             return;
         }
 
-        $renderingPreparer = $this->infrastructure()->renderingPreparer();
+        $renderingPreparer = $this->infrastructure()->renderingPreparer;
 
         $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable);
         $this->prepareExplicitInlineData();
@@ -196,7 +196,7 @@ abstract class AbstractDataTable
             return null;
         }
 
-        return $this->infrastructure()->renderingPreparer()->resolveMercureConfig($this->table, $this->asDataTable);
+        return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->asDataTable);
     }
 
     final public function getEntityClass(): ?string
@@ -218,7 +218,7 @@ abstract class AbstractDataTable
             }
         }
 
-        return $this->infrastructure()->columnResolver()->resolveColumns($this->asDataTable ?? $this->resolveAsDataTable());
+        return $this->infrastructure()->columnResolver->resolveColumns($this->asDataTable ?? $this->resolveAsDataTable());
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -317,10 +317,10 @@ abstract class AbstractDataTable
     {
         $qb = $this->customizeQueryBuilder($qb, $request);
 
-        return $this->infrastructure()->queryFilterPipeline()->apply(
+        return $this->infrastructure()->queryFilterPipeline->apply(
             qb: $qb,
             request: $request,
-            columns: $this->infrastructure()->columnResolver()->filterStaticPermissions($this->columns),
+            columns: $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns),
             filters: $this->filters ?? null,
             registry: $this->createSearchStrategyRegistry(),
             predicateBuilder: $this->createSearchPredicateBuilder(),
@@ -401,7 +401,7 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
-        return $this->infrastructure()->runtimeFactory()->createRowMapper(
+        return $this->infrastructure()->runtimeFactory->createRowMapper(
             baseMapper: $this->mapRow(...),
             columns: $this->columns,
         );
@@ -458,7 +458,7 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
-        return $this->runtime ??= $this->infrastructure()->runtimeFactory()->createRuntime(
+        return $this->runtime ??= $this->infrastructure()->runtimeFactory->createRuntime(
             table: $this->table,
             columns: $this->columns,
             asDataTable: $this->asDataTable,
@@ -483,7 +483,7 @@ abstract class AbstractDataTable
      */
     private function collectAjaxQueryForProfiler(JsonResponse $response, float $start): void
     {
-        $profiler = $this->infrastructure()->profiler();
+        $profiler = $this->infrastructure()->profiler;
 
         if (null === $profiler) {
             return;

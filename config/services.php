@@ -20,7 +20,6 @@ use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Controller\AjaxExportController;
 use Pentiminax\UX\DataTables\Controller\AjaxTemplateRenderController;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
-use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\Detail\DetailRowService;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
 use Pentiminax\UX\DataTables\Export\CsvExporter;
@@ -35,7 +34,6 @@ use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
-use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntentFactoryInterface;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Rehydration\RowIdentifierExtractor;
 use Pentiminax\UX\DataTables\Rehydration\SourceRowResolver;
@@ -74,7 +72,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.query.intent_factory', DefaultDataTableQueryIntentFactory::class)
         ->private();
 
-    $services->alias(DataTableQueryIntentFactoryInterface::class, 'datatables.query.intent_factory')
+    $services->alias(DefaultDataTableQueryIntentFactory::class, 'datatables.query.intent_factory')
         ->private();
 
     $services->set('datatables.query.filter_pipeline', QueryFilterPipeline::class)
@@ -292,12 +290,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('doctrine.orm.entity_manager')->nullOnInvalid())
         ->private();
 
-    $services->set('datatables.data_provider.resolver', DataProviderResolver::class)
-        ->arg(0, service('datatables.data_provider.auto_factory'))
-        ->private();
-
     $services->set('datatables.runtime.factory', DataTableRuntimeFactory::class)
-        ->arg(0, service('datatables.data_provider.resolver'))
+        ->arg(0, service('datatables.data_provider.auto_factory'))
         ->arg(1, service('datatables.column.template_column_renderer'))
         ->arg(2, service('datatables.column.action_row_data_resolver'))
         ->arg(3, service(UrlColumnDataResolver::class)->nullOnInvalid())

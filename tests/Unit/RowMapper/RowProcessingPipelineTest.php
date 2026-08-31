@@ -7,13 +7,14 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\RowMapper;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
+use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowStageInterface;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
-use Pentiminax\UX\DataTables\RowMapper\Stage\ActionResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowStageContext;
@@ -185,12 +186,12 @@ final class RowProcessingPipelineTest extends TestCase
      */
     #[Test]
     #[DataProvider('actionRowProvider')]
-    public function it_resolves_action_urls_through_the_action_resolution_stage(\Closure $baseMapperFactory, array $columns, mixed $row, array $expected): void
+    public function it_resolves_action_urls(\Closure $baseMapperFactory, array $columns, mixed $row, array $expected): void
     {
-        $pipeline = (new RowProcessingPipeline(
+        $pipeline = new RowProcessingPipeline(
             baseMapper: $baseMapperFactory($columns),
             columns: $columns,
-        ))->add(new ActionResolutionStage(new ActionRowDataResolver()));
+        );
 
         $mappedRow = $pipeline->map($row);
 
@@ -224,6 +225,65 @@ final class RowProcessingPipelineTest extends TestCase
                 ActionRowDataResolver::ROW_ACTIONS_KEY => ['DETAIL' => ['url' => '/movies/42']],
             ],
         ];
+
+        yield 'row without action column is passed through' => [
+            static fn (array $columns): \Closure => static fn (array $row): array => ['id' => $row['id']],
+            [TextColumn::new('id')],
+            ['id' => 3],
+            ['id' => 3],
+        ];
+    }
+
+    #[Test]
+    public function it_resolves_url_columns(): void
+    {
+        $pipeline = new RowProcessingPipeline(
+            baseMapper: static fn (array $row): array => ['website' => $row['label']],
+            columns: [
+                UrlColumn::new('website')
+                    ->linkToUrl(static fn (array $row): string => 'https://example.com/users/'.$row['slug']),
+            ],
+        );
+
+        $mappedRow = $pipeline->map(['label' => 'Profile', 'slug' => 'jane']);
+
+        $this->assertSame([
+            'website'                           => 'Profile',
+            UrlColumnDataResolver::ROW_URLS_KEY => ['website' => 'https://example.com/users/jane'],
+        ], $mappedRow);
+    }
+
+    /**
+     * @param array<string, mixed>  $mappedRow
+     * @param list<ColumnInterface> $columns
+     * @param array<string, mixed>  $expected
+     */
+    #[Test]
+    #[DataProvider('renderedRowProvider')]
+    public function it_renders_template_columns_and_leaves_the_other_columns_alone(array $mappedRow, array $columns, array $expected): void
+    {
+        $pipeline = new RowProcessingPipeline(
+            baseMapper: static fn (array $row): array => $row,
+            columns: $columns,
+            templateColumnRenderer: self::templateColumnRenderer(['badge.html.twig' => '<b>{{ data }}</b>']),
+        );
+
+        $this->assertSame($expected, $pipeline->map($mappedRow));
+    }
+
+    public static function renderedRowProvider(): iterable
+    {
+        yield 'template column is rendered next to its source value' => [
+            ['status' => 'active'],
+            [TemplateColumn::new('status_display')->setField('status')->setTemplate('badge.html.twig')],
+            ['status' => 'active', 'status_display' => '<b>active</b>'],
+        ];
+
+        yield 'non template column is passed through' => [
+            ['id' => 42],
+            [TextColumn::new('id')],
+            ['id' => 42],
+        ];
     }
 
     #[Test]
@@ -241,11 +301,10 @@ final class RowProcessingPipelineTest extends TestCase
                     ->setTemplate('datatable/columns/order.html.twig'),
                 self::detailActionColumn(static fn (TemplateRow $row): string => '/movies/'.$row->id),
             ],
-        ))->add(new NormalizationStage())
-          ->add(self::templateRenderingStage([
-              'datatable/columns/order.html.twig' => '{{ row.__ux_datatables_actions.DETAIL.url|default("missing") }}|{{ row.id }}-{{ data }}',
-          ]))
-          ->add(new ActionResolutionStage(new ActionRowDataResolver()));
+            templateColumnRenderer: self::templateColumnRenderer([
+                'datatable/columns/order.html.twig' => '{{ row.__ux_datatables_actions.DETAIL.url|default("missing") }}|{{ row.id }}-{{ data }}',
+            ]),
+        ))->add(new NormalizationStage());
 
         $mappedRow = $pipeline->map(new TemplateRow(id: 7, title: 'Alien', status: 'active'));
 

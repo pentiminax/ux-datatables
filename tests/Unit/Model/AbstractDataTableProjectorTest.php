@@ -9,7 +9,6 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
-use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
@@ -47,7 +46,7 @@ final class AbstractDataTableProjectorTest extends TestCase
         $table = new ProjectingCustomerTable();
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             runtimeFactory: new DataTableRuntimeFactory(
-                dataProviderResolver: new DataProviderResolver(new AutoDataProviderFactory($this->em)),
+                autoDataProviderFactory: new AutoDataProviderFactory($this->em),
             ),
         ));
 
