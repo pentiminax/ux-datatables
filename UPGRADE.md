@@ -5,11 +5,11 @@ current version and the target, oldest first.
 
 ## v0.82 → v0.83
 
-Affects custom `QueryFilterInterface` implementations, code that implemented
-`DataTableQueryIntentFactoryInterface`, and code that touched `DataTableInfrastructure` or the
-internal query/row-pipeline classes listed below. Table configuration, columns, Twig templates, the
-Ajax routes, and the serialized frontend payload are unchanged. If your project only configures
-tables through `AbstractDataTable`, there is nothing to do.
+Affects custom `QueryFilterInterface` implementations, code that implemented one of the removed
+interfaces, and code that touched `DataTableInfrastructure`, the Ajax result types, or the internal
+query/row-pipeline classes listed below. Table configuration, columns, Twig templates, the Ajax
+routes, and every JSON payload on the wire are unchanged. If your project only configures tables
+through `AbstractDataTable`, there is nothing to do.
 
 ### `DataTableQueryIntent` is flat
 
@@ -100,6 +100,67 @@ extension point, and none had a public service alias.
 `RowStageInterface` and `RowProcessingPipeline::add()` are untouched: a custom stage of yours keeps
 working. Only these three built-in stage classes disappear, and the behavior they performed still
 runs in the same order inside the pipeline.
+
+### Mercure and API Platform resolver interfaces are removed
+
+Each of these interfaces had exactly one implementation. Type-hint the concrete class instead; it is
+no longer `final`, so a test double or a subclass of your own still works.
+
+| Removed interface | Type-hint instead |
+| --- | --- |
+| `Mercure\MercureConfigResolverInterface` | `Mercure\MercureConfigResolver` |
+| `Mercure\MercureHubUrlResolverInterface` | `Mercure\MercureHubUrlResolver` |
+| `Mercure\ApiResourceMercureMetadataResolverInterface` | `ApiPlatform\ApiResourceMercureMetadataResolver` |
+| `ApiPlatform\ApiResourceCollectionUrlResolverInterface` | `ApiPlatform\ApiResourceCollectionUrlResolver` |
+
+The service aliases move with them, so an autowired argument or a service decoration targeting one
+of the interfaces no longer resolves. Point it at the concrete class.
+
+`MercurePublisherInterface` is untouched: it is the supported seam for replacing how updates are
+published, and a custom publisher of yours keeps working.
+
+### Ajax result and request DTOs are collapsed
+
+`DetailRowResult` and `EditFormResult` were the same four-property type with the same factories, and
+each Ajax controller rebuilt the JSON by hand. One result type now owns both.
+
+```php
+// before
+use Pentiminax\UX\DataTables\Detail\DetailRowResult;
+use Pentiminax\UX\DataTables\Form\EditFormResult;
+use Pentiminax\UX\DataTables\Http\JsonErrorResponse;
+
+$result = $detailRowService->handleView($dataTable, $id);          // DetailRowResult
+
+if (!$result->success) {
+    return JsonErrorResponse::create($result->message, $result->statusCode);
+}
+
+return new JsonResponse(['success' => true, 'html' => $result->html]);
+
+// after
+use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
+
+$result = $detailRowService->handleView($dataTable, $id);          // AjaxActionResult
+
+return $result->toJsonResponse();
+```
+
+What changed:
+
+- `Detail\DetailRowResult` and `Form\EditFormResult` are replaced by `Ajax\AjaxActionResult`, with
+  the same `success`, `html`, `message`, and `statusCode` properties and the same
+  `success()`/`badRequest()`/`invalid()`/`notFound()`/`forbidden()` factories
+- `DetailRowService::handleView()`, `EditFormService::handleView()`, and
+  `EditFormService::handleSubmit()` return `AjaxActionResult`
+- `Http\JsonErrorResponse` is removed. `AjaxActionResult::toJsonResponse()` builds the response,
+  error cases included
+- `Dto\AjaxDetailQueryDto` is renamed `Dto\AjaxEntityQueryDto`, and `Dto\AjaxEditFormQueryDto` and
+  `Dto\AjaxDeleteRequestDto` are removed in favor of it. The three routes always mapped the same
+  `{dataTable, id}` body. `Dto\AjaxEditRequestDto` and `Dto\AjaxEditFormRequestDto` are unchanged
+
+The Ajax JSON is byte-for-byte what it was: same routes, same keys, same status codes. Frontend
+code, including a custom fetch of your own against these routes, needs no change.
 
 ## v0.80 → v0.81
 
