@@ -9,20 +9,19 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
-use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntentFactoryInterface;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 
 final class DataTableInfrastructure
 {
     public function __construct(
-        private readonly ColumnResolver $columnResolver,
-        private readonly RenderingPreparer $renderingPreparer,
-        private readonly DataTableRuntimeFactory $runtimeFactory,
-        private readonly DataTableQueryIntentFactoryInterface $queryIntentFactory,
-        private readonly QueryFilterPipeline $queryFilterPipeline,
+        public readonly ColumnResolver $columnResolver,
+        public readonly RenderingPreparer $renderingPreparer,
+        public readonly DataTableRuntimeFactory $runtimeFactory,
+        public readonly DefaultDataTableQueryIntentFactory $queryIntentFactory,
+        public readonly QueryFilterPipeline $queryFilterPipeline,
         private ?DataTableBuilderInterface $builder = null,
-        private readonly ?DataTableProfiler $profiler = null,
+        public readonly ?DataTableProfiler $profiler = null,
     ) {
     }
 
@@ -30,7 +29,7 @@ final class DataTableInfrastructure
         ?ColumnResolver $columnResolver = null,
         ?RenderingPreparer $renderingPreparer = null,
         ?DataTableRuntimeFactory $runtimeFactory = null,
-        ?DataTableQueryIntentFactoryInterface $queryIntentFactory = null,
+        ?DefaultDataTableQueryIntentFactory $queryIntentFactory = null,
         ?QueryFilterPipeline $queryFilterPipeline = null,
         ?DataTableBuilderInterface $builder = null,
         ?DataTableProfiler $profiler = null,
@@ -46,41 +45,6 @@ final class DataTableInfrastructure
             builder: $builder,
             profiler: $profiler,
         );
-    }
-
-    public function columnResolver(): ColumnResolver
-    {
-        return $this->columnResolver;
-    }
-
-    public function renderingPreparer(): RenderingPreparer
-    {
-        return $this->renderingPreparer;
-    }
-
-    public function runtimeFactory(): DataTableRuntimeFactory
-    {
-        return $this->runtimeFactory;
-    }
-
-    public function queryIntentFactory(): DataTableQueryIntentFactoryInterface
-    {
-        return $this->queryIntentFactory;
-    }
-
-    public function queryFilterPipeline(): QueryFilterPipeline
-    {
-        return $this->queryFilterPipeline;
-    }
-
-    /**
-     * Null outside a real DI container (e.g. {@see self::createDefault()} without one), so
-     * profiling is a no-op rather than a hard dependency for tables built without the bundle's
-     * service wiring.
-     */
-    public function profiler(): ?DataTableProfiler
-    {
-        return $this->profiler;
     }
 
     /**

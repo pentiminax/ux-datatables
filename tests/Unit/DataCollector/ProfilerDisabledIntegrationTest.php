@@ -52,6 +52,6 @@ final class ProfilerDisabledIntegrationTest extends TestCase
         /** @var DataTableInfrastructure $infrastructure */
         $infrastructure = $container->get('test.datatables.infrastructure');
 
-        $this->assertNull($infrastructure->profiler());
+        $this->assertNull($infrastructure->profiler);
     }
 }
