@@ -12,7 +12,9 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  * Date range filter with optional "from" and "to" bounds.
  *
  * The submitted value is an associative array {from?: string, to?: string}.
- * Each provided bound is applied independently (>= from, <= to).
+ * `from` is inclusive (`>=`). A date-only `to` on a datetime column includes the
+ * selected calendar day via an exclusive next-midnight comparison (`<`); a
+ * time-bearing `to`, and any `to` on a date column, stay inclusive (`<=`).
  *
  * Native Doctrine date/time columns bind a parsed {@see \DateTimeImmutable} with the
  * field's type. A raw string makes Doctrine conversion throw, and PostgreSQL rejects
@@ -21,6 +23,19 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  */
 final class DateRangeFilter extends AbstractFilter
 {
+    /**
+     * Doctrine types that store a time of day. A date-only HTML input normalizes to
+     * midnight, so an inclusive `<=` would drop every later timestamp on that day.
+     *
+     * @var list<string>
+     */
+    private const array DATETIME_FIELD_TYPES = [
+        'datetime',
+        'datetime_immutable',
+        'datetimetz',
+        'datetimetz_immutable',
+    ];
+
     protected function getType(): string
     {
         return 'dateRange';
@@ -48,9 +63,17 @@ final class DateRangeFilter extends AbstractFilter
         }
 
         if (null !== $to) {
-            $param = $this->parameterName('to');
-            $qb->andWhere(\sprintf('%s <= :%s', $expr, $param));
-            $this->bindBound($qb, $param, $to, $dateType);
+            $param       = $this->parameterName('to');
+            $rawTo       = \is_string($value['to'] ?? null) ? trim($value['to']) : '';
+            $exclusiveTo = $this->exclusiveNextDayUpperBound($rawTo, $to, $dateType);
+
+            if (null !== $exclusiveTo) {
+                $qb->andWhere(\sprintf('%s < :%s', $expr, $param));
+                $this->bindBound($qb, $param, $exclusiveTo, $dateType);
+            } else {
+                $qb->andWhere(\sprintf('%s <= :%s', $expr, $param));
+                $this->bindBound($qb, $param, $to, $dateType);
+            }
         }
     }
 
@@ -78,5 +101,26 @@ final class DateRangeFilter extends AbstractFilter
         }
 
         $qb->setParameter($param, $value, $dateType);
+    }
+
+    /**
+     * Date-only `to` on a datetime column is midnight of that day. Inclusive `<=`
+     * would drop every later timestamp on the selected calendar day.
+     */
+    private function exclusiveNextDayUpperBound(string $rawTo, string|\DateTimeImmutable $to, ?string $dateType): ?\DateTimeImmutable
+    {
+        if (!$to instanceof \DateTimeImmutable
+            || !\in_array($dateType, self::DATETIME_FIELD_TYPES, true)
+            || !$this->isDateOnlyInput($rawTo)
+        ) {
+            return null;
+        }
+
+        return $to->add(new \DateInterval('P1D'));
+    }
+
+    private function isDateOnlyInput(string $value): bool
+    {
+        return 1 === preg_match('/^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/', $value);
     }
 }
