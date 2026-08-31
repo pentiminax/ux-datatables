@@ -103,8 +103,25 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
     }
 
     /**
-     * Doctrine's toIterable() cannot hydrate fetch-joined collections, so a query builder that
-     * fetch-joins a to-many association is not exportable through this path.
+     * Walks distinct root identifiers once, then loads them back in chunks.
+     *
+     * toIterable() cannot serve an export whose DQL joins a to-many association: it throws
+     * QueryException on a fetch-joined collection, and on a plain LEFT JOIN added only to search
+     * or filter (a searchable `tags.label` column is enough) it yields the same root once per
+     * joined row. Either way the export breaks after the download headers were already sent, or
+     * writes duplicated rows. Reading the identifiers first and re-loading them through
+     * getResult() gives the uniqueness fetchData() already has.
+     *
+     * The identifier is appended to the ORDER BY: a user ordering on a non-unique column (a
+     * status, a date) leaves ties whose relative order the database is free to change between
+     * two queries, which would let a row be exported twice or not at all.
+     *
+     * Chunks are loaded through `WHERE id IN (...)` rather than LIMIT/OFFSET: paginating with a
+     * growing offset makes the database re-scan the skipped rows on every chunk, and a concurrent
+     * insert or delete shifts the window under the export.
+     *
+     * ponytail: the identifier list is held in memory for the whole export (about 8 MB per 100k
+     * rows). Walk the identifiers with a keyset cursor if that ceiling ever matters.
      *
      * $pageProjector runs once per $exportChunkSize rows rather than once over the whole result
      * set: holding every row to project them together would defeat the streaming this method
@@ -123,21 +140,38 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
             $qb = ($this->configureQueryBuilder)($qb, $request);
         }
 
-        $chunkSize = max(1, $this->exportChunkSize);
-        $buffer    = [];
+        $identifier = $this->em->getClassMetadata($this->entityClass)->getSingleIdentifierFieldName();
 
-        foreach ($qb->getQuery()->toIterable() as $item) {
-            $buffer[] = $this->rootEntity($item);
-            if (\count($buffer) >= $chunkSize) {
-                yield from $this->mapChunk($buffer);
-                $this->releaseChunk($buffer);
-                $buffer = [];
+        $qb->addOrderBy("$alias.$identifier", 'ASC');
+
+        $ids = (clone $qb)
+            ->select("$alias.$identifier")
+            ->setFirstResult(null)
+            ->setMaxResults(null)
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        $ids = array_values(array_unique($ids, \SORT_REGULAR));
+
+        // A LIMIT/OFFSET set by customizeQueryBuilder() caps the export itself; applied here it
+        // counts root entities, where the query's own LIMIT would have counted joined SQL rows.
+        $ids = \array_slice($ids, $qb->getFirstResult() ?? 0, $qb->getMaxResults());
+
+        foreach (array_chunk($ids, max(1, $this->exportChunkSize)) as $chunk) {
+            $pageQb = (clone $qb)
+                ->setFirstResult(null)
+                ->setMaxResults(null)
+                ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_export_ids'))
+                ->setParameter('ux_datatables_export_ids', $chunk);
+
+            $items = array_map($this->rootEntity(...), $pageQb->getQuery()->getResult());
+
+            if ([] === $items) {
+                continue;
             }
-        }
 
-        if ([] !== $buffer) {
-            yield from $this->mapChunk($buffer);
-            $this->releaseChunk($buffer);
+            yield from $this->mapChunk($items);
+            $this->releaseChunk($items);
         }
     }
 
@@ -197,7 +231,7 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
             }
         }
 
-        throw new \LogicException('Doctrine CSV export expected a root entity from toIterable().');
+        throw new \LogicException('Doctrine CSV export expected a root entity from the chunk query.');
     }
 
     /**
