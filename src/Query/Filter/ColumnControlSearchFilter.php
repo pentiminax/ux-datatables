@@ -7,7 +7,10 @@ namespace Pentiminax\UX\DataTables\Query\Filter;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\Query\BooleanSearchTerm;
+use Pentiminax\UX\DataTables\Query\DateSearchTerm;
 use Pentiminax\UX\DataTables\Query\Intent\ColumnControlIntent;
+use Pentiminax\UX\DataTables\Query\NumericSearchTerm;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Query\SearchConditionBuilder;
@@ -18,10 +21,10 @@ use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
  * Filter that applies column-control search criteria using the strategy pattern.
  *
  * Consumes the normalized {@see ColumnControlIntent} criteria. List criteria are
- * applied through an explicit IN branch on text columns; native UUID/ULID columns
- * expand to typed equalities so invalid terms never reach setParameter() and
- * binary identifier types still match. Scalar criteria delegate to the registered
- * search strategy for their logic.
+ * applied through an explicit IN branch on text columns; native UUID/ULID, numeric,
+ * date, and boolean columns expand to typed equalities so invalid terms never reach
+ * setParameter() and driver-specific types still match. Scalar criteria delegate to
+ * the registered search strategy for their logic.
  *
  * A list value of '' (the empty string) is matched with IS NULL rather than being
  * bound into the IN clause: an optional relation's dot-path field (e.g. a
@@ -71,6 +74,62 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
         $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $field);
         if (null !== $uuidType) {
             $this->applyUuidList($qb, $field, $values, $alias, $uuidType);
+
+            return;
+        }
+
+        $integerType = RelationFieldResolver::resolveIntegerFieldType($qb, $field);
+        if (null !== $integerType) {
+            $this->applyTypedEqualityList(
+                $qb,
+                $field,
+                $values,
+                $alias,
+                $integerType,
+                static fn (string $value): ?string => NumericSearchTerm::normalize($value, $integerType),
+            );
+
+            return;
+        }
+
+        $floatType = RelationFieldResolver::resolveFloatFieldType($qb, $field);
+        if (null !== $floatType) {
+            $this->applyTypedEqualityList(
+                $qb,
+                $field,
+                $values,
+                $alias,
+                $floatType,
+                static fn (string $value): ?string => NumericSearchTerm::normalize($value, $floatType),
+            );
+
+            return;
+        }
+
+        $dateType = RelationFieldResolver::resolveDateFieldType($qb, $field);
+        if (null !== $dateType) {
+            $this->applyTypedEqualityList(
+                $qb,
+                $field,
+                $values,
+                $alias,
+                $dateType,
+                DateSearchTerm::normalize(...),
+            );
+
+            return;
+        }
+
+        $booleanType = RelationFieldResolver::resolveBooleanFieldType($qb, $field);
+        if (null !== $booleanType) {
+            $this->applyTypedEqualityList(
+                $qb,
+                $field,
+                $values,
+                $alias,
+                $booleanType,
+                BooleanSearchTerm::normalize(...),
+            );
 
             return;
         }
@@ -133,6 +192,73 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
         }
 
         $qb->andWhere($qb->expr()->orX(...$conditions));
+    }
+
+    /**
+     * Integer, float, date, and boolean columns reject a raw string IN list the same way
+     * UUID columns do: PostgreSQL raises `invalid input syntax` / `operator does not exist`,
+     * MySQL coerces garbage to 0/false and matches the wrong rows, and Doctrine date types
+     * throw when converting a string. Bind each surviving value with the field type.
+     *
+     * Empty strings still mean "no value assigned" (IS NULL), matching the text IN path.
+     * Other unbindable terms are dropped rather than crashing the Ajax request.
+     *
+     * @param list<mixed>                                             $values
+     * @param callable(string): (string|\DateTimeImmutable|bool|null) $normalize
+     */
+    private function applyTypedEqualityList(
+        QueryBuilder $qb,
+        string $field,
+        array $values,
+        string $alias,
+        string $doctrineType,
+        callable $normalize,
+    ): void {
+        $conditions  = [];
+        $includeNull = false;
+        $expr        = RelationFieldResolver::resolve($qb, $alias, $field);
+
+        foreach ($values as $index => $value) {
+            if ('' === $value) {
+                $includeNull = true;
+
+                continue;
+            }
+
+            if (!\is_string($value) && !\is_int($value) && !\is_float($value) && !\is_bool($value)) {
+                continue;
+            }
+
+            $normalized = $normalize(match (true) {
+                \is_bool($value) => $value ? '1' : '0',
+                default          => (string) $value,
+            });
+
+            if (null === $normalized) {
+                continue;
+            }
+
+            $paramName    = \sprintf('%s_in_%d', str_replace('.', '_', $field), $index);
+            $conditions[] = \sprintf('%s = :%s', $expr, $paramName);
+            $qb->setParameter($paramName, $normalized, $doctrineType);
+        }
+
+        if ([] === $conditions && !$includeNull) {
+            return;
+        }
+
+        if ([] === $conditions) {
+            $qb->andWhere($qb->expr()->isNull($expr));
+
+            return;
+        }
+
+        $or = $qb->expr()->orX(...$conditions);
+        if ($includeNull) {
+            $or->add($qb->expr()->isNull($expr));
+        }
+
+        $qb->andWhere($or);
     }
 
     private function applyScalar(QueryBuilder $qb, QueryFilterContext $context, ColumnControlIntent $control, string $field): void
