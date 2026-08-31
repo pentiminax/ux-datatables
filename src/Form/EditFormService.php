@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Form;
 
+use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -27,26 +28,26 @@ final class EditFormService
         private readonly EditModalRenderer $renderer,
         private readonly EditModalTemplateResolverInterface $templateResolver,
         private readonly MercurePublisherInterface $publisher,
-        private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
+        private readonly ?MercureConfigResolver $mercureConfigResolver = null,
         private readonly ?ContainerInterface $dataTables = null,
         ?PermissionChecker $permissionChecker = null,
     ) {
         $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
     }
 
-    public function handleView(ResolvedDataTable $dataTable, int|string $id): EditFormResult
+    public function handleView(ResolvedDataTable $dataTable, int|string $id): AjaxActionResult
     {
         try {
             $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
         } catch (EntityNotFoundException) {
-            return EditFormResult::notFound();
+            return AjaxActionResult::notFound();
         }
 
         if (!$this->permissionChecker->isGranted('EDIT', $context->entity)) {
-            return EditFormResult::forbidden();
+            return AjaxActionResult::forbidden();
         }
 
-        return EditFormResult::success($this->renderer->render($this->createRenderRequest(
+        return AjaxActionResult::success($this->renderer->render($this->createRenderRequest(
             entity: $context->entity,
             form: $this->buildForm($dataTable, $context),
             dataTableClass: $dataTable->dataTableClass,
@@ -56,16 +57,16 @@ final class EditFormService
     /**
      * @param array<string, mixed> $formData
      */
-    public function handleSubmit(ResolvedDataTable $dataTable, int|string $id, array $formData): EditFormResult
+    public function handleSubmit(ResolvedDataTable $dataTable, int|string $id, array $formData): AjaxActionResult
     {
         try {
             $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
         } catch (EntityNotFoundException) {
-            return EditFormResult::notFound();
+            return AjaxActionResult::notFound();
         }
 
         if (!$this->permissionChecker->isGranted('EDIT', $context->entity)) {
-            return EditFormResult::forbidden();
+            return AjaxActionResult::forbidden();
         }
 
         $form = $this->buildForm($dataTable, $context);
@@ -81,7 +82,7 @@ final class EditFormService
                 )
             );
 
-            return EditFormResult::invalid($html);
+            return AjaxActionResult::invalid($html);
         }
 
         $context->manager->flush();
@@ -91,7 +92,7 @@ final class EditFormService
             'id'   => $id,
         ]);
 
-        return EditFormResult::success();
+        return AjaxActionResult::success();
     }
 
     private function buildForm(ResolvedDataTable $dataTable, MutationContext $context): FormInterface

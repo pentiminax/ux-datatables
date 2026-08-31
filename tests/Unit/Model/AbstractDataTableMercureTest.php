@@ -7,7 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
@@ -40,7 +40,7 @@ final class AbstractDataTableMercureTest extends TestCase
     #[Test]
     public function it_delegates_to_the_pure_resolver_for_a_server_side_table(): void
     {
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
         $dataTable = new AbstractDataTableMercureServerSideFixture($hubUrlResolver);
@@ -87,7 +87,7 @@ final class AbstractDataTableMercureClientSideFixture extends AbstractDataTable
 final class AbstractDataTableMercureServerSideFixture extends AbstractDataTable
 {
     public function __construct(
-        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
     ) {
         parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(

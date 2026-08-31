@@ -13,7 +13,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
 use Pentiminax\UX\DataTables\Detail\DetailRowService;
-use Pentiminax\UX\DataTables\Dto\AjaxDetailQueryDto;
+use Pentiminax\UX\DataTables\Dto\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
@@ -41,7 +41,7 @@ final class AjaxDetailControllerTest extends TestCase
     {
         $controller = $this->controller($this->registryReturning(new AjaxDetailControllerFixture('alice@example.com')), true);
 
-        $response = $controller(new AjaxDetailQueryDto(dataTable: $this->dataTableToken(), id: 7));
+        $response = $controller(new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 7));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
@@ -55,7 +55,7 @@ final class AjaxDetailControllerTest extends TestCase
     {
         $controller = $this->controller($this->registryReturning(new AjaxDetailControllerFixture('alice@example.com')), false);
 
-        $response = $controller(new AjaxDetailQueryDto(dataTable: $this->dataTableToken(), id: 7));
+        $response = $controller(new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 7));
 
         $this->assertSame(403, $response->getStatusCode());
     }
@@ -69,7 +69,7 @@ final class AjaxDetailControllerTest extends TestCase
         $controller = $this->controller($registry, true);
 
         $this->expectException(InvalidDataTableTokenException::class);
-        $controller(new AjaxDetailQueryDto(dataTable: 'forged-token', id: 7));
+        $controller(new AjaxEntityQueryDto(dataTable: 'forged-token', id: 7));
     }
 
     private function controller(ManagerRegistry $registry, bool $granted): AjaxDetailController

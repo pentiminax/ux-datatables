@@ -19,8 +19,8 @@ use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -166,10 +166,10 @@ final class AjaxEditControllerTest extends TestCase
             ->method('publish')
             ->with(['/manual/toggle-boolean-entity-fixtures'], ['type' => 'edit', 'id' => 799, 'field' => 'isEmailAuthEnabled']);
 
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
         $dataTable = new ToggleBooleanEntityFixtureDataTable($hubUrlResolver);
@@ -327,7 +327,7 @@ final class ToggleBooleanEntityFixture
 final class ToggleBooleanEntityFixtureDataTable extends AbstractDataTable
 {
     public function __construct(
-        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
     ) {
         parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(

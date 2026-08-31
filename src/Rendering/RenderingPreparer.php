@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Rendering;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
-use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\TranslatableFilterInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -24,10 +24,10 @@ final class RenderingPreparer
     public const AJAX_EXPORT_ROUTE = 'ux_datatables_ajax_export';
 
     public function __construct(
-        private readonly ?ApiResourceCollectionUrlResolverInterface $urlResolver = null,
-        private readonly ?MercureConfigResolverInterface $mercureResolver = null,
+        private readonly ?ApiResourceCollectionUrlResolver $urlResolver = null,
+        private readonly ?MercureConfigResolver $mercureResolver = null,
         private readonly ?TranslatorInterface $translator = null,
-        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
         private readonly ?UrlGeneratorInterface $urlGenerator = null,
         private readonly ?AjaxDataTableRegistry $ajaxRegistry = null,
         private readonly ?RequestStack $requestStack = null,

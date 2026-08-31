@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Attribute;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
@@ -80,7 +80,7 @@ final class AsDataTableTest extends TestCase
     #[DataProvider('provideApiPlatformTables')]
     public function it_configures_ajax_for_api_resource(string $tableClass): void
     {
-        $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $resolver
             ->expects($this->once())
             ->method('resolveCollectionUrl')
@@ -109,7 +109,7 @@ final class AsDataTableTest extends TestCase
     #[Test]
     public function it_does_nothing_when_ajax_already_configured(): void
     {
-        $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $resolver->expects($this->never())->method('resolveCollectionUrl');
 
         $table = new TestDataTableWithManualAjax(apiResourceCollectionUrlResolver: $resolver);
@@ -127,7 +127,7 @@ final class AsDataTableTest extends TestCase
     #[Test]
     public function it_does_nothing_when_data_already_configured(): void
     {
-        $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $resolver->expects($this->never())->method('resolveCollectionUrl');
 
         $table = new TestDataTableWithData(apiResourceCollectionUrlResolver: $resolver);
@@ -140,7 +140,7 @@ final class AsDataTableTest extends TestCase
     #[Test]
     public function it_does_nothing_without_attribute(): void
     {
-        $resolver = $this->createMock(ApiResourceCollectionUrlResolverInterface::class);
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $resolver->expects($this->never())->method('resolveCollectionUrl');
 
         $table = new TestDataTableWithoutAttribute(apiResourceCollectionUrlResolver: $resolver);
@@ -168,7 +168,7 @@ final class AsDataTableTest extends TestCase
     #[DataProvider('provideAutoConfiguredMercureTables')]
     public function it_auto_configures_mercure_for_attribute(string $tableClass, array $topics, string $ajaxUrl): void
     {
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver
             ->expects($this->once())
             ->method('resolveMercureConfig')
@@ -211,10 +211,10 @@ final class AsDataTableTest extends TestCase
     #[Test]
     public function it_configures_mercure_from_attribute_topics(): void
     {
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
 
         $table = new TestDataTableWithMercureTopicsAttribute(
@@ -233,7 +233,7 @@ final class AsDataTableTest extends TestCase
     #[Test]
     public function it_does_not_auto_configure_mercure_for_static_data(): void
     {
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
         $table = new TestDataTableWithMercureAndData(mercureConfigResolver: $resolver);
@@ -246,10 +246,10 @@ final class AsDataTableTest extends TestCase
     #[Test]
     public function it_keeps_manual_mercure_configuration(): void
     {
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
 
         $table = new TestDataTableWithManualMercure(

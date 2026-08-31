@@ -12,13 +12,13 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
-use Pentiminax\UX\DataTables\Dto\AjaxDeleteRequestDto;
+use Pentiminax\UX\DataTables\Dto\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -57,7 +57,7 @@ final class AjaxDeleteControllerTest extends TestCase
             ->method('publish')
             ->with(['/server/deletable-entity-fixtures/{id}'], ['type' => 'delete', 'id' => 12]);
 
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->method('resolveMercureConfig')
             ->with(DeletableEntityFixture::class)
             ->willReturn(new MercureConfig(
@@ -74,7 +74,7 @@ final class AjaxDeleteControllerTest extends TestCase
 
         $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry());
 
-        $response = $controller($this->createRequest(), new AjaxDeleteRequestDto(
+        $response = $controller($this->createRequest(), new AjaxEntityQueryDto(
             dataTable: $this->dataTableToken(),
             id: 12,
         ));
@@ -96,10 +96,10 @@ final class AjaxDeleteControllerTest extends TestCase
 
         // The bare entity-class resolver would publish a *different* topic;
         // it must not be consulted once the token's data table resolves.
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
         $dataTable = new DeletableEntityFixtureDataTable($hubUrlResolver);
@@ -122,7 +122,7 @@ final class AjaxDeleteControllerTest extends TestCase
 
         $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry($dataTable));
 
-        $controller($this->createRequest(), new AjaxDeleteRequestDto(
+        $controller($this->createRequest(), new AjaxEntityQueryDto(
             dataTable: $this->dataTableToken(),
             id: 12,
         ));
@@ -140,7 +140,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $controller = $this->createController($registry, $csrfTokenManager);
 
         $this->expectException(InvalidCsrfTokenException::class);
-        $controller($this->createRequest('wrong-token'), new AjaxDeleteRequestDto(dataTable: $this->dataTableToken(), id: 12));
+        $controller($this->createRequest('wrong-token'), new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 12));
     }
 
     #[Test]
@@ -155,7 +155,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $controller = $this->createController($registry, $csrfTokenManager);
 
         $this->expectException(InvalidCsrfTokenException::class);
-        $controller(new Request(), new AjaxDeleteRequestDto(dataTable: $this->dataTableToken(), id: 12));
+        $controller(new Request(), new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 12));
     }
 
     #[Test]
@@ -167,7 +167,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $controller = $this->createController($this->createDoctrine(404, null), $csrfTokenManager);
 
         $this->expectException(EntityNotFoundException::class);
-        $controller($this->createRequest(), new AjaxDeleteRequestDto(dataTable: $this->dataTableToken(), id: 404));
+        $controller($this->createRequest(), new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 404));
     }
 
     #[Test]
@@ -182,7 +182,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $controller = $this->createController($registry, $csrfTokenManager);
 
         $this->expectException(InvalidDataTableTokenException::class);
-        $controller($this->createRequest(), new AjaxDeleteRequestDto(dataTable: 'forged-token', id: 12));
+        $controller($this->createRequest(), new AjaxEntityQueryDto(dataTable: 'forged-token', id: 12));
     }
 
     /**
@@ -267,7 +267,7 @@ final class DeletableEntityFixture
 final class DeletableEntityFixtureDataTable extends AbstractDataTable
 {
     public function __construct(
-        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
     ) {
         parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
