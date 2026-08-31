@@ -185,6 +185,7 @@ describe('datatable controller Turbo snapshot cleanup', () => {
     beforeEach(() => {
         initCount = 0
         const initialized = new WeakSet<Element>()
+        const built = new WeakMap<Element, MockInstance>()
 
         function MockDataTable(this: void, element: Element, _payload: unknown) {
             initCount++
@@ -195,7 +196,7 @@ describe('datatable controller Turbo snapshot cleanup', () => {
             element.parentNode?.insertBefore(container, element)
             container.appendChild(element)
 
-            return {
+            const instance: MockInstance = {
                 destroy: vi.fn(() => {
                     initialized.delete(element)
                     container.parentNode?.insertBefore(element, container)
@@ -203,9 +204,18 @@ describe('datatable controller Turbo snapshot cleanup', () => {
                 }),
                 on: vi.fn(),
             }
+            built.set(element, instance)
+
+            return instance
         }
 
         MockDataTable.isDataTable = (element: Element) => initialized.has(element)
+        // DataTables resolves `new DataTable.Api(node)` to the live instance for that table.
+        MockDataTable.Api = class {
+            constructor(element: Element) {
+                return built.get(element) as object
+            }
+        }
 
         vi.mocked(loadDataTableLibrary).mockResolvedValue(MockDataTable)
 
@@ -249,6 +259,8 @@ describe('datatable controller Turbo snapshot cleanup', () => {
 })
 
 function createMockDataTable(initialized: WeakSet<Element>, instances: MockInstance[]) {
+    const built = new WeakMap<Element, MockInstance>()
+
     function MockDataTable(this: void, element: Element, _payload: unknown) {
         initialized.add(element)
         const instance: MockInstance = {
@@ -258,10 +270,17 @@ function createMockDataTable(initialized: WeakSet<Element>, instances: MockInsta
             on: vi.fn(),
         }
         instances.push(instance)
+        built.set(element, instance)
         return instance
     }
 
     MockDataTable.isDataTable = (element: Element) => initialized.has(element)
+    // DataTables resolves `new DataTable.Api(node)` to the live instance for that table.
+    MockDataTable.Api = class {
+        constructor(element: Element) {
+            return built.get(element) as object
+        }
+    }
 
     return MockDataTable
 }
