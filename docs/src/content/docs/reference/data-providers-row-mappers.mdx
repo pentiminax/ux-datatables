@@ -70,10 +70,12 @@ Built-in stages applied by default (in order):
   headers={['Stage', 'Responsibility']}
   rows={[
     ['`NormalizationStage`', 'Dotted-path resolution, `DateColumn` formatting, `Stringable` casting'],
-    ['`TemplateRenderingStage`', 'Renders `TemplateColumn` cells via Twig (only if renderer is available)'],
-    ['`ActionResolutionStage`', 'Resolves `ActionColumn` URLs into `__ux_datatables_actions` key'],
   ]}
 />
+
+After those stages, `RowProcessingPipeline` still resolves URL columns, renders `TemplateColumn`
+cells via Twig, and resolves `ActionColumn` URLs into `__ux_datatables_actions`. That work runs
+inside the pipeline rather than as separate `RowStageInterface` classes.
 
 Custom stage example:
 

@@ -13,15 +13,11 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
-use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
-use Pentiminax\UX\DataTables\RowMapper\Stage\ActionResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\BooleanSwitchMetadataStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\IconColumnResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
-use Pentiminax\UX\DataTables\RowMapper\Stage\TemplateRenderingStage;
-use Pentiminax\UX\DataTables\RowMapper\Stage\UrlColumnResolutionStage;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 
 final class DataTableRuntimeFactory
@@ -29,7 +25,7 @@ final class DataTableRuntimeFactory
     private ?ColumnResolver $columnResolver = null;
 
     public function __construct(
-        private ?DataProviderResolver $dataProviderResolver = null,
+        private ?AutoDataProviderFactory $autoDataProviderFactory = null,
         private readonly ?TemplateColumnRenderer $templateColumnRenderer = null,
         private readonly ?ActionRowDataResolver $actionRowDataResolver = null,
         private readonly ?UrlColumnDataResolver $urlColumnDataResolver = null,
@@ -43,22 +39,17 @@ final class DataTableRuntimeFactory
      */
     public function createRowMapper(\Closure $baseMapper, array $columns): RowMapperInterface
     {
-        $pipeline = (new RowProcessingPipeline(
+        return (new RowProcessingPipeline(
             $baseMapper,
             $columns,
             $this->columnResolver(),
+            $this->urlColumnDataResolver  ?? new UrlColumnDataResolver(),
+            $this->templateColumnRenderer ?? new TemplateColumnRenderer(),
+            $this->actionRowDataResolver  ?? new ActionRowDataResolver(),
         ))
             ->add(new NormalizationStage())
             ->add(new IconColumnResolutionStage())
             ->add(new BooleanSwitchMetadataStage());
-
-        $pipeline->add(new UrlColumnResolutionStage($this->urlColumnDataResolver ?? new UrlColumnDataResolver()));
-
-        $pipeline->add(new TemplateRenderingStage($this->templateColumnRenderer ?? new TemplateColumnRenderer()));
-
-        $pipeline->add(new ActionResolutionStage($this->actionRowDataResolver ?? new ActionRowDataResolver()));
-
-        return $pipeline;
     }
 
     /**
@@ -107,8 +98,7 @@ final class DataTableRuntimeFactory
         ?\Closure $pageProjector = null,
         ?callable $configureBaseQueryBuilder = null,
     ): ?DataProviderInterface {
-        return $this->getDataProviderResolver()->resolve(
-            manualDataProvider: $manualDataProviderFactory(),
+        return $manualDataProviderFactory() ?? $this->getAutoDataProviderFactory()->create(
             asDataTable: $asDataTable,
             rowMapper: $rowMapper,
             configureQueryBuilder: $configureQueryBuilder,
@@ -125,10 +115,8 @@ final class DataTableRuntimeFactory
         );
     }
 
-    private function getDataProviderResolver(): DataProviderResolver
+    private function getAutoDataProviderFactory(): AutoDataProviderFactory
     {
-        return $this->dataProviderResolver ??= new DataProviderResolver(
-            autoDataProviderFactory: new AutoDataProviderFactory()
-        );
+        return $this->autoDataProviderFactory ??= new AutoDataProviderFactory();
     }
 }

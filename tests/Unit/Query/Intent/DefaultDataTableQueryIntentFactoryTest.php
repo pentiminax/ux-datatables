@@ -18,7 +18,6 @@ use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Query\Intent\InvalidQueryIntentException;
-use Pentiminax\UX\DataTables\Query\Intent\SortDirection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -33,14 +32,14 @@ use PHPUnit\Framework\TestCase;
 final class DefaultDataTableQueryIntentFactoryTest extends TestCase
 {
     /**
-     * @return iterable<string, array{ColumnInterface, list<Order>, ?SortDirection}>
+     * @return iterable<string, array{ColumnInterface, list<Order>, ?string}>
      */
     public static function orderRequests(): iterable
     {
         yield 'single valid order' => [
             TextColumn::new('name', 'Name')->setField('name'),
             [new Order(0, 'desc', 'name')],
-            SortDirection::Desc,
+            'desc',
         ];
 
         yield 'multiple orders' => [
@@ -58,7 +57,7 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
         yield 'order index shifted by a leading client column' => [
             TextColumn::new('name', 'Name')->setField('name'),
             [new Order(1, 'desc', 'name')],
-            SortDirection::Desc,
+            'desc',
         ];
 
         yield 'non orderable column' => [
@@ -156,21 +155,22 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
      */
     #[Test]
     #[DataProvider('orderRequests')]
-    public function it_builds_the_order_intent(ColumnInterface $column, array $order, ?SortDirection $expectedDirection): void
+    public function it_builds_the_order_intent(ColumnInterface $column, array $order, ?string $expectedDirection): void
     {
         $request = new DataTableRequest(1, $this->requestColumns($column), order: $order);
 
         $intent = $this->intent($request, $column);
 
         if (null === $expectedDirection) {
-            self::assertNull($intent->order);
+            self::assertNull($intent->orderColumn);
+            self::assertNull($intent->orderDir);
 
             return;
         }
 
-        self::assertNotNull($intent->order);
-        self::assertSame($column->getName(), $intent->order->column->name);
-        self::assertSame($expectedDirection, $intent->order->direction);
+        self::assertNotNull($intent->orderColumn);
+        self::assertSame($column->getName(), $intent->orderColumn->name);
+        self::assertSame($expectedDirection, $intent->orderDir);
     }
 
     #[Test]
@@ -181,14 +181,7 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
 
         $globalSearch = $this->intent($request, $column)->globalSearch;
 
-        if (null === $expectedValue) {
-            self::assertNull($globalSearch);
-
-            return;
-        }
-
-        self::assertNotNull($globalSearch);
-        self::assertSame($expectedValue, $globalSearch->value);
+        self::assertSame($expectedValue, $globalSearch);
     }
 
     #[Test]
@@ -206,8 +199,8 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
         }
 
         self::assertCount(1, $columnSearches);
-        self::assertSame($column->getName(), $columnSearches[0]->column->name);
-        self::assertSame($expectedValue, $columnSearches[0]->value);
+        self::assertSame($column->getName(), $columnSearches[0]['column']->name);
+        self::assertSame($expectedValue, $columnSearches[0]['value']);
     }
 
     /**
@@ -244,10 +237,10 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
         $column  = TextColumn::new('name', 'Name')->setField('name');
         $request = new DataTableRequest(1, $this->requestColumns($column), start: $start, length: $length);
 
-        $pagination = $this->intent($request, $column)->pagination;
+        $intent = $this->intent($request, $column);
 
-        self::assertSame($expectedOffset, $pagination->offset);
-        self::assertSame($expectedLimit, $pagination->limit);
+        self::assertSame($expectedOffset, $intent->offset);
+        self::assertSame($expectedLimit, $intent->limit);
     }
 
     #[Test]
@@ -289,13 +282,13 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
 
         $intent = $this->intent($request, $name, $email);
 
-        self::assertNotNull($intent->order);
-        self::assertSame('email', $intent->order->column->name);
-        self::assertSame(SortDirection::Asc, $intent->order->direction);
+        self::assertNotNull($intent->orderColumn);
+        self::assertSame('email', $intent->orderColumn->name);
+        self::assertSame('asc', $intent->orderDir);
 
         self::assertCount(1, $intent->columnSearches);
-        self::assertSame('name', $intent->columnSearches[0]->column->name);
-        self::assertSame('alice', $intent->columnSearches[0]->value);
+        self::assertSame('name', $intent->columnSearches[0]['column']->name);
+        self::assertSame('alice', $intent->columnSearches[0]['value']);
 
         self::assertCount(1, $intent->columnControls);
         self::assertSame('email', $intent->columnControls[0]->column->name);

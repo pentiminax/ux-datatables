@@ -20,18 +20,26 @@ use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
  * Malformed transport-level inputs (unknown names, empty searches) are dropped to
  * preserve the current no-op behaviour rather than raising errors.
  */
-final class DefaultDataTableQueryIntentFactory implements DataTableQueryIntentFactoryInterface
+final class DefaultDataTableQueryIntentFactory
 {
+    /**
+     * @param list<ColumnInterface> $columns configured, permission-filtered columns in display order
+     *
+     * @throws InvalidQueryIntentException for impossible programmer/configuration states only
+     */
     public function create(DataTableRequest $request, array $columns): DataTableQueryIntent
     {
-        $references = $this->buildReferences($columns);
+        $references               = $this->buildReferences($columns);
+        [$orderColumn, $orderDir] = $this->buildOrder($request, $references);
 
         return new DataTableQueryIntent(
             draw: $request->draw,
-            pagination: $this->buildPagination($request),
+            offset: max(0, $request->start),
+            limit: $request->length > 0 ? $request->length : null,
             columns: array_values($references),
             globalSearch: $this->buildGlobalSearch($request, $references),
-            order: $this->buildOrder($request, $references),
+            orderColumn: $orderColumn,
+            orderDir: $orderDir,
             columnSearches: $this->buildColumnSearches($request, $references),
             columnControls: $this->buildColumnControls($request, $references),
         );
@@ -72,18 +80,10 @@ final class DefaultDataTableQueryIntentFactory implements DataTableQueryIntentFa
         return $references;
     }
 
-    private function buildPagination(DataTableRequest $request): PaginationIntent
-    {
-        $offset = max(0, $request->start);
-        $limit  = $request->length > 0 ? $request->length : null;
-
-        return new PaginationIntent($offset, $limit);
-    }
-
     /**
      * @param array<int, ColumnReadReference> $references
      */
-    private function buildGlobalSearch(DataTableRequest $request, array $references): ?GlobalSearchIntent
+    private function buildGlobalSearch(DataTableRequest $request, array $references): ?string
     {
         $hasGlobalSearchableColumn = false;
         foreach ($references as $reference) {
@@ -98,37 +98,41 @@ final class DefaultDataTableQueryIntentFactory implements DataTableQueryIntentFa
             return null;
         }
 
-        $value = $request->search->value ?? '';
-        if ('' === trim($value)) {
+        $value = trim($request->search->value ?? '');
+        if ('' === $value) {
             return null;
         }
 
-        return new GlobalSearchIntent($value, $request->search?->regex ?? false);
+        return $value;
     }
 
     /**
      * @param array<int, ColumnReadReference> $references
+     *
+     * @return array{0: ?ColumnReadReference, 1: ?string}
      */
-    private function buildOrder(DataTableRequest $request, array $references): ?OrderIntent
+    private function buildOrder(DataTableRequest $request, array $references): array
     {
         if (1 !== \count($request->order)) {
-            return null;
+            return [null, null];
         }
 
         $order     = $request->order[0];
         $reference = $this->referenceByName($references, $order->name);
 
         if (null === $reference || !$reference->orderable) {
-            return null;
+            return [null, null];
         }
 
-        return new OrderIntent($reference, SortDirection::fromRequest($order->dir));
+        $orderDir = 'desc' === strtolower(trim($order->dir)) ? 'desc' : 'asc';
+
+        return [$reference, $orderDir];
     }
 
     /**
      * @param array<int, ColumnReadReference> $references
      *
-     * @return list<ColumnSearchIntent>
+     * @return list<array{column: ColumnReadReference, value: string}>
      */
     private function buildColumnSearches(DataTableRequest $request, array $references): array
     {
@@ -149,7 +153,7 @@ final class DefaultDataTableQueryIntentFactory implements DataTableQueryIntentFa
                 continue;
             }
 
-            $searches[] = new ColumnSearchIntent($reference, $search->value, $search->regex);
+            $searches[] = ['column' => $reference, 'value' => $search->value];
         }
 
         return $searches;
