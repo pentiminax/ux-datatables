@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Mercure;
 
-use Pentiminax\UX\DataTables\Mercure\ApiResourceMercureMetadataResolverInterface;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -28,7 +28,7 @@ final class MercureConfigResolverTest extends TestCase
     #[Test]
     public function it_uses_api_platform_topics_when_available(): void
     {
-        $metadataResolver = $this->createMock(ApiResourceMercureMetadataResolverInterface::class);
+        $metadataResolver = $this->createMock(ApiResourceMercureMetadataResolver::class);
         $metadataResolver
             ->expects($this->once())
             ->method('resolveTopics')
@@ -45,7 +45,7 @@ final class MercureConfigResolverTest extends TestCase
     #[Test]
     public function it_falls_back_to_internal_topic_when_metadata_is_missing(): void
     {
-        $metadataResolver = $this->createStub(ApiResourceMercureMetadataResolverInterface::class);
+        $metadataResolver = $this->createStub(ApiResourceMercureMetadataResolver::class);
         $metadataResolver
             ->method('resolveTopics')
             ->willReturn([]);
@@ -56,9 +56,9 @@ final class MercureConfigResolverTest extends TestCase
         $this->assertSame(['/datatables/book-categories/{id}'], $config?->topics);
     }
 
-    private function hubUrlResolver(?string $hubUrl): MercureHubUrlResolverInterface
+    private function hubUrlResolver(?string $hubUrl): MercureHubUrlResolver
     {
-        $hubResolver = $this->createStub(MercureHubUrlResolverInterface::class);
+        $hubResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubResolver
             ->method('resolveHubUrl')
             ->willReturn($hubUrl);

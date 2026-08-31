@@ -14,7 +14,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
-use Pentiminax\UX\DataTables\Dto\AjaxEditFormQueryDto;
+use Pentiminax\UX\DataTables\Dto\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
@@ -176,13 +176,13 @@ final class AjaxEditFormControllerTest extends TestCase
         );
     }
 
-    private function payload(string $id): AjaxEditFormQueryDto
+    private function payload(string $id): AjaxEntityQueryDto
     {
         $token = $this->tableRegistry()->getActionToken(AjaxEditFormControllerDataTable::class);
 
         $this->assertNotNull($token);
 
-        return new AjaxEditFormQueryDto(dataTable: $token, id: $id);
+        return new AjaxEntityQueryDto(dataTable: $token, id: $id);
     }
 
     /**

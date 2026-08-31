@@ -8,19 +8,19 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
-use Pentiminax\UX\DataTables\Form\EditFormResult;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalRenderRequest;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
@@ -195,10 +195,10 @@ final class EditFormServiceTest extends TestCase
 
         // The bare entity-class resolver would publish a *different* topic;
         // it must not be consulted once the DataTable instance resolves.
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createStub(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
         $result = $this->handleValidSubmit(
@@ -229,7 +229,7 @@ final class EditFormServiceTest extends TestCase
         ));
     }
 
-    private function assertForbidden(EditFormResult $result): void
+    private function assertForbidden(AjaxActionResult $result): void
     {
         $this->assertFalse($result->success);
         $this->assertSame(403, $result->statusCode);
@@ -245,7 +245,7 @@ final class EditFormServiceTest extends TestCase
         string $handler,
         ManagerRegistry $registry,
         ?PermissionChecker $permissionChecker = null,
-    ): EditFormResult {
+    ): AjaxActionResult {
         $formFactory = $this->createMock(FormFactoryInterface::class);
         $formFactory->expects($this->never())->method('createBuilder');
 
@@ -286,9 +286,9 @@ final class EditFormServiceTest extends TestCase
      */
     private function handleValidSubmit(
         MercurePublisherInterface $publisher,
-        MercureConfigResolverInterface $mercureConfigResolver,
+        MercureConfigResolver $mercureConfigResolver,
         AbstractDataTable $dataTable,
-    ): EditFormResult {
+    ): AjaxActionResult {
         $dataTableClass = $dataTable::class;
         $entity         = new EditFormServiceFixture();
         $entityManager  = $this->createEntityManagerWithEntity($entity, 42);
@@ -440,9 +440,9 @@ final class EditFormServiceTest extends TestCase
     /**
      * @param string[] $topics
      */
-    private function resolverReturning(array $topics): MercureConfigResolverInterface
+    private function resolverReturning(array $topics): MercureConfigResolver
     {
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->method('resolveMercureConfig')
             ->with(EditFormServiceFixture::class)
             ->willReturn(new MercureConfig(topics: $topics, hubUrl: 'https://hub.example/.well-known/mercure'));
@@ -474,7 +474,7 @@ final class EditFormServiceFixtureDataTable extends AbstractDataTable
 final class EditFormServiceMercureFixtureDataTable extends AbstractDataTable
 {
     public function __construct(
-        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
     ) {
         parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(

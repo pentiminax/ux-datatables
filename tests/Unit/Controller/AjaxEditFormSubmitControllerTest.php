@@ -21,7 +21,7 @@ use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -163,7 +163,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
 
         [$formFactory, $renderer, $templateResolver] = $this->createFormCollaborators($this->createFormMock(true));
 
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->method('resolveMercureConfig')
             ->with(AjaxEditFormSubmitControllerFixture::class)
             ->willReturn(null === $serverTopics ? null : new MercureConfig(
