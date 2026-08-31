@@ -10,7 +10,6 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
-use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
@@ -24,8 +23,8 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * End-to-end regression test for the recordsTotal / customizeQueryBuilder() gap: proves the
- * wiring all the way from AbstractDataTable::runtime() through DataTableRuntimeFactory,
- * DataProviderResolver, and AutoDataProviderFactory into DoctrineDataProvider, not just the
+ * wiring all the way from AbstractDataTable::runtime() through DataTableRuntimeFactory
+ * and AutoDataProviderFactory into DoctrineDataProvider, not just the
  * DoctrineDataProvider unit itself. A business-rule override that excludes a row must be
  * reflected in recordsTotal in the real JSON response, the same way it already was in
  * recordsFiltered and the returned page.
@@ -56,7 +55,7 @@ final class AbstractDataTableRecordsTotalTest extends TestCase
         $table = new ExcludeBetaCustomerTable();
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             runtimeFactory: new DataTableRuntimeFactory(
-                dataProviderResolver: new DataProviderResolver(new AutoDataProviderFactory($this->em)),
+                autoDataProviderFactory: new AutoDataProviderFactory($this->em),
             ),
         ));
 

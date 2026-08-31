@@ -8,13 +8,12 @@ use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
-use Pentiminax\UX\DataTables\RowMapper\Stage\TemplateRenderingStage;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
 /**
- * Builds the row stage collaborators that are not the subject under test: the Twig
- * environment a TemplateRenderingStage needs and an action column exposing a detail URL.
+ * Builds the row pipeline collaborators that are not the subject under test: the Twig
+ * environment a TemplateColumnRenderer needs and an action column exposing a detail URL.
  *
  * The helpers are static so data providers can build the same fixtures.
  *
@@ -25,11 +24,9 @@ trait BuildsRowStageContext
     /**
      * @param array<string, string> $templates template name => Twig source
      */
-    private static function templateRenderingStage(array $templates): TemplateRenderingStage
+    private static function templateColumnRenderer(array $templates): TemplateColumnRenderer
     {
-        return new TemplateRenderingStage(
-            new TemplateColumnRenderer(new Environment(new ArrayLoader($templates)))
-        );
+        return new TemplateColumnRenderer(new Environment(new ArrayLoader($templates)));
     }
 
     /**

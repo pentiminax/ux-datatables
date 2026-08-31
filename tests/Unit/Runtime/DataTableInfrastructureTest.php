@@ -26,12 +26,12 @@ final class DataTableInfrastructureTest extends TestCase
     {
         $infrastructure = DataTableInfrastructure::createDefault();
 
-        $this->assertInstanceOf(ColumnResolver::class, $infrastructure->columnResolver());
-        $this->assertInstanceOf(RenderingPreparer::class, $infrastructure->renderingPreparer());
-        $this->assertInstanceOf(DataTableRuntimeFactory::class, $infrastructure->runtimeFactory());
-        $this->assertInstanceOf(DefaultDataTableQueryIntentFactory::class, $infrastructure->queryIntentFactory());
-        $this->assertInstanceOf(QueryFilterPipeline::class, $infrastructure->queryFilterPipeline());
-        $this->assertNull($infrastructure->profiler());
+        $this->assertInstanceOf(ColumnResolver::class, $infrastructure->columnResolver);
+        $this->assertInstanceOf(RenderingPreparer::class, $infrastructure->renderingPreparer);
+        $this->assertInstanceOf(DataTableRuntimeFactory::class, $infrastructure->runtimeFactory);
+        $this->assertInstanceOf(DefaultDataTableQueryIntentFactory::class, $infrastructure->queryIntentFactory);
+        $this->assertInstanceOf(QueryFilterPipeline::class, $infrastructure->queryFilterPipeline);
+        $this->assertNull($infrastructure->profiler);
     }
 
     #[Test]
@@ -53,11 +53,11 @@ final class DataTableInfrastructureTest extends TestCase
             profiler: $profiler,
         );
 
-        $this->assertSame($columnResolver, $infrastructure->columnResolver());
-        $this->assertSame($renderingPreparer, $infrastructure->renderingPreparer());
-        $this->assertSame($runtimeFactory, $infrastructure->runtimeFactory());
-        $this->assertSame($intentFactory, $infrastructure->queryIntentFactory());
-        $this->assertSame($queryFilterPipeline, $infrastructure->queryFilterPipeline());
-        $this->assertSame($profiler, $infrastructure->profiler());
+        $this->assertSame($columnResolver, $infrastructure->columnResolver);
+        $this->assertSame($renderingPreparer, $infrastructure->renderingPreparer);
+        $this->assertSame($runtimeFactory, $infrastructure->runtimeFactory);
+        $this->assertSame($intentFactory, $infrastructure->queryIntentFactory);
+        $this->assertSame($queryFilterPipeline, $infrastructure->queryFilterPipeline);
+        $this->assertSame($profiler, $infrastructure->profiler);
     }
 }

@@ -9,7 +9,6 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterfa
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
-use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
@@ -46,7 +45,7 @@ final class AsDataTableTest extends TestCase
         $em    = $this->createMock(EntityManagerInterface::class);
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             runtimeFactory: new DataTableRuntimeFactory(
-                dataProviderResolver: new DataProviderResolver(new AutoDataProviderFactory($em))
+                autoDataProviderFactory: new AutoDataProviderFactory($em)
             )
         ));
 

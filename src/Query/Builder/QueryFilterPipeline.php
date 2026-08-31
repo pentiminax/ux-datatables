@@ -10,7 +10,11 @@ use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
-use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntentFactoryInterface;
+use Pentiminax\UX\DataTables\Query\Filter\ColumnControlSearchFilter;
+use Pentiminax\UX\DataTables\Query\Filter\ColumnSearchFilter;
+use Pentiminax\UX\DataTables\Query\Filter\GlobalSearchFilter;
+use Pentiminax\UX\DataTables\Query\Filter\OrderFilter;
+use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 
@@ -22,7 +26,7 @@ final class QueryFilterPipeline
     private const ROOT_ALIAS = 'e';
 
     public function __construct(
-        private readonly DataTableQueryIntentFactoryInterface $intentFactory,
+        private readonly DefaultDataTableQueryIntentFactory $intentFactory,
     ) {
     }
 
@@ -51,7 +55,17 @@ final class QueryFilterPipeline
             alias: self::ROOT_ALIAS,
         );
 
-        $qb = QueryFilterChain::createDefault($registry, $predicateBuilder)->apply($qb, $context);
+        $queryFilters = [
+            new OrderFilter(),
+            new GlobalSearchFilter($predicateBuilder),
+            new ColumnSearchFilter($registry),
+            new ColumnControlSearchFilter($registry),
+        ];
+
+        foreach ($queryFilters as $queryFilter) {
+            $queryFilter->apply($qb, $context);
+            $context->resetParamIndexScope();
+        }
 
         $this->applyConfiguredFilters($qb, $request, $filters);
 

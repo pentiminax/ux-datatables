@@ -11,7 +11,7 @@ final class PropertyNameHumanizer
      */
     public function humanize(string $name): string
     {
-        $label = str_replace(['_', '-'], ' ', $name);
+        $label = str_replace(['_', '-', '.'], ' ', $name);
         $label = preg_replace('/(?<!^)([A-Z])/', ' $1', $label);
         $label = trim($label);
         $label = ucwords($label);

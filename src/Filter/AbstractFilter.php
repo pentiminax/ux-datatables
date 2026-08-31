@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Filter;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Contracts\FilterInterface;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
@@ -131,9 +132,6 @@ abstract class AbstractFilter implements FilterInterface
 
     private function humanizeName(): string
     {
-        $words = preg_replace('/(?<!^)[A-Z]/', ' $0', $this->name) ?? $this->name;
-        $words = str_replace(['_', '.'], ' ', $words);
-
-        return ucfirst(strtolower(trim($words)));
+        return (new PropertyNameHumanizer())->humanize($this->name);
     }
 }
