@@ -62,7 +62,7 @@ final class DateRangeFilterTest extends TestCase
     }
 
     #[Test]
-    #[DataProvider('provideTypedDateColumns')]
+    #[DataProvider('provideDateOnlyColumns')]
     public function it_binds_parsed_dates_with_the_doctrine_type_on_a_date_column(string $doctrineType): void
     {
         DateRangeFilter::new('createdAt')->apply(
@@ -86,11 +86,69 @@ final class DateRangeFilterTest extends TestCase
     /**
      * @return iterable<string, array{string}>
      */
-    public static function provideTypedDateColumns(): iterable
+    public static function provideDateOnlyColumns(): iterable
     {
         yield 'date' => ['date'];
+        yield 'date_immutable' => ['date_immutable'];
+    }
+
+    #[Test]
+    #[DataProvider('provideDateTimeColumns')]
+    public function it_treats_a_date_only_upper_bound_as_exclusive_next_midnight_on_a_datetime_column(string $doctrineType): void
+    {
+        DateRangeFilter::new('createdAt')->apply(
+            $this->createScalarFieldQueryBuilder($doctrineType),
+            ['from' => ' 2024-01-01 ', 'to' => '2024-12-31'],
+            'e',
+        );
+
+        $this->assertSame(
+            ['e.createdAt >= :filter_createdAt_from', 'e.createdAt < :filter_createdAt_to'],
+            $this->capturedWhere,
+        );
+        $this->assertSame($doctrineType, $this->capturedParamTypes['filter_createdAt_from']);
+        $this->assertSame($doctrineType, $this->capturedParamTypes['filter_createdAt_to']);
+        $this->assertInstanceOf(\DateTimeImmutable::class, $this->capturedParams['filter_createdAt_from']);
+        $this->assertInstanceOf(\DateTimeImmutable::class, $this->capturedParams['filter_createdAt_to']);
+        $this->assertSame('2024-01-01 00:00:00', $this->capturedParams['filter_createdAt_from']->format('Y-m-d H:i:s'));
+        $this->assertSame('2025-01-01 00:00:00', $this->capturedParams['filter_createdAt_to']->format('Y-m-d H:i:s'));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideDateTimeColumns(): iterable
+    {
         yield 'datetime' => ['datetime'];
         yield 'datetime_immutable' => ['datetime_immutable'];
+        yield 'datetimetz' => ['datetimetz'];
+        yield 'datetimetz_immutable' => ['datetimetz_immutable'];
+    }
+
+    #[Test]
+    #[DataProvider('provideTimeBearingUpperBounds')]
+    public function it_keeps_an_explicit_time_bearing_upper_bound_inclusive(string $rawTo, string $expected): void
+    {
+        DateRangeFilter::new('createdAt')->apply(
+            $this->createScalarFieldQueryBuilder('datetime'),
+            ['to' => $rawTo],
+            'e',
+        );
+
+        $this->assertSame(['e.createdAt <= :filter_createdAt_to'], $this->capturedWhere);
+        $this->assertInstanceOf(\DateTimeImmutable::class, $this->capturedParams['filter_createdAt_to']);
+        $this->assertSame($expected, $this->capturedParams['filter_createdAt_to']->format('Y-m-d H:i:s'));
+        $this->assertSame('datetime', $this->capturedParamTypes['filter_createdAt_to']);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideTimeBearingUpperBounds(): iterable
+    {
+        yield 'space datetime' => ['2024-12-31 14:30:00', '2024-12-31 14:30:00'];
+        yield 'iso datetime' => ['2024-12-31T14:30:00', '2024-12-31 14:30:00'];
+        yield 'explicit midnight' => ['2024-12-31T00:00:00', '2024-12-31 00:00:00'];
     }
 
     #[Test]
