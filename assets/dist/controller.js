@@ -63,6 +63,9 @@ class default_1 extends Controller {
         }
         document.addEventListener('turbo:before-cache', this.onTurboBeforeCache);
         if (this.isDataTableInitialized) {
+            if (this.table) {
+                this.dispatchEvent('reconnect', { table: this.table });
+            }
             return;
         }
         const payload = this.viewValue;
@@ -77,6 +80,8 @@ class default_1 extends Controller {
         registerFilterFeature(DataTable);
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true;
+            this.table = new DataTable.Api(this.element);
+            this.dispatchEvent('reconnect', { table: this.table });
             return;
         }
         await this.loadExtensions(payload, framework, DataTable);
