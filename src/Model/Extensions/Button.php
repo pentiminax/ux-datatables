@@ -9,9 +9,9 @@ use Pentiminax\UX\DataTables\Enum\ExportFormat;
 
 final class Button implements \JsonSerializable
 {
-    public const SERVER_EXPORT_ACTION = 'ux:export';
+    public const string SERVER_EXPORT_ACTION = 'ux:export';
 
-    private const DEFAULT_EXPORT_COLUMNS = ':visible:not(.not-exportable)';
+    private const string DEFAULT_EXPORT_COLUMNS = ':visible:not(.not-exportable)';
 
     /**
      * Button types that never export data: no default `exportOptions` is injected for these.
@@ -53,7 +53,8 @@ final class Button implements \JsonSerializable
 
     public static function copy(): self
     {
-        return self::fromType(ButtonType::COPY);
+        return self::fromType(ButtonType::COPY)
+            ->text('Copy');
     }
 
     /**
@@ -62,7 +63,8 @@ final class Button implements \JsonSerializable
      */
     public static function csv(bool $serverSide = false): self
     {
-        return self::exportButton(ButtonType::CSV, $serverSide);
+        return self::exportButton(ButtonType::CSV, $serverSide)
+            ->text('CSV');
     }
 
     /**
@@ -71,22 +73,26 @@ final class Button implements \JsonSerializable
      */
     public static function excel(bool $serverSide = false): self
     {
-        return self::exportButton(ButtonType::EXCEL, $serverSide);
+        return self::exportButton(ButtonType::EXCEL, $serverSide)
+            ->text('Excel');
     }
 
     public static function pdf(): self
     {
-        return self::fromType(ButtonType::PDF);
+        return self::fromType(ButtonType::PDF)
+            ->text('PDF');
     }
 
     public static function print(): self
     {
-        return self::fromType(ButtonType::PRINT);
+        return self::fromType(ButtonType::PRINT)
+            ->text('Print');
     }
 
     public static function colVis(): self
     {
-        return self::fromType(ButtonType::COLUMN_VISIBILITY);
+        return self::fromType(ButtonType::COLUMN_VISIBILITY)
+            ->text('Column Visibility');
     }
 
     /**
@@ -96,7 +102,8 @@ final class Button implements \JsonSerializable
      */
     public static function ccSearchClear(): self
     {
-        return self::fromType(ButtonType::COLUMN_CONTROL_SEARCH_CLEAR);
+        return self::fromType(ButtonType::COLUMN_CONTROL_SEARCH_CLEAR)
+            ->text('Clear Search');
     }
 
     /**
