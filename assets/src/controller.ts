@@ -142,6 +142,8 @@ export default class extends Controller {
             return
         }
 
+        this.resetRestoredMarkup()
+
         await this.loadExtensions(payload, framework, DataTable)
 
         this.dispatchEvent('pre-init', { config: payload, DataTable })
@@ -218,6 +220,46 @@ export default class extends Controller {
         }
 
         this.table.draw(false)
+    }
+
+    /**
+     * `render_datatable()` emits an empty `<table>`: every header cell, row, and control is built
+     * by DataTables at init time. A browser history restore - a real Back/Forward that reloads the
+     * document rather than a Turbo visit - can hand that generated markup back while every
+     * JavaScript-side handle is gone: `turbo:before-cache` never fired, so nothing tore the table
+     * down, and `DataTable.isDataTable()` reports false because DataTables' settings array died
+     * with the previous document. Initializing over that half-processed DOM makes DataTables adopt
+     * the stale header cells, whose count no longer matches the payload's columns, and it then
+     * fails inside its own index-keyed column lookups (visible as a `TypeError` raised from
+     * Buttons' `_columnText`, which is simply the first consumer to read a column that does not
+     * exist).
+     *
+     * Emptying the table restores exactly what the server rendered, so initialization proceeds as
+     * on a fresh load.
+     */
+    private resetRestoredMarkup(): void {
+        const element = this.element as HTMLTableElement
+
+        if (!element.classList.contains('dataTable') && element.childElementCount === 0) {
+            return
+        }
+
+        // A surviving wrapper is emptied in place rather than unwrapped: reparenting the table
+        // would make Stimulus report disconnect + reconnect, and the fresh controller instance
+        // would race this initialization into a second `new DataTable()` on the same node.
+        const container = element.closest('.dt-container')
+        if (container) {
+            for (const child of Array.from(container.children)) {
+                if (!child.contains(element)) {
+                    child.remove()
+                }
+            }
+        }
+
+        element.replaceChildren()
+        // DataTables re-adds this at init; removing it keeps the "already processed" signal
+        // honest for anything - including this method on a later cycle - that reads it.
+        element.classList.remove('dataTable')
     }
 
     private async loadExtensions(
