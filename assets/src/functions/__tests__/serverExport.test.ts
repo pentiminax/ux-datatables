@@ -34,12 +34,38 @@ describe('serverExport', () => {
         ])
     })
 
+    it('serializes a Select checkbox column null name/data as empty strings', () => {
+        expect(
+            flattenFormValues({
+                columns: [
+                    {
+                        data: null,
+                        name: null,
+                        searchable: false,
+                        orderable: false,
+                    },
+                    { data: 'email', name: 'email' },
+                ],
+            })
+        ).toEqual([
+            { name: 'columns[0][data]', value: '' },
+            { name: 'columns[0][name]', value: '' },
+            { name: 'columns[0][searchable]', value: 'false' },
+            { name: 'columns[0][orderable]', value: 'false' },
+            { name: 'columns[1][data]', value: 'email' },
+            { name: 'columns[1][name]', value: 'email' },
+        ])
+    })
+
     it('stamps the export url onto server export buttons and strips it from the payload', () => {
         const payload = {
             exportUrl: '/datatables/ajax/export?table=abc',
             layout: {
                 topStart: {
-                    buttons: [{ action: SERVER_EXPORT_ACTION, exportKey: 'csv' }, { extend: 'excel' }],
+                    buttons: [
+                        { action: SERVER_EXPORT_ACTION, exportKey: 'csv' },
+                        { extend: 'excel' },
+                    ],
                 },
             },
         }
