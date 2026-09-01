@@ -84,6 +84,7 @@ class default_1 extends Controller {
             this.dispatchEvent('reconnect', { table: this.table });
             return;
         }
+        this.resetRestoredMarkup();
         await this.loadExtensions(payload, framework, DataTable);
         this.dispatchEvent('pre-init', { config: payload, DataTable });
         if (this.isApiPlatformEnabled(payload)) {
@@ -144,6 +145,22 @@ class default_1 extends Controller {
             this.table.page(Math.floor(snap.start / (pageLen || 10)));
         }
         this.table.draw(false);
+    }
+    resetRestoredMarkup() {
+        const element = this.element;
+        if (!element.classList.contains('dataTable') && element.childElementCount === 0) {
+            return;
+        }
+        const container = element.closest('.dt-container');
+        if (container) {
+            for (const child of Array.from(container.children)) {
+                if (!child.contains(element)) {
+                    child.remove();
+                }
+            }
+        }
+        element.replaceChildren();
+        element.classList.remove('dataTable');
     }
     async loadExtensions(payload, framework, DataTable) {
         if (this.hasButtonsInLayout(payload)) {
