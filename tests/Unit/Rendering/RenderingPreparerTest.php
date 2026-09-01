@@ -617,6 +617,57 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
+    public function it_translates_filter_label_and_placeholder_keys(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->method('trans')
+            ->willReturnMap([
+                ['user.last_login', [], null, null, 'Dernière connexion'],
+                ['user.last_login.placeholder', [], null, null, 'Choisir une date'],
+                ['filter.bar.title', [], FilterLabels::DOMAIN, null, 'Filtres'],
+                ['filter.bar.reset', [], FilterLabels::DOMAIN, null, 'Réinitialiser'],
+                ['filter.bar.apply', [], FilterLabels::DOMAIN, null, 'Appliquer les filtres'],
+                ['filter.bar.all', [], FilterLabels::DOMAIN, null, 'Tous'],
+            ]);
+
+        $filters = (new Filters())->add(
+            TextFilter::new('lastLoginAt')
+                ->label('user.last_login')
+                ->placeholder('user.last_login.placeholder'),
+        );
+        $table = (new DataTable('Test'))->setFilters($filters);
+
+        (new RenderingPreparer(translator: $translator))->prepare($table, null);
+
+        $payload = $table->getOptions()['filters'][0];
+        $this->assertSame('Dernière connexion', $payload['label']);
+        $this->assertSame('Choisir une date', $payload['placeholder']);
+    }
+
+    #[Test]
+    public function it_leaves_humanized_filter_names_untranslated(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator
+            ->method('trans')
+            ->willReturnCallback(static function (string $id, array $parameters = [], ?string $domain = null): string {
+                if (FilterLabels::DOMAIN === $domain && str_starts_with($id, 'filter.bar.')) {
+                    return $id;
+                }
+
+                self::fail(\sprintf('Unexpected translation id "%s".', $id));
+            });
+
+        $filters = (new Filters())->add(TextFilter::new('lastLoginAt'));
+        $table   = (new DataTable('Test'))->setFilters($filters);
+
+        (new RenderingPreparer(translator: $translator))->prepare($table, null);
+
+        $this->assertSame('Last Login At', $table->getOptions()['filters'][0]['label']);
+    }
+
+    #[Test]
     public function it_translates_translatable_filter_option_labels(): void
     {
         $translator = $this->createMock(TranslatorInterface::class);

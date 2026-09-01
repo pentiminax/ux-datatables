@@ -25,6 +25,7 @@ public function configureFilters(Filters $filters): Filters
 
 - `::new(string $name)` — name is the AJAX payload key (`filters[name]`).
 - `->label()`, `->field()` (defaults to name, supports relations like `author.name`), `->placeholder()`.
+  `label()` and `placeholder()` accept a literal or a translation key (default domain, resolved at render time). Omit `label()` to keep the humanized property name.
 - `->query(fn (QueryBuilder $qb, mixed $value, string $alias))` overrides the default condition.
 
 ## Types (`src/Filter/`)

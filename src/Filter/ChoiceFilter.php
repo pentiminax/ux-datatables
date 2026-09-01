@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Filter;
 
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Contracts\TranslatableFilterInterface;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Choice filter matching an exact value (or one of several when multiple()).
  */
-final class ChoiceFilter extends AbstractFilter implements TranslatableFilterInterface
+final class ChoiceFilter extends AbstractFilter
 {
     /** @var array<string, string> value => label */
     private array $options = [];
@@ -143,6 +142,8 @@ final class ChoiceFilter extends AbstractFilter implements TranslatableFilterInt
      */
     public function translateLabels(TranslatorInterface $translator, ?string $locale = null): void
     {
+        parent::translateLabels($translator, $locale);
+
         foreach ($this->translatableCases as $value => $case) {
             $this->options[$value] = $case->trans($translator, $locale);
         }
