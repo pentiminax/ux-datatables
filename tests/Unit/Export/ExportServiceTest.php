@@ -128,6 +128,31 @@ final class ExportServiceTest extends TestCase
         $this->assertSame([['email' => 'all']], $csv->rows);
     }
 
+    /**
+     * Select's checkbox column is unshifted with name/data null. flattenFormValues used to
+     * omit those keys, and Column::fromArray() TypeError'd before the download started.
+     */
+    #[Test]
+    public function it_exports_when_the_payload_includes_a_checkbox_column_without_name_or_data(): void
+    {
+        $csv     = new RecordingExporter();
+        $service = new ExportService(new ExporterRegistry([$csv]));
+
+        $response = $service->export($this->table(), Request::create('/datatables/ajax/export', 'POST', [
+            'draw'      => 4,
+            'start'     => 0,
+            'length'    => 0,
+            'exportKey' => 'csv',
+            'columns'   => [
+                ['searchable' => 'false', 'orderable' => 'false'],
+                ['data' => 'email', 'name' => 'email', 'searchable' => 'true', 'orderable' => 'true'],
+            ],
+        ]));
+        $this->send($response);
+
+        $this->assertCount(2, $csv->rows);
+    }
+
     #[Test]
     public function it_rejects_a_table_without_a_server_side_export_button(): void
     {
