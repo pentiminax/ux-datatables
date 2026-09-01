@@ -135,10 +135,11 @@ describe('FilterBar', () => {
         const wrapper = bar.render(vi.fn())
         const range = wrapper.querySelector('.dt-filter-range')
 
-        expect(range).not.toBeNull()
-        expect(range?.querySelectorAll('input[type="date"]')).toHaveLength(2)
-        expect((range?.children[0] as HTMLInputElement).name).toBe('filters[lastLoginAt][from]')
-        expect((range?.children[1] as HTMLInputElement).name).toBe('filters[lastLoginAt][to]')
+        expect(range).toBeInstanceOf(HTMLElement)
+        const rangeEl = range as HTMLElement
+        expect(rangeEl.querySelectorAll('input[type="date"]')).toHaveLength(2)
+        expect((rangeEl.children[0] as HTMLInputElement).name).toBe('filters[lastLoginAt][from]')
+        expect((rangeEl.children[1] as HTMLInputElement).name).toBe('filters[lastLoginAt][to]')
     })
 
     it('applies a date range as an object with only provided bounds', () => {
