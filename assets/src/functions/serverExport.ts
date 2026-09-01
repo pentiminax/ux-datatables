@@ -13,7 +13,14 @@ export function flattenFormValues(
     prefix = '',
     acc: Array<{ name: string; value: string }> = []
 ): Array<{ name: string; value: string }> {
+    // jQuery.param (DataTables' own Ajax serializer) turns null into an empty string.
+    // Skipping the field left Select's checkbox column without `name`/`data`, and the
+    // PHP Column parser TypeError'd on the export POST.
     if (data === null || data === undefined) {
+        if (prefix !== '') {
+            acc.push({ name: prefix, value: '' })
+        }
+
         return acc
     }
 

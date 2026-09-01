@@ -18,7 +18,12 @@ final readonly class Columns
     {
         $columns = [];
         foreach (RequestInputBag::resolve($request)->all('columns') as $column) {
-            $columns[$column['name']] = Column::fromArray($column);
+            if (!\is_array($column)) {
+                continue;
+            }
+
+            $parsed                 = Column::fromArray($column);
+            $columns[$parsed->name] = $parsed;
         }
 
         return new self($columns);

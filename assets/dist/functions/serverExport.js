@@ -2,6 +2,9 @@ import { buttonActions } from './buttonActionRegistry.js';
 export const SERVER_EXPORT_ACTION = 'ux:export';
 export function flattenFormValues(data, prefix = '', acc = []) {
     if (data === null || data === undefined) {
+        if (prefix !== '') {
+            acc.push({ name: prefix, value: '' });
+        }
         return acc;
     }
     if (Array.isArray(data)) {
