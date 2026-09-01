@@ -22,6 +22,7 @@ _bmad-output/
 config/reference.php
 
 /docs/superpowers/*
+/.impeccable/
 .omx/
 PLAN.md
 CONTEXT.md
