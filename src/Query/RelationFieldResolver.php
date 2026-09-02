@@ -177,17 +177,7 @@ final class RelationFieldResolver
      */
     public static function resolveUuidFieldType(QueryBuilder $qb, string $fieldPath): ?string
     {
-        if (!self::supportsSearchFiltering($qb, $fieldPath)) {
-            return null;
-        }
-
-        $fieldType = self::resolveFieldType($qb, $fieldPath);
-
-        if (null === $fieldType || !\in_array($fieldType, self::UUID_FIELD_TYPES, true)) {
-            return null;
-        }
-
-        return $fieldType;
+        return self::resolveListedFieldType($qb, $fieldPath, self::UUID_FIELD_TYPES);
     }
 
     /**
@@ -198,17 +188,7 @@ final class RelationFieldResolver
      */
     public static function resolveDateFieldType(QueryBuilder $qb, string $fieldPath): ?string
     {
-        if (!self::supportsSearchFiltering($qb, $fieldPath)) {
-            return null;
-        }
-
-        $fieldType = self::resolveFieldType($qb, $fieldPath);
-
-        if (null === $fieldType || !\in_array($fieldType, self::DATE_FIELD_TYPES, true)) {
-            return null;
-        }
-
-        return $fieldType;
+        return self::resolveListedFieldType($qb, $fieldPath, self::DATE_FIELD_TYPES);
     }
 
     /**
