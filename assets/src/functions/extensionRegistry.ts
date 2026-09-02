@@ -1,53 +1,196 @@
 import type { StyleFramework } from '../types/styleFramework.js'
 
-const EXTENSION_PKG_KEY: Record<string, string> = {
-    colReorder: 'colreorder',
-    columnControl: 'columncontrol',
-    fixedColumns: 'fixedcolumns',
-    fixedHeader: 'fixedheader',
-    keyTable: 'keytable',
-    responsive: 'responsive',
-    rowGroup: 'rowgroup',
-    scroller: 'scroller',
-    select: 'select',
+type Loader = () => Promise<unknown>
+
+export type ExtensionName =
+    | 'colReorder'
+    | 'columnControl'
+    | 'fixedColumns'
+    | 'fixedHeader'
+    | 'keyTable'
+    | 'responsive'
+    | 'rowGroup'
+    | 'scroller'
+    | 'select'
+
+const extensionLoaders: Record<ExtensionName, Record<StyleFramework, Loader>> = {
+    colReorder: {
+        dt: () => import('datatables.net-colreorder-dt'),
+        bs: () => import('datatables.net-colreorder-bs'),
+        bs4: () => import('datatables.net-colreorder-bs4'),
+        bs5: () => import('datatables.net-colreorder-bs5'),
+        zf: () => import('datatables.net-colreorder-zf'),
+        jqui: () => import('datatables.net-colreorder-jqui'),
+        se: () => import('datatables.net-colreorder-se'),
+    },
+    columnControl: {
+        dt: () => import('datatables.net-columncontrol-dt'),
+        bs: () => import('datatables.net-columncontrol-bs'),
+        bs4: () => import('datatables.net-columncontrol-bs4'),
+        bs5: () => import('datatables.net-columncontrol-bs5'),
+        zf: () => import('datatables.net-columncontrol-zf'),
+        jqui: () => import('datatables.net-columncontrol-jqui'),
+        se: () => import('datatables.net-columncontrol-se'),
+    },
+    fixedColumns: {
+        dt: () => import('datatables.net-fixedcolumns-dt'),
+        bs: () => import('datatables.net-fixedcolumns-bs'),
+        bs4: () => import('datatables.net-fixedcolumns-bs4'),
+        bs5: () => import('datatables.net-fixedcolumns-bs5'),
+        zf: () => import('datatables.net-fixedcolumns-zf'),
+        jqui: () => import('datatables.net-fixedcolumns-jqui'),
+        se: () => import('datatables.net-fixedcolumns-se'),
+    },
+    fixedHeader: {
+        dt: () => import('datatables.net-fixedheader-dt'),
+        bs: () => import('datatables.net-fixedheader-bs'),
+        bs4: () => import('datatables.net-fixedheader-bs4'),
+        bs5: () => import('datatables.net-fixedheader-bs5'),
+        zf: () => import('datatables.net-fixedheader-zf'),
+        jqui: () => import('datatables.net-fixedheader-jqui'),
+        se: () => import('datatables.net-fixedheader-se'),
+    },
+    keyTable: {
+        dt: () => import('datatables.net-keytable-dt'),
+        bs: () => import('datatables.net-keytable-bs'),
+        bs4: () => import('datatables.net-keytable-bs4'),
+        bs5: () => import('datatables.net-keytable-bs5'),
+        zf: () => import('datatables.net-keytable-zf'),
+        jqui: () => import('datatables.net-keytable-jqui'),
+        se: () => import('datatables.net-keytable-se'),
+    },
+    responsive: {
+        dt: () => import('datatables.net-responsive-dt'),
+        bs: () => import('datatables.net-responsive-bs'),
+        bs4: () => import('datatables.net-responsive-bs4'),
+        bs5: () => import('datatables.net-responsive-bs5'),
+        zf: () => import('datatables.net-responsive-zf'),
+        jqui: () => import('datatables.net-responsive-jqui'),
+        se: () => import('datatables.net-responsive-se'),
+    },
+    rowGroup: {
+        dt: () => import('datatables.net-rowgroup-dt'),
+        bs: () => import('datatables.net-rowgroup-bs'),
+        bs4: () => import('datatables.net-rowgroup-bs4'),
+        bs5: () => import('datatables.net-rowgroup-bs5'),
+        zf: () => import('datatables.net-rowgroup-zf'),
+        jqui: () => import('datatables.net-rowgroup-jqui'),
+        se: () => import('datatables.net-rowgroup-se'),
+    },
+    scroller: {
+        dt: () => import('datatables.net-scroller-dt'),
+        bs: () => import('datatables.net-scroller-bs'),
+        bs4: () => import('datatables.net-scroller-bs4'),
+        bs5: () => import('datatables.net-scroller-bs5'),
+        zf: () => import('datatables.net-scroller-zf'),
+        jqui: () => import('datatables.net-scroller-jqui'),
+        se: () => import('datatables.net-scroller-se'),
+    },
+    select: {
+        dt: () => import('datatables.net-select-dt'),
+        bs: () => import('datatables.net-select-bs'),
+        bs4: () => import('datatables.net-select-bs4'),
+        bs5: () => import('datatables.net-select-bs5'),
+        zf: () => import('datatables.net-select-zf'),
+        jqui: () => import('datatables.net-select-jqui'),
+        se: () => import('datatables.net-select-se'),
+    },
 }
 
-const EXTENSION_FILE_BASE: Record<string, string> = {
-    colReorder: 'colReorder',
-    columnControl: 'columnControl',
-    fixedColumns: 'fixedColumns',
-    fixedHeader: 'fixedHeader',
-    keyTable: 'keyTable',
-    responsive: 'responsive',
-    rowGroup: 'rowGroup',
-    scroller: 'scroller',
-    select: 'select',
-}
-
-const FRAMEWORK_CSS_SUFFIX: Record<StyleFramework, string> = {
-    dt: 'dataTables',
-    bs: 'bootstrap',
-    bs4: 'bootstrap4',
-    bs5: 'bootstrap5',
-    zf: 'foundation',
-    jqui: 'jqueryui',
-    se: 'semanticui',
+const extensionStyleLoaders: Record<ExtensionName, Record<StyleFramework, Loader>> = {
+    colReorder: {
+        dt: () => import('datatables.net-colreorder-dt/css/colReorder.dataTables.min.css'),
+        bs: () => import('datatables.net-colreorder-bs/css/colReorder.bootstrap.min.css'),
+        bs4: () => import('datatables.net-colreorder-bs4/css/colReorder.bootstrap4.min.css'),
+        bs5: () => import('datatables.net-colreorder-bs5/css/colReorder.bootstrap5.min.css'),
+        zf: () => import('datatables.net-colreorder-zf/css/colReorder.foundation.min.css'),
+        jqui: () => import('datatables.net-colreorder-jqui/css/colReorder.jqueryui.min.css'),
+        se: () => import('datatables.net-colreorder-se/css/colReorder.semanticui.min.css'),
+    },
+    columnControl: {
+        dt: () => import('datatables.net-columncontrol-dt/css/columnControl.dataTables.min.css'),
+        bs: () => import('datatables.net-columncontrol-bs/css/columnControl.bootstrap.min.css'),
+        bs4: () => import('datatables.net-columncontrol-bs4/css/columnControl.bootstrap4.min.css'),
+        bs5: () => import('datatables.net-columncontrol-bs5/css/columnControl.bootstrap5.min.css'),
+        zf: () => import('datatables.net-columncontrol-zf/css/columnControl.foundation.min.css'),
+        jqui: () => import('datatables.net-columncontrol-jqui/css/columnControl.jqueryui.min.css'),
+        se: () => import('datatables.net-columncontrol-se/css/columnControl.semanticui.min.css'),
+    },
+    fixedColumns: {
+        dt: () => import('datatables.net-fixedcolumns-dt/css/fixedColumns.dataTables.min.css'),
+        bs: () => import('datatables.net-fixedcolumns-bs/css/fixedColumns.bootstrap.min.css'),
+        bs4: () => import('datatables.net-fixedcolumns-bs4/css/fixedColumns.bootstrap4.min.css'),
+        bs5: () => import('datatables.net-fixedcolumns-bs5/css/fixedColumns.bootstrap5.min.css'),
+        zf: () => import('datatables.net-fixedcolumns-zf/css/fixedColumns.foundation.min.css'),
+        jqui: () => import('datatables.net-fixedcolumns-jqui/css/fixedColumns.jqueryui.min.css'),
+        se: () => import('datatables.net-fixedcolumns-se/css/fixedColumns.semanticui.min.css'),
+    },
+    fixedHeader: {
+        dt: () => import('datatables.net-fixedheader-dt/css/fixedHeader.dataTables.min.css'),
+        bs: () => import('datatables.net-fixedheader-bs/css/fixedHeader.bootstrap.min.css'),
+        bs4: () => import('datatables.net-fixedheader-bs4/css/fixedHeader.bootstrap4.min.css'),
+        bs5: () => import('datatables.net-fixedheader-bs5/css/fixedHeader.bootstrap5.min.css'),
+        zf: () => import('datatables.net-fixedheader-zf/css/fixedHeader.foundation.min.css'),
+        jqui: () => import('datatables.net-fixedheader-jqui/css/fixedHeader.jqueryui.min.css'),
+        se: () => import('datatables.net-fixedheader-se/css/fixedHeader.semanticui.min.css'),
+    },
+    keyTable: {
+        dt: () => import('datatables.net-keytable-dt/css/keyTable.dataTables.min.css'),
+        bs: () => import('datatables.net-keytable-bs/css/keyTable.bootstrap.min.css'),
+        bs4: () => import('datatables.net-keytable-bs4/css/keyTable.bootstrap4.min.css'),
+        bs5: () => import('datatables.net-keytable-bs5/css/keyTable.bootstrap5.min.css'),
+        zf: () => import('datatables.net-keytable-zf/css/keyTable.foundation.min.css'),
+        jqui: () => import('datatables.net-keytable-jqui/css/keyTable.jqueryui.min.css'),
+        se: () => import('datatables.net-keytable-se/css/keyTable.semanticui.min.css'),
+    },
+    responsive: {
+        dt: () => import('datatables.net-responsive-dt/css/responsive.dataTables.min.css'),
+        bs: () => import('datatables.net-responsive-bs/css/responsive.bootstrap.min.css'),
+        bs4: () => import('datatables.net-responsive-bs4/css/responsive.bootstrap4.min.css'),
+        bs5: () => import('datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css'),
+        zf: () => import('datatables.net-responsive-zf/css/responsive.foundation.min.css'),
+        jqui: () => import('datatables.net-responsive-jqui/css/responsive.jqueryui.min.css'),
+        se: () => import('datatables.net-responsive-se/css/responsive.semanticui.min.css'),
+    },
+    rowGroup: {
+        dt: () => import('datatables.net-rowgroup-dt/css/rowGroup.dataTables.min.css'),
+        bs: () => import('datatables.net-rowgroup-bs/css/rowGroup.bootstrap.min.css'),
+        bs4: () => import('datatables.net-rowgroup-bs4/css/rowGroup.bootstrap4.min.css'),
+        bs5: () => import('datatables.net-rowgroup-bs5/css/rowGroup.bootstrap5.min.css'),
+        zf: () => import('datatables.net-rowgroup-zf/css/rowGroup.foundation.min.css'),
+        jqui: () => import('datatables.net-rowgroup-jqui/css/rowGroup.jqueryui.min.css'),
+        se: () => import('datatables.net-rowgroup-se/css/rowGroup.semanticui.min.css'),
+    },
+    scroller: {
+        dt: () => import('datatables.net-scroller-dt/css/scroller.dataTables.min.css'),
+        bs: () => import('datatables.net-scroller-bs/css/scroller.bootstrap.min.css'),
+        bs4: () => import('datatables.net-scroller-bs4/css/scroller.bootstrap4.min.css'),
+        bs5: () => import('datatables.net-scroller-bs5/css/scroller.bootstrap5.min.css'),
+        zf: () => import('datatables.net-scroller-zf/css/scroller.foundation.min.css'),
+        jqui: () => import('datatables.net-scroller-jqui/css/scroller.jqueryui.min.css'),
+        se: () => import('datatables.net-scroller-se/css/scroller.semanticui.min.css'),
+    },
+    select: {
+        dt: () => import('datatables.net-select-dt/css/select.dataTables.min.css'),
+        bs: () => import('datatables.net-select-bs/css/select.bootstrap.min.css'),
+        bs4: () => import('datatables.net-select-bs4/css/select.bootstrap4.min.css'),
+        bs5: () => import('datatables.net-select-bs5/css/select.bootstrap5.min.css'),
+        zf: () => import('datatables.net-select-zf/css/select.foundation.min.css'),
+        jqui: () => import('datatables.net-select-jqui/css/select.jqueryui.min.css'),
+        se: () => import('datatables.net-select-se/css/select.semanticui.min.css'),
+    },
 }
 
 export class ExtensionRegistry {
     static async load(name: string, framework: StyleFramework): Promise<void> {
-        const pkgKey = EXTENSION_PKG_KEY[name]
-        const fileBase = EXTENSION_FILE_BASE[name]
+        const loader = extensionLoaders[name as ExtensionName]
+        const styleLoader = extensionStyleLoaders[name as ExtensionName]
 
-        if (!pkgKey || !fileBase) {
+        if (!loader || !styleLoader) {
             throw new Error(`Unknown extension: "${name}"`)
         }
 
-        const cssSuffix = FRAMEWORK_CSS_SUFFIX[framework]
-        const jsSpecifier = `datatables.net-${pkgKey}-${framework}`
-        const cssSpecifier = `datatables.net-${pkgKey}-${framework}/css/${fileBase}.${cssSuffix}.min.css`
-
-        await import(/* @vite-ignore */ jsSpecifier)
-        await import(/* @vite-ignore */ cssSpecifier)
+        await loader[framework]()
+        await styleLoader[framework]()
     }
 }

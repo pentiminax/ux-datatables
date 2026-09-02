@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 final class ImportmapCoverageTest extends TestCase
 {
     #[Test]
-    public function it_declares_every_buttons_loader_import_for_asset_mapper(): void
+    public function it_declares_every_published_import_for_asset_mapper(): void
     {
         $root    = \dirname(__DIR__, 3);
         $package = json_decode(
@@ -22,16 +22,53 @@ final class ImportmapCoverageTest extends TestCase
             512,
             \JSON_THROW_ON_ERROR,
         );
-        $loader = (string) file_get_contents($root.'/assets/dist/functions/loadButtonsLibrary.js');
 
-        preg_match_all("/import\\('([^']+)'\\)/", $loader, $matches);
+        $importmap  = $package['symfony']['importmap'];
+        $specifiers = [];
 
-        foreach (array_unique($matches[1]) as $specifier) {
+        foreach ($this->publishedFiles($root.'/assets/dist') as $file) {
+            preg_match_all(
+                "/(?:\\bfrom|\\bimport)\\s*\\(?\\s*'([^']+)'/",
+                (string) file_get_contents($file),
+                $matches,
+            );
+
+            foreach ($matches[1] as $specifier) {
+                if (str_starts_with($specifier, '.')) {
+                    continue;
+                }
+
+                $specifiers[$specifier] = str_replace($root.'/', '', $file);
+            }
+        }
+
+        self::assertNotEmpty($specifiers, 'No published import was found; assets/dist must be built.');
+
+        foreach ($specifiers as $specifier => $file) {
             self::assertArrayHasKey(
                 $specifier,
-                $package['symfony']['importmap'],
-                \sprintf('The Buttons loader import "%s" must be declared in symfony.importmap.', $specifier),
+                $importmap,
+                \sprintf('The import "%s" in %s must be declared in symfony.importmap.', $specifier, $file),
             );
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function publishedFiles(string $directory): array
+    {
+        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS));
+        $files    = [];
+
+        foreach ($iterator as $file) {
+            if ($file instanceof \SplFileInfo && 'js' === $file->getExtension()) {
+                $files[] = $file->getPathname();
+            }
+        }
+
+        sort($files);
+
+        return $files;
     }
 }
