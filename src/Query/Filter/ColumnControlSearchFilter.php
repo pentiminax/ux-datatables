@@ -71,9 +71,25 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
             return;
         }
 
+        // The UUID, date, integer, float, and boolean type lists are pairwise disjoint and
+        // resolveFieldType() returns a single Doctrine type, so at most one branch can match.
         $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $field);
         if (null !== $uuidType) {
             $this->applyUuidList($qb, $field, $values, $alias, $uuidType);
+
+            return;
+        }
+
+        $dateType = RelationFieldResolver::resolveDateFieldType($qb, $field);
+        if (null !== $dateType) {
+            $this->applyTypedEqualityList(
+                $qb,
+                $field,
+                $values,
+                $alias,
+                $dateType,
+                DateSearchTerm::normalize(...),
+            );
 
             return;
         }
@@ -101,20 +117,6 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
                 $alias,
                 $floatType,
                 static fn (string $value): ?string => NumericSearchTerm::normalize($value, $floatType),
-            );
-
-            return;
-        }
-
-        $dateType = RelationFieldResolver::resolveDateFieldType($qb, $field);
-        if (null !== $dateType) {
-            $this->applyTypedEqualityList(
-                $qb,
-                $field,
-                $values,
-                $alias,
-                $dateType,
-                DateSearchTerm::normalize(...),
             );
 
             return;
