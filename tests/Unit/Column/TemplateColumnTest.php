@@ -28,6 +28,15 @@ final class TemplateColumnTest extends DataTableTestCase
         $this->assertCustomOption('datatable/columns/status_badge.html.twig', 'templatePath', $column);
     }
 
+    #[Test]
+    public function it_is_not_exportable_by_default(): void
+    {
+        $column = TemplateColumn::new('user')->setTemplate('datatable/columns/user.html.twig');
+
+        $this->assertFalse($column->isExportable());
+        $this->assertTrue($column->setExportable(true)->isExportable());
+    }
+
     /**
      * @param class-string<\Throwable> $expectedException
      */
@@ -57,6 +66,22 @@ final class TemplateColumnTest extends DataTableTestCase
             \LogicException::class,
             'Template path is not configured for column',
         ];
+
+        yield 'reserved parameter' => [
+            static fn () => TemplateColumn::new('status_display')->setTemplate('column.html.twig', ['payload' => []]),
+            \InvalidArgumentException::class,
+            'Template parameters "payload" are reserved by the renderer and cannot be overridden on column "status_display".',
+        ];
+
+        yield 'several reserved parameters are all reported' => [
+            static fn () => TemplateColumn::new('status_display')->setTemplate('column.html.twig', [
+                'row'         => 1,
+                'badge_class' => 'badge-success',
+                'entity'      => 2,
+            ]),
+            \InvalidArgumentException::class,
+            'Template parameters "row", "entity" are reserved',
+        ];
     }
 
     #[Test]
@@ -66,9 +91,9 @@ final class TemplateColumnTest extends DataTableTestCase
 
         $this->assertSame([], $column->getTemplateParameters());
 
-        $column->setTemplate('some/template.html.twig', ['badge_class' => 'badge-success', 'show_icon' => true]);
+        $column->setTemplate('some/template.html.twig', ['badge_class' => 'badge-success', 'show_icon' => true, 'item' => 'custom']);
 
-        $this->assertSame(['badge_class' => 'badge-success', 'show_icon' => true], $column->getTemplateParameters());
+        $this->assertSame(['badge_class' => 'badge-success', 'show_icon' => true, 'item' => 'custom'], $column->getTemplateParameters());
 
         $data = $column->jsonSerialize();
 

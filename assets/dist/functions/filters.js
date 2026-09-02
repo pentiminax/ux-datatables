@@ -266,7 +266,7 @@ export class FilterBar {
     }
     buildDateRange(definition, wrapper) {
         const group = document.createElement('div');
-        group.className = isBootstrap(this.framework) ? 'd-flex gap-1' : 'dt-filter-range';
+        group.className = isBootstrap(this.framework) ? 'dt-filter-range d-flex gap-1' : 'dt-filter-range';
         const from = document.createElement('input');
         from.type = 'date';
         from.className = inputClass(this.framework);

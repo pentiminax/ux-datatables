@@ -47,13 +47,13 @@ final class UsersDataTable extends AbstractDataTable
             );
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
-        /** @var User $item */
+        /** @var User $row */
         return [
-            'id'     => $item->getId(),
-            'email'  => $item->getEmail(),
-            'status' => $item->getStatus(),
+            'id'     => $row->getId(),
+            'email'  => $row->getEmail(),
+            'status' => $row->getStatus(),
         ];
     }
 }
@@ -360,39 +360,6 @@ edit/delete buttons in the trailing `actions` column.
   rendering and is **not** serialized into the client JSON.
 </Aside>
 
-## Manual Usage with `DataTableBuilderInterface`
-
-If you build tables manually, create an `Actions` collection and wrap it with `ActionColumn::fromActions()`:
-
-```php
-use App\Entity\User;
-use Pentiminax\UX\DataTables\Column\ActionColumn;
-use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Model\Action;
-use Pentiminax\UX\DataTables\Model\Actions;
-
-$actions = (new Actions())
-    ->setColumnLabel('Operations')
-    ->add(
-        Action::delete()
-            ->setEntityClass(User::class)
-            ->setIdField('uuid')
-            ->askConfirmation('Delete this user?')
-    );
-
-$table = $builder
-    ->createDataTable('users')
-    ->columns([
-        TextColumn::new('email', 'Email'),
-        ActionColumn::fromActions('actions', 'Operations', $actions),
-    ])
-    ->data([
-        ['uuid' => '8f9f0c31', 'email' => 'john@example.com'],
-    ]);
-```
-
-Manual tables must provide the entity class themselves because there is no `#[AsDataTable]` attribute to infer it from.
-
 ## Inline Edit (Modal)
 
 `Action::edit()` opens a configured edit modal with an auto-generated Symfony Form. See the dedicated [Edit Modal](/ux-datatables/reference/edit-modal/) page for full documentation: template overrides, column-to-form mapping, primary key handling, and examples.
@@ -424,6 +391,52 @@ return static function (RoutingConfigurator $routes): void {
 - `POST /datatables/ajax/edit-form` — validates and persists the form data
 
 These endpoints are only available when `symfony/form` is installed.
+
+### Detail Row Endpoint
+
+`POST /datatables/ajax/detail` — payload: `dataTable` (the table token), `id`.
+
+`Action::detail()->collapsible($template)` turns the detail action into an expand/collapse toggle
+instead of a link. Expanding a row posts to this endpoint, and the response HTML is inserted as a
+DataTables child row — the template is rendered on demand, so a collapsed row costs nothing.
+
+```php
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
+
+public function configureActions(Actions $actions): Actions
+{
+    return $actions->add(
+        Action::detail('Details')
+            ->collapsible('data_tables/user_details.html.twig', ['showAudit' => true])
+    );
+}
+```
+
+```twig
+{# templates/data_tables/user_details.html.twig #}
+<dl>
+    <dt>Email</dt><dd>{{ entity.email }}</dd>
+    <dt>Registered</dt><dd>{{ entity.createdAt|date('Y-m-d') }}</dd>
+</dl>
+```
+
+The template receives the located entity as `entity`, plus any extra parameters given to
+`collapsible()`. Auto-escaping applies as usual.
+
+Access is checked before the template renders, mirroring what the rendering pipeline evaluated for
+that action: a per-row `permission()` resolver receives the located entity, a static `permission()`
+is evaluated as-is, and an action with no configured permission falls back to `VIEW` on the entity —
+the same convention delete and edit follow. An action the user cannot see is an action they cannot
+fetch.
+
+<Aside type="note">
+  The endpoint needs Twig, a table that declares an entity class, and exactly one collapsible
+  detail action to resolve; it answers `400` otherwise, `404` when the entity no longer exists, and
+  `403` when the permission check denies it. Like every bundle Ajax route, it must still be
+  protected by your own `security.firewalls` configuration — see
+  [Securing Ajax Routes](/ux-datatables/getting-started/security/).
+</Aside>
 
 ## Related
 

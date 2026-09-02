@@ -6,11 +6,8 @@ namespace Pentiminax\UX\DataTables\Twig;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
-use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
-use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
@@ -24,8 +21,6 @@ class DataTablesExtension extends AbstractExtension
 {
     public function __construct(
         private readonly StimulusHelper $stimulus,
-        private readonly TemplateColumnRenderer $templateColumnRenderer,
-        private readonly ActionRowDataResolver $actionRowDataResolver,
         private readonly ColumnResolver $columnResolver,
         private readonly ?RequestStack $requestStack = null,
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
@@ -41,52 +36,32 @@ class DataTablesExtension extends AbstractExtension
         ];
     }
 
-    public function renderDataTable(AbstractDataTable|DataTable $table, array $attributes = []): string
+    public function renderDataTable(AbstractDataTable $table, array $attributes = []): string
     {
-        $dataTableClass = $table instanceof AbstractDataTable ? $table::class : $table->getDataTableClass();
-        $abstractTable  = $table instanceof AbstractDataTable ? $table : null;
+        $dataTableClass = $table::class;
+        $dataTable      = $table->getDataTable();
 
-        if ($table instanceof AbstractDataTable) {
-            $table = $table->getDataTable();
-        }
-
-        $originalColumns = array_values($table->getColumns());
+        $originalColumns = array_values($dataTable->getColumns());
         $columns         = $this->columnResolver->filterStaticPermissions($originalColumns);
 
-        $table->setAttributes(array_merge($table->getAttributes(), $attributes));
+        $dataTable->setAttributes(array_merge($dataTable->getAttributes(), $attributes));
 
         $controllers = [];
 
-        if ($table->getDataController()) {
-            $controllers[$table->getDataController()] = [];
+        if ($dataTable->getDataController()) {
+            $controllers[$dataTable->getDataController()] = [];
         }
 
-        $options            = $table->getOptions();
+        $options            = $dataTable->getOptions();
         $options['columns'] = array_values(array_map(
             static fn (ColumnInterface $column): array => $column->jsonSerialize(),
             $columns,
         ));
 
-        if (!empty($options['data'])) {
-            $renderTemplates = !$table->areTemplateColumnsRendered();
-            $options['data'] = array_map(function (array $row) use ($columns, $originalColumns, $renderTemplates): array {
-                $resolvedRow = $renderTemplates
-                    ? $this->templateColumnRenderer->renderRow($row, $row, $columns)
-                    : $row;
-                $resolvedRow = $this->actionRowDataResolver->resolveRow($resolvedRow, $row, $columns);
-
-                return $this->columnResolver->removeDeniedColumnValues($resolvedRow, $originalColumns);
-            }, $options['data']);
-
-            if ($renderTemplates) {
-                $table->markTemplateColumnsRendered();
-            }
-        }
-
-        $view = array_merge($options, $table->getExtensions(), [
-            'dataTable' => null !== $dataTableClass ? $this->ajaxRegistry?->getActionToken($dataTableClass) : null,
+        $view = array_merge($options, $dataTable->getExtensions(), [
+            'dataTable' => $this->ajaxRegistry?->getActionToken($dataTableClass),
             'editModal' => [
-                'adapter' => $table->getEditModalAdapter(),
+                'adapter' => $dataTable->getEditModalAdapter(),
             ],
             'mutationsEnabled' => false,
         ]);
@@ -109,7 +84,7 @@ class DataTablesExtension extends AbstractExtension
             $stimulusAttributes->addController($name, $controllerValues);
         }
 
-        foreach ($table->getAttributes() as $name => $value) {
+        foreach ($dataTable->getAttributes() as $name => $value) {
             if ('data-controller' === $name) {
                 continue;
             }
@@ -121,13 +96,13 @@ class DataTablesExtension extends AbstractExtension
             }
         }
 
-        $this->profiler?->collectRenderedTable($dataTableClass ?? $table->getId(), $table, [
-            'entityClass'     => $abstractTable?->getEntityClass(),
+        $this->profiler?->collectRenderedTable($dataTableClass, $dataTable, [
+            'entityClass'     => $table->getEntityClass(),
             'originalColumns' => $originalColumns,
             'allowedColumns'  => $columns,
         ]);
 
-        return \sprintf('<table id="%s" %s></table>', $table->getId(), $stimulusAttributes);
+        return \sprintf('<table id="%s" %s></table>', $dataTable->getId(), $stimulusAttributes);
     }
 
     private function getMutationToken(): ?string

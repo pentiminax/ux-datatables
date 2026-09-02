@@ -14,10 +14,11 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
-use Pentiminax\UX\DataTables\Dto\AjaxDeleteRequestDto;
-use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
+use Pentiminax\UX\DataTables\Controller\AjaxEditRequestDto;
+use Pentiminax\UX\DataTables\Controller\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
 use Pentiminax\UX\DataTables\Exception\MutationException;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
@@ -52,7 +53,7 @@ final class MutationExceptionHandlingTest extends TestCase
         );
 
         $response = $this->handleControllerException(
-            fn () => $controller($this->validTokenRequest(), new AjaxDeleteRequestDto(
+            fn () => $controller($this->validTokenRequest(), new AjaxEntityQueryDto(
                 dataTable: $this->dataTableToken(),
                 id: 404,
             )),
@@ -74,6 +75,7 @@ final class MutationExceptionHandlingTest extends TestCase
             $accessor,
             new NullMercurePublisher(),
             new PermissionChecker(),
+            new MercureTopicResolver(),
         ));
 
         $response = $this->handleControllerException(
@@ -156,6 +158,7 @@ final class MutationExceptionHandlingTest extends TestCase
             $this->createMock(PropertyAccessorInterface::class),
             new NullMercurePublisher(),
             new PermissionChecker(),
+            new MercureTopicResolver(),
         );
     }
 

@@ -36,6 +36,8 @@ final class NumericSearchTermTest extends TestCase
         yield 'decimal' => ['0.5', 'decimal', '0.5'];
         yield 'scientific float' => ['1e2', 'float', '1e2'];
         yield 'zero' => ['0', 'integer', '0'];
+        yield 'leading plus integer' => ['+42', 'integer', '42'];
+        yield 'leading plus float' => ['+19.99', 'float', '+19.99'];
     }
 
     #[Test]

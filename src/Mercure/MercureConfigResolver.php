@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Mercure;
 
-final class MercureConfigResolver implements MercureConfigResolverInterface
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
+
+class MercureConfigResolver
 {
     public function __construct(
-        private readonly MercureHubUrlResolverInterface $hubUrlResolver,
-        private readonly ?ApiResourceMercureMetadataResolverInterface $apiResourceMercureMetadataResolver = null,
+        private readonly MercureHubUrlResolver $hubUrlResolver,
+        private readonly ?ApiResourceMercureMetadataResolver $apiResourceMercureMetadataResolver = null,
     ) {
     }
 

@@ -6,7 +6,7 @@ namespace Pentiminax\UX\DataTables\Mercure;
 
 use Symfony\Component\Mercure\HubInterface;
 
-final class MercureHubUrlResolver implements MercureHubUrlResolverInterface
+class MercureHubUrlResolver
 {
     public function __construct(
         private readonly HubInterface $hub,

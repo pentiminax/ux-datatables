@@ -12,16 +12,17 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
+use Pentiminax\UX\DataTables\Controller\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
-use Pentiminax\UX\DataTables\Dto\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
+use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -73,8 +74,8 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
-            dataTables: $this->registeredDataTables(),
-            permissionChecker: $this->permissionCheckerGranting(true),
+            new MercureTopicResolver(dataTables: $this->registeredDataTables()),
+            $this->permissionCheckerGranting(true),
         ));
 
         $response = $controller($this->validTokenRequest(), $this->payload());
@@ -108,7 +109,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $formFactory->expects($this->never())->method('createBuilder');
         $renderer = $this->createMock(EditModalRenderer::class);
         $renderer->expects($this->never())->method('renderBody');
-        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver = $this->createMock(EditModalTemplateResolver::class);
         $templateResolver->expects($this->never())->method('resolveColumns');
 
         $authorizationChecker = $this->createMock(AuthorizationCheckerInterface::class);
@@ -120,7 +121,8 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
-            permissionChecker: new PermissionChecker($authorizationChecker),
+            new MercureTopicResolver(),
+            new PermissionChecker($authorizationChecker),
         ));
 
         $response = $controller($this->validTokenRequest(), $this->payload());
@@ -163,7 +165,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
 
         [$formFactory, $renderer, $templateResolver] = $this->createFormCollaborators($this->createFormMock(true));
 
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->method('resolveMercureConfig')
             ->with(AjaxEditFormSubmitControllerFixture::class)
             ->willReturn(null === $serverTopics ? null : new MercureConfig(
@@ -177,8 +179,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new MercureUpdatePublisher($hub),
-            $resolver,
-            $this->registeredDataTables(),
+            new MercureTopicResolver($resolver, $this->registeredDataTables()),
             $this->permissionCheckerGranting(true),
         ));
 
@@ -213,9 +214,10 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
                 new EntityLocator($registry),
                 new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
                 $renderer,
-                $this->createMock(EditModalTemplateResolverInterface::class),
+                $this->createMock(EditModalTemplateResolver::class),
                 new NullMercurePublisher(),
-                permissionChecker: $this->permissionCheckerGranting(true),
+                new MercureTopicResolver(),
+                $this->permissionCheckerGranting(true),
             ),
             $csrfTokenManager,
         );
@@ -332,7 +334,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
     /**
      * @param string|null $invalidHtml the body rendered for an invalid form, or null when the form is expected to be valid
      *
-     * @return array{FormFactoryInterface, EditModalRenderer, EditModalTemplateResolverInterface}
+     * @return array{FormFactoryInterface, EditModalRenderer, EditModalTemplateResolver}
      */
     private function createFormCollaborators(FormInterface $form, ?string $invalidHtml = null): array
     {
@@ -352,7 +354,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ->willReturn($formBuilder);
 
         $renderer         = $this->createMock(EditModalRenderer::class);
-        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver = $this->createMock(EditModalTemplateResolver::class);
         $templateResolver->expects($this->once())
             ->method('resolveColumns')
             ->with(AjaxEditFormSubmitControllerDataTable::class)

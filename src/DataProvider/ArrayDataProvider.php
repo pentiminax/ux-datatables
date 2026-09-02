@@ -6,10 +6,11 @@ namespace Pentiminax\UX\DataTables\DataProvider;
 
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 
-final class ArrayDataProvider implements DataProviderInterface
+final class ArrayDataProvider implements DataProviderInterface, StreamingDataProviderInterface
 {
     /**
      * @param iterable<object|array> $items
@@ -55,6 +56,11 @@ final class ArrayDataProvider implements DataProviderInterface
         );
     }
 
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->fetchData($request->withoutPagination())->data;
+    }
+
     /**
      * @param list<object|array> $items
      *
@@ -76,12 +82,28 @@ final class ArrayDataProvider implements DataProviderInterface
     private function rowMatches(array $row, string $needle): bool
     {
         foreach ($row as $value) {
+            if (!$this->isSearchableValue($value)) {
+                continue;
+            }
+
             if (str_contains(mb_strtolower((string) $value), $needle)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * Action and URL resolvers stash nested arrays on the mapped row
+     * ({@see ActionRowDataResolver::ROW_ACTIONS_KEY}, {@see UrlColumnDataResolver::ROW_URLS_KEY}).
+     * Casting those to string is an Error on PHP 8, which aborted every global search
+     * (and therefore every filtered export) on a server-side ArrayDataProvider table
+     * that had an ActionColumn or UrlColumn.
+     */
+    private function isSearchableValue(mixed $value): bool
+    {
+        return \is_scalar($value) || $value instanceof \Stringable;
     }
 
     /**

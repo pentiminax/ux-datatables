@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Query\Filter;
 use Doctrine\ORM\Query\Expr;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
@@ -236,9 +237,145 @@ final class ColumnControlSearchFilterTest extends TestCase
     }
 
     /**
+     * ColumnControl searchList on integer/float/date/boolean columns used to bind the raw
+     * list with IN and no Doctrine type. Selecting a value from the list then 500s on
+     * PostgreSQL (`operator does not exist: integer = text`) and, for garbage terms,
+     * silently matches 0/false on MySQL.
+     *
      * @param list<mixed> $values
      */
-    private function applyList(QueryBuilder $qb, TextColumn $column, array $values): void
+    #[Test]
+    #[DataProvider('unbindable_typed_lists')]
+    public function it_skips_an_unbindable_list_on_a_typed_column(string $field, string $doctrineType, array $values): void
+    {
+        $qb = $this->queryBuilderWithFieldType($field, $doctrineType);
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+
+        $this->applyList($qb, TextColumn::new($field)->setField($field), $values);
+    }
+
+    /**
+     * @return iterable<string, array{string, string, list<mixed>}>
+     */
+    public static function unbindable_typed_lists(): iterable
+    {
+        yield 'decimal on an integer column' => ['age', 'integer', ['1.5']];
+        yield 'scientific notation on an integer column' => ['age', 'integer', ['1e2']];
+        yield 'non-numeric on an integer column' => ['age', 'integer', ['abc']];
+        yield 'non-numeric on a float column' => ['price', 'float', ['abc']];
+        yield 'unparsable date' => ['birthDate', 'date', ['not-a-date']];
+        yield 'garbage on a boolean column' => ['active', 'boolean', ['yes please']];
+    }
+
+    #[Test]
+    public function it_binds_an_integer_list_with_the_doctrine_type(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('age', 'integer');
+        $qb->method('expr')->willReturn(new Expr());
+
+        $qb->expects($this->exactly(2))
+            ->method('setParameter')
+            ->willReturnCallback(function (string $name, mixed $value, mixed $type = null) use ($qb): QueryBuilder {
+                static $call = 0;
+                $expected    = [
+                    ['age_in_0', '42', 'integer'],
+                    ['age_in_1', '7', 'integer'],
+                ];
+                $this->assertSame($expected[$call], [$name, $value, $type]);
+                ++$call;
+
+                return $qb;
+            });
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with(new Expr\Orx(['e.age = :age_in_0', 'e.age = :age_in_1']));
+
+        $this->applyList($qb, TextColumn::new('age')->setField('age'), ['  42  ', '7']);
+    }
+
+    #[Test]
+    public function it_binds_a_float_list_with_the_doctrine_type(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('price', 'float');
+        $qb->method('expr')->willReturn(new Expr());
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('price_in_0', '19.99', 'float');
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with(new Expr\Orx(['e.price = :price_in_0']));
+
+        $this->applyList($qb, TextColumn::new('price')->setField('price'), ['19.99']);
+    }
+
+    #[Test]
+    public function it_binds_a_date_list_with_a_parsed_value_and_the_doctrine_type(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('birthDate', 'date');
+        $qb->method('expr')->willReturn(new Expr());
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with(
+                'birthDate_in_0',
+                $this->callback(static fn (\DateTimeImmutable $value): bool => '2026-08-19' === $value->format('Y-m-d')),
+                'date',
+            );
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with(new Expr\Orx(['e.birthDate = :birthDate_in_0']));
+
+        $this->applyList($qb, TextColumn::new('birthDate')->setField('birthDate'), ['2026-08-19']);
+    }
+
+    #[Test]
+    public function it_binds_a_boolean_list_with_a_parsed_value_and_the_doctrine_type(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('active', 'boolean');
+        $qb->method('expr')->willReturn(new Expr());
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('active_in_0', true, 'boolean');
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with(new Expr\Orx(['e.active = :active_in_0']));
+
+        $this->applyList($qb, TextColumn::new('active')->setField('active'), ['true']);
+    }
+
+    #[Test]
+    public function it_matches_is_null_for_an_integer_list_of_only_the_empty_value(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('age', 'integer');
+        $qb->method('expr')->willReturn(new Expr());
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with(new Expr\Comparison('e.age', 'IS', 'NULL'));
+        $qb->expects($this->never())->method('setParameter');
+
+        $this->applyList($qb, TextColumn::new('age')->setField('age'), ['']);
+    }
+
+    #[Test]
+    public function it_combines_typed_equalities_with_is_null_when_the_empty_value_is_selected_alongside_integers(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('age', 'integer');
+        $qb->method('expr')->willReturn(new Expr());
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('age_in_0', '42', 'integer');
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with(new Expr\Orx(['e.age = :age_in_0', new Expr\Comparison('e.age', 'IS', 'NULL')]));
+
+        $this->applyList($qb, TextColumn::new('age')->setField('age'), ['42', '']);
+    }
+
+    /**
+     * @param list<mixed> $values
+     */
+    private function applyList(QueryBuilder $qb, ColumnInterface $column, array $values): void
     {
         $filter  = new ColumnControlSearchFilter(new SearchStrategyRegistry([], $this->createMock(SearchStrategyInterface::class)));
         $context = $this->singleColumnContext($column, columnControl: new ColumnControl(list: $values));

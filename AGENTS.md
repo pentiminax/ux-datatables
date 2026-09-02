@@ -73,8 +73,8 @@ rows through Ajax and apply pagination, search, and ordering through the query p
   rendering state, requests, responses, and registered-table validation.
 - **Query processing** (`src/Query/`, `src/DataProvider/`): request intent creation, filters, search
   strategies, Doctrine queries, and in-memory data.
-- **Rendering** (`src/Rendering/`, `src/RowMapper/`, `templates/`): payload preparation, row stages,
-  Twig rendering, and modal templates.
+- **Rendering** (`src/RowMapper/`, `templates/`): row stages, Twig rendering, and modal templates.
+  Payload preparation lives in `src/Runtime/RenderingPreparer.php`.
 - **Optional integrations** (`src/ApiPlatform/`, `src/Mercure/`, `src/Maker/`): keep optional
   dependencies isolated and guard their use with availability checks.
 - **Frontend** (`assets/src/`): the Stimulus controller, renderers, modal adapters, style adapters,

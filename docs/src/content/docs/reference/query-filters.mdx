@@ -1,0 +1,205 @@
+---
+title: Query Filters
+description: The server-side query pipeline, the read intent it consumes, and how to add a filter
+order: 72
+---
+
+Every server-side request builds its Doctrine query through one pipeline. `QueryFilterPipeline`
+normalizes the raw DataTables request into a read intent, then runs a chain of
+`QueryFilterInterface` stages over the `QueryBuilder`.
+
+<Aside type="tip">
+  For per-table conditions — tenant scoping, soft deletes, a mandatory join — override
+  `customizeQueryBuilder()` instead. It runs before the pipeline, applies to both the filtered count
+  and the total, and needs no new class. Implement `QueryFilterInterface` only when the same logic
+  has to be reused across several tables.
+</Aside>
+
+## `QueryFilterInterface`
+
+```php
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
+use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+
+interface QueryFilterInterface
+{
+    public function apply(QueryBuilder $qb, QueryFilterContext $context): void;
+}
+```
+
+An implementation reads its criteria from the context, never from the raw request, and:
+
+- **is a no-op when its part of the intent is absent** — no ordering requested, no search term;
+- **draws every Doctrine parameter name from the context's index helpers**, so two filters touching
+  the same column cannot mint the same placeholder;
+- **only adds conditions**. Pagination is not the pipeline's job: the intent's `offset` and `limit`
+  are applied by the data provider.
+
+## `QueryFilterContext`
+
+One context is built per query and shared by every filter in the chain.
+
+| Member                                  | Description                                                       |
+| --------------------------------------- | ----------------------------------------------------------------- |
+| `intent`                                | The normalized `DataTableQueryIntent`, built once                  |
+| `columns`                               | Configured, permission-filtered columns indexed by name            |
+| `alias`                                 | The query's root alias (`e`)                                       |
+| `columnByName(string $name)`            | The configured column behind an intent column reference, or `null` |
+| `nextParamIndex()`                      | A fresh index, never reused for the life of the context            |
+| `paramIndexFor(ColumnReadReference $r)` | An index stable within one `apply()` call, for the same reference   |
+
+Use `nextParamIndex()` for each bound value. Use `paramIndexFor()` when a single filter needs to
+reference one bound value from more than one DQL fragment — it returns the same index for the same
+reference until the pipeline resets the scope between filters, which is what stops two different
+filters from colliding on the same column.
+
+## `DataTableQueryIntent`
+
+The intent is provider-neutral: no Doctrine classes, no DQL, no aliases, no raw DataTables request
+indexes. It is what lets a non-Doctrine provider consume the same criteria.
+
+| Field            | Type                                                        | Description                                       |
+| ---------------- | ----------------------------------------------------------- | ------------------------------------------------- |
+| `draw`           | `?int`                                                      | The request's draw counter, echoed in the response |
+| `offset`         | `int`                                                       | First row to return                                |
+| `limit`          | `?int`                                                      | Page length; `null` means unpaginated              |
+| `columns`        | `list<ColumnReadReference>`                                 | Requested columns, in request order                |
+| `globalSearch`   | `?string`                                                   | Trimmed global search term, `null` when empty      |
+| `orderColumn`    | `?ColumnReadReference`                                      | Column to order by                                 |
+| `orderDir`       | `'asc'\|'desc'\|null`                                       | Order direction                                    |
+| `columnSearches` | `list<array{column: ColumnReadReference, value: string}>`    | Per-column search box terms                        |
+| `columnControls` | `list<ColumnControlIntent>`                                 | ColumnControl scalar and list criteria             |
+
+A `ColumnReadReference` carries the column's `name`, its `fieldPath`, and whether it is
+`globalSearchable` — enough to know what to read without knowing how to read it. The Doctrine-only
+details stay out: a column's raw `getOrderExpression()`, for instance, is resolved by
+`OrderFilter` from the context's columns, not carried in the intent.
+
+## The shipped chain
+
+`QueryFilterPipeline::apply()` runs these four filters, in this order, resetting the context's
+parameter-index scope between each:
+
+| # | Filter                      | What it applies                                                                       |
+| - | --------------------------- | ------------------------------------------------------------------------------------- |
+| 1 | `OrderFilter`               | `orderColumn` / `orderDir`, using the column's order expression when it defines one   |
+| 2 | `GlobalSearchFilter`        | `globalSearch`, one predicate per globally searchable column, combined with `OR`       |
+| 3 | `ColumnSearchFilter`        | `columnSearches`, one AND condition each, via the registry's `contains` strategy       |
+| 4 | `ColumnControlSearchFilter` | `columnControls`: list criteria as typed `IN` branches, scalar criteria via the registry |
+
+Filters 2–4 delegate condition building to the search strategy registry and the search predicate
+builder, which is why overriding `createSearchStrategyRegistry()` or
+`createSearchPredicateBuilder()` changes what they produce. See
+[Search Strategies](/ux-datatables/reference/search-strategies/).
+
+The user-facing filters declared in `configureFilters()` are applied afterwards, outside this
+chain: each reads its own value from `filters[name]` in the request and is skipped when that value
+is empty. See [Filters](/ux-datatables/reference/filters/).
+
+## Adding a condition of your own
+
+`AbstractDataTable::configureQueryBuilder()` is `final`: it calls `customizeQueryBuilder()` and
+then hands the query to the pipeline. The shipped chain is assembled inside
+`QueryFilterPipeline::apply()` and is not extensible through a service tag, so
+`customizeQueryBuilder()` is where a table adds its own conditions — and it is also the only one
+of the two that runs before the pipeline, so its conditions constrain `recordsTotal` as well as
+`recordsFiltered`.
+
+Tenant scoping is the common case. The current user comes from `Security`, injected into the table:
+
+```php
+use App\Entity\Invoice;
+use App\Entity\User;
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\MoneyColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Symfony\Bundle\SecurityBundle\Security;
+
+#[AsDataTable(Invoice::class)]
+final class InvoiceDataTable extends AbstractDataTable
+{
+    public function __construct(
+        private readonly Security $security,
+    ) {
+        parent::__construct();
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('reference', 'Reference');
+        yield MoneyColumn::new('total', 'Total')->currency('EUR');
+    }
+
+    protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    {
+        $user = $this->security->getUser();
+
+        if (!$user instanceof User) {
+            // No identity to scope by: match nothing rather than everything.
+            return $qb->andWhere('1 = 0');
+        }
+
+        return $qb
+            ->andWhere('e.organization = :own_organization')
+            ->setParameter('own_organization', $user->getOrganization());
+    }
+}
+```
+
+<Aside type="caution">
+  A scoping condition like this is authorization, so it belongs in `customizeQueryBuilder()`, which
+  is evaluated per request. Reading the security token from a `configure*()` method would bind the
+  container-shared table instance to whoever initialized it first — see the
+  [purity contract](/ux-datatables/reference/abstract-datatable/#configuration-methods-must-be-pure).
+  Scoping the query is also not a substitute for protecting the Ajax route itself; see
+  [Securing Ajax Routes](/ux-datatables/getting-started/security/).
+</Aside>
+
+To share that condition across several tables, extract it into a service and call it from each
+table's `customizeQueryBuilder()`. Implementing `QueryFilterInterface` for it buys nothing unless
+the filter reads the intent's normalized criteria: the interface takes a `QueryFilterContext`, and
+outside the pipeline you would have to build one. A plain service taking the `QueryBuilder` (and the
+alias, if it should not hardcode `e`) is the smaller, honest shape:
+
+```php
+namespace App\DataTable\Query;
+
+use App\Entity\User;
+use Doctrine\ORM\QueryBuilder;
+use Symfony\Bundle\SecurityBundle\Security;
+
+final readonly class OwnOrganizationScope
+{
+    public function __construct(
+        private Security $security,
+    ) {
+    }
+
+    public function apply(QueryBuilder $qb, string $alias = 'e'): void
+    {
+        $user = $this->security->getUser();
+
+        if (!$user instanceof User) {
+            $qb->andWhere('1 = 0');
+
+            return;
+        }
+
+        $qb
+            ->andWhere(sprintf('%s.organization = :own_organization', $alias))
+            ->setParameter('own_organization', $user->getOrganization());
+    }
+}
+```
+
+## See Also
+
+- [Search Strategies](/ux-datatables/reference/search-strategies/)
+- [AbstractDataTable](/ux-datatables/reference/abstract-datatable/)
+- [DataTableRequest](/ux-datatables/reference/datatable-request/)
+- [Filters](/ux-datatables/reference/filters/)
+- [Securing Ajax Routes](/ux-datatables/getting-started/security/)

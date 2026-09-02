@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Model\Extensions;
 
 use Pentiminax\UX\DataTables\Enum\ButtonType;
+use Pentiminax\UX\DataTables\Enum\ExportFormat;
 
 final class Button implements \JsonSerializable
 {
-    private const DEFAULT_EXPORT_COLUMNS = ':visible:not(.not-exportable)';
+    public const string SERVER_EXPORT_ACTION = 'ux:export';
+
+    private const string DEFAULT_EXPORT_COLUMNS = ':visible:not(.not-exportable)';
 
     /**
      * Button types that never export data: no default `exportOptions` is injected for these.
@@ -36,6 +39,8 @@ final class Button implements \JsonSerializable
     /** @var array<string, mixed> */
     private array $options = [];
 
+    private ?ExportFormat $exportFormat = null;
+
     private function __construct(
         private readonly ButtonType $type,
     ) {
@@ -48,32 +53,46 @@ final class Button implements \JsonSerializable
 
     public static function copy(): self
     {
-        return self::fromType(ButtonType::COPY);
+        return self::fromType(ButtonType::COPY)
+            ->text('Copy');
     }
 
-    public static function csv(): self
+    /**
+     * @param bool $serverSide stream every filtered row from PHP instead of exporting the rows
+     *                         DataTables currently holds client-side
+     */
+    public static function csv(bool $serverSide = false): self
     {
-        return self::fromType(ButtonType::CSV);
+        return self::exportButton(ButtonType::CSV, $serverSide)
+            ->text('CSV');
     }
 
-    public static function excel(): self
+    /**
+     * @param bool $serverSide stream every filtered row from PHP as an XLSX workbook instead of
+     *                         exporting the rows DataTables currently holds client-side
+     */
+    public static function excel(bool $serverSide = false): self
     {
-        return self::fromType(ButtonType::EXCEL);
+        return self::exportButton(ButtonType::EXCEL, $serverSide)
+            ->text('Excel');
     }
 
     public static function pdf(): self
     {
-        return self::fromType(ButtonType::PDF);
+        return self::fromType(ButtonType::PDF)
+            ->text('PDF');
     }
 
     public static function print(): self
     {
-        return self::fromType(ButtonType::PRINT);
+        return self::fromType(ButtonType::PRINT)
+            ->text('Print');
     }
 
     public static function colVis(): self
     {
-        return self::fromType(ButtonType::COLUMN_VISIBILITY);
+        return self::fromType(ButtonType::COLUMN_VISIBILITY)
+            ->text('Column Visibility');
     }
 
     /**
@@ -83,7 +102,8 @@ final class Button implements \JsonSerializable
      */
     public static function ccSearchClear(): self
     {
-        return self::fromType(ButtonType::COLUMN_CONTROL_SEARCH_CLEAR);
+        return self::fromType(ButtonType::COLUMN_CONTROL_SEARCH_CLEAR)
+            ->text('Clear Search');
     }
 
     /**
@@ -121,6 +141,23 @@ final class Button implements \JsonSerializable
         return $button;
     }
 
+    private static function exportButton(ButtonType $type, bool $serverSide): self
+    {
+        $button = self::fromType($type);
+
+        $format = $serverSide ? ExportFormat::fromButtonType($type) : null;
+        if (null === $format) {
+            return $button;
+        }
+
+        $button->exportFormat         = $format;
+        $button->options['action']    = self::SERVER_EXPORT_ACTION;
+        $button->options['format']    = $format->value;
+        $button->options['exportKey'] = $format->value;
+
+        return $button;
+    }
+
     public function text(string $text): self
     {
         $this->options['text'] = $text;
@@ -133,6 +170,69 @@ final class Button implements \JsonSerializable
         $this->options['className'] = $className;
 
         return $this;
+    }
+
+    public function filename(string $filename): self
+    {
+        $this->options['filename'] = $filename;
+
+        return $this;
+    }
+
+    public function getFilename(): ?string
+    {
+        $filename = $this->options['filename'] ?? null;
+
+        return \is_string($filename) && '' !== $filename ? $filename : null;
+    }
+
+    public function exportKey(string $exportKey): self
+    {
+        $exportKey = trim($exportKey);
+        if ('' === $exportKey) {
+            throw new \InvalidArgumentException('Export key must not be empty.');
+        }
+
+        $this->options['exportKey'] = $exportKey;
+
+        return $this;
+    }
+
+    public function getExportKey(): string
+    {
+        $default = ($this->exportFormat ?? ExportFormat::CSV)->value;
+        $key     = $this->options['exportKey'] ?? $default;
+
+        return \is_string($key) && '' !== $key ? $key : $default;
+    }
+
+    public function isServerSideExport(): bool
+    {
+        return null !== $this->exportFormat;
+    }
+
+    public function getExportFormat(): ?ExportFormat
+    {
+        return $this->exportFormat;
+    }
+
+    /**
+     * Nested button descriptors (collection / colvis prefix/postfix). Used to discover
+     * server-side export buttons that live inside a dropdown.
+     *
+     * @return list<Button|array<string, mixed>|string>
+     */
+    public function getChildButtons(): array
+    {
+        $nested = [];
+        foreach (['buttons', 'prefixButtons', 'postfixButtons'] as $key) {
+            $value = $this->options[$key] ?? null;
+            if (\is_array($value)) {
+                $nested = [...$nested, ...$value];
+            }
+        }
+
+        return $nested;
     }
 
     /**
@@ -156,6 +256,16 @@ final class Button implements \JsonSerializable
     {
         if (\in_array($this->type, self::BARE_STRING_TYPES, true) && [] === $this->options) {
             return $this->type->value;
+        }
+
+        if (null !== $this->exportFormat) {
+            $payload = $this->options;
+            unset($payload['extend'], $payload['exportOptions']);
+            $payload['action']    = self::SERVER_EXPORT_ACTION;
+            $payload['format']    = $this->exportFormat->value;
+            $payload['exportKey'] = $this->getExportKey();
+
+            return $payload;
         }
 
         if (ButtonType::CUSTOM === $this->type) {

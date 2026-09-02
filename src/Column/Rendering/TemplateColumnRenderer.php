@@ -11,7 +11,16 @@ use Twig\Environment;
 
 final class TemplateColumnRenderer
 {
-    public const array RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row', 'source', 'item'];
+    /**
+     * Twig keys reserved by the renderer.
+     *
+     * `row` is the object passed to mapRow(), `payload` the array it returned.
+     *
+     * `entity` is a deprecated alias of `row` for TemplateColumn templates only, and remains
+     * reserved until it is removed. Detail rows and the edit modal expose their own `entity`,
+     * which is neither an alias nor deprecated.
+     */
+    public const array RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row', 'source', 'payload'];
 
     public function __construct(
         private readonly ?Environment $twig = null,
@@ -24,10 +33,10 @@ final class TemplateColumnRenderer
     public function renderRow(array $row, mixed $mappedRow, iterable $columns): array
     {
         $renderedRow = $row;
-        $contextRow  = $row;
+        $payload     = $row;
 
-        $source = $mappedRow instanceof RowContext ? $mappedRow->source : $mappedRow;
-        $item   = $mappedRow instanceof RowContext ? $mappedRow->item : $mappedRow;
+        $source     = $mappedRow instanceof RowContext ? $mappedRow->source : $mappedRow;
+        $contextRow = $mappedRow instanceof RowContext ? $mappedRow->item : $mappedRow;
 
         foreach ($columns as $column) {
             if (!$column instanceof TemplateAwareColumnInterface) {
@@ -39,15 +48,19 @@ final class TemplateColumnRenderer
                 continue;
             }
 
-            $data = $this->resolveData(mappedRow: $item, row: $contextRow, field: ColumnKeyResolver::readPath($column, $rowKey));
+            $data = $this->resolveData(
+                mappedRow: $contextRow,
+                row: $payload,
+                field: ColumnKeyResolver::readPath($column, $rowKey),
+            );
 
             $context = [
-                'entity' => $item,
-                'data'   => $data,
-                'column' => $column->jsonSerialize(),
-                'row'    => $contextRow,
-                'source' => $source,
-                'item'   => $item,
+                'row'     => $contextRow,
+                'source'  => $source,
+                'payload' => $payload,
+                'data'    => $data,
+                'column'  => $column->jsonSerialize(),
+                'entity'  => $contextRow,
             ];
 
             foreach ($column->getTemplateParameters() as $key => $value) {

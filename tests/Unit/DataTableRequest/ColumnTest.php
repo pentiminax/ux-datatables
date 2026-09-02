@@ -37,6 +37,17 @@ final class ColumnTest extends TestCase
         yield 'invalid json falls back to raw value' => ['[not json', ['[not json']];
     }
 
+    #[Test]
+    public function it_coerces_missing_name_and_data_to_empty_strings(): void
+    {
+        $column = Column::fromArray(['searchable' => 'false', 'orderable' => 'false']);
+
+        $this->assertSame('', $column->name);
+        $this->assertSame('', $column->data);
+        $this->assertFalse($column->searchable);
+        $this->assertFalse($column->orderable);
+    }
+
     private static function createColumn(?string $searchValue): Column
     {
         return new Column(

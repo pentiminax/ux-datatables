@@ -130,6 +130,18 @@ describe('FilterBar', () => {
         })
     })
 
+    it('wraps date range bounds in dt-filter-range', () => {
+        const { bar } = makeBar([{ name: 'lastLoginAt', type: 'dateRange' }])
+        const wrapper = bar.render(vi.fn())
+        const range = wrapper.querySelector('.dt-filter-range')
+
+        expect(range).toBeInstanceOf(HTMLElement)
+        const rangeEl = range as HTMLElement
+        expect(rangeEl.querySelectorAll('input[type="date"]')).toHaveLength(2)
+        expect((rangeEl.children[0] as HTMLInputElement).name).toBe('filters[lastLoginAt][from]')
+        expect((rangeEl.children[1] as HTMLInputElement).name).toBe('filters[lastLoginAt][to]')
+    })
+
     it('applies a date range as an object with only provided bounds', () => {
         const { bar } = makeBar([{ name: 'createdAt', type: 'dateRange' }])
         const wrapper = bar.render(vi.fn())

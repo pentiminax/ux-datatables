@@ -62,6 +62,7 @@ final class ButtonsExtensionTest extends DataTableTestCase
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
+                'text'     => 'Excel',
                 'filename' => 'users-export',
             ],
             [
@@ -96,7 +97,12 @@ final class ButtonsExtensionTest extends DataTableTestCase
     {
         $extension = (new ButtonsExtension([]))->withCcSearchClearButton();
 
-        $this->assertExtensionPayload(['ccSearchClear'], $extension);
+        $this->assertExtensionPayload([
+            [
+                'extend' => 'ccSearchClear',
+                'text'   => 'Clear Search',
+            ],
+        ], $extension);
     }
 
     #[Test]
@@ -110,5 +116,99 @@ final class ButtonsExtensionTest extends DataTableTestCase
                 'buttons' => ['colvis', 'csv'],
             ],
         ], $extension);
+    }
+
+    #[Test]
+    public function it_adds_a_server_side_csv_button_via_the_fluent_helper(): void
+    {
+        $extension = (new ButtonsExtension([]))->withCsvButton(serverSide: true);
+
+        $this->assertExtensionPayload([
+            [
+                'action'    => Button::SERVER_EXPORT_ACTION,
+                'format'    => 'csv',
+                'exportKey' => 'csv',
+                'text'      => 'CSV',
+            ],
+        ], $extension);
+    }
+
+    #[Test]
+    public function it_adds_a_server_side_xlsx_button_via_the_fluent_helper(): void
+    {
+        $extension = (new ButtonsExtension([]))->withExcelButton(serverSide: true);
+
+        $this->assertExtensionPayload([
+            [
+                'action'    => Button::SERVER_EXPORT_ACTION,
+                'format'    => 'xlsx',
+                'exportKey' => 'xlsx',
+                'text'      => 'Excel',
+            ],
+        ], $extension);
+    }
+
+    #[Test]
+    public function it_accepts_two_server_side_buttons_with_distinct_export_keys(): void
+    {
+        $extension = new ButtonsExtension([
+            Button::csv(serverSide: true)->filename('all'),
+            Button::csv(serverSide: true)->exportKey('subset')->filename('subset'),
+        ]);
+
+        $this->assertSame('all', $extension->findServerExportButton('csv')?->getFilename());
+        $this->assertSame('subset', $extension->findServerExportButton('subset')?->getFilename());
+        $this->assertSame('all', $extension->findServerExportButton(null)?->getFilename());
+        $this->assertNull($extension->findServerExportButton('nope'));
+    }
+
+    #[Test]
+    public function it_finds_a_server_side_button_nested_in_a_collection(): void
+    {
+        $extension = new ButtonsExtension([
+            Button::collection([Button::excel(serverSide: true)->filename('report')]),
+        ]);
+
+        $this->assertTrue($extension->hasServerExportButton());
+        $this->assertSame('report', $extension->findServerExportButton('xlsx')?->getFilename());
+    }
+
+    #[Test]
+    public function it_reports_no_server_side_button_on_client_side_export_buttons(): void
+    {
+        $this->assertFalse((new ButtonsExtension([Button::csv(), Button::excel()]))->hasServerExportButton());
+    }
+
+    #[Test]
+    public function it_rejects_two_server_side_buttons_sharing_an_export_key(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Duplicate server-side export key "csv".');
+
+        new ButtonsExtension([
+            Button::csv(serverSide: true)->filename('all'),
+            Button::csv(serverSide: true)->filename('subset'),
+        ]);
+    }
+
+    #[Test]
+    public function it_rejects_a_duplicate_export_key_nested_in_a_collection(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Duplicate server-side export key "xlsx".');
+
+        new ButtonsExtension([
+            Button::excel(serverSide: true),
+            Button::collection([Button::excel(serverSide: true)]),
+        ]);
+    }
+
+    #[Test]
+    public function it_rejects_a_duplicate_export_key_added_through_the_fluent_helper(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Duplicate server-side export key "csv".');
+
+        (new ButtonsExtension([]))->withCsvButton(serverSide: true)->withCsvButton(serverSide: true);
     }
 }

@@ -10,6 +10,7 @@ import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
 import { ApiPlatformAdapter, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js';
+import { applyServerExportUrls } from './functions/serverExport.js';
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
@@ -19,7 +20,7 @@ import { fetchEditForm } from './functions/fetchEditForm.js';
 import { registerFilterFeature } from './functions/filterFeature.js';
 import { applyFilterLayout } from './functions/filterLayout.js';
 import { FilterBar, hasFilters } from './functions/filters.js';
-import { isFixedHeaderClone } from './functions/isFixedHeaderClone.js';
+import { isDataTableClone } from './functions/isDataTableClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { applyLocalLanguage } from './functions/localLanguage.js';
 import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js';
@@ -48,15 +49,23 @@ class default_1 extends Controller {
         this.eventSource = null;
         this.framework = 'dt';
         this.popstateHandler = null;
+        this.onTurboBeforeCache = () => {
+            this.table?.destroy();
+            this.table = null;
+        };
     }
     async connect() {
-        if (this.isDataTableInitialized) {
-            return;
-        }
         if (!(this.element instanceof HTMLTableElement)) {
             throw new Error('Invalid element');
         }
-        if (isFixedHeaderClone(this.element)) {
+        if (isDataTableClone(this.element)) {
+            return;
+        }
+        document.addEventListener('turbo:before-cache', this.onTurboBeforeCache);
+        if (this.isDataTableInitialized) {
+            if (this.table) {
+                this.dispatchEvent('reconnect', { table: this.table });
+            }
             return;
         }
         const payload = this.viewValue;
@@ -71,12 +80,16 @@ class default_1 extends Controller {
         registerFilterFeature(DataTable);
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true;
+            this.table = new DataTable.Api(this.element);
+            this.dispatchEvent('reconnect', { table: this.table });
             return;
         }
         await this.loadExtensions(payload, framework, DataTable);
         this.dispatchEvent('pre-init', { config: payload, DataTable });
         if (this.isApiPlatformEnabled(payload)) {
-            const columns = Array.isArray(payload.columns) ? payload.columns : [];
+            const columns = Array.isArray(payload.columns)
+                ? payload.columns
+                : [];
             new ApiPlatformAdapter(columns).configure(payload);
         }
         this.configureColumns(payload);
@@ -93,6 +106,7 @@ class default_1 extends Controller {
             applyFilterLayout(payload, filterBar);
         }
         await applyLocalLanguage(payload);
+        applyServerExportUrls(payload);
         applyCustomButtonActions(payload);
         this.table = new DataTable(this.element, payload);
         this.dispatchEvent('connect', { table: this.table });
@@ -107,6 +121,7 @@ class default_1 extends Controller {
         this.isDataTableInitialized = true;
     }
     disconnect() {
+        document.removeEventListener('turbo:before-cache', this.onTurboBeforeCache);
         this.eventSource?.close();
         this.eventSource = null;
         if (this.popstateHandler) {

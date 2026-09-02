@@ -217,15 +217,19 @@ extensions:
 
 ## Per-Table Override
 
-Bundle defaults apply to every table, whether it is created through `DataTableBuilderInterface` or
-declared as an `AbstractDataTable` class, and can be overridden for individual tables:
+Bundle defaults apply to every table declared as an `AbstractDataTable` class, and can be
+overridden for individual tables:
 
 ```php
-$table = $builder
-    ->createDataTable('myTable')
-    ->pageLength(50)           // Override default 10
-    ->language(Language::DE)   // Override default en-GB
-    ->columns([/* ... */]);
+use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->pageLength(50)          // Override default 10
+        ->language(Language::DE); // Override default en-GB
+}
 ```
 
 ## Environment-Specific Configuration

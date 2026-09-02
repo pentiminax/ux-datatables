@@ -191,12 +191,12 @@ final class UsersDataTable extends AbstractDataTable
             ->showExternalIcon();
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
         return [
-            'id'      => $item->getId(),
-            'name'    => $item->getName(),
-            'website' => $item->getWebsite(),
+            'id'      => $row->getId(),
+            'name'    => $row->getName(),
+            'website' => $row->getWebsite(),
         ];
     }
 }

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Filter;
 
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Contracts\TranslatableFilterInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -15,7 +14,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * "field IS NULL". Provide explicit scalar values via trueValue()/falseValue()
  * to compare against a concrete value (e.g. a boolean column) instead.
  */
-final class TernaryFilter extends AbstractFilter implements TranslatableFilterInterface
+final class TernaryFilter extends AbstractFilter
 {
     private ?string $trueLabel = null;
 
@@ -59,6 +58,8 @@ final class TernaryFilter extends AbstractFilter implements TranslatableFilterIn
      */
     public function translateLabels(TranslatorInterface $translator, ?string $locale = null): void
     {
+        parent::translateLabels($translator, $locale);
+
         $this->trueLabel  = $translator->trans($this->trueLabel ?? 'Yes', locale: $locale);
         $this->falseLabel = $translator->trans($this->falseLabel ?? 'No', locale: $locale);
     }

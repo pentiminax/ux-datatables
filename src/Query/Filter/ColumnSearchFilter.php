@@ -15,7 +15,7 @@ use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 /**
  * Filter that applies standard DataTables column-specific searches.
  *
- * Consumes the normalized {@see \Pentiminax\UX\DataTables\Query\Intent\ColumnSearchIntent}
+ * Consumes {@see \Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent::$columnSearches}
  * criteria with AND logic, one condition per column search box. Delegates condition
  * building to the registry's 'contains' strategy, so overriding
  * AbstractDataTable::createSearchStrategyRegistry() customizes this search alongside
@@ -35,7 +35,7 @@ final class ColumnSearchFilter implements QueryFilterInterface
         $strategy = $this->registry->get(ColumnControlLogic::Contains->value);
 
         foreach ($context->intent->columnSearches as $columnSearch) {
-            $reference = $columnSearch->column;
+            $reference = $columnSearch['column'];
 
             $column = $context->columnByName($reference->name);
             $field  = $reference->fieldPath;
@@ -44,7 +44,7 @@ final class ColumnSearchFilter implements QueryFilterInterface
                 continue;
             }
 
-            $search = new ColumnControlSearch($columnSearch->value, ColumnControlLogic::Contains, 'text');
+            $search = new ColumnControlSearch($columnSearch['value'], ColumnControlLogic::Contains, 'text');
 
             $strategy->apply($qb, $column, $search, $context->nextParamIndex(), $context->alias);
         }

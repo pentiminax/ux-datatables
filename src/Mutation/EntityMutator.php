@@ -7,16 +7,14 @@ namespace Pentiminax\UX\DataTables\Mutation;
 use Doctrine\DBAL\Exception as DBALException;
 use Doctrine\ORM\OptimisticLockException;
 use Doctrine\Persistence\ObjectManager;
+use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
-use Psr\Container\ContainerInterface;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 final class EntityMutator
@@ -26,8 +24,7 @@ final class EntityMutator
         private readonly PropertyAccessorInterface $propertyAccessor,
         private readonly MercurePublisherInterface $publisher,
         private readonly PermissionChecker $permissionChecker,
-        private readonly ?MercureConfigResolverInterface $mercureConfigResolver = null,
-        private readonly ?ContainerInterface $dataTables = null,
+        private readonly MercureTopicResolver $topicResolver,
     ) {
     }
 
@@ -47,7 +44,7 @@ final class EntityMutator
         $context->manager->remove($context->entity);
         $this->flush($context->manager);
 
-        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $entityClass, $this->dataTables, $dataTableClass), [
+        $this->publisher->publish($this->topicResolver->resolve($entityClass, $dataTableClass), [
             'type' => 'delete',
             'id'   => $id,
         ]);
@@ -83,7 +80,7 @@ final class EntityMutator
         $this->propertyAccessor->setValue($context->entity, $field, $value);
         $this->flush($context->manager);
 
-        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $entityClass, $this->dataTables, $dataTableClass), [
+        $this->publisher->publish($this->topicResolver->resolve($entityClass, $dataTableClass), [
             'type'  => 'edit',
             'id'    => $id,
             'field' => $field,

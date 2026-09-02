@@ -65,11 +65,11 @@ final class ProductsDataTable extends AbstractDataTable
         yield MoneyColumn::new('price', 'Price')->currency('EUR');
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
         return [
-            'name'  => $item->getName(),
-            'price' => $item->getPriceInCents(),
+            'name'  => $row->getName(),
+            'price' => $row->getPriceInCents(),
         ];
     }
 }

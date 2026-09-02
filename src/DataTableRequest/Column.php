@@ -19,12 +19,14 @@ final readonly class Column
     public static function fromArray(array $data): self
     {
         return new self(
-            data: $data['data'],
-            name: $data['name'],
-            searchable: 'true' === $data['searchable'],
-            orderable: 'true'  === $data['orderable'],
-            search: isset($data['search']) ? Search::fromArray($data['search']) : null,
-            columnControl: isset($data['columnControl']) ? ColumnControl::fromArray($data['columnControl']) : null,
+            data: self::stringField($data['data'] ?? null),
+            name: self::stringField($data['name'] ?? null),
+            searchable: self::isTrueFlag($data['searchable'] ?? null),
+            orderable: self::isTrueFlag($data['orderable'] ?? null),
+            search: isset($data['search'])               && \is_array($data['search']) ? Search::fromArray($data['search']) : null,
+            columnControl: isset($data['columnControl']) && \is_array($data['columnControl'])
+                ? ColumnControl::fromArray($data['columnControl'])
+                : null,
         );
     }
 
@@ -45,7 +47,7 @@ final readonly class Column
      */
     public function searchValues(): array
     {
-        $value = trim(($this->search?->value ?? ''));
+        $value = trim($this->search?->value ?? '');
         if ('' === $value) {
             return [];
         }
@@ -59,5 +61,25 @@ final readonly class Column
             array_map(static fn (mixed $item): string => trim((string) $item), $decoded),
             static fn (string $item): bool => '' !== $item,
         ));
+    }
+
+    /**
+     * Select's checkbox column is unshifted with `name: null` and `data: null`. The export
+     * form serializer used to omit those keys entirely, and a TypeError on this constructor
+     * aborted the download. Empty strings keep the request-column slot without matching any
+     * configured column.
+     */
+    private static function stringField(mixed $value): string
+    {
+        return \is_scalar($value) ? (string) $value : '';
+    }
+
+    /**
+     * DataTables sends these as the strings "true"/"false" on a form-urlencoded request.
+     * Boolean `true` is accepted too: PHP request fixtures and a JSON body both use it.
+     */
+    private static function isTrueFlag(mixed $value): bool
+    {
+        return true === $value || 'true' === $value;
     }
 }

@@ -28,6 +28,7 @@ final class RouteLoaderTest extends TestCase
         yield 'edit form' => ['ux_datatables_ajax_edit_form', '/datatables/ajax/edit-form/view', 'datatables.controller.ajax_edit_form', ['POST']];
         yield 'edit form submit' => ['ux_datatables_ajax_edit_form_submit', '/datatables/ajax/edit-form', 'datatables.controller.ajax_edit_form_submit', ['POST']];
         yield 'detail' => ['ux_datatables_ajax_detail', '/datatables/ajax/detail', 'datatables.controller.ajax_detail', ['POST']];
+        yield 'export' => ['ux_datatables_ajax_export', '/datatables/ajax/export', 'datatables.controller.ajax_export', ['POST']];
     }
 
     /**

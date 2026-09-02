@@ -22,11 +22,18 @@ trait BuildsFilterQueryBuilder
     /** @var array<string, mixed> */
     private array $capturedParams = [];
 
+    /** @var array<string, mixed> */
+    private array $capturedParamTypes = [];
+
     /**
      * @param string|null $fieldType Doctrine type reported for every mapped field, or null to leave fields unmapped
      */
     private function createScalarFieldQueryBuilder(?string $fieldType = null): QueryBuilder
     {
+        $this->capturedWhere      = [];
+        $this->capturedParams     = [];
+        $this->capturedParamTypes = [];
+
         $metadata = $this->createMock(ClassMetadata::class);
         $metadata->method('hasAssociation')->willReturn(false);
         $metadata->method('hasField')->willReturn(null !== $fieldType);
@@ -51,8 +58,9 @@ trait BuildsFilterQueryBuilder
             return $qb;
         });
 
-        $qb->method('setParameter')->willReturnCallback(function (string $name, mixed $value) use ($qb): QueryBuilder {
-            $this->capturedParams[$name] = $value;
+        $qb->method('setParameter')->willReturnCallback(function (string $name, mixed $value, mixed $type = null) use ($qb): QueryBuilder {
+            $this->capturedParams[$name]     = $value;
+            $this->capturedParamTypes[$name] = $type;
 
             return $qb;
         });
