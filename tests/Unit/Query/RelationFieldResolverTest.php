@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
+use Doctrine\Persistence\Mapping\MappingException;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
@@ -191,6 +193,27 @@ final class RelationFieldResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_treats_an_unmapped_root_class_as_no_metadata(): void
+    {
+        $qb = $this->queryBuilderWhoseMetadataThrows(MappingException::nonExistingClass('App\\NotAnEntity'));
+
+        $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'name'));
+        $this->assertTrue(RelationFieldResolver::supportsTextSearch($qb, 'name'));
+        $this->assertNull(RelationFieldResolver::resolveUuidFieldType($qb, 'name'));
+    }
+
+    #[Test]
+    public function it_lets_a_failure_that_is_not_a_mapping_error_propagate(): void
+    {
+        $qb = $this->queryBuilderWhoseMetadataThrows(new \RuntimeException('Metadata cache is unreachable.'));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Metadata cache is unreachable.');
+
+        RelationFieldResolver::supportsSearchFiltering($qb, 'name');
+    }
+
+    #[Test]
     public function it_reuses_a_join_registered_under_a_chosen_alias(): void
     {
         $qb = $this->queryBuilderWithJoins(['dp' => 'e.donorProvider']);
@@ -277,6 +300,19 @@ final class RelationFieldResolverTest extends TestCase
     private function queryBuilderWithJoinAliases(array $aliases): MockObject&QueryBuilder
     {
         return $this->queryBuilderWithJoins(array_fill_keys($aliases, ''));
+    }
+
+    private function queryBuilderWhoseMetadataThrows(\Throwable $failure): MockObject&QueryBuilder
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->willThrowException($failure);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+        $qb->method('getRootEntities')->willReturn(['App\\NotAnEntity']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        return $qb;
     }
 
     /**

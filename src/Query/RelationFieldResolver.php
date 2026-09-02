@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Query;
 
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
+use Doctrine\Persistence\Mapping\MappingException;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 
 /**
@@ -290,70 +292,79 @@ final class RelationFieldResolver
 
     private static function resolveFieldType(QueryBuilder $qb, string $fieldPath): ?string
     {
-        try {
-            $rootEntities = $qb->getRootEntities();
-            if ([] === $rootEntities) {
-                return null;
-            }
+        $metadata = self::rootMetadata($qb);
 
-            $em       = $qb->getEntityManager();
-            $metadata = $em->getClassMetadata($rootEntities[0]);
-            $segments = explode('.', $fieldPath);
-            $field    = array_pop($segments);
-
-            foreach ($segments as $segment) {
-                if (!$metadata->hasAssociation($segment)) {
-                    return null;
-                }
-
-                $metadata = $em->getClassMetadata($metadata->getAssociationTargetClass($segment));
-            }
-
-            if (!$metadata->hasField($field)) {
-                return null;
-            }
-
-            return $metadata->getFieldMapping($field)->type;
-        } catch (\Throwable) {
+        if (null === $metadata) {
             return null;
         }
+
+        $em       = $qb->getEntityManager();
+        $segments = explode('.', $fieldPath);
+        $field    = array_pop($segments);
+
+        foreach ($segments as $segment) {
+            if (!$metadata->hasAssociation($segment)) {
+                return null;
+            }
+
+            $target = $metadata->getAssociationTargetClass($segment);
+
+            try {
+                $metadata = $em->getClassMetadata($target);
+            } catch (MappingException) {
+                return null;
+            }
+        }
+
+        if (!$metadata->hasField($field)) {
+            return null;
+        }
+
+        return $metadata->getFieldMapping($field)->type;
     }
 
     /**
      * Whether the root entity maps $fieldPath as a scalar field.
      *
-     * Returns true when the metadata cannot be read, so a transient failure never turns into a
-     * silently unsearchable column.
+     * Returns true when there is no root entity metadata to read, so a query builder the
+     * bundle cannot introspect keeps every column searchable rather than silently losing
+     * search on all of them.
      */
     private static function isRootMappedField(QueryBuilder $qb, string $fieldPath): bool
     {
-        try {
-            $rootEntities = $qb->getRootEntities();
-            if ([] === $rootEntities) {
-                return true;
-            }
-
-            return $qb->getEntityManager()
-                ->getClassMetadata($rootEntities[0])
-                ->hasField($fieldPath);
-        } catch (\Throwable) {
-            return true;
-        }
+        return self::rootMetadata($qb)?->hasField($fieldPath) ?? true;
     }
 
     private static function isRootAssociationField(QueryBuilder $qb, string $fieldPath): bool
     {
-        try {
-            $rootEntities = $qb->getRootEntities();
-            if (empty($rootEntities)) {
-                return false;
-            }
+        return self::rootMetadata($qb)?->hasAssociation($fieldPath) ?? false;
+    }
 
-            return $qb->getEntityManager()
-                ->getClassMetadata($rootEntities[0])
-                ->hasAssociation($fieldPath);
-        } catch (\Throwable) {
-            return false;
+    /**
+     * Metadata of the query builder's first root entity, or null when there is none to read.
+     *
+     * Null covers the two cases a search helper must survive rather than report: a query
+     * builder with no root entity at all, and a root class Doctrine does not map. Every other
+     * failure -- a mapping driver rejecting an attribute, a broken cache -- propagates, because
+     * a search predicate is the wrong place to discover a misconfigured mapping and silencing
+     * it here only moves the error to a DQL message that no longer names the cause.
+     *
+     * Callers pick their own default for null: {@see self::isRootMappedField()} permits the
+     * field, {@see self::isRootAssociationField()} denies the association, and
+     * {@see self::resolveFieldType()} reports an unknown type.
+     */
+    private static function rootMetadata(QueryBuilder $qb): ?ClassMetadata
+    {
+        $rootEntities = $qb->getRootEntities();
+
+        if ([] === $rootEntities) {
+            return null;
+        }
+
+        try {
+            return $qb->getEntityManager()->getClassMetadata($rootEntities[0]);
+        } catch (MappingException) {
+            return null;
         }
     }
 
