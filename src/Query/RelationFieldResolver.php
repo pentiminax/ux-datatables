@@ -8,6 +8,7 @@ use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\Mapping\MappingException;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 
 /**
  * Resolves dot-notation field paths into valid DQL expressions.
@@ -175,10 +176,13 @@ final class RelationFieldResolver
      * Idempotent: a join whose alias is already on the QueryBuilder -- from
      * customizeQueryBuilder(), an earlier filter in the chain, or another column declaring the
      * same join -- is skipped, so every search filter can call this before resolving a field.
+     *
+     * A column that does not implement {@see SearchableColumnInterface} declares no joins, so
+     * this is a no-op for it.
      */
     public static function applySearchJoins(QueryBuilder $qb, ColumnInterface $column): void
     {
-        $joins = $column->getSearchJoins();
+        $joins = $column instanceof SearchableColumnInterface ? $column->getSearchJoins() : [];
 
         if ([] === $joins) {
             return;
@@ -199,6 +203,20 @@ final class RelationFieldResolver
 
             $existingAliases[$join['alias']] = true;
         }
+    }
+
+    /**
+     * The field path a column wants searched: its {@see SearchableColumnInterface::getSearchField()}
+     * override when it declares one, otherwise the field it displays.
+     *
+     * Null when neither yields a path, which every search boundary reads as "skip this column".
+     */
+    public static function resolveSearchField(ColumnInterface $column): ?string
+    {
+        $searchField = $column instanceof SearchableColumnInterface ? $column->getSearchField() : null;
+        $field       = $searchField ?? $column->getField();
+
+        return null !== $field && '' !== $field ? $field : null;
     }
 
     /**

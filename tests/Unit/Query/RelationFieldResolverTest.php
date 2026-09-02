@@ -9,6 +9,7 @@ use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\Mapping\MappingException;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -273,6 +274,43 @@ final class RelationFieldResolverTest extends TestCase
         $qb->expects($this->never())->method('leftJoin');
 
         RelationFieldResolver::applySearchJoins($qb, TextColumn::new('name', 'Name')->addSearchJoin('e.donorProvider', 'dp'));
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_display_field_for_a_column_without_the_search_contract(): void
+    {
+        $column = $this->createStub(ColumnInterface::class);
+        $column->method('getField')->willReturn('name');
+
+        $this->assertSame('name', RelationFieldResolver::resolveSearchField($column));
+    }
+
+    #[Test]
+    public function it_declares_no_search_join_for_a_column_without_the_search_contract(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->expects($this->never())->method('leftJoin');
+
+        RelationFieldResolver::applySearchJoins($qb, $this->createStub(ColumnInterface::class));
+    }
+
+    #[Test]
+    public function it_prefers_the_search_field_over_the_display_field(): void
+    {
+        $column = TextColumn::new('donorProviderName')
+            ->setField('donorProviderName')
+            ->setSearchField('donorProvider.name');
+
+        $this->assertSame('donorProvider.name', RelationFieldResolver::resolveSearchField($column));
+    }
+
+    #[Test]
+    public function it_reports_no_search_field_when_the_column_has_none(): void
+    {
+        $column = $this->createStub(ColumnInterface::class);
+        $column->method('getField')->willReturn(null);
+
+        $this->assertNull(RelationFieldResolver::resolveSearchField($column));
     }
 
     #[Test]

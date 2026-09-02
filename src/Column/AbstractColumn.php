@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Column;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 /**
@@ -20,7 +21,7 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
  * column — see the "Columns" documentation for usage. Only createWithType() below is genuinely
  * internal, restricted to how the bundled column types build themselves.
  */
-abstract class AbstractColumn implements ColumnInterface
+abstract class AbstractColumn implements SearchableColumnInterface
 {
     protected ColumnType $type;
     protected ?string $cellType          = null;
