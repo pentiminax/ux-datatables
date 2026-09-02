@@ -42,8 +42,10 @@ final class RequestInputBag
      * so a customizeQueryBuilder() that scopes by those parameters would otherwise see
      * null and stream the unscoped dataset.
      *
-     * Existing query keys are left untouched (the table token lives there). Nested
-     * DataTables structures such as `columns` are skipped: InputBag::set() rejects arrays.
+     * Existing query keys are left untouched (the table token lives there). Array values are
+     * copied as-is, so a forwarded `tenantIds[]` stays readable through
+     * `$this->getHttpRequest()?->query->all('tenantIds')`; dropping them would let a table
+     * scoped by an array parameter export the unscoped dataset.
      */
     public static function exposeBodyParametersOnQuery(Request $request): void
     {
@@ -57,7 +59,7 @@ final class RequestInputBag
                 continue;
             }
 
-            if (!\is_scalar($value) && !$value instanceof \Stringable) {
+            if (!\is_scalar($value) && !\is_array($value) && !$value instanceof \Stringable) {
                 continue;
             }
 

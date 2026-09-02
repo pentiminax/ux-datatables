@@ -119,9 +119,11 @@ final class ExportServiceTest extends TestCase
             'length'    => 10,
             'exportKey' => 'csv',
             'pending'   => '1',
+            'tenantIds' => ['1', '2'],
         ])));
 
         $this->assertSame('1', $table->pending);
+        $this->assertSame(['1', '2'], $table->tenantIds);
     }
 
     #[Test]
@@ -277,6 +279,11 @@ final class QueryScopedExportTable extends AbstractDataTable
 {
     public ?string $pending = null;
 
+    /**
+     * @var list<string>|null
+     */
+    public ?array $tenantIds = null;
+
     public function configureColumns(): iterable
     {
         yield TextColumn::new('email');
@@ -310,8 +317,10 @@ final class QueryScopedExportTable extends AbstractDataTable
 
     public function capturePending(): void
     {
-        $pending = $this->getHttpRequest()?->query->get('pending');
+        $request = $this->getHttpRequest();
+        $pending = $request?->query->get('pending');
 
-        $this->pending = \is_string($pending) ? $pending : null;
+        $this->pending   = \is_string($pending) ? $pending : null;
+        $this->tenantIds = array_values(array_filter($request?->query->all('tenantIds') ?? [], \is_string(...)));
     }
 }
