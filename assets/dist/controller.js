@@ -151,7 +151,7 @@ class default_1 extends Controller {
         if (!element.classList.contains('dataTable') && element.childElementCount === 0) {
             return;
         }
-        const container = element.closest('.dt-container');
+        const container = this.findGeneratedWrapper(element);
         if (container) {
             for (const child of Array.from(container.children)) {
                 if (!child.contains(element)) {
@@ -161,6 +161,13 @@ class default_1 extends Controller {
         }
         element.replaceChildren();
         element.classList.remove('dataTable');
+    }
+    findGeneratedWrapper(element) {
+        if (!element.id) {
+            return null;
+        }
+        const container = element.closest('.dt-container');
+        return container?.id === `${element.id}_wrapper` ? container : null;
     }
     async loadExtensions(payload, framework, DataTable) {
         if (this.hasButtonsInLayout(payload)) {
