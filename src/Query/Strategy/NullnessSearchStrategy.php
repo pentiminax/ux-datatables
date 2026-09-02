@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
@@ -18,6 +19,15 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  *
  * Native UUID/ULID columns must stay on the NULL-only path: PostgreSQL and SQL Server
  * reject `uuid = ''` the same way they reject `uuid LIKE`.
+ *
+ * The column's declared search joins are applied first, and its
+ * {@see SearchableColumnInterface::getSearchField()} override replaces getField() when set.
+ * {@see SearchableColumnInterface::buildSearchPredicate()} is deliberately not consulted: a nullness
+ * check is a property of the field itself, which an open-ended condition string built for a
+ * search term cannot stand in for.
+ *
+ * A field the root entity does not map is skipped here rather than in the filter, so a column
+ * that builds its own predicate stays searchable on the Contains logic.
  */
 final class NullnessSearchStrategy implements SearchStrategyInterface
 {
@@ -30,8 +40,14 @@ final class NullnessSearchStrategy implements SearchStrategyInterface
 
     public function apply(QueryBuilder $qb, ColumnInterface $column, ColumnControlSearch $search, int $paramIndex, string $alias): void
     {
-        $fieldPath = $column->getField();
+        RelationFieldResolver::applySearchJoins($qb, $column);
+
+        $fieldPath = RelationFieldResolver::resolveSearchField($column);
         if (null === $fieldPath) {
+            return;
+        }
+
+        if (!RelationFieldResolver::supportsSearchFiltering($qb, $fieldPath)) {
             return;
         }
 

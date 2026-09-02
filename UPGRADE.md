@@ -3,6 +3,86 @@
 Each section covers one version bump. When you skip versions, apply every section between your
 current version and the target, oldest first.
 
+## v0.84 → v0.85
+
+No source change is required. Columns extending `AbstractColumn` — every bundled column type and
+any subclass of one — gain the new search configuration automatically, and a class implementing
+`Contracts\ColumnInterface` directly keeps working unchanged. Two runtime behaviors around
+server-side search did change; read the second section if a table searches a column whose value is
+assembled in `mapRow()`, or if `customizeQueryBuilder()` joins a relation a column also searches.
+
+### Columns can declare how they are searched
+
+Server-side search resolves a column to `<alias>.<field>`. A column whose value is assembled in
+`mapRow()` had nowhere valid to point, so Doctrine rejected the whole query with `has no field or
+association named ...` — taking the table down rather than that one column. Ordering already had
+`setOrderExpression()` for this; search had nothing.
+
+`Contracts\SearchableColumnInterface` is the new opt-in contract for it, alongside
+`TemplateAwareColumnInterface` and `ActionsProvidingColumnInterface`:
+
+| Member | Contract |
+| --- | --- |
+| `getSearchField(): ?string` | Field path to search instead of `getField()`, or `null` to search the displayed field |
+| `getSearchJoins(): array` | `list<array{join: string, alias: string, conditionType: ?string, condition: ?string}>` applied before the predicate is built |
+| `buildSearchPredicate(QueryBuilder $qb, string $alias, string $value, string $paramName): ?string` | Custom DQL condition, or `null` to fall back to the type-based predicate |
+
+`AbstractColumn` implements all three and exposes them as fluent setters, so there is nothing to do
+for a column that extends it or one of the bundled types:
+
+```php
+TextColumn::new('donorProviderName', 'Donor')
+    ->setSearchField('donorProvider.name');
+
+TextColumn::new('recipientProviderName', 'Recipient')
+    ->addSearchJoin('e.recipientProvider', 'rp')
+    ->setSearchField('rp.name');
+
+TextColumn::new('dossierId', 'Dossier')
+    ->setSearchPredicate(function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
+        $qb->setParameter($paramName, '%'.mb_strtolower($value).'%');
+
+        return \sprintf('LOWER(%s.dossierId) LIKE :%s', $alias, $paramName);
+    });
+```
+
+`ColumnInterface` is untouched. A class implementing it directly is searched exactly as before —
+`getField()`, no extra joins — and implements `SearchableColumnInterface` only if it wants the
+override.
+
+`buildSearchPredicate()` is the one column member that is not an accessor. It runs only at the
+Doctrine query boundary, once per search term. Bind parameters on the query builder — under
+`$paramName` or names derived from it — and **return** the condition instead of calling
+`andWhere()`: global search combines the returned conditions with `OR`, a per-column search with
+`AND`.
+
+Only global search and per-column search consult `buildSearchPredicate()`. ColumnControl's list,
+comparison, and empty/not-empty logics honor `getSearchField()` and `getSearchJoins()` but keep
+their own predicate shapes.
+
+### An unmapped searchable column is skipped instead of erroring
+
+`Query\RelationFieldResolver::supportsSearchFiltering()` now returns `false` for a bare field the
+root entity maps neither as a scalar nor as an association. Such a field is a virtual column
+assembled in `mapRow()`, and emitting `<alias>.<field>` for it made Doctrine reject the entire
+query.
+
+A table that previously returned a 500 on search now answers normally, with that one column left
+out of the predicate — so its search box silently matches nothing. Point it at real data with
+`setSearchField()`, `addSearchJoin()`, or `setSearchPredicate()`, or opt out with
+`setSearchable(false)` and `disableGlobalSearch()`.
+
+`Query\RelationFieldResolver::resolve()` also reuses a join already registered for the same
+expression under an alias of your choosing, instead of joining the relation a second time under the
+alias it derives itself. A `customizeQueryBuilder()` that joined `e.author` as `a` and a column
+searching `author.name` now produce one join and the predicate reads `a.name`, where before there
+were two joins and the predicate read `author.name`.
+
+Finally, the metadata lookups behind these guards no longer swallow every exception. They treat a
+root class Doctrine does not map as "no metadata" and let every other failure propagate — a mapping
+driver rejecting an attribute, or an unreachable metadata cache, now surfaces where it used to
+become a silently unsearchable column.
+
 ## v0.83 → v0.84
 
 Affects applications that built tables with `DataTableBuilderInterface` in a controller, passed a
