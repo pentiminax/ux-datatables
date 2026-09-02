@@ -3,10 +3,8 @@
 declare(strict_types=1);
 
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -19,7 +17,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('mercure.hub.default'))
         ->private();
 
-    $services->alias(MercureHubUrlResolverInterface::class, 'datatables.mercure.hub_url_resolver')
+    $services->alias(MercureHubUrlResolver::class, 'datatables.mercure.hub_url_resolver')
         ->private();
 
     $services->set('datatables.mercure.config_resolver', MercureConfigResolver::class)
@@ -27,7 +25,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(1, service('datatables.api_platform.mercure_metadata_resolver')->nullOnInvalid())
         ->private();
 
-    $services->alias(MercureConfigResolverInterface::class, 'datatables.mercure.config_resolver')
+    $services->alias(MercureConfigResolver::class, 'datatables.mercure.config_resolver')
         ->private();
 
     $services->set('datatables.mercure.publisher', MercureUpdatePublisher::class)

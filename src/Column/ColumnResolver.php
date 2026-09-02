@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column;
 
+use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
-use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\PermissionAwareColumnInterface;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 
@@ -18,7 +17,7 @@ final class ColumnResolver
 
     public function __construct(
         private readonly ?AttributeColumnReader $attributeColumnReader = null,
-        private readonly ?ColumnAutoDetectorInterface $columnAutoDetector = null,
+        private readonly ?ColumnAutoDetector $columnAutoDetector = null,
         ?PermissionChecker $permissionChecker = null,
     ) {
         $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
@@ -104,7 +103,7 @@ final class ColumnResolver
         $filtered = [];
 
         foreach ($columns as $column) {
-            $permission = $column instanceof PermissionAwareColumnInterface ? $column->getPermission() : null;
+            $permission = $column->getPermission();
 
             if (null !== $permission && !$this->permissionChecker->isGranted($permission)) {
                 continue;
@@ -119,6 +118,29 @@ final class ColumnResolver
         }
 
         return array_values($filtered);
+    }
+
+    /**
+     * Columns a server-side export writes: exportable and visible in the table.
+     *
+     * A hidden column is not part of what the user sees, and a TemplateColumn or an ActionColumn
+     * carries markup rather than data, so both stay out unless setExportable(true) opts them back in.
+     *
+     * @param iterable<ColumnInterface> $columns
+     *
+     * @return list<ColumnInterface>
+     */
+    public function filterExportable(iterable $columns): array
+    {
+        $exportable = [];
+
+        foreach ($columns as $column) {
+            if ($column->isExportable() && $column->isVisible()) {
+                $exportable[] = $column;
+            }
+        }
+
+        return $exportable;
     }
 
     /**

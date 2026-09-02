@@ -8,32 +8,30 @@ Let's create a simple users table in under 5 minutes.
 
 <Steps>
 
-1. **Create the Controller**
+1. **Create the Table Class**
 
    ```php
-   // src/Controller/UserController.php
-   namespace App\Controller;
+   // src/DataTables/UsersDataTable.php
+   namespace App\DataTables;
 
-   use Pentiminax\UX\DataTables\Builder\DataTableBuilderInterface;
-   use Pentiminax\UX\DataTables\Column\TextColumn;
    use Pentiminax\UX\DataTables\Column\NumberColumn;
-   use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-   use Symfony\Component\HttpFoundation\Response;
-   use Symfony\Component\Routing\Attribute\Route;
+   use Pentiminax\UX\DataTables\Column\TextColumn;
+   use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+   use Pentiminax\UX\DataTables\Model\DataTable;
 
-   class UserController extends AbstractController
+   final class UsersDataTable extends AbstractDataTable
    {
-       #[Route('/users', name: 'app_users')]
-       public function index(DataTableBuilderInterface $builder): Response
+       public function configureColumns(): iterable
        {
-           $table = $builder
-               ->createDataTable('usersTable')
-               ->columns([
-                   NumberColumn::new('id', 'ID'),
-                   TextColumn::new('firstName', 'First Name'),
-                   TextColumn::new('lastName', 'Last Name'),
-                   TextColumn::new('email', 'Email'),
-               ])
+           yield NumberColumn::new('id', 'ID');
+           yield TextColumn::new('firstName', 'First Name');
+           yield TextColumn::new('lastName', 'Last Name');
+           yield TextColumn::new('email', 'Email');
+       }
+
+       public function configureDataTable(DataTable $table): DataTable
+       {
+           return $table
                ->data([
                    ['id' => 1, 'firstName' => 'John', 'lastName' => 'Doe', 'email' => 'john@example.com'],
                    ['id' => 2, 'firstName' => 'Jane', 'lastName' => 'Smith', 'email' => 'jane@example.com'],
@@ -42,7 +40,28 @@ Let's create a simple users table in under 5 minutes.
                ->pageLength(10)
                ->searching(true)
                ->ordering(handler: true, indicators: true);
+       }
+   }
+   ```
 
+   Table classes are autoconfigured services, so there is nothing to register manually.
+
+2. **Create the Controller**
+
+   ```php
+   // src/Controller/UserController.php
+   namespace App\Controller;
+
+   use App\DataTables\UsersDataTable;
+   use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+   use Symfony\Component\HttpFoundation\Response;
+   use Symfony\Component\Routing\Attribute\Route;
+
+   class UserController extends AbstractController
+   {
+       #[Route('/users', name: 'app_users')]
+       public function index(UsersDataTable $table): Response
+       {
            return $this->render('user/index.html.twig', [
                'table' => $table,
            ]);
@@ -50,7 +69,7 @@ Let's create a simple users table in under 5 minutes.
    }
    ```
 
-2. **Create the Twig Template**
+3. **Create the Twig Template**
 
    ```twig
    {# templates/user/index.html.twig #}
@@ -70,7 +89,7 @@ Let's create a simple users table in under 5 minutes.
    {% endblock %}
    ```
 
-3. **Visit the Page**
+4. **Visit the Page**
 
    Navigate to `/users` in your browser. You should see a fully functional DataTable with:
    - Pagination
@@ -90,30 +109,31 @@ use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 
-$table = $builder
-    ->createDataTable('usersTable')
-    ->columns([/* ... */])
-    ->data([/* ... */])
-    ->extensions([
-        new ButtonsExtension([
-            ButtonType::COPY,
-            ButtonType::CSV,
-            ButtonType::EXCEL,
-        ]),
-        new SelectExtension(SelectStyle::SINGLE),
-    ]);
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->data([/* ... */])
+        ->extensions([
+            new ButtonsExtension([
+                ButtonType::COPY,
+                ButtonType::CSV,
+                ButtonType::EXCEL,
+            ]),
+            new SelectExtension(SelectStyle::SINGLE),
+        ]);
+}
 ```
 
 ### Load Data via Ajax
 
 ```php
-
-$table = $builder
-    ->createDataTable('usersTable')
-    ->columns([/* ... */])
-    ->ajax('/api/users')
-    ->serverSide()
-    ->processing();
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->ajax('/api/users')
+        ->serverSide()
+        ->processing();
+}
 ```
 
 ### Customize Column Behavior
@@ -132,9 +152,9 @@ $emailColumn = EmailColumn::new('email', 'Email')
     ->setOrderable(true);
 ```
 
-## Using AbstractDataTable
+## Doctrine-Backed Tables
 
-For more complex tables, extend `AbstractDataTable`:
+Add the `#[AsDataTable]` attribute to let the bundle query your entity and map its rows:
 
 ```php
 // src/DataTables/UsersDataTable.php
@@ -157,14 +177,14 @@ final class UsersDataTable extends AbstractDataTable
         yield TextColumn::new('email', 'Email');
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
-        /** @var User $item */
+        /** @var User $row */
         return [
-            'id' => $item->getId(),
-            'firstName' => $item->getFirstName(),
-            'lastName' => $item->getLastName(),
-            'email' => $item->getEmail(),
+            'id' => $row->getId(),
+            'firstName' => $row->getFirstName(),
+            'lastName' => $row->getLastName(),
+            'email' => $row->getEmail(),
         ];
     }
 }

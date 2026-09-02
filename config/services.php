@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
-use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
@@ -11,30 +11,33 @@ use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
-use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
-use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Controller\AjaxDataController;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
+use Pentiminax\UX\DataTables\Controller\AjaxExportController;
 use Pentiminax\UX\DataTables\Controller\AjaxTemplateRenderController;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
-use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
-use Pentiminax\UX\DataTables\Detail\DetailRowService;
+use Pentiminax\UX\DataTables\Ajax\DetailRowService;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Export\CsvExporter;
+use Pentiminax\UX\DataTables\Export\ExporterRegistry;
+use Pentiminax\UX\DataTables\Export\ExportService;
+use Pentiminax\UX\DataTables\Export\XlsxExporter;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
-use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntentFactoryInterface;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
-use Pentiminax\UX\DataTables\Rehydration\RowIdentifierExtractor;
-use Pentiminax\UX\DataTables\Rehydration\SourceRowResolver;
-use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
+use Pentiminax\UX\DataTables\Ajax\RowIdentifierExtractor;
+use Pentiminax\UX\DataTables\Ajax\SourceRowResolver;
+use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
@@ -57,19 +60,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 return static function (ContainerConfigurator $container): void {
     $services = $container->services();
 
-    $services->set('datatables.builder', DataTableBuilder::class)
-        ->arg(0, param('datatables.options'))
-        ->arg(1, param('datatables.template_parameters'))
-        ->arg(2, param('datatables.extensions'))
-        ->private();
-
-    $services->alias(DataTableBuilderInterface::class, 'datatables.builder')
-        ->private();
-
     $services->set('datatables.query.intent_factory', DefaultDataTableQueryIntentFactory::class)
         ->private();
 
-    $services->alias(DataTableQueryIntentFactoryInterface::class, 'datatables.query.intent_factory')
+    $services->alias(DefaultDataTableQueryIntentFactory::class, 'datatables.query.intent_factory')
         ->private();
 
     $services->set('datatables.query.filter_pipeline', QueryFilterPipeline::class)
@@ -122,13 +116,11 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.twig_extension', DataTablesExtension::class)
         ->arg(0, service('stimulus.helper'))
-        ->arg(1, service('datatables.column.template_column_renderer'))
-        ->arg(2, service('datatables.column.action_row_data_resolver'))
-        ->arg(3, service('datatables.column.resolver'))
-        ->arg(4, service('request_stack'))
-        ->arg(5, service('datatables.security.csrf_token_manager'))
-        ->arg(6, service('datatables.ajax.registry')->nullOnInvalid())
-        ->arg(7, service('datatables.profiler')->nullOnInvalid())
+        ->arg(1, service('datatables.column.resolver'))
+        ->arg(2, service('request_stack'))
+        ->arg(3, service('datatables.security.csrf_token_manager'))
+        ->arg(4, service('datatables.ajax.registry')->nullOnInvalid())
+        ->arg(5, service('datatables.profiler')->nullOnInvalid())
         ->tag('twig.extension')
         ->private();
 
@@ -142,13 +134,22 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(MercurePublisherInterface::class, 'datatables.mercure.null_publisher')
         ->private();
 
+    // Registered here rather than in config/mercure.php: mutations must resolve
+    // topics (to an empty list) even when Mercure is not installed.
+    $services->set('datatables.mercure.topic_resolver', MercureTopicResolver::class)
+        ->arg(0, service(MercureConfigResolver::class)->nullOnInvalid())
+        ->arg(1, tagged_locator('datatables.data_table'))
+        ->private();
+
+    $services->alias(MercureTopicResolver::class, 'datatables.mercure.topic_resolver')
+        ->private();
+
     $services->set('datatables.mutation.mutator', EntityMutator::class)
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('property_accessor'))
         ->arg(2, service(MercurePublisherInterface::class))
         ->arg(3, service('datatables.security.permission_checker'))
-        ->arg(4, service(MercureConfigResolverInterface::class)->nullOnInvalid())
-        ->arg(5, tagged_locator('datatables.data_table'))
+        ->arg(4, service('datatables.mercure.topic_resolver'))
         ->private();
 
     $services->set('datatables.mutation.boolean_context_resolver', BooleanMutationContextResolver::class)
@@ -179,6 +180,33 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_data', AjaxDataController::class)
         ->arg(0, service('datatables.ajax.registry'))
+        ->tag('controller.service_arguments')
+        ->public();
+
+    $services->set('datatables.export.exporter.csv', CsvExporter::class)
+        ->private();
+
+    $services->set('datatables.export.exporter.xlsx', XlsxExporter::class)
+        ->private();
+
+    $services->set('datatables.export.registry', ExporterRegistry::class)
+        ->arg(0, [
+            service('datatables.export.exporter.csv'),
+            service('datatables.export.exporter.xlsx'),
+        ])
+        ->private();
+
+    $services->set('datatables.export.service', ExportService::class)
+        ->arg(0, service('datatables.export.registry'))
+        ->arg(1, service('datatables.column.resolver'))
+        ->private();
+
+    $services->alias(ExportService::class, 'datatables.export.service')
+        ->private();
+
+    $services->set('datatables.controller.ajax_export', AjaxExportController::class)
+        ->arg(0, service('datatables.ajax.registry'))
+        ->arg(1, service('datatables.export.service'))
         ->tag('controller.service_arguments')
         ->public();
 
@@ -227,7 +255,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.column.resolver', ColumnResolver::class)
         ->arg(0, service('datatables.column.attribute_column_reader'))
-        ->arg(1, service(ColumnAutoDetectorInterface::class)->nullOnInvalid())
+        ->arg(1, service(ColumnAutoDetector::class)->nullOnInvalid())
         ->arg(2, service('datatables.security.permission_checker'))
         ->private();
 
@@ -244,10 +272,10 @@ return static function (ContainerConfigurator $container): void {
     }
 
     $services->set('datatables.rendering.preparer', RenderingPreparer::class)
-        ->arg(0, service(Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolverInterface::class)->nullOnInvalid())
-        ->arg(1, service(MercureConfigResolverInterface::class)->nullOnInvalid())
+        ->arg(0, service(ApiResourceCollectionUrlResolver::class)->nullOnInvalid())
+        ->arg(1, service(MercureConfigResolver::class)->nullOnInvalid())
         ->arg(2, service(TranslatorInterface::class)->nullOnInvalid())
-        ->arg(3, service(MercureHubUrlResolverInterface::class)->nullOnInvalid())
+        ->arg(3, service(MercureHubUrlResolver::class)->nullOnInvalid())
         ->arg(4, service('router')->nullOnInvalid())
         ->arg(5, service('datatables.ajax.registry'))
         ->arg(6, service('request_stack')->nullOnInvalid())
@@ -260,12 +288,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('doctrine.orm.entity_manager')->nullOnInvalid())
         ->private();
 
-    $services->set('datatables.data_provider.resolver', DataProviderResolver::class)
-        ->arg(0, service('datatables.data_provider.auto_factory'))
-        ->private();
-
     $services->set('datatables.runtime.factory', DataTableRuntimeFactory::class)
-        ->arg(0, service('datatables.data_provider.resolver'))
+        ->arg(0, service('datatables.data_provider.auto_factory'))
         ->arg(1, service('datatables.column.template_column_renderer'))
         ->arg(2, service('datatables.column.action_row_data_resolver'))
         ->arg(3, service(UrlColumnDataResolver::class)->nullOnInvalid())
@@ -281,8 +305,10 @@ return static function (ContainerConfigurator $container): void {
         ->arg(2, service('datatables.runtime.factory'))
         ->arg(3, service('datatables.query.intent_factory'))
         ->arg(4, service('datatables.query.filter_pipeline'))
-        ->arg(5, service('datatables.builder'))
-        ->arg(6, service('datatables.profiler')->nullOnInvalid())
+        ->arg(5, param('datatables.options'))
+        ->arg(6, param('datatables.template_parameters'))
+        ->arg(7, param('datatables.extensions'))
+        ->arg(8, service('datatables.profiler')->nullOnInvalid())
         ->private();
 
     $services->alias(DataTableInfrastructure::class, 'datatables.infrastructure')

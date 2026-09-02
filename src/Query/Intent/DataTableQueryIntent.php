@@ -14,16 +14,19 @@ namespace Pentiminax\UX\DataTables\Query\Intent;
 final readonly class DataTableQueryIntent
 {
     /**
-     * @param list<ColumnReadReference> $columns
-     * @param list<ColumnSearchIntent>  $columnSearches
-     * @param list<ColumnControlIntent> $columnControls
+     * @param list<ColumnReadReference>                               $columns
+     * @param 'asc'|'desc'|null                                       $orderDir
+     * @param list<array{column: ColumnReadReference, value: string}> $columnSearches
+     * @param list<ColumnControlIntent>                               $columnControls
      */
     public function __construct(
         public ?int $draw,
-        public PaginationIntent $pagination,
+        public int $offset,
+        public ?int $limit,
         public array $columns,
-        public ?GlobalSearchIntent $globalSearch,
-        public ?OrderIntent $order,
+        public ?string $globalSearch,
+        public ?ColumnReadReference $orderColumn,
+        public ?string $orderDir,
         public array $columnSearches,
         public array $columnControls,
     ) {

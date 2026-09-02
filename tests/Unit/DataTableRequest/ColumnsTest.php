@@ -49,4 +49,45 @@ final class ColumnsTest extends TestCase
 
         $this->assertNotNull($columns->getColumnByName('name'));
     }
+
+    /**
+     * Select's checkbox column is unshifted with name/data null. The export POST flattener
+     * used to omit those keys, and fromArray() TypeError'd on the non-string constructor args.
+     */
+    #[Test]
+    public function it_parses_a_checkbox_column_with_omitted_name_and_data(): void
+    {
+        $request = Request::create('/datatables/ajax/export', 'POST', [
+            'columns' => [
+                ['searchable' => 'false', 'orderable' => 'false'],
+                ['data' => 'email', 'name' => 'email', 'searchable' => 'true', 'orderable' => 'true'],
+            ],
+        ]);
+
+        $columns = Columns::fromRequest($request);
+
+        $checkbox = $columns->getColumnByIndex(0);
+        $this->assertNotNull($checkbox);
+        $this->assertSame('', $checkbox->name);
+        $this->assertSame('', $checkbox->data);
+        $this->assertFalse($checkbox->searchable);
+        $this->assertFalse($checkbox->orderable);
+        $this->assertNotNull($columns->getColumnByName('email'));
+    }
+
+    #[Test]
+    public function it_treats_boolean_true_flags_the_same_as_the_string_true(): void
+    {
+        $request = Request::create('/ajax', 'POST', [
+            'columns' => [
+                ['data' => 'name', 'name' => 'name', 'searchable' => true, 'orderable' => true],
+            ],
+        ]);
+
+        $column = Columns::fromRequest($request)->getColumnByName('name');
+
+        $this->assertNotNull($column);
+        $this->assertTrue($column->searchable);
+        $this->assertTrue($column->orderable);
+    }
 }

@@ -122,7 +122,7 @@ final class QueryFilterContextTest extends TestCase
         $context   = $this->context(new DataTableRequest(1, new Columns([])), [$column]);
         $reference = $context->intent->columns[0];
 
-        // QueryFilterChain::apply() calls this between filters. A second filter processing
+        // QueryFilterPipeline calls this between filters. A second filter processing
         // the same column after the reset must draw a genuinely fresh index -- this is the
         // guarantee that keeps two different filters from colliding on the same column,
         // even though each one individually sees stable, repeatable indices.

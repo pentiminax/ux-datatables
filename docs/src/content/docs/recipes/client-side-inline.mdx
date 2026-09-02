@@ -13,30 +13,46 @@ DataTables handles search, sort, and paging in the browser.
 ## Minimal Example
 
 ```php
+namespace App\DataTables;
+
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Model\DataTableBuilderInterface;
-use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 
-final class ProductController extends AbstractController
+final class ProductsDataTable extends AbstractDataTable
 {
-    #[Route('/products', name: 'products')]
-    public function index(DataTableBuilderInterface $builder): Response
+    public function configureColumns(): iterable
     {
-        $table = $builder
-            ->createDataTable('products')
-            ->columns([
-                NumberColumn::new('id', 'ID'),
-                TextColumn::new('name', 'Name'),
-            ])
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('name', 'Name');
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
             ->data([
                 ['id' => 1, 'name' => 'Keyboard'],
                 ['id' => 2, 'name' => 'Mouse'],
             ])
             ->pageLength(10);
+    }
+}
+```
 
+```php
+namespace App\Controller;
+
+use App\DataTables\ProductsDataTable;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+final class ProductController extends AbstractController
+{
+    #[Route('/products', name: 'products')]
+    public function index(ProductsDataTable $table): Response
+    {
         return $this->render('product/index.html.twig', [
             'table' => $table,
         ]);

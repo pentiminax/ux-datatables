@@ -13,23 +13,24 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
-use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
+use Pentiminax\UX\DataTables\Controller\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolverInterface;
-use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
-use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -166,10 +167,10 @@ final class AjaxEditControllerTest extends TestCase
             ->method('publish')
             ->with(['/manual/toggle-boolean-entity-fixtures'], ['type' => 'edit', 'id' => 799, 'field' => 'isEmailAuthEnabled']);
 
-        $resolver = $this->createMock(MercureConfigResolverInterface::class);
+        $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolverInterface::class);
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
         $dataTable = new ToggleBooleanEntityFixtureDataTable($hubUrlResolver);
@@ -183,8 +184,7 @@ final class AjaxEditControllerTest extends TestCase
             $this->writableAccessor($entity, true),
             $publisher,
             new PermissionChecker(),
-            mercureConfigResolver: $resolver,
-            dataTables: $dataTables,
+            new MercureTopicResolver($resolver, $dataTables),
         );
 
         $controller = new AjaxEditController(
@@ -208,6 +208,7 @@ final class AjaxEditControllerTest extends TestCase
             $accessor,
             new NullMercurePublisher(),
             new PermissionChecker(),
+            new MercureTopicResolver(),
         );
 
         return new AjaxEditController(
@@ -327,7 +328,7 @@ final class ToggleBooleanEntityFixture
 final class ToggleBooleanEntityFixtureDataTable extends AbstractDataTable
 {
     public function __construct(
-        private readonly ?MercureHubUrlResolverInterface $mercureHubUrlResolver = null,
+        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
     ) {
         parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(

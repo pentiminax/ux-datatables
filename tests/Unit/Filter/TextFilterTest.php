@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @internal
@@ -29,6 +30,31 @@ final class TextFilterTest extends TestCase
             'type'        => 'text',
             'label'       => 'Nom',
             'placeholder' => 'Search',
+        ], $filter->jsonSerialize());
+    }
+
+    #[Test]
+    public function it_translates_label_and_placeholder_keys(): void
+    {
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator
+            ->method('trans')
+            ->willReturnMap([
+                ['user.name', [], null, null, 'Nom'],
+                ['user.name.placeholder', [], null, null, 'Rechercher'],
+            ]);
+
+        $filter = TextFilter::new('name')
+            ->label('user.name')
+            ->placeholder('user.name.placeholder');
+
+        $filter->translateLabels($translator);
+
+        $this->assertSame([
+            'name'        => 'name',
+            'type'        => 'text',
+            'label'       => 'Nom',
+            'placeholder' => 'Rechercher',
         ], $filter->jsonSerialize());
     }
 

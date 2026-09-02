@@ -28,7 +28,11 @@ final class NumericSearchTerm
         }
 
         if (\in_array($doctrineType, self::INTEGER_TYPES, true)) {
-            return 1 === preg_match('/^-?\d+$/', $value) ? $value : null;
+            if (1 !== preg_match('/^(?<sign>[+-]?)(?<digits>\d+)$/', $value, $matches)) {
+                return null;
+            }
+
+            return '+' === $matches['sign'] ? $matches['digits'] : $value;
         }
 
         if (!is_numeric($value)) {

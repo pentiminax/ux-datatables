@@ -25,6 +25,7 @@ public function configureFilters(Filters $filters): Filters
 
 - `::new(string $name)` — name is the AJAX payload key (`filters[name]`).
 - `->label()`, `->field()` (defaults to name, supports relations like `author.name`), `->placeholder()`.
+  `label()` and `placeholder()` accept a literal or a translation key (default domain, resolved at render time). Omit `label()` to keep the humanized property name.
 - `->query(fn (QueryBuilder $qb, mixed $value, string $alias))` overrides the default condition.
 
 ## Types (`src/Filter/`)
@@ -34,14 +35,14 @@ public function configureFilters(Filters $filters): Filters
 | `TextFilter` | search input | `LOWER(field) LIKE %value%` |
 | `ChoiceFilter` | select (`multiple()` for multi) | `field = value` / `field IN (...)`; `options()` accepts `[label => value]`, enum cases, or enum class-string |
 | `TernaryFilter` | all/true/false select | `field IS [NOT] NULL`; `values($true, $false)` to compare concrete values |
-| `DateRangeFilter` | two date inputs | `field >= from AND field <= to` (each bound optional) |
+| `DateRangeFilter` | two date inputs | `field >= from`; date-only `to` on datetime is `< next midnight`, otherwise `field <= to` (each bound optional) |
 | `Filter` | checkbox | none — requires `query()`, runs only when checked |
 
 ## Flow
 
 - Serialized into the Stimulus `view` payload under `filters` (only when non-empty), via `DataTable::setFilters()`.
 - Frontend: registered as a custom DataTables feature `filters` (`assets/src/functions/filterFeature.ts` via `DataTable.feature.register`), placed in `layout` (`assets/src/functions/filterLayout.ts`) — default `topEnd` after `search`, or wherever `Feature::FILTERS` is positioned in `->layout()`. `assets/src/functions/filters.ts` builds the funnel toggle + popover, merges applied values into `ajax.data` (`filters[name]`), deferred reload on Apply/Reset. Default styles ship in `assets/dist/styles/datatables-style.css` (auto-imported, light/dark via CSS vars).
-- Server-side: `DataTableRequest::filters` carries values; `AbstractDataTable::configureQueryBuilder()` applies each filter after the standard `QueryFilterChain`, so filtered count + page both reflect the filters. Empty/irrelevant values are no-ops.
+- Server-side: `DataTableRequest::filters` carries values; `AbstractDataTable::configureQueryBuilder()` applies each filter after the standard `QueryFilterPipeline`, so filtered count + page both reflect the filters. Empty/irrelevant values are no-ops.
 
 ## Gotchas
 

@@ -8,11 +8,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
-class DoctrineDataProvider implements DataProviderInterface
+class DoctrineDataProvider implements DataProviderInterface, StreamingDataProviderInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -20,6 +21,12 @@ class DoctrineDataProvider implements DataProviderInterface
         private readonly RowMapperInterface $rowMapper,
         /** @var callable(QueryBuilder, DataTableRequest):QueryBuilder|null */
         private $configureQueryBuilder = null,
+        /**
+         * Maps rows during an export. Defaults to $rowMapper, but the bundle builds it from the
+         * exportable columns alone, so an export skips the template rendering and action
+         * resolution the displayed table needs and an export file never contains.
+         */
+        private readonly ?RowMapperInterface $exportRowMapper = null,
         /** @var (\Closure(list<object>):(list<mixed>|null))|null */
         private readonly ?\Closure $pageProjector = null,
         /**
@@ -33,6 +40,7 @@ class DoctrineDataProvider implements DataProviderInterface
          * @var callable(QueryBuilder, DataTableRequest):QueryBuilder|null
          */
         private $configureBaseQueryBuilder = null,
+        private readonly int $exportChunkSize = 250,
     ) {
     }
 
@@ -92,6 +100,138 @@ class DoctrineDataProvider implements DataProviderInterface
             recordsFiltered: $filteredCount,
             data: $rows
         );
+    }
+
+    /**
+     * Walks distinct root identifiers once, then loads them back in chunks.
+     *
+     * toIterable() cannot serve an export whose DQL joins a to-many association: it throws
+     * QueryException on a fetch-joined collection, and on a plain LEFT JOIN added only to search
+     * or filter (a searchable `tags.label` column is enough) it yields the same root once per
+     * joined row. Either way the export breaks after the download headers were already sent, or
+     * writes duplicated rows. Reading the identifiers first and re-loading them through
+     * getResult() gives the uniqueness fetchData() already has.
+     *
+     * The identifier is appended to the ORDER BY: a user ordering on a non-unique column (a
+     * status, a date) leaves ties whose relative order the database is free to change between
+     * two queries, which would let a row be exported twice or not at all.
+     *
+     * Chunks are loaded through `WHERE id IN (...)` rather than LIMIT/OFFSET: paginating with a
+     * growing offset makes the database re-scan the skipped rows on every chunk, and a concurrent
+     * insert or delete shifts the window under the export.
+     *
+     * ponytail: the identifier list is held in memory for the whole export (about 8 MB per 100k
+     * rows). Walk the identifiers with a keyset cursor if that ceiling ever matters.
+     *
+     * $pageProjector runs once per $exportChunkSize rows rather than once over the whole result
+     * set: holding every row to project them together would defeat the streaming this method
+     * exists for. See {@see \Pentiminax\UX\DataTables\Model\AbstractDataTable::projectPage()}
+     * for what that means for a projector.
+     */
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        $alias = 'e';
+        $qb    = $this->em
+            ->createQueryBuilder()
+            ->select($alias)
+            ->from($this->entityClass, $alias);
+
+        if ($this->configureQueryBuilder) {
+            $qb = ($this->configureQueryBuilder)($qb, $request);
+        }
+
+        $identifier = $this->em->getClassMetadata($this->entityClass)->getSingleIdentifierFieldName();
+
+        $qb->addOrderBy("$alias.$identifier", 'ASC');
+
+        $ids = (clone $qb)
+            ->select("$alias.$identifier")
+            ->setFirstResult(null)
+            ->setMaxResults(null)
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        $ids = array_values(array_unique($ids, \SORT_REGULAR));
+
+        // A LIMIT/OFFSET set by customizeQueryBuilder() caps the export itself; applied here it
+        // counts root entities, where the query's own LIMIT would have counted joined SQL rows.
+        $ids = \array_slice($ids, $qb->getFirstResult() ?? 0, $qb->getMaxResults());
+
+        foreach (array_chunk($ids, max(1, $this->exportChunkSize)) as $chunk) {
+            $pageQb = (clone $qb)
+                ->setFirstResult(null)
+                ->setMaxResults(null)
+                ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_export_ids'))
+                ->setParameter('ux_datatables_export_ids', $chunk);
+
+            $items = array_map($this->rootEntity(...), $pageQb->getQuery()->getResult());
+
+            if ([] === $items) {
+                continue;
+            }
+
+            yield from $this->mapChunk($items);
+            $this->releaseChunk($items);
+        }
+    }
+
+    /**
+     * Frees a mapped chunk one entity at a time rather than through clear(). clear() empties the
+     * shared EntityManager, which detaches everything the rest of the request still relies on --
+     * the security token's own User included -- so any voter or lazy load running after the export
+     * would fail on a detached entity. detach() only releases the roots (plus their cascade=detach
+     * associations); already-loaded associations stay in the identity map, which is the accepted
+     * trade-off. Narrow the selection through customizeQueryBuilder() when exporting deeply
+     * associated entities.
+     *
+     * @param list<object> $entities
+     */
+    private function releaseChunk(array $entities): void
+    {
+        foreach ($entities as $entity) {
+            $this->em->detach($entity);
+        }
+    }
+
+    /**
+     * @param list<object> $items
+     *
+     * @return \Generator<int, array<string, mixed>>
+     */
+    private function mapChunk(array $items): \Generator
+    {
+        $items         = array_values($items);
+        $pageProjector = $this->pageProjector;
+        $projectedRaw  = null !== $pageProjector ? ($pageProjector)($items) : null;
+        $projected     = null === $projectedRaw ? null : array_values($projectedRaw);
+
+        if (null !== $projected && \count($projected) !== \count($items)) {
+            throw new \LogicException(\sprintf('Page projector returned %d items for a source page containing %d items. Projectors must preserve page size and order.', \count($projected), \count($items)));
+        }
+
+        $rowMapper = $this->exportRowMapper ?? $this->rowMapper;
+
+        foreach ($items as $index => $item) {
+            yield $rowMapper->map(
+                null === $projected ? $item : new RowContext($item, $projected[$index]),
+            );
+        }
+    }
+
+    private function rootEntity(mixed $item): object
+    {
+        if (\is_object($item)) {
+            return $item;
+        }
+
+        if (\is_array($item)) {
+            $candidate = $item['e'] ?? reset($item);
+            if (\is_object($candidate)) {
+                return $candidate;
+            }
+        }
+
+        throw new \LogicException('Doctrine CSV export expected a root entity from the chunk query.');
     }
 
     /**

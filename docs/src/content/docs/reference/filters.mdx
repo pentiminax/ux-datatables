@@ -103,7 +103,9 @@ TernaryFilter::new('active')->values(true, false);
 
 ### DateRangeFilter
 
-Two optional bounds (`from` / `to`) applied independently as `>=` and `<=`.
+Two optional bounds (`from` / `to`). `from` is inclusive (`>=`). A date-only `to` on a
+datetime column includes the selected calendar day (exclusive next midnight). A
+time-bearing `to`, and any `to` on a date column, stay inclusive (`<=`).
 
 ```php
 DateRangeFilter::new('createdAt')->label('Created');
@@ -165,6 +167,19 @@ protected function configureFilters(Filters $filters): void
 Any argument left out keeps the bundle's built-in localized default. To change a
 single placeholder for one filter only, use `placeholder()` on that filter — it
 takes precedence over the shared `all` label.
+
+Filter `label()` and `placeholder()` follow the same rule as column titles: pass
+a literal or a translation key. Keys are resolved in the **default** domain at
+render time. Omit `label()` to keep the humanized property name (not translated).
+
+```php
+DateRangeFilter::new('lastLoginAt')
+    ->label('user.last_login')
+    ->placeholder('user.last_login.placeholder');
+```
+
+`TernaryFilter::trueLabel()` / `falseLabel()` and `ChoiceFilter` options backed
+by a `TranslatableInterface` enum are translated the same way.
 
 ## Positioning the filter button
 

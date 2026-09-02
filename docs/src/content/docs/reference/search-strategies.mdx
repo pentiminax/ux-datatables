@@ -1,0 +1,238 @@
+---
+title: Search Strategies
+description: Per-column search logic and the global search predicate builder
+order: 74
+---
+
+A server-side table turns two kinds of search into Doctrine conditions, and each has its own
+extension point:
+
+- **per-column search** — the column search box and every ColumnControl logic (`equal`, `starts`,
+  `empty`, …) go through a `SearchStrategyInterface`, resolved by logic name from a
+  `SearchStrategyRegistry`.
+- **global search** — the single search box above the table goes through a
+  `SearchPredicateBuilderInterface`, which returns one condition per globally searchable column so
+  the caller can OR them together.
+
+Both are supplied by `AbstractDataTable` hooks, not by service tags.
+
+## `SearchStrategyInterface`
+
+```php
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+
+interface SearchStrategyInterface
+{
+    public function apply(
+        QueryBuilder $qb,
+        ColumnInterface $column,
+        ColumnControlSearch $search,
+        int $paramIndex,
+        string $alias,
+    ): void;
+
+    public function getLogic(): string;
+}
+```
+
+A strategy mutates the `QueryBuilder` in place, so it only fits criteria that are AND-composed with
+the rest of the query. Three rules make an implementation safe:
+
+- **Be a no-op for a value you cannot use.** An empty term, a column with no `field()`, or a term
+  that does not parse for the field's Doctrine type must add no condition at all. Binding a value
+  the driver will reject turns a user typo into a 500.
+- **Name every parameter from `$paramIndex`.** The pipeline hands out an index no other call can
+  produce. Deriving a name from the column position instead lets two searches on the same column
+  mint the same placeholder, and the second `setParameter()` silently overwrites the first.
+- **Return the logic identifier from `getLogic()`.** That string is the registry key, and it is the
+  `logic` value the client submits.
+
+`$search->type` carries the ColumnControl input type (`text`, `num`, `date`, …), which the shipped
+strategies use as a hint when the column's own type is not decisive.
+
+### Registry
+
+`SearchStrategyRegistry` maps a logic identifier to a strategy and falls back to a default
+strategy — `ContainsSearchStrategy` — for any logic it does not know.
+
+| Method                                     | Description                                            |
+| ------------------------------------------ | ------------------------------------------------------ |
+| `register(SearchStrategyInterface)`        | Index a strategy under its own `getLogic()`            |
+| `get(string $logic)`                       | The strategy for that logic, or the default one        |
+| `has(string $logic)`                       | Whether a strategy is registered for that logic        |
+
+`DefaultSearchStrategyRegistry` is the registry the bundle uses. It registers:
+
+| Strategy                                   | Logic                                                                                  |
+| ------------------------------------------ | -------------------------------------------------------------------------------------- |
+| `ContainsSearchStrategy`                   | `contains` (also the fallback for unknown logic)                                       |
+| `NullnessSearchStrategy`                   | `empty`, and `notEmpty` when constructed with `true`                                   |
+| `ComparisonSearchStrategy`                 | `equal`, `notEqual`, `starts`, `ends`, `notContains`, `greater`, `greaterOrEqual`, `less`, `lessOrEqual` |
+
+`ComparisonSearchStrategy` is parameterized by a `ColumnControlLogic` case rather than existing as
+one class per operator: the enum supplies the SQL operator, the parameter wrapping format, and
+whether the logic is expressed with `LIKE`. Constructing it with a logic it cannot express — such as
+`ColumnControlLogic::Empty` — throws an `InvalidArgumentException`.
+
+<Aside type="note">
+  `ColumnControlLogic::In` has no dedicated strategy. ColumnControl list selections
+  (`searchList`) are applied by `ColumnControlSearchFilter` through an explicit `IN` branch, which
+  never consults the registry.
+</Aside>
+
+Beyond ColumnControl, the plain per-column search boxes DataTables sends are applied by
+`ColumnSearchFilter` through the registry's `contains` strategy. Replacing that strategy therefore
+changes both search forms at once.
+
+### Registering a custom strategy
+
+Override `createSearchStrategyRegistry()` and register on top of the default registry. Registering
+a strategy whose `getLogic()` matches a shipped one replaces it.
+
+```php
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\Query\LikeValueEscaper;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
+
+/**
+ * Case-insensitive "starts with": the shipped `starts` logic compares with a plain LIKE, which is
+ * case-sensitive on MySQL binary collations and on PostgreSQL.
+ */
+final class CaseInsensitiveStartsSearchStrategy implements SearchStrategyInterface
+{
+    public function apply(
+        QueryBuilder $qb,
+        ColumnInterface $column,
+        ColumnControlSearch $search,
+        int $paramIndex,
+        string $alias,
+    ): void {
+        $value = trim($search->value);
+        $fieldPath = $column->getField();
+
+        if ('' === $value || null === $fieldPath) {
+            return;
+        }
+
+        // LOWER() on a uuid or a datetime column is rejected by strict engines.
+        if (!RelationFieldResolver::supportsTextSearch($qb, $fieldPath)) {
+            return;
+        }
+
+        $field = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
+        $paramName = sprintf('starts_ci_%d', $paramIndex);
+
+        $qb
+            ->andWhere(sprintf("LOWER(%s) LIKE :%s ESCAPE '%s'", $field, $paramName, LikeValueEscaper::ESCAPE_CHARACTER))
+            ->setParameter($paramName, strtolower(LikeValueEscaper::escape($value)).'%');
+    }
+
+    public function getLogic(): string
+    {
+        return 'starts';
+    }
+}
+```
+
+```php
+use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
+use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
+
+protected function createSearchStrategyRegistry(): SearchStrategyRegistry
+{
+    $registry = new DefaultSearchStrategyRegistry();
+    $registry->register(new CaseInsensitiveStartsSearchStrategy());
+
+    return $registry;
+}
+```
+
+`RelationFieldResolver::resolve()` is what makes a dotted field path (`author.name`) work: it walks
+the path, reusing the joins already on the query builder and adding the missing ones, and returns
+the DQL expression for the leaf field. `LikeValueEscaper` neutralizes `%` and `_` in the user's
+term so a search for `50%` does not become a wildcard.
+
+## Global search
+
+The global search box is applied by `GlobalSearchFilter`, which asks a
+`SearchPredicateBuilderInterface` for one condition per globally searchable column and combines
+them with `OR`.
+
+```php
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+
+interface SearchPredicateBuilderInterface
+{
+    public function build(
+        QueryBuilder $qb,
+        ColumnInterface $column,
+        string $alias,
+        string $field,
+        string $value,
+        string $paramName,
+        bool $forceNumeric = false,
+    ): ?string;
+}
+```
+
+<Aside type="caution">
+  A predicate builder **must not** call `QueryBuilder::andWhere()`. It returns the DQL condition and
+  binds its parameter; only the caller knows the per-column conditions have to be OR'd together
+  rather than required individually. Calling `andWhere()` would turn the global search into "every
+  searchable column must match".
+</Aside>
+
+Return `null` when `$value` cannot be searched against the field — an unparseable term for the
+column's Doctrine type, or a type `LIKE` cannot be used on. That column is then simply left out of
+the `OR`.
+
+`DefaultSearchPredicateBuilder` dispatches on the column type:
+
+| Column                       | Condition                                                          |
+| ---------------------------- | ------------------------------------------------------------------ |
+| numeric (or `$forceNumeric`) | exact match when the term is numeric, `null` otherwise             |
+| date                         | `null` — a partial date term has no meaningful `LIKE`              |
+| native UUID / ULID           | exact match when the term is a well-formed identifier of that type |
+| anything else                | `LIKE %term%` when the field supports text search                  |
+
+`$forceNumeric` lets a caller force numeric handling from an external hint;
+`ContainsSearchStrategy` uses it for ColumnControl's `number` / `numeric` / `num` input types.
+
+### Replacing the predicate builder
+
+Override `createSearchPredicateBuilder()` to add type handling the default builder does not cover:
+
+```php
+use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
+use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
+
+protected function createSearchPredicateBuilder(): SearchPredicateBuilderInterface
+{
+    return new EnumAwareSearchPredicateBuilder(new DefaultSearchPredicateBuilder());
+}
+```
+
+Delegating to `DefaultSearchPredicateBuilder` for everything the custom builder does not handle
+keeps the UUID, numeric, and date behavior — including the cases where returning `null` is what
+prevents a driver error.
+
+<Aside type="note">
+  `createSearchPredicateBuilder()` reaches global search only. `ContainsSearchStrategy` builds its
+  own conditions through a predicate builder too, but it receives one through its constructor and
+  `DefaultSearchStrategyRegistry` constructs it with the default. To apply a custom builder to
+  per-column `contains` search as well, register the strategy explicitly:
+  `$registry->register(new ContainsSearchStrategy($builder))`.
+</Aside>
+
+## See Also
+
+- [Query Filters](/ux-datatables/reference/query-filters/)
+- [AbstractDataTable](/ux-datatables/reference/abstract-datatable/)
+- [ColumnControl](/ux-datatables/extensions/column-control/)
+- [Server-Side Processing](/ux-datatables/guide/server-side-processing/)

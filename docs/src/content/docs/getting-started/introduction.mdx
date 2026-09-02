@@ -33,17 +33,29 @@ This bundle provides a **Symfony-native** way to work with DataTables:
 
 ### PHP-First Configuration
 
-Configure your tables entirely in PHP with a fluent builder API:
+Configure your tables entirely in PHP with a fluent API:
 
 ```php
-$table = $builder
-    ->createDataTable('users')
-    ->columns([
-        TextColumn::new('name', 'Name'),
-        NumberColumn::new('age', 'Age'),
-    ])
-    ->pageLength(25)
-    ->searching(true);
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('name', 'Name');
+        yield NumberColumn::new('age', 'Age');
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->pageLength(25)
+            ->searching(true);
+    }
+}
 ```
 
 ### Stimulus Integration
@@ -80,7 +92,7 @@ final class UsersDataTable extends AbstractDataTable
 ┌─────────────────────────────────────────────────────┐
 │                    Controller                        │
 │  ┌───────────────────────────────────────────────┐  │
-│  │         DataTableBuilderInterface              │  │
+│  │      Injected AbstractDataTable service        │  │
 │  └───────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────┘
                           │

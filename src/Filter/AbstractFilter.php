@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Filter;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Contracts\FilterInterface;
+use Pentiminax\UX\DataTables\Contracts\TranslatableFilterInterface;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
-abstract class AbstractFilter implements FilterInterface
+abstract class AbstractFilter implements FilterInterface, TranslatableFilterInterface
 {
     protected ?string $label = null;
 
@@ -38,6 +41,10 @@ abstract class AbstractFilter implements FilterInterface
         return $this->name;
     }
 
+    /**
+     * Display label for the filter control. Accepts a plain string or a
+     * translation key (resolved in the default domain at render time).
+     */
     public function label(string $label): static
     {
         $this->label = $label;
@@ -56,11 +63,30 @@ abstract class AbstractFilter implements FilterInterface
         return $this;
     }
 
+    /**
+     * Placeholder for text and select controls. Accepts a plain string or a
+     * translation key (resolved in the default domain at render time).
+     */
     public function placeholder(string $placeholder): static
     {
         $this->placeholder = $placeholder;
 
         return $this;
+    }
+
+    /**
+     * Resolve label() and placeholder() through the translator at render time,
+     * matching column titles. Humanized names (no explicit label) are left as-is.
+     */
+    public function translateLabels(TranslatorInterface $translator, ?string $locale = null): void
+    {
+        if (null !== $this->label) {
+            $this->label = $translator->trans($this->label, locale: $locale);
+        }
+
+        if (null !== $this->placeholder) {
+            $this->placeholder = $translator->trans($this->placeholder, locale: $locale);
+        }
     }
 
     /**
@@ -131,9 +157,6 @@ abstract class AbstractFilter implements FilterInterface
 
     private function humanizeName(): string
     {
-        $words = preg_replace('/(?<!^)[A-Z]/', ' $0', $this->name) ?? $this->name;
-        $words = str_replace(['_', '.'], ' ', $words);
-
-        return ucfirst(strtolower(trim($words)));
+        return (new PropertyNameHumanizer())->humanize($this->name);
     }
 }

@@ -25,6 +25,30 @@ use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
+/**
+ * Base class for every table the bundle renders: a class declaring its columns, actions, filters,
+ * extensions, and options, from which the runtime builds rendering payloads and Ajax responses.
+ *
+ * setDataTableInfrastructure() must run before any accessor. Symfony's autoconfiguration calls it
+ * on every subclass (see DataTablesBundle::loadExtension()); an instance built by hand falls back
+ * to {@see DataTableInfrastructure::createDefault()}, which has no profiler, no Twig, and no
+ * bundle-wide `data_tables` defaults. Calling it once the table has initialized throws
+ * \LogicException, so it can never swap the infrastructure a table was already configured with.
+ *
+ * Every accessor -- as opposed to the configure*() hooks themselves -- triggers initialize()
+ * implicitly, and initialization is idempotent: the first accessor runs the configure*() methods
+ * and later calls reuse their result. Instances are
+ * container-shared and survive across requests under a worker runtime, so the `kernel.reset` tag
+ * calls resetDataTableState() between requests to clear that per-request state. Treat the
+ * configure*() methods as pure functions of the class regardless: they must not read the request,
+ * the security token, the session, or the locale. See the purity contract in
+ * docs/src/content/docs/reference/abstract-datatable.mdx ("Configuration Methods Must Be Pure").
+ *
+ * Request-dependent behavior belongs at the request-scoped boundaries instead: permission() on
+ * columns and actions, customizeQueryBuilder() and getRequest() for the query, and setData() --
+ * the sanctioned way to inject rows a controller has already resolved -- for inline data, which
+ * runs them through the same row-processing pipeline a provider would use.
+ */
 abstract class AbstractDataTable
 {
     /**
@@ -86,14 +110,14 @@ abstract class AbstractDataTable
         $this->asDataTable = $this->resolveAsDataTable();
 
         $this->table = $this->configureDataTable(
-            $this->infrastructure()->builder()->createDataTable($this->getClassName())
+            $this->infrastructure()->createDataTable($this->getClassName())
         );
 
         $this->table->setDataTableClass(static::class);
 
         $this->columns = iterator_to_array($this->configureColumns());
 
-        $columnResolver = $this->infrastructure()->columnResolver();
+        $columnResolver = $this->infrastructure()->columnResolver;
 
         $actions = $this->configureActions(new Actions());
 
@@ -156,7 +180,7 @@ abstract class AbstractDataTable
             return;
         }
 
-        $renderingPreparer = $this->infrastructure()->renderingPreparer();
+        $renderingPreparer = $this->infrastructure()->renderingPreparer;
 
         $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable);
         $this->prepareExplicitInlineData();
@@ -196,7 +220,7 @@ abstract class AbstractDataTable
             return null;
         }
 
-        return $this->infrastructure()->renderingPreparer()->resolveMercureConfig($this->table, $this->asDataTable);
+        return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->asDataTable);
     }
 
     final public function getEntityClass(): ?string
@@ -218,7 +242,7 @@ abstract class AbstractDataTable
             }
         }
 
-        return $this->infrastructure()->columnResolver()->resolveColumns($this->asDataTable ?? $this->resolveAsDataTable());
+        return $this->infrastructure()->columnResolver->resolveColumns($this->asDataTable ?? $this->resolveAsDataTable());
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -273,15 +297,7 @@ abstract class AbstractDataTable
             return;
         }
 
-        $rowMapper = $this->createRowMapper();
-        $rows      = [];
-
-        foreach ($data as $item) {
-            $rows[] = $rowMapper->map($item);
-        }
-
-        $this->table->data($rows);
-        $this->table->markTemplateColumnsRendered();
+        $this->mapInlineRows($data);
     }
 
     private function shouldHydrateClientSideData(): bool
@@ -317,10 +333,10 @@ abstract class AbstractDataTable
     {
         $qb = $this->customizeQueryBuilder($qb, $request);
 
-        return $this->infrastructure()->queryFilterPipeline()->apply(
+        return $this->infrastructure()->queryFilterPipeline->apply(
             qb: $qb,
             request: $request,
-            columns: $this->infrastructure()->columnResolver()->filterStaticPermissions($this->columns),
+            columns: $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns),
             filters: $this->filters ?? null,
             registry: $this->createSearchStrategyRegistry(),
             predicateBuilder: $this->createSearchPredicateBuilder(),
@@ -346,7 +362,7 @@ abstract class AbstractDataTable
      * Create the search predicate builder used by global search.
      *
      * Override this method to customize how global search builds a condition for a column,
-     * e.g. to add type handling SearchPredicateFactory does not cover.
+     * e.g. to add type handling DefaultSearchPredicateBuilder does not cover.
      */
     protected function createSearchPredicateBuilder(): SearchPredicateBuilderInterface
     {
@@ -375,8 +391,18 @@ abstract class AbstractDataTable
      *
      * Override to batch-enrich the page (load metrics, project to DTOs) without an N+1.
      * Return null (the default) to disable projection. When projecting, the returned list
-     * must preserve the count and order of $items: columns and Twig then read the projected
-     * item, while actions still receive the source entity.
+     * must preserve the count and order of $items: columns and TemplateColumn Twig (`row`) then
+     * read the projected item, while actions still receive the source entity.
+     *
+     * A server-side export has no page: it streams every filtered row, so the projector is called
+     * once per batch of rows rather than once over the whole result set, and the batch size is not
+     * the DataTables page length. Project each item from itself -- map it, or batch-load data keyed
+     * by it. A projector whose output depends on which other items share the call (a rank, a
+     * running total, a share of the batch's maximum) produces different values in an export than on
+     * a page, and its values already shift with the page length on screen. Buffering every row to
+     * project them together is what streaming exists to avoid; when a larger batch really is
+     * needed, build the provider in {@see self::createDataProvider()} with a bigger
+     * `exportChunkSize`.
      *
      * @param list<mixed> $items
      *
@@ -391,7 +417,7 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
-        return $this->infrastructure()->runtimeFactory()->createRowMapper(
+        return $this->infrastructure()->runtimeFactory->createRowMapper(
             baseMapper: $this->mapRow(...),
             columns: $this->columns,
         );
@@ -401,6 +427,14 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
+        $this->mapInlineRows($data);
+    }
+
+    /**
+     * @param iterable<mixed> $data
+     */
+    private function mapInlineRows(iterable $data): void
+    {
         $rowMapper = $this->createRowMapper();
         $rows      = [];
 
@@ -448,7 +482,7 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
-        return $this->runtime ??= $this->infrastructure()->runtimeFactory()->createRuntime(
+        return $this->runtime ??= $this->infrastructure()->runtimeFactory->createRuntime(
             table: $this->table,
             columns: $this->columns,
             asDataTable: $this->asDataTable,
@@ -473,7 +507,7 @@ abstract class AbstractDataTable
      */
     private function collectAjaxQueryForProfiler(JsonResponse $response, float $start): void
     {
-        $profiler = $this->infrastructure()->profiler();
+        $profiler = $this->infrastructure()->profiler;
 
         if (null === $profiler) {
             return;
@@ -520,7 +554,7 @@ abstract class AbstractDataTable
 
             $name = $single || !$isBefore ? 'actions' : 'actions_before';
 
-            $actionColumn = $this->createActionColumn($name, $group);
+            $actionColumn = ActionColumn::fromActions($name, $group->getColumnLabel(), $group);
 
             if ($isBefore) {
                 array_unshift($this->columns, $actionColumn);
@@ -530,31 +564,5 @@ abstract class AbstractDataTable
 
             $this->columns[] = $actionColumn;
         }
-    }
-
-    private function createActionColumn(string $name, Actions $actions): ActionColumn
-    {
-        $actionColumn = ActionColumn::fromActions(
-            name: $name,
-            title: $actions->getColumnLabel(),
-            actions: $actions,
-        );
-
-        $className = trim(implode(' ', array_filter([
-            $actions->getColumnClassName(),
-            $actions->getAlignment()?->cssClass(),
-        ])));
-
-        if ('' !== $className) {
-            $actionColumn->setClassName($className);
-        }
-
-        $columnControl = $actions->getColumnControl();
-
-        if (null !== $columnControl) {
-            $actionColumn->setColumnControl($columnControl);
-        }
-
-        return $actionColumn;
     }
 }

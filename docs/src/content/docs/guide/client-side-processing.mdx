@@ -57,38 +57,58 @@ Use `data()` when your controller already has the rows in array form and you wan
 possible setup.
 
 ```php
+namespace App\DataTables;
+
+use Pentiminax\UX\DataTables\Column\EmailColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('firstName', 'First name');
+        yield TextColumn::new('lastName', 'Last name');
+        yield EmailColumn::new('email', 'Email');
+        yield TextColumn::new('role', 'Role');
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->data([
+            [
+                'firstName' => 'Ada',
+                'lastName' => 'Lovelace',
+                'email' => 'ada@example.com',
+                'role' => 'Administrator',
+            ],
+            [
+                'firstName' => 'Grace',
+                'lastName' => 'Hopper',
+                'email' => 'grace@example.com',
+                'role' => 'Manager',
+            ],
+        ]);
+    }
+}
+```
+
+Inject the table into a controller and render it:
+
+```php
 namespace App\Controller;
 
-use Pentiminax\UX\DataTables\Column\EmailColumn;use Pentiminax\UX\DataTables\Column\TextColumn;use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;use Symfony\Component\HttpFoundation\Response;use Symfony\Component\Routing\Attribute\Route;
+use App\DataTables\UsersDataTable;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 
 final class UserController extends AbstractController
 {
     #[Route('/admin/users', name: 'app_admin_users')]
-    public function index(DataTableBuilderInterface $builder): Response
+    public function index(UsersDataTable $table): Response
     {
-        $table = $builder
-            ->createDataTable('users')
-            ->columns([
-                TextColumn::new('firstName', 'First name'),
-                TextColumn::new('lastName', 'Last name'),
-                EmailColumn::new('email', 'Email'),
-                TextColumn::new('role', 'Role'),
-            ])
-            ->data([
-                [
-                    'firstName' => 'Ada',
-                    'lastName' => 'Lovelace',
-                    'email' => 'ada@example.com',
-                    'role' => 'Administrator',
-                ],
-                [
-                    'firstName' => 'Grace',
-                    'lastName' => 'Hopper',
-                    'email' => 'grace@example.com',
-                    'role' => 'Manager',
-                ],
-            ]);
-
         return $this->render('admin/users/index.html.twig', [
             'table' => $table,
         ]);
@@ -97,6 +117,8 @@ final class UserController extends AbstractController
 ```
 
 This setup is ideal when the page already owns the dataset and no extra HTTP request is needed.
+When the rows are computed in the controller, call `$table->setData($rows)` there instead of
+hardcoding them in `configureDataTable()`.
 
 ## Domain Objects With `setData()`
 
@@ -124,13 +146,13 @@ final class UsersDataTable extends AbstractDataTable
         yield TextColumn::new('role', 'Role');
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
-        /** @var User $item */
+        /** @var User $row */
         return [
-            'fullName' => $item->getFirstName().' '.$item->getLastName(),
-            'email' => $item->getEmail(),
-            'role' => $item->getRole()->value,
+            'fullName' => $row->getFirstName().' '.$row->getLastName(),
+            'email' => $row->getEmail(),
+            'role' => $row->getRole()->value,
         ];
     }
 

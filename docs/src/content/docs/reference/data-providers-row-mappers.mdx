@@ -48,8 +48,7 @@ Built-in mappers and processors:
   headers={['Mapper', 'Use case']}
   rows={[
     ['`DefaultRowMapper`', 'Default row-to-array mapping behavior'],
-    ['`ClosureRowMapper`', 'Custom mapping logic via closure'],
-    ['`RowProcessingPipeline`', 'Composable pipeline used by `AbstractDataTable` — stages added via `->add(RowStageInterface)`'],
+    ['`RowProcessingPipeline`', 'The pipeline `AbstractDataTable` builds: stages, then URL, template, and action resolution'],
   ]}
 />
 
@@ -70,33 +69,68 @@ Built-in stages applied by default (in order):
   headers={['Stage', 'Responsibility']}
   rows={[
     ['`NormalizationStage`', 'Dotted-path resolution, `DateColumn` formatting, `Stringable` casting'],
-    ['`TemplateRenderingStage`', 'Renders `TemplateColumn` cells via Twig (only if renderer is available)'],
-    ['`ActionResolutionStage`', 'Resolves `ActionColumn` URLs into `__ux_datatables_actions` key'],
+    [
+      '`IconColumnResolutionStage`',
+      'Resolves each `IconColumn` state into row icon metadata (`__ux_datatables_icons`)',
+    ],
+    [
+      '`BooleanSwitchMetadataStage`',
+      'Records the row id behind every switch-rendered `BooleanColumn` (`__ux_datatables_boolean_switches`)',
+    ],
   ]}
 />
 
-Custom stage example:
+After those stages, `RowProcessingPipeline` still resolves URL columns, renders `TemplateColumn`
+cells via Twig, and resolves `ActionColumn` URLs into `__ux_datatables_actions`. That work runs
+inside the pipeline rather than as separate `RowStageInterface` classes.
+
+The stage list is assembled by the runtime factory and is `final` on the table:
+`AbstractDataTable::createRowMapper()` cannot be overridden, and no service tag adds a stage. To
+change how a row is mapped, override `mapRow()` — it is the base mapping every stage runs on top
+of:
 
 ```php
-use Pentiminax\UX\DataTables\Contracts\RowStageInterface;
-
-final class UpperCaseTitleStage implements RowStageInterface
+protected function mapRow(mixed $row): array
 {
-    public function process(array $mappedRow, mixed $originalRow, array $columns): array
-    {
-        if (isset($mappedRow['title'])) {
-            $mappedRow['title'] = strtoupper($mappedRow['title']);
-        }
+    $mappedRow = parent::mapRow($row);
 
-        return $mappedRow;
+    if (isset($mappedRow['title'])) {
+        $mappedRow['title'] = strtoupper($mappedRow['title']);
     }
+
+    return $mappedRow;
 }
 ```
 
+To act *after* the pipeline instead — once template columns and action URLs are already resolved —
+wrap the built mapper in a `RowMapperInterface` of your own and hand that to a provider built in
+`createDataProvider()`. An anonymous class delegating to `createRowMapper()` is enough; it is also
+the replacement for the closure-backed mapper the bundle used to ship:
+
 ```php
-protected function createRowMapper(): RowMapperInterface
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+
+protected function createDataProvider(): ?DataProviderInterface
 {
-    return parent::createRowMapper()->add(new UpperCaseTitleStage());
+    $inner = $this->createRowMapper();
+
+    $mapper = new class ($inner) implements RowMapperInterface {
+        public function __construct(private readonly RowMapperInterface $inner)
+        {
+        }
+
+        public function map(mixed $row): array
+        {
+            $mappedRow = $this->inner->map($row);
+            $mappedRow['title'] = strtoupper($mappedRow['title'] ?? '');
+
+            return $mappedRow;
+        }
+    };
+
+    return new ArrayDataProvider($this->rows, $mapper);
 }
 ```
 
@@ -132,9 +166,17 @@ protected function createDataProvider(): ?DataProviderInterface
 rendering, and action-resolution behavior as the built-in Doctrine provider. `setData()` on
 `AbstractDataTable` uses that same pipeline for inline rows.
 
-Custom stages added to the pipeline are preserved when passing the mapper to a custom provider.
+## Page Projection
+
+`projectPage()` transforms a complete, already-paginated page of source entities, so a page can be
+batch-enriched without an N+1. A server-side export has no page: it streams every filtered row, so
+the projector is called once per batch instead, with a batch size unrelated to the DataTables page
+length. Project each item from itself rather than from the batch it arrived in. See
+[Custom Exporters](/ux-datatables/reference/custom-exporters/#projectpage-and-batching).
 
 ## Cross Links
 
-- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)
-- [/ux-datatables/reference/datatable-request/](/ux-datatables/reference/datatable-request/)
+- [AbstractDataTable](/ux-datatables/reference/abstract-datatable/)
+- [DataTableRequest](/ux-datatables/reference/datatable-request/)
+- [Query Filters](/ux-datatables/reference/query-filters/)
+- [Custom Exporters](/ux-datatables/reference/custom-exporters/)

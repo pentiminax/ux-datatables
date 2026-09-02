@@ -19,7 +19,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 
 /**
  * Builds a QueryFilterContext from a request and configured columns through the real
- * intent factory, so filter tests exercise the same normalized intent the chain uses.
+ * intent factory, so filter tests exercise the same normalized intent the pipeline uses.
  *
  * @internal
  */

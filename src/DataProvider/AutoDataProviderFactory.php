@@ -26,6 +26,7 @@ final class AutoDataProviderFactory
         ?AsDataTable $asDataTable,
         RowMapperInterface $rowMapper,
         callable $configureQueryBuilder,
+        ?RowMapperInterface $exportRowMapper = null,
         ?\Closure $pageProjector = null,
         ?callable $configureBaseQueryBuilder = null,
     ): ?DataProviderInterface {
@@ -42,6 +43,7 @@ final class AutoDataProviderFactory
             entityClass: $asDataTable->entityClass,
             rowMapper: $rowMapper,
             configureQueryBuilder: $configureQueryBuilder,
+            exportRowMapper: $exportRowMapper,
             pageProjector: $pageProjector,
             configureBaseQueryBuilder: $configureBaseQueryBuilder,
         );

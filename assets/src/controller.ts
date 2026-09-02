@@ -15,6 +15,7 @@ import {
     resolveColumnDataKey,
 } from './functions/apiPlatformAdapter.js'
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js'
+import { applyServerExportUrls } from './functions/serverExport.js'
 import { normalizeDisabledColumnControls } from './functions/columnControl.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
@@ -24,7 +25,7 @@ import { fetchEditForm } from './functions/fetchEditForm.js'
 import { registerFilterFeature } from './functions/filterFeature.js'
 import { applyFilterLayout } from './functions/filterLayout.js'
 import { FilterBar, hasFilters } from './functions/filters.js'
-import { isFixedHeaderClone } from './functions/isFixedHeaderClone.js'
+import { isDataTableClone } from './functions/isDataTableClone.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
 import { applyLocalLanguage } from './functions/localLanguage.js'
 import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js'
@@ -74,16 +75,46 @@ export default class extends Controller {
     private framework: StyleFramework = 'dt'
     private popstateHandler: (() => void) | null = null
 
-    async connect() {
-        if (this.isDataTableInitialized) {
-            return
-        }
+    /**
+     * Turbo Drive caches a DOM snapshot before rendering the next page. A mounted DataTable makes
+     * that snapshot dirty: it holds the generated wrapper and controls, and on Back/Forward a fresh
+     * controller initializes on the restored clone because `DataTable.isDataTable()` reports false
+     * for it — DataTables still tracks the original, now-detached node. Restoring the plain
+     * `<table>` here keeps the snapshot clean. Never fires when Turbo is absent.
+     *
+     * `isDataTableInitialized` deliberately stays true. Turbo clones the DOM one event-loop tick
+     * after dispatching this event, so the reparenting `destroy()` performs makes Stimulus
+     * reconnect first, and re-initializing would put the wrapper straight back into the snapshot.
+     * Turbo replaces the whole body a tick later, so the bare table is never rendered.
+     */
+    private readonly onTurboBeforeCache = (): void => {
+        this.table?.destroy()
+        this.table = null
+    }
 
+    async connect() {
         if (!(this.element instanceof HTMLTableElement)) {
             throw new Error('Invalid element')
         }
 
-        if (isFixedHeaderClone(this.element)) {
+        if (isDataTableClone(this.element)) {
+            return
+        }
+
+        // Registered before the initialized guard on purpose. DataTables' own DOM work reparents
+        // the table, which Stimulus reports as disconnect + reconnect on a live table; the
+        // reconnect early-returns below, so registering after the guard would drop this listener
+        // for good on the first such cycle. A stable arrow property lets the DOM deduplicate
+        // repeat registrations of the identical listener.
+        document.addEventListener('turbo:before-cache', this.onTurboBeforeCache)
+
+        if (this.isDataTableInitialized) {
+            // The table survived the cycle, so downstream code that was torn down with the previous
+            // controller instance needs a signal to bind again. `connect` stays a build-only event.
+            if (this.table) {
+                this.dispatchEvent('reconnect', { table: this.table })
+            }
+
             return
         }
 
@@ -103,6 +134,11 @@ export default class extends Controller {
 
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true
+            // Stimulus builds a fresh controller instance when DataTables reparents the table, so
+            // adopt the live instance instead of leaving this controller without a handle.
+            this.table = new DataTable.Api(this.element) as DataTableWithAjax
+            this.dispatchEvent('reconnect', { table: this.table })
+
             return
         }
 
@@ -111,7 +147,9 @@ export default class extends Controller {
         this.dispatchEvent('pre-init', { config: payload, DataTable })
 
         if (this.isApiPlatformEnabled(payload)) {
-            const columns = Array.isArray(payload.columns) ? (payload.columns as ColumnConfig[]) : []
+            const columns = Array.isArray(payload.columns)
+                ? (payload.columns as ColumnConfig[])
+                : []
             new ApiPlatformAdapter(columns).configure(payload)
         }
 
@@ -134,6 +172,7 @@ export default class extends Controller {
 
         await applyLocalLanguage(payload)
 
+        applyServerExportUrls(payload)
         applyCustomButtonActions(payload)
 
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
@@ -154,6 +193,8 @@ export default class extends Controller {
     }
 
     disconnect() {
+        document.removeEventListener('turbo:before-cache', this.onTurboBeforeCache)
+
         this.eventSource?.close()
         this.eventSource = null
 
@@ -224,8 +265,8 @@ export default class extends Controller {
             createBooleanColumnRenderer(
                 this.getBooleanToggleUrl(),
                 this.areMutationsEnabled(payload) &&
-                typeof payload.dataTable === 'string' &&
-                payload.dataTable.length > 0,
+                    typeof payload.dataTable === 'string' &&
+                    payload.dataTable.length > 0,
                 style
             ),
             createChoiceColumnRenderer(style),
@@ -524,6 +565,7 @@ type DataTableWithAjax = {
     order: (order: any) => DataTableWithAjax
     page: ((page?: number) => DataTableWithAjax) & { len: (len?: number) => number }
     draw: (resetPaging?: boolean | string) => DataTableWithAjax
+    destroy: (remove?: boolean) => void
     row: (selector: any) => {
         data: () => Record<string, any>
         child: ((content?: any) => { show: () => void; hide: () => void }) & {

@@ -74,9 +74,11 @@ Scaffold from an entity: `php bin/console make:datatable`.
 - `references/columns.md` — all 11 column types + shared `AbstractColumn` methods.
 - `references/server-side.md` — server-side wiring, route import, Stimulus events, custom Ajax, computed columns (`setOrderExpression()`).
 - `references/extensions.md` — Buttons, Select, Responsive, RowGroup, ColumnControl, Scroller, KeyTable, ColReorder, FixedColumns, FixedHeader.
+- `references/exporters.md` — replacing the CSV/XLSX writer for server-side export (`ExporterInterface`, `AbstractExporter`).
 - `references/actions.md` — row actions, permissions, conditional display.
 - `references/filters.md` — declarative filter bar (`configureFilters()`): Text, Select, Ternary, DateRange, generic Filter (server-side Doctrine).
-- `references/api-platform.md` — API Platform + Mercure integration (both opt-in).
+- `references/api-platform.md` — API Platform integration (opt-in).
+- `references/mercure.md` — Mercure real-time refresh: config, auto-resolution, publishing on mutations (opt-in).
 - `references/gotchas.md` — common mistakes and fixes.
 
 ## Common mistakes (see gotchas.md)

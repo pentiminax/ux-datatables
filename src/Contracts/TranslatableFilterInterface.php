@@ -9,7 +9,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * Implemented by filters exposing labels that must be translated at render time.
  *
- * Labels are resolved lazily so the translator stays out of user-facing
+ * Labels, placeholders, and type-specific strings (choice options, ternary
+ * states) are resolved lazily so the translator stays out of user-facing
  * configuration code (configureFilters()); translation is applied by the
  * RenderingPreparer, mirroring how column titles are handled.
  */

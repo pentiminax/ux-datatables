@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column;
 
+use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
@@ -19,14 +20,25 @@ class TemplateColumn extends AbstractColumn implements TemplateAwareColumnInterf
         return static::createWithType($name, $title, ColumnType::HTML)
             ->setOrderable(false)
             ->setSearchable(false)
+            ->setExportable(false)
             ->disableGlobalSearch();
     }
 
+    /**
+     * @param array<string, mixed> $parameters Extra Twig variables. Keys `row`, `source`, `payload`,
+     *                                         `data`, `column`, and the deprecated alias `entity`
+     *                                         are reserved and throw when passed.
+     */
     public function setTemplate(string $template, array $parameters = []): static
     {
         $template = trim($template);
         if ('' === $template) {
             throw new \InvalidArgumentException('Template path cannot be empty.');
+        }
+
+        $reserved = array_intersect_key($parameters, array_flip(TemplateColumnRenderer::RESERVED_CONTEXT_KEYS));
+        if ([] !== $reserved) {
+            throw new \InvalidArgumentException(\sprintf('Template parameters "%s" are reserved by the renderer and cannot be overridden on column "%s".', implode('", "', array_keys($reserved)), $this->getName()));
         }
 
         $this->setCustomOption(self::OPTION_TEMPLATE_PATH, $template);

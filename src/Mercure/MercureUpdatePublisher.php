@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Mercure;
 
+use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mercure\HubInterface;

@@ -67,8 +67,12 @@ const docRoutes = [
   'reference/attributes/',
   'reference/edit-modal/',
   'reference/data-providers-row-mappers/',
+  'reference/query-filters/',
+  'reference/search-strategies/',
+  'reference/custom-exporters/',
   'reference/enums/',
   'reference/maker/',
+  'reference/profiler/',
 ]
 
 /** `recipes` and `extensions` are authored hub pages, so they are not generated. */
@@ -83,7 +87,7 @@ const sectionRoutes = [
 
 test('every route is built', async () => {
   assert.equal(existsSync(dist), true, 'run npm run build before npm run test:build')
-  assert.equal(docRoutes.length, 58)
+  assert.equal(docRoutes.length, 62)
 
   for (const route of [...docRoutes, ...sectionRoutes]) {
     assert.equal(existsSync(new URL(`${route}index.html`, dist)), true, `missing ${route}`)

@@ -6,20 +6,33 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
+use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
+use Pentiminax\UX\DataTables\Column\TemplateColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
-use Pentiminax\UX\DataTables\DataProvider\DataProviderResolver;
+use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Twig\Environment;
 
 /**
  * @internal
@@ -27,6 +40,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(DataTableRuntimeFactory::class)]
 final class DataTableRuntimeFactoryTest extends TestCase
 {
+    use BuildsEntityManager;
+
     #[Test]
     public function create_row_mapper_returns_a_pipeline_applying_the_base_mapper(): void
     {
@@ -104,24 +119,85 @@ final class DataTableRuntimeFactoryTest extends TestCase
     }
 
     #[Test]
-    public function injected_data_provider_resolver_enables_auto_provider_resolution(): void
+    public function injected_auto_data_provider_factory_enables_auto_provider_resolution(): void
     {
         $runtime = $this->createRuntime(
             asDataTable: new AsDataTable(entityClass: 'App\Entity\Movie'),
-            dataProviderResolver: new DataProviderResolver(
-                new AutoDataProviderFactory($this->createStub(EntityManagerInterface::class))
-            ),
+            autoDataProviderFactory: new AutoDataProviderFactory($this->createStub(EntityManagerInterface::class)),
         );
 
         $this->assertInstanceOf(DataProviderInterface::class, $runtime->getDataProvider());
     }
 
+    #[Test]
+    public function create_runtime_prioritizes_the_manual_provider_over_auto_configuration(): void
+    {
+        $manualProvider = $this->createMock(DataProviderInterface::class);
+
+        $runtime = $this->createRuntime(
+            manualDataProviderFactory: static fn (): DataProviderInterface => $manualProvider,
+            asDataTable: new AsDataTable(entityClass: 'App\Entity\Movie'),
+            autoDataProviderFactory: new AutoDataProviderFactory($this->createStub(EntityManagerInterface::class)),
+        );
+
+        $this->assertSame($manualProvider, $runtime->getDataProvider());
+    }
+
+    /**
+     * An export writes the exportable columns only, so the rows it streams must not pay for the
+     * work the displayed table needs: one Twig render and one action resolution (voters, URLs,
+     * CSRF tokens) per row, repeated over a whole table rather than a page.
+     */
+    #[Test]
+    public function exported_rows_skip_template_rendering_and_action_resolution(): void
+    {
+        $em = $this->createEntityManager(CountCustomer::class, CountTag::class);
+        $em->persist(new CountCustomer(1, 'Alpha'));
+        $em->flush();
+        $em->clear();
+
+        $twig = $this->createMock(Environment::class);
+        $twig->expects($this->never())->method('render');
+
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->expects($this->never())->method('getToken');
+
+        $runtime = (new DataTableRuntimeFactory(
+            autoDataProviderFactory: new AutoDataProviderFactory($em),
+            templateColumnRenderer: new TemplateColumnRenderer($twig),
+            actionRowDataResolver: new ActionRowDataResolver(csrfTokenManager: $csrfTokenManager),
+        ))->createRuntime(
+            table: new DataTable('customers'),
+            columns: [
+                TextColumn::new('name'),
+                TemplateColumn::new('badge')->setTemplate('badge.html.twig'),
+                ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::delete())),
+            ],
+            asDataTable: new AsDataTable(entityClass: CountCustomer::class),
+            baseMapper: static fn (mixed $row): array => ['name' => $row->name],
+            manualDataProviderFactory: static fn (): ?DataProviderInterface => null,
+            configureQueryBuilder: static fn ($qb, $request) => $qb,
+        );
+
+        $provider = $runtime->getDataProvider();
+        $this->assertInstanceOf(StreamingDataProviderInterface::class, $provider);
+
+        $rows = iterator_to_array($provider->iterateRows(new DataTableRequest(
+            draw: 1,
+            columns: new Columns([]),
+            start: 0,
+            length: 10,
+        )), false);
+
+        $this->assertSame([['name' => 'Alpha']], $rows);
+    }
+
     private function createRuntime(
         ?\Closure $manualDataProviderFactory = null,
         ?AsDataTable $asDataTable = null,
-        ?DataProviderResolver $dataProviderResolver = null,
+        ?AutoDataProviderFactory $autoDataProviderFactory = null,
     ): DataTableRuntime {
-        return (new DataTableRuntimeFactory(dataProviderResolver: $dataProviderResolver))->createRuntime(
+        return (new DataTableRuntimeFactory(autoDataProviderFactory: $autoDataProviderFactory))->createRuntime(
             table: new DataTable('movies'),
             columns: [],
             asDataTable: $asDataTable,

@@ -67,14 +67,14 @@ final class UserDataTable extends AbstractDataTable
         // Add more columns as needed
     }
 
-    protected function mapRow(mixed $item): array
+    protected function mapRow(mixed $row): array
     {
-        /** @var User $item */
+        /** @var User $row */
         return [
-            'id' => $item->getId(),
-            'email' => $item->getEmail(),
-            'firstName' => $item->getFirstName(),
-            'lastName' => $item->getLastName(),
+            'id' => $row->getId(),
+            'email' => $row->getEmail(),
+            'firstName' => $row->getFirstName(),
+            'lastName' => $row->getLastName(),
         ];
     }
 }

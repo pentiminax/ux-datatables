@@ -13,9 +13,9 @@ use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 /**
  * Filter that applies global search across all globally searchable columns.
  *
- * Reads the normalized {@see \Pentiminax\UX\DataTables\Query\Intent\GlobalSearchIntent}
- * and the globally searchable column references from the intent. Delegates condition
- * building to the injected SearchPredicateBuilderInterface, so overriding
+ * Reads the trimmed non-empty {@see \Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent::$globalSearch}
+ * string and the globally searchable column references from the intent. Delegates
+ * condition building to the injected SearchPredicateBuilderInterface, so overriding
  * AbstractDataTable::createSearchPredicateBuilder() customizes this search. All conditions
  * are combined with OR logic: each column's condition must stay a returned DQL fragment
  * rather than a QueryBuilder::andWhere() call, since only this filter knows the columns
@@ -50,7 +50,7 @@ final class GlobalSearchFilter implements QueryFilterInterface
             }
 
             $paramName = \sprintf('search_param_%d', $context->nextParamIndex());
-            $condition = $this->predicateBuilder->build($qb, $column, $context->alias, $field, $globalSearch->value, $paramName);
+            $condition = $this->predicateBuilder->build($qb, $column, $context->alias, $field, $globalSearch, $paramName);
 
             if (null !== $condition) {
                 $conditions[] = $condition;
