@@ -137,6 +137,69 @@ final class ArrayDataProviderTest extends TestCase
         ];
     }
 
+    /**
+     * The default row mapper attaches `__ux_datatables_actions` / `__ux_datatables_urls`
+     * as nested arrays. Casting those to string is an Error on PHP 8, so a server-side
+     * ArrayDataProvider table with an ActionColumn used to 500 on every global search.
+     */
+    #[Test]
+    public function it_searches_scalar_cells_when_the_mapped_row_contains_nested_arrays(): void
+    {
+        $mapper = new class implements RowMapperInterface {
+            public function map(mixed $row): array
+            {
+                $row = (array) $row;
+
+                return [
+                    'id'                      => $row['id'],
+                    'name'                    => $row['name'],
+                    '__ux_datatables_actions' => ['EDIT' => ['url' => '/edit/'.$row['id']]],
+                    '__ux_datatables_urls'    => ['profile' => '/users/'.$row['id']],
+                ];
+            }
+        };
+
+        $result = (new ArrayDataProvider([
+            ['id' => 1, 'name' => 'Alice'],
+            ['id' => 2, 'name' => 'Bob'],
+        ], $mapper))->fetchData(self::request(start: 0, length: 10, search: new Search('ali', false)));
+
+        $this->assertSame(2, $result->recordsTotal);
+        $this->assertSame(1, $result->recordsFiltered);
+        $this->assertSame([
+            [
+                'id'                      => 1,
+                'name'                    => 'Alice',
+                '__ux_datatables_actions' => ['EDIT' => ['url' => '/edit/1']],
+                '__ux_datatables_urls'    => ['profile' => '/users/1'],
+            ],
+        ], iterator_to_array($result->data));
+    }
+
+    #[Test]
+    public function it_does_not_match_needles_that_only_appear_inside_nested_arrays(): void
+    {
+        $mapper = new class implements RowMapperInterface {
+            public function map(mixed $row): array
+            {
+                $row = (array) $row;
+
+                return [
+                    'id'                      => $row['id'],
+                    'name'                    => $row['name'],
+                    '__ux_datatables_actions' => ['EDIT' => ['url' => '/edit/secret-token']],
+                ];
+            }
+        };
+
+        $result = (new ArrayDataProvider([
+            ['id' => 1, 'name' => 'Alice'],
+        ], $mapper))->fetchData(self::request(start: 0, length: 10, search: new Search('secret-token', false)));
+
+        $this->assertSame(0, $result->recordsFiltered);
+        $this->assertSame([], iterator_to_array($result->data));
+    }
+
     private static function request(int $start, int $length, ?Search $search = null): DataTableRequest
     {
         return new DataTableRequest(
