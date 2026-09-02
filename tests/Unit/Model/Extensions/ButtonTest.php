@@ -65,6 +65,7 @@ final class ButtonTest extends TestCase
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
+                'text' => 'CSV',
             ],
         ];
 
@@ -75,10 +76,17 @@ final class ButtonTest extends TestCase
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
+                'text' => 'Excel',
             ],
         ];
 
-        yield 'plain column visibility is a string' => [Button::colVis(), 'colvis'];
+        yield 'plain column visibility has a default text' => [
+            Button::colVis(),
+            [
+                'extend' => 'colvis',
+                'text'   => 'Column Visibility',
+            ],
+        ];
 
         yield 'customized column visibility is an object without export options' => [
             Button::colVis()->text('Columns'),
@@ -88,9 +96,12 @@ final class ButtonTest extends TestCase
             ],
         ];
 
-        yield 'plain columncontrol search clear is a string' => [
+        yield 'plain columncontrol search clear has a default text' => [
             Button::ccSearchClear(),
-            'ccSearchClear',
+            [
+                'extend' => 'ccSearchClear',
+                'text'   => 'Clear Search',
+            ],
         ];
 
         yield 'customized columncontrol search clear is an object without export options' => [
@@ -141,6 +152,7 @@ final class ButtonTest extends TestCase
                 [
                     'extend'        => 'csv',
                     'exportOptions' => ['columns' => ':visible:not(.not-exportable)'],
+                    'text'          => 'CSV',
                 ],
                 'colvis',
             ],
@@ -160,6 +172,7 @@ final class ButtonTest extends TestCase
                     'action'    => Button::SERVER_EXPORT_ACTION,
                     'format'    => 'csv',
                     'exportKey' => 'csv',
+                    'text'      => 'CSV',
                     'filename'  => 'users',
                 ],
             ],
@@ -179,6 +192,7 @@ final class ButtonTest extends TestCase
             'action'    => Button::SERVER_EXPORT_ACTION,
             'format'    => 'xlsx',
             'exportKey' => 'xlsx',
+            'text'      => 'Excel',
             'filename'  => 'users',
         ], json_decode(json_encode($button), true));
     }
@@ -194,6 +208,7 @@ final class ButtonTest extends TestCase
         $this->assertSame([
             'extend'        => 'excel',
             'exportOptions' => ['columns' => ':visible:not(.not-exportable)'],
+            'text'          => 'Excel',
         ], json_decode(json_encode(Button::excel()), true));
     }
 

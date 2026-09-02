@@ -62,6 +62,7 @@ final class ButtonsExtensionTest extends DataTableTestCase
                 'exportOptions' => [
                     'columns' => ':visible:not(.not-exportable)',
                 ],
+                'text'     => 'Excel',
                 'filename' => 'users-export',
             ],
             [
@@ -96,7 +97,12 @@ final class ButtonsExtensionTest extends DataTableTestCase
     {
         $extension = (new ButtonsExtension([]))->withCcSearchClearButton();
 
-        $this->assertExtensionPayload(['ccSearchClear'], $extension);
+        $this->assertExtensionPayload([
+            [
+                'extend' => 'ccSearchClear',
+                'text'   => 'Clear Search',
+            ],
+        ], $extension);
     }
 
     #[Test]
@@ -122,6 +128,7 @@ final class ButtonsExtensionTest extends DataTableTestCase
                 'action'    => Button::SERVER_EXPORT_ACTION,
                 'format'    => 'csv',
                 'exportKey' => 'csv',
+                'text'      => 'CSV',
             ],
         ], $extension);
     }
@@ -136,6 +143,7 @@ final class ButtonsExtensionTest extends DataTableTestCase
                 'action'    => Button::SERVER_EXPORT_ACTION,
                 'format'    => 'xlsx',
                 'exportKey' => 'xlsx',
+                'text'      => 'Excel',
             ],
         ], $extension);
     }
