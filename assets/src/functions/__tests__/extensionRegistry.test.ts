@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { StyleFramework } from '../../types/styleFramework.js'
 
@@ -81,6 +83,8 @@ describe('DataTables extension package resolution', () => {
         expect(import.meta.resolve(css)).toContain(
             `/node_modules/datatables.net-${packageKey}-${framework}/css/`
         )
+        expect(existsSync(fileURLToPath(import.meta.resolve(js)))).toBe(true)
+        expect(existsSync(fileURLToPath(import.meta.resolve(css)))).toBe(true)
     })
 
     it.each(
