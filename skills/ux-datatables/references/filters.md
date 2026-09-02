@@ -35,7 +35,7 @@ public function configureFilters(Filters $filters): Filters
 | `TextFilter` | search input | `LOWER(field) LIKE %value%` |
 | `ChoiceFilter` | select (`multiple()` for multi) | `field = value` / `field IN (...)`; `options()` accepts `[label => value]`, enum cases, or enum class-string |
 | `TernaryFilter` | all/true/false select | `field IS [NOT] NULL`; `values($true, $false)` to compare concrete values |
-| `DateRangeFilter` | two date inputs | `field >= from AND field <= to` (each bound optional) |
+| `DateRangeFilter` | two date inputs | `field >= from`; date-only `to` on datetime is `< next midnight`, otherwise `field <= to` (each bound optional) |
 | `Filter` | checkbox | none — requires `query()`, runs only when checked |
 
 ## Flow
