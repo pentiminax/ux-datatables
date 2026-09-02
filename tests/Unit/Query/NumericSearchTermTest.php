@@ -36,6 +36,12 @@ final class NumericSearchTermTest extends TestCase
         yield 'decimal' => ['0.5', 'decimal', '0.5'];
         yield 'scientific float' => ['1e2', 'float', '1e2'];
         yield 'zero' => ['0', 'integer', '0'];
+        yield 'leading plus integer' => ['+42', 'integer', '42'];
+        yield 'leading plus float' => ['+19.99', 'float', '19.99'];
+        yield 'padded zeros integer' => ['007', 'integer', '7'];
+        yield 'negative zero' => ['-0', 'integer', '0'];
+        yield 'smallint bound' => ['-32768', 'smallint', '-32768'];
+        yield 'integer bound' => ['2147483647', 'integer', '2147483647'];
     }
 
     #[Test]
@@ -59,5 +65,11 @@ final class NumericSearchTermTest extends TestCase
         yield 'empty float' => ['', 'float'];
         yield 'nan' => ['NAN', 'float'];
         yield 'inf' => ['INF', 'float'];
+        yield 'above smallint' => ['32768', 'smallint'];
+        yield 'below smallint' => ['-32769', 'smallint'];
+        yield 'above integer' => ['2147483648', 'integer'];
+        yield 'above bigint' => ['9223372036854775808', 'bigint'];
+        yield 'below bigint' => ['-9223372036854775809', 'bigint'];
+        yield 'far above bigint' => ['99999999999999999999999', 'bigint'];
     }
 }

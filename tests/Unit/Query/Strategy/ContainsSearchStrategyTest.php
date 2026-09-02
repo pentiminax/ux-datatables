@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Strategy\ContainsSearchStrategy;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -22,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ContainsSearchStrategy::class)]
 final class ContainsSearchStrategyTest extends TestCase
 {
+    use BuildsTypedFieldQueryBuilder;
+
     #[Test]
     public function it_returns_logic_value(): void
     {
@@ -123,6 +126,35 @@ final class ContainsSearchStrategyTest extends TestCase
         // builder (whose $field parameter is a non-null string), which would otherwise
         // TypeError. This applies to every column type, including forced-numeric.
         yield 'null column field' => [null, '7', 'number'];
+    }
+
+    /**
+     * Global search and ColumnControl contains go through this strategy, so a decimal
+     * typed into a NumberColumn backed by a Doctrine integer must not be bound: PostgreSQL
+     * rejects `integer = '1.5'` and MySQL would match rows whose value is 1.
+     */
+    #[Test]
+    public function it_skips_a_decimal_on_an_integer_number_column(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('age', 'integer');
+        $qb->expects($this->never())->method('setParameter');
+        $qb->expects($this->never())->method('andWhere');
+
+        $search = new ColumnControlSearch('1.5', ColumnControlLogic::Contains, 'text');
+
+        (new ContainsSearchStrategy())->apply($qb, NumberColumn::new('age')->setField('age'), $search, 0, 'e');
+    }
+
+    #[Test]
+    public function it_binds_an_integer_literal_on_an_integer_number_column_with_the_doctrine_type(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('age', 'integer');
+        $qb->expects($this->once())->method('setParameter')->with('column_control_param_0', '42', 'integer');
+        $qb->expects($this->once())->method('andWhere')->with('e.age = :column_control_param_0');
+
+        $search = new ColumnControlSearch('42', ColumnControlLogic::Contains, 'text');
+
+        (new ContainsSearchStrategy())->apply($qb, NumberColumn::new('age')->setField('age'), $search, 0, 'e');
     }
 
     private function columnWithoutField(): ColumnInterface
