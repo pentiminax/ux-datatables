@@ -360,39 +360,6 @@ edit/delete buttons in the trailing `actions` column.
   rendering and is **not** serialized into the client JSON.
 </Aside>
 
-## Manual Usage with `DataTableBuilderInterface`
-
-If you build tables manually, create an `Actions` collection and wrap it with `ActionColumn::fromActions()`:
-
-```php
-use App\Entity\User;
-use Pentiminax\UX\DataTables\Column\ActionColumn;
-use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Model\Action;
-use Pentiminax\UX\DataTables\Model\Actions;
-
-$actions = (new Actions())
-    ->setColumnLabel('Operations')
-    ->add(
-        Action::delete()
-            ->setEntityClass(User::class)
-            ->setIdField('uuid')
-            ->askConfirmation('Delete this user?')
-    );
-
-$table = $builder
-    ->createDataTable('users')
-    ->columns([
-        TextColumn::new('email', 'Email'),
-        ActionColumn::fromActions('actions', 'Operations', $actions),
-    ])
-    ->data([
-        ['uuid' => '8f9f0c31', 'email' => 'john@example.com'],
-    ]);
-```
-
-Manual tables must provide the entity class themselves because there is no `#[AsDataTable]` attribute to infer it from.
-
 ## Inline Edit (Modal)
 
 `Action::edit()` opens a configured edit modal with an auto-generated Symfony Form. See the dedicated [Edit Modal](/ux-datatables/reference/edit-modal/) page for full documentation: template overrides, column-to-form mapping, primary key handling, and examples.
