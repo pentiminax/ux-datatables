@@ -25,6 +25,30 @@ use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
+/**
+ * Base class for every table the bundle renders: a class declaring its columns, actions, filters,
+ * extensions, and options, from which the runtime builds rendering payloads and Ajax responses.
+ *
+ * setDataTableInfrastructure() must run before any accessor. Symfony's autoconfiguration calls it
+ * on every subclass (see DataTablesBundle::loadExtension()); an instance built by hand falls back
+ * to {@see DataTableInfrastructure::createDefault()}, which has no profiler, no Twig, and no
+ * bundle-wide `data_tables` defaults. Calling it once the table has initialized throws
+ * \LogicException, so it can never swap the infrastructure a table was already configured with.
+ *
+ * Every accessor -- as opposed to the configure*() hooks themselves -- triggers initialize()
+ * implicitly, and initialization is idempotent: the first accessor runs the configure*() methods
+ * and later calls reuse their result. Instances are
+ * container-shared and survive across requests under a worker runtime, so the `kernel.reset` tag
+ * calls resetDataTableState() between requests to clear that per-request state. Treat the
+ * configure*() methods as pure functions of the class regardless: they must not read the request,
+ * the security token, the session, or the locale. See the purity contract in
+ * docs/src/content/docs/reference/abstract-datatable.mdx ("Configuration Methods Must Be Pure").
+ *
+ * Request-dependent behavior belongs at the request-scoped boundaries instead: permission() on
+ * columns and actions, customizeQueryBuilder() and getRequest() for the query, and setData() --
+ * the sanctioned way to inject rows a controller has already resolved -- for inline data, which
+ * runs them through the same row-processing pipeline a provider would use.
+ */
 abstract class AbstractDataTable
 {
     /**
@@ -86,7 +110,7 @@ abstract class AbstractDataTable
         $this->asDataTable = $this->resolveAsDataTable();
 
         $this->table = $this->configureDataTable(
-            $this->infrastructure()->builder()->createDataTable($this->getClassName())
+            $this->infrastructure()->createDataTable($this->getClassName())
         );
 
         $this->table->setDataTableClass(static::class);
@@ -273,15 +297,7 @@ abstract class AbstractDataTable
             return;
         }
 
-        $rowMapper = $this->createRowMapper();
-        $rows      = [];
-
-        foreach ($data as $item) {
-            $rows[] = $rowMapper->map($item);
-        }
-
-        $this->table->data($rows);
-        $this->table->markTemplateColumnsRendered();
+        $this->mapInlineRows($data);
     }
 
     private function shouldHydrateClientSideData(): bool
@@ -346,7 +362,7 @@ abstract class AbstractDataTable
      * Create the search predicate builder used by global search.
      *
      * Override this method to customize how global search builds a condition for a column,
-     * e.g. to add type handling SearchPredicateFactory does not cover.
+     * e.g. to add type handling DefaultSearchPredicateBuilder does not cover.
      */
     protected function createSearchPredicateBuilder(): SearchPredicateBuilderInterface
     {
@@ -411,6 +427,14 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
+        $this->mapInlineRows($data);
+    }
+
+    /**
+     * @param iterable<mixed> $data
+     */
+    private function mapInlineRows(iterable $data): void
+    {
         $rowMapper = $this->createRowMapper();
         $rows      = [];
 
@@ -530,7 +554,7 @@ abstract class AbstractDataTable
 
             $name = $single || !$isBefore ? 'actions' : 'actions_before';
 
-            $actionColumn = $this->createActionColumn($name, $group);
+            $actionColumn = ActionColumn::fromActions($name, $group->getColumnLabel(), $group);
 
             if ($isBefore) {
                 array_unshift($this->columns, $actionColumn);
@@ -540,31 +564,5 @@ abstract class AbstractDataTable
 
             $this->columns[] = $actionColumn;
         }
-    }
-
-    private function createActionColumn(string $name, Actions $actions): ActionColumn
-    {
-        $actionColumn = ActionColumn::fromActions(
-            name: $name,
-            title: $actions->getColumnLabel(),
-            actions: $actions,
-        );
-
-        $className = trim(implode(' ', array_filter([
-            $actions->getColumnClassName(),
-            $actions->getAlignment()?->cssClass(),
-        ])));
-
-        if ('' !== $className) {
-            $actionColumn->setClassName($className);
-        }
-
-        $columnControl = $actions->getColumnControl();
-
-        if (null !== $columnControl) {
-            $actionColumn->setColumnControl($columnControl);
-        }
-
-        return $actionColumn;
     }
 }

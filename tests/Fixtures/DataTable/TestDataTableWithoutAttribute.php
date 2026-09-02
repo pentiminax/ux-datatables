@@ -8,8 +8,8 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 
 class TestDataTableWithoutAttribute extends AbstractDataTable
 {

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Controller;
 
-use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;

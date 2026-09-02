@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Enum\ActionsAlignment;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Enum\Icon;
 use Pentiminax\UX\DataTables\Model\Action;
@@ -51,6 +52,39 @@ final class ActionColumnTest extends TestCase
         $this->assertSame('DETAIL', $data['actions'][0]['type']);
         $this->assertSame('eye', $data['actions'][0]['lucideIcon']);
         $this->assertSame('/books/42', $data['actions'][0]['url']);
+    }
+
+    #[Test]
+    public function it_applies_the_actions_column_class_name_and_alignment(): void
+    {
+        $actions = (new Actions())
+            ->setColumnClassName('w-1')
+            ->alignment(ActionsAlignment::Center)
+            ->add(Action::delete());
+
+        $column = ActionColumn::fromActions('actions', 'Actions', $actions);
+
+        $this->assertSame(\sprintf('w-1 %s', ActionsAlignment::Center->cssClass()), $column->getClassName());
+    }
+
+    #[Test]
+    public function it_applies_the_actions_column_control(): void
+    {
+        $actions = (new Actions())
+            ->setColumnControl(['colvisDropdown'])
+            ->add(Action::delete());
+
+        $column = ActionColumn::fromActions('actions', 'Actions', $actions);
+
+        $this->assertSame(['colvisDropdown'], $column->jsonSerialize()['columnControl']);
+    }
+
+    #[Test]
+    public function it_leaves_the_class_name_untouched_when_the_actions_configure_none(): void
+    {
+        $column = ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::delete()));
+
+        $this->assertNull($column->getClassName());
     }
 
     #[Test]

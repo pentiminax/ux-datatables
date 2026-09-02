@@ -10,27 +10,36 @@ use Psr\Container\ContainerInterface;
 /**
  * Resolves the authoritative Mercure topics for a mutated entity, server-side.
  *
- * Shared by EntityMutator and EditFormService so that delete/edit/edit-form
+ * Injected into EntityMutator and EditFormService so that delete/edit/edit-form
  * mutations never trust client-supplied topics. When the mutation originates
  * from a known DataTable, the topics are derived from that DataTable's fully
  * resolved Mercure configuration (manual, attribute, or auto-resolved) —
  * exactly what the render path serialized to the browser — so a live update
  * always publishes to the topics the client actually subscribed to. Falls
  * back to the bare entity-class resolver when no DataTable can be resolved.
+ *
+ * Both collaborators are optional: without Mercure installed there is no
+ * config resolver, and the service still resolves to an empty topic list so
+ * that mutations keep working.
  */
-final class MercureTopicResolver
+class MercureTopicResolver
 {
+    /**
+     * @param ?ContainerInterface $dataTables service locator of the registered `datatables.data_table` services
+     */
+    public function __construct(
+        private readonly ?MercureConfigResolver $configResolver = null,
+        private readonly ?ContainerInterface $dataTables = null,
+    ) {
+    }
+
     /**
      * @return string[]
      */
-    public static function resolve(
-        ?MercureConfigResolver $resolver,
-        string $entityClass,
-        ?ContainerInterface $dataTables = null,
-        ?string $dataTableClass = null,
-    ): array {
-        if (null !== $dataTableClass && null !== $dataTables && $dataTables->has($dataTableClass)) {
-            $dataTable = $dataTables->get($dataTableClass);
+    public function resolve(string $entityClass, ?string $dataTableClass = null): array
+    {
+        if (null !== $dataTableClass && null !== $this->dataTables && $this->dataTables->has($dataTableClass)) {
+            $dataTable = $this->dataTables->get($dataTableClass);
 
             if ($dataTable instanceof AbstractDataTable && $dataTable->getEntityClass() === $entityClass) {
                 try {
@@ -51,6 +60,6 @@ final class MercureTopicResolver
             }
         }
 
-        return $resolver?->resolveMercureConfig($entityClass)?->topics ?? [];
+        return $this->configResolver?->resolveMercureConfig($entityClass)?->topics ?? [];
     }
 }

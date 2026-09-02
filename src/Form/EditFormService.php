@@ -7,15 +7,12 @@ namespace Pentiminax\UX\DataTables\Form;
 use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
-use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
+use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
-use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
-use Psr\Container\ContainerInterface;
 use Symfony\Component\Form\FormInterface;
 
 final class EditFormService
@@ -26,10 +23,9 @@ final class EditFormService
         private readonly EntityLocator $locator,
         private readonly EditFormBuilder $builder,
         private readonly EditModalRenderer $renderer,
-        private readonly EditModalTemplateResolverInterface $templateResolver,
+        private readonly EditModalTemplateResolver $templateResolver,
         private readonly MercurePublisherInterface $publisher,
-        private readonly ?MercureConfigResolver $mercureConfigResolver = null,
-        private readonly ?ContainerInterface $dataTables = null,
+        private readonly MercureTopicResolver $topicResolver,
         ?PermissionChecker $permissionChecker = null,
     ) {
         $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
@@ -87,7 +83,7 @@ final class EditFormService
 
         $context->manager->flush();
 
-        $this->publisher->publish(MercureTopicResolver::resolve($this->mercureConfigResolver, $dataTable->requireEntityClass(), $this->dataTables, $dataTable->dataTableClass), [
+        $this->publisher->publish($this->topicResolver->resolve($dataTable->requireEntityClass(), $dataTable->dataTableClass), [
             'type' => 'edit',
             'id'   => $id,
         ]);

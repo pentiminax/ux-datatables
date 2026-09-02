@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Runtime;
 
-use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
-use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
-use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 
 final class DataTableInfrastructure
 {
@@ -20,7 +18,9 @@ final class DataTableInfrastructure
         public readonly DataTableRuntimeFactory $runtimeFactory,
         public readonly DefaultDataTableQueryIntentFactory $queryIntentFactory,
         public readonly QueryFilterPipeline $queryFilterPipeline,
-        private ?DataTableBuilderInterface $builder = null,
+        public readonly array $options = [],
+        public readonly array $attributes = [],
+        public readonly array $extensions = [],
         public readonly ?DataTableProfiler $profiler = null,
     ) {
     }
@@ -31,7 +31,9 @@ final class DataTableInfrastructure
         ?DataTableRuntimeFactory $runtimeFactory = null,
         ?DefaultDataTableQueryIntentFactory $queryIntentFactory = null,
         ?QueryFilterPipeline $queryFilterPipeline = null,
-        ?DataTableBuilderInterface $builder = null,
+        array $options = [],
+        array $attributes = [],
+        array $extensions = [],
         ?DataTableProfiler $profiler = null,
     ): self {
         $queryIntentFactory ??= new DefaultDataTableQueryIntentFactory();
@@ -42,17 +44,18 @@ final class DataTableInfrastructure
             runtimeFactory: $runtimeFactory       ?? new DataTableRuntimeFactory(),
             queryIntentFactory: $queryIntentFactory,
             queryFilterPipeline: $queryFilterPipeline ?? new QueryFilterPipeline($queryIntentFactory),
-            builder: $builder,
+            options: $options,
+            attributes: $attributes,
+            extensions: $extensions,
             profiler: $profiler,
         );
     }
 
     /**
-     * Builder seeded with the bundle-wide defaults, so tables created outside
-     * of it still inherit the `data_tables` configuration.
+     * Stamps the bundle-wide `data_tables` defaults onto every table it creates.
      */
-    public function builder(): DataTableBuilderInterface
+    public function createDataTable(string $id): DataTable
     {
-        return $this->builder ??= new DataTableBuilder();
+        return new DataTable($id, $this->options, $this->attributes, $this->extensions);
     }
 }

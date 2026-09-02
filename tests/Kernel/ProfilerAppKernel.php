@@ -49,8 +49,8 @@ class ProfilerAppKernel extends Kernel
                 ]],
             ]);
 
-            $container->setAlias('test.datatables.builder', 'datatables.builder')->setPublic(true);
             $container->setAlias('test.datatables.twig_extension', 'datatables.twig_extension')->setPublic(true);
+            $container->setAlias('test.datatables.infrastructure', 'datatables.infrastructure')->setPublic(true);
             $container->setAlias('test.datatables.profiler', 'datatables.profiler')->setPublic(true);
             $container->setAlias('test.datatables.data_collector', 'datatables.data_collector')->setPublic(true);
         });

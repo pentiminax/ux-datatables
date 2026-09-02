@@ -6,12 +6,12 @@ namespace Pentiminax\UX\DataTables\Profiler;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
-use Pentiminax\UX\DataTables\Contracts\LayoutAwareExtensionInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Column;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 
 /**
  * Shared, request-scoped debug context for the Web Profiler.
@@ -122,7 +122,7 @@ final class DataTableProfiler
             static fn (ExtensionInterface $extension): array => [
                 'key'         => $extension->getKey(),
                 'class'       => $extension::class,
-                'layoutAware' => $extension instanceof LayoutAwareExtensionInterface,
+                'layoutAware' => $extension instanceof ButtonsExtension,
                 'options'     => $extension->jsonSerialize(),
             ],
             $table->getExtensionsCollection()->all(),

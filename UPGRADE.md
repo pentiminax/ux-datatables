@@ -3,6 +3,252 @@
 Each section covers one version bump. When you skip versions, apply every section between your
 current version and the target, oldest first.
 
+## v0.83 → v0.84
+
+Affects applications that built tables with `DataTableBuilderInterface` in a controller, passed a
+bare `DataTable` to `render_datatable()`, or constructed `DataTableInfrastructure` themselves; code
+that implemented or type-hinted one of the removed single-implementation interfaces, custom columns
+implementing `ColumnInterface` directly, or callers of `Query\SearchPredicateFactory`; and code that
+decorates or hand-instantiates `EntityMutator` or `EditFormService`, called
+`MercureTopicResolver::resolve()` statically, decorates or hand-instantiates
+`Twig\DataTablesExtension`, or used `RowMapper\ClosureRowMapper`; and any code that imports one
+of the classes listed under [Moved classes](#moved-classes).
+Tables already declared as `AbstractDataTable` classes are unchanged, as are columns, filters, Twig
+templates, the Ajax routes, and every JSON payload on the wire.
+
+### `DataTableBuilderInterface` and `DataTableBuilder` are removed
+
+There is now exactly one way to define a table: a class extending `AbstractDataTable`. The Twig
+function `render_datatable()` accepts only an `AbstractDataTable`; passing a bare `DataTable` throws
+a `TypeError`.
+
+`DataTableInfrastructure` carries the `data_tables` bundle defaults itself. Its `builder()` method
+is gone, replaced by `createDataTable(string $id)`, and its constructor takes the defaults as three
+arrays (`$options`, `$attributes`, `$extensions`) where the builder used to sit.
+
+The table ID is the short name of the table class, so `UsersDataTable` renders as
+`<table id="UsersDataTable">`. Two tables on the same page must not share a class name.
+
+```php
+// before
+namespace App\Controller;
+
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+final class UserController extends AbstractController
+{
+    #[Route('/users', name: 'app_users')]
+    public function index(DataTableBuilderInterface $builder): Response
+    {
+        $table = $builder
+            ->createDataTable('usersTable')
+            ->columns([
+                TextColumn::new('firstName', 'First name'),
+                TextColumn::new('lastName', 'Last name'),
+            ])
+            ->data([
+                ['firstName' => 'John', 'lastName' => 'Doe'],
+            ]);
+
+        return $this->render('user/index.html.twig', ['table' => $table]);
+    }
+}
+```
+
+```php
+// after
+namespace App\DataTables;
+
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('firstName', 'First name');
+        yield TextColumn::new('lastName', 'Last name');
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->data([
+            ['firstName' => 'John', 'lastName' => 'Doe'],
+        ]);
+    }
+}
+```
+
+```php
+// after
+namespace App\Controller;
+
+use App\DataTables\UsersDataTable;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+final class UserController extends AbstractController
+{
+    #[Route('/users', name: 'app_users')]
+    public function index(UsersDataTable $table): Response
+    {
+        return $this->render('user/index.html.twig', ['table' => $table]);
+    }
+}
+```
+
+When the rows are only known at request time, keep `configureDataTable()` for the options and call
+`$table->setData($rows)` in the controller.
+
+### Single-implementation interfaces are removed
+
+Each of these interfaces had exactly one implementation. Type-hint the concrete class instead; it is
+no longer `final`, so a test double or a subclass of your own still works.
+
+| Removed interface | Type-hint instead |
+| --- | --- |
+| `Contracts\ColumnAutoDetectorInterface` | `ApiPlatform\ColumnAutoDetector` |
+| `Contracts\EditModalTemplateResolverInterface` | `Form\EditModalTemplateResolver` |
+| `Contracts\PermissionAwareColumnInterface` | `Contracts\ColumnInterface` |
+| `Contracts\LayoutAwareExtensionInterface` | `Model\Extensions\ButtonsExtension` |
+
+`PermissionAwareColumnInterface` was a one-method contract on top of `ColumnInterface`, and every
+column already carried it. `getPermission(): ?string` now lives on `ColumnInterface` itself, so an
+`instanceof` check before reading it is no longer needed. Columns extending `AbstractColumn` are
+unaffected. A class of yours implementing `ColumnInterface` directly must add the method; return
+`null` when the column is always visible.
+
+`LayoutAwareExtensionInterface` was a marker for extensions injected into the DataTables `layout`
+configuration rather than serialized as top-level options. `ButtonsExtension` is the only
+layout-aware extension, so the marker is gone and the two call sites test for that class directly.
+The profiler's `layoutAware` flag keeps its name and meaning.
+
+The service aliases for the two resolver interfaces are gone. `ApiPlatform\ColumnAutoDetector` is
+aliased in its place, so an autowired argument keeps resolving; point a decoration or an explicit
+argument at the concrete class. `Form\EditModalTemplateResolver` has no alias: reference the
+`datatables.form.edit_modal_template_resolver` service id.
+
+### `SearchPredicateFactory` is merged into `DefaultSearchPredicateBuilder`
+
+`Query\SearchPredicateFactory` was a static one-method class that
+`Query\DefaultSearchPredicateBuilder` forwarded to unchanged. The type-dispatch logic now lives in
+the builder, and the factory is removed.
+
+```php
+// before
+$predicate = SearchPredicateFactory::build($qb, $column, $alias, $field, $value, $paramName, $forceNumeric);
+
+// after
+$predicate = (new DefaultSearchPredicateBuilder())->build($qb, $column, $alias, $field, $value, $paramName, $forceNumeric);
+```
+
+`Query\Strategy\ContainsSearchStrategy` now takes the builder as an optional constructor argument
+defaulting to `DefaultSearchPredicateBuilder`, so `new ContainsSearchStrategy()` keeps working.
+
+`SearchPredicateBuilderInterface` is untouched: it stays the supported seam for the
+`AbstractDataTable::createSearchPredicateBuilder()` hook, and a custom builder of yours keeps
+working.
+
+### `MercureTopicResolver` is a service
+
+`MercureTopicResolver` is no longer a `final` class with a static `resolve()`. It is an instantiated
+service (`datatables.mercure.topic_resolver`) that receives the optional `MercureConfigResolver` and
+the `datatables.data_table` service locator once, in its constructor.
+
+```php
+// before
+$topics = MercureTopicResolver::resolve($configResolver, $entityClass, $dataTables, $dataTableClass);
+
+// after
+$topics = $topicResolver->resolve($entityClass, $dataTableClass);
+```
+
+`EntityMutator` and `EditFormService` now take that resolver instead of the
+`?MercureConfigResolver` + `?Psr\Container\ContainerInterface` pair they used to forward to the
+static call:
+
+```php
+// before
+new EntityMutator($locator, $propertyAccessor, $publisher, $permissionChecker, $configResolver, $dataTables);
+new EditFormService($locator, $builder, $renderer, $templateResolver, $publisher, $configResolver, $dataTables, $permissionChecker);
+
+// after
+new EntityMutator($locator, $propertyAccessor, $publisher, $permissionChecker, $topicResolver);
+new EditFormService($locator, $builder, $renderer, $templateResolver, $publisher, $topicResolver, $permissionChecker);
+```
+
+The positional service arguments changed accordingly: `datatables.mutation.mutator` takes the topic
+resolver as `arg(4)` and no longer has an `arg(5)`, and `datatables.form.edit_form_service` takes it
+as `arg(5)` with the permission checker moving to `arg(6)`. `delete()`, `setProperty()`,
+`handleView()` and `handleSubmit()` are unchanged.
+
+The service is declared in `config/services.php` rather than `config/mercure.php`, so mutations
+still resolve topics (to an empty list) when Mercure is not installed.
+
+### Inline rows are rendered once, by the row pipeline
+
+`render_datatable()` no longer re-renders `TemplateColumn`s, resolves actions, or strips denied
+column values on inline rows. `AbstractDataTable` already does all of it exactly once, through the
+row pipeline, whichever way the rows arrive: `configureDataTable()->data()`, `setData()`, or
+client-side hydration. Rendering a table twice in one request no longer risks double-rendering a
+template column.
+
+The `DataTablesExtension` constructor lost its `TemplateColumnRenderer` and `ActionRowDataResolver`
+arguments; `ColumnResolver` moves from `arg(3)` to `arg(1)`, and every following argument shifts down
+by two. This matters only to code that decorates or hand-instantiates the extension. The rendered
+payload is unchanged.
+
+`RowMapper\ClosureRowMapper` is removed; it had no consumer in the bundle. Implement
+`RowMapperInterface` yourself when you need a closure-backed mapper:
+
+```php
+use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+
+$mapper = new class($fn) implements RowMapperInterface {
+    public function __construct(private readonly \Closure $fn) {}
+
+    public function map(mixed $item): array { return ($this->fn)($item); }
+};
+```
+
+### Moved classes
+
+`src/` had several folders holding a single class, away from its only consumer. The folder tree now
+matches the bounded contexts documented in `AGENTS.md`. These are pure namespace moves: the classes,
+their methods, and their behavior are unchanged. There is no class alias and no deprecation layer,
+so update your imports.
+
+| Old FQCN | New FQCN |
+| --- | --- |
+| `DataCollector\DataTableCollector` | `Profiler\DataTableCollector` |
+| `Rendering\RenderingPreparer` | `Runtime\RenderingPreparer` |
+| `Dto\AjaxEditFormRequestDto` | `Controller\AjaxEditFormRequestDto` |
+| `Dto\AjaxEditRequestDto` | `Controller\AjaxEditRequestDto` |
+| `Dto\AjaxEntityQueryDto` | `Controller\AjaxEntityQueryDto` |
+| `Detail\DetailRowService` | `Ajax\DetailRowService` |
+| `Rehydration\RowIdentifierExtractor` | `Ajax\RowIdentifierExtractor` |
+| `Rehydration\SourceRowResolver` | `Ajax\SourceRowResolver` |
+| `Query\Intent\InvalidQueryIntentException` | `Exception\InvalidQueryIntentException` |
+| `Export\ExporterInterface` | `Contracts\ExporterInterface` |
+| `Mercure\MercurePublisherInterface` | `Contracts\MercurePublisherInterface` |
+
+Namespaces are relative to `Pentiminax\UX\DataTables\`. The emptied `DataCollector`, `Rendering`,
+`Dto`, `Detail`, and `Rehydration` namespaces no longer exist.
+
+Two of these are supported extension seams, so they matter beyond a search-and-replace:
+
+- `Contracts\MercurePublisherInterface` is still the seam for replacing how updates are published.
+  If you implement it or alias it in your container, change the import; the `publish()` signature is
+  identical.
+- `Contracts\ExporterInterface` is still the seam for custom export formats. If you implement it,
+  change the import; `format()`, `isAvailable()`, and `write()` are identical.
+
 ## v0.82 → v0.83
 
 Affects custom `QueryFilterInterface` implementations, code that implemented one of the removed

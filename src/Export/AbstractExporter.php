@@ -8,6 +8,7 @@ use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\WriterInterface;
 use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\ExporterInterface;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
 
 /**

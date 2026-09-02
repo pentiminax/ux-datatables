@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Export;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\ExporterInterface;
 
 /**
  * The body of an export {@see \Symfony\Component\HttpFoundation\StreamedResponse}, as a named

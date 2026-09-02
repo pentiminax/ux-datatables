@@ -6,15 +6,43 @@ order: 10
 
 This guide covers the main ways to create and render DataTables in your Symfony application.
 
-## Building a Table in a Controller
+## Declaring a Table
 
-Inject the `DataTableBuilderInterface` service and build your table:
+Every table is a class extending `AbstractDataTable`. Declare the columns in
+`configureColumns()` and the DataTables options in `configureDataTable()`:
+
+```php
+namespace App\DataTables;
+
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('firstName', 'First name');
+        yield TextColumn::new('lastName', 'Last name');
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->data([
+            ['firstName' => 'John', 'lastName' => 'Doe'],
+            ['firstName' => 'Jane', 'lastName' => 'Smith'],
+        ]);
+    }
+}
+```
+
+Table classes are autoconfigured services. Inject one into a controller and pass it to the
+template:
 
 ```php
 namespace App\Controller;
 
-use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
+use App\DataTables\UsersDataTable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -22,25 +50,17 @@ use Symfony\Component\Routing\Attribute\Route;
 class HomeController extends AbstractController
 {
     #[Route('/', name: 'app_homepage')]
-    public function index(DataTableBuilderInterface $builder): Response
+    public function index(UsersDataTable $table): Response
     {
-        $table = $builder
-            ->createDataTable('usersTable')
-            ->columns([
-                TextColumn::new('firstName', 'First name'),
-                TextColumn::new('lastName', 'Last name'),
-            ])
-            ->data([
-                ['firstName' => 'John', 'lastName' => 'Doe'],
-                ['firstName' => 'Jane', 'lastName' => 'Smith'],
-            ]);
-
         return $this->render('home/index.html.twig', [
             'table' => $table,
         ]);
     }
 }
 ```
+
+When the rows only become available in the controller, keep `configureDataTable()` for the options
+and call [`setData()`](/ux-datatables/reference/abstract-datatable/) on the injected table instead.
 
 All options and data are passed as-is to DataTables. Refer to the [DataTables documentation](https://datatables.net/manual/) for available client-side options.
 
@@ -65,8 +85,7 @@ Pass HTML attributes as a second argument:
 }) }}
 ```
 
-The table `id` attribute always comes from `createDataTable('...')`. Do not pass a separate `id`
-through `render_datatable()`.
+The table `id` attribute always comes from the short name of the table class, for example `id="UsersDataTable"`. Do not pass a separate `id` through `render_datatable()`.
 
 ## Extending the Default Behavior
 
@@ -184,18 +203,11 @@ event.detail.table.on('click', 'tbody tr', (e, dt, type, indexes) => {
 You can have multiple tables on the same page:
 
 ```php
-public function index(DataTableBuilderInterface $builder): Response
+use App\DataTables\OrdersDataTable;
+use App\DataTables\UsersDataTable;
+
+public function index(UsersDataTable $usersTable, OrdersDataTable $ordersTable): Response
 {
-    $usersTable = $builder
-        ->createDataTable('usersTable')
-        ->columns([/* ... */])
-        ->data([/* ... */]);
-
-    $ordersTable = $builder
-        ->createDataTable('ordersTable')
-        ->columns([/* ... */])
-        ->data([/* ... */]);
-
     return $this->render('dashboard/index.html.twig', [
         'usersTable' => $usersTable,
         'ordersTable' => $ordersTable,
@@ -212,8 +224,8 @@ public function index(DataTableBuilderInterface $builder): Response
 ```
 
 <Aside type="caution">
-  Each table must have a unique ID. The `createDataTable()` method's first argument sets the table
-  ID.
+  Each table must have a unique ID. The ID is the short name of the table class, so two tables
+  rendered on the same page must not share a class name.
 </Aside>
 
 ## Best Practices
