@@ -155,9 +155,10 @@ The predicate string is used verbatim in the DQL. Build it from your own code, n
 concatenating the search value — bind the value as a parameter, as above.
 :::
 
-Custom predicates apply to global search and per-column search. The ColumnControl list,
-comparison, and empty/not-empty logics keep their own predicate shapes; they honor
-`setSearchField()` and `addSearchJoin()` but not `setSearchPredicate()`.
+Custom predicates apply to global search, per-column search, and the ColumnControl `contains`
+logic. The ColumnControl list, comparison, and empty/not-empty logics keep their own predicate
+shapes; they honor `setSearchField()` and `addSearchJoin()` but not `setSearchPredicate()`, and
+they skip a column whose search field the root entity does not map.
 
 ### Cell Type
 

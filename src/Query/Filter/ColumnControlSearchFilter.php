@@ -45,6 +45,10 @@ use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
  * consulted here: list, comparison, and nullness criteria each encode a predicate shape of
  * their own that a single open-ended condition string cannot express. Only the Contains logic
  * delegates to it, through {@see \Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface}.
+ *
+ * For that reason the unmapped-field guard runs on the list branch only. A scalar criterion is
+ * gated by the strategy that handles it, which is what lets a column with a custom predicate be
+ * searched on a field the root entity does not map.
  */
 final class ColumnControlSearchFilter implements QueryFilterInterface
 {
@@ -68,11 +72,11 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
                 continue;
             }
 
-            if (!RelationFieldResolver::supportsSearchFiltering($qb, $field)) {
-                continue;
-            }
-
             if ($control->isList()) {
+                if (!RelationFieldResolver::supportsSearchFiltering($qb, $field)) {
+                    continue;
+                }
+
                 $this->applyList($qb, $field, $control->values, $context->alias);
 
                 continue;

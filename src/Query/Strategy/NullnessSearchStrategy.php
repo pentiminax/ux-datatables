@@ -25,6 +25,9 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  * {@see SearchableColumnInterface::buildSearchPredicate()} is deliberately not consulted: a nullness
  * check is a property of the field itself, which an open-ended condition string built for a
  * search term cannot stand in for.
+ *
+ * A field the root entity does not map is skipped here rather than in the filter, so a column
+ * that builds its own predicate stays searchable on the Contains logic.
  */
 final class NullnessSearchStrategy implements SearchStrategyInterface
 {
@@ -41,6 +44,10 @@ final class NullnessSearchStrategy implements SearchStrategyInterface
 
         $fieldPath = RelationFieldResolver::resolveSearchField($column);
         if (null === $fieldPath) {
+            return;
+        }
+
+        if (!RelationFieldResolver::supportsSearchFiltering($qb, $fieldPath)) {
             return;
         }
 
