@@ -20,6 +20,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -65,7 +66,10 @@ final class AjaxDeleteControllerTest extends TestCase
                 hubUrl: 'https://hub.example/.well-known/mercure',
             ));
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, new PermissionChecker(), mercureConfigResolver: $resolver);
+        $topicResolver = $this->createStub(MercureTopicResolver::class);
+        $topicResolver->method('resolve')->willReturn(['/server/deletable-entity-fixtures/{id}']);
+
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, new PermissionChecker(), $topicResolver);
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')
@@ -113,8 +117,7 @@ final class AjaxDeleteControllerTest extends TestCase
             $this->createMock(PropertyAccessorInterface::class),
             $publisher,
             new PermissionChecker(),
-            mercureConfigResolver: $resolver,
-            dataTables: $dataTables,
+            new MercureTopicResolver($resolver, $dataTables),
         );
 
         $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
@@ -223,6 +226,7 @@ final class AjaxDeleteControllerTest extends TestCase
                 $this->createMock(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
                 new PermissionChecker(),
+                new MercureTopicResolver(),
             ),
             new MutationTokenValidator($csrfTokenManager),
             $this->registry(),

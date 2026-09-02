@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Mutation;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\DataTablesBundle;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
@@ -34,6 +35,18 @@ final class MutationServiceWiringTest extends TestCase
 
         $this->assertInstanceOf(EntityMutator::class, $mutator);
         $this->assertInstanceOf(MercureUpdatePublisher::class, $this->readPrivateProperty($mutator, 'publisher'));
+    }
+
+    #[Test]
+    public function it_wires_entity_mutator_with_the_mercure_topic_resolver(): void
+    {
+        $mutator = $this->service('test.datatables.mutation.mutator');
+
+        $this->assertInstanceOf(EntityMutator::class, $mutator);
+
+        // Registered in config/services.php, not config/mercure.php: mutations
+        // must resolve topics even when Mercure is not installed.
+        $this->assertInstanceOf(MercureTopicResolver::class, $this->readPrivateProperty($mutator, 'topicResolver'));
     }
 
     #[Test]

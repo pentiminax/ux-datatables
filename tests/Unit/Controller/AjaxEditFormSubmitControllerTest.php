@@ -22,6 +22,7 @@ use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -73,8 +74,8 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
-            dataTables: $this->registeredDataTables(),
-            permissionChecker: $this->permissionCheckerGranting(true),
+            new MercureTopicResolver(dataTables: $this->registeredDataTables()),
+            $this->permissionCheckerGranting(true),
         ));
 
         $response = $controller($this->validTokenRequest(), $this->payload());
@@ -120,7 +121,8 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
-            permissionChecker: new PermissionChecker($authorizationChecker),
+            new MercureTopicResolver(),
+            new PermissionChecker($authorizationChecker),
         ));
 
         $response = $controller($this->validTokenRequest(), $this->payload());
@@ -177,8 +179,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $renderer,
             $templateResolver,
             new MercureUpdatePublisher($hub),
-            $resolver,
-            $this->registeredDataTables(),
+            new MercureTopicResolver($resolver, $this->registeredDataTables()),
             $this->permissionCheckerGranting(true),
         ));
 
@@ -215,7 +216,8 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
                 $renderer,
                 $this->createMock(EditModalTemplateResolver::class),
                 new NullMercurePublisher(),
-                permissionChecker: $this->permissionCheckerGranting(true),
+                new MercureTopicResolver(),
+                $this->permissionCheckerGranting(true),
             ),
             $csrfTokenManager,
         );
