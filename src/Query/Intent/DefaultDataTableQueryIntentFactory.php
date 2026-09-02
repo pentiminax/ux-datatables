@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
+use Pentiminax\UX\DataTables\Exception\InvalidQueryIntentException;
 
 /**
  * Default factory that normalizes a DataTableRequest plus configured columns into a

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Export;
 
+use Pentiminax\UX\DataTables\Contracts\ExporterInterface;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 

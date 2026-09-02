@@ -2,15 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Tests\Unit\DataCollector;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Profiler;
 
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\DataCollector\DataTableCollector;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Filters;
+use Pentiminax\UX\DataTables\Profiler\DataTableCollector;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Tests\Kernel\ProfilerPanelAppKernel;
 use PHPUnit\Framework\Attributes\Test;

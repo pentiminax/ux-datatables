@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Support;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\ExporterInterface;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
-use Pentiminax\UX\DataTables\Export\ExporterInterface;
 
 final class RecordingExporter implements ExporterInterface
 {

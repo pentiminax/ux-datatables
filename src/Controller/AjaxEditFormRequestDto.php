@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Dto;
+namespace Pentiminax\UX\DataTables\Controller;
 
 final readonly class AjaxEditFormRequestDto
 {

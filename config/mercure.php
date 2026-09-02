@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
-use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 

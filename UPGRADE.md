@@ -11,7 +11,8 @@ that implemented or type-hinted one of the removed single-implementation interfa
 implementing `ColumnInterface` directly, or callers of `Query\SearchPredicateFactory`; and code that
 decorates or hand-instantiates `EntityMutator` or `EditFormService`, called
 `MercureTopicResolver::resolve()` statically, decorates or hand-instantiates
-`Twig\DataTablesExtension`, or used `RowMapper\ClosureRowMapper`.
+`Twig\DataTablesExtension`, or used `RowMapper\ClosureRowMapper`; and any code that imports one
+of the classes listed under [Moved classes](#moved-classes).
 Tables already declared as `AbstractDataTable` classes are unchanged, as are columns, filters, Twig
 templates, the Ajax routes, and every JSON payload on the wire.
 
@@ -215,6 +216,38 @@ $mapper = new class($fn) implements RowMapperInterface {
     public function map(mixed $item): array { return ($this->fn)($item); }
 };
 ```
+
+### Moved classes
+
+`src/` had several folders holding a single class, away from its only consumer. The folder tree now
+matches the bounded contexts documented in `AGENTS.md`. These are pure namespace moves: the classes,
+their methods, and their behavior are unchanged. There is no class alias and no deprecation layer,
+so update your imports.
+
+| Old FQCN | New FQCN |
+| --- | --- |
+| `DataCollector\DataTableCollector` | `Profiler\DataTableCollector` |
+| `Rendering\RenderingPreparer` | `Runtime\RenderingPreparer` |
+| `Dto\AjaxEditFormRequestDto` | `Controller\AjaxEditFormRequestDto` |
+| `Dto\AjaxEditRequestDto` | `Controller\AjaxEditRequestDto` |
+| `Dto\AjaxEntityQueryDto` | `Controller\AjaxEntityQueryDto` |
+| `Detail\DetailRowService` | `Ajax\DetailRowService` |
+| `Rehydration\RowIdentifierExtractor` | `Ajax\RowIdentifierExtractor` |
+| `Rehydration\SourceRowResolver` | `Ajax\SourceRowResolver` |
+| `Query\Intent\InvalidQueryIntentException` | `Exception\InvalidQueryIntentException` |
+| `Export\ExporterInterface` | `Contracts\ExporterInterface` |
+| `Mercure\MercurePublisherInterface` | `Contracts\MercurePublisherInterface` |
+
+Namespaces are relative to `Pentiminax\UX\DataTables\`. The emptied `DataCollector`, `Rendering`,
+`Dto`, `Detail`, and `Rehydration` namespaces no longer exist.
+
+Two of these are supported extension seams, so they matter beyond a search-and-replace:
+
+- `Contracts\MercurePublisherInterface` is still the seam for replacing how updates are published.
+  If you implement it or alias it in your container, change the import; the `publish()` signature is
+  identical.
+- `Contracts\ExporterInterface` is still the seam for custom export formats. If you implement it,
+  change the import; `format()`, `isAvailable()`, and `write()` are identical.
 
 ## v0.82 → v0.83
 

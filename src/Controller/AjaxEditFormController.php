@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Controller;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
-use Pentiminax\UX\DataTables\Dto\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Tests\Unit\Rehydration;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Ajax;
 
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\Mapping\ClassMetadata;
 use Doctrine\Persistence\ObjectManager;
 use Doctrine\Persistence\ObjectRepository;
-use Pentiminax\UX\DataTables\Rehydration\RowIdentifierExtractor;
-use Pentiminax\UX\DataTables\Rehydration\SourceRowResolver;
+use Pentiminax\UX\DataTables\Ajax\RowIdentifierExtractor;
+use Pentiminax\UX\DataTables\Ajax\SourceRowResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;

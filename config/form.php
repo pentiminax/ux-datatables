@@ -9,7 +9,7 @@ use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
-use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
