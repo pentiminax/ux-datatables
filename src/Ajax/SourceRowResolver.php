@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Rehydration;
+namespace Pentiminax\UX\DataTables\Ajax;
 
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;

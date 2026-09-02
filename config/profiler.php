@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Pentiminax\UX\DataTables\DataCollector\DataTableCollector;
+use Pentiminax\UX\DataTables\Profiler\DataTableCollector;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 

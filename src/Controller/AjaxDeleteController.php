@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Controller;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
-use Pentiminax\UX\DataTables\Dto\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Symfony\Component\HttpFoundation\JsonResponse;

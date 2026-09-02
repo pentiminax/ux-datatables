@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\DataCollector;
+namespace Pentiminax\UX\DataTables\Profiler;
 
-use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Symfony\Bundle\FrameworkBundle\DataCollector\AbstractDataCollector;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

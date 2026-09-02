@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Tests\Unit\Rendering;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
@@ -20,7 +20,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\Model\Filters;
-use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;

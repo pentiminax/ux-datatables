@@ -9,7 +9,6 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
-use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 
 final class DataTableInfrastructure
 {

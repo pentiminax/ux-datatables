@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Tests\Unit\DataCollector;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Profiler;
 
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\DataCollector\DataTableCollector;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Profiler\DataTableCollector;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Tests\Kernel\ProfilerAppKernel;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;

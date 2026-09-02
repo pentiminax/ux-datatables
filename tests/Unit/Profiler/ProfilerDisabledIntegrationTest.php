@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Tests\Unit\DataCollector;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Profiler;
 
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Tests\Kernel\ProfilerDisabledAppKernel;
