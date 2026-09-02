@@ -1,0 +1,179 @@
+---
+title: Custom Exporters
+description: The ExporterInterface contract, the streaming pipeline, and how to replace a writer
+order: 76
+---
+
+A server-side export streams every filtered row from PHP instead of exporting the rows the browser
+happens to hold. Configuring one is a button concern, documented under
+[Buttons](/ux-datatables/extensions/buttons/#server-side-export-csv--xlsx). This page describes the
+contract behind it and how to replace a writer.
+
+## `ExporterInterface`
+
+```php
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Enum\ExportFormat;
+
+interface ExporterInterface
+{
+    public function format(): ExportFormat;
+
+    public function isAvailable(): bool;
+
+    /**
+     * @param list<ColumnInterface>          $columns
+     * @param iterable<array<string, mixed>> $rows
+     */
+    public function write(array $columns, iterable $rows): void;
+}
+```
+
+`write()` is called from inside a `StreamedResponse`, after the headers have already gone out.
+Two consequences shape every implementation:
+
+- **Consume `$rows` once, as a stream.** It is a generator over the whole filtered result set.
+  Buffering it into an array defeats the point of the export.
+- **Nothing recoverable may throw.** Once headers are sent, an exception can no longer become an
+  error page — the client gets a truncated file. Everything checkable belongs in `isAvailable()`,
+  which `ExporterRegistry` consults *before* the response is built, so a missing optional
+  dependency surfaces as a clean `400` instead of a broken download.
+
+<Aside type="caution">
+  `ExportFormat` is a closed enum (`csv`, `xlsx`) and `format()` must return one of its cases. An
+  exporter therefore **replaces** the CSV or XLSX writer rather than adding a new format. Adding a
+  format means adding an `ExportFormat` case, a `ButtonType`, and a content type — a change to the
+  bundle, not an application-side extension point.
+</Aside>
+
+## `AbstractExporter`
+
+`AbstractExporter` owns the shared spreadsheet pipeline and is the base to extend. It implements
+`write()` as `final`: it opens the writer on `php://output`, writes the heading row, converts and
+writes each row, calls `configureSheet()` once while the sheet is still open, and flushes the output
+buffer every 500 rows. A concrete exporter supplies only `format()`, `isAvailable()`, and
+`createWriter()`.
+
+| Method to override                        | Purpose                                                          |
+| ----------------------------------------- | ---------------------------------------------------------------- |
+| `format()`                                | The `ExportFormat` case this exporter handles                     |
+| `isAvailable()`                           | Whether the writer library is installed                           |
+| `createWriter()`                          | The OpenSpout `WriterInterface` to write with                      |
+| `headings(array $columns)`                | Header labels (defaults to column titles, falling back to names)  |
+| `cellValue(ColumnInterface, array $row)`  | One cell's scalar value                                            |
+| `configureSheet(WriterInterface, array)`  | Post-write sheet configuration (XLSX uses it for freeze/filter)   |
+
+Two behaviors are worth keeping when you override `cellValue()`:
+
+- **Formula neutralization.** A value starting with `=`, `@`, a tab, or a carriage return is
+  prefixed with an apostrophe so spreadsheet software renders it as text rather than evaluating it.
+  `+` and `-` are only prefixed on non-numeric values, so a Doctrine decimal such as `-42.50`
+  stays a number.
+- **Markup stripping.** HTML is reduced to text and its whitespace collapsed onto one line, which
+  is what makes an opted-in `TemplateColumn` readable in a spreadsheet.
+
+`AbstractExporter` always opens its writer on `php://output` and never on OpenSpout's
+`openToBrowser()`: the latter calls `header()` itself, which collides with the headers
+`StreamedResponse` has already sent.
+
+## How the pieces fit
+
+| Class                                | Responsibility                                                                                     |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `ExporterRegistry`                   | Indexes exporters by `format()->value`; throws a `BadRequestHttpException` for an unknown or unavailable format |
+| `ExportService`                      | Resolves the button, format, exporter, exportable columns, row iterator, and filename — everything that can fail — *before* returning the response |
+| `ExportStream`                       | The response body, as a named invokable calling `$exporter->write()`                                 |
+| `StreamingDataProviderInterface`     | Optional provider capability: stream rows without pagination or a `COUNT`                            |
+
+`ExportService` resolves the row iterator from the table's data provider with pagination removed. A
+provider implementing `StreamingDataProviderInterface` is asked for `iterateRows()`; anything else
+falls back to `fetchData()->data`, which materializes the whole result set. `DoctrineDataProvider`
+and `ArrayDataProvider` both implement the streaming interface.
+
+Columns come from `filterExportable()`, so `setExportable(false)`, hidden columns, action columns,
+and template columns are excluded unless explicitly opted back in. Because the export mapper is
+built from the exportable columns alone, template Twig, action voters, URL generation, and CSRF
+tokens do not run for exported rows.
+
+### `projectPage()` and batching
+
+`projectPage()` batch-enriches a page to avoid an N+1. An export has no page — it streams every
+filtered row — so the projector is called once per batch rather than once over the whole result set,
+and the batch size is not the DataTables page length. Project each item from itself: map it, or
+batch-load data keyed by it. A projector whose output depends on which other items share the call
+(a rank, a running total, a share of the batch's maximum) returns different values in an export than
+on screen, and those values already shift with the page length on screen. When a genuinely larger
+batch is needed, build the provider yourself in `createDataProvider()` with a bigger
+`exportChunkSize`.
+
+## Replacing a writer
+
+Exporters are registered as explicit services and passed to `ExporterRegistry`'s constructor
+(`config/services.php`) — there is no autoconfiguration tag. An application replaces one by
+redefining the bundle's service id with its own class, which keeps the registry wiring untouched:
+
+```php
+// config/services.php
+use App\DataTable\Export\SemicolonCsvExporter;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+
+return static function (ContainerConfigurator $container): void {
+    $container->services()
+        ->set('datatables.export.exporter.csv', SemicolonCsvExporter::class)
+        ->private();
+};
+```
+
+The exporter itself only supplies the writer:
+
+```php
+namespace App\DataTable\Export;
+
+use OpenSpout\Writer\CSV\Options;
+use OpenSpout\Writer\CSV\Writer;
+use OpenSpout\Writer\WriterInterface;
+use Pentiminax\UX\DataTables\Enum\ExportFormat;
+use Pentiminax\UX\DataTables\Export\AbstractExporter;
+
+/**
+ * Semicolon-separated CSV, which is what Excel expects in locales where the comma is the decimal
+ * separator. OpenSpout already writes the UTF-8 BOM Excel needs to detect the encoding.
+ */
+final class SemicolonCsvExporter extends AbstractExporter
+{
+    public function format(): ExportFormat
+    {
+        return ExportFormat::CSV;
+    }
+
+    public function isAvailable(): bool
+    {
+        return class_exists(Writer::class);
+    }
+
+    protected function createWriter(): WriterInterface
+    {
+        $options = new Options();
+        $options->FIELD_DELIMITER = ';';
+
+        return new Writer($options);
+    }
+}
+```
+
+The heading row, cell conversion, formula neutralization, and the flush cadence all come from
+`AbstractExporter` — the subclass changes the writer and nothing else.
+
+<Aside type="note">
+  Both shipped exporters require `openspout/openspout`, and `isAvailable()` is what reports its
+  absence as a clean error. An exporter built on a different library must implement
+  `ExporterInterface` directly rather than extending `AbstractExporter`, whose `write()` is tied to
+  OpenSpout's `WriterInterface`.
+</Aside>
+
+## See Also
+
+- [Buttons: Server-Side Export](/ux-datatables/extensions/buttons/#server-side-export-csv--xlsx)
+- [Data Providers & Row Mappers](/ux-datatables/reference/data-providers-row-mappers/)
+- [AbstractDataTable](/ux-datatables/reference/abstract-datatable/)
+- [Securing Ajax Routes](/ux-datatables/getting-started/security/)

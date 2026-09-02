@@ -291,6 +291,10 @@ return, which turns exported data into executable formulas. Those values are pre
 apostrophe so they render as text. `+` and `-` are only prefixed when the value is not a number, so
 a decimal such as `-42.50` stays a number.
 
+The writer behind each format is an `ExporterInterface`. Replacing one — a different CSV delimiter,
+another XLSX layout — is documented under
+[Custom Exporters](/ux-datatables/reference/custom-exporters/).
+
 ### XLSX Specifics
 
 The XLSX writer adds a bold header row, a frozen header, an auto-filter, and a fixed column width.
@@ -335,5 +339,6 @@ action nested this way is registered exactly like a top-level one.
 
 ## Cross Links
 
+- [Custom Exporters](/ux-datatables/reference/custom-exporters/)
 - [/ux-datatables/reference/enums/](/ux-datatables/reference/enums/)
 - [/ux-datatables/extensions/combining-extensions/](/ux-datatables/extensions/combining-extensions/)
