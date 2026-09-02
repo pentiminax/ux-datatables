@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Model;
 
 use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
-use Pentiminax\UX\DataTables\Contracts\LayoutAwareExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
@@ -107,11 +106,15 @@ class DataTableExtensions implements \JsonSerializable
         return $this->extensions['buttons'] ?? null;
     }
 
+    /**
+     * Buttons is injected into the DataTables `layout` configuration rather than serialized as a
+     * top-level option, so it is skipped here and consumed by layout-building code instead.
+     */
     public function jsonSerialize(): array
     {
         $extensions = [];
         foreach ($this->extensions as $extension) {
-            if ($extension instanceof LayoutAwareExtensionInterface) {
+            if ($extension instanceof ButtonsExtension) {
                 continue;
             }
 

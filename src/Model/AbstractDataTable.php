@@ -346,7 +346,7 @@ abstract class AbstractDataTable
      * Create the search predicate builder used by global search.
      *
      * Override this method to customize how global search builds a condition for a column,
-     * e.g. to add type handling SearchPredicateFactory does not cover.
+     * e.g. to add type handling DefaultSearchPredicateBuilder does not cover.
      */
     protected function createSearchPredicateBuilder(): SearchPredicateBuilderInterface
     {

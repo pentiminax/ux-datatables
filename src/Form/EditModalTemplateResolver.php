@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Form;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Psr\Container\ContainerInterface;
 
-final class EditModalTemplateResolver implements EditModalTemplateResolverInterface
+class EditModalTemplateResolver
 {
     public function __construct(
         private readonly ContainerInterface $dataTables,
@@ -46,6 +46,9 @@ final class EditModalTemplateResolver implements EditModalTemplateResolverInterf
         return $this->defaultBodyTemplate;
     }
 
+    /**
+     * @return ColumnInterface[]
+     */
     public function resolveColumns(string $dataTableClass): array
     {
         if (!$this->dataTables->has($dataTableClass)) {

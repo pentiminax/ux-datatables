@@ -49,4 +49,9 @@ interface ColumnInterface extends \JsonSerializable
     public function getCustomOption(string $optionName): mixed;
 
     public function getCustomOptions(): array;
+
+    /**
+     * Security attribute required to see this column, or null when it is always visible.
+     */
+    public function getPermission(): ?string;
 }

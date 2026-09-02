@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
@@ -38,9 +37,6 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, tagged_locator('datatables.data_table'))
         ->arg(1, param('datatables.edit_modal.template'))
         ->arg(2, param('datatables.edit_modal.body_template'))
-        ->private();
-
-    $services->alias(EditModalTemplateResolverInterface::class, 'datatables.form.edit_modal_template_resolver')
         ->private();
 
     $services->set('datatables.form.edit_form_service', EditFormService::class)
