@@ -6,8 +6,6 @@ namespace Pentiminax\UX\DataTables\Twig;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
-use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
-use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
@@ -23,8 +21,6 @@ class DataTablesExtension extends AbstractExtension
 {
     public function __construct(
         private readonly StimulusHelper $stimulus,
-        private readonly TemplateColumnRenderer $templateColumnRenderer,
-        private readonly ActionRowDataResolver $actionRowDataResolver,
         private readonly ColumnResolver $columnResolver,
         private readonly ?RequestStack $requestStack = null,
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
@@ -61,22 +57,6 @@ class DataTablesExtension extends AbstractExtension
             static fn (ColumnInterface $column): array => $column->jsonSerialize(),
             $columns,
         ));
-
-        if (!empty($options['data'])) {
-            $renderTemplates = !$dataTable->areTemplateColumnsRendered();
-            $options['data'] = array_map(function (array $row) use ($columns, $originalColumns, $renderTemplates): array {
-                $resolvedRow = $renderTemplates
-                    ? $this->templateColumnRenderer->renderRow($row, $row, $columns)
-                    : $row;
-                $resolvedRow = $this->actionRowDataResolver->resolveRow($resolvedRow, $row, $columns);
-
-                return $this->columnResolver->removeDeniedColumnValues($resolvedRow, $originalColumns);
-            }, $options['data']);
-
-            if ($renderTemplates) {
-                $dataTable->markTemplateColumnsRendered();
-            }
-        }
 
         $view = array_merge($options, $dataTable->getExtensions(), [
             'dataTable' => $this->ajaxRegistry?->getActionToken($dataTableClass),
