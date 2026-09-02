@@ -41,6 +41,21 @@ const EXTENSION_MAP = {
     rowGroup: 'rowGroup',
     scroller: 'scroller',
 };
+const GENERATED_MARKUP_SELECTOR = [
+    '.dt-layout-row',
+    '.dt-layout-cell',
+    '.dt-layout-start',
+    '.dt-layout-end',
+    '.dt-layout-full',
+    '.dt-length',
+    '.dt-search',
+    '.dt-info',
+    '.dt-paging',
+    '.dt-processing',
+    '.dt-scroll',
+    '.dt-buttons',
+    'table.dataTable',
+].join(',');
 class default_1 extends Controller {
     constructor() {
         super(...arguments);
@@ -84,6 +99,7 @@ class default_1 extends Controller {
             this.dispatchEvent('reconnect', { table: this.table });
             return;
         }
+        this.resetRestoredMarkup();
         await this.loadExtensions(payload, framework, DataTable);
         this.dispatchEvent('pre-init', { config: payload, DataTable });
         if (this.isApiPlatformEnabled(payload)) {
@@ -144,6 +160,38 @@ class default_1 extends Controller {
             this.table.page(Math.floor(snap.start / (pageLen || 10)));
         }
         this.table.draw(false);
+    }
+    resetRestoredMarkup() {
+        const element = this.element;
+        if (!element.classList.contains('dataTable') && element.childElementCount === 0) {
+            return;
+        }
+        const container = this.findGeneratedWrapper(element);
+        if (container) {
+            for (const child of Array.from(container.children)) {
+                if (!child.contains(element) && this.isGeneratedMarkup(child, element.id)) {
+                    child.remove();
+                }
+            }
+        }
+        element.replaceChildren();
+        element.classList.remove('dataTable');
+    }
+    findGeneratedWrapper(element) {
+        if (!element.id) {
+            return null;
+        }
+        const container = element.closest('.dt-container');
+        return container?.id === `${element.id}_wrapper` ? container : null;
+    }
+    isGeneratedMarkup(node, tableId) {
+        if (node.matches(GENERATED_MARKUP_SELECTOR) ||
+            node.querySelector(GENERATED_MARKUP_SELECTOR)) {
+            return true;
+        }
+        const prefix = `${tableId}_`;
+        return (node.id.startsWith(prefix) ||
+            Array.from(node.querySelectorAll('[id]')).some((el) => el.id.startsWith(prefix)));
     }
     async loadExtensions(payload, framework, DataTable) {
         if (this.hasButtonsInLayout(payload)) {
