@@ -28,6 +28,7 @@ use Pentiminax\UX\DataTables\Export\XlsxExporter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -135,13 +136,22 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(MercurePublisherInterface::class, 'datatables.mercure.null_publisher')
         ->private();
 
+    // Registered here rather than in config/mercure.php: mutations must resolve
+    // topics (to an empty list) even when Mercure is not installed.
+    $services->set('datatables.mercure.topic_resolver', MercureTopicResolver::class)
+        ->arg(0, service(MercureConfigResolver::class)->nullOnInvalid())
+        ->arg(1, tagged_locator('datatables.data_table'))
+        ->private();
+
+    $services->alias(MercureTopicResolver::class, 'datatables.mercure.topic_resolver')
+        ->private();
+
     $services->set('datatables.mutation.mutator', EntityMutator::class)
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('property_accessor'))
         ->arg(2, service(MercurePublisherInterface::class))
         ->arg(3, service('datatables.security.permission_checker'))
-        ->arg(4, service(MercureConfigResolver::class)->nullOnInvalid())
-        ->arg(5, tagged_locator('datatables.data_table'))
+        ->arg(4, service('datatables.mercure.topic_resolver'))
         ->private();
 
     $services->set('datatables.mutation.boolean_context_resolver', BooleanMutationContextResolver::class)

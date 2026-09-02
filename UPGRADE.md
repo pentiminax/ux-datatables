@@ -6,9 +6,11 @@ current version and the target, oldest first.
 ## v0.83 → v0.84
 
 Affects applications that built tables with `DataTableBuilderInterface` in a controller, passed a
-bare `DataTable` to `render_datatable()`, or constructed `DataTableInfrastructure` themselves, and
-code that implemented or type-hinted one of the removed single-implementation interfaces, custom
-columns implementing `ColumnInterface` directly, or callers of `Query\SearchPredicateFactory`.
+bare `DataTable` to `render_datatable()`, or constructed `DataTableInfrastructure` themselves; code
+that implemented or type-hinted one of the removed single-implementation interfaces, custom columns
+implementing `ColumnInterface` directly, or callers of `Query\SearchPredicateFactory`; and code that
+decorates or hand-instantiates `EntityMutator` or `EditFormService`, or called
+`MercureTopicResolver::resolve()` statically.
 Tables already declared as `AbstractDataTable` classes are unchanged, as are columns, filters, Twig
 templates, the Ajax routes, and every JSON payload on the wire.
 
@@ -150,6 +152,42 @@ defaulting to `DefaultSearchPredicateBuilder`, so `new ContainsSearchStrategy()`
 `SearchPredicateBuilderInterface` is untouched: it stays the supported seam for the
 `AbstractDataTable::createSearchPredicateBuilder()` hook, and a custom builder of yours keeps
 working.
+
+### `MercureTopicResolver` is a service
+
+`MercureTopicResolver` is no longer a `final` class with a static `resolve()`. It is an instantiated
+service (`datatables.mercure.topic_resolver`) that receives the optional `MercureConfigResolver` and
+the `datatables.data_table` service locator once, in its constructor.
+
+```php
+// before
+$topics = MercureTopicResolver::resolve($configResolver, $entityClass, $dataTables, $dataTableClass);
+
+// after
+$topics = $topicResolver->resolve($entityClass, $dataTableClass);
+```
+
+`EntityMutator` and `EditFormService` now take that resolver instead of the
+`?MercureConfigResolver` + `?Psr\Container\ContainerInterface` pair they used to forward to the
+static call:
+
+```php
+// before
+new EntityMutator($locator, $propertyAccessor, $publisher, $permissionChecker, $configResolver, $dataTables);
+new EditFormService($locator, $builder, $renderer, $templateResolver, $publisher, $configResolver, $dataTables, $permissionChecker);
+
+// after
+new EntityMutator($locator, $propertyAccessor, $publisher, $permissionChecker, $topicResolver);
+new EditFormService($locator, $builder, $renderer, $templateResolver, $publisher, $topicResolver, $permissionChecker);
+```
+
+The positional service arguments changed accordingly: `datatables.mutation.mutator` takes the topic
+resolver as `arg(4)` and no longer has an `arg(5)`, and `datatables.form.edit_form_service` takes it
+as `arg(5)` with the permission checker moving to `arg(6)`. `delete()`, `setProperty()`,
+`handleView()` and `handleSubmit()` are unchanged.
+
+The service is declared in `config/services.php` rather than `config/mercure.php`, so mutations
+still resolve topics (to an empty list) when Mercure is not installed.
 
 ## v0.82 → v0.83
 

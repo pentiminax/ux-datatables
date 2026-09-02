@@ -18,16 +18,12 @@ use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalRenderRequest;
 use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
-use Pentiminax\UX\DataTables\Mercure\MercureConfig;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
-use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
-use Pentiminax\UX\DataTables\Rendering\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -35,7 +31,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\Constraint\Callback;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -47,11 +42,19 @@ use Symfony\Component\Mercure\Update;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
+ * Topic resolution itself is covered by MercureTopicResolverTest; here the
+ * resolver is a stub and only the publish/flush/permission behavior matters.
+ *
  * @internal
  */
 #[CoversClass(EditFormService::class)]
 final class EditFormServiceTest extends TestCase
 {
+    /**
+     * The topics the injected topic resolver produces.
+     */
+    private const TOPICS = ['/topic/42'];
+
     #[Test]
     #[TestWith(['view'])]
     #[TestWith(['submit'])]
@@ -90,7 +93,7 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $this->createRenderingTemplateResolver(EditFormServiceFixtureDataTable::class),
             new NullMercurePublisher(),
-            dataTables: $this->registeredDataTables(EditFormServiceFixtureDataTable::class, new EditFormServiceFixtureDataTable()),
+            new MercureTopicResolver(),
         );
 
         $result = $service->handleView($this->resolved(new EditFormServiceFixtureDataTable()), '42');
@@ -125,7 +128,7 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $this->createRenderingTemplateResolver(EditFormServiceFixtureDataTable::class),
             new NullMercurePublisher(),
-            dataTables: $this->registeredDataTables(EditFormServiceFixtureDataTable::class, new EditFormServiceFixtureDataTable()),
+            new MercureTopicResolver(),
         );
 
         $result = $service->handleSubmit($this->resolved(new EditFormServiceFixtureDataTable()), 42, ['name' => 'Alice']);
@@ -143,16 +146,12 @@ final class EditFormServiceTest extends TestCase
         $hub->expects($this->once())
             ->method('publish')
             ->with($this->callback(function (Update $update) {
-                return ['/topic/42']             === $update->getTopics()
+                return self::TOPICS              === $update->getTopics()
                     && '{"type":"edit","id":42}' === $update->getData();
             }))
             ->willReturn('urn:uuid:edit');
 
-        $result = $this->handleValidSubmit(
-            publisher: new MercureUpdatePublisher($hub),
-            mercureConfigResolver: $this->resolverReturning(['/topic/42']),
-            dataTable: new EditFormServiceFixtureDataTable(),
-        );
+        $result = $this->handleValidSubmit(new MercureUpdatePublisher($hub));
 
         $this->assertTrue($result->success);
         $this->assertNull($result->html);
@@ -170,42 +169,7 @@ final class EditFormServiceTest extends TestCase
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error');
 
-        $result = $this->handleValidSubmit(
-            publisher: new MercureUpdatePublisher($hub, $logger),
-            mercureConfigResolver: $this->resolverReturning(['/topic/42']),
-            dataTable: new EditFormServiceFixtureDataTable(),
-        );
-
-        $this->assertTrue($result->success);
-        $this->assertNull($result->html);
-        $this->assertSame('', $result->message);
-    }
-
-    #[Test]
-    public function it_publishes_the_datatables_own_mercure_topics_instead_of_the_bare_resolver_ones(): void
-    {
-        $hub = $this->createMock(HubInterface::class);
-        $hub->expects($this->once())
-            ->method('publish')
-            ->with($this->callback(function (Update $update) {
-                return ['/datatable-instance/topic'] === $update->getTopics()
-                    && '{"type":"edit","id":42}'     === $update->getData();
-            }))
-            ->willReturn('urn:uuid:edit');
-
-        // The bare entity-class resolver would publish a *different* topic;
-        // it must not be consulted once the DataTable instance resolves.
-        $resolver = $this->createMock(MercureConfigResolver::class);
-        $resolver->expects($this->never())->method('resolveMercureConfig');
-
-        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
-        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
-
-        $result = $this->handleValidSubmit(
-            publisher: new MercureUpdatePublisher($hub),
-            mercureConfigResolver: $resolver,
-            dataTable: new EditFormServiceMercureFixtureDataTable($hubUrlResolver),
-        );
+        $result = $this->handleValidSubmit(new MercureUpdatePublisher($hub, $logger));
 
         $this->assertTrue($result->success);
         $this->assertNull($result->html);
@@ -264,7 +228,8 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $templateResolver,
             new NullMercurePublisher(),
-            permissionChecker: $permissionChecker,
+            new MercureTopicResolver(),
+            $permissionChecker,
         );
 
         $dataTable = $this->resolved(new EditFormServiceFixtureDataTable());
@@ -284,11 +249,9 @@ final class EditFormServiceTest extends TestCase
     /**
      * Submits a valid form and returns the result; the modal must never be re-rendered.
      */
-    private function handleValidSubmit(
-        MercurePublisherInterface $publisher,
-        MercureConfigResolver $mercureConfigResolver,
-        AbstractDataTable $dataTable,
-    ): AjaxActionResult {
+    private function handleValidSubmit(MercurePublisherInterface $publisher): AjaxActionResult
+    {
+        $dataTable      = new EditFormServiceFixtureDataTable();
         $dataTableClass = $dataTable::class;
         $entity         = new EditFormServiceFixture();
         $entityManager  = $this->createEntityManagerWithEntity($entity, 42);
@@ -317,8 +280,7 @@ final class EditFormServiceTest extends TestCase
             $renderer,
             $templateResolver,
             $publisher,
-            $mercureConfigResolver,
-            $this->registeredDataTables($dataTableClass, $dataTable),
+            $this->topicResolverReturning(self::TOPICS),
         );
 
         return $service->handleSubmit($this->resolved($dataTable), 42, ['name' => 'Alice']);
@@ -370,15 +332,6 @@ final class EditFormServiceTest extends TestCase
             ->willReturn('body.html.twig');
 
         return $templateResolver;
-    }
-
-    private function registeredDataTables(string $dataTableClass, object $dataTable): ContainerInterface
-    {
-        $dataTables = $this->createMock(ContainerInterface::class);
-        $dataTables->method('has')->with($dataTableClass)->willReturn(true);
-        $dataTables->method('get')->with($dataTableClass)->willReturn($dataTable);
-
-        return $dataTables;
     }
 
     private function createEntityManagerThatFinds(object $entity, int|string $id): EntityManagerInterface
@@ -440,14 +393,12 @@ final class EditFormServiceTest extends TestCase
     /**
      * @param string[] $topics
      */
-    private function resolverReturning(array $topics): MercureConfigResolver
+    private function topicResolverReturning(array $topics): MercureTopicResolver
     {
-        $resolver = $this->createMock(MercureConfigResolver::class);
-        $resolver->method('resolveMercureConfig')
-            ->with(EditFormServiceFixture::class)
-            ->willReturn(new MercureConfig(topics: $topics, hubUrl: 'https://hub.example/.well-known/mercure'));
+        $topicResolver = $this->createStub(MercureTopicResolver::class);
+        $topicResolver->method('resolve')->willReturn($topics);
 
-        return $resolver;
+        return $topicResolver;
     }
 }
 
@@ -462,33 +413,6 @@ final class EditFormServiceFixtureDataTable extends AbstractDataTable
     {
         parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
-    }
-
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('id');
-    }
-}
-
-#[AsDataTable(entityClass: EditFormServiceFixture::class, mercure: true)]
-final class EditFormServiceMercureFixtureDataTable extends AbstractDataTable
-{
-    public function __construct(
-        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
-    ) {
-        parent::__construct();
-        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
-            renderingPreparer: new RenderingPreparer(
-                mercureHubUrlResolver: $this->mercureHubUrlResolver,
-            )
-        ));
-    }
-
-    public function configureDataTable(DataTable $table): DataTable
-    {
-        return $table
-            ->serverSide()
-            ->mercure(topics: ['/datatable-instance/topic']);
     }
 
     public function configureColumns(): iterable

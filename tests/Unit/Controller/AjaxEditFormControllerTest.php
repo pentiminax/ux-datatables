@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -157,8 +158,8 @@ final class AjaxEditFormControllerTest extends TestCase
                 $renderer,
                 $templateResolver,
                 new NullMercurePublisher(),
-                dataTables: $dataTables,
-                permissionChecker: new PermissionChecker($authorizationChecker),
+                new MercureTopicResolver(dataTables: $dataTables),
+                new PermissionChecker($authorizationChecker),
             ),
             $this->tableRegistry(),
         );

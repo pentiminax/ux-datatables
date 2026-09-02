@@ -18,6 +18,7 @@ use Pentiminax\UX\DataTables\Dto\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Dto\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
 use Pentiminax\UX\DataTables\Exception\MutationException;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
@@ -74,6 +75,7 @@ final class MutationExceptionHandlingTest extends TestCase
             $accessor,
             new NullMercurePublisher(),
             new PermissionChecker(),
+            new MercureTopicResolver(),
         ));
 
         $response = $this->handleControllerException(
@@ -156,6 +158,7 @@ final class MutationExceptionHandlingTest extends TestCase
             $this->createMock(PropertyAccessorInterface::class),
             new NullMercurePublisher(),
             new PermissionChecker(),
+            new MercureTopicResolver(),
         );
     }
 
