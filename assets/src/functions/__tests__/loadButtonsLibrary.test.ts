@@ -14,11 +14,8 @@ const frameworks: Array<{ framework: StyleFramework; cssSuffix: string }> = [
 const staticSpecifiers = [
     'jszip',
     'pdfmake',
-    'pdfmake/build/vfs_fonts',
+    'pdfmake/build/vfs_fonts.js',
     'datatables.net-buttons',
-    'datatables.net-buttons/js/buttons.colVis',
-    'datatables.net-buttons/js/buttons.html5',
-    'datatables.net-buttons/js/buttons.print',
 ]
 
 const mockedSpecifiers = new Set<string>()
