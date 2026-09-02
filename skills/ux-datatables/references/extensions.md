@@ -73,6 +73,9 @@ with `=`, `@`, tab, CR — and `+`/`-` on non-numeric values — are apostrophe-
 spreadsheet formula injection. XLSX is not streamed row by row: OpenSpout zips the workbook from a
 temporary folder on close.
 
+To replace the CSV/XLSX writer (delimiter, locale, extra columns) rather than just configuring the
+button, see `references/exporters.md`.
+
 ### Custom button with app-defined behavior
 
 `Button::custom(string $action)` — no JS closures can cross the PHP→JSON boundary, so `$action` is a
