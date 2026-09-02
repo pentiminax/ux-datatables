@@ -247,7 +247,7 @@ export default class extends Controller {
         // A surviving wrapper is emptied in place rather than unwrapped: reparenting the table
         // would make Stimulus report disconnect + reconnect, and the fresh controller instance
         // would race this initialization into a second `new DataTable()` on the same node.
-        const container = element.closest('.dt-container')
+        const container = this.findGeneratedWrapper(element)
         if (container) {
             for (const child of Array.from(container.children)) {
                 if (!child.contains(element)) {
@@ -260,6 +260,23 @@ export default class extends Controller {
         // DataTables re-adds this at init; removing it keeps the "already processed" signal
         // honest for anything - including this method on a later cycle - that reads it.
         element.classList.remove('dataTable')
+    }
+
+    /**
+     * `dt-container` is only a class name: an application is free to put the table inside its own
+     * element carrying it, and emptying that would delete controls and content the bundle never
+     * generated. DataTables names the wrapper it builds after the table it wraps
+     * (`<table id>_wrapper`), and it inserts that wrapper directly around the table, so the nearest
+     * `.dt-container` ancestor is ours only when its id matches. Anything else is left alone.
+     */
+    private findGeneratedWrapper(element: HTMLTableElement): Element | null {
+        if (!element.id) {
+            return null
+        }
+
+        const container = element.closest('.dt-container')
+
+        return container?.id === `${element.id}_wrapper` ? container : null
     }
 
     private async loadExtensions(
