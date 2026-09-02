@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Tests\Unit\DataCollector;
+namespace Pentiminax\UX\DataTables\Tests\Unit\Profiler;
 
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
-use Pentiminax\UX\DataTables\DataCollector\DataTableCollector;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Profiler\DataTableCollector;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Tests\Kernel\ProfilerAppKernel;
+use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -27,12 +28,11 @@ final class DataTableCollectorIntegrationTest extends TestCase
         $kernel->boot();
         $container = $kernel->getContainer()->get('test.service_container');
 
-        /** @var DataTableBuilderInterface $builder */
-        $builder = $container->get('test.datatables.builder');
-
-        $table = $builder->createDataTable('products');
-        $table->columns([TextColumn::new('name')]);
-        $table->data([['name' => 'Foo']]);
+        $table = new ConfigurableDataTable(
+            [TextColumn::new('name')],
+            configureTable: static fn (DataTable $table): DataTable => $table->data([['name' => 'Foo']]),
+        );
+        $table->setDataTableInfrastructure($container->get('test.datatables.infrastructure'));
 
         /** @var DataTablesExtension $extension */
         $extension = $container->get('test.datatables.twig_extension');
@@ -48,6 +48,6 @@ final class DataTableCollectorIntegrationTest extends TestCase
 
         $collector->collect(Request::create('/'), new Response());
         $this->assertSame(1, $collector->getTableCount());
-        $this->assertSame('products', $collector->getTables()[0]['id']);
+        $this->assertSame('ConfigurableDataTable', $collector->getTables()[0]['id']);
     }
 }

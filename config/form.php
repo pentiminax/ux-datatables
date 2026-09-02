@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
@@ -10,8 +9,7 @@ use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
-use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
-use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
@@ -40,18 +38,14 @@ return static function (ContainerConfigurator $container): void {
         ->arg(2, param('datatables.edit_modal.body_template'))
         ->private();
 
-    $services->alias(EditModalTemplateResolverInterface::class, 'datatables.form.edit_modal_template_resolver')
-        ->private();
-
     $services->set('datatables.form.edit_form_service', EditFormService::class)
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('datatables.form.edit_form_builder'))
         ->arg(2, service('datatables.form.edit_modal_renderer'))
         ->arg(3, service('datatables.form.edit_modal_template_resolver'))
         ->arg(4, service(MercurePublisherInterface::class))
-        ->arg(5, service(MercureConfigResolver::class)->nullOnInvalid())
-        ->arg(6, tagged_locator('datatables.data_table'))
-        ->arg(7, service('datatables.security.permission_checker'))
+        ->arg(5, service('datatables.mercure.topic_resolver'))
+        ->arg(6, service('datatables.security.permission_checker'))
         ->private();
 
     $services->set('datatables.controller.ajax_edit_form', AjaxEditFormController::class)

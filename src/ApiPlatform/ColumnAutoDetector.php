@@ -9,11 +9,11 @@ use ApiPlatform\Metadata\Property\Factory\PropertyMetadataFactoryInterface;
 use ApiPlatform\Metadata\Property\Factory\PropertyNameCollectionFactoryInterface;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
-use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Symfony\Component\PropertyInfo\PropertyInfoExtractorInterface;
 use Symfony\Component\TypeInfo\Type;
 
-final class ColumnAutoDetector implements ColumnAutoDetectorInterface
+class ColumnAutoDetector
 {
     private const array BOOLEAN_PREFIXES = ['is', 'has'];
 
@@ -44,6 +44,14 @@ final class ColumnAutoDetector implements ColumnAutoDetectorInterface
         }
     }
 
+    /**
+     * Auto-detect columns from entity metadata.
+     *
+     * @param string   $entityClass The FQCN of the entity
+     * @param string[] $groups      Serialization groups to filter exposed properties
+     *
+     * @return ColumnInterface[]
+     */
     public function detectColumns(string $entityClass, array $groups = []): array
     {
         $context       = $groups ? ['serializer_groups' => $groups] : [];

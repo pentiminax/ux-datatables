@@ -22,6 +22,21 @@ class ActionColumn extends AbstractColumn implements ActionsProvidingColumnInter
 
         $instance->actions = $actions;
 
+        $className = trim(implode(' ', array_filter([
+            $actions->getColumnClassName(),
+            $actions->getAlignment()?->cssClass(),
+        ])));
+
+        if ('' !== $className) {
+            $instance->setClassName($className);
+        }
+
+        $columnControl = $actions->getColumnControl();
+
+        if (null !== $columnControl) {
+            $instance->setColumnControl($columnControl);
+        }
+
         return $instance;
     }
 

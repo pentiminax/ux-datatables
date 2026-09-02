@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
+use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
@@ -11,7 +12,6 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\Action;
@@ -54,7 +54,7 @@ final class ColumnResolverTest extends TestCase
     #[TestWith([true])]
     public function auto_detect_returns_empty_when_detector_cannot_be_used(bool $apiPlatform): void
     {
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
+        $detector = $this->createMock(ColumnAutoDetector::class);
         $detector
             ->expects($apiPlatform ? $this->once() : $this->never())
             ->method('supports')
@@ -74,7 +74,7 @@ final class ColumnResolverTest extends TestCase
             TextColumn::new('name', 'Name'),
         ];
 
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
+        $detector = $this->createMock(ColumnAutoDetector::class);
         $detector->method('supports')->with(\stdClass::class)->willReturn(true);
         $detector->method('detectColumns')->with(\stdClass::class, [])->willReturn($expected);
 
@@ -92,7 +92,7 @@ final class ColumnResolverTest extends TestCase
     #[TestWith([['custom:group'], ['custom:group']])]
     public function auto_detect_forwards_serialization_groups(array $explicitGroups, array $expectedGroups): void
     {
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
+        $detector = $this->createMock(ColumnAutoDetector::class);
         $detector->method('supports')->willReturn(true);
         $detector
             ->expects($this->once())
@@ -113,7 +113,7 @@ final class ColumnResolverTest extends TestCase
     {
         $expected = [TextColumn::new('name', 'Name')];
 
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
+        $detector = $this->createMock(ColumnAutoDetector::class);
         $detector->method('supports')->willReturn(true);
         $detector->method('detectColumns')->willReturn($expected);
 
@@ -366,7 +366,7 @@ final class ColumnResolverTest extends TestCase
     public static function provideColumnsKeptWithoutPermissionCheck(): iterable
     {
         yield 'permission granted by the default checker' => [TextColumn::new('salary', 'Salary')->permission('ROLE_HR')];
-        yield 'custom column without permission contract' => [self::createStub(ColumnInterface::class)];
+        yield 'custom column implementing ColumnInterface with no permission' => [self::createStub(ColumnInterface::class)];
     }
 
     /**

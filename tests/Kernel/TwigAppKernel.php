@@ -48,7 +48,6 @@ class TwigAppKernel extends Kernel
                 ],
             ]);
 
-            $container->setAlias('test.datatables.builder', 'datatables.builder')->setPublic(true);
             $container->setAlias('test.datatables.twig_extension', 'datatables.twig_extension')->setPublic(true);
             $container->setAlias('test.datatables.infrastructure', 'datatables.infrastructure')->setPublic(true);
             $container->setAlias('test.datatables.export.registry', 'datatables.export.registry')->setPublic(true);
@@ -57,7 +56,7 @@ class TwigAppKernel extends Kernel
             $container->setAlias('test.datatables.mutation.mutator', 'datatables.mutation.mutator')->setPublic(true);
             $container->setAlias('test.datatables.security.mutation_token_validator', 'datatables.security.mutation_token_validator')->setPublic(true);
             $container->setAlias('test.datatables.security.csrf_token_manager', 'datatables.security.csrf_token_manager')->setPublic(true);
-            $container->setAlias('test.mercure.publisher', \Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface::class)->setPublic(true);
+            $container->setAlias('test.mercure.publisher', \Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface::class)->setPublic(true);
             $container->setAlias('test.datatables.mercure.null_publisher', 'datatables.mercure.null_publisher')->setPublic(true);
 
             $container

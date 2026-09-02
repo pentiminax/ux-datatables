@@ -2,10 +2,8 @@
 
 declare(strict_types=1);
 
-namespace Pentiminax\UX\DataTables\Detail;
+namespace Pentiminax\UX\DataTables\Ajax;
 
-use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
-use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;

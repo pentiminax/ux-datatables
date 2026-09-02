@@ -332,8 +332,20 @@ the table declaratively and let the request-scoped boundaries do the rest:
     ['`getHttpRequest()`', 'Get the current Symfony HTTP request after `handleRequest()`'],
     ['`mapRow(mixed $row)`', 'Map a single row to array'],
     ['`setData(array $data)`', 'Set inline data through the same row-processing pipeline used by providers'],
-    ['`createRowMapper()`', 'Protected helper returning the internal row-processing mapper'],
+    ['`createRowMapper()`', 'Final protected helper returning the internal row-processing mapper'],
     ['`customizeQueryBuilder(QueryBuilder $qb, ...)`', 'Modify Doctrine query before DataTables filters are applied'],
+    [
+      '`projectPage(array $items)`',
+      'Batch-transform an already-paginated page of source entities. An export is batched instead of paged — see [Custom Exporters](/reference/custom-exporters/#projectpage-and-batching)',
+    ],
+    [
+      '`createSearchStrategyRegistry()`',
+      'Register custom per-column search logic — see [Search Strategies](/reference/search-strategies/)',
+    ],
+    [
+      '`createSearchPredicateBuilder()`',
+      'Replace how global search builds a column condition — see [Search Strategies](/reference/search-strategies/#global-search)',
+    ],
   ]}
 />
 
@@ -502,6 +514,10 @@ This includes:
 
 - [First Server-Side Table](/ux-datatables/getting-started/first-server-side-table/)
 - [Data Providers & Row Mappers](/ux-datatables/reference/data-providers-row-mappers/)
+- [Query Filters](/ux-datatables/reference/query-filters/)
+- [Search Strategies](/ux-datatables/reference/search-strategies/)
+- [Custom Exporters](/ux-datatables/reference/custom-exporters/)
+- [Web Profiler Panel](/ux-datatables/reference/profiler/)
 - [Filters](/ux-datatables/guide/filters/)
 - [Recipe: Doctrine Server-Side](/ux-datatables/recipes/doctrine-server-side/)
 - [Securing Ajax Routes](/ux-datatables/getting-started/security/)

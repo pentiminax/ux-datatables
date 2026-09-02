@@ -1,0 +1,100 @@
+---
+title: Web Profiler Panel
+description: What the DataTables profiler collects and what the panel shows
+navTitle: Profiler
+order: 95
+---
+
+The bundle ships a Symfony Web Profiler panel showing which tables a page rendered, how they were
+configured, and what each server-side Ajax query cost.
+
+## Enabling it
+
+Nothing to configure: `DataTablesBundle` imports `config/profiler.php` when
+`kernel.debug` is `true`, so the panel is available in the `dev` environment as soon as
+`symfony/web-profiler-bundle` is installed.
+
+```bash
+composer require --dev symfony/profiler-pack
+```
+
+<Aside type="note">
+  The import is deliberately conditional. `DataTableProfiler` records eagerly — the Twig function
+  and `AbstractDataTable::getResponse()` call it directly on every request, not only when Symfony's
+  profiler pulls a `collect()`. Registering the services unconditionally would mean paying that
+  cost in production.
+</Aside>
+
+## What is collected
+
+Two services do the work. `DataTableProfiler` accumulates records during the request;
+`DataTableCollector` is the Symfony data collector that hands them to the profiler at the end of it.
+`DataTableProfiler` carries the `kernel.reset` tag, so its records are cleared between requests —
+required under a worker runtime such as FrankenPHP worker mode, where the service survives the
+request.
+
+### Rendered tables
+
+`collectRenderedTable()` is called by the `render_datatable()` Twig function, with the table's id
+and class, the entity class, whether it is server-side, the column count, the enabled extensions
+(key, class, whether the extension is layout-aware, and its serialized options), the Ajax option,
+whether inline rows are present and how many, the data controller, the forwarded query parameters,
+every column's serialized definition, the names of the columns static permission filtering removed,
+the declared filters, the resolved Mercure configuration, and the edit-modal template and adapter.
+
+### Ajax queries
+
+`collectAjaxQuery()` is called by `AbstractDataTable::getResponse()`, whichever route reached it —
+the bundle's own Ajax controller or a custom endpoint calling `handleRequest()` / `getResponse()`
+directly. Each record holds:
+
+| Field                              | Description                                              |
+| ---------------------------------- | -------------------------------------------------------- |
+| `class`                            | The `AbstractDataTable` subclass that answered            |
+| `token`                            | The `table` query parameter identifying the table         |
+| `request`                          | The parsed `DataTableRequest`, plus a flattened summary   |
+| `recordsTotal` / `recordsFiltered` | Row counts read back from the JSON payload                |
+| `durationMs`                       | Time spent building the response                          |
+| `providerClass`                    | The resolved data provider's class                        |
+| `entityClass`                      | The entity behind the table, when it has one              |
+| `rowCount`                         | Rows in the returned payload                              |
+| `payloadBytes`                     | Response body size                                        |
+| `httpStatus`                       | Response status code                                      |
+
+<Aside type="tip">
+  Records hold scalars and plain arrays only. Row data never reaches the profile, so business values
+  are not copied into `var/cache/dev/profiler/`.
+</Aside>
+
+## What the panel shows
+
+The toolbar entry shows the rendered-table count, the Ajax-query count, and the summed Ajax
+duration. The panel itself has two halves.
+
+**Rendered DataTables** starts with a summary table — id, class, server side, columns, extensions,
+inline rows — then one detail block per table: class, entity, server-side flag, inline row count,
+data controller, Ajax options, forwarded query parameters, edit modal, Mercure, the resolved
+columns, the columns denied by permission filtering, the enabled extensions with their options, and
+the declared filters.
+
+**AJAX queries** lists one block per query: the table class, token, data provider, entity, record
+counts, returned rows, payload size, HTTP status, duration, and draw counter, followed by the
+pagination, global search, ordering, per-column search and ColumnControl criteria the request
+carried, the submitted filter values, and the raw `DataTableRequest` behind a collapsible toggle.
+
+## Limitations
+
+The panel is a no-op for a table built outside the container. `DataTableInfrastructure::createDefault()`
+supplies no profiler, and every consumer treats it as optional, so a hand-built
+`AbstractDataTable` renders and answers normally but records nothing. In practice this only affects
+tests and scripts — Symfony's autoconfiguration injects the container's infrastructure into every
+subclass it manages.
+
+A client-side table performs no Ajax query, so it appears under **Rendered DataTables** only.
+
+## See Also
+
+- [AbstractDataTable](/ux-datatables/reference/abstract-datatable/)
+- [DataTableRequest](/ux-datatables/reference/datatable-request/)
+- [Query Filters](/ux-datatables/reference/query-filters/)
+- [Server-Side Processing](/ux-datatables/guide/server-side-processing/)

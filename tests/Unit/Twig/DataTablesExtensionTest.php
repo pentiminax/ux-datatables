@@ -7,8 +7,8 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
@@ -38,32 +38,34 @@ final class DataTablesExtensionTest extends TestCase
     #[Test]
     public function it_renders_datatable(): void
     {
-        $table = $this->builder()
-            ->createDataTable('table')
-            ->lengthMenu([10, 25, 50, 100])
-            ->pageLength(25)
-        ;
-
-        $table->columns([
-            TextColumn::new('firstColumn'),
-            TextColumn::new('secondColumn'),
-        ]);
-
-        $table->data([
-            ['firstColumn' => 'Row 1 Column 1', 'secondColumn' => 'Row 1 Column 2'],
-            ['firstColumn' => 'Row 2 Column 1', 'secondColumn' => 'Row 2 Column 2'],
-        ]);
+        $table = $this->inlineTable(
+            [
+                TextColumn::new('firstColumn'),
+                TextColumn::new('secondColumn'),
+            ],
+            static fn (DataTable $table): DataTable => $table
+                ->lengthMenu([10, 25, 50, 100])
+                ->pageLength(25)
+                ->data([
+                    ['firstColumn' => 'Row 1 Column 1', 'secondColumn' => 'Row 1 Column 2'],
+                    ['firstColumn' => 'Row 2 Column 1', 'secondColumn' => 'Row 2 Column 2'],
+                ]),
+        );
 
         $tableEl = $this->renderTableElement($table, ['data-controller' => 'mycontroller', 'class' => 'myclass']);
 
-        $this->assertSame('table', $tableEl->getAttribute('id'));
+        $this->assertSame('ConfigurableDataTable', $tableEl->getAttribute('id'));
         $this->assertSame('mycontroller pentiminax--ux-datatables--datatable', $tableEl->getAttribute('data-controller'));
         $this->assertSame('myclass', $tableEl->getAttribute('class'));
 
         $expected = [
             'lengthMenu' => [10, 25, 50, 100],
             'pageLength' => 25,
-            'columns'    => [
+            'data'       => [
+                ['firstColumn' => 'Row 1 Column 1', 'secondColumn' => 'Row 1 Column 2'],
+                ['firstColumn' => 'Row 2 Column 1', 'secondColumn' => 'Row 2 Column 2'],
+            ],
+            'columns' => [
                 [
                     'data'       => 'firstColumn',
                     'name'       => 'firstColumn',
@@ -84,10 +86,6 @@ final class DataTablesExtensionTest extends TestCase
                     'visible'    => true,
                     'field'      => 'secondColumn',
                 ],
-            ],
-            'data' => [
-                ['firstColumn' => 'Row 1 Column 1', 'secondColumn' => 'Row 1 Column 2'],
-                ['firstColumn' => 'Row 2 Column 1', 'secondColumn' => 'Row 2 Column 2'],
             ],
             'dataTable' => null,
             'editModal' => [
@@ -121,25 +119,13 @@ final class DataTablesExtensionTest extends TestCase
         /** @var AbstractDataTable $table */
         $table = $this->container->get('test.datatables.auto_ajax_server_side');
 
-        $actual = $this->renderPayload($table);
-
-        $this->assertIsString($actual['dataTable']);
-        $this->assertNotSame('', $actual['dataTable']);
-        $this->assertStringNotContainsString('AutoAjaxServerSideDataTable', $actual['dataTable']);
-    }
-
-    #[Test]
-    public function it_exposes_a_boolean_mutation_token_for_a_raw_datatable_with_a_registered_class(): void
-    {
-        $table = (new DataTable('products'))
-            ->setDataTableClass(AutoAjaxServerSideDataTable::class);
-
         $actual    = $this->renderPayload($table);
         $ajaxToken = $this->container->get('datatables.ajax.registry')
             ->getToken(AutoAjaxServerSideDataTable::class);
 
         $this->assertIsString($actual['dataTable']);
         $this->assertNotSame('', $actual['dataTable']);
+        $this->assertStringNotContainsString('AutoAjaxServerSideDataTable', $actual['dataTable']);
         $this->assertNotSame($ajaxToken, $actual['dataTable']);
     }
 
@@ -151,7 +137,7 @@ final class DataTablesExtensionTest extends TestCase
         $request->setSession(new Session(new MockArraySessionStorage()));
         $this->container->get('request_stack')->push($request);
 
-        $actual = $this->renderPayload((new DataTable('products'))->columns([TextColumn::new('name')]));
+        $actual = $this->renderPayload($this->inlineTable([TextColumn::new('name')]));
 
         $this->assertSame('fr_FR', $actual['locale']);
         $this->assertTrue($actual['mutationsEnabled']);
@@ -204,13 +190,13 @@ final class DataTablesExtensionTest extends TestCase
 
         if (null === $expectedRow) {
             $this->assertArrayNotHasKey('data', $actual);
-            $this->assertFalse($table->areTemplateColumnsRendered());
+            $this->assertFalse($table->getDataTable()->areTemplateColumnsRendered());
 
             return;
         }
 
         $this->assertSame($expectedRow, $this->trimRow($actual['data'][0]));
-        $this->assertTrue($table->areTemplateColumnsRendered());
+        $this->assertTrue($table->getDataTable()->areTemplateColumnsRendered());
     }
 
     /**
@@ -222,11 +208,6 @@ final class DataTablesExtensionTest extends TestCase
             'id'             => 5,
             'status'         => 'active',
             'status_display' => '<span class="badge">5-active</span>',
-        ]];
-
-        yield 'template columns already marked as rendered are left untouched' => ['marked', [
-            'id'     => 5,
-            'status' => 'active',
         ]];
 
         yield 'ajax tables carry no inline data' => ['ajax', null];
@@ -281,38 +262,17 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
-    public function it_filters_denied_columns_on_direct_datatable_rendering(): void
-    {
-        $table = $this->builder()->createDataTable('permission_table');
-        $table->columns([
-            TextColumn::new('id'),
-            TextColumn::new('secret')->permission('ROLE_DENIED'),
-        ]);
-        $table->data([
-            ['id' => 5, 'secret' => 'hidden'],
-        ]);
-
-        $actual = $this->renderPayload($table);
-
-        $this->assertSame(['id'], array_column($actual['columns'], 'name'));
-        $this->assertSame(['id' => 5], $actual['data'][0]);
-        $this->assertSame(['id', 'secret'], array_map(
-            static fn (mixed $column): string => $column->getName(),
-            array_values($table->getColumns()),
-        ));
-    }
-
-    #[Test]
     public function it_strips_denied_nested_dotted_paths_from_embedded_rows(): void
     {
-        $table = $this->builder()->createDataTable('nested_permission_table');
-        $table->columns([
-            TextColumn::new('name'),
-            TextColumn::new('user.email')->permission('ROLE_DENIED'),
-        ]);
-        $table->data([
-            ['name' => 'Ada', 'user' => ['email' => 'secret', 'role' => 'admin']],
-        ]);
+        $table = $this->inlineTable(
+            [
+                TextColumn::new('name'),
+                TextColumn::new('user.email')->permission('ROLE_DENIED'),
+            ],
+            static fn (DataTable $table): DataTable => $table->data([
+                ['name' => 'Ada', 'user' => ['email' => 'secret', 'role' => 'admin']],
+            ]),
+        );
 
         $actual = $this->renderPayload($table);
 
@@ -326,14 +286,15 @@ final class DataTablesExtensionTest extends TestCase
     #[Test]
     public function it_strips_denied_nested_paths_from_object_backed_embedded_rows(): void
     {
-        $table = $this->builder()->createDataTable('object_nested_permission_table');
-        $table->columns([
-            TextColumn::new('name'),
-            TextColumn::new('value.name')->permission('ROLE_DENIED'),
-        ]);
-        $table->data([
-            ['name' => 'Ada', 'value' => (object) ['name' => 'secret', 'role' => 'admin']],
-        ]);
+        $table = $this->inlineTable(
+            [
+                TextColumn::new('name'),
+                TextColumn::new('value.name')->permission('ROLE_DENIED'),
+            ],
+            static fn (DataTable $table): DataTable => $table->data([
+                ['name' => 'Ada', 'value' => (object) ['name' => 'secret', 'role' => 'admin']],
+            ]),
+        );
 
         $actual = $this->renderPayload($table);
 
@@ -345,7 +306,7 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
-    public function it_filters_denied_static_actions_on_direct_datatable_rendering(): void
+    public function it_filters_denied_static_actions_during_rendering(): void
     {
         $actions = (new Actions())->add(
             Action::detail()
@@ -353,14 +314,15 @@ final class DataTablesExtensionTest extends TestCase
                 ->linkToUrl(static fn (array $row): string => '/books/'.$row['id'])
         );
 
-        $table = $this->builder()->createDataTable('denied_actions_table');
-        $table->columns([
-            TextColumn::new('id'),
-            ActionColumn::fromActions('actions', 'Actions', $actions),
-        ]);
-        $table->data([
-            ['id' => 5],
-        ]);
+        $table = $this->inlineTable(
+            [
+                TextColumn::new('id'),
+                ActionColumn::fromActions('actions', 'Actions', $actions),
+            ],
+            static fn (DataTable $table): DataTable => $table->data([
+                ['id' => 5],
+            ]),
+        );
 
         $actual = $this->renderPayload($table);
 
@@ -372,7 +334,7 @@ final class DataTablesExtensionTest extends TestCase
         $this->assertSame([], $actionColumn['actions']);
         $this->assertArrayNotHasKey('__ux_datatables_actions', $actual['data'][0]);
 
-        $configuredActionColumn = $table->getColumnByName('actions');
+        $configuredActionColumn = $table->getConfiguredDataTable()->getColumnByName('actions');
         $this->assertInstanceOf(ActionColumn::class, $configuredActionColumn);
         $this->assertSame(1, $configuredActionColumn->getActions()?->count());
     }
@@ -519,10 +481,8 @@ final class DataTablesExtensionTest extends TestCase
         $controller(Request::create('/datatables/ajax/data', 'GET', ['table' => $token]));
     }
 
-    private function createInlineTable(string $mode): DataTable
+    private function createInlineTable(string $mode): AbstractDataTable
     {
-        $table = $this->builder()->createDataTable('inline_table');
-
         if ('actions' === $mode) {
             $actions = (new Actions())->add(
                 Action::detail()
@@ -530,35 +490,33 @@ final class DataTablesExtensionTest extends TestCase
                     ->linkToUrl(static fn (array $row): string => '/books/'.$row['id'])
             );
 
-            $table->columns([
-                TextColumn::new('id'),
-                ActionColumn::fromActions('actions', 'Actions', $actions),
-            ]);
-            $table->data([['id' => 5]]);
-
-            return $table;
+            return $this->inlineTable(
+                [
+                    TextColumn::new('id'),
+                    ActionColumn::fromActions('actions', 'Actions', $actions),
+                ],
+                static fn (DataTable $table): DataTable => $table->data([['id' => 5]]),
+            );
         }
 
-        $table->columns([
+        $columns = [
             TextColumn::new('id'),
             TemplateColumn::new('status_display')
                 ->setField('status')
                 ->setTemplate('datatable/columns/status_badge.html.twig'),
-        ]);
+        ];
 
         if ('ajax' === $mode) {
-            $table->ajax('/api/items');
-
-            return $table;
+            return $this->inlineTable(
+                $columns,
+                static fn (DataTable $table): DataTable => $table->ajax('/api/items'),
+            );
         }
 
-        $table->data([['id' => 5, 'status' => 'active']]);
-
-        if ('marked' === $mode) {
-            $table->markTemplateColumnsRendered();
-        }
-
-        return $table;
+        return $this->inlineTable(
+            $columns,
+            static fn (DataTable $table): DataTable => $table->data([['id' => 5, 'status' => 'active']]),
+        );
     }
 
     private function createInlineObjectTable(string $mode): AbstractDataTable
@@ -593,15 +551,22 @@ final class DataTablesExtensionTest extends TestCase
         return $table;
     }
 
-    private function builder(): DataTableBuilderInterface
+    /**
+     * @param list<ColumnInterface>                 $columns
+     * @param (\Closure(DataTable): DataTable)|null $configureTable
+     */
+    private function inlineTable(array $columns, ?\Closure $configureTable = null): ConfigurableDataTable
     {
-        return $this->container->get('test.datatables.builder');
+        $table = new ConfigurableDataTable($columns, configureTable: $configureTable);
+        $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
+
+        return $table;
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function renderPayload(AbstractDataTable|DataTable $table): array
+    private function renderPayload(AbstractDataTable $table): array
     {
         return $this->decodePayload($this->renderTableElement($table));
     }
@@ -609,7 +574,7 @@ final class DataTablesExtensionTest extends TestCase
     /**
      * @param array<string, mixed> $attributes
      */
-    private function renderTableElement(AbstractDataTable|DataTable $table, array $attributes = []): \DOMElement
+    private function renderTableElement(AbstractDataTable $table, array $attributes = []): \DOMElement
     {
         $rendered = $this->container->get('test.datatables.twig_extension')->renderDataTable($table, $attributes);
 
