@@ -18,6 +18,12 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  *
  * Native UUID/ULID columns must stay on the NULL-only path: PostgreSQL and SQL Server
  * reject `uuid = ''` the same way they reject `uuid LIKE`.
+ *
+ * The column's declared search joins are applied first, and its
+ * {@see ColumnInterface::getSearchField()} override replaces getField() when set.
+ * {@see ColumnInterface::buildSearchPredicate()} is deliberately not consulted: a nullness
+ * check is a property of the field itself, which an open-ended condition string built for a
+ * search term cannot stand in for.
  */
 final class NullnessSearchStrategy implements SearchStrategyInterface
 {
@@ -30,7 +36,9 @@ final class NullnessSearchStrategy implements SearchStrategyInterface
 
     public function apply(QueryBuilder $qb, ColumnInterface $column, ColumnControlSearch $search, int $paramIndex, string $alias): void
     {
-        $fieldPath = $column->getField();
+        RelationFieldResolver::applySearchJoins($qb, $column);
+
+        $fieldPath = $column->getSearchField() ?? $column->getField();
         if (null === $fieldPath) {
             return;
         }

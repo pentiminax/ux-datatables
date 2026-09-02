@@ -113,11 +113,16 @@ final class CaseInsensitiveStartsSearchStrategy implements SearchStrategyInterfa
         string $alias,
     ): void {
         $value = trim($search->value);
-        $fieldPath = $column->getField();
+        // getSearchField() is the column's setSearchField() override; fall back to the
+        // display field so a column that does not set one behaves as before.
+        $fieldPath = $column->getSearchField() ?? $column->getField();
 
         if ('' === $value || null === $fieldPath) {
             return;
         }
+
+        // Apply the joins the column declared with addSearchJoin(). Idempotent.
+        RelationFieldResolver::applySearchJoins($qb, $column);
 
         // LOWER() on a uuid or a datetime column is rejected by strict engines.
         if (!RelationFieldResolver::supportsTextSearch($qb, $fieldPath)) {
@@ -192,7 +197,10 @@ Return `null` when `$value` cannot be searched against the field — an unparsea
 column's Doctrine type, or a type `LIKE` cannot be used on. That column is then simply left out of
 the `OR`.
 
-`DefaultSearchPredicateBuilder` dispatches on the column type:
+`DefaultSearchPredicateBuilder` consults the column's own
+[`buildSearchPredicate()`](/ux-datatables/columns/overview/#searching-with-a-custom-predicate)
+first and returns its condition verbatim when it gives one. Otherwise it dispatches on the column
+type:
 
 | Column                       | Condition                                                          |
 | ---------------------------- | ------------------------------------------------------------------ |
@@ -200,6 +208,10 @@ the `OR`.
 | date                         | `null` — a partial date term has no meaningful `LIKE`              |
 | native UUID / ULID           | exact match when the term is a well-formed identifier of that type |
 | anything else                | `LIKE %term%` when the field supports text search                  |
+
+`$field` is resolved by the caller from `getSearchField()` before the builder is reached, so a
+`setSearchField()` override and any `addSearchJoin()` are already in effect. A column returning
+`null` from `buildSearchPredicate()` has no opinion, not "skip me": the type dispatch runs.
 
 `$forceNumeric` lets a caller force numeric handling from an external hint;
 `ContainsSearchStrategy` uses it for ColumnControl's `number` / `numeric` / `num` input types.

@@ -372,6 +372,64 @@ final class ColumnControlSearchFilterTest extends TestCase
         $this->applyList($qb, TextColumn::new('age')->setField('age'), ['42', '']);
     }
 
+    #[Test]
+    public function it_skips_a_virtual_column_the_root_entity_does_not_map(): void
+    {
+        $qb = $this->unmappedFieldQueryBuilder('donorProviderName');
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+
+        $strategy = $this->createMock(SearchStrategyInterface::class);
+        $strategy->expects($this->never())->method('apply');
+
+        $filter  = new ColumnControlSearchFilter(new SearchStrategyRegistry([], $strategy));
+        $context = $this->singleColumnContext(
+            TextColumn::new('donorProviderName', 'Donor'),
+            columnControl: new ColumnControl(search: new ColumnControlSearch('acme', ColumnControlLogic::Contains, 'text')),
+        );
+
+        $filter->apply($qb, $context);
+    }
+
+    #[Test]
+    public function it_reaches_the_strategy_for_a_virtual_column_carrying_a_search_field_override(): void
+    {
+        $qb = $this->joinRecordingQueryBuilder();
+
+        $strategy = $this->createMock(SearchStrategyInterface::class);
+        $strategy->expects($this->once())->method('apply');
+
+        $filter = new ColumnControlSearchFilter(new SearchStrategyRegistry([], $strategy));
+        $column = TextColumn::new('donorProviderName', 'Donor')
+            ->addSearchJoin('e.donorProvider', 'dp')
+            ->setSearchField('dp.name');
+
+        $filter->apply($qb, $this->singleColumnContext(
+            $column,
+            columnControl: new ColumnControl(search: new ColumnControlSearch('acme', ColumnControlLogic::Contains, 'text')),
+        ));
+
+        $this->assertSame([['e.donorProvider', 'dp', null, null]], $this->capturedJoins());
+    }
+
+    #[Test]
+    public function it_applies_an_in_clause_against_the_search_field_override(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('name', 'string');
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('donorProvider.name IN (:donorProvider_name_in)');
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with(':donorProvider_name_in', ['acme']);
+
+        $this->applyList(
+            $qb,
+            TextColumn::new('donorProviderName')->setSearchField('donorProvider.name'),
+            ['acme'],
+        );
+    }
+
     /**
      * @param list<mixed> $values
      */

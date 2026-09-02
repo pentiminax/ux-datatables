@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 
+use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -208,5 +209,50 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'client', 'acme', 'p_0');
 
         $this->assertNull($result);
+    }
+
+    #[Test]
+    public function it_returns_the_column_own_predicate_instead_of_the_type_dispatch(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('name', 'string');
+        $qb->expects($this->once())->method('setParameter')->with('p_0', '%acme%')->willReturn($qb);
+
+        $column = TextColumn::new('name', 'Name')->setSearchPredicate(
+            static function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
+                $qb->setParameter($paramName, \sprintf('%%%s%%', $value));
+
+                return \sprintf('LOWER(dp.name) LIKE :%s', $paramName);
+            }
+        );
+
+        $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'name', 'acme', 'p_0');
+
+        $this->assertSame('LOWER(dp.name) LIKE :p_0', $result);
+    }
+
+    #[Test]
+    public function it_wins_over_the_type_dispatch_even_on_a_column_the_type_dispatch_would_skip(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('createdAt', 'datetime_immutable');
+
+        $column = TextColumn::new('createdAt', 'Created')
+            ->setSearchPredicate(static fn (): string => 'e.createdAt IS NOT NULL');
+
+        $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'createdAt', 'x', 'p_0');
+
+        $this->assertSame('e.createdAt IS NOT NULL', $result);
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_type_dispatch_when_the_column_predicate_declines(): void
+    {
+        $qb = $this->queryBuilderWithFieldType('name', 'string');
+        $qb->expects($this->once())->method('setParameter')->with('p_0', '%acme%')->willReturn($qb);
+
+        $column = TextColumn::new('name', 'Name')->setSearchPredicate(static fn (): ?string => null);
+
+        $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'name', 'acme', 'p_0');
+
+        $this->assertSame("e.name LIKE :p_0 ESCAPE '!'", $result);
     }
 }

@@ -264,13 +264,70 @@ to-many relation inflates the counts (cartesian product) and changes pagination.
 keeps one row per root entity, so `LIMIT`/`OFFSET` paginate correctly.
 
 <Aside type="note">
-`setOrderExpression()` only affects ordering. Searching/filtering still resolve `<alias>.<field>`,
-so disable both `setSearchable(false)` and `disableGlobalSearch()` on computed columns unless the
-underlying field is also selectable.
+`setOrderExpression()` only affects ordering. Search resolves the column's field independently —
+see [Searching computed and virtual columns](#searching-computed-and-virtual-columns) below for
+pointing it somewhere valid, or disable it with `setSearchable(false)` and
+`disableGlobalSearch()`.
 </Aside>
 
 The count query the provider builds for `recordsFiltered` resets the `SELECT` and `ORDER BY` parts,
 so the `HIDDEN` alias and `ORDER BY` are dropped there automatically — no extra handling needed.
+
+## Searching Computed And Virtual Columns
+
+Search has the same resolution problem as ordering: it builds its predicate on
+`<alias>.<field>`. A column whose value is assembled in `mapRow()` (a concatenation, a value read
+through a relation, the first item of a collection) has no such field.
+
+The bundle skips those columns instead of letting Doctrine reject the whole query, so the table
+keeps working — but the column's search box returns nothing until you point it at real data.
+Three options, in increasing order of control:
+
+```php
+use App\Entity\ContractTerminationRequest;
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+public function configureColumns(): iterable
+{
+    // 1. Search a related field instead. The relation is LEFT JOINed automatically.
+    yield TextColumn::new('donorProviderName', 'Donor')
+        ->setSearchField('donorProvider.name');
+
+    // 2. Declare the join yourself when you need the alias, or a WITH condition.
+    yield TextColumn::new('recipientProviderName', 'Recipient')
+        ->addSearchJoin('e.recipientProvider', 'rp')
+        ->setSearchField('rp.name');
+
+    // 3. Build the predicate yourself for anything a field path cannot express.
+    yield TextColumn::new('dossierId', 'Dossier')
+        ->setOrderable(false)
+        ->setSearchPredicate(function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
+            $qb->setParameter($paramName, '%'.mb_strtolower($value).'%');
+
+            return \sprintf(
+                'EXISTS (SELECT 1 FROM %s r WHERE r.contractTermination = %s AND LOWER(r.dossierId) LIKE :%s)',
+                ContractTerminationRequest::class,
+                $alias,
+                $paramName,
+            );
+        });
+
+    // 4. Or opt out of search entirely.
+    yield TextColumn::new('label', 'Label')
+        ->setSearchable(false)
+        ->disableGlobalSearch();
+}
+```
+
+A predicate must bind its own parameters and **return** the condition rather than call
+`andWhere()`: global search combines the returned conditions with `OR`, a per-column search with
+`AND`. Returning `null` skips the column for that term.
+
+All three settings affect search only — the rendered value, the row mapping, the form mapping and
+the client payload keep using the column's own field. See
+[Sorting & Searching](/ux-datatables/columns/overview/#sorting--searching) for the full column
+reference.
 
 ## Best Practices
 
