@@ -31,6 +31,9 @@ final class DataTableInfrastructureTest extends TestCase
         $this->assertInstanceOf(DataTableRuntimeFactory::class, $infrastructure->runtimeFactory);
         $this->assertInstanceOf(DefaultDataTableQueryIntentFactory::class, $infrastructure->queryIntentFactory);
         $this->assertInstanceOf(QueryFilterPipeline::class, $infrastructure->queryFilterPipeline);
+        $this->assertSame([], $infrastructure->options);
+        $this->assertSame([], $infrastructure->attributes);
+        $this->assertSame([], $infrastructure->extensions);
         $this->assertNull($infrastructure->profiler);
     }
 
@@ -59,5 +62,32 @@ final class DataTableInfrastructureTest extends TestCase
         $this->assertSame($intentFactory, $infrastructure->queryIntentFactory);
         $this->assertSame($queryFilterPipeline, $infrastructure->queryFilterPipeline);
         $this->assertSame($profiler, $infrastructure->profiler);
+    }
+
+    #[Test]
+    public function it_stamps_the_bundle_defaults_onto_every_table_it_creates(): void
+    {
+        $infrastructure = DataTableInfrastructure::createDefault(
+            options: ['pageLength' => 25],
+            attributes: ['class' => 'table table-striped'],
+            extensions: ['select' => ['style' => 'multi']],
+        );
+
+        $table = $infrastructure->createDataTable('books');
+
+        $this->assertSame('books', $table->getId());
+        $this->assertSame(25, $table->getOption('pageLength'));
+        $this->assertSame(['class' => 'table table-striped'], $table->getAttributes());
+        $this->assertSame('multi', $table->getExtensions()['select']['style']);
+    }
+
+    #[Test]
+    public function it_creates_tables_without_defaults_when_none_are_configured(): void
+    {
+        $table = DataTableInfrastructure::createDefault()->createDataTable('books');
+
+        $this->assertSame([], $table->getAttributes());
+        $this->assertSame([], $table->getExtensions());
+        $this->assertNull($table->getOption('pageLength'));
     }
 }
