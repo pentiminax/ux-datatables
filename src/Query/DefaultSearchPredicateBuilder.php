@@ -6,12 +6,13 @@ namespace Pentiminax\UX\DataTables\Query;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 
 /**
  * Default {@see SearchPredicateBuilderInterface}, dispatching on the column type.
  *
- * A column's own {@see ColumnInterface::buildSearchPredicate()} wins over every branch below:
+ * A {@see SearchableColumnInterface} column's own buildSearchPredicate() wins over every branch below:
  * a column that builds its condition itself has said the type-based predicates cannot express
  * what it needs. It is consulted first and its result returned verbatim; returning null there
  * means "no opinion", not "skip", and falls through to the type dispatch.
@@ -40,10 +41,12 @@ final class DefaultSearchPredicateBuilder implements SearchPredicateBuilderInter
         string $paramName,
         bool $forceNumeric = false,
     ): ?string {
-        $custom = $column->buildSearchPredicate($qb, $alias, $value, $paramName);
+        if ($column instanceof SearchableColumnInterface) {
+            $custom = $column->buildSearchPredicate($qb, $alias, $value, $paramName);
 
-        if (null !== $custom) {
-            return $custom;
+            if (null !== $custom) {
+                return $custom;
+            }
         }
 
         if ($column->isNumber() || $forceNumeric) {

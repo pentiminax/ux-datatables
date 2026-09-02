@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
@@ -23,8 +24,8 @@ use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
  * that differ only in their SQL operator and parameter wrapping format.
  *
  * The column's declared search joins are applied first, and its
- * {@see ColumnInterface::getSearchField()} override replaces getField() when set.
- * {@see ColumnInterface::buildSearchPredicate()} is deliberately not consulted: each logic
+ * {@see SearchableColumnInterface::getSearchField()} override replaces getField() when set.
+ * {@see SearchableColumnInterface::buildSearchPredicate()} is deliberately not consulted: each logic
  * here fixes its own comparison shape and parameter format, which an open-ended condition
  * string cannot substitute for.
  */
@@ -46,7 +47,7 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
 
         RelationFieldResolver::applySearchJoins($qb, $column);
 
-        $fieldPath = $column->getSearchField() ?? $column->getField();
+        $fieldPath = RelationFieldResolver::resolveSearchField($column);
         if (null === $fieldPath) {
             return;
         }

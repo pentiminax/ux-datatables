@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
@@ -24,7 +25,7 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  * forces numeric handling.
  *
  * The column's declared search joins are applied first, and its
- * {@see ColumnInterface::getSearchField()} override replaces getField() when set. A column
+ * {@see SearchableColumnInterface::getSearchField()} override replaces getField() when set. A column
  * that builds its own predicate short-circuits the whole type dispatch -- see
  * {@see SearchPredicateBuilderInterface}.
  */
@@ -45,7 +46,7 @@ final class ContainsSearchStrategy implements SearchStrategyInterface
 
         RelationFieldResolver::applySearchJoins($qb, $column);
 
-        $field = $column->getSearchField() ?? $column->getField();
+        $field = RelationFieldResolver::resolveSearchField($column);
         if (null === $field) {
             return;
         }

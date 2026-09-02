@@ -24,7 +24,7 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  *
  * Per column, the joins declared with {@see \Pentiminax\UX\DataTables\Column\AbstractColumn::addSearchJoin()}
  * are applied first, then the search field override from
- * {@see \Pentiminax\UX\DataTables\Contracts\ColumnInterface::getSearchField()} replaces the
+ * {@see \Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface::getSearchField()} replaces the
  * intent's display field path.
  */
 final class GlobalSearchFilter implements QueryFilterInterface
@@ -56,7 +56,7 @@ final class GlobalSearchFilter implements QueryFilterInterface
 
             RelationFieldResolver::applySearchJoins($qb, $column);
 
-            $field = $column->getSearchField() ?? $reference->fieldPath;
+            $field = RelationFieldResolver::resolveSearchField($column) ?? $reference->fieldPath;
 
             if (null === $field) {
                 continue;

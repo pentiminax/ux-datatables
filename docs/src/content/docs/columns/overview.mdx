@@ -145,7 +145,10 @@ or names derived from it — and **return** a DQL condition instead of calling `
 search combines the returned conditions with `OR`, a column search with `AND`. Return `null` to
 skip the column for that term.
 
-Overriding `buildSearchPredicate()` in a column subclass is the class-level equivalent.
+Overriding `buildSearchPredicate()` in a column subclass is the class-level equivalent. All three
+settings come from `Contracts\SearchableColumnInterface`, which `AbstractColumn` implements — so
+every bundled column type has them, and a custom class implementing `ColumnInterface` directly opts
+in by implementing that interface too.
 
 :::caution
 The predicate string is used verbatim in the DQL. Build it from your own code, never by
