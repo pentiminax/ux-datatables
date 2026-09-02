@@ -3,6 +3,78 @@
 Each section covers one version bump. When you skip versions, apply every section between your
 current version and the target, oldest first.
 
+## v0.84 → v0.85
+
+Affects classes that implement `Contracts\ColumnInterface` directly. Columns extending
+`AbstractColumn` — every bundled column type and any subclass of one — are unaffected, as are
+filters, Twig templates, the Ajax routes, and every JSON payload on the wire.
+
+### `ColumnInterface` carries the column's search configuration
+
+Server-side search resolved every column to `<alias>.<field>`. A column whose value is assembled in
+`mapRow()` had nowhere valid to point, so Doctrine rejected the whole query with `has no field or
+association named ...` — taking the table down rather than that one column. Ordering already had
+`setOrderExpression()` for this; search had nothing.
+
+Three members now let a column say how it is searched, and they are **mandatory** on
+`ColumnInterface`:
+
+| Member | Contract |
+| --- | --- |
+| `getSearchField(): ?string` | Field path to search instead of `getField()`, or `null` to search the display field |
+| `getSearchJoins(): array` | `list<array{join: string, alias: string, conditionType: ?string, condition: ?string}>` applied before the predicate is built |
+| `buildSearchPredicate(QueryBuilder $qb, string $alias, string $value, string $paramName): ?string` | Custom DQL condition, or `null` to fall back to the type-based predicate |
+
+A class implementing `ColumnInterface` directly must add all three, or PHP rejects it while loading
+the class. The inert implementation is three lines and keeps the previous behavior exactly:
+
+```php
+public function getSearchField(): ?string
+{
+    return null;
+}
+
+public function getSearchJoins(): array
+{
+    return [];
+}
+
+public function buildSearchPredicate(QueryBuilder $qb, string $alias, string $value, string $paramName): ?string
+{
+    return null;
+}
+```
+
+Extending `AbstractColumn` — or any bundled column type — is the shorter route: it implements all
+three and adds the fluent `setSearchField()`, `addSearchJoin()`, and `setSearchPredicate()` setters
+on top. This follows the same call as folding `PermissionAwareColumnInterface` into
+`ColumnInterface` in v0.84: while the bundle is on v0.x, `ColumnInterface` takes the addition rather
+than growing a parallel opt-in contract beside it.
+
+`buildSearchPredicate()` is the one member of `ColumnInterface` that is not an accessor. It runs
+only at the Doctrine query boundary, once per search term. Bind parameters on the query builder —
+under `$paramName` or names derived from it — and **return** the condition instead of calling
+`andWhere()`: global search combines the returned conditions with `OR`, a per-column search with
+`AND`.
+
+### An unmapped searchable column is skipped instead of erroring
+
+`Query\RelationFieldResolver::supportsSearchFiltering()` now returns `false` for a bare field the
+root entity maps neither as a scalar nor as an association. Such a field is a virtual column
+assembled in `mapRow()`, and emitting `<alias>.<field>` for it made Doctrine reject the entire
+query.
+
+A table that previously returned a 500 on search now answers normally, with that one column left
+out of the predicate — so its search box silently matches nothing. Point it at real data with
+`setSearchField()`, `addSearchJoin()`, or `setSearchPredicate()`, or opt out with
+`setSearchable(false)` and `disableGlobalSearch()`.
+
+`Query\RelationFieldResolver::resolve()` also reuses a join already registered for the same
+expression under an alias of your choosing, instead of joining the relation a second time under the
+alias it derives itself. A `customizeQueryBuilder()` that joined `e.author` as `a` and a column
+searching `author.name` now produce one join and the predicate reads `a.name`, where before there
+were two joins and the predicate read `author.name`.
+
 ## v0.83 → v0.84
 
 Affects applications that built tables with `DataTableBuilderInterface` in a controller, passed a

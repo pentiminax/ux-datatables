@@ -23,6 +23,10 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
  * directly: it provides the fluent setters, the ColumnType handling, and jsonSerialize(). Add
  * {@see TemplateAwareColumnInterface} or {@see ActionsProvidingColumnInterface} on top when the
  * column renders Twig or contributes row actions.
+ *
+ * While the bundle is on v0.x this interface takes new members rather than growing a parallel
+ * opt-in contract beside it, so a class implementing it directly can need changes on a minor
+ * bump. UPGRADE.md carries the inert implementation for each addition.
  */
 interface ColumnInterface extends \JsonSerializable
 {
