@@ -11,7 +11,7 @@ use Pentiminax\UX\DataTables\Column\PropertyTypeMapper;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
-use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
+use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Controller\AjaxDataController;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
@@ -247,7 +247,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.column.resolver', ColumnResolver::class)
         ->arg(0, service('datatables.column.attribute_column_reader'))
-        ->arg(1, service(ColumnAutoDetectorInterface::class)->nullOnInvalid())
+        ->arg(1, service(ColumnAutoDetector::class)->nullOnInvalid())
         ->arg(2, service('datatables.security.permission_checker'))
         ->private();
 

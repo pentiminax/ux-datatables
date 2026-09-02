@@ -6,7 +6,9 @@ current version and the target, oldest first.
 ## v0.83 → v0.84
 
 Affects applications that built tables with `DataTableBuilderInterface` in a controller, passed a
-bare `DataTable` to `render_datatable()`, or constructed `DataTableInfrastructure` themselves.
+bare `DataTable` to `render_datatable()`, or constructed `DataTableInfrastructure` themselves, and
+code that implemented or type-hinted one of the removed single-implementation interfaces, custom
+columns implementing `ColumnInterface` directly, or callers of `Query\SearchPredicateFactory`.
 Tables already declared as `AbstractDataTable` classes are unchanged, as are columns, filters, Twig
 templates, the Ajax routes, and every JSON payload on the wire.
 
@@ -99,6 +101,55 @@ final class UserController extends AbstractController
 
 When the rows are only known at request time, keep `configureDataTable()` for the options and call
 `$table->setData($rows)` in the controller.
+
+### Single-implementation interfaces are removed
+
+Each of these interfaces had exactly one implementation. Type-hint the concrete class instead; it is
+no longer `final`, so a test double or a subclass of your own still works.
+
+| Removed interface | Type-hint instead |
+| --- | --- |
+| `Contracts\ColumnAutoDetectorInterface` | `ApiPlatform\ColumnAutoDetector` |
+| `Contracts\EditModalTemplateResolverInterface` | `Form\EditModalTemplateResolver` |
+| `Contracts\PermissionAwareColumnInterface` | `Contracts\ColumnInterface` |
+| `Contracts\LayoutAwareExtensionInterface` | `Model\Extensions\ButtonsExtension` |
+
+`PermissionAwareColumnInterface` was a one-method contract on top of `ColumnInterface`, and every
+column already carried it. `getPermission(): ?string` now lives on `ColumnInterface` itself, so an
+`instanceof` check before reading it is no longer needed. Columns extending `AbstractColumn` are
+unaffected. A class of yours implementing `ColumnInterface` directly must add the method; return
+`null` when the column is always visible.
+
+`LayoutAwareExtensionInterface` was a marker for extensions injected into the DataTables `layout`
+configuration rather than serialized as top-level options. `ButtonsExtension` is the only
+layout-aware extension, so the marker is gone and the two call sites test for that class directly.
+The profiler's `layoutAware` flag keeps its name and meaning.
+
+The service aliases for the two resolver interfaces are gone. `ApiPlatform\ColumnAutoDetector` is
+aliased in its place, so an autowired argument keeps resolving; point a decoration or an explicit
+argument at the concrete class. `Form\EditModalTemplateResolver` has no alias: reference the
+`datatables.form.edit_modal_template_resolver` service id.
+
+### `SearchPredicateFactory` is merged into `DefaultSearchPredicateBuilder`
+
+`Query\SearchPredicateFactory` was a static one-method class that
+`Query\DefaultSearchPredicateBuilder` forwarded to unchanged. The type-dispatch logic now lives in
+the builder, and the factory is removed.
+
+```php
+// before
+$predicate = SearchPredicateFactory::build($qb, $column, $alias, $field, $value, $paramName, $forceNumeric);
+
+// after
+$predicate = (new DefaultSearchPredicateBuilder())->build($qb, $column, $alias, $field, $value, $paramName, $forceNumeric);
+```
+
+`Query\Strategy\ContainsSearchStrategy` now takes the builder as an optional constructor argument
+defaulting to `DefaultSearchPredicateBuilder`, so `new ContainsSearchStrategy()` keeps working.
+
+`SearchPredicateBuilderInterface` is untouched: it stays the supported seam for the
+`AbstractDataTable::createSearchPredicateBuilder()` hook, and a custom builder of yours keeps
+working.
 
 ## v0.82 → v0.83
 

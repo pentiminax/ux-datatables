@@ -12,12 +12,12 @@ use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalRenderRequest;
+use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
@@ -253,7 +253,7 @@ final class EditFormServiceTest extends TestCase
         $renderer->expects($this->never())->method('render');
         $renderer->expects($this->never())->method('renderBody');
 
-        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver = $this->createMock(EditModalTemplateResolver::class);
         $templateResolver->expects($this->never())->method('resolveColumns');
         $templateResolver->expects($this->never())->method('resolveChromeTemplate');
         $templateResolver->expects($this->never())->method('resolveBodyTemplate');
@@ -303,7 +303,7 @@ final class EditFormServiceTest extends TestCase
         $renderer->expects($this->never())->method('render');
         $renderer->expects($this->never())->method('renderBody');
 
-        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver = $this->createMock(EditModalTemplateResolver::class);
         $templateResolver->expects($this->once())
             ->method('resolveColumns')
             ->with($dataTableClass)
@@ -354,9 +354,9 @@ final class EditFormServiceTest extends TestCase
         return $formFactory;
     }
 
-    private function createRenderingTemplateResolver(string $dataTableClass): EditModalTemplateResolverInterface
+    private function createRenderingTemplateResolver(string $dataTableClass): EditModalTemplateResolver
     {
-        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver = $this->createMock(EditModalTemplateResolver::class);
         $templateResolver->expects($this->once())
             ->method('resolveColumns')
             ->with($dataTableClass)

@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Form;
 use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
-use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercurePublisherInterface;
@@ -26,7 +25,7 @@ final class EditFormService
         private readonly EntityLocator $locator,
         private readonly EditFormBuilder $builder,
         private readonly EditModalRenderer $renderer,
-        private readonly EditModalTemplateResolverInterface $templateResolver,
+        private readonly EditModalTemplateResolver $templateResolver,
         private readonly MercurePublisherInterface $publisher,
         private readonly ?MercureConfigResolver $mercureConfigResolver = null,
         private readonly ?ContainerInterface $dataTables = null,

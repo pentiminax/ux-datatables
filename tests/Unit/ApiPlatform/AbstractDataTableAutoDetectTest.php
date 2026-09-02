@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\ApiPlatform;
 
+use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectNoAttributeDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoDetectTestDataTable;
@@ -50,7 +50,7 @@ final class AbstractDataTableAutoDetectTest extends TestCase
     #[Test]
     public function it_returns_detected_columns(): void
     {
-        $detector = $this->createStub(ColumnAutoDetectorInterface::class);
+        $detector = $this->createStub(ColumnAutoDetector::class);
         $detector->method('supports')->willReturn(true);
         $detector->method('detectColumns')->willReturn([
             NumberColumn::new('id', 'ID'),
@@ -70,7 +70,7 @@ final class AbstractDataTableAutoDetectTest extends TestCase
     #[Test]
     public function it_uses_attribute_serialization_groups(): void
     {
-        $detector = $this->createMock(ColumnAutoDetectorInterface::class);
+        $detector = $this->createMock(ColumnAutoDetector::class);
         $detector->method('supports')->willReturn(true);
         $detector
             ->expects($this->once())
@@ -84,9 +84,9 @@ final class AbstractDataTableAutoDetectTest extends TestCase
     /**
      * Returns columns whenever it is consulted, so an empty column list proves it was not.
      */
-    private function detector(bool $supports): ColumnAutoDetectorInterface
+    private function detector(bool $supports): ColumnAutoDetector
     {
-        $detector = $this->createStub(ColumnAutoDetectorInterface::class);
+        $detector = $this->createStub(ColumnAutoDetector::class);
         $detector->method('supports')->willReturn($supports);
         $detector->method('detectColumns')->willReturn([TextColumn::new('detected')]);
 

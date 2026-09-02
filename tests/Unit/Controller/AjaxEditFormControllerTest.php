@@ -12,13 +12,13 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Contracts\EditModalTemplateResolverInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
 use Pentiminax\UX\DataTables\Dto\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
+use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -65,7 +65,7 @@ final class AjaxEditFormControllerTest extends TestCase
             ->with($this->isType('object'))
             ->willReturn('<div>ok</div>');
 
-        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver = $this->createMock(EditModalTemplateResolver::class);
         $templateResolver->expects($this->once())->method('resolveChromeTemplate')->willReturn('modal.html.twig');
         $templateResolver->expects($this->once())->method('resolveBodyTemplate')->willReturn('body.html.twig');
         $templateResolver->expects($this->once())
@@ -144,7 +144,7 @@ final class AjaxEditFormControllerTest extends TestCase
         ManagerRegistry $registry,
         FormFactoryInterface $formFactory,
         EditModalRenderer $renderer,
-        EditModalTemplateResolverInterface $templateResolver,
+        EditModalTemplateResolver $templateResolver,
         ?ContainerInterface $dataTables = null,
     ): AjaxEditFormController {
         $authorizationChecker = $this->createMock(AuthorizationCheckerInterface::class);
@@ -186,7 +186,7 @@ final class AjaxEditFormControllerTest extends TestCase
     }
 
     /**
-     * @return array{FormFactoryInterface, EditModalRenderer, EditModalTemplateResolverInterface}
+     * @return array{FormFactoryInterface, EditModalRenderer, EditModalTemplateResolver}
      */
     private function createUnusedFormCollaborators(): array
     {
@@ -196,7 +196,7 @@ final class AjaxEditFormControllerTest extends TestCase
         $renderer = $this->createMock(EditModalRenderer::class);
         $renderer->expects($this->never())->method('render');
 
-        $templateResolver = $this->createMock(EditModalTemplateResolverInterface::class);
+        $templateResolver = $this->createMock(EditModalTemplateResolver::class);
         $templateResolver->expects($this->never())->method('resolveChromeTemplate');
         $templateResolver->expects($this->never())->method('resolveColumns');
 
