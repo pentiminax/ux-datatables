@@ -32,11 +32,8 @@ export async function loadButtonsLibrary(
     ])
 
     await Promise.all([
-        import('pdfmake/build/vfs_fonts'),
+        import('pdfmake/build/vfs_fonts.js'),
         import('datatables.net-buttons'),
-        import('datatables.net-buttons/js/buttons.colVis'),
-        import('datatables.net-buttons/js/buttons.html5'),
-        import('datatables.net-buttons/js/buttons.print'),
         frameworkLoaders[framework](),
         frameworkStyleLoaders[framework](),
     ])
