@@ -41,6 +41,21 @@ const EXTENSION_MAP = {
     rowGroup: 'rowGroup',
     scroller: 'scroller',
 };
+const GENERATED_MARKUP_SELECTOR = [
+    '.dt-layout-row',
+    '.dt-layout-cell',
+    '.dt-layout-start',
+    '.dt-layout-end',
+    '.dt-layout-full',
+    '.dt-length',
+    '.dt-search',
+    '.dt-info',
+    '.dt-paging',
+    '.dt-processing',
+    '.dt-scroll',
+    '.dt-buttons',
+    'table.dataTable',
+].join(',');
 class default_1 extends Controller {
     constructor() {
         super(...arguments);
@@ -154,7 +169,7 @@ class default_1 extends Controller {
         const container = this.findGeneratedWrapper(element);
         if (container) {
             for (const child of Array.from(container.children)) {
-                if (!child.contains(element)) {
+                if (!child.contains(element) && this.isGeneratedMarkup(child, element.id)) {
                     child.remove();
                 }
             }
@@ -168,6 +183,15 @@ class default_1 extends Controller {
         }
         const container = element.closest('.dt-container');
         return container?.id === `${element.id}_wrapper` ? container : null;
+    }
+    isGeneratedMarkup(node, tableId) {
+        if (node.matches(GENERATED_MARKUP_SELECTOR) ||
+            node.querySelector(GENERATED_MARKUP_SELECTOR)) {
+            return true;
+        }
+        const prefix = `${tableId}_`;
+        return (node.id.startsWith(prefix) ||
+            Array.from(node.querySelectorAll('[id]')).some((el) => el.id.startsWith(prefix)));
     }
     async loadExtensions(payload, framework, DataTable) {
         if (this.hasButtonsInLayout(payload)) {

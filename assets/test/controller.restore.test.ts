@@ -131,6 +131,53 @@ describe('datatable controller history restore', () => {
         expect(document.querySelector('#app-control')).not.toBeNull()
         expect(document.querySelector('#app-sidebar')).not.toBeNull()
     })
+
+    // The wrapper id is a naming convention, not proof of ownership: an application container is
+    // free to use it. Removal therefore needs evidence on the node being removed.
+    it('keeps unrecognized siblings even inside a container named like the wrapper', async () => {
+        const container = document.createElement('div')
+        container.className = 'dt-container'
+        container.id = 'people_wrapper'
+        document.body.appendChild(container)
+
+        const control = document.createElement('div')
+        control.id = 'app-control'
+        control.innerHTML = '<button type="button">Export</button>'
+        container.appendChild(control)
+
+        const staleRow = document.createElement('div')
+        staleRow.id = 'stale-row-wrapper'
+        // Bootstrap 5 shape: the layout row's own class carries no dt- marker, but the cell inside
+        // it does, which is what identifies the subtree as generated.
+        staleRow.className = 'row mt-2 justify-content-between'
+        staleRow.innerHTML = '<div class="dt-layout-start col-md-auto"><div class="dt-search"></div></div>'
+        container.appendChild(staleRow)
+
+        const table = mountRestoredTable(container)
+        await settle()
+
+        expect(seen).toHaveLength(1)
+        expect(seen[0].childElementCount).toBe(0)
+        expect(document.querySelector('#stale-row-wrapper')).toBeNull()
+        expect(document.querySelector('#app-control')).not.toBeNull()
+        expect(table.closest('.dt-container')).not.toBeNull()
+    })
+
+    it('removes a stale control identified only by its table-namespaced id', async () => {
+        const wrapper = document.createElement('div')
+        wrapper.className = 'dt-container'
+        wrapper.id = 'people_wrapper'
+        document.body.appendChild(wrapper)
+
+        const info = document.createElement('div')
+        info.id = 'people_info'
+        wrapper.appendChild(info)
+
+        mountRestoredTable(wrapper)
+        await settle()
+
+        expect(document.querySelector('#people_info')).toBeNull()
+    })
 })
 
 function viewValue(): string {
