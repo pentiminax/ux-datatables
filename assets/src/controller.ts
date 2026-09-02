@@ -62,6 +62,29 @@ const EXTENSION_MAP: Record<string, string> = {
     scroller: 'scroller',
 }
 
+/**
+ * Markers that only DataTables writes: its layout scaffolding, its built-in controls, the scrolling
+ * containers, and the processed table itself. Style integrations rewrite the layout row's class -
+ * Bootstrap 5 emits `row mt-2 justify-content-between` - but every one of them keeps the
+ * `dt-layout-start`/`-end`/`-full` cells inside that row, so a marker is looked for anywhere in a
+ * node's subtree rather than on the node itself.
+ */
+const GENERATED_MARKUP_SELECTOR = [
+    '.dt-layout-row',
+    '.dt-layout-cell',
+    '.dt-layout-start',
+    '.dt-layout-end',
+    '.dt-layout-full',
+    '.dt-length',
+    '.dt-search',
+    '.dt-info',
+    '.dt-paging',
+    '.dt-processing',
+    '.dt-scroll',
+    '.dt-buttons',
+    'table.dataTable',
+].join(',')
+
 export default class extends Controller {
     declare readonly viewValue: any
 
@@ -142,6 +165,8 @@ export default class extends Controller {
             return
         }
 
+        this.resetRestoredMarkup()
+
         await this.loadExtensions(payload, framework, DataTable)
 
         this.dispatchEvent('pre-init', { config: payload, DataTable })
@@ -218,6 +243,88 @@ export default class extends Controller {
         }
 
         this.table.draw(false)
+    }
+
+    /**
+     * `render_datatable()` emits an empty `<table>`: every header cell, row, and control is built
+     * by DataTables at init time. A browser history restore - a real Back/Forward that reloads the
+     * document rather than a Turbo visit - can hand that generated markup back while every
+     * JavaScript-side handle is gone: `turbo:before-cache` never fired, so nothing tore the table
+     * down, and `DataTable.isDataTable()` reports false because DataTables' settings array died
+     * with the previous document. Initializing over that half-processed DOM makes DataTables adopt
+     * the stale header cells, whose count no longer matches the payload's columns, and it then
+     * fails inside its own index-keyed column lookups (visible as a `TypeError` raised from
+     * Buttons' `_columnText`, which is simply the first consumer to read a column that does not
+     * exist).
+     *
+     * Emptying the table restores exactly what the server rendered, so initialization proceeds as
+     * on a fresh load.
+     */
+    private resetRestoredMarkup(): void {
+        const element = this.element as HTMLTableElement
+
+        if (!element.classList.contains('dataTable') && element.childElementCount === 0) {
+            return
+        }
+
+        // A surviving wrapper is emptied in place rather than unwrapped: reparenting the table
+        // would make Stimulus report disconnect + reconnect, and the fresh controller instance
+        // would race this initialization into a second `new DataTable()` on the same node.
+        // Nothing in the DOM can prove ownership of the wrapper - every marker DataTables writes,
+        // an application is free to write too - so the removal is inverted instead: a sibling goes
+        // only when it carries positive evidence DataTables built it. An unrecognized node is left
+        // alone, which at worst leaves a dead control on screen rather than deleting page content.
+        const container = this.findGeneratedWrapper(element)
+        if (container) {
+            for (const child of Array.from(container.children)) {
+                if (!child.contains(element) && this.isGeneratedMarkup(child, element.id)) {
+                    child.remove()
+                }
+            }
+        }
+
+        element.replaceChildren()
+        // DataTables re-adds this at init; removing it keeps the "already processed" signal
+        // honest for anything - including this method on a later cycle - that reads it.
+        element.classList.remove('dataTable')
+    }
+
+    /**
+     * `dt-container` is only a class name: an application is free to put the table inside its own
+     * element carrying it, and emptying that would delete controls and content the bundle never
+     * generated. DataTables names the wrapper it builds after the table it wraps
+     * (`<table id>_wrapper`), and it inserts that wrapper directly around the table, so the nearest
+     * `.dt-container` ancestor is ours only when its id matches. Anything else is left alone.
+     */
+    private findGeneratedWrapper(element: HTMLTableElement): Element | null {
+        if (!element.id) {
+            return null
+        }
+
+        const container = element.closest('.dt-container')
+
+        return container?.id === `${element.id}_wrapper` ? container : null
+    }
+
+    /**
+     * Positive evidence that DataTables generated `node`: one of its own markup markers, or an id
+     * it namespaces to the table (`<table id>_processing`, `<table id>_info`). Absence of evidence
+     * means the node is left in place.
+     */
+    private isGeneratedMarkup(node: Element, tableId: string): boolean {
+        if (
+            node.matches(GENERATED_MARKUP_SELECTOR) ||
+            node.querySelector(GENERATED_MARKUP_SELECTOR)
+        ) {
+            return true
+        }
+
+        const prefix = `${tableId}_`
+
+        return (
+            node.id.startsWith(prefix) ||
+            Array.from(node.querySelectorAll('[id]')).some((el) => el.id.startsWith(prefix))
+        )
     }
 
     private async loadExtensions(
