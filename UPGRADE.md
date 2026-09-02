@@ -3,6 +3,103 @@
 Each section covers one version bump. When you skip versions, apply every section between your
 current version and the target, oldest first.
 
+## v0.83 → v0.84
+
+Affects applications that built tables with `DataTableBuilderInterface` in a controller, passed a
+bare `DataTable` to `render_datatable()`, or constructed `DataTableInfrastructure` themselves.
+Tables already declared as `AbstractDataTable` classes are unchanged, as are columns, filters, Twig
+templates, the Ajax routes, and every JSON payload on the wire.
+
+### `DataTableBuilderInterface` and `DataTableBuilder` are removed
+
+There is now exactly one way to define a table: a class extending `AbstractDataTable`. The Twig
+function `render_datatable()` accepts only an `AbstractDataTable`; passing a bare `DataTable` throws
+a `TypeError`.
+
+`DataTableInfrastructure` carries the `data_tables` bundle defaults itself. Its `builder()` method
+is gone, replaced by `createDataTable(string $id)`, and its constructor takes the defaults as three
+arrays (`$options`, `$attributes`, `$extensions`) where the builder used to sit.
+
+The table ID is the short name of the table class, so `UsersDataTable` renders as
+`<table id="UsersDataTable">`. Two tables on the same page must not share a class name.
+
+```php
+// before
+namespace App\Controller;
+
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+final class UserController extends AbstractController
+{
+    #[Route('/users', name: 'app_users')]
+    public function index(DataTableBuilderInterface $builder): Response
+    {
+        $table = $builder
+            ->createDataTable('usersTable')
+            ->columns([
+                TextColumn::new('firstName', 'First name'),
+                TextColumn::new('lastName', 'Last name'),
+            ])
+            ->data([
+                ['firstName' => 'John', 'lastName' => 'Doe'],
+            ]);
+
+        return $this->render('user/index.html.twig', ['table' => $table]);
+    }
+}
+```
+
+```php
+// after
+namespace App\DataTables;
+
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('firstName', 'First name');
+        yield TextColumn::new('lastName', 'Last name');
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->data([
+            ['firstName' => 'John', 'lastName' => 'Doe'],
+        ]);
+    }
+}
+```
+
+```php
+// after
+namespace App\Controller;
+
+use App\DataTables\UsersDataTable;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+final class UserController extends AbstractController
+{
+    #[Route('/users', name: 'app_users')]
+    public function index(UsersDataTable $table): Response
+    {
+        return $this->render('user/index.html.twig', ['table' => $table]);
+    }
+}
+```
+
+When the rows are only known at request time, keep `configureDataTable()` for the options and call
+`$table->setData($rows)` in the controller.
+
 ## v0.82 → v0.83
 
 Affects custom `QueryFilterInterface` implementations, code that implemented one of the removed
