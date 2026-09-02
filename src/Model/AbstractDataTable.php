@@ -273,15 +273,7 @@ abstract class AbstractDataTable
             return;
         }
 
-        $rowMapper = $this->createRowMapper();
-        $rows      = [];
-
-        foreach ($data as $item) {
-            $rows[] = $rowMapper->map($item);
-        }
-
-        $this->table->data($rows);
-        $this->table->markTemplateColumnsRendered();
+        $this->mapInlineRows($data);
     }
 
     private function shouldHydrateClientSideData(): bool
@@ -411,6 +403,14 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
+        $this->mapInlineRows($data);
+    }
+
+    /**
+     * @param iterable<mixed> $data
+     */
+    private function mapInlineRows(iterable $data): void
+    {
         $rowMapper = $this->createRowMapper();
         $rows      = [];
 

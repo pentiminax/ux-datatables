@@ -116,13 +116,11 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.twig_extension', DataTablesExtension::class)
         ->arg(0, service('stimulus.helper'))
-        ->arg(1, service('datatables.column.template_column_renderer'))
-        ->arg(2, service('datatables.column.action_row_data_resolver'))
-        ->arg(3, service('datatables.column.resolver'))
-        ->arg(4, service('request_stack'))
-        ->arg(5, service('datatables.security.csrf_token_manager'))
-        ->arg(6, service('datatables.ajax.registry')->nullOnInvalid())
-        ->arg(7, service('datatables.profiler')->nullOnInvalid())
+        ->arg(1, service('datatables.column.resolver'))
+        ->arg(2, service('request_stack'))
+        ->arg(3, service('datatables.security.csrf_token_manager'))
+        ->arg(4, service('datatables.ajax.registry')->nullOnInvalid())
+        ->arg(5, service('datatables.profiler')->nullOnInvalid())
         ->tag('twig.extension')
         ->private();
 

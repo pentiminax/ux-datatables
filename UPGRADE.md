@@ -9,8 +9,9 @@ Affects applications that built tables with `DataTableBuilderInterface` in a con
 bare `DataTable` to `render_datatable()`, or constructed `DataTableInfrastructure` themselves; code
 that implemented or type-hinted one of the removed single-implementation interfaces, custom columns
 implementing `ColumnInterface` directly, or callers of `Query\SearchPredicateFactory`; and code that
-decorates or hand-instantiates `EntityMutator` or `EditFormService`, or called
-`MercureTopicResolver::resolve()` statically.
+decorates or hand-instantiates `EntityMutator` or `EditFormService`, called
+`MercureTopicResolver::resolve()` statically, decorates or hand-instantiates
+`Twig\DataTablesExtension`, or used `RowMapper\ClosureRowMapper`.
 Tables already declared as `AbstractDataTable` classes are unchanged, as are columns, filters, Twig
 templates, the Ajax routes, and every JSON payload on the wire.
 
@@ -188,6 +189,32 @@ as `arg(5)` with the permission checker moving to `arg(6)`. `delete()`, `setProp
 
 The service is declared in `config/services.php` rather than `config/mercure.php`, so mutations
 still resolve topics (to an empty list) when Mercure is not installed.
+
+### Inline rows are rendered once, by the row pipeline
+
+`render_datatable()` no longer re-renders `TemplateColumn`s, resolves actions, or strips denied
+column values on inline rows. `AbstractDataTable` already does all of it exactly once, through the
+row pipeline, whichever way the rows arrive: `configureDataTable()->data()`, `setData()`, or
+client-side hydration. Rendering a table twice in one request no longer risks double-rendering a
+template column.
+
+The `DataTablesExtension` constructor lost its `TemplateColumnRenderer` and `ActionRowDataResolver`
+arguments; `ColumnResolver` moves from `arg(3)` to `arg(1)`, and every following argument shifts down
+by two. This matters only to code that decorates or hand-instantiates the extension. The rendered
+payload is unchanged.
+
+`RowMapper\ClosureRowMapper` is removed; it had no consumer in the bundle. Implement
+`RowMapperInterface` yourself when you need a closure-backed mapper:
+
+```php
+use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+
+$mapper = new class($fn) implements RowMapperInterface {
+    public function __construct(private readonly \Closure $fn) {}
+
+    public function map(mixed $item): array { return ($this->fn)($item); }
+};
+```
 
 ## v0.82 → v0.83
 
