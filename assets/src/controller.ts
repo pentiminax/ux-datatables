@@ -25,7 +25,7 @@ import { fetchEditForm } from './functions/fetchEditForm.js'
 import { registerFilterFeature } from './functions/filterFeature.js'
 import { applyFilterLayout } from './functions/filterLayout.js'
 import { FilterBar, hasFilters } from './functions/filters.js'
-import { isFixedHeaderClone } from './functions/isFixedHeaderClone.js'
+import { isDataTableClone } from './functions/isDataTableClone.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
 import { applyLocalLanguage } from './functions/localLanguage.js'
 import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js'
@@ -97,7 +97,7 @@ export default class extends Controller {
             throw new Error('Invalid element')
         }
 
-        if (isFixedHeaderClone(this.element)) {
+        if (isDataTableClone(this.element)) {
             return
         }
 
