@@ -24,6 +24,22 @@ final class ComparisonSearchStrategyTest extends TestCase
     use BuildsTypedFieldQueryBuilder;
 
     #[Test]
+    public function it_skips_a_field_the_root_entity_does_not_map(): void
+    {
+        $qb = $this->queryBuilderWithUnmappedField('reviewCount');
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+
+        (new ComparisonSearchStrategy(ColumnControlLogic::Equal))->apply(
+            $qb,
+            TextColumn::new('reviewCount', 'Reviews'),
+            new ColumnControlSearch('4', ColumnControlLogic::Equal, 'text'),
+            0,
+            'e',
+        );
+    }
+
+    #[Test]
     #[DataProvider('comparison_cases')]
     public function it_applies_expected_comparison_expression(
         ColumnControlLogic $logic,

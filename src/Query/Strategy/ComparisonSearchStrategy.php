@@ -28,6 +28,9 @@ use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
  * {@see SearchableColumnInterface::buildSearchPredicate()} is deliberately not consulted: each logic
  * here fixes its own comparison shape and parameter format, which an open-ended condition
  * string cannot substitute for.
+ *
+ * A field the root entity does not map is skipped here rather than in the filter, so a column
+ * that builds its own predicate stays searchable on the Contains logic.
  */
 final class ComparisonSearchStrategy implements SearchStrategyInterface
 {
@@ -49,6 +52,10 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
 
         $fieldPath = RelationFieldResolver::resolveSearchField($column);
         if (null === $fieldPath) {
+            return;
+        }
+
+        if (!RelationFieldResolver::supportsSearchFiltering($qb, $fieldPath)) {
             return;
         }
 

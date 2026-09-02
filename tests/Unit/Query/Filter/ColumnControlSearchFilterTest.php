@@ -34,21 +34,8 @@ final class ColumnControlSearchFilterTest extends TestCase
 
     private const string ULID = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
 
-    /**
-     * @return iterable<string, array{ColumnControl}>
-     */
-    public static function unsupportedColumnControls(): iterable
-    {
-        yield 'strategy search' => [
-            new ColumnControl(search: new ColumnControlSearch('acme', ColumnControlLogic::Contains, 'text')),
-        ];
-
-        yield 'list search' => [new ColumnControl(list: ['acme'])];
-    }
-
     #[Test]
-    #[DataProvider('unsupportedColumnControls')]
-    public function it_skips_column_control_when_field_requires_an_explicit_scalar_path(ColumnControl $columnControl): void
+    public function it_skips_a_list_column_control_when_field_requires_an_explicit_scalar_path(): void
     {
         $strategy = $this->createMock(SearchStrategyInterface::class);
         $strategy->expects($this->never())->method('apply');
@@ -59,7 +46,34 @@ final class ColumnControlSearchFilterTest extends TestCase
         $qb->expects($this->never())->method('leftJoin');
 
         $filter  = new ColumnControlSearchFilter(new SearchStrategyRegistry([], $strategy));
-        $context = $this->singleColumnContext(TextColumn::new('client', 'Client'), columnControl: $columnControl);
+        $context = $this->singleColumnContext(
+            TextColumn::new('client', 'Client'),
+            columnControl: new ColumnControl(list: ['acme']),
+        );
+
+        $filter->apply($qb, $context);
+    }
+
+    /**
+     * The filter no longer pre-screens scalar criteria: the strategy that handles the logic
+     * decides, so a column building its own predicate stays searchable on a field the root
+     * entity does not map. The strategies gate the fields they cannot resolve themselves.
+     */
+    #[Test]
+    public function it_delegates_a_scalar_column_control_on_an_association_field_to_the_strategy(): void
+    {
+        $qb = $this->associationFieldQueryBuilder('client');
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+
+        $strategy = $this->createMock(SearchStrategyInterface::class);
+        $strategy->expects($this->once())->method('apply');
+
+        $filter  = new ColumnControlSearchFilter(new SearchStrategyRegistry([], $strategy));
+        $context = $this->singleColumnContext(
+            TextColumn::new('client', 'Client'),
+            columnControl: new ColumnControl(search: new ColumnControlSearch('acme', ColumnControlLogic::Contains, 'text')),
+        );
 
         $filter->apply($qb, $context);
     }
@@ -372,19 +386,48 @@ final class ColumnControlSearchFilterTest extends TestCase
         $this->applyList($qb, TextColumn::new('age')->setField('age'), ['42', '']);
     }
 
+    /**
+     * A virtual column reaches the strategy even with no override, so the Contains logic can
+     * still consult the column's own predicate. Nothing is added to the query builder here
+     * because the strategy under test is a double; the real skip is asserted on each strategy.
+     */
     #[Test]
-    public function it_skips_a_virtual_column_the_root_entity_does_not_map(): void
+    public function it_delegates_a_virtual_column_the_root_entity_does_not_map(): void
     {
         $qb = $this->unmappedFieldQueryBuilder('donorProviderName');
         $qb->expects($this->never())->method('andWhere');
         $qb->expects($this->never())->method('setParameter');
 
         $strategy = $this->createMock(SearchStrategyInterface::class);
-        $strategy->expects($this->never())->method('apply');
+        $strategy->expects($this->once())->method('apply');
 
         $filter  = new ColumnControlSearchFilter(new SearchStrategyRegistry([], $strategy));
         $context = $this->singleColumnContext(
             TextColumn::new('donorProviderName', 'Donor'),
+            columnControl: new ColumnControl(search: new ColumnControlSearch('acme', ColumnControlLogic::Contains, 'text')),
+        );
+
+        $filter->apply($qb, $context);
+    }
+
+    #[Test]
+    public function it_applies_a_custom_predicate_on_a_virtual_column_through_the_contains_strategy(): void
+    {
+        $qb = $this->unmappedFieldQueryBuilder('reviewCount');
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('EXISTS (SELECT 1 FROM Review r WHERE r.book = e AND r.content LIKE :column_control_param_0)');
+
+        $column = TextColumn::new('reviewCount', 'Reviews')
+            ->setSearchPredicate(static fn (QueryBuilder $qb, string $alias, string $value, string $paramName): string => \sprintf(
+                'EXISTS (SELECT 1 FROM Review r WHERE r.book = %s AND r.content LIKE :%s)',
+                $alias,
+                $paramName,
+            ));
+
+        $filter  = new ColumnControlSearchFilter(new SearchStrategyRegistry());
+        $context = $this->singleColumnContext(
+            $column,
             columnControl: new ColumnControl(search: new ColumnControlSearch('acme', ColumnControlLogic::Contains, 'text')),
         );
 
