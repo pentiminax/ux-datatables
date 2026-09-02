@@ -530,7 +530,7 @@ abstract class AbstractDataTable
 
             $name = $single || !$isBefore ? 'actions' : 'actions_before';
 
-            $actionColumn = $this->createActionColumn($name, $group);
+            $actionColumn = ActionColumn::fromActions($name, $group->getColumnLabel(), $group);
 
             if ($isBefore) {
                 array_unshift($this->columns, $actionColumn);
@@ -540,31 +540,5 @@ abstract class AbstractDataTable
 
             $this->columns[] = $actionColumn;
         }
-    }
-
-    private function createActionColumn(string $name, Actions $actions): ActionColumn
-    {
-        $actionColumn = ActionColumn::fromActions(
-            name: $name,
-            title: $actions->getColumnLabel(),
-            actions: $actions,
-        );
-
-        $className = trim(implode(' ', array_filter([
-            $actions->getColumnClassName(),
-            $actions->getAlignment()?->cssClass(),
-        ])));
-
-        if ('' !== $className) {
-            $actionColumn->setClassName($className);
-        }
-
-        $columnControl = $actions->getColumnControl();
-
-        if (null !== $columnControl) {
-            $actionColumn->setColumnControl($columnControl);
-        }
-
-        return $actionColumn;
     }
 }
