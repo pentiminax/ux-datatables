@@ -250,6 +250,15 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
             null,
             null,
         ];
+
+        yield 'bigint field with out-of-range value' => [
+            NumberColumn::new('age', 'Age')->setField('age'),
+            'bigint',
+            '9223372036854775808',
+            false,
+            null,
+            null,
+        ];
     }
 
     /**
