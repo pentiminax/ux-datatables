@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
-use Pentiminax\UX\DataTables\Builder\DataTableBuilder;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
@@ -13,7 +12,6 @@ use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnAutoDetectorInterface;
-use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxDataController;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
@@ -60,15 +58,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 return static function (ContainerConfigurator $container): void {
     $services = $container->services();
-
-    $services->set('datatables.builder', DataTableBuilder::class)
-        ->arg(0, param('datatables.options'))
-        ->arg(1, param('datatables.template_parameters'))
-        ->arg(2, param('datatables.extensions'))
-        ->private();
-
-    $services->alias(DataTableBuilderInterface::class, 'datatables.builder')
-        ->private();
 
     $services->set('datatables.query.intent_factory', DefaultDataTableQueryIntentFactory::class)
         ->private();
@@ -308,8 +297,10 @@ return static function (ContainerConfigurator $container): void {
         ->arg(2, service('datatables.runtime.factory'))
         ->arg(3, service('datatables.query.intent_factory'))
         ->arg(4, service('datatables.query.filter_pipeline'))
-        ->arg(5, service('datatables.builder'))
-        ->arg(6, service('datatables.profiler')->nullOnInvalid())
+        ->arg(5, param('datatables.options'))
+        ->arg(6, param('datatables.template_parameters'))
+        ->arg(7, param('datatables.extensions'))
+        ->arg(8, service('datatables.profiler')->nullOnInvalid())
         ->private();
 
     $services->alias(DataTableInfrastructure::class, 'datatables.infrastructure')

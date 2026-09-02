@@ -86,7 +86,7 @@ abstract class AbstractDataTable
         $this->asDataTable = $this->resolveAsDataTable();
 
         $this->table = $this->configureDataTable(
-            $this->infrastructure()->builder()->createDataTable($this->getClassName())
+            $this->infrastructure()->createDataTable($this->getClassName())
         );
 
         $this->table->setDataTableClass(static::class);
