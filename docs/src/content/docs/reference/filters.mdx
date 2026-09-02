@@ -103,7 +103,9 @@ TernaryFilter::new('active')->values(true, false);
 
 ### DateRangeFilter
 
-Two optional bounds (`from` / `to`) applied independently as `>=` and `<=`.
+Two optional bounds (`from` / `to`). `from` is inclusive (`>=`). A date-only `to` on a
+datetime column includes the selected calendar day (exclusive next midnight). A
+time-bearing `to`, and any `to` on a date column, stay inclusive (`<=`).
 
 ```php
 DateRangeFilter::new('createdAt')->label('Created');
