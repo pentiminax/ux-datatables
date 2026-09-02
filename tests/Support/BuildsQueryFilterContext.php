@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Support;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\Column;
@@ -25,6 +26,9 @@ use PHPUnit\Framework\MockObject\MockObject;
  */
 trait BuildsQueryFilterContext
 {
+    /** @var list<array{string, string, ?string, ?string}> */
+    private array $capturedJoins = [];
+
     /**
      * @param list<ColumnInterface> $columns
      */
@@ -56,6 +60,79 @@ trait BuildsQueryFilterContext
             : [];
 
         return $this->context(new DataTableRequest(1, new Columns($requestColumns)), [$column]);
+    }
+
+    /**
+     * Query builder that reports back the joins it has been given, so a filter resolving a
+     * field path sees the aliases an earlier addSearchJoin() registered and reuses them
+     * instead of joining the same relation twice. A mock answering getDQLPart('join') with a
+     * fixed list cannot show that, since the two mechanisms only meet through that part.
+     *
+     * Recorded joins are readable through {@see self::capturedJoins()}.
+     */
+    private function joinRecordingQueryBuilder(): MockObject&QueryBuilder
+    {
+        $this->capturedJoins = [];
+
+        $qb = $this->createMock(QueryBuilder::class);
+
+        $qb->method('getDQLPart')->willReturnCallback(function (string $part): array {
+            if ('join' !== $part || [] === $this->capturedJoins) {
+                return [];
+            }
+
+            $joins = [];
+
+            foreach ($this->capturedJoins as [$join, $alias]) {
+                $mock = $this->createMock(Join::class);
+                $mock->method('getJoin')->willReturn($join);
+                $mock->method('getAlias')->willReturn($alias);
+
+                $joins[] = $mock;
+            }
+
+            return ['e' => $joins];
+        });
+
+        $qb->method('leftJoin')->willReturnCallback(
+            function (string $join, string $alias, ?string $conditionType = null, ?string $condition = null) use ($qb): QueryBuilder {
+                $this->capturedJoins[] = [$join, $alias, $conditionType, $condition];
+
+                return $qb;
+            }
+        );
+
+        return $qb;
+    }
+
+    /**
+     * @return list<array{string, string, ?string, ?string}>
+     */
+    private function capturedJoins(): array
+    {
+        return $this->capturedJoins;
+    }
+
+    /**
+     * Query builder whose root entity maps $field neither as a scalar nor as an association,
+     * as it is for a virtual column assembled in mapRow(). Filters must skip such a column:
+     * emitting "<alias>.<field>" makes Doctrine reject the whole query.
+     */
+    private function unmappedFieldQueryBuilder(string $field): MockObject&QueryBuilder
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->with($field)->willReturn(false);
+        $metadata->method('hasField')->with($field)->willReturn(false);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        return $qb;
     }
 
     /**

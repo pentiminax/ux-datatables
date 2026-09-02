@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
+use Doctrine\Persistence\Mapping\MappingException;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -179,6 +183,147 @@ final class RelationFieldResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_a_field_the_root_entity_maps_neither_as_scalar_nor_association(): void
+    {
+        $qb = $this->queryBuilderWithUnmappedField('donorProviderName');
+
+        $this->assertFalse(RelationFieldResolver::supportsSearchFiltering($qb, 'donorProviderName'));
+        $this->assertFalse(RelationFieldResolver::supportsTextSearch($qb, 'donorProviderName'));
+        $this->assertNull(RelationFieldResolver::resolveUuidFieldType($qb, 'donorProviderName'));
+        $this->assertNull(RelationFieldResolver::resolveDateFieldType($qb, 'donorProviderName'));
+    }
+
+    #[Test]
+    public function it_treats_an_unmapped_root_class_as_no_metadata(): void
+    {
+        $qb = $this->queryBuilderWhoseMetadataThrows(MappingException::nonExistingClass('App\\NotAnEntity'));
+
+        $this->assertTrue(RelationFieldResolver::supportsSearchFiltering($qb, 'name'));
+        $this->assertTrue(RelationFieldResolver::supportsTextSearch($qb, 'name'));
+        $this->assertNull(RelationFieldResolver::resolveUuidFieldType($qb, 'name'));
+    }
+
+    #[Test]
+    public function it_lets_a_failure_that_is_not_a_mapping_error_propagate(): void
+    {
+        $qb = $this->queryBuilderWhoseMetadataThrows(new \RuntimeException('Metadata cache is unreachable.'));
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Metadata cache is unreachable.');
+
+        RelationFieldResolver::supportsSearchFiltering($qb, 'name');
+    }
+
+    #[Test]
+    public function it_reuses_a_join_registered_under_a_chosen_alias(): void
+    {
+        $qb = $this->queryBuilderWithJoins(['dp' => 'e.donorProvider']);
+        $qb->expects($this->never())->method('leftJoin');
+
+        $this->assertSame('dp.name', RelationFieldResolver::resolve($qb, 'e', 'donorProvider.name'));
+    }
+
+    #[Test]
+    public function it_derives_deeper_aliases_from_the_reused_one(): void
+    {
+        $qb        = $this->queryBuilderWithJoins(['dp' => 'e.donorProvider']);
+        $joinCalls = [];
+
+        $qb->expects($this->once())
+            ->method('leftJoin')
+            ->willReturnCallback(function (string $join, string $alias) use ($qb, &$joinCalls) {
+                $joinCalls[] = [$join, $alias];
+
+                return $qb;
+            });
+
+        $this->assertSame('dp_address.city', RelationFieldResolver::resolve($qb, 'e', 'donorProvider.address.city'));
+        $this->assertSame([['dp.address', 'dp_address']], $joinCalls);
+    }
+
+    #[Test]
+    public function it_applies_the_search_joins_a_column_declares(): void
+    {
+        $qb        = $this->queryBuilderWithJoins([]);
+        $joinCalls = [];
+
+        $qb->method('leftJoin')->willReturnCallback(
+            function (string $join, string $alias, ?string $conditionType = null, ?string $condition = null) use ($qb, &$joinCalls) {
+                $joinCalls[] = [$join, $alias, $conditionType, $condition];
+
+                return $qb;
+            }
+        );
+
+        $column = TextColumn::new('city', 'City')
+            ->addSearchJoin('e.donorProvider', 'dp')
+            ->addSearchJoin('dp.address', 'dpa', 'WITH', 'dpa.primary = true');
+
+        RelationFieldResolver::applySearchJoins($qb, $column);
+
+        $this->assertSame([
+            ['e.donorProvider', 'dp', null, null],
+            ['dp.address', 'dpa', 'WITH', 'dpa.primary = true'],
+        ], $joinCalls);
+    }
+
+    #[Test]
+    public function it_skips_a_search_join_whose_alias_is_already_registered(): void
+    {
+        $qb = $this->queryBuilderWithJoins(['dp' => 'e.donorProvider']);
+        $qb->expects($this->never())->method('leftJoin');
+
+        RelationFieldResolver::applySearchJoins($qb, TextColumn::new('name', 'Name')->addSearchJoin('e.donorProvider', 'dp'));
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_display_field_for_a_column_without_the_search_contract(): void
+    {
+        $column = $this->createStub(ColumnInterface::class);
+        $column->method('getField')->willReturn('name');
+
+        $this->assertSame('name', RelationFieldResolver::resolveSearchField($column));
+    }
+
+    #[Test]
+    public function it_declares_no_search_join_for_a_column_without_the_search_contract(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->expects($this->never())->method('leftJoin');
+
+        RelationFieldResolver::applySearchJoins($qb, $this->createStub(ColumnInterface::class));
+    }
+
+    #[Test]
+    public function it_prefers_the_search_field_over_the_display_field(): void
+    {
+        $column = TextColumn::new('donorProviderName')
+            ->setField('donorProviderName')
+            ->setSearchField('donorProvider.name');
+
+        $this->assertSame('donorProvider.name', RelationFieldResolver::resolveSearchField($column));
+    }
+
+    #[Test]
+    public function it_reports_no_search_field_when_the_column_has_none(): void
+    {
+        $column = $this->createStub(ColumnInterface::class);
+        $column->method('getField')->willReturn(null);
+
+        $this->assertNull(RelationFieldResolver::resolveSearchField($column));
+    }
+
+    #[Test]
+    public function it_touches_no_join_for_a_column_declaring_none(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->expects($this->never())->method('getDQLPart');
+        $qb->expects($this->never())->method('leftJoin');
+
+        RelationFieldResolver::applySearchJoins($qb, TextColumn::new('name', 'Name'));
+    }
+
+    #[Test]
     public function it_supports_search_filtering_for_a_dot_notation_path_without_reading_metadata(): void
     {
         $qb = $this->createMock(QueryBuilder::class);
@@ -192,11 +337,33 @@ final class RelationFieldResolverTest extends TestCase
      */
     private function queryBuilderWithJoinAliases(array $aliases): MockObject&QueryBuilder
     {
+        return $this->queryBuilderWithJoins(array_fill_keys($aliases, ''));
+    }
+
+    private function queryBuilderWhoseMetadataThrows(\Throwable $failure): MockObject&QueryBuilder
+    {
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->willThrowException($failure);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+        $qb->method('getRootEntities')->willReturn(['App\\NotAnEntity']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        return $qb;
+    }
+
+    /**
+     * @param array<string, string> $joinsByAlias join expression per already registered alias
+     */
+    private function queryBuilderWithJoins(array $joinsByAlias): MockObject&QueryBuilder
+    {
         $joins = [];
 
-        foreach ($aliases as $alias) {
+        foreach ($joinsByAlias as $alias => $expression) {
             $join = $this->createMock(Join::class);
-            $join->method('getAlias')->willReturn($alias);
+            $join->method('getAlias')->willReturn((string) $alias);
+            $join->method('getJoin')->willReturn($expression);
 
             $joins[] = $join;
         }

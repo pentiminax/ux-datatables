@@ -28,6 +28,21 @@ final class NullnessSearchStrategyTest extends TestCase
     use BuildsTypedFieldQueryBuilder;
 
     #[Test]
+    public function it_skips_a_field_the_root_entity_does_not_map(): void
+    {
+        $qb = $this->queryBuilderWithUnmappedField('reviewCount');
+        $qb->expects($this->never())->method('andWhere');
+
+        (new NullnessSearchStrategy())->apply(
+            $qb,
+            TextColumn::new('reviewCount', 'Reviews'),
+            new ColumnControlSearch('', ColumnControlLogic::Empty, 'text'),
+            0,
+            'e',
+        );
+    }
+
+    #[Test]
     #[DataProvider('expression_cases')]
     public function it_applies_expected_expression(
         ColumnInterface $column,

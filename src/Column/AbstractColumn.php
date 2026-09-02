@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Column;
 
+use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 /**
@@ -19,7 +21,7 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
  * column — see the "Columns" documentation for usage. Only createWithType() below is genuinely
  * internal, restricted to how the bundled column types build themselves.
  */
-abstract class AbstractColumn implements ColumnInterface
+abstract class AbstractColumn implements SearchableColumnInterface
 {
     protected ColumnType $type;
     protected ?string $cellType          = null;
@@ -35,12 +37,19 @@ abstract class AbstractColumn implements ColumnInterface
     protected ?string $defaultContent    = null;
     protected ?string $field             = null;
     protected ?string $orderExpression   = null;
+    protected ?string $searchField       = null;
     protected bool $globalSearchable     = true;
     protected bool $columnControlEnabled = true;
     protected ?array $columnControl      = null;
     protected array $customOptions       = [];
     protected ?string $permission        = null;
     protected ?int $responsivePriority   = null;
+
+    /** @var list<array{join: string, alias: string, conditionType: ?string, condition: ?string}> */
+    protected array $searchJoins = [];
+
+    /** @var (\Closure(QueryBuilder, string, string, string): (string|null))|null */
+    protected ?\Closure $searchPredicate = null;
 
     /**
      * Convenient factory helper used by concrete columns to set their type.
@@ -344,6 +353,112 @@ abstract class AbstractColumn implements ColumnInterface
     public function getOrderExpression(): ?string
     {
         return $this->orderExpression;
+    }
+
+    /**
+     * Search this column against a different field path than the one it displays.
+     *
+     * Only search reads it -- global search, per-column search, and column control search. Row
+     * mapping, form mapping, ordering, and the client payload keep using {@see setField()}.
+     * Use it when the displayed value is assembled in mapRow() but the searchable data lives in
+     * a mapped column or a relation:
+     *
+     *     TextColumn::new('donorProviderName')
+     *         ->setSearchField('donorProvider.name');
+     *
+     * The path follows setField()'s dot-notation: a simple field is prefixed with the root
+     * alias, a relation path adds a LEFT JOIN. Reach for {@see addSearchJoin()} instead when
+     * the join needs a specific alias or a WITH condition.
+     */
+    public function setSearchField(string $searchField): static
+    {
+        $this->searchField = $searchField;
+
+        return $this;
+    }
+
+    public function getSearchField(): ?string
+    {
+        return $this->searchField;
+    }
+
+    /**
+     * Declare a LEFT JOIN to apply before this column's search predicate is built.
+     *
+     * Each call appends one join. A join whose alias is already on the QueryBuilder is skipped,
+     * so declaring a relation customizeQueryBuilder() already joined under that alias is safe.
+     * Use it to pick the alias yourself rather than accept the one setSearchField() derives:
+     *
+     *     TextColumn::new('donorProviderName')
+     *         ->addSearchJoin('e.donorProvider', 'dp')
+     *         ->setSearchField('dp.name');
+     *
+     * $conditionType and $condition are passed through to QueryBuilder::leftJoin() and must be
+     * given together; either one alone is ignored.
+     */
+    public function addSearchJoin(
+        string $join,
+        string $alias,
+        ?string $conditionType = null,
+        ?string $condition = null,
+    ): static {
+        $this->searchJoins[] = [
+            'join'          => $join,
+            'alias'         => $alias,
+            'conditionType' => $conditionType,
+            'condition'     => $condition,
+        ];
+
+        return $this;
+    }
+
+    public function getSearchJoins(): array
+    {
+        return $this->searchJoins;
+    }
+
+    /**
+     * Build this column's search condition yourself, for what the type-based LIKE and equality
+     * predicates cannot express -- matching several fields at once, an EXISTS subquery, a
+     * database function.
+     *
+     * The closure receives the QueryBuilder, the root alias, the raw search term, and a
+     * parameter name unique to this column and search. Bind parameters on the QueryBuilder --
+     * under $paramName or names derived from it -- and return a DQL condition, or null to skip
+     * the column for that term. Do not call andWhere(): global search OR's the returned
+     * conditions together, a column search AND's them.
+     *
+     *     TextColumn::new('donorProviderName')
+     *         ->addSearchJoin('e.donorProvider', 'dp')
+     *         ->setSearchPredicate(function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
+     *             $qb->setParameter($paramName, '%'.$value.'%');
+     *
+     *             return "dp.name LIKE :{$paramName} OR dp.legalName LIKE :{$paramName}";
+     *         });
+     *
+     * Overriding {@see buildSearchPredicate()} in a column subclass is the class-level
+     * equivalent.
+     *
+     * @param \Closure(QueryBuilder, string, string, string): (string|null) $predicate
+     */
+    public function setSearchPredicate(\Closure $predicate): static
+    {
+        $this->searchPredicate = $predicate;
+
+        return $this;
+    }
+
+    public function buildSearchPredicate(
+        QueryBuilder $qb,
+        string $alias,
+        string $value,
+        string $paramName,
+    ): ?string {
+        if (null === $this->searchPredicate) {
+            return null;
+        }
+
+        return ($this->searchPredicate)($qb, $alias, $value, $paramName);
     }
 
     public function hideWhenUpdating(bool $hidden = true): static

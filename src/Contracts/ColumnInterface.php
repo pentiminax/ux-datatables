@@ -18,8 +18,9 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
  *
  * Extend {@see \Pentiminax\UX\DataTables\Column\AbstractColumn} instead of implementing this
  * directly: it provides the fluent setters, the ColumnType handling, and jsonSerialize(). Add
- * {@see TemplateAwareColumnInterface} or {@see ActionsProvidingColumnInterface} on top when the
- * column renders Twig or contributes row actions.
+ * {@see TemplateAwareColumnInterface}, {@see ActionsProvidingColumnInterface}, or
+ * {@see SearchableColumnInterface} on top when the column renders Twig, contributes row actions,
+ * or is searched through something other than its displayed field.
  */
 interface ColumnInterface extends \JsonSerializable
 {

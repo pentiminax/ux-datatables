@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnSearchFilter;
+use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\ContainsSearchStrategy;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsQueryFilterContext;
@@ -266,5 +267,79 @@ final class ColumnSearchFilterTest extends TestCase
             'column_control_param_0' => '%alice%',
             'column_control_param_1' => '%example.com%',
         ], $parameters);
+    }
+
+    #[Test]
+    public function it_skips_a_virtual_column_the_root_entity_does_not_map(): void
+    {
+        $qb = $this->unmappedFieldQueryBuilder('donorProviderName');
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+        $qb->expects($this->never())->method('leftJoin');
+
+        $this->filter()->apply($qb, $this->columnSearchContext(
+            TextColumn::new('donorProviderName', 'Donor'),
+            'acme',
+        ));
+    }
+
+    #[Test]
+    public function it_searches_a_virtual_column_through_its_declared_join_and_search_field(): void
+    {
+        $qb = $this->joinRecordingQueryBuilder();
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with("dp.name LIKE :column_control_param_0 ESCAPE '!'")
+            ->willReturn($qb);
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_control_param_0', '%acme%')
+            ->willReturn($qb);
+
+        $column = TextColumn::new('donorProviderName', 'Donor')
+            ->addSearchJoin('e.donorProvider', 'dp')
+            ->setSearchField('dp.name');
+
+        $this->filter()->apply($qb, $this->columnSearchContext($column, 'acme'));
+
+        $this->assertSame([['e.donorProvider', 'dp', null, null]], $this->capturedJoins());
+    }
+
+    #[Test]
+    public function it_uses_the_column_own_predicate_for_a_virtual_column(): void
+    {
+        $qb = $this->joinRecordingQueryBuilder();
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with('EXISTS (SELECT 1 FROM Request r WHERE r.dossierId LIKE :column_control_param_0)')
+            ->willReturn($qb);
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_control_param_0', '%42%')
+            ->willReturn($qb);
+
+        $column = TextColumn::new('dossierId', 'Dossier')->setSearchPredicate(
+            static function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
+                $qb->setParameter($paramName, \sprintf('%%%s%%', $value));
+
+                return \sprintf('EXISTS (SELECT 1 FROM Request r WHERE r.dossierId LIKE :%s)', $paramName);
+            }
+        );
+
+        $this->filter()->apply($qb, $this->columnSearchContext($column, '42'));
+    }
+
+    private function columnSearchContext(ColumnInterface $column, string $value): QueryFilterContext
+    {
+        $name = $column->getName();
+
+        return $this->context(
+            new DataTableRequest(1, new Columns([$name => new Column($name, $name, true, true, new Search($value, false))])),
+            [$column],
+        );
     }
 }

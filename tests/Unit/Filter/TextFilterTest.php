@@ -67,20 +67,20 @@ final class TextFilterTest extends TestCase
      */
     #[Test]
     #[DataProvider('provideConditions')]
-    public function it_applies_a_condition(string $field, string $value, ?string $fieldType, array $expectedWhere, array $expectedParams): void
+    public function it_applies_a_condition(string $field, string $value, string $fieldType, array $expectedWhere, array $expectedParams): void
     {
         $this->assertFilterProduces(TextFilter::new($field), $value, $expectedWhere, $expectedParams, $fieldType);
     }
 
     /**
-     * @return iterable<string, array{string, string, string|null, list<string>, array<string, mixed>}>
+     * @return iterable<string, array{string, string, string, list<string>, array<string, mixed>}>
      */
     public static function provideConditions(): iterable
     {
         yield 'case insensitive like' => [
             'name',
             'John',
-            null,
+            'string',
             ["LOWER(e.name) LIKE :filter_name ESCAPE '!'"],
             ['filter_name' => '%john%'],
         ];
@@ -88,13 +88,13 @@ final class TextFilterTest extends TestCase
         yield 'value with like wildcards is escaped, not interpreted' => [
             'name',
             '50%_off',
-            null,
+            'string',
             ["LOWER(e.name) LIKE :filter_name ESCAPE '!'"],
             ['filter_name' => '%50!%!_off%'],
         ];
 
         yield 'uuid field' => ['id', '018f2c3e', 'uuid', [], []];
 
-        yield 'blank value' => ['name', '   ', null, [], []];
+        yield 'blank value' => ['name', '   ', 'string', [], []];
     }
 }

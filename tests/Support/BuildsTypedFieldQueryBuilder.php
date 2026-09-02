@@ -46,6 +46,28 @@ trait BuildsTypedFieldQueryBuilder
     }
 
     /**
+     * Root entity mapping $field neither as a scalar nor as an association, as it is for a
+     * virtual column assembled in mapRow(). The search helpers must refuse it: emitting
+     * "<alias>.<field>" would make Doctrine reject the whole query.
+     */
+    private function queryBuilderWithUnmappedField(string $field): MockObject&QueryBuilder
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->with($field)->willReturn(false);
+        $metadata->method('hasField')->with($field)->willReturn(false);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        return $qb;
+    }
+
+    /**
      * Root entity mapping $field to an association, so the search helpers must refuse to
      * treat it as a scalar column until the configuration points at an explicit path.
      */

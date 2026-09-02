@@ -6,10 +6,16 @@ namespace Pentiminax\UX\DataTables\Query;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 
 /**
  * Default {@see SearchPredicateBuilderInterface}, dispatching on the column type.
+ *
+ * A {@see SearchableColumnInterface} column's own buildSearchPredicate() wins over every branch below:
+ * a column that builds its condition itself has said the type-based predicates cannot express
+ * what it needs. It is consulted first and its result returned verbatim; returning null there
+ * means "no opinion", not "skip", and falls through to the type dispatch.
  *
  * For numeric columns: exact match when the value can be bound to the field's Doctrine
  * type, null otherwise. is_numeric() is not enough on its own: "1.5" and "1e2" are
@@ -35,6 +41,14 @@ final class DefaultSearchPredicateBuilder implements SearchPredicateBuilderInter
         string $paramName,
         bool $forceNumeric = false,
     ): ?string {
+        if ($column instanceof SearchableColumnInterface) {
+            $custom = $column->buildSearchPredicate($qb, $alias, $value, $paramName);
+
+            if (null !== $custom) {
+                return $custom;
+            }
+        }
+
         if ($column->isNumber() || $forceNumeric) {
             return $this->buildNumeric($qb, $alias, $field, $value, $paramName);
         }
