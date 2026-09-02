@@ -31,4 +31,39 @@ final class RequestInputBag
             ? $request->query
             : $request->request;
     }
+
+    /**
+     * Copy scalar body parameters onto the query bag so documented
+     * `$this->getHttpRequest()?->query->get()` reads them on POST.
+     *
+     * Auto-Ajax is GET: DataTables puts `ajax.data` — including values captured by
+     * {@see \Pentiminax\UX\DataTables\Model\DataTable::forwardQueryParameters()} — on the
+     * query string. The export endpoint is POST and carries the same payload in the body,
+     * so a customizeQueryBuilder() that scopes by those parameters would otherwise see
+     * null and stream the unscoped dataset.
+     *
+     * Existing query keys are left untouched (the table token lives there). Array values are
+     * copied as-is, so a forwarded `tenantIds[]` stays readable through
+     * `$this->getHttpRequest()?->query->all('tenantIds')`; dropping them would let a table
+     * scoped by an array parameter export the unscoped dataset.
+     */
+    public static function exposeBodyParametersOnQuery(Request $request): void
+    {
+        if (\in_array($request->getMethod(), self::QUERY_STRING_METHODS, true)) {
+            return;
+        }
+
+        foreach ($request->request->all() as $key => $value) {
+            $name = (string) $key;
+            if ($request->query->has($name)) {
+                continue;
+            }
+
+            if (!\is_scalar($value) && !\is_array($value) && !$value instanceof \Stringable) {
+                continue;
+            }
+
+            $request->query->set($name, $value instanceof \Stringable ? (string) $value : $value);
+        }
+    }
 }

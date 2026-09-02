@@ -30,6 +30,8 @@ final class ExportService
      */
     public function export(AbstractDataTable $table, Request $request): StreamedResponse
     {
+        RequestInputBag::exposeBodyParametersOnQuery($request);
+
         $table->handleRequest($request);
 
         if (!$table->isRequestHandled()) {
