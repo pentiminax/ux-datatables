@@ -415,17 +415,17 @@ final class ColumnControlSearchFilterTest extends TestCase
     #[Test]
     public function it_applies_an_in_clause_against_the_search_field_override(): void
     {
-        $qb = $this->queryBuilderWithFieldType('name', 'string');
+        $qb = $this->queryBuilderWithFieldType('legalName', 'string');
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with('donorProvider.name IN (:donorProvider_name_in)');
+            ->with('e.legalName IN (:legalName_in)');
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with(':donorProvider_name_in', ['acme']);
+            ->with(':legalName_in', ['acme']);
 
         $this->applyList(
             $qb,
-            TextColumn::new('donorProviderName')->setSearchField('donorProvider.name'),
+            TextColumn::new('donorProviderName')->setSearchField('legalName'),
             ['acme'],
         );
     }
