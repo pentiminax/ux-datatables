@@ -82,12 +82,28 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
     private function rowMatches(array $row, string $needle): bool
     {
         foreach ($row as $value) {
+            if (!$this->isSearchableValue($value)) {
+                continue;
+            }
+
             if (str_contains(mb_strtolower((string) $value), $needle)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * Action and URL resolvers stash nested arrays on the mapped row
+     * ({@see ActionRowDataResolver::ROW_ACTIONS_KEY}, {@see UrlColumnDataResolver::ROW_URLS_KEY}).
+     * Casting those to string is an Error on PHP 8, which aborted every global search
+     * (and therefore every filtered export) on a server-side ArrayDataProvider table
+     * that had an ActionColumn or UrlColumn.
+     */
+    private function isSearchableValue(mixed $value): bool
+    {
+        return \is_scalar($value) || $value instanceof \Stringable;
     }
 
     /**
