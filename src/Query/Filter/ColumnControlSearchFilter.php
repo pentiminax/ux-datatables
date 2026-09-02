@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Query\BooleanSearchTerm;
@@ -32,6 +33,17 @@ use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
  * NULL through its LEFT JOIN, never to an empty string, so IN ('') would silently
  * match nothing. This mirrors ColumnControl's own client-side convention, where an
  * option with an empty label/value already renders as a distinct "Empty" entry.
+ *
+ * Per column, the joins declared with {@see \Pentiminax\UX\DataTables\Column\AbstractColumn::addSearchJoin()}
+ * are applied before anything else, and the search field override from
+ * {@see ColumnInterface::getSearchField()} replaces the
+ * intent's display field path -- including for the searchability guard below, so a column
+ * whose display field is virtual is still searched through its override.
+ *
+ * {@see ColumnInterface::buildSearchPredicate()} is not
+ * consulted here: list, comparison, and nullness criteria each encode a predicate shape of
+ * their own that a single open-ended condition string cannot express. Only the Contains logic
+ * delegates to it, through {@see \Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface}.
  */
 final class ColumnControlSearchFilter implements QueryFilterInterface
 {
@@ -43,7 +55,14 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
         foreach ($context->intent->columnControls as $control) {
-            $field = $control->column->fieldPath;
+            $column = $context->columnByName($control->column->name);
+            if (null === $column) {
+                continue;
+            }
+
+            RelationFieldResolver::applySearchJoins($qb, $column);
+
+            $field = $column->getSearchField() ?? $control->column->fieldPath;
             if (null === $field) {
                 continue;
             }
@@ -58,7 +77,7 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
                 continue;
             }
 
-            $this->applyScalar($qb, $context, $control, $field);
+            $this->applyScalar($qb, $context, $control, $column);
         }
     }
 
@@ -263,13 +282,8 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
         $qb->andWhere($or);
     }
 
-    private function applyScalar(QueryBuilder $qb, QueryFilterContext $context, ColumnControlIntent $control, string $field): void
+    private function applyScalar(QueryBuilder $qb, QueryFilterContext $context, ColumnControlIntent $control, ColumnInterface $column): void
     {
-        $column = $context->columnByName($control->column->name);
-        if (null === $column) {
-            return;
-        }
-
         $strategy = $this->registry->get($control->logic->value);
         $search   = new ColumnControlSearch($control->value ?? '', $control->logic, $control->valueType);
 

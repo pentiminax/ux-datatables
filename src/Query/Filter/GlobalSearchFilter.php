@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
  * Filter that applies global search across all globally searchable columns.
@@ -20,6 +21,11 @@ use Pentiminax\UX\DataTables\Query\QueryFilterContext;
  * are combined with OR logic: each column's condition must stay a returned DQL fragment
  * rather than a QueryBuilder::andWhere() call, since only this filter knows the columns
  * need to be OR'd together rather than required individually.
+ *
+ * Per column, the joins declared with {@see \Pentiminax\UX\DataTables\Column\AbstractColumn::addSearchJoin()}
+ * are applied first, then the search field override from
+ * {@see \Pentiminax\UX\DataTables\Contracts\ColumnInterface::getSearchField()} replaces the
+ * intent's display field path.
  */
 final class GlobalSearchFilter implements QueryFilterInterface
 {
@@ -43,9 +49,16 @@ final class GlobalSearchFilter implements QueryFilterInterface
             }
 
             $column = $context->columnByName($reference->name);
-            $field  = $reference->fieldPath;
 
-            if (null === $column || null === $field) {
+            if (null === $column) {
+                continue;
+            }
+
+            RelationFieldResolver::applySearchJoins($qb, $column);
+
+            $field = $column->getSearchField() ?? $reference->fieldPath;
+
+            if (null === $field) {
                 continue;
             }
 

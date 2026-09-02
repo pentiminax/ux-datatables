@@ -26,7 +26,10 @@ trait BuildsFilterQueryBuilder
     private array $capturedParamTypes = [];
 
     /**
-     * @param string|null $fieldType Doctrine type reported for every mapped field, or null to leave fields unmapped
+     * @param string|null $fieldType Doctrine type reported for every field, or null to make the type
+     *                               unresolvable while keeping the field mapped -- the fields stay
+     *                               mapped either way, since an unmapped one is now skipped outright
+     *                               by RelationFieldResolver::supportsSearchFiltering()
      */
     private function createScalarFieldQueryBuilder(?string $fieldType = null): QueryBuilder
     {
@@ -36,13 +39,16 @@ trait BuildsFilterQueryBuilder
 
         $metadata = $this->createMock(ClassMetadata::class);
         $metadata->method('hasAssociation')->willReturn(false);
-        $metadata->method('hasField')->willReturn(null !== $fieldType);
+        $metadata->method('hasField')->willReturn(true);
+        $metadata->method('getFieldMapping')->willReturnCallback(
+            static function (string $field) use ($fieldType): FieldMapping {
+                if (null === $fieldType) {
+                    throw new \LogicException(\sprintf('No mapping available for "%s".', $field));
+                }
 
-        if (null !== $fieldType) {
-            $metadata->method('getFieldMapping')->willReturnCallback(
-                static fn (string $field): FieldMapping => new FieldMapping($fieldType, $field, $field)
-            );
-        }
+                return new FieldMapping($fieldType, $field, $field);
+            }
+        );
 
         $em = $this->createMock(EntityManagerInterface::class);
         $em->method('getClassMetadata')->willReturn($metadata);
@@ -71,7 +77,8 @@ trait BuildsFilterQueryBuilder
     /**
      * @param list<string>         $expectedWhere
      * @param array<string, mixed> $expectedParams
-     * @param string|null          $fieldType      Doctrine type reported for every mapped field, or null to leave fields unmapped
+     * @param string|null          $fieldType      Doctrine type reported for every field, or null to
+     *                                             make the type unresolvable
      */
     private function assertFilterProduces(FilterInterface $filter, mixed $value, array $expectedWhere, array $expectedParams, ?string $fieldType = null): void
     {

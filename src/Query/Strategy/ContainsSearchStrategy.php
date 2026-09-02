@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
  * Strategy for 'contains' search logic.
@@ -21,6 +22,11 @@ use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
  * "numeric → exact / date → skip / text → LIKE" branching lives in a single place.
  * In addition to the column's own type, a search type hint of number/numeric/num
  * forces numeric handling.
+ *
+ * The column's declared search joins are applied first, and its
+ * {@see ColumnInterface::getSearchField()} override replaces getField() when set. A column
+ * that builds its own predicate short-circuits the whole type dispatch -- see
+ * {@see SearchPredicateBuilderInterface}.
  */
 final class ContainsSearchStrategy implements SearchStrategyInterface
 {
@@ -37,7 +43,9 @@ final class ContainsSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $field = $column->getField();
+        RelationFieldResolver::applySearchJoins($qb, $column);
+
+        $field = $column->getSearchField() ?? $column->getField();
         if (null === $field) {
             return;
         }

@@ -11,6 +11,11 @@ use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
 /**
  * Default {@see SearchPredicateBuilderInterface}, dispatching on the column type.
  *
+ * A column's own {@see ColumnInterface::buildSearchPredicate()} wins over every branch below:
+ * a column that builds its condition itself has said the type-based predicates cannot express
+ * what it needs. It is consulted first and its result returned verbatim; returning null there
+ * means "no opinion", not "skip", and falls through to the type dispatch.
+ *
  * For numeric columns: exact match when the value is numeric, null otherwise.
  * For native UUID/ULID columns: exact match when the value is a well-formed identifier of
  * that field's type, null otherwise.
@@ -30,6 +35,12 @@ final class DefaultSearchPredicateBuilder implements SearchPredicateBuilderInter
         string $paramName,
         bool $forceNumeric = false,
     ): ?string {
+        $custom = $column->buildSearchPredicate($qb, $alias, $value, $paramName);
+
+        if (null !== $custom) {
+            return $custom;
+        }
+
         if ($column->isNumber() || $forceNumeric) {
             if (!is_numeric($value)) {
                 return null;

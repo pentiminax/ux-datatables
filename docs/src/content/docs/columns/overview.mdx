@@ -93,6 +93,69 @@ NumberColumn::new('invoiceCount', 'Invoices')
 See [Sorting computed columns](/ux-datatables/guide/server-side-processing/#sorting-computed-columns)
 for the matching `customizeQueryBuilder()` setup.
 
+#### Searching on a different field
+
+Server-side search targets the column's own field, which fails the same way for a **virtual
+column** — one whose value is assembled in `mapRow()` rather than mapped on the entity. Such a
+column is skipped by the search rather than breaking the query, so its search box silently
+returns nothing until you point it at real data.
+
+`setSearchField()` does that. It affects search only: the rendered value, the row mapping, the
+form mapping, the ordering and the client payload all keep using `setField()`.
+
+```php
+TextColumn::new('donorProviderName', 'Donor')
+    ->setSearchField('donorProvider.name'); // LEFT JOINs e.donorProvider automatically
+```
+
+The path uses the same dot-notation as `setField()`, so a relation path is resolved through a
+`LEFT JOIN`. Use `addSearchJoin()` when you need the alias yourself, a `WITH` condition, or the
+relation is already joined under a custom alias in `customizeQueryBuilder()`:
+
+```php
+TextColumn::new('donorProviderName', 'Donor')
+    ->addSearchJoin('e.donorProvider', 'dp')
+    ->setSearchField('dp.name');
+```
+
+Joins are applied once: declaring one whose alias is already on the query builder is a no-op, so
+the same column configuration is safe across global search, column search, and ColumnControl
+search in a single request.
+
+#### Searching with a custom predicate
+
+For what a field path cannot express — several fields at once, an `EXISTS` subquery, a database
+function — build the condition yourself with `setSearchPredicate()`:
+
+```php
+use Doctrine\ORM\QueryBuilder;
+
+TextColumn::new('donorProviderName', 'Donor')
+    ->addSearchJoin('e.donorProvider', 'dp')
+    ->setSearchPredicate(function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
+        $qb->setParameter($paramName, '%'.mb_strtolower($value).'%');
+
+        return "LOWER(dp.name) LIKE :{$paramName} OR LOWER(dp.legalName) LIKE :{$paramName}";
+    });
+```
+
+The closure receives the query builder, the root alias, the raw search term, and a parameter name
+unique to that column and search. Bind your parameters on the query builder — under `$paramName`
+or names derived from it — and **return** a DQL condition instead of calling `andWhere()`: global
+search combines the returned conditions with `OR`, a column search with `AND`. Return `null` to
+skip the column for that term.
+
+Overriding `buildSearchPredicate()` in a column subclass is the class-level equivalent.
+
+:::caution
+The predicate string is used verbatim in the DQL. Build it from your own code, never by
+concatenating the search value — bind the value as a parameter, as above.
+:::
+
+Custom predicates apply to global search and per-column search. The ColumnControl list,
+comparison, and empty/not-empty logics keep their own predicate shapes; they honor
+`setSearchField()` and `addSearchJoin()` but not `setSearchPredicate()`.
+
 ### Cell Type
 
 ```php

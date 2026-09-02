@@ -21,6 +21,9 @@ use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
  * AbstractDataTable::createSearchStrategyRegistry() customizes this search alongside
  * ColumnControl search instead of only the latter.
  *
+ * The strategy applies each column's declared search joins and its search field override, so
+ * setSearchField(), addSearchJoin(), and setSearchPredicate() all take effect here.
+ *
  * Distinct from ColumnControlSearchFilter which handles custom column control searches.
  */
 final class ColumnSearchFilter implements QueryFilterInterface
@@ -38,9 +41,8 @@ final class ColumnSearchFilter implements QueryFilterInterface
             $reference = $columnSearch['column'];
 
             $column = $context->columnByName($reference->name);
-            $field  = $reference->fieldPath;
 
-            if (null === $column || null === $field) {
+            if (null === $column) {
                 continue;
             }
 

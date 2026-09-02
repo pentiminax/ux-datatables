@@ -21,6 +21,12 @@ use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
  *
  * Replaces individual strategy classes (Equal, NotEqual, StartsWith, etc.)
  * that differ only in their SQL operator and parameter wrapping format.
+ *
+ * The column's declared search joins are applied first, and its
+ * {@see ColumnInterface::getSearchField()} override replaces getField() when set.
+ * {@see ColumnInterface::buildSearchPredicate()} is deliberately not consulted: each logic
+ * here fixes its own comparison shape and parameter format, which an open-ended condition
+ * string cannot substitute for.
  */
 final class ComparisonSearchStrategy implements SearchStrategyInterface
 {
@@ -38,7 +44,9 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        $fieldPath = $column->getField();
+        RelationFieldResolver::applySearchJoins($qb, $column);
+
+        $fieldPath = $column->getSearchField() ?? $column->getField();
         if (null === $fieldPath) {
             return;
         }

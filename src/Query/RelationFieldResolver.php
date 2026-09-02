@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 
 /**
  * Resolves dot-notation field paths into valid DQL expressions.
@@ -110,17 +111,27 @@ final class RelationFieldResolver
             return \sprintf('%s.%s', $rootAlias, $fieldPath);
         }
 
-        $segments      = explode('.', $fieldPath);
-        $leafField     = array_pop($segments);
-        $currentAlias  = $rootAlias;
-        $existingJoins = self::getExistingJoinAliases($qb);
+        $segments        = explode('.', $fieldPath);
+        $leafField       = array_pop($segments);
+        $currentAlias    = $rootAlias;
+        $existingAliases = self::getExistingJoinAliases($qb);
+        $aliasesByJoin   = self::getExistingJoinAliasesByJoin($qb);
 
         foreach ($segments as $segment) {
+            $join = \sprintf('%s.%s', $currentAlias, $segment);
+
+            if (isset($aliasesByJoin[$join])) {
+                $currentAlias = $aliasesByJoin[$join];
+
+                continue;
+            }
+
             $joinAlias = $currentAlias === $rootAlias ? $segment : \sprintf('%s_%s', $currentAlias, $segment);
 
-            if (!isset($existingJoins[$joinAlias])) {
-                $qb->leftJoin(\sprintf('%s.%s', $currentAlias, $segment), $joinAlias);
-                $existingJoins[$joinAlias] = true;
+            if (!isset($existingAliases[$joinAlias])) {
+                $qb->leftJoin($join, $joinAlias);
+                $existingAliases[$joinAlias] = true;
+                $aliasesByJoin[$join]        = $joinAlias;
             }
 
             $currentAlias = $joinAlias;
@@ -135,6 +146,13 @@ final class RelationFieldResolver
      * Bare association fields such as "client" are rejected because they do not
      * resolve to a scalar column. Explicit scalar paths such as "client.name"
      * remain supported through join resolution.
+     *
+     * A bare field that the root entity maps neither as a scalar nor as an association is
+     * rejected too: it is a virtual column assembled in mapRow(), and emitting
+     * "<alias>.<field>" for it makes Doctrine reject the whole query with "has no field or
+     * association named ...", taking down the table rather than just that column. Such a
+     * column is skipped instead, and its owner opts back into search with setSearchField(),
+     * addSearchJoin(), or setSearchPredicate().
      */
     public static function supportsSearchFiltering(QueryBuilder $qb, ?string $fieldPath): bool
     {
@@ -146,7 +164,39 @@ final class RelationFieldResolver
             return true;
         }
 
-        return !self::isRootAssociationField($qb, $fieldPath);
+        return self::isRootMappedField($qb, $fieldPath) && !self::isRootAssociationField($qb, $fieldPath);
+    }
+
+    /**
+     * Apply the LEFT JOINs a column declared for its search predicate.
+     *
+     * Idempotent: a join whose alias is already on the QueryBuilder -- from
+     * customizeQueryBuilder(), an earlier filter in the chain, or another column declaring the
+     * same join -- is skipped, so every search filter can call this before resolving a field.
+     */
+    public static function applySearchJoins(QueryBuilder $qb, ColumnInterface $column): void
+    {
+        $joins = $column->getSearchJoins();
+
+        if ([] === $joins) {
+            return;
+        }
+
+        $existingAliases = self::getExistingJoinAliases($qb);
+
+        foreach ($joins as $join) {
+            if (isset($existingAliases[$join['alias']])) {
+                continue;
+            }
+
+            if (null !== $join['conditionType'] && null !== $join['condition']) {
+                $qb->leftJoin($join['join'], $join['alias'], $join['conditionType'], $join['condition']);
+            } else {
+                $qb->leftJoin($join['join'], $join['alias']);
+            }
+
+            $existingAliases[$join['alias']] = true;
+        }
     }
 
     /**
@@ -269,6 +319,28 @@ final class RelationFieldResolver
         }
     }
 
+    /**
+     * Whether the root entity maps $fieldPath as a scalar field.
+     *
+     * Returns true when the metadata cannot be read, so a transient failure never turns into a
+     * silently unsearchable column.
+     */
+    private static function isRootMappedField(QueryBuilder $qb, string $fieldPath): bool
+    {
+        try {
+            $rootEntities = $qb->getRootEntities();
+            if ([] === $rootEntities) {
+                return true;
+            }
+
+            return $qb->getEntityManager()
+                ->getClassMetadata($rootEntities[0])
+                ->hasField($fieldPath);
+        } catch (\Throwable) {
+            return true;
+        }
+    }
+
     private static function isRootAssociationField(QueryBuilder $qb, string $fieldPath): bool
     {
         try {
@@ -283,6 +355,29 @@ final class RelationFieldResolver
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    /**
+     * Aliases already registered on the QueryBuilder, keyed by the join expression they target
+     * (e.g. 'e.donorProvider' => 'dp').
+     *
+     * {@see self::resolve()} consults this before deriving an alias of its own, so a relation
+     * customizeQueryBuilder() or addSearchJoin() already joined under a chosen alias is reused
+     * rather than joined a second time under the derived one.
+     *
+     * @return array<string, string>
+     */
+    private static function getExistingJoinAliasesByJoin(QueryBuilder $qb): array
+    {
+        $aliases = [];
+
+        foreach ($qb->getDQLPart('join') as $joinParts) {
+            foreach ($joinParts as $join) {
+                $aliases[$join->getJoin()] = $join->getAlias();
+            }
+        }
+
+        return $aliases;
     }
 
     /**
