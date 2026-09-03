@@ -118,6 +118,54 @@ final class OrderFilterTest extends TestCase
         (new OrderFilter())->apply($qb, $this->context($request, $columns));
     }
 
+    #[Test]
+    public function it_skips_a_virtual_column_the_root_entity_does_not_map(): void
+    {
+        $qb = $this->unmappedFieldQueryBuilder('donorProviderName');
+        $qb->expects($this->never())->method('addOrderBy');
+        $qb->expects($this->never())->method('leftJoin');
+
+        $column = TextColumn::new('donorProviderName', 'Donor');
+
+        (new OrderFilter())->apply($qb, $this->orderedContext($column, 'asc'));
+    }
+
+    #[Test]
+    public function it_skips_ordering_when_field_requires_an_explicit_scalar_path(): void
+    {
+        $qb = $this->associationFieldQueryBuilder('client');
+        $qb->expects($this->never())->method('addOrderBy');
+        $qb->expects($this->never())->method('leftJoin');
+
+        (new OrderFilter())->apply($qb, $this->orderedContext(TextColumn::new('client', 'Client'), 'asc'));
+    }
+
+    #[Test]
+    public function it_skips_a_virtual_column_even_when_search_field_is_overridden(): void
+    {
+        $qb = $this->unmappedFieldQueryBuilder('donorProviderName');
+        $qb->expects($this->never())->method('addOrderBy');
+        $qb->expects($this->never())->method('leftJoin');
+
+        $column = TextColumn::new('donorProviderName', 'Donor')->setSearchField('donorProvider.name');
+
+        (new OrderFilter())->apply($qb, $this->orderedContext($column, 'asc'));
+    }
+
+    #[Test]
+    public function it_still_orders_a_virtual_column_through_its_order_expression(): void
+    {
+        $qb = $this->unmappedFieldQueryBuilder('invoiceCount');
+        $qb->expects($this->never())->method('leftJoin');
+        $qb->expects($this->once())
+            ->method('addOrderBy')
+            ->with('invoiceCount', 'desc');
+
+        $column = TextColumn::new('invoiceCount', 'Invoices')->setOrderExpression('invoiceCount');
+
+        (new OrderFilter())->apply($qb, $this->orderedContext($column, 'desc'));
+    }
+
     private function orderedContext(ColumnInterface $column, string $direction): QueryFilterContext
     {
         $name    = $column->getName();
