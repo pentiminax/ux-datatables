@@ -17,6 +17,11 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  * raw Doctrine order expression
  * ({@see \Pentiminax\UX\DataTables\Contracts\ColumnInterface::getOrderExpression()})
  * stays out of the intent and is resolved here by column name.
+ *
+ * A virtual column assembled in mapRow() has no mapped field. Emitting
+ * "<alias>.<field>" for it makes Doctrine reject the whole query -- the same
+ * failure search already skips. A declared order expression still wins, because
+ * that is the documented opt-in for computed columns backed by a HIDDEN alias.
  */
 final class OrderFilter implements QueryFilterInterface
 {
@@ -33,9 +38,18 @@ final class OrderFilter implements QueryFilterInterface
             return;
         }
 
-        $expr = $column->getOrderExpression()
-            ?? RelationFieldResolver::resolve($qb, $context->alias, $column->getField());
+        $orderExpression = $column->getOrderExpression();
+        if (null !== $orderExpression) {
+            $qb->addOrderBy($orderExpression, $orderDir);
 
-        $qb->addOrderBy($expr, $orderDir);
+            return;
+        }
+
+        $field = $column->getField();
+        if (null === $field || !RelationFieldResolver::supportsSearchFiltering($qb, $field)) {
+            return;
+        }
+
+        $qb->addOrderBy(RelationFieldResolver::resolve($qb, $context->alias, $field), $orderDir);
     }
 }
