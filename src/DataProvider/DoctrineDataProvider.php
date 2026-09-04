@@ -116,6 +116,11 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
      * status, a date) leaves ties whose relative order the database is free to change between
      * two queries, which would let a row be exported twice or not at all.
      *
+     * A computed column ordered through {@see \Pentiminax\UX\DataTables\Contracts\ColumnInterface::getOrderExpression()}
+     * lives as a HIDDEN SELECT alias. The identifier query keeps those extra SELECT parts so
+     * `ORDER BY invoiceCount` stays valid; dropping them made Doctrine reject the export after
+     * download headers were already sent.
+     *
      * Chunks are loaded through `WHERE id IN (...)` rather than LIMIT/OFFSET: paginating with a
      * growing offset makes the database re-scan the skipped rows on every chunk, and a concurrent
      * insert or delete shifts the window under the export.
@@ -144,14 +149,7 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
 
         $qb->addOrderBy("$alias.$identifier", 'ASC');
 
-        $ids = (clone $qb)
-            ->select("$alias.$identifier")
-            ->setFirstResult(null)
-            ->setMaxResults(null)
-            ->getQuery()
-            ->getSingleColumnResult();
-
-        $ids = array_values(array_unique($ids, \SORT_REGULAR));
+        $ids = $this->collectExportIdentifiers($qb, $alias, $identifier);
 
         // A LIMIT/OFFSET set by customizeQueryBuilder() caps the export itself; applied here it
         // counts root entities, where the query's own LIMIT would have counted joined SQL rows.
@@ -173,6 +171,84 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
             yield from $this->mapChunk($items);
             $this->releaseChunk($items);
         }
+    }
+
+    /**
+     * Root identifiers in the query's ORDER BY, including computed columns that exist only as
+     * HIDDEN SELECT aliases.
+     *
+     * Replacing the SELECT with only the identifier drops those aliases, and Doctrine then
+     * rejects `ORDER BY <alias>`. Fetch-joined identification variables stay out: they are not
+     * needed to evaluate ORDER BY, and selecting them would make getSingleColumnResult() throw
+     * {@see \Doctrine\ORM\Exception\MultipleSelectorsFoundException}.
+     *
+     * @return list<mixed>
+     */
+    private function collectExportIdentifiers(QueryBuilder $qb, string $alias, string $identifier): array
+    {
+        $idQb = (clone $qb)
+            ->select("$alias.$identifier")
+            ->setFirstResult(null)
+            ->setMaxResults(null);
+
+        $extraSelects = $this->orderDependentSelectParts($qb, $alias);
+        foreach ($extraSelects as $part) {
+            $idQb->addSelect($part);
+        }
+
+        $ids = [] === $extraSelects
+            ? $idQb->getQuery()->getSingleColumnResult()
+            : $this->identifiersFromScalarResult($idQb);
+
+        return array_values(array_unique($ids, \SORT_REGULAR));
+    }
+
+    /**
+     * SELECT parts that are not the root entity or a fetch-joined identification variable.
+     *
+     * @return list<string>
+     */
+    private function orderDependentSelectParts(QueryBuilder $qb, string $alias): array
+    {
+        $parts = [];
+
+        foreach ($qb->getDQLPart('select') as $select) {
+            foreach ($select->getParts() as $part) {
+                $partString = (string) $part;
+                if ($this->isIdentificationVariable($partString, $alias)) {
+                    continue;
+                }
+
+                $parts[] = $partString;
+            }
+        }
+
+        return $parts;
+    }
+
+    private function isIdentificationVariable(string $part, string $rootAlias): bool
+    {
+        return $part === $rootAlias || 1 === preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $part);
+    }
+
+    /**
+     * The identifier is selected first, so the first scalar column is the root id.
+     *
+     * @return list<mixed>
+     */
+    private function identifiersFromScalarResult(QueryBuilder $idQb): array
+    {
+        $ids = [];
+
+        foreach ($idQb->getQuery()->getScalarResult() as $row) {
+            if ([] === $row) {
+                continue;
+            }
+
+            $ids[] = reset($row);
+        }
+
+        return $ids;
     }
 
     /**
