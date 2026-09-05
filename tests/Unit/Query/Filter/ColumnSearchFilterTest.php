@@ -284,6 +284,20 @@ final class ColumnSearchFilterTest extends TestCase
     }
 
     #[Test]
+    public function it_skips_a_virtual_number_column_the_root_entity_does_not_map(): void
+    {
+        $qb = $this->unmappedFieldQueryBuilder('invoiceCount');
+        $qb->expects($this->never())->method('andWhere');
+        $qb->expects($this->never())->method('setParameter');
+        $qb->expects($this->never())->method('leftJoin');
+
+        $this->filter()->apply($qb, $this->columnSearchContext(
+            NumberColumn::new('invoiceCount', 'Invoices'),
+            '42',
+        ));
+    }
+
+    #[Test]
     public function it_searches_a_virtual_column_through_its_declared_join_and_search_field(): void
     {
         $qb = $this->joinRecordingQueryBuilder();

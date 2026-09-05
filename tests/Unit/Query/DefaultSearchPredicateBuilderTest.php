@@ -301,6 +301,48 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         $this->assertNull($result);
     }
 
+    /**
+     * A virtual NumberColumn assembled in mapRow() (or backed by a HIDDEN alias) has no
+     * mapped field. The numeric branch used to fall through to is_numeric() and emit
+     * "e.invoiceCount = :p", which made Doctrine reject the whole query whenever the
+     * search term was numeric.
+     */
+    #[Test]
+    public function it_returns_null_for_numeric_column_with_unmapped_field(): void
+    {
+        $qb = $this->queryBuilderWithUnmappedField('invoiceCount');
+        $qb->expects($this->never())->method('setParameter');
+
+        $column = NumberColumn::new('invoiceCount', 'Invoices')->setField('invoiceCount');
+        $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'invoiceCount', '42', 'p_0');
+
+        $this->assertNull($result);
+    }
+
+    #[Test]
+    public function it_returns_null_for_numeric_column_with_association_field(): void
+    {
+        $qb = $this->queryBuilderWithAssociationField('client');
+        $qb->expects($this->never())->method('setParameter');
+
+        $column = NumberColumn::new('client', 'Client')->setField('client');
+        $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'client', '42', 'p_0');
+
+        $this->assertNull($result);
+    }
+
+    #[Test]
+    public function it_returns_null_when_forced_numeric_on_an_unmapped_field(): void
+    {
+        $qb = $this->queryBuilderWithUnmappedField('score');
+        $qb->expects($this->never())->method('setParameter');
+
+        $column = TextColumn::new('score', 'Score')->setField('score');
+        $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'score', '42', 'p_0', true);
+
+        $this->assertNull($result);
+    }
+
     #[Test]
     public function it_returns_the_column_own_predicate_instead_of_the_type_dispatch(): void
     {
