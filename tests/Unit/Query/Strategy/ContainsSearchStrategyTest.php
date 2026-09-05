@@ -128,6 +128,24 @@ final class ContainsSearchStrategyTest extends TestCase
         yield 'null column field' => [null, '7', 'number'];
     }
 
+    #[Test]
+    public function it_skips_a_number_column_the_root_entity_does_not_map(): void
+    {
+        $qb = $this->queryBuilderWithUnmappedField('invoiceCount');
+        $qb->expects($this->never())->method('setParameter');
+        $qb->expects($this->never())->method('andWhere');
+
+        $search = new ColumnControlSearch('42', ColumnControlLogic::Contains, 'text');
+
+        (new ContainsSearchStrategy())->apply(
+            $qb,
+            NumberColumn::new('invoiceCount', 'Invoices'),
+            $search,
+            0,
+            'e',
+        );
+    }
+
     /**
      * Global search and ColumnControl contains go through this strategy, so a decimal
      * typed into a NumberColumn backed by a Doctrine integer must not be bound: PostgreSQL
