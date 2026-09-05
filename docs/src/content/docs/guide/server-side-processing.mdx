@@ -247,7 +247,7 @@ public function configureColumns(): iterable
 {
     yield NumberColumn::new('invoiceCount', 'Invoices')
         ->setOrderExpression('invoiceCount') // matches the HIDDEN alias below
-        ->setSearchable(false)               // search would still resolve e.invoiceCount → error
+        ->setSearchable(false)               // no mapped field to search; hide the box
         ->disableGlobalSearch();
 }
 
