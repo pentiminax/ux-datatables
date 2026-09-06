@@ -305,6 +305,43 @@ final class DoctrineDataProviderIterateRowsTest extends TestCase
     }
 
     /**
+     * The documented computed-column sort: a HIDDEN SELECT alias plus ORDER BY that alias.
+     * The identifier walk used to replace the SELECT with only e.id, so Doctrine rejected the
+     * query (`tagCount is not defined`) after export headers were already sent.
+     *
+     * Beta has more tags than Alpha so the expected order differs from `ORDER BY e.id`.
+     */
+    #[Test]
+    public function it_exports_when_order_by_uses_a_hidden_select_alias(): void
+    {
+        $alpha = $this->em->find(CountCustomer::class, 1);
+        $beta  = $this->em->find(CountCustomer::class, 2);
+        \assert($alpha instanceof CountCustomer);
+        \assert($beta instanceof CountCustomer);
+
+        $alpha->addTag(new CountTag(10, 'red'));
+        $beta->addTag(new CountTag(20, 'red'));
+        $beta->addTag(new CountTag(21, 'green'));
+        $beta->addTag(new CountTag(22, 'blue'));
+        $this->em->flush();
+        $this->em->clear();
+
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountCustomer::class,
+            rowMapper: $this->identityMapper(),
+            configureQueryBuilder: static fn (QueryBuilder $qb): QueryBuilder => $qb
+                ->addSelect('(SELECT COUNT(t.id) FROM '.CountTag::class.' t WHERE t.customer = e) AS HIDDEN tagCount')
+                ->addOrderBy('tagCount', 'DESC'),
+            exportChunkSize: 1,
+        );
+
+        $exported = iterator_to_array($provider->iterateRows($this->request()), false);
+
+        $this->assertSame([['id' => 2], ['id' => 1]], $exported);
+    }
+
+    /**
      * A LIMIT/OFFSET set by customizeQueryBuilder() caps the export. It counts root entities: the
      * to-many join multiplies SQL rows, so a LIMIT left on the query itself would have cut the
      * export short.
