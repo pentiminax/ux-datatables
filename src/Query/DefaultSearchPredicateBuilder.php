@@ -23,6 +23,10 @@ use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
  * type integer`) and MySQL coerces the decimal, matching the wrong rows. When the mapped
  * type is known, {@see NumericSearchTerm} applies the same skip/normalize contract as
  * {@see Strategy\ComparisonSearchStrategy}.
+ * A numeric column whose field the root entity does not map is skipped the same way a
+ * text column is: the is_numeric() fallback must not emit "<alias>.<field>" for a
+ * virtual NumberColumn, which would make Doctrine reject the whole query — including
+ * every other column in a global search — when the term happens to be numeric.
  * For native UUID/ULID columns: exact match when the value is a well-formed identifier of
  * that field's type, null otherwise.
  * For other columns: LIKE %value% when the field supports search filtering, null otherwise.
@@ -82,6 +86,9 @@ final class DefaultSearchPredicateBuilder implements SearchPredicateBuilderInter
      * gate used when the query builder has no root-entity metadata (unit tests, non-Doctrine
      * builders): without a type we cannot tell integer from float, so a decimal term is
      * still bound rather than skipped.
+     *
+     * An unmapped or association field is refused before that fallback: is_numeric() would
+     * otherwise emit a DQL path Doctrine cannot resolve.
      */
     private function buildNumeric(
         QueryBuilder $qb,
@@ -90,6 +97,10 @@ final class DefaultSearchPredicateBuilder implements SearchPredicateBuilderInter
         string $value,
         string $paramName,
     ): ?string {
+        if (!RelationFieldResolver::supportsSearchFiltering($qb, $field)) {
+            return null;
+        }
+
         $numericType = RelationFieldResolver::resolveIntegerFieldType($qb, $field)
             ?? RelationFieldResolver::resolveFloatFieldType($qb, $field);
 
