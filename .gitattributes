@@ -8,6 +8,7 @@
 /AGENTS.md export-ignore
 /CLAUDE.md export-ignore
 /assets/biome.json export-ignore
+/assets/package-lock.json export-ignore
 /assets/scripts export-ignore
 /assets/src export-ignore
 /assets/test export-ignore
