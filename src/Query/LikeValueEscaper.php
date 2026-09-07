@@ -27,7 +27,7 @@ namespace Pentiminax\UX\DataTables\Query;
  */
 final class LikeValueEscaper
 {
-    public const string ESCAPE_CHARACTER = '!';
+    public const ESCAPE_CHARACTER = '!';
 
     public static function escape(string $value): string
     {

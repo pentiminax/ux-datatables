@@ -31,7 +31,7 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  */
 final class NullnessSearchStrategy implements SearchStrategyInterface
 {
-    private const array NULL_ONLY_TYPES = ['date', 'datetime', 'datetime-local', 'time', 'num', 'number', 'numeric'];
+    private const NULL_ONLY_TYPES = ['date', 'datetime', 'datetime-local', 'time', 'num', 'number', 'numeric'];
 
     public function __construct(
         private readonly bool $negated = false,

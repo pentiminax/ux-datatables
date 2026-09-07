@@ -15,9 +15,9 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  */
 final class MutationTokenValidator
 {
-    public const string TOKEN_ID = 'ux_datatables_mutation';
+    public const TOKEN_ID = 'ux_datatables_mutation';
 
-    public const string HEADER = 'X-CSRF-Token';
+    public const HEADER = 'X-CSRF-Token';
 
     public function __construct(
         private readonly CsrfTokenManagerInterface $csrfTokenManager,

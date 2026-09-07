@@ -9,9 +9,9 @@ use Pentiminax\UX\DataTables\Enum\ExportFormat;
 
 final class Button implements \JsonSerializable
 {
-    public const string SERVER_EXPORT_ACTION = 'ux:export';
+    public const SERVER_EXPORT_ACTION = 'ux:export';
 
-    private const string DEFAULT_EXPORT_COLUMNS = ':visible:not(.not-exportable)';
+    private const DEFAULT_EXPORT_COLUMNS = ':visible:not(.not-exportable)';
 
     /**
      * Button types that never export data: no default `exportOptions` is injected for these.

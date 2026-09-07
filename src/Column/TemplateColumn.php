@@ -10,8 +10,8 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class TemplateColumn extends AbstractColumn implements TemplateAwareColumnInterface
 {
-    public const string OPTION_TEMPLATE_PATH       = 'templatePath';
-    public const string OPTION_TEMPLATE_PARAMETERS = 'templateParameters';
+    public const OPTION_TEMPLATE_PATH       = 'templatePath';
+    public const OPTION_TEMPLATE_PARAMETERS = 'templateParameters';
 
     private array $templateParameters = [];
 

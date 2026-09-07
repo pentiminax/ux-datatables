@@ -8,14 +8,14 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class MoneyColumn extends AbstractColumn
 {
-    public const string OPTION_IS_MONEY           = 'isMoney';
-    public const string OPTION_CURRENCY           = 'currency';
-    public const string OPTION_STORED_AS_CENTS    = 'storedAsCents';
-    public const string OPTION_DECIMALS           = 'decimals';
-    public const string OPTION_SHOW_CURRENCY_SIGN = 'showCurrencySign';
+    public const OPTION_IS_MONEY           = 'isMoney';
+    public const OPTION_CURRENCY           = 'currency';
+    public const OPTION_STORED_AS_CENTS    = 'storedAsCents';
+    public const OPTION_DECIMALS           = 'decimals';
+    public const OPTION_SHOW_CURRENCY_SIGN = 'showCurrencySign';
 
-    private const int MIN_DECIMALS = 0;
-    private const int MAX_DECIMALS = 20;
+    private const MIN_DECIMALS = 0;
+    private const MAX_DECIMALS = 20;
 
     public static function new(string $name, string $title = ''): static
     {

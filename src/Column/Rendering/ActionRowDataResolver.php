@@ -20,7 +20,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 final class ActionRowDataResolver
 {
-    public const string ROW_ACTIONS_KEY = '__ux_datatables_actions';
+    public const ROW_ACTIONS_KEY = '__ux_datatables_actions';
 
     private readonly PermissionChecker $permissionChecker;
     private readonly PropertyAccessorInterface $propertyAccessor;

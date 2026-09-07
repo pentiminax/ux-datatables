@@ -25,7 +25,7 @@ final class RelationFieldResolver
      *
      * @var list<string>
      */
-    private const array UUID_FIELD_TYPES = [
+    private const UUID_FIELD_TYPES = [
         'guid',
         'ulid',
         'uuid',
@@ -39,7 +39,7 @@ final class RelationFieldResolver
      *
      * @var list<string>
      */
-    private const array DATE_FIELD_TYPES = [
+    private const DATE_FIELD_TYPES = [
         'date',
         'date_immutable',
         'datetime',
@@ -55,7 +55,7 @@ final class RelationFieldResolver
      *
      * @var list<string>
      */
-    private const array INTEGER_FIELD_TYPES = [
+    private const INTEGER_FIELD_TYPES = [
         'bigint',
         'integer',
         'smallint',
@@ -67,7 +67,7 @@ final class RelationFieldResolver
      *
      * @var list<string>
      */
-    private const array FLOAT_FIELD_TYPES = [
+    private const FLOAT_FIELD_TYPES = [
         'decimal',
         'float',
     ];
@@ -75,7 +75,7 @@ final class RelationFieldResolver
     /**
      * @var list<string>
      */
-    private const array BOOLEAN_FIELD_TYPES = [
+    private const BOOLEAN_FIELD_TYPES = [
         'boolean',
     ];
 
@@ -84,7 +84,7 @@ final class RelationFieldResolver
      *
      * @var list<string>
      */
-    private const array NON_TEXT_SEARCHABLE_TYPES = [
+    private const NON_TEXT_SEARCHABLE_TYPES = [
         'bigint',
         'binary',
         'blob',

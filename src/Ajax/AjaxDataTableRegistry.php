@@ -16,7 +16,7 @@ final class AjaxDataTableRegistry
      * the Referer header — can never be replayed against an action route. Every route
      * accepting an action token reads it from the request body for the same reason.
      */
-    private const string ACTION_TOKEN_PREFIX = 'action:';
+    private const ACTION_TOKEN_PREFIX = 'action:';
 
     /**
      * @param array<class-string<AbstractDataTable>, string> $serviceIdsByClass

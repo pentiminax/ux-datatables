@@ -20,7 +20,7 @@ final class TemplateColumnRenderer
      * reserved until it is removed. Detail rows and the edit modal expose their own `entity`,
      * which is neither an alias nor deprecated.
      */
-    public const array RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row', 'source', 'payload'];
+    public const RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row', 'source', 'payload'];
 
     public function __construct(
         private readonly ?Environment $twig = null,

@@ -29,7 +29,7 @@ final class DateRangeFilter extends AbstractFilter
      *
      * @var list<string>
      */
-    private const array DATETIME_FIELD_TYPES = [
+    private const DATETIME_FIELD_TYPES = [
         'datetime',
         'datetime_immutable',
         'datetimetz',

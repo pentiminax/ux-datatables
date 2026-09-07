@@ -8,14 +8,14 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class ImageColumn extends AbstractColumn
 {
-    public const string OPTION_IS_IMAGE     = 'isImage';
-    public const string OPTION_IMAGE_WIDTH  = 'imageWidth';
-    public const string OPTION_IMAGE_HEIGHT = 'imageHeight';
-    public const string OPTION_ALT          = 'alt';
-    public const string OPTION_LAZY         = 'lazy';
-    public const string OPTION_ROUNDED      = 'rounded';
-    public const string OPTION_PLACEHOLDER  = 'placeholder';
-    public const string OPTION_CLICKABLE    = 'clickable';
+    public const OPTION_IS_IMAGE     = 'isImage';
+    public const OPTION_IMAGE_WIDTH  = 'imageWidth';
+    public const OPTION_IMAGE_HEIGHT = 'imageHeight';
+    public const OPTION_ALT          = 'alt';
+    public const OPTION_LAZY         = 'lazy';
+    public const OPTION_ROUNDED      = 'rounded';
+    public const OPTION_PLACEHOLDER  = 'placeholder';
+    public const OPTION_CLICKABLE    = 'clickable';
 
     public static function new(string $name, string $title = ''): static
     {

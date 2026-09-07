@@ -31,7 +31,7 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
  */
 final class ContainsSearchStrategy implements SearchStrategyInterface
 {
-    private const array NUMERIC_TYPE_HINTS = ['number', 'numeric', 'num'];
+    private const NUMERIC_TYPE_HINTS = ['number', 'numeric', 'num'];
 
     public function __construct(
         private readonly SearchPredicateBuilderInterface $predicateBuilder = new DefaultSearchPredicateBuilder(),

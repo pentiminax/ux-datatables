@@ -12,7 +12,7 @@ use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
 final class BooleanSwitchMetadataStage implements RowStageInterface
 {
-    public const string METADATA_KEY = '__ux_datatables_boolean_switches';
+    public const METADATA_KEY = '__ux_datatables_boolean_switches';
 
     public function process(array $mappedRow, mixed $originalRow, array $columns): array
     {

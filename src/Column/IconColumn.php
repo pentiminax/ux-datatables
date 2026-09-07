@@ -10,16 +10,16 @@ use Pentiminax\UX\DataTables\Enum\IconSize;
 
 class IconColumn extends AbstractColumn
 {
-    public const string OPTION_IS_ICON     = 'isIcon';
-    public const string OPTION_ICON        = 'icon';
-    public const string OPTION_COLOR       = 'color';
-    public const string OPTION_SIZE        = 'size';
-    public const string OPTION_TOOLTIPS    = 'tooltips';
-    public const string OPTION_BOOLEAN     = 'boolean';
-    public const string OPTION_TRUE_ICON   = 'trueIcon';
-    public const string OPTION_FALSE_ICON  = 'falseIcon';
-    public const string OPTION_TRUE_COLOR  = 'trueColor';
-    public const string OPTION_FALSE_COLOR = 'falseColor';
+    public const OPTION_IS_ICON     = 'isIcon';
+    public const OPTION_ICON        = 'icon';
+    public const OPTION_COLOR       = 'color';
+    public const OPTION_SIZE        = 'size';
+    public const OPTION_TOOLTIPS    = 'tooltips';
+    public const OPTION_BOOLEAN     = 'boolean';
+    public const OPTION_TRUE_ICON   = 'trueIcon';
+    public const OPTION_FALSE_ICON  = 'falseIcon';
+    public const OPTION_TRUE_COLOR  = 'trueColor';
+    public const OPTION_FALSE_COLOR = 'falseColor';
 
     private ?\Closure $iconResolver  = null;
     private ?\Closure $colorResolver = null;
