@@ -208,7 +208,7 @@
     "datatables.net-select-dt": "^4.0.0",
     "jszip": "^3.10.0",
     "lucide": "^1.25.0",
-    "pdfmake": "^0.3.0"
+    "pdfmake": "^0.3.11"
   },
   "scripts": {
     "build": "tsc",
@@ -305,7 +305,7 @@
     "jsdom": "^30.0.1",
     "jszip": "^3.10.0",
     "lucide": "^1.25.0",
-    "pdfmake": "^0.3.0",
+    "pdfmake": "^0.3.11",
     "vitest": "^4.0.18"
   }
 }
