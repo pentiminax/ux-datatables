@@ -35,6 +35,10 @@ interface FilterControl {
 
 const BOOTSTRAP_FRAMEWORKS: StyleFramework[] = ['bs', 'bs4', 'bs5']
 
+function isPlainRecord(value: unknown): value is Record<string, any> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 function isBootstrap(framework: StyleFramework): boolean {
     return BOOTSTRAP_FRAMEWORKS.includes(framework)
 }
@@ -114,8 +118,13 @@ export class FilterBar {
     }
 
     /**
-     * Merge the last applied filter values into the table's AJAX request data,
-     * preserving any pre-existing static `ajax.data` object.
+     * Merge the last applied filter values into the table's AJAX request data.
+     *
+     * A static `ajax.data` object is copied onto the request. A function — the
+     * API Platform adapter installs one that rewrites DataTables params into
+     * `page`/`itemsPerPage` — is called first and its return value is kept;
+     * replacing it made every filtered API Platform table send the raw
+     * DataTables protocol instead of Hydra query parameters.
      */
     attachToPayload(payload: Record<string, any>): void {
         if (!payload.ajax || typeof payload.ajax !== 'object') {
@@ -124,7 +133,20 @@ export class FilterBar {
 
         const existing = payload.ajax.data
         payload.ajax.data = (data: Record<string, any>) => {
-            if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+            if (typeof existing === 'function') {
+                const transformed = existing(data)
+                if (isPlainRecord(transformed)) {
+                    transformed.filters = this.collectValues()
+
+                    return transformed
+                }
+
+                data.filters = this.collectValues()
+
+                return data
+            }
+
+            if (isPlainRecord(existing)) {
                 Object.assign(data, existing)
             }
             data.filters = this.collectValues()
