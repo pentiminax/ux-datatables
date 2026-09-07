@@ -1,4 +1,7 @@
 const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
+function isPlainRecord(value) {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 function isBootstrap(framework) {
     return BOOTSTRAP_FRAMEWORKS.includes(framework);
 }
@@ -65,7 +68,16 @@ export class FilterBar {
         }
         const existing = payload.ajax.data;
         payload.ajax.data = (data) => {
-            if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+            if (typeof existing === 'function') {
+                const transformed = existing(data);
+                if (isPlainRecord(transformed)) {
+                    transformed.filters = this.collectValues();
+                    return transformed;
+                }
+                data.filters = this.collectValues();
+                return data;
+            }
+            if (isPlainRecord(existing)) {
                 Object.assign(data, existing);
             }
             data.filters = this.collectValues();
@@ -266,7 +278,9 @@ export class FilterBar {
     }
     buildDateRange(definition, wrapper) {
         const group = document.createElement('div');
-        group.className = isBootstrap(this.framework) ? 'dt-filter-range d-flex gap-1' : 'dt-filter-range';
+        group.className = isBootstrap(this.framework)
+            ? 'dt-filter-range d-flex gap-1'
+            : 'dt-filter-range';
         const from = document.createElement('input');
         from.type = 'date';
         from.className = inputClass(this.framework);
