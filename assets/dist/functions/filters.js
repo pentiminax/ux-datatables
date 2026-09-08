@@ -69,7 +69,11 @@ export class FilterBar {
         const existing = payload.ajax.data;
         payload.ajax.data = (data) => {
             if (typeof existing === 'function') {
+                data.filters = this.collectValues();
                 const transformed = existing(data);
+                if (typeof transformed === 'string') {
+                    return transformed;
+                }
                 if (isPlainRecord(transformed)) {
                     transformed.filters = this.collectValues();
                     return transformed;
@@ -278,9 +282,7 @@ export class FilterBar {
     }
     buildDateRange(definition, wrapper) {
         const group = document.createElement('div');
-        group.className = isBootstrap(this.framework)
-            ? 'dt-filter-range d-flex gap-1'
-            : 'dt-filter-range';
+        group.className = isBootstrap(this.framework) ? 'dt-filter-range d-flex gap-1' : 'dt-filter-range';
         const from = document.createElement('input');
         from.type = 'date';
         from.className = inputClass(this.framework);

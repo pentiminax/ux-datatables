@@ -134,7 +134,11 @@ export class FilterBar {
         const existing = payload.ajax.data
         payload.ajax.data = (data: Record<string, any>) => {
             if (typeof existing === 'function') {
+                data.filters = this.collectValues()
                 const transformed = existing(data)
+                if (typeof transformed === 'string') {
+                    return transformed
+                }
                 if (isPlainRecord(transformed)) {
                     transformed.filters = this.collectValues()
 
