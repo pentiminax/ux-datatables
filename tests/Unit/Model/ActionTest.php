@@ -12,6 +12,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\ExpressionLanguage\Expression;
 
 /**
  * @internal
@@ -276,7 +277,7 @@ final class ActionTest extends TestCase
     #[DataProvider('permissionProvider')]
     public function it_distinguishes_static_from_per_row_permissions(?\Closure $subjectResolver, bool $static, bool $perRow): void
     {
-        $action = Action::delete()->permission('ROLE_ADMIN', $subjectResolver);
+        $action = Action::delete()->setPermission('ROLE_ADMIN', $subjectResolver);
 
         $this->assertSame('ROLE_ADMIN', $action->getPermission());
         $this->assertSame($subjectResolver, $action->getPermissionSubjectResolver());
@@ -287,6 +288,17 @@ final class ActionTest extends TestCase
 
         $this->assertArrayNotHasKey('permission', $json);
         $this->assertArrayNotHasKey('permissionSubjectResolver', $json);
+    }
+
+    #[Test]
+    public function it_stores_expression_permissions_without_serializing_them(): void
+    {
+        $expression = new Expression('"ROLE_ADMIN" in role_names');
+        $action     = Action::delete()->setPermission($expression);
+
+        $this->assertSame($expression, $action->getPermission());
+        $this->assertTrue($action->hasStaticPermission());
+        $this->assertArrayNotHasKey('permission', $action->jsonSerialize());
     }
 
     #[Test]

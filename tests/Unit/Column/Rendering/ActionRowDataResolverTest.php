@@ -15,6 +15,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\ExpressionLanguage\Expression;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -103,7 +104,7 @@ final class ActionRowDataResolverTest extends TestCase
             [
                 Action::edit()
                     ->linkToUrl(static fn (object $r) => '/items/'.$r->id)
-                    ->permission('EDIT', static fn ($r) => $r),
+                    ->setPermission('EDIT', static fn ($r) => $r),
             ],
             (object) ['id' => 7],
             ['EDIT' => ['url' => '/items/7', 'id' => 7]],
@@ -132,13 +133,38 @@ final class ActionRowDataResolverTest extends TestCase
 
         $action = Action::edit()
             ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
-            ->permission('EDIT', static fn ($r) => $r);
+            ->setPermission('EDIT', static fn ($r) => $r);
 
         $result = $this->resolveRow(new ActionRowDataResolver(new PermissionChecker($inner)), $sourceRow, $action);
 
         $this->assertSame(
             $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]] : null,
             $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
+        );
+    }
+
+    #[Test]
+    public function passes_expression_permission_with_resolved_subject(): void
+    {
+        $expression = new Expression('"ROLE_EDITOR" in role_names');
+        $sourceRow  = (object) ['id' => 7];
+
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner
+            ->expects($this->once())
+            ->method('isGranted')
+            ->with($expression, $sourceRow)
+            ->willReturn(true);
+
+        $action = Action::edit()
+            ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
+            ->setPermission($expression, static fn ($r) => $r);
+
+        $result = $this->resolveRow(new ActionRowDataResolver(new PermissionChecker($inner)), $sourceRow, $action);
+
+        $this->assertSame(
+            ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]],
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
         );
     }
 
@@ -156,7 +182,7 @@ final class ActionRowDataResolverTest extends TestCase
 
         $action = Action::edit()
             ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
-            ->permission('ROLE_EDITOR');
+            ->setPermission('ROLE_EDITOR');
 
         $result = $this->resolveRow(
             new ActionRowDataResolver(new PermissionChecker($inner)),
@@ -182,7 +208,7 @@ final class ActionRowDataResolverTest extends TestCase
 
         $action = Action::edit()
             ->linkToUrl(static fn (object $r) => '/items/'.$r->owner)
-            ->permission('OWNS', static fn (object $r) => $r->owner);
+            ->setPermission('OWNS', static fn (object $r) => $r->owner);
 
         $this->resolveRow(new ActionRowDataResolver(new PermissionChecker($inner)), (object) ['owner' => 'alice'], $action);
     }

@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Model;
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Enum\Icon;
+use Symfony\Component\ExpressionLanguage\Expression;
 
 final class Action implements \JsonSerializable
 {
@@ -29,7 +30,7 @@ final class Action implements \JsonSerializable
     private ?string $ajaxMethod                  = null;
     private ?string $csrfTokenId                 = null;
     private ?\Closure $csrfTokenIdResolver       = null;
-    private ?string $permission                  = null;
+    private string|Expression|null $permission   = null;
     private ?\Closure $permissionSubjectResolver = null;
     private ?string $collapsibleTemplate         = null;
     private array $collapsibleParameters         = [];
@@ -324,13 +325,13 @@ final class Action implements \JsonSerializable
     }
 
     /**
-     * Restrict this action with a Symfony security attribute (role, voter, expression).
+     * Restrict this action with a Symfony security attribute or expression.
      *
      * Without a subject resolver, the attribute is evaluated once before serialization
      * (e.g. `ROLE_ADMIN`). With a resolver, the attribute is evaluated per row and
      * the resolver receives the raw row passed to the rendering pipeline.
      */
-    public function permission(string $attribute, ?callable $subjectResolver = null): self
+    public function setPermission(string|Expression $attribute, ?callable $subjectResolver = null): self
     {
         $this->permission                = $attribute;
         $this->permissionSubjectResolver = null === $subjectResolver
@@ -340,7 +341,7 @@ final class Action implements \JsonSerializable
         return $this;
     }
 
-    public function getPermission(): ?string
+    public function getPermission(): string|Expression|null
     {
         return $this->permission;
     }

@@ -97,10 +97,27 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
     ['`linkToRoute(string $routeName, array|callable|null $params = null)`', 'Target a Symfony route generated per row (static parameters array, or a callable receiving the raw row). Mutually exclusive with `linkToUrl()`: the last call wins'],
     ["`asAjaxRequest(string|callable $csrfTokenId, string $method = 'POST')`", 'Send the action as a same-origin Ajax request instead of navigating. `$method` accepts `POST` or `DELETE`. The CSRF token id is resolved per row and its value is posted as `_token`. See [Ajax Actions](#ajax-actions)'],
     ['`collapsible(string $template, array $parameters = [])`', 'Render a `detail` action as an expand/collapse control that lazily loads a Twig child row (the template receives the row as `entity`, plus any extra `$parameters`). Only meaningful for `Action::detail()`'],
-    ['`permission(string $attribute, ?callable $subjectResolver = null)`', 'Restrict the action with a Symfony security attribute (role/voter/expression). Without a resolver it is evaluated once before serialization; with a resolver it is evaluated per row (the resolver receives the raw source row). Denied actions are removed and never serialized to the client'],
+    ['`setPermission(string|Expression $attribute, ?callable $subjectResolver = null)`', 'Restrict the action with a Symfony security attribute (role/voter/expression). Without a resolver it is evaluated once before serialization; with a resolver it is evaluated per row (the resolver receives the raw source row). Denied actions are removed and never serialized to the client'],
     ['`position(?ActionsPosition $position)`', 'Override the column placement for this action only (`null` inherits the `Actions` collection position). See [Column Position & Alignment](#column-position--alignment)'],
   ]}
 />
+
+`setPermission()` also accepts Symfony's `Expression` object. Install the optional component in
+your application before using expressions:
+
+```bash
+composer require symfony/expression-language
+```
+
+```php
+use Symfony\Component\ExpressionLanguage\Expression;
+
+Action::new('publish', 'Publish')
+    ->setPermission(new Expression('"ROLE_EDITOR" in role_names and "ROLE_EXTERNAL" not in role_names'));
+```
+
+Symfony evaluates the expression with its standard security variables, including `user`,
+`role_names`, `token`, and `subject` when a subject resolver is configured.
 
 ### Action Icons
 
@@ -144,7 +161,7 @@ Each built-in factory has a reserved name, so adding two `Action::detail()` thro
 `InvalidArgumentException`. To render several independent link actions in the same column, use
 `Action::new()` with a unique `$name` for each. Custom actions are rendered as `<a href>`
 links and support `icon()`, `askConfirmation()`, `displayIf()`, `htmlAttributes()`,
-`permission()`, and `position()` like any other action.
+`setPermission()`, and `position()` like any other action.
 
 ```php
 use App\Entity\Invoice;
@@ -193,7 +210,7 @@ public function configureActions(Actions $actions): Actions
             ->linkToRoute('book_publish', fn (Book $book): array => ['id' => $book->getId()])
             ->asAjaxRequest('publish_book')
             ->askConfirmation('Publish this book?')
-            ->permission('PUBLISH', fn (Book $book): Book => $book)
+            ->setPermission('PUBLISH', fn (Book $book): Book => $book)
     );
 }
 ```
@@ -223,7 +240,7 @@ After a successful response the controller dispatches `datatables:action:success
 A failed request dispatches `datatables:action:error` and re-enables the button.
 
 <Aside type="caution">
-  `permission()` only decides whether the button is rendered. It replaces neither `#[IsGranted]`
+  `setPermission()` only decides whether the button is rendered. It replaces neither `#[IsGranted]`
   nor `#[IsCsrfTokenValid]` on the endpoint — the route stays the security boundary. Ajax actions
   are refused when their URL is not same-origin, and are not rendered at all when no CSRF token
   can be issued (no session, no token manager).
@@ -425,7 +442,7 @@ The template receives the located entity as `entity`, plus any extra parameters 
 `collapsible()`. Auto-escaping applies as usual.
 
 Access is checked before the template renders, mirroring what the rendering pipeline evaluated for
-that action: a per-row `permission()` resolver receives the located entity, a static `permission()`
+that action: a per-row `setPermission()` resolver receives the located entity, a static `setPermission()`
 is evaluated as-is, and an action with no configured permission falls back to `VIEW` on the entity —
 the same convention delete and edit follow. An action the user cannot see is an action they cannot
 fetch.
@@ -444,4 +461,3 @@ fetch.
 - [Securing Ajax Routes](/ux-datatables/getting-started/security/)
 - [Recipe: Actions with CSRF and voter](/ux-datatables/recipes/actions-csrf-voter/)
 - [Columns Overview](/ux-datatables/columns/overview/)
-
