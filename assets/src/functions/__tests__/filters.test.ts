@@ -130,6 +130,52 @@ describe('FilterBar', () => {
         })
     })
 
+    it('composes with an existing ajax.data function instead of replacing it', () => {
+        const apiPlatformData = vi.fn((params: Record<string, any>) => ({
+            page: String(Math.floor(params.start / params.length) + 1),
+            itemsPerPage: String(params.length),
+        }))
+        const payload: Record<string, any> = {
+            filters: [{ name: 'name', type: 'text' }],
+            ajax: { url: '/books', data: apiPlatformData },
+        }
+        const bar = new FilterBar(payload, 'dt')
+        bar.attachToPayload(payload)
+
+        const wrapper = bar.render(vi.fn())
+        ;(wrapper.querySelector('input[type="search"]') as HTMLInputElement).value = 'john'
+        clickApply(wrapper)
+
+        const result = payload.ajax.data({ draw: 2, start: 25, length: 25 })
+
+        expect(apiPlatformData).toHaveBeenCalledTimes(1)
+        expect(result).toEqual({
+            page: '2',
+            itemsPerPage: '25',
+            filters: { name: 'john' },
+        })
+        expect(result).not.toHaveProperty('draw')
+        expect(result).not.toHaveProperty('start')
+    })
+
+    it('preserves a serialized ajax.data return value with filters included', () => {
+        const payload: Record<string, any> = {
+            filters: [{ name: 'status', type: 'select', options: { draft: 'Draft' } }],
+            ajax: { url: '/data', data: (params: Record<string, any>) => JSON.stringify(params) },
+        }
+        const bar = new FilterBar(payload, 'dt')
+        bar.attachToPayload(payload)
+
+        const wrapper = bar.render(vi.fn())
+        ;(wrapper.querySelector('select') as HTMLSelectElement).value = 'draft'
+        clickApply(wrapper)
+
+        const data: Record<string, any> = { draw: 1 }
+        expect(payload.ajax.data(data)).toBe(
+            JSON.stringify({ draw: 1, filters: { status: 'draft' } })
+        )
+    })
+
     it('wraps date range bounds in dt-filter-range', () => {
         const { bar } = makeBar([{ name: 'lastLoginAt', type: 'dateRange' }])
         const wrapper = bar.render(vi.fn())

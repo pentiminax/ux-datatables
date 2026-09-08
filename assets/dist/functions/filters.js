@@ -1,4 +1,7 @@
 const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
+function isPlainRecord(value) {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 function isBootstrap(framework) {
     return BOOTSTRAP_FRAMEWORKS.includes(framework);
 }
@@ -65,7 +68,20 @@ export class FilterBar {
         }
         const existing = payload.ajax.data;
         payload.ajax.data = (data) => {
-            if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+            if (typeof existing === 'function') {
+                data.filters = this.collectValues();
+                const transformed = existing(data);
+                if (typeof transformed === 'string') {
+                    return transformed;
+                }
+                if (isPlainRecord(transformed)) {
+                    transformed.filters = this.collectValues();
+                    return transformed;
+                }
+                data.filters = this.collectValues();
+                return data;
+            }
+            if (isPlainRecord(existing)) {
                 Object.assign(data, existing);
             }
             data.filters = this.collectValues();
