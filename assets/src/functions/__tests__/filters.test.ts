@@ -158,10 +158,10 @@ describe('FilterBar', () => {
         expect(result).not.toHaveProperty('start')
     })
 
-    it('falls back to the DataTables params when the ajax.data function returns a non-object', () => {
+    it('preserves a serialized ajax.data return value with filters included', () => {
         const payload: Record<string, any> = {
             filters: [{ name: 'status', type: 'select', options: { draft: 'Draft' } }],
-            ajax: { url: '/data', data: () => 'skip' },
+            ajax: { url: '/data', data: (params: Record<string, any>) => JSON.stringify(params) },
         }
         const bar = new FilterBar(payload, 'dt')
         bar.attachToPayload(payload)
@@ -171,10 +171,9 @@ describe('FilterBar', () => {
         clickApply(wrapper)
 
         const data: Record<string, any> = { draw: 1 }
-        expect(payload.ajax.data(data)).toMatchObject({
-            draw: 1,
-            filters: { status: 'draft' },
-        })
+        expect(payload.ajax.data(data)).toBe(
+            JSON.stringify({ draw: 1, filters: { status: 'draft' } })
+        )
     })
 
     it('wraps date range bounds in dt-filter-range', () => {
