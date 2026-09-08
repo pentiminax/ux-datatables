@@ -151,7 +151,11 @@ new DataTable(
     ['`extensions(array $extensions)`', 'Set multiple extensions'],
     ['`getExtensions(): array`', 'Return configured extensions'],
     ['`setExtensions(DataTableExtensions $extensions)`', 'Replace extension collection'],
-    ['`responsive()`, `columnControl()`', 'Convenience helpers for common extensions'],
+    ['`responsive()`', 'Convenience helper for the Responsive extension'],
+    [
+      '`columnControl(int|string|null $target = null, ?array $content = null)`',
+      'Add Column Control; a target replaces the defaults with that single control group',
+    ],
   ]}
 />
 
