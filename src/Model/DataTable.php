@@ -667,9 +667,28 @@ class DataTable
         return $this;
     }
 
-    public function columnControl(): static
+    /**
+     * Add the ColumnControl extension.
+     *
+     * Called without a target it keeps the bundled defaults: order controls on the first header
+     * row and a search input on the second. Naming a target replaces them with that single control
+     * group, so `columnControl(target: 'tfoot')` moves the per-column search inputs to the footer.
+     * ColumnControl creates the targeted row itself, so no `<tfoot>` markup is needed.
+     *
+     * Combine several groups by building the extension directly:
+     * `addExtension((new ColumnControlExtension([]))->add(0, ['order'])->add('tfoot', ['search']))`.
+     *
+     * @param int|string|null $target  header row index, or a `tfoot` string (`'tfoot'`, `'tfoot:1'`)
+     * @param list<mixed>     $content content descriptors, as in the DataTables `columnControl`
+     *                                 option
+     */
+    public function columnControl(int|string|null $target = null, array $content = ['search']): static
     {
-        $this->extensions->addExtension(new ColumnControlExtension());
+        $extension = null === $target
+            ? new ColumnControlExtension()
+            : (new ColumnControlExtension([]))->add($target, $content);
+
+        $this->extensions->addExtension($extension);
 
         return $this;
     }

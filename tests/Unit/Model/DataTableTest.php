@@ -319,6 +319,39 @@ final class DataTableTest extends TestCase
         $this->assertSame('Email', $table->getColumnDefinitions()[0]['title']);
     }
 
+    #[Test]
+    public function it_keeps_the_column_control_defaults_when_no_target_is_given(): void
+    {
+        $table = (new DataTable('books'))->columnControl();
+
+        $this->assertSame(
+            (new ColumnControlExtension())->jsonSerialize(),
+            $table->getExtensionsCollection()->jsonSerialize()['columnControl']
+        );
+    }
+
+    #[Test]
+    public function it_targets_the_footer_with_a_search_control(): void
+    {
+        $table = (new DataTable('books'))->columnControl(target: 'tfoot');
+
+        $this->assertSame(
+            [['target' => 'tfoot', 'content' => ['search']]],
+            $table->getExtensionsCollection()->jsonSerialize()['columnControl']
+        );
+    }
+
+    #[Test]
+    public function it_targets_a_header_row_with_explicit_control_content(): void
+    {
+        $table = (new DataTable('books'))->columnControl(target: 1, content: ['searchText']);
+
+        $this->assertSame(
+            [['target' => 1, 'content' => ['searchText']]],
+            $table->getExtensionsCollection()->jsonSerialize()['columnControl']
+        );
+    }
+
     /**
      * @param array<string, bool>  $keys
      * @param array<string, mixed> $expected

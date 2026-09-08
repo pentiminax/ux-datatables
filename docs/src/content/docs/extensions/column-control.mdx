@@ -30,6 +30,44 @@ test `IS NULL` / `IS NOT NULL` on those columns — they must not compare the id
 empty string. See
 [Searching UUID and ULID columns](/ux-datatables/guide/server-side-processing/#searching-uuid-and-ulid-columns).
 
+## Choosing Where The Controls Go
+
+Each control group targets one row: a header row index (`0`, `1`, ...) or a `tfoot` string
+(`'tfoot'`, `'tfoot:1'`). Pass a target to replace the defaults with that single group.
+
+```php
+// Per-column search inputs in the table footer instead of the second header row.
+$dataTable->columnControl(target: 'tfoot');
+
+// A specific content type in a header row.
+$dataTable->columnControl(target: 1, content: ['searchText']);
+```
+
+ColumnControl creates the targeted row when the table does not render one, so a footer target
+needs no `<tfoot>` markup — `render_datatable()` emits an empty `<table>` and every row is built
+at initialization.
+
+Naming a target drops the default order controls. Keep both by building the extension directly:
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
+
+$dataTable->addExtension(
+    (new ColumnControlExtension([]))
+        ->add(0, ['order'])
+        ->add('tfoot', ['search'])
+);
+```
+
+`new ColumnControlExtension()` keeps the defaults, `new ColumnControlExtension([])` starts from
+nothing, and `add()` appends one group per call in call order.
+
+<Aside type="note">
+  `content: ['search']` picks the input for the column's type — text, number, date, or a value list.
+  Use `searchText`, `searchNumber`, `searchDateTime`, or `searchList` to pin one, and
+  `searchDropdown` for a dropdown trigger rather than an always-visible input.
+</Aside>
+
 ## Per-column Overrides
 
 Override the control content for a single column with `setColumnControl()`, using the same content
@@ -130,6 +168,8 @@ own construction, which is all a plugin registration needs.
   `ColumnControlExtension` on the table (`$table->columnControl()`); the column-level setting is
   silently inert because the frontend never loads the plugin bundle.
 - Enabling it without ensuring the target columns are searchable/orderable.
+- Passing a target and expecting the default order controls to stay — they are replaced. Add them
+  back with `add(0, ['order'])`.
 - Expecting partial search (`contains`, `starts`) to work on a UUID or ULID column.
 - Registering a custom content type on `datatables:pre-connect` instead of `datatables:pre-init` —
   `pre-connect` fires before the DataTable library and its extensions have even loaded, so its
