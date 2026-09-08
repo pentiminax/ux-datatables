@@ -184,9 +184,9 @@ final class ColumnResolverTest extends TestCase
             ['ROLE_PUBLIC', null, true],
         ]);
 
-        $salary = TextColumn::new('salary', 'Salary')->permission('ROLE_HR');
+        $salary = TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR');
         $name   = TextColumn::new('name', 'Name');
-        $public = TextColumn::new('public', 'Public')->permission('ROLE_PUBLIC');
+        $public = TextColumn::new('public', 'Public')->setPermission('ROLE_PUBLIC');
 
         $filtered = $resolver->filterStaticPermissions([$salary, $name, $public]);
 
@@ -202,8 +202,8 @@ final class ColumnResolverTest extends TestCase
         ]);
 
         $actions = new Actions();
-        $actions->add(Action::delete()->permission('ROLE_ADMIN'));
-        $actions->add(Action::edit()->permission('ROLE_EDITOR'));
+        $actions->add(Action::delete()->setPermission('ROLE_ADMIN'));
+        $actions->add(Action::edit()->setPermission('ROLE_EDITOR'));
 
         $filtered = $resolver->filterStaticPermissions([ActionColumn::fromActions('actions', '', $actions)]);
 
@@ -234,7 +234,7 @@ final class ColumnResolverTest extends TestCase
      */
     public static function provideDeniedColumnValueRemovals(): iterable
     {
-        $salary = TextColumn::new('salary', 'Salary')->permission('ROLE_HR');
+        $salary = TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR');
         $name   = TextColumn::new('name', 'Name');
 
         yield 'flat unauthorized key' => [
@@ -245,43 +245,43 @@ final class ColumnResolverTest extends TestCase
 
         yield 'literal dotted unauthorized key' => [
             ['user.email' => 'secret', 'name' => 'Ada'],
-            [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
+            [TextColumn::new('user.email', 'Email')->setPermission('ROLE_HR'), $name],
             ['name' => 'Ada'],
         ];
 
         yield 'nested unauthorized dotted path' => [
             ['user' => ['email' => 'secret', 'role' => 'admin'], 'name' => 'Ada'],
-            [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
+            [TextColumn::new('user.email', 'Email')->setPermission('ROLE_HR'), $name],
             ['user' => ['role' => 'admin'], 'name' => 'Ada'],
         ];
 
         yield 'literal and nested representations of the same path' => [
             ['user.email' => 'literal', 'user' => ['email' => 'nested', 'role' => 'admin'], 'name' => 'Ada'],
-            [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
+            [TextColumn::new('user.email', 'Email')->setPermission('ROLE_HR'), $name],
             ['user' => ['role' => 'admin'], 'name' => 'Ada'],
         ];
 
         yield 'nested field path when the row key differs' => [
             ['email' => 'top-level', 'user' => ['email' => 'secret', 'role' => 'admin'], 'name' => 'Ada'],
-            [TextColumn::new('email', 'Email')->setField('user.email')->permission('ROLE_HR'), $name],
+            [TextColumn::new('email', 'Email')->setField('user.email')->setPermission('ROLE_HR'), $name],
             ['user' => ['role' => 'admin'], 'name' => 'Ada'],
         ];
 
         yield 'missing nested path is a no-op' => [
             ['name' => 'Ada', 'extra' => 'kept'],
-            [TextColumn::new('user.email', 'Email')->permission('ROLE_HR'), $name],
+            [TextColumn::new('user.email', 'Email')->setPermission('ROLE_HR'), $name],
             ['name' => 'Ada', 'extra' => 'kept'],
         ];
 
         yield 'object-backed nested path' => [
             ['value' => (object) ['name' => 'secret', 'role' => 'admin'], 'kept' => true],
-            [TextColumn::new('value.name', 'Name')->permission('ROLE_HR'), $name],
+            [TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'), $name],
             ['value' => ['role' => 'admin'], 'kept' => true],
         ];
 
         yield 'array-object nested path' => [
             ['value' => new \ArrayObject(['name' => 'secret', 'role' => 'admin']), 'kept' => true],
-            [TextColumn::new('value.name', 'Name')->permission('ROLE_HR'), $name],
+            [TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'), $name],
             ['value' => ['role' => 'admin'], 'kept' => true],
         ];
 
@@ -292,7 +292,7 @@ final class ColumnResolverTest extends TestCase
                     return ['name' => 'secret', 'role' => 'admin'];
                 }
             }, 'kept' => true],
-            [TextColumn::new('value.name', 'Name')->permission('ROLE_HR'), $name],
+            [TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'), $name],
             ['value' => ['role' => 'admin'], 'kept' => true],
         ];
 
@@ -304,7 +304,7 @@ final class ColumnResolverTest extends TestCase
                 ],
                 'name' => 'Ada',
             ],
-            [TextColumn::new('user.profile.email', 'Email')->permission('ROLE_HR'), $name],
+            [TextColumn::new('user.profile.email', 'Email')->setPermission('ROLE_HR'), $name],
             ['user' => ['profile' => ['id' => 7], 'role' => 'admin'], 'name' => 'Ada'],
         ];
     }
@@ -318,7 +318,7 @@ final class ColumnResolverTest extends TestCase
         $filtered = $resolver->removeDeniedColumnValues(
             ['value' => $value, 'name' => 'Ada'],
             [
-                TextColumn::new('value.name', 'Name')->permission('ROLE_HR'),
+                TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'),
                 TextColumn::new('name', 'Name'),
             ],
         );
@@ -335,7 +335,7 @@ final class ColumnResolverTest extends TestCase
 
         $actions = new Actions();
         $actions->add(Action::delete());
-        $actionColumn = ActionColumn::fromActions('actions', '', $actions)->permission('ROLE_MANAGER');
+        $actionColumn = ActionColumn::fromActions('actions', '', $actions)->setPermission('ROLE_MANAGER');
 
         $this->assertSame([], $resolver->filterStaticPermissions([$actionColumn]));
     }
@@ -346,7 +346,7 @@ final class ColumnResolverTest extends TestCase
         $resolver = $this->createResolverWithPermissions([['ROLE_ADMIN', null, false]]);
 
         $actions = new Actions();
-        $actions->add(Action::delete()->permission('ROLE_ADMIN'));
+        $actions->add(Action::delete()->setPermission('ROLE_ADMIN'));
 
         $resolver->filterActionsByStaticPermissions($actions);
 
@@ -365,7 +365,7 @@ final class ColumnResolverTest extends TestCase
      */
     public static function provideColumnsKeptWithoutPermissionCheck(): iterable
     {
-        yield 'permission granted by the default checker' => [TextColumn::new('salary', 'Salary')->permission('ROLE_HR')];
+        yield 'permission granted by the default checker' => [TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR')];
         yield 'custom column implementing ColumnInterface with no permission' => [self::createStub(ColumnInterface::class)];
     }
 

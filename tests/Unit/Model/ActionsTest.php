@@ -130,8 +130,8 @@ final class ActionsTest extends TestCase
     public function it_removes_actions_whose_static_permission_is_denied(): void
     {
         $actions = (new Actions())
-            ->add(Action::delete()->permission('ROLE_ADMIN'))
-            ->add(Action::edit()->permission('ROLE_EDITOR'))
+            ->add(Action::delete()->setPermission('ROLE_ADMIN'))
+            ->add(Action::edit()->setPermission('ROLE_EDITOR'))
             ->add(Action::detail());
 
         $checker = $this->createStub(AuthorizationCheckerInterface::class);
@@ -149,7 +149,7 @@ final class ActionsTest extends TestCase
     #[Test]
     public function it_ignores_per_row_permissions_when_filtering(): void
     {
-        $actions = (new Actions())->add(Action::delete()->permission('DELETE', static fn ($row) => $row));
+        $actions = (new Actions())->add(Action::delete()->setPermission('DELETE', static fn ($row) => $row));
 
         $actions->filterStaticPermissions(new PermissionChecker($this->createStub(AuthorizationCheckerInterface::class)));
 
@@ -159,7 +159,7 @@ final class ActionsTest extends TestCase
     #[Test]
     public function it_keeps_every_action_without_an_authorization_checker(): void
     {
-        $actions = (new Actions())->add(Action::delete()->permission('ROLE_ADMIN'));
+        $actions = (new Actions())->add(Action::delete()->setPermission('ROLE_ADMIN'));
 
         $actions->filterStaticPermissions(new PermissionChecker());
 

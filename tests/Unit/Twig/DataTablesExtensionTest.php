@@ -267,7 +267,7 @@ final class DataTablesExtensionTest extends TestCase
         $table = $this->inlineTable(
             [
                 TextColumn::new('name'),
-                TextColumn::new('user.email')->permission('ROLE_DENIED'),
+                TextColumn::new('user.email')->setPermission('ROLE_DENIED'),
             ],
             static fn (DataTable $table): DataTable => $table->data([
                 ['name' => 'Ada', 'user' => ['email' => 'secret', 'role' => 'admin']],
@@ -289,7 +289,7 @@ final class DataTablesExtensionTest extends TestCase
         $table = $this->inlineTable(
             [
                 TextColumn::new('name'),
-                TextColumn::new('value.name')->permission('ROLE_DENIED'),
+                TextColumn::new('value.name')->setPermission('ROLE_DENIED'),
             ],
             static fn (DataTable $table): DataTable => $table->data([
                 ['name' => 'Ada', 'value' => (object) ['name' => 'secret', 'role' => 'admin']],
@@ -310,7 +310,7 @@ final class DataTablesExtensionTest extends TestCase
     {
         $actions = (new Actions())->add(
             Action::detail()
-                ->permission('ROLE_DENIED')
+                ->setPermission('ROLE_DENIED')
                 ->linkToUrl(static fn (array $row): string => '/books/'.$row['id'])
         );
 
@@ -345,7 +345,7 @@ final class DataTablesExtensionTest extends TestCase
         $table = new ConfigurableDataTable(
             [
                 TextColumn::new('id'),
-                TextColumn::new('secret')->permission('ROLE_DENIED'),
+                TextColumn::new('secret')->setPermission('ROLE_DENIED'),
             ],
             configureTable: static fn (DataTable $table): DataTable => $table->data([
                 ['id' => 5, 'secret' => 'hidden'],

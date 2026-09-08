@@ -99,7 +99,7 @@ Rules and routing:
 - Return `null` (the default) to disable projection. The returned list **must preserve the count and order** of `$items` — otherwise a `LogicException` is thrown.
 - When a projector is active, the bundle pairs each source entity with its projected item (`RowContext`, `src/RowMapper/RowContext.php`) and routes them:
   - **Columns + TemplateColumn Twig (`row`)** read the **projected** item (the DTO).
-  - **Actions, `UrlColumn`, and `permission()`** receive the **source** entity.
+  - **Actions, `UrlColumn`, and `setPermission()`** receive the **source** entity.
   - Without a projector, both reference the same value. Twig `source` is that original object, and Twig `payload` is the array `mapRow()` returned.
 - A projected/computed column has no DB counterpart: mark it `->setOrderable(false)->setSearchable(false)`, or sort it via `->setOrderExpression(...)` backed by an `addSelect(... AS HIDDEN ...)` — see `references/server-side.md`.
 - **Server-side export calls the projector per batch, not per page.** An export streams every filtered row, so `projectPage()` runs once per batch (250 rows by default for `DoctrineDataProvider`), not once over the whole result set. Project each item from itself — map it, or batch-load data keyed by it. A projector whose output depends on which other items share the call (rank, running total, share of the batch maximum) yields different values in an export than on screen. Need a larger batch? Build the provider yourself in `createDataProvider()` with a bigger `exportChunkSize`.

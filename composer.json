@@ -29,6 +29,7 @@
     "doctrine/orm": "^3.0",
     "friendsofphp/php-cs-fixer": "^3.95",
     "phpunit/phpunit": "^11.5",
+    "symfony/expression-language": "^7.0 || ^8.0",
     "symfony/framework-bundle": "^7.0 || ^8.0",
     "symfony/phpunit-bridge": "^7.0 || ^8.0",
     "symfony/property-info": "^7.0 || ^8.0",

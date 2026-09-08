@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Contracts;
 
 use Pentiminax\UX\DataTables\Enum\ColumnType;
+use Symfony\Component\ExpressionLanguage\Expression;
 
 /**
  * One column of a table's configuration: the JSON handed to DataTables.net, the entity field the
@@ -13,8 +14,8 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
  * Implementations must behave as immutable-once-configured value objects. Every accessor is called
  * while AbstractDataTable resolves its columns -- on a container-shared instance -- and again for
  * each row, so none of them may read the request, the security token, or the locale.
- * getPermission() only names the required security attribute; ColumnResolver evaluates it per
- * request at the serialization and query boundaries.
+ * getPermission() only names the required security attribute or expression; ColumnResolver
+ * evaluates it per request at the serialization and query boundaries.
  *
  * Extend {@see \Pentiminax\UX\DataTables\Column\AbstractColumn} instead of implementing this
  * directly: it provides the fluent setters, the ColumnType handling, and jsonSerialize(). Add
@@ -66,8 +67,10 @@ interface ColumnInterface extends \JsonSerializable
 
     public function getCustomOptions(): array;
 
+    public function setPermission(string|Expression $attribute): static;
+
     /**
-     * Security attribute required to see this column, or null when it is always visible.
+     * Security attribute or expression required to see this column, or null when it is always visible.
      */
-    public function getPermission(): ?string;
+    public function getPermission(): string|Expression|null;
 }
