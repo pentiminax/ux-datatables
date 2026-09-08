@@ -47,6 +47,7 @@
     "openspout/openspout": "To enable server-side CSV and XLSX export via Button::csv(serverSide: true) and Button::excel(serverSide: true).",
     "symfony/maker-bundle": "To use the make:datatable command.",
     "symfony/form": "To enable inline edit modal with auto-generated forms.",
+    "symfony/expression-language": "To use Symfony Expression objects with setPermission().",
     "symfony/mercure-bundle": "To enable real-time DataTable updates via Mercure SSE.",
     "symfony/twig-bundle": "To render edit form and TwigColumn",
     "symfony/translation": "To translate DataTable column titles and the filter bar labels (Filters/Reset/Apply/All)."
