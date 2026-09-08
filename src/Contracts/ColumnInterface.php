@@ -67,8 +67,6 @@ interface ColumnInterface extends \JsonSerializable
 
     public function getCustomOptions(): array;
 
-    public function setPermission(string|Expression $attribute): static;
-
     /**
      * Security attribute or expression required to see this column, or null when it is always visible.
      */
