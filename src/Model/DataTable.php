@@ -667,9 +667,40 @@ class DataTable
         return $this;
     }
 
-    public function columnControl(): static
+    /**
+     * Add the ColumnControl extension.
+     *
+     * Called without a target it keeps the bundled defaults: order controls on the first header
+     * row and a search input on the second. Naming a target replaces them with that single control
+     * group, so `columnControl(target: 'tfoot')` moves the per-column search inputs to the footer.
+     * ColumnControl creates the targeted row itself, so no `<tfoot>` markup is needed.
+     *
+     * Combine several groups by building the extension directly:
+     * `addExtension((new ColumnControlExtension([]))->add(0, ['order'])->add('tfoot', ['search']))`.
+     *
+     * @param int|string|null  $target  header row index, or a `tfoot` string (`'tfoot'`,
+     *                                  `'tfoot:1'`)
+     * @param list<mixed>|null $content content descriptors, as in the DataTables `columnControl`
+     *                                  option; defaults to a search input
+     *
+     * @throws \InvalidArgumentException when content is given without a target, since there is no
+     *                                   row to place it in
+     */
+    public function columnControl(int|string|null $target = null, ?array $content = null): static
     {
-        $this->extensions->addExtension(new ColumnControlExtension());
+        if (null === $target) {
+            if (null !== $content) {
+                throw new \InvalidArgumentException('Column control content needs a target row. Pass a header row index or a "tfoot" string, for example columnControl(target: 1, content: [\'searchText\']).');
+            }
+
+            $this->extensions->addExtension(new ColumnControlExtension());
+
+            return $this;
+        }
+
+        $this->extensions->addExtension(
+            (new ColumnControlExtension([]))->add($target, $content ?? ['search'])
+        );
 
         return $this;
     }
