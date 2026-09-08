@@ -320,6 +320,15 @@ final class DataTableTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_column_control_content_without_a_target(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Column control content needs a target row. Pass a header row index or a "tfoot" string, for example columnControl(target: 1, content: [\'searchText\']).');
+
+        (new DataTable('books'))->columnControl(content: ['searchText']);
+    }
+
+    #[Test]
     public function it_keeps_the_column_control_defaults_when_no_target_is_given(): void
     {
         $table = (new DataTable('books'))->columnControl();
