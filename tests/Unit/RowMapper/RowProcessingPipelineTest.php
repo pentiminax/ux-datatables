@@ -60,7 +60,7 @@ final class RowProcessingPipelineTest extends TestCase
         $pipeline = new RowProcessingPipeline(
             baseMapper: static fn (array $row): array => $row,
             columns: [
-                TextColumn::new('salary', 'Salary')->permission('ROLE_HR'),
+                TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR'),
                 TextColumn::new('name', 'Name'),
             ],
             columnResolver: new ColumnResolver(permissionChecker: new PermissionChecker($checker)),
@@ -83,7 +83,7 @@ final class RowProcessingPipelineTest extends TestCase
         $pipeline = new RowProcessingPipeline(
             baseMapper: static fn (array $row): array => $row,
             columns: [
-                TextColumn::new('user.email', 'Email')->permission('ROLE_HR'),
+                TextColumn::new('user.email', 'Email')->setPermission('ROLE_HR'),
                 TextColumn::new('name', 'Name'),
             ],
             columnResolver: new ColumnResolver(permissionChecker: new PermissionChecker($checker)),
@@ -106,7 +106,7 @@ final class RowProcessingPipelineTest extends TestCase
         $pipeline = new RowProcessingPipeline(
             baseMapper: static fn (array $row): array => $row,
             columns: [
-                TextColumn::new('value.name', 'Name')->permission('ROLE_HR'),
+                TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'),
                 TextColumn::new('name', 'Name'),
             ],
             columnResolver: new ColumnResolver(permissionChecker: new PermissionChecker($checker)),

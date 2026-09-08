@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Security;
 
+use Symfony\Component\ExpressionLanguage\Expression;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationCredentialsNotFoundException;
 
@@ -20,7 +21,7 @@ final class PermissionChecker
     ) {
     }
 
-    public function isGranted(string $attribute, mixed $subject = null): bool
+    public function isGranted(string|Expression $attribute, mixed $subject = null): bool
     {
         if (null === $this->checker) {
             return true;

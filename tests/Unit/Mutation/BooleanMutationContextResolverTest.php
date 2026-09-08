@@ -262,7 +262,7 @@ final class PermissionGatedBooleanDataTableFixture extends AbstractDataTable
 {
     public function configureColumns(): iterable
     {
-        yield BooleanColumn::new('enabled')->permission('ROLE_ADMIN')->renderAsSwitch();
+        yield BooleanColumn::new('enabled')->setPermission('ROLE_ADMIN')->renderAsSwitch();
     }
 }
 

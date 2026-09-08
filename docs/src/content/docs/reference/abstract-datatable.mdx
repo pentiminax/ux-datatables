@@ -314,7 +314,7 @@ Do not read the current HTTP request, the security token, the session, the
 locale, or any other per-request service from a `configure*()` method. Configure
 the table declaratively and let the request-scoped boundaries do the rest:
 
-- `permission()` on columns and actions for authorization -- it is evaluated per
+- `setPermission()` on columns and actions for authorization -- it is evaluated per
   request, per row, at the output boundary.
 - `customizeQueryBuilder()` and `getRequest()` for anything that depends on the
   incoming request.
@@ -521,4 +521,3 @@ This includes:
 - [Filters](/ux-datatables/guide/filters/)
 - [Recipe: Doctrine Server-Side](/ux-datatables/recipes/doctrine-server-side/)
 - [Securing Ajax Routes](/ux-datatables/getting-started/security/)
-

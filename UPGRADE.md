@@ -5,6 +5,33 @@ current version and the target, oldest first.
 
 ## v0.84 → v0.85
 
+### Permission configuration uses `setPermission()`
+
+The fluent `permission()` method on columns and actions has been renamed to `setPermission()`.
+This is an intentional breaking rename: update every `->permission(...)` call before upgrading.
+
+```php
+// before
+TextColumn::new('salary')->permission('ROLE_ADMIN');
+
+// after
+TextColumn::new('salary')->setPermission('ROLE_ADMIN');
+```
+
+Permissions also accept `Symfony\Component\ExpressionLanguage\Expression` objects. Install the
+optional component in applications that use expressions:
+
+```bash
+composer require symfony/expression-language
+```
+
+Direct `ColumnInterface` implementations do not need to add `setPermission()`; the setter is
+provided by `AbstractColumn`. Their existing `getPermission()` implementation remains valid for
+string permissions. Return `string|Expression|null` when a custom column needs to expose an
+expression permission.
+
+### Search configuration changes
+
 No source change is required. Columns extending `AbstractColumn` — every bundled column type and
 any subclass of one — gain the new search configuration automatically, and a class implementing
 `Contracts\ColumnInterface` directly keeps working unchanged. Two runtime behaviors around

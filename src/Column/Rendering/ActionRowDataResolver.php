@@ -57,7 +57,7 @@ final class ActionRowDataResolver
 
             foreach ($column->getActions()?->getActions() ?? [] as $action) {
                 if ($action->hasStaticPermission()
-                    && !$this->permissionChecker->isGranted((string) $action->getPermission())
+                    && !$this->permissionChecker->isGranted($action->getPermission())
                 ) {
                     continue;
                 }
@@ -66,7 +66,7 @@ final class ActionRowDataResolver
                     $resolver = $action->getPermissionSubjectResolver();
                     $subject  = null !== $resolver ? $resolver($sourceRow) : null;
 
-                    if (!$this->permissionChecker->isGranted((string) $action->getPermission(), $subject)) {
+                    if (!$this->permissionChecker->isGranted($action->getPermission(), $subject)) {
                         continue;
                     }
                 }

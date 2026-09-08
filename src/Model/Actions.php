@@ -189,7 +189,7 @@ final class Actions implements \JsonSerializable
                 continue;
             }
 
-            if (!$checker->isGranted((string) $action->getPermission())) {
+            if (!$checker->isGranted($action->getPermission())) {
                 unset($this->actions[$key]);
             }
         }

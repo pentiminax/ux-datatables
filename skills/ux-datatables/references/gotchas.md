@@ -33,14 +33,14 @@ Computed or template columns have no DB counterpart. Set `->setOrderable(false)-
 ## API Platform / Mercure are opt-in
 Neither activates implicitly. Set `apiPlatform: true` / call `apiPlatform()`, and `mercure: true` / call `mercure()`. Define API Platform filters on the resource so searchable/orderable columns map to enabled filters.
 
-## `permission()` removes, never hides client-side
-Static `permission()` on actions/columns is evaluated server-side before serialization; ungranted items are dropped and the attribute name is never sent to the browser. Don't rely on it for purely visual toggling — use `displayIf()` (actions) or `setVisible()` (columns) for that.
+## `setPermission()` removes, never hides client-side
+Static `setPermission()` on actions/columns is evaluated server-side before serialization; ungranted items are dropped and the attribute or expression is never sent to the browser. Don't rely on it for purely visual toggling — use `displayIf()` (actions) or `setVisible()` (columns) for that.
 
 ## `ButtonType::COLUMN_VISIBILITY`
 The enum case is `COLUMN_VISIBILITY` (serialized value `'colvis'`), not `COL_VIS`.
 
 ## `projectPage()` must preserve page size and order
-A page projector that returns a different count (or reordered rows) throws `LogicException`. Map one-to-one. Remember the split: columns and TemplateColumn Twig (`row`) read the projected DTO, but actions/`UrlColumn`/`permission()` still receive the **source** entity — don't move identifiers needed by actions into the DTO only.
+A page projector that returns a different count (or reordered rows) throws `LogicException`. Map one-to-one. Remember the split: columns and TemplateColumn Twig (`row`) read the projected DTO, but actions/`UrlColumn`/`setPermission()` still receive the **source** entity — don't move identifiers needed by actions into the DTO only.
 
 ## `projectPage()` sees batches, not the whole set, during a server-side export
 An export streams every filtered row, so the projector runs once per batch (250 rows by default) instead of once per page. Per-item mapping and batch loading behave identically; a projector computing something relative to the items it received (rank, running total, percentage of the batch maximum) returns different values than on screen. Raise `exportChunkSize` by building the provider in `createDataProvider()` if a bigger batch is required.

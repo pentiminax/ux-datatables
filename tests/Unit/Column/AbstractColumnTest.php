@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\ExpressionLanguage\Expression;
 
 /**
  * @internal
@@ -170,8 +171,21 @@ final class AbstractColumnTest extends TestCase
 
         $this->assertNull($column->getPermission());
 
-        $this->assertSame($column, $column->permission('ROLE_HR'));
+        $this->assertSame($column, $column->setPermission('ROLE_HR'));
         $this->assertSame('ROLE_HR', $column->getPermission());
+        $this->assertArrayNotHasKey('permission', $column->jsonSerialize());
+    }
+
+    #[Test]
+    public function it_stores_expression_permissions_without_serializing_them(): void
+    {
+        $expression = new Expression('"ROLE_ADMIN" in role_names');
+        $column     = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('salary')
+            ->setPermission($expression);
+
+        $this->assertSame($expression, $column->getPermission());
         $this->assertArrayNotHasKey('permission', $column->jsonSerialize());
     }
 

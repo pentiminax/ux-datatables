@@ -39,12 +39,12 @@ TextColumn::new('email', 'Email')
     ->setDefaultContent('—')       // fallback when value is null/missing
     ->setExportable(false)         // exclude from export (adds 'not-exportable' class)
     ->hideWhenUpdating()           // hide field in the edit modal
-    ->permission('ROLE_ADMIN')     // hide column unless granted (evaluated server-side, never sent to client)
+    ->setPermission('ROLE_ADMIN')     // hide column unless granted (evaluated server-side, never sent to client)
     ->setCustomOption('key', 'value');
 ```
 
 Notes:
 - `setField()` vs `setData()`: `field` is the entity/query path used for server-side filtering & ordering; `data` is the JSON path the front-end reads. Set `field` when the displayed property differs from the queried one (e.g. joined relations).
-- `permission()` on a column is evaluated once before serialization — the attribute name is never exposed to the browser.
+- `setPermission()` on a column is evaluated once before serialization — the attribute or expression is never exposed to the browser.
 - Define custom JavaScript render callbacks with the Stimulus `datatables:pre-connect` event (see `references/server-side.md`).
 - `setOrderExpression()` is for computed columns sorted on a subquery: pair it with an `addSelect(... AS HIDDEN <alias>)` in `customizeQueryBuilder()` — see `references/server-side.md`.
