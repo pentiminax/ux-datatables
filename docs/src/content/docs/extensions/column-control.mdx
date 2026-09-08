@@ -62,6 +62,9 @@ $dataTable->addExtension(
 `new ColumnControlExtension()` keeps the defaults, `new ColumnControlExtension([])` starts from
 nothing, and `add()` appends one group per call in call order.
 
+`content` needs a target to be placed in: `columnControl(content: ['searchText'])` throws rather
+than silently keeping the defaults.
+
 <Aside type="note">
   `content: ['search']` picks the input for the column's type — text, number, date, or a value list.
   Use `searchText`, `searchNumber`, `searchDateTime`, or `searchList` to pin one, and
