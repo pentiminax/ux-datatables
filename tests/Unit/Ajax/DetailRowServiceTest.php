@@ -221,7 +221,7 @@ final class StaticPermissionDetailDataTable extends AbstractDataTable
     public function configureActions(Actions $actions): Actions
     {
         return $actions->add(
-            Action::detail()->collapsible('detail.html.twig')->permission('SHOW_DETAIL')
+            Action::detail()->collapsible('detail.html.twig')->setPermission('SHOW_DETAIL')
         );
     }
 }
@@ -239,7 +239,7 @@ final class PerRowPermissionDetailDataTable extends AbstractDataTable
         return $actions->add(
             Action::detail()
                 ->collapsible('detail.html.twig')
-                ->permission('SHOW_DETAIL', static fn (DetailRowEntity $entity): string => $entity->email)
+                ->setPermission('SHOW_DETAIL', static fn (DetailRowEntity $entity): string => $entity->email)
         );
     }
 }

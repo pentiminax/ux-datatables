@@ -16,7 +16,7 @@ public function configureActions(Actions $actions): Actions
             Action::delete('Delete')
                 ->icon('bi bi-trash')
                 ->askConfirmation('Delete this row?')
-                ->permission('ROLE_ADMIN')
+                ->setPermission('ROLE_ADMIN')
         );
 }
 ```
@@ -49,19 +49,19 @@ Action::detail()
     ->setEntityClass(User::class)              // entity for permission subject
     ->collapsible('detail.html.twig', [...])   // detail-only: expand into a child row (see below)
     ->position(ActionsPosition::BeforeColumns) // pin THIS action's column (null = inherit collection)
-    ->permission('EDIT', fn (User $u) => $u->getId() !== 1);  // see below
+    ->setPermission('EDIT', fn (User $u) => $u->getId() !== 1);  // see below
 ```
 
 > `Action` has `linkToUrl()` only — there is no `linkToRoute()` on actions. For route-based links, build the URL in the callable, or use a `UrlColumn` (which does support `linkToRoute()`).
 
 ## Permissions: static vs per-row
 
-`permission(string $attribute, ?callable $subjectResolver = null)`:
+`setPermission(string|Expression $attribute, ?callable $subjectResolver = null)`:
 
-- **Static** (no resolver) — evaluated once before serialization. If not granted, the action is removed entirely. Use for role checks: `->permission('ROLE_ADMIN')`.
-- **Per-row** (with resolver) — evaluated per row; the resolver receives the raw row and returns the voter subject: `->permission('EDIT', fn ($row) => $row)`.
+- **Static** (no resolver) — evaluated once before serialization. If not granted, the action is removed entirely. Use for role checks: `->setPermission('ROLE_ADMIN')`.
+- **Per-row** (with resolver) — evaluated per row; the resolver receives the raw row and returns the voter subject: `->setPermission('EDIT', fn ($row) => $row)`.
 
-Same model applies to columns (`AbstractColumn::permission()`), but columns only support the static form.
+Same model applies to columns (`AbstractColumn::setPermission()`), but columns only support the static form.
 
 Delete actions and inline boolean toggles require an active session for CSRF protection. In a
 stateless or session-less rendering context, the payload exposes `mutationsEnabled: false` and the

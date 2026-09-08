@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\ExpressionLanguage\Expression;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationCredentialsNotFoundException;
 
@@ -38,6 +39,20 @@ final class PermissionCheckerTest extends TestCase
             ->willReturn(true);
 
         $this->assertTrue((new PermissionChecker($inner))->isGranted('EDIT', $subject));
+    }
+
+    #[Test]
+    public function delegates_expression_attributes_without_casting_them(): void
+    {
+        $expression = new Expression('"ROLE_ADMIN" in role_names');
+        $inner      = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner
+            ->expects($this->once())
+            ->method('isGranted')
+            ->with($expression, null)
+            ->willReturn(true);
+
+        $this->assertTrue((new PermissionChecker($inner))->isGranted($expression));
     }
 
     #[Test]

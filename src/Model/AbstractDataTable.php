@@ -44,7 +44,7 @@ use Symfony\Component\HttpFoundation\Request;
  * the security token, the session, or the locale. See the purity contract in
  * docs/src/content/docs/reference/abstract-datatable.mdx ("Configuration Methods Must Be Pure").
  *
- * Request-dependent behavior belongs at the request-scoped boundaries instead: permission() on
+ * Request-dependent behavior belongs at the request-scoped boundaries instead: setPermission() on
  * columns and actions, customizeQueryBuilder() and getRequest() for the query, and setData() --
  * the sanctioned way to inject rows a controller has already resolved -- for inline data, which
  * runs them through the same row-processing pipeline a provider would use.

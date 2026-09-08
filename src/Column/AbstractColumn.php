@@ -8,6 +8,7 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
+use Symfony\Component\ExpressionLanguage\Expression;
 
 /**
  * Base implementation shared by every bundled column type (TextColumn, DateColumn, ...).
@@ -42,7 +43,7 @@ abstract class AbstractColumn implements SearchableColumnInterface
     protected bool $columnControlEnabled = true;
     protected ?array $columnControl      = null;
     protected array $customOptions       = [];
-    protected ?string $permission        = null;
+    protected string|Expression|null $permission = null;
     protected ?int $responsivePriority   = null;
 
     /** @var list<array{join: string, alias: string, conditionType: ?string, condition: ?string}> */
@@ -481,18 +482,18 @@ abstract class AbstractColumn implements SearchableColumnInterface
     }
 
     /**
-     * Restrict the column visibility with a Symfony security attribute (role, voter, expression).
+     * Restrict the column visibility with a Symfony security attribute or expression.
      *
      * Evaluated once before serialization. The attribute name is never sent to the client.
      */
-    public function permission(string $attribute): static
+    public function setPermission(string|Expression $attribute): static
     {
         $this->permission = $attribute;
 
         return $this;
     }
 
-    public function getPermission(): ?string
+    public function getPermission(): string|Expression|null
     {
         return $this->permission;
     }

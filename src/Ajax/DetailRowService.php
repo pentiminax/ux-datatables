@@ -64,11 +64,11 @@ final readonly class DetailRowService
         if ($action->hasPerRowPermission()) {
             $resolver = $action->getPermissionSubjectResolver();
 
-            return $this->permissionChecker->isGranted((string) $action->getPermission(), $resolver($entity));
+            return $this->permissionChecker->isGranted($action->getPermission(), $resolver($entity));
         }
 
         if ($action->hasStaticPermission()) {
-            return $this->permissionChecker->isGranted((string) $action->getPermission());
+            return $this->permissionChecker->isGranted($action->getPermission());
         }
 
         return $this->permissionChecker->isGranted('VIEW', $entity);
