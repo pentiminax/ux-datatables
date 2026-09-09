@@ -445,11 +445,13 @@ public function configureActions(Actions $actions): Actions
 The template receives the located entity as `entity`, plus any extra parameters given to
 `collapsible()`. Auto-escaping applies as usual.
 
-Access is checked before the template renders, mirroring what the rendering pipeline evaluated for
-that action: a per-row `setPermission()` resolver receives the located entity, a static `setPermission()`
-is evaluated as-is, and an action with no configured permission falls back to
-`Permission::DT_VIEW_ROW_DETAILS` on the entity. An action the user cannot see is an action they
-cannot fetch.
+Access is checked before the template renders. The endpoint always requires
+`Permission::DT_VIEW_ROW_DETAILS` on the located entity, regardless of whether the detail action has
+a configured permission — there is no fallback. If the action also declares a `setPermission()`, that
+permission is checked in addition: a per-row resolver receives the located entity (never a raw array
+row, even if the table's provider hydrates arrays elsewhere — see
+[`Action::setPermission()`](/ux-datatables/getting-started/security/) for the full contract), and a
+static permission is evaluated as-is. An action the user cannot see is an action they cannot fetch.
 
 <Aside type="note">
   The endpoint needs Twig, a table that declares an entity class, and exactly one collapsible
