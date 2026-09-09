@@ -20,6 +20,7 @@ class EditModalRenderer
             'form'          => $request->form->createView(),
             'entity'        => $request->entity,
             'title'         => $this->defaultTitle,
+            'entity_label'  => $request->entity instanceof \Stringable ? (string) $request->entity : null,
             'body_template' => $request->bodyTemplatePath,
         ]);
     }
