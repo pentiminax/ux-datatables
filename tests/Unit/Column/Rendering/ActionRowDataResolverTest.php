@@ -161,14 +161,19 @@ final class ActionRowDataResolverTest extends TestCase
         $inner
             ->expects($this->once())
             ->method('isGranted')
-            ->with($expression, $sourceRow)
+            ->with(Permission::DT_EXECUTE_ACTION, $this->callback(
+                static fn (ActionPermissionContext $context): bool => ActionRowDataTableFixture::class === $context->dataTableClass
+                    && $context->action->getPermission()                                                   === $expression
+                    && $context->currentSource                                                             === $sourceRow
+                    && $context->hasRowContext
+            ))
             ->willReturn(true);
 
         $action = Action::edit()
             ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
             ->setPermission($expression, static fn ($r) => $r);
 
-        $result = $this->resolveRow(new ActionRowDataResolver(new PermissionChecker($inner)), $sourceRow, $action);
+        $result = $this->resolveRow(new ActionRowDataResolver(new AuthorizationChecker($inner)), $sourceRow, $action);
 
         $this->assertSame(
             ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]],

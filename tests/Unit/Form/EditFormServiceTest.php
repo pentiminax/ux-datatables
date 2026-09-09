@@ -478,7 +478,7 @@ final class StaticDeniedEditActionDataTable extends EditFormServiceFixtureDataTa
 {
     public function configureActions(Actions $actions): Actions
     {
-        return $actions->add(Action::edit()->permission('EDIT_BOOK'));
+        return $actions->add(Action::edit()->setPermission('EDIT_BOOK'));
     }
 }
 
