@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\Security\SecurityVoter;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\ExpressionLanguage\Expression;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
@@ -63,7 +64,7 @@ final class SecurityVoterTest extends TestCase
     #[Test]
     public function static_action_permission_delegates_with_null_subject(): void
     {
-        $action  = Action::edit()->permission('EDIT_REPORTS');
+        $action  = Action::edit()->setPermission('EDIT_REPORTS');
         $context = new ActionPermissionContext(VoterPermissionDataTable::class, $action, ['id' => 10], false);
         $token   = $this->createToken();
 
@@ -84,7 +85,7 @@ final class SecurityVoterTest extends TestCase
     public function per_row_action_permission_delegates_with_the_resolved_row_subject(): void
     {
         $source = ['owner' => 'alice'];
-        $action = Action::delete()->permission('DELETE_REPORT', static fn (array $row): string => $row['owner']);
+        $action = Action::delete()->setPermission('DELETE_REPORT', static fn (array $row): string => $row['owner']);
         $token  = $this->createToken();
 
         $decisionManager = $this->createMock(AccessDecisionManagerInterface::class);
@@ -107,7 +108,7 @@ final class SecurityVoterTest extends TestCase
     #[Test]
     public function per_row_action_resolver_is_not_called_without_row_context(): void
     {
-        $action = Action::delete()->permission('DELETE_REPORT', static function (): never {
+        $action = Action::delete()->setPermission('DELETE_REPORT', static function (): never {
             throw new \LogicException('The row resolver must not run.');
         });
 
@@ -149,7 +150,7 @@ final class SecurityVoterTest extends TestCase
 final class VoterPermissionDataTable extends AbstractDataTable
 {
     public function __construct(
-        private readonly ?string $permission = null,
+        private readonly string|Expression|null $permission = null,
     ) {
     }
 

@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureTopicFactory;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
+use Symfony\Component\ExpressionLanguage\Expression;
 
 class DataTable
 {
@@ -39,7 +40,7 @@ class DataTable
 
     private ?string $dataTableClass = null;
 
-    private ?string $permission = null;
+    private string|Expression|null $permission = null;
 
     /** @var string[] */
     private array $forwardedQueryParameters = [];
@@ -110,14 +111,14 @@ class DataTable
         return $this->attributes['data-controller'] ?? null;
     }
 
-    public function setPermission(string $attribute): static
+    public function setPermission(string|Expression $attribute): static
     {
         $this->permission = $attribute;
 
         return $this;
     }
 
-    public function getPermission(): ?string
+    public function getPermission(): string|Expression|null
     {
         return $this->permission;
     }

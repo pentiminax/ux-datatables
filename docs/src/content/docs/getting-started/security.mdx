@@ -104,20 +104,20 @@ The bundle-owned attributes are exposed as constants:
 use Pentiminax\UX\DataTables\Security\Permission;
 
 Permission::DT_ACCESS_TABLE;       // table rendering and Ajax table resolution
-Permission::DT_EXECUTE_ACTION;     // Action::permission() checks
+Permission::DT_EXECUTE_ACTION;     // Action::setPermission() checks
 Permission::DT_EDIT_ROW;           // edit modal submit and boolean toggle writes
 Permission::DT_DELETE_ROW;         // delete mutation
 Permission::DT_VIEW_ROW_DETAILS;   // collapsible detail-row fallback
 ```
 
 `Permission::DT_ACCESS_TABLE` and `Permission::DT_EXECUTE_ACTION` are handled by the bundle voter.
-That voter delegates `DataTable::setPermission()` and `Action::permission()` to Symfony's access
+That voter delegates `DataTable::setPermission()` and `Action::setPermission()` to Symfony's access
 decision manager with the current token. Your application voters still own the permissions you pass
 to those methods.
 
 <Aside type="caution" title="Check unanimous access decisions">
   If your application voters deny attributes used by `DataTable::setPermission()` or
-  `Action::permission()`, configure Symfony's `unanimous` strategy. Symfony's default
+  `Action::setPermission()`, configure Symfony's `unanimous` strategy. Symfony's default
   `affirmative` strategy can still grant access when the bundle voter grants and your voter denies.
 </Aside>
 
@@ -164,7 +164,7 @@ bundle calls Symfony authorization before reading private row details or mutatin
   before writing the field.
 - collapsible detail rows always check `isGranted(Permission::DT_VIEW_ROW_DETAILS, $entity)`.
   The configured detail action also passes through `Permission::DT_EXECUTE_ACTION`; if the action
-  has `Action::permission()`, that permission must grant too.
+  has `Action::setPermission()`, that permission must grant too.
 
 If a required check is denied, the Ajax endpoint responds with `403` instead of exposing private row
 details or touching the database.
@@ -279,7 +279,7 @@ Keep both layers in place:
 A firewall rule alone would let any authenticated admin-area user delete *any* row reachable through
 the table; the voter is what scopes that down to the rows they're actually allowed to touch.
 
-Custom actions keep their own route authorization and CSRF boundary. `Action::permission()` only
+Custom actions keep their own route authorization and CSRF boundary. `Action::setPermission()` only
 decides whether the button is rendered by the bundle, so custom action routes still need
 `#[IsGranted]`, CSRF validation, or equivalent checks. Direct API Platform endpoints follow the
 same rule: secure those API routes with API Platform and Symfony Security. PHP row voters in this
