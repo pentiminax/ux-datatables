@@ -28,8 +28,8 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -122,7 +122,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $templateResolver,
             new NullMercurePublisher(),
             new MercureTopicResolver(),
-            new PermissionChecker($authorizationChecker),
+            new AuthorizationChecker($authorizationChecker),
         ));
 
         $response = $controller($this->validTokenRequest(), $this->payload());
@@ -244,12 +244,12 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         );
     }
 
-    private function permissionCheckerGranting(bool $granted): PermissionChecker
+    private function permissionCheckerGranting(bool $granted): AuthorizationChecker
     {
         $authorizationChecker = $this->createMock(AuthorizationCheckerInterface::class);
         $authorizationChecker->method('isGranted')->willReturn($granted);
 
-        return new PermissionChecker($authorizationChecker);
+        return new AuthorizationChecker($authorizationChecker);
     }
 
     private function tableRegistry(): AjaxDataTableRegistry

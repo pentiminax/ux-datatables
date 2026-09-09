@@ -41,8 +41,9 @@ use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\SecurityVoter;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -51,6 +52,7 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_locator;
 
+use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Csrf\CsrfTokenManager;
 use Symfony\Component\Security\Csrf\TokenGenerator\UriSafeTokenGenerator;
@@ -73,11 +75,16 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(QueryFilterPipeline::class, 'datatables.query.filter_pipeline')
         ->private();
 
-    $services->set('datatables.security.permission_checker', PermissionChecker::class)
+    $services->set('datatables.security.authorization_checker', AuthorizationChecker::class)
         ->arg(0, service(AuthorizationCheckerInterface::class)->nullOnInvalid())
         ->private();
 
-    $services->alias(PermissionChecker::class, 'datatables.security.permission_checker')
+    $services->alias(AuthorizationChecker::class, 'datatables.security.authorization_checker')
+        ->private();
+
+    $services->set('datatables.security.voter', SecurityVoter::class)
+        ->arg(0, service(AccessDecisionManagerInterface::class))
+        ->tag('security.voter')
         ->private();
 
     $services->set('datatables.ajax.token_manager', AjaxDataTableTokenManager::class)
@@ -102,7 +109,7 @@ return static function (ContainerConfigurator $container): void {
         ->private();
 
     $services->set('datatables.column.action_row_data_resolver', ActionRowDataResolver::class)
-        ->arg(0, service('datatables.security.permission_checker'))
+        ->arg(0, service('datatables.security.authorization_checker'))
         ->arg(1, service('property_accessor')->nullOnInvalid())
         ->arg(2, service('router')->nullOnInvalid())
         ->arg(3, service('datatables.security.csrf_token_manager')->nullOnInvalid())
@@ -148,13 +155,13 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('property_accessor'))
         ->arg(2, service(MercurePublisherInterface::class))
-        ->arg(3, service('datatables.security.permission_checker'))
+        ->arg(3, service('datatables.security.authorization_checker'))
         ->arg(4, service('datatables.mercure.topic_resolver'))
         ->private();
 
     $services->set('datatables.mutation.boolean_context_resolver', BooleanMutationContextResolver::class)
         ->arg(0, service('datatables.ajax.registry'))
-        ->arg(1, service('datatables.security.permission_checker'))
+        ->arg(1, service('datatables.security.authorization_checker'))
         ->private();
 
     $services->alias(BooleanMutationContextResolver::class, 'datatables.mutation.boolean_context_resolver')
@@ -213,7 +220,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.detail.row_service', DetailRowService::class)
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('twig')->nullOnInvalid())
-        ->arg(2, service('datatables.security.permission_checker'))
+        ->arg(2, service('datatables.security.authorization_checker'))
         ->private();
 
     $services->set('datatables.controller.ajax_detail', AjaxDetailController::class)
@@ -256,7 +263,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.column.resolver', ColumnResolver::class)
         ->arg(0, service('datatables.column.attribute_column_reader'))
         ->arg(1, service(ColumnAutoDetector::class)->nullOnInvalid())
-        ->arg(2, service('datatables.security.permission_checker'))
+        ->arg(2, service('datatables.security.authorization_checker'))
         ->private();
 
     $services->alias(ColumnResolver::class, 'datatables.column.resolver')
@@ -293,7 +300,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(1, service('datatables.column.template_column_renderer'))
         ->arg(2, service('datatables.column.action_row_data_resolver'))
         ->arg(3, service(UrlColumnDataResolver::class)->nullOnInvalid())
-        ->arg(4, service('datatables.security.permission_checker'))
+        ->arg(4, service('datatables.security.authorization_checker'))
         ->private();
 
     $services->alias(DataTableRuntimeFactory::class, 'datatables.runtime.factory')

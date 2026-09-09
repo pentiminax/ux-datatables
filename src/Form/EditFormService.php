@@ -12,12 +12,12 @@ use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Symfony\Component\Form\FormInterface;
 
 final class EditFormService
 {
-    private readonly PermissionChecker $permissionChecker;
+    private readonly AuthorizationChecker $permissionChecker;
 
     public function __construct(
         private readonly EntityLocator $locator,
@@ -26,9 +26,9 @@ final class EditFormService
         private readonly EditModalTemplateResolver $templateResolver,
         private readonly MercurePublisherInterface $publisher,
         private readonly MercureTopicResolver $topicResolver,
-        ?PermissionChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
+        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
 
     public function handleView(ResolvedDataTable $dataTable, int|string $id): AjaxActionResult

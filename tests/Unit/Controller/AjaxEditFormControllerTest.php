@@ -24,7 +24,7 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -159,7 +159,7 @@ final class AjaxEditFormControllerTest extends TestCase
                 $templateResolver,
                 new NullMercurePublisher(),
                 new MercureTopicResolver(dataTables: $dataTables),
-                new PermissionChecker($authorizationChecker),
+                new AuthorizationChecker($authorizationChecker),
             ),
             $this->tableRegistry(),
         );

@@ -9,7 +9,7 @@ use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -95,11 +95,11 @@ final class ActionRowDataResolverTest extends TestCase
 
         yield 'id read from an array source row' => [
             [Action::delete()],
-            ['id'     => 9],
+            ['id' => 9],
             ['DELETE' => ['id' => 9]],
         ];
 
-        // A PermissionChecker without inner checker grants everything.
+        // An AuthorizationChecker without inner checker grants everything.
         yield 'per row permission without authorization checker' => [
             [
                 Action::edit()
@@ -135,7 +135,7 @@ final class ActionRowDataResolverTest extends TestCase
             ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
             ->setPermission('EDIT', static fn ($r) => $r);
 
-        $result = $this->resolveRow(new ActionRowDataResolver(new PermissionChecker($inner)), $sourceRow, $action);
+        $result = $this->resolveRow(new ActionRowDataResolver(new AuthorizationChecker($inner)), $sourceRow, $action);
 
         $this->assertSame(
             $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]] : null,
@@ -185,7 +185,7 @@ final class ActionRowDataResolverTest extends TestCase
             ->setPermission('ROLE_EDITOR');
 
         $result = $this->resolveRow(
-            new ActionRowDataResolver(new PermissionChecker($inner)),
+            new ActionRowDataResolver(new AuthorizationChecker($inner)),
             (object) ['id' => 7],
             $action,
         );
@@ -210,7 +210,7 @@ final class ActionRowDataResolverTest extends TestCase
             ->linkToUrl(static fn (object $r) => '/items/'.$r->owner)
             ->setPermission('OWNS', static fn (object $r) => $r->owner);
 
-        $this->resolveRow(new ActionRowDataResolver(new PermissionChecker($inner)), (object) ['owner' => 'alice'], $action);
+        $this->resolveRow(new ActionRowDataResolver(new AuthorizationChecker($inner)), (object) ['owner' => 'alice'], $action);
     }
 
     #[Test]

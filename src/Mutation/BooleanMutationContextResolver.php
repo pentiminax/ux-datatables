@@ -7,13 +7,13 @@ namespace Pentiminax\UX\DataTables\Mutation;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 final readonly class BooleanMutationContextResolver
 {
     public function __construct(
         private AjaxDataTableRegistry $registry,
-        private readonly PermissionChecker $permissionChecker = new PermissionChecker(),
+        private readonly AuthorizationChecker $permissionChecker = new AuthorizationChecker(),
     ) {
     }
 

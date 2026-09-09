@@ -10,19 +10,19 @@ use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Twig\Environment;
 
 final readonly class DetailRowService
 {
-    private PermissionChecker $permissionChecker;
+    private AuthorizationChecker $permissionChecker;
 
     public function __construct(
         private EntityLocator $locator,
         private ?Environment $twig = null,
-        ?PermissionChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
+        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
 
     public function handleView(ResolvedDataTable $dataTable, int|string $id): AjaxActionResult

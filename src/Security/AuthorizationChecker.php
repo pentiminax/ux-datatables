@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Security;
 
-use Symfony\Component\ExpressionLanguage\Expression;
+use Symfony\Component\Security\Core\Authorization\AccessDecision;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationCredentialsNotFoundException;
 
@@ -14,21 +14,25 @@ use Symfony\Component\Security\Core\Exception\AuthenticationCredentialsNotFoundE
  *
  * If no checker is provided, every permission is granted (no-op fallback).
  */
-final class PermissionChecker
+final class AuthorizationChecker implements AuthorizationCheckerInterface
 {
     public function __construct(
         private readonly ?AuthorizationCheckerInterface $checker = null,
     ) {
     }
 
-    public function isGranted(string|Expression $attribute, mixed $subject = null): bool
+    public function isGranted(mixed $attribute, mixed $subject = null, ?AccessDecision $accessDecision = null): bool
     {
+        if (null === $attribute || '' === $attribute) {
+            return true;
+        }
+
         if (null === $this->checker) {
             return true;
         }
 
         try {
-            return $this->checker->isGranted($attribute, $subject);
+            return $this->checker->isGranted($attribute, $subject, $accessDecision);
         } catch (AuthenticationCredentialsNotFoundException) {
             return false;
         }

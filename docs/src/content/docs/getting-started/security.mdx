@@ -126,7 +126,7 @@ instead of touching the database.
 
 ### Why nothing gets denied without a security firewall
 
-The check is performed through a small internal wrapper, `PermissionChecker`, which only grants
+The check is performed through a small internal wrapper, `AuthorizationChecker`, which only grants
 everything automatically when **no security stack is configured at all** — for example in the CLI,
 in a unit test, or in an application that never installed `symfony/security-bundle`. As soon as a
 real `AuthorizationCheckerInterface` is available (i.e. your application has a firewall), the

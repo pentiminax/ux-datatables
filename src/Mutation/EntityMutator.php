@@ -14,7 +14,7 @@ use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 final class EntityMutator
@@ -23,7 +23,7 @@ final class EntityMutator
         private readonly EntityLocator $locator,
         private readonly PropertyAccessorInterface $propertyAccessor,
         private readonly MercurePublisherInterface $publisher,
-        private readonly PermissionChecker $permissionChecker,
+        private readonly AuthorizationChecker $permissionChecker,
         private readonly MercureTopicResolver $topicResolver,
     ) {
     }

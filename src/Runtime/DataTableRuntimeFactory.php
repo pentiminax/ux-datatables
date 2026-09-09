@@ -18,7 +18,7 @@ use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
 use Pentiminax\UX\DataTables\RowMapper\Stage\BooleanSwitchMetadataStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\IconColumnResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 final class DataTableRuntimeFactory
 {
@@ -29,7 +29,7 @@ final class DataTableRuntimeFactory
         private readonly ?TemplateColumnRenderer $templateColumnRenderer = null,
         private readonly ?ActionRowDataResolver $actionRowDataResolver = null,
         private readonly ?UrlColumnDataResolver $urlColumnDataResolver = null,
-        private readonly ?PermissionChecker $permissionChecker = null,
+        private readonly ?AuthorizationChecker $permissionChecker = null,
     ) {
     }
 
@@ -111,7 +111,7 @@ final class DataTableRuntimeFactory
     private function columnResolver(): ColumnResolver
     {
         return $this->columnResolver ??= new ColumnResolver(
-            permissionChecker: $this->permissionChecker ?? new PermissionChecker(),
+            permissionChecker: $this->permissionChecker ?? new AuthorizationChecker(),
         );
     }
 
