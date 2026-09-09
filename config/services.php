@@ -128,6 +128,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(3, service('datatables.security.csrf_token_manager'))
         ->arg(4, service('datatables.ajax.registry')->nullOnInvalid())
         ->arg(5, service('datatables.profiler')->nullOnInvalid())
+        ->arg(6, service('datatables.security.authorization_checker'))
         ->tag('twig.extension')
         ->private();
 
@@ -182,6 +183,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('datatables.mutation.mutator'))
         ->arg(1, service('datatables.security.mutation_token_validator'))
         ->arg(2, service('datatables.ajax.registry'))
+        ->arg(3, service('datatables.security.authorization_checker'))
         ->tag('controller.service_arguments')
         ->public();
 

@@ -112,6 +112,7 @@ export interface ActionRowConfig {
 
 export interface ActionRowData {
     __ux_datatables_actions?: Record<string, ActionRowConfig>
+    __ux_datatables_denied_actions?: string[]
 }
 
 export interface UrlRowData {

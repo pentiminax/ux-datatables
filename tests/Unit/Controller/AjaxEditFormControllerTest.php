@@ -22,6 +22,8 @@ use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
@@ -267,5 +269,10 @@ final class AjaxEditFormControllerDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(Action::edit());
     }
 }

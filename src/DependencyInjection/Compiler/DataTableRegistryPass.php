@@ -43,6 +43,7 @@ final class DataTableRegistryPass implements CompilerPassInterface
                 new Reference(self::LOCATOR_ID),
                 new Reference('datatables.ajax.token_manager'),
                 $serviceIdsByClass,
+                new Reference('datatables.security.authorization_checker'),
             ]));
     }
 }

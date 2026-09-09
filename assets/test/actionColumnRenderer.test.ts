@@ -455,6 +455,29 @@ describe('actionColumnRenderer', () => {
       expect(html).not.toContain('data-id="42"')
     })
 
+    it('hides a denied built-in action before falling back to the row id', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DELETE',
+            name: 'DELETE',
+            label: 'Delete',
+            className: 'btn btn-danger',
+            idField: 'id',
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', {
+        id: 42,
+        __ux_datatables_denied_actions: ['DELETE'],
+      })
+
+      expect(html).toBe('')
+    })
+
     it('escapes button id resolved from action metadata', () => {
       const column: Record<string, any> = {
         actions: [

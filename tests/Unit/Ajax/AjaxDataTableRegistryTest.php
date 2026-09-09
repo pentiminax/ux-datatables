@@ -10,10 +10,14 @@ use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
  * @internal
@@ -115,6 +119,48 @@ final class AjaxDataTableRegistryTest extends TestCase
         $this->expectExceptionMessage('Service "invalid.service" must be an instance of');
 
         $registry->resolveAction($token);
+    }
+
+    #[Test]
+    public function it_rejects_denied_table_access_for_read_tokens(): void
+    {
+        $table = new RegistryDataTableFixture();
+
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->expects($this->once())
+            ->method('isGranted')
+            ->with(Permission::DT_ACCESS_TABLE, $table)
+            ->willReturn(false);
+
+        $registry = $this->createAjaxRegistry(
+            [self::TABLE_CLASS => self::SERVICE_ID],
+            [self::SERVICE_ID => $table],
+            new AuthorizationChecker($inner),
+        );
+
+        $this->expectException(AccessDeniedException::class);
+        $registry->get((string) $registry->getToken(self::TABLE_CLASS));
+    }
+
+    #[Test]
+    public function it_rejects_denied_table_access_for_action_tokens(): void
+    {
+        $table = new RegistryDataTableFixture();
+
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->expects($this->once())
+            ->method('isGranted')
+            ->with(Permission::DT_ACCESS_TABLE, $table)
+            ->willReturn(false);
+
+        $registry = $this->createAjaxRegistry(
+            [self::TABLE_CLASS => self::SERVICE_ID],
+            [self::SERVICE_ID => $table],
+            new AuthorizationChecker($inner),
+        );
+
+        $this->expectException(AccessDeniedException::class);
+        $registry->resolveAction((string) $registry->getActionToken(self::TABLE_CLASS));
     }
 }
 

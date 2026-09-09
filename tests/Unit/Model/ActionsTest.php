@@ -9,7 +9,9 @@ use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -135,10 +137,11 @@ final class ActionsTest extends TestCase
             ->add(Action::detail());
 
         $checker = $this->createStub(AuthorizationCheckerInterface::class);
-        $checker->method('isGranted')->willReturnMap([
-            ['ROLE_ADMIN', null, false],
-            ['ROLE_EDITOR', null, true],
-        ]);
+        $checker->method('isGranted')->willReturnCallback(
+            static fn (string $attribute, mixed $subject = null): bool => Permission::DT_EXECUTE_ACTION !== $attribute
+                || !$subject instanceof ActionPermissionContext
+                || 'ROLE_ADMIN' !== $subject->action->getPermission()
+        );
 
         $actions->filterStaticPermissions(new AuthorizationChecker($checker));
 

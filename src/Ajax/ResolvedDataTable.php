@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Ajax;
 
+use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
+use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\Action;
 
 /**
  * A DataTable derived from a signed action token, together with the entity it
@@ -33,5 +36,28 @@ final readonly class ResolvedDataTable
     public function requireEntityClass(): string
     {
         return $this->entityClass ?? throw InvalidDataTableTokenException::missingEntityClass($this->dataTableClass);
+    }
+
+    public function findAction(ActionType $type, bool $collapsible = false): ?Action
+    {
+        foreach ($this->table->getConfiguredDataTable()->getColumns() as $column) {
+            if (!$column instanceof ActionsProvidingColumnInterface) {
+                continue;
+            }
+
+            foreach ($column->getActions()?->getActions() ?? [] as $action) {
+                if ($type !== $action->getType()) {
+                    continue;
+                }
+
+                if ($collapsible && !$action->isCollapsible()) {
+                    continue;
+                }
+
+                return $action;
+            }
+        }
+
+        return null;
     }
 }

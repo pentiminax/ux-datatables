@@ -9,7 +9,9 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\PropertyAccess\Exception\ExceptionInterface as PropertyAccessExceptionInterface;
 use Symfony\Component\PropertyAccess\PropertyAccess;
@@ -20,7 +22,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 final class ActionRowDataResolver
 {
-    public const string ROW_ACTIONS_KEY = '__ux_datatables_actions';
+    public const string ROW_ACTIONS_KEY    = '__ux_datatables_actions';
+    public const string DENIED_ACTIONS_KEY = '__ux_datatables_denied_actions';
 
     private readonly AuthorizationChecker $permissionChecker;
     private readonly PropertyAccessorInterface $propertyAccessor;
@@ -38,7 +41,7 @@ final class ActionRowDataResolver
     /**
      * @param iterable<ColumnInterface> $columns
      */
-    public function resolveRow(array $row, mixed $sourceRow, iterable $columns): array
+    public function resolveRow(array $row, mixed $sourceRow, iterable $columns, ?string $dataTableClass = null): array
     {
         if (\array_key_exists(self::ROW_ACTIONS_KEY, $row)) {
             return $row;
@@ -48,7 +51,8 @@ final class ActionRowDataResolver
             $sourceRow = $sourceRow->source;
         }
 
-        $actions = [];
+        $actions       = [];
+        $deniedActions = [];
 
         foreach ($columns as $column) {
             if (!$column instanceof ActionsProvidingColumnInterface) {
@@ -56,19 +60,15 @@ final class ActionRowDataResolver
             }
 
             foreach ($column->getActions()?->getActions() ?? [] as $action) {
-                if ($action->hasStaticPermission()
-                    && !$this->permissionChecker->isGranted($action->getPermission())
-                ) {
+                if (!$this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
+                    $dataTableClass ?? '',
+                    $action,
+                    $sourceRow,
+                    $action->hasPerRowPermission(),
+                ))) {
+                    $deniedActions[] = $action->getName();
+
                     continue;
-                }
-
-                if ($action->hasPerRowPermission()) {
-                    $resolver = $action->getPermissionSubjectResolver();
-                    $subject  = null !== $resolver ? $resolver($sourceRow) : null;
-
-                    if (!$this->permissionChecker->isGranted($action->getPermission(), $subject)) {
-                        continue;
-                    }
                 }
 
                 $actionData = $this->resolveActionData($action, $sourceRow);
@@ -79,6 +79,10 @@ final class ActionRowDataResolver
 
                 $actions[$action->getName()] = $actionData;
             }
+        }
+
+        if ([] !== $deniedActions) {
+            $row[self::DENIED_ACTIONS_KEY] = $deniedActions;
         }
 
         if ([] === $actions) {

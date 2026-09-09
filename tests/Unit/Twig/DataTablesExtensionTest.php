@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Twig;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -14,6 +15,9 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoAjaxServerSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
@@ -26,6 +30,9 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
+use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
 
 /**
  * @internal
@@ -127,6 +134,39 @@ final class DataTablesExtensionTest extends TestCase
         $this->assertNotSame('', $actual['dataTable']);
         $this->assertStringNotContainsString('AutoAjaxServerSideDataTable', $actual['dataTable']);
         $this->assertNotSame($ajaxToken, $actual['dataTable']);
+    }
+
+    #[Test]
+    public function it_rejects_denied_table_access_before_hydrating_rows(): void
+    {
+        $provider = $this->createMock(DataProviderInterface::class);
+        $provider->expects($this->never())->method('fetchData');
+
+        $table = new ConfigurableDataTable(
+            [TextColumn::new('id')],
+            configureTable: static fn (DataTable $table): DataTable => $table->setPermission('ROLE_ADMIN'),
+            dataProvider: $provider,
+        );
+
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->expects($this->once())
+            ->method('isGranted')
+            ->with(Permission::DT_ACCESS_TABLE, $table)
+            ->willReturn(false);
+
+        $checker = new AuthorizationChecker($inner);
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            columnResolver: new ColumnResolver(permissionChecker: $checker),
+        ));
+
+        $extension = new DataTablesExtension(
+            new StimulusHelper(null),
+            new ColumnResolver(permissionChecker: $checker),
+            permissionChecker: $checker,
+        );
+
+        $this->expectException(AccessDeniedException::class);
+        $extension->renderDataTable($table);
     }
 
     #[Test]
