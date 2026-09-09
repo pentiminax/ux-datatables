@@ -1,6 +1,6 @@
 ---
 name: ux-datatables
-description: Use when building, configuring, or debugging DataTables with the pentiminax/ux-datatables Symfony bundle — defining DataTable classes, columns, client-side vs server-side mode, extensions, row actions, or API Platform / Mercure integration.
+description: Use when building, configuring, or debugging DataTables with the pentiminax/ux-datatables Symfony bundle — defining DataTable classes, columns, client-side vs server-side mode, extensions, row actions, permissions and voters, or API Platform / Mercure integration.
 ---
 
 # UX DataTables
@@ -76,6 +76,7 @@ Scaffold from an entity: `php bin/console make:datatable`.
 - `references/extensions.md` — Buttons, Select, Responsive, RowGroup, ColumnControl, Scroller, KeyTable, ColReorder, FixedColumns, FixedHeader.
 - `references/exporters.md` — replacing the CSV/XLSX writer for server-side export (`ExporterInterface`, `AbstractExporter`).
 - `references/actions.md` — row actions, permissions, conditional display.
+- `references/security.md` — Ajax route protection, `Permission::DT_*` attributes, the row permission matrix, `DataTable::setPermission()`, per-row resolvers, CSRF.
 - `references/filters.md` — declarative filter bar (`configureFilters()`): Text, Select, Ternary, DateRange, generic Filter (server-side Doctrine).
 - `references/api-platform.md` — API Platform integration (opt-in).
 - `references/mercure.md` — Mercure real-time refresh: config, auto-resolution, publishing on mutations (opt-in).
@@ -86,3 +87,4 @@ Scaffold from an entity: `php bin/console make:datatable`.
 1. Server-side actions do nothing → bundle routes not imported.
 2. Server-side with no Doctrine data → missing `entityClass` in `#[AsDataTable]`.
 3. API Platform / Mercure behavior absent → must opt in explicitly (`apiPlatform: true`, `mercure()`).
+4. Every mutation returns `403` → no voter for `Permission::DT_EDIT_ROW` / `DT_DELETE_ROW` / `DT_VIEW_ROW_DETAILS` (see `references/security.md`). Conversely, imported Ajax routes with no `access_control` rule are open to everyone.

@@ -45,6 +45,6 @@ TextColumn::new('email', 'Email')
 
 Notes:
 - `setField()` vs `setData()`: `field` is the entity/query path used for server-side filtering & ordering; `data` is the JSON path the front-end reads. Set `field` when the displayed property differs from the queried one (e.g. joined relations).
-- `setPermission()` on a column is evaluated once before serialization — the attribute or expression is never exposed to the browser.
+- `setPermission()` on a column is evaluated once before serialization — the attribute or expression is never exposed to the browser. Columns support the static form only (no per-row resolver); see `references/security.md`.
 - Define custom JavaScript render callbacks with the Stimulus `datatables:pre-connect` event (see `references/server-side.md`).
 - `setOrderExpression()` is for computed columns sorted on a subquery: pair it with an `addSelect(... AS HIDDEN <alias>)` in `customizeQueryBuilder()` — see `references/server-side.md`.
