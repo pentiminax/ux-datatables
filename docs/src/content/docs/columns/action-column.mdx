@@ -246,6 +246,10 @@ A failed request dispatches `datatables:action:error` and re-enables the button.
   can be issued (no session, no token manager).
 </Aside>
 
+Direct API Platform endpoints and custom controllers keep their own authorization and CSRF checks.
+PHP row voters in the bundle only run for rows processed by the bundle backend; they cannot secure
+rows returned directly by API Platform or another controller.
+
 ## `Actions` API
 
 <Table
