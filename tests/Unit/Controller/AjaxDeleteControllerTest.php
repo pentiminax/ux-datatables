@@ -218,6 +218,26 @@ final class AjaxDeleteControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_keeps_a_default_authorization_checker_when_constructed_without_one(): void
+    {
+        $controller = new AjaxDeleteController(
+            new EntityMutator(
+                new EntityLocator($this->createMock(ManagerRegistry::class)),
+                $this->createMock(PropertyAccessorInterface::class),
+                new NullMercurePublisher(),
+                new AuthorizationChecker(),
+                new MercureTopicResolver(),
+            ),
+            new MutationTokenValidator($this->createStub(CsrfTokenManagerInterface::class)),
+            $this->registry(new StaticDeniedDeleteActionDataTable()),
+        );
+
+        $property = new \ReflectionProperty($controller, 'permissionChecker');
+
+        $this->assertInstanceOf(AuthorizationChecker::class, $property->getValue($controller));
+    }
+
+    #[Test]
     public function it_rejects_row_scoped_delete_action_denial_before_mutation(): void
     {
         $entity = new DeletableEntityFixture();
@@ -353,33 +373,6 @@ final class DeletableEntityFixture
 }
 
 #[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
-final class DeleteActionMissingDataTable extends DeletableEntityFixtureDataTable
-{
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions;
-    }
-}
-
-#[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
-final class StaticDeniedDeleteActionDataTable extends DeletableEntityFixtureDataTable
-{
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(Action::delete()->permission('DELETE_BOOK'));
-    }
-}
-
-#[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
-final class RowDeniedDeleteActionDataTable extends DeletableEntityFixtureDataTable
-{
-    public function configureActions(Actions $actions): Actions
-    {
-        return $actions->add(Action::delete()->permission('DELETE_BOOK', static fn (object $entity): object => $entity));
-    }
-}
-
-#[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
 class DeletableEntityFixtureDataTable extends AbstractDataTable
 {
     public function __construct(
@@ -408,5 +401,32 @@ class DeletableEntityFixtureDataTable extends AbstractDataTable
     public function configureActions(Actions $actions): Actions
     {
         return $actions->add(Action::delete());
+    }
+}
+
+#[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
+final class DeleteActionMissingDataTable extends DeletableEntityFixtureDataTable
+{
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions;
+    }
+}
+
+#[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
+final class StaticDeniedDeleteActionDataTable extends DeletableEntityFixtureDataTable
+{
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(Action::delete()->permission('DELETE_BOOK'));
+    }
+}
+
+#[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
+final class RowDeniedDeleteActionDataTable extends DeletableEntityFixtureDataTable
+{
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(Action::delete()->permission('DELETE_BOOK', static fn (object $entity): object => $entity));
     }
 }
