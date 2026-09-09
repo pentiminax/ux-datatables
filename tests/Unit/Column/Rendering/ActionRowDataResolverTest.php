@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Column\Rendering;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Exception\DuplicateActionNameException;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
@@ -219,11 +220,51 @@ final class ActionRowDataResolverTest extends TestCase
         $result = $this->resolveRow(
             new ActionRowDataResolver(RowContextDenyingAuthorizationChecker::create()),
             (object) ['id' => 42],
-            Action::delete(),
+            Action::delete()->setPermission('ROLE_ADMIN'),
         );
 
         $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
         $this->assertSame(['DELETE'], $result[ActionRowDataResolver::DENIED_ACTIONS_KEY] ?? null);
+    }
+
+    #[Test]
+    public function action_without_permission_never_triggers_an_authorization_check(): void
+    {
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->expects($this->never())->method('isGranted');
+
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(new AuthorizationChecker($inner)),
+            (object) ['id' => 42],
+            Action::delete(),
+        );
+
+        $this->assertSame(
+            ['DELETE' => ['id' => 42]],
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
+        );
+    }
+
+    #[Test]
+    public function throws_when_two_action_columns_share_the_same_action_name_on_a_row(): void
+    {
+        $first  = new Actions();
+        $second = new Actions();
+
+        $first->add(Action::delete());
+        $second->add(Action::delete());
+
+        $this->expectException(DuplicateActionNameException::class);
+
+        (new ActionRowDataResolver())->resolveRow(
+            [],
+            (object) ['id' => 42],
+            [
+                ActionColumn::fromActions('actions_1', '', $first),
+                ActionColumn::fromActions('actions_2', '', $second),
+            ],
+            ActionRowDataTableFixture::class,
+        );
     }
 
     #[Test]

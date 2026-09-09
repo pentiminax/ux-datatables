@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Column\Rendering;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
+use Pentiminax\UX\DataTables\Exception\DuplicateActionNameException;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
@@ -53,6 +54,7 @@ final class ActionRowDataResolver
 
         $actions       = [];
         $deniedActions = [];
+        $seenNames     = [];
 
         foreach ($columns as $column) {
             if (!$column instanceof ActionsProvidingColumnInterface) {
@@ -60,13 +62,21 @@ final class ActionRowDataResolver
             }
 
             foreach ($column->getActions()?->getActions() ?? [] as $action) {
-                if (!$this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
+                $name = $action->getName();
+
+                if (isset($seenNames[$name])) {
+                    throw DuplicateActionNameException::forName($name);
+                }
+
+                $seenNames[$name] = true;
+
+                if (null !== $action->getPermission() && !$this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
                     $dataTableClass ?? '',
                     $action,
                     $sourceRow,
                     true,
                 ))) {
-                    $deniedActions[] = $action->getName();
+                    $deniedActions[] = $name;
 
                     continue;
                 }
@@ -77,7 +87,7 @@ final class ActionRowDataResolver
                     continue;
                 }
 
-                $actions[$action->getName()] = $actionData;
+                $actions[$name] = $actionData;
             }
         }
 
