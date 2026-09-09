@@ -1,22 +1,3 @@
-/*
- * Tailwind theme for the DataTables default (`dt`) styling, modelled on the
- * Filament admin panel's table design.
- *
- * Ships as plain CSS with custom properties: it needs no Tailwind build step,
- * so it works identically under AssetMapper, Encore and Vite. Apps that do run
- * Tailwind can rebrand it by reassigning the `--dt-tw-primary-*` tokens from
- * their own palette.
- *
- * `--dt-tw-theme` is the activation probe the Stimulus controller reads to pick
- * the matching column style adapter; it must stay on `:root`.
- *
- * Selectors repeat `.dt-container` deliberately. dataTables.dataTables.css and
- * buttons.dataTables.css reach three levels of specificity on the search input,
- * the length select and the export buttons, and AssetMapper emits them after
- * this file. The doubled class outranks them whatever the stylesheet order turns
- * out to be, so the theme never depends on import order.
- */
-
 :root {
     --dt-tw-theme: tailwind;
 
