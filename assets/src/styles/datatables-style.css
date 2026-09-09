@@ -228,6 +228,12 @@ select.dt-filter-input {
     background-size: 1.15rem;
 }
 
+/* `background-position` has no logical equivalent, so the side the chevron is
+   drawn on is the one thing `padding-inline-end` cannot carry into RTL. */
+[dir='rtl'] select.dt-filter-input {
+    background-position: left 0.5rem center;
+}
+
 .dt-filter-range {
     display: flex;
     gap: 0.5rem;

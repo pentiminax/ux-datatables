@@ -18,7 +18,7 @@ import { applyCustomButtonActions } from './functions/applyCustomButtonActions.j
 import { normalizeDisabledColumnControls } from './functions/columnControl.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
-import { type DataTableTheme, detectTheme } from './functions/detectTheme.js'
+import { detectTheme } from './functions/detectTheme.js'
 import { ExtensionRegistry } from './functions/extensionRegistry.js'
 import { fetchDetailRow } from './functions/fetchDetailRow.js'
 import { fetchEditForm } from './functions/fetchEditForm.js'
@@ -98,7 +98,6 @@ export default class extends Controller {
     private isDataTableInitialized = false
     private eventSource: EventSource | null = null
     private framework: StyleFramework = 'dt'
-    private theme: DataTableTheme = null
     private popstateHandler: (() => void) | null = null
 
     /**
@@ -154,7 +153,6 @@ export default class extends Controller {
             ? payload.styleFramework
             : detectStyleFramework()
         this.framework = framework
-        this.theme = detectTheme()
 
         const DataTable = await loadDataTableLibrary(framework)
         registerFilterFeature(DataTable)
@@ -208,7 +206,7 @@ export default class extends Controller {
 
         const themedContainer = (this.element as HTMLElement).closest('.dt-container')
 
-        if (this.theme !== null && themedContainer) {
+        if (themedContainer && detectTheme() !== null) {
             applyThemeSearchPlaceholder(themedContainer)
         }
 
@@ -376,7 +374,7 @@ export default class extends Controller {
     private configureColumns(payload: Record<string, any>): void {
         normalizeDisabledColumnControls(payload)
 
-        const style = resolveColumnStyleAdapter(this.framework, this.theme)
+        const style = resolveColumnStyleAdapter(this.framework, detectTheme())
 
         const columnRenderers: ColumnRenderer[] = [
             createBooleanColumnRenderer(

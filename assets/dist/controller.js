@@ -65,7 +65,6 @@ class default_1 extends Controller {
         this.isDataTableInitialized = false;
         this.eventSource = null;
         this.framework = 'dt';
-        this.theme = null;
         this.popstateHandler = null;
         this.onTurboBeforeCache = () => {
             this.table?.destroy();
@@ -94,7 +93,6 @@ class default_1 extends Controller {
             ? payload.styleFramework
             : detectStyleFramework();
         this.framework = framework;
-        this.theme = detectTheme();
         const DataTable = await loadDataTableLibrary(framework);
         registerFilterFeature(DataTable);
         if (DataTable.isDataTable(this.element)) {
@@ -130,7 +128,7 @@ class default_1 extends Controller {
         applyCustomButtonActions(payload);
         this.table = new DataTable(this.element, payload);
         const themedContainer = this.element.closest('.dt-container');
-        if (this.theme !== null && themedContainer) {
+        if (themedContainer && detectTheme() !== null) {
             applyThemeSearchPlaceholder(themedContainer);
         }
         this.dispatchEvent('connect', { table: this.table });
@@ -232,7 +230,7 @@ class default_1 extends Controller {
     }
     configureColumns(payload) {
         normalizeDisabledColumnControls(payload);
-        const style = resolveColumnStyleAdapter(this.framework, this.theme);
+        const style = resolveColumnStyleAdapter(this.framework, detectTheme());
         const columnRenderers = [
             createBooleanColumnRenderer(this.getBooleanToggleUrl(), this.areMutationsEnabled(payload) &&
                 typeof payload.dataTable === 'string' &&

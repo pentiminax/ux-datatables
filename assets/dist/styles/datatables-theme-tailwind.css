@@ -1,22 +1,3 @@
-/*
- * Tailwind theme for the DataTables default (`dt`) styling, modelled on the
- * Filament admin panel's table design.
- *
- * Ships as plain CSS with custom properties: it needs no Tailwind build step,
- * so it works identically under AssetMapper, Encore and Vite. Apps that do run
- * Tailwind can rebrand it by reassigning the `--dt-tw-primary-*` tokens from
- * their own palette.
- *
- * `--dt-tw-theme` is the activation probe the Stimulus controller reads to pick
- * the matching column style adapter; it must stay on `:root`.
- *
- * Selectors repeat `.dt-container` deliberately. dataTables.dataTables.css and
- * buttons.dataTables.css reach three levels of specificity on the search input,
- * the length select and the export buttons, and AssetMapper emits them after
- * this file. The doubled class outranks them whatever the stylesheet order turns
- * out to be, so the theme never depends on import order.
- */
-
 :root {
     --dt-tw-theme: tailwind;
 
@@ -83,14 +64,6 @@
     --dt-tw-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236b7280' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
 }
 
-/*
- * The dark palette, and nothing but the palette. It is written twice because
- * CSS cannot share declarations between a media query and a selector list, and
- * the two entry points are not interchangeable: the media query follows the
- * operating system unless the application has opted out with an explicit
- * `light` marker, while the selector list is the application saying `dark`
- * outright. The explicit rule comes second so it wins the specificity tie.
- */
 @media (prefers-color-scheme: dark) {
     :root:not(.light, [data-theme='light'], [data-bs-theme='light']) {
         --dt-tw-surface: var(--dt-tw-gray-900);
@@ -326,6 +299,12 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
     background-size: 1.15rem;
+}
+
+/* `background-position` has no logical equivalent, so the side the chevron is
+   drawn on is the one thing `padding-inline-end` cannot carry into RTL. */
+[dir='rtl'] .dt-container.dt-container div.dt-length select {
+    background-position: left 0.5rem center;
 }
 
 .dt-container.dt-container div.dt-search input::placeholder {
@@ -603,10 +582,10 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 4.5 13 12l-7.5 7.5M12.5 4.5 20 12l-7.5 7.5'/%3E%3C/svg%3E");
 }
 
-[dir='rtl'] .dt-container.dt-container div.dt-paging button.dt-paging-button.first::before,
-[dir='rtl'] .dt-container.dt-container div.dt-paging button.dt-paging-button.previous::before,
-[dir='rtl'] .dt-container.dt-container div.dt-paging button.dt-paging-button.next::before,
-[dir='rtl'] .dt-container.dt-container div.dt-paging button.dt-paging-button.last::before {
+[dir='rtl']
+    .dt-container.dt-container
+    div.dt-paging
+    button.dt-paging-button:is(.first, .previous, .next, .last)::before {
     scale: -1 1;
 }
 
@@ -916,15 +895,18 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     border-radius: 999px;
     background: #fff;
     box-shadow: 0 1px 2px 0 rgb(var(--dt-tw-gray-950) / 0.2);
-    transition: translate 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition: inset-inline-start 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .dt-switch__input:checked + .dt-switch__track {
     background: rgb(var(--dt-tw-primary-500));
 }
 
+/* 1.125rem = the resting 0.125rem inset plus the 1rem of track the knob has
+   left to cross. A physical `translate` would move the knob the wrong way in a
+   right-to-left document; the logical inset follows the writing direction. */
 .dt-switch__input:checked + .dt-switch__track::after {
-    translate: 1rem 0;
+    inset-inline-start: 1.125rem;
 }
 
 .dt-switch__input:focus-visible + .dt-switch__track {
