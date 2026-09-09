@@ -1,10 +1,12 @@
 :root {
     --dt-tw-theme: tailwind;
 
-    --dt-tw-primary-400: 251 191 36;
-    --dt-tw-primary-500: 245 158 11;
-    --dt-tw-primary-600: 217 119 6;
-    --dt-tw-primary-700: 180 83 9;
+    /* Same hue/saturation as the #4a46c4 brand color (--dt-tw-primary-600),
+       stepped lighter/darker to keep the 400/500/700 hover and text shades. */
+    --dt-tw-primary-400: 142 140 218;
+    --dt-tw-primary-500: 108 105 207;
+    --dt-tw-primary-600: 74 70 196;
+    --dt-tw-primary-700: 57 53 167;
 
     --dt-tw-gray-50: 249 250 251;
     --dt-tw-gray-100: 243 244 246;
@@ -1017,10 +1019,16 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
  * its own copy of the surface, control and button tokens used above.
  */
 
+/* The UA stylesheet centers dialog:modal with `margin: auto`, but a reset
+   that zeroes margin on every element (e.g. Tailwind preflight) overrides it,
+   so centering is pinned explicitly here rather than left to the default. */
 dialog.dt-modal {
+    position: fixed;
+    inset: 0;
     box-sizing: border-box;
     width: min(32rem, calc(100vw - 2rem));
     max-height: calc(100vh - 4rem);
+    margin: auto;
     padding: 0;
     border: 0;
     border-radius: var(--dt-tw-radius-panel);
@@ -1085,11 +1093,14 @@ dialog.dt-modal .dt-modal-body label {
     font-weight: 500;
 }
 
-dialog.dt-modal .dt-modal-body > *:not(:last-child) {
+/* form_start/form_end wrap every row in a single <form>, so the spacing has
+   to land on the form's own children rather than the modal body's. */
+dialog.dt-modal .dt-modal-body > *:not(:last-child),
+dialog.dt-modal .dt-modal-body form > *:not(:last-child) {
     margin-bottom: 1rem;
 }
 
-dialog.dt-modal .dt-modal-body :is(input, select, textarea) {
+dialog.dt-modal .dt-modal-body :is(input, select, textarea):not([type='checkbox'], [type='radio']) {
     box-sizing: border-box;
     width: 100%;
     min-height: 2.25rem;
@@ -1113,9 +1124,66 @@ dialog.dt-modal .dt-modal-body select {
     background-size: 1.15rem;
 }
 
-dialog.dt-modal .dt-modal-body :is(input, select, textarea):focus {
+dialog.dt-modal .dt-modal-body :is(input, select, textarea):not([type='checkbox'], [type='radio']):focus {
     outline: none;
     box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
+}
+
+/* Symfony's default form theme renders a CheckboxType as a bare
+   `<input type=checkbox>` next to its label, no markup hook for the
+   `.dt-switch` structure the table uses — so the checkbox itself is
+   repainted as the same track-and-knob switch instead. */
+dialog.dt-modal .dt-modal-body div:has(> input[type='checkbox']) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+dialog.dt-modal .dt-modal-body div:has(> input[type='checkbox']) label {
+    margin-bottom: 0;
+}
+
+dialog.dt-modal .dt-modal-body input[type='checkbox'] {
+    position: relative;
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 1.25rem;
+    margin: 0;
+    appearance: none;
+    border-radius: 999px;
+    background: var(--dt-tw-track);
+    box-shadow: var(--dt-tw-ring-control);
+    cursor: pointer;
+    transition: background-color 150ms ease;
+}
+
+dialog.dt-modal .dt-modal-body input[type='checkbox']::before {
+    content: '';
+    position: absolute;
+    inset-block-start: 0.125rem;
+    inset-inline-start: 0.125rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 1px 2px 0 rgb(var(--dt-tw-gray-950) / 0.2);
+    transition: inset-inline-start 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+dialog.dt-modal .dt-modal-body input[type='checkbox']:checked {
+    background: rgb(var(--dt-tw-primary-500));
+}
+
+dialog.dt-modal .dt-modal-body input[type='checkbox']:checked::before {
+    inset-inline-start: 1.125rem;
+}
+
+dialog.dt-modal .dt-modal-body input[type='checkbox']:focus-visible {
+    outline: none;
+    box-shadow:
+        0 0 0 2px rgb(var(--dt-tw-surface)),
+        0 0 0 4px rgb(var(--dt-tw-primary-600));
 }
 
 dialog.dt-modal .dt-modal-footer {

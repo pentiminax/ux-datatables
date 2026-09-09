@@ -2,7 +2,7 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">{{ title|trans }}</h5>
+                <h5 class="modal-title">{{ title|trans }}{% if entity_label is not empty %} {{ entity_label }}{% endif %}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" data-ux-datatables-modal-body>
