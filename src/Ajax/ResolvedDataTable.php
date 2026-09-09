@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Ajax;
 
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
+use Pentiminax\UX\DataTables\Exception\DuplicateActionNameException;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
@@ -38,8 +39,13 @@ final readonly class ResolvedDataTable
         return $this->entityClass ?? throw InvalidDataTableTokenException::missingEntityClass($this->dataTableClass);
     }
 
+    /**
+     * @throws DuplicateActionNameException when more than one matching action shares the same name
+     */
     public function findAction(ActionType $type, bool $collapsible = false): ?Action
     {
+        $matches = [];
+
         foreach ($this->table->getConfiguredDataTable()->getColumns() as $column) {
             if (!$column instanceof ActionsProvidingColumnInterface) {
                 continue;
@@ -54,10 +60,14 @@ final readonly class ResolvedDataTable
                     continue;
                 }
 
-                return $action;
+                $matches[] = $action;
             }
         }
 
-        return null;
+        if (\count($matches) > 1) {
+            throw DuplicateActionNameException::forName($matches[0]->getName());
+        }
+
+        return $matches[0] ?? null;
     }
 }
