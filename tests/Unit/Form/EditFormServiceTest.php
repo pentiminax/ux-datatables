@@ -30,6 +30,7 @@ use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -234,6 +235,20 @@ final class EditFormServiceTest extends TestCase
             registry: $registry,
             permissionChecker: new AuthorizationChecker($checker),
             dataTable: new StaticDeniedEditActionDataTable(),
+        ));
+    }
+
+    #[Test]
+    #[TestWith(['view'])]
+    #[TestWith(['submit'])]
+    public function ordinary_edit_action_uses_row_context_after_entity_lookup(string $handler): void
+    {
+        $entity = new EditFormServiceFixture();
+
+        $this->assertForbidden($this->handleWithoutFormCollaborators(
+            handler: $handler,
+            registry: $this->createRegistry($this->createEntityManagerThatFinds($entity, 42)),
+            permissionChecker: RowContextDenyingAuthorizationChecker::create(),
         ));
     }
 

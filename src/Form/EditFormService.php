@@ -144,7 +144,7 @@ final class EditFormService
                 $dataTable->dataTableClass,
                 $action,
                 $entity,
-                $action->hasPerRowPermission(),
+                true,
             ));
     }
 

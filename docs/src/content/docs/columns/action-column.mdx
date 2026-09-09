@@ -447,14 +447,15 @@ The template receives the located entity as `entity`, plus any extra parameters 
 
 Access is checked before the template renders, mirroring what the rendering pipeline evaluated for
 that action: a per-row `setPermission()` resolver receives the located entity, a static `setPermission()`
-is evaluated as-is, and an action with no configured permission falls back to `VIEW` on the entity —
-the same convention delete and edit follow. An action the user cannot see is an action they cannot
-fetch.
+is evaluated as-is, and an action with no configured permission falls back to
+`Permission::DT_VIEW_ROW_DETAILS` on the entity. An action the user cannot see is an action they
+cannot fetch.
 
 <Aside type="note">
   The endpoint needs Twig, a table that declares an entity class, and exactly one collapsible
-  detail action to resolve; it answers `400` otherwise, `404` when the entity no longer exists, and
-  `403` when the permission check denies it. Like every bundle Ajax route, it must still be
+  detail action to resolve; it answers `400` when Twig is unavailable, `403` when the collapsible
+  detail action is missing or permission denies, and `404` when the entity no longer exists. Like
+  every bundle Ajax route, it must still be
   protected by your own `security.firewalls` configuration — see
   [Securing Ajax Routes](/ux-datatables/getting-started/security/).
 </Aside>

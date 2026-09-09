@@ -18,6 +18,7 @@ use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -123,14 +124,33 @@ final class DetailRowServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_bad_request_when_no_collapsible_detail_action_is_configured(): void
+    public function it_returns_forbidden_without_lookup_when_no_collapsible_detail_action_is_configured(): void
     {
-        $service = $this->createService(new EntityLocator(null), $this->twigThatNeverRenders());
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManagerForClass');
+
+        $service = $this->createService(new EntityLocator($registry), $this->twigThatNeverRenders());
 
         $result = $service->handleView($this->resolved(new PlainDetailDataTable()), 7);
 
         $this->assertFalse($result->success);
-        $this->assertSame(400, $result->statusCode);
+        $this->assertSame(403, $result->statusCode);
+        $this->assertNull($result->html);
+    }
+
+    #[Test]
+    public function ordinary_detail_action_uses_row_context_after_entity_lookup(): void
+    {
+        $service = $this->createService(
+            $this->locatorReturning(new DetailRowEntity('alice@example.com')),
+            $this->twigThatNeverRenders(),
+            RowContextDenyingAuthorizationChecker::create(),
+        );
+
+        $result = $service->handleView($this->resolved(new CollapsibleDetailDataTable()), 7);
+
+        $this->assertFalse($result->success);
+        $this->assertSame(403, $result->statusCode);
         $this->assertNull($result->html);
     }
 

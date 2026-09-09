@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -178,7 +179,7 @@ final class ActionRowDataResolverTest extends TestCase
     #[Test]
     #[TestWith([true])]
     #[TestWith([false])]
-    public function static_permission_decides_action_exposure(bool $granted): void
+    public function static_permission_decides_action_exposure_with_row_context(bool $granted): void
     {
         $inner = $this->createMock(AuthorizationCheckerInterface::class);
         $inner
@@ -186,7 +187,7 @@ final class ActionRowDataResolverTest extends TestCase
             ->method('isGranted')
             ->with(Permission::DT_EXECUTE_ACTION, $this->callback(
                 static fn (ActionPermissionContext $context): bool => ActionRowDataTableFixture::class === $context->dataTableClass
-                    && !$context->hasRowContext
+                    && $context->hasRowContext
             ))
             ->willReturn($granted);
 
@@ -205,6 +206,19 @@ final class ActionRowDataResolverTest extends TestCase
             $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
         );
         $this->assertSame($granted ? null : ['EDIT'], $result[ActionRowDataResolver::DENIED_ACTIONS_KEY] ?? null);
+    }
+
+    #[Test]
+    public function ordinary_action_uses_row_context_when_resolving_row_permissions(): void
+    {
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(RowContextDenyingAuthorizationChecker::create()),
+            (object) ['id' => 42],
+            Action::delete(),
+        );
+
+        $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
+        $this->assertSame(['DELETE'], $result[ActionRowDataResolver::DENIED_ACTIONS_KEY] ?? null);
     }
 
     #[Test]
