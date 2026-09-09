@@ -277,17 +277,19 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
         min-width: 0;
     }
 
-    .dt-container.dt-container table.dataTable thead > tr > th:first-child,
-    .dt-container.dt-container table.dataTable tbody > tr > td:first-child,
-    .dt-container.dt-container table.dataTable tfoot > tr > th:first-child,
-    .dt-container.dt-container table.dataTable tfoot > tr > td:first-child {
+    .dt-container.dt-container
+        table.dataTable
+        :is(thead, tbody, tfoot)
+        > tr
+        > :is(th, td):first-child {
         padding-inline-start: 1rem;
     }
 
-    .dt-container.dt-container table.dataTable thead > tr > th:last-child,
-    .dt-container.dt-container table.dataTable tbody > tr > td:last-child,
-    .dt-container.dt-container table.dataTable tfoot > tr > th:last-child,
-    .dt-container.dt-container table.dataTable tfoot > tr > td:last-child {
+    .dt-container.dt-container
+        table.dataTable
+        :is(thead, tbody, tfoot)
+        > tr
+        > :is(th, td):last-child {
         padding-inline-end: 1rem;
     }
 }
@@ -368,8 +370,7 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     color: rgb(var(--dt-tw-text));
 }
 
-.dt-container.dt-container table.dataTable thead > tr > th,
-.dt-container.dt-container table.dataTable thead > tr > td {
+.dt-container.dt-container table.dataTable thead > tr > :is(th, td) {
     padding: 0.875rem 0.75rem;
     border: 0;
     border-bottom: 1px solid var(--dt-tw-divider);
@@ -381,28 +382,24 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     white-space: nowrap;
 }
 
-.dt-container.dt-container table.dataTable thead > tr > th:first-child,
-.dt-container.dt-container table.dataTable tbody > tr > td:first-child,
-.dt-container.dt-container table.dataTable tfoot > tr > th:first-child,
-.dt-container.dt-container table.dataTable tfoot > tr > td:first-child {
+.dt-container.dt-container table.dataTable :is(thead, tbody, tfoot) > tr > :is(th, td):first-child {
     padding-inline-start: 1.5rem;
 }
 
-.dt-container.dt-container table.dataTable thead > tr > th:last-child,
-.dt-container.dt-container table.dataTable tbody > tr > td:last-child,
-.dt-container.dt-container table.dataTable tfoot > tr > th:last-child,
-.dt-container.dt-container table.dataTable tfoot > tr > td:last-child {
+.dt-container.dt-container table.dataTable :is(thead, tbody, tfoot) > tr > :is(th, td):last-child {
     padding-inline-end: 1.5rem;
 }
 
-.dt-container.dt-container table.dataTable thead > tr > th.dt-orderable-asc:hover,
-.dt-container.dt-container table.dataTable thead > tr > th.dt-orderable-desc:hover {
+.dt-container.dt-container
+    table.dataTable
+    thead
+    > tr
+    > th:is(.dt-orderable-asc, .dt-orderable-desc):hover {
     outline: none;
     background: var(--dt-tw-sunken);
 }
 
-.dt-container.dt-container table.dataTable thead > tr > th.dt-ordering-asc,
-.dt-container.dt-container table.dataTable thead > tr > th.dt-ordering-desc {
+.dt-container.dt-container table.dataTable thead > tr > th:is(.dt-ordering-asc, .dt-ordering-desc) {
     color: rgb(var(--dt-tw-text-strong));
 }
 
@@ -414,14 +411,18 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
         table.dataTable
         thead
         > tr
-        > th:not(.dt-ordering-asc):not(.dt-ordering-desc)
+        > th:not(.dt-ordering-asc, .dt-ordering-desc)
         .dt-column-order {
         opacity: 0;
         transition: opacity var(--dt-tw-transition);
     }
 
-    .dt-container.dt-container table.dataTable thead > tr > th:hover .dt-column-order,
-    .dt-container.dt-container table.dataTable thead > tr > th:focus-within .dt-column-order {
+    .dt-container.dt-container
+        table.dataTable
+        thead
+        > tr
+        > th:is(:hover, :focus-within)
+        .dt-column-order {
         opacity: 1;
     }
 }
@@ -456,15 +457,13 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 
 /* Figures line up column-wise only with lining tabular numerals; DataTables
    already tags the columns it detected as numeric or date. */
-.dt-container.dt-container table.dataTable td.dt-type-numeric,
-.dt-container.dt-container table.dataTable td.dt-type-date,
+.dt-container.dt-container table.dataTable td:is(.dt-type-numeric, .dt-type-date),
 .dt-container.dt-container div.dt-info,
 .dt-container.dt-container div.dt-paging {
     font-variant-numeric: tabular-nums;
 }
 
-.dt-container.dt-container table.dataTable tfoot > tr > th,
-.dt-container.dt-container table.dataTable tfoot > tr > td {
+.dt-container.dt-container table.dataTable tfoot > tr > :is(th, td) {
     padding: 0.75rem;
     border: 0;
     border-top: 1px solid var(--dt-tw-divider);
@@ -511,8 +510,7 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     height: 0.5rem;
 }
 
-.dt-container.dt-container div.dt-processing > div:last-child > div:nth-child(1),
-.dt-container.dt-container div.dt-processing > div:last-child > div:nth-child(2) {
+.dt-container.dt-container div.dt-processing > div:last-child > div:nth-child(-n + 2) {
     left: 0;
 }
 
@@ -568,20 +566,18 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 
 /* DataTables writes «, ‹, › and » as text. Swapped for drawn chevrons so the
    step controls share the icon weight of the rest of the table. */
-.dt-container.dt-container div.dt-paging button.dt-paging-button.first,
-.dt-container.dt-container div.dt-paging button.dt-paging-button.previous,
-.dt-container.dt-container div.dt-paging button.dt-paging-button.next,
-.dt-container.dt-container div.dt-paging button.dt-paging-button.last {
+.dt-container.dt-container
+    div.dt-paging
+    button.dt-paging-button:is(.first, .previous, .next, .last) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 0;
 }
 
-.dt-container.dt-container div.dt-paging button.dt-paging-button.first::before,
-.dt-container.dt-container div.dt-paging button.dt-paging-button.previous::before,
-.dt-container.dt-container div.dt-paging button.dt-paging-button.next::before,
-.dt-container.dt-container div.dt-paging button.dt-paging-button.last::before {
+.dt-container.dt-container
+    div.dt-paging
+    button.dt-paging-button:is(.first, .previous, .next, .last)::before {
     content: '';
     width: 1.125rem;
     height: 1.125rem;
@@ -614,8 +610,9 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     scale: -1 1;
 }
 
-.dt-container.dt-container div.dt-paging button.dt-paging-button:hover:not(.disabled),
-.dt-container.dt-container div.dt-paging button.dt-paging-button:active:not(.disabled) {
+.dt-container.dt-container
+    div.dt-paging
+    button.dt-paging-button:is(:hover, :active):not(.disabled) {
     border: 0;
     background: rgb(var(--dt-tw-neutral) / 0.12);
     box-shadow: none;
@@ -652,9 +649,7 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     gap: 0.5rem;
 }
 
-.dt-container.dt-container button.dt-button,
-.dt-container.dt-container div.dt-button,
-.dt-container.dt-container a.dt-button {
+.dt-container.dt-container :is(button, div, a).dt-button {
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
@@ -673,22 +668,19 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
         box-shadow var(--dt-tw-transition);
 }
 
-.dt-container.dt-container button.dt-button:hover:not(.disabled),
-.dt-container.dt-container a.dt-button:hover:not(.disabled) {
+.dt-container.dt-container :is(button, div, a).dt-button:hover:not(.disabled) {
     background: rgb(var(--dt-tw-neutral) / 0.12);
     box-shadow:
         inset 0 0 0 1px rgb(var(--dt-tw-neutral) / 0.4),
         var(--dt-tw-shadow-sm);
 }
 
-.dt-container.dt-container button.dt-button:active:not(.disabled),
-.dt-container.dt-container a.dt-button:active:not(.disabled) {
+.dt-container.dt-container :is(button, div, a).dt-button:active:not(.disabled) {
     background: rgb(var(--dt-tw-neutral) / 0.2);
     box-shadow: inset 0 0 0 1px rgb(var(--dt-tw-neutral) / 0.4);
 }
 
-.dt-container.dt-container button.dt-button:focus-visible,
-.dt-container.dt-container a.dt-button:focus-visible {
+.dt-container.dt-container :is(button, div, a).dt-button:focus-visible {
     outline: none;
     box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
 }
@@ -739,51 +731,43 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     box-shadow: inset 0 0 0 1px rgb(var(--dt-tw-btn) / 0.2);
 }
 
-.dt-container.dt-container table.dataTable .btn:disabled,
-.dt-container.dt-container table.dataTable .btn[aria-disabled='true'] {
+.dt-container.dt-container table.dataTable .btn:is(:disabled, [aria-disabled='true']) {
     opacity: 0.6;
     cursor: default;
 }
 
-.dt-container.dt-container table.dataTable .btn > i,
-.dt-container.dt-container table.dataTable .btn > svg {
+.dt-container.dt-container table.dataTable .btn > :is(i, svg) {
     flex-shrink: 0;
 }
 
-.dt-container.dt-container table.dataTable .btn-danger,
-.dt-container.dt-container table.dataTable .btn-outline-danger {
+.dt-container.dt-container table.dataTable :is(.btn-danger, .btn-outline-danger) {
     --dt-tw-btn: var(--dt-tw-danger);
     --dt-tw-btn-text: var(--dt-tw-danger);
 }
 
-.dt-container.dt-container table.dataTable .btn-warning,
-.dt-container.dt-container table.dataTable .btn-outline-warning {
+.dt-container.dt-container table.dataTable :is(.btn-warning, .btn-outline-warning) {
     --dt-tw-btn: var(--dt-tw-warning);
     --dt-tw-btn-text: var(--dt-tw-warning);
 }
 
-.dt-container.dt-container table.dataTable .btn-success,
-.dt-container.dt-container table.dataTable .btn-outline-success {
+.dt-container.dt-container table.dataTable :is(.btn-success, .btn-outline-success) {
     --dt-tw-btn: var(--dt-tw-success);
     --dt-tw-btn-text: var(--dt-tw-success);
 }
 
-.dt-container.dt-container table.dataTable .btn-info,
-.dt-container.dt-container table.dataTable .btn-outline-info {
+.dt-container.dt-container table.dataTable :is(.btn-info, .btn-outline-info) {
     --dt-tw-btn: var(--dt-tw-info);
     --dt-tw-btn-text: var(--dt-tw-info);
 }
 
 /* `Action::detail()` ships `btn-primary`, which reads as informational rather
    than as the table's accent, so it maps to the info palette. */
-.dt-container.dt-container table.dataTable .btn-primary,
-.dt-container.dt-container table.dataTable .btn-outline-primary {
+.dt-container.dt-container table.dataTable :is(.btn-primary, .btn-outline-primary) {
     --dt-tw-btn: var(--dt-tw-info);
     --dt-tw-btn-text: var(--dt-tw-info);
 }
 
-.dt-container.dt-container table.dataTable .btn-dark,
-.dt-container.dt-container table.dataTable .btn-outline-dark {
+.dt-container.dt-container table.dataTable :is(.btn-dark, .btn-outline-dark) {
     --dt-tw-btn: var(--dt-tw-text-strong);
     --dt-tw-btn-text: var(--dt-tw-text-strong);
 }
@@ -907,7 +891,7 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     padding: 0;
     margin: -1px;
     overflow: hidden;
-    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
     white-space: nowrap;
     border: 0;
 }
@@ -958,6 +942,9 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     .dt-container.dt-container *,
     .dt-switch__track,
     .dt-switch__track::after {
+        /* biome-ignore lint/complexity/noImportantStyles: `.dt-container.dt-container *`
+           is (0, 2, 1) and cannot otherwise beat the component rules it has to
+           override; the alternative is enumerating every one of them. */
         transition-duration: 0.01ms !important;
     }
 }
@@ -1010,9 +997,7 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     color: rgb(var(--dt-tw-text));
 }
 
-.dt-container.dt-container input,
-.dt-container.dt-container select,
-.dt-container.dt-container textarea {
+.dt-container.dt-container :is(input, select, textarea) {
     caret-color: rgb(var(--dt-tw-primary-600));
 }
 
@@ -1021,25 +1006,23 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     outline-offset: 2px;
 }
 
-.dt-container.dt-container .dt-scroll-body,
-.dt-container.dt-container > .dt-layout-row.dt-layout-table {
+.dt-container.dt-container :is(.dt-scroll-body, .dt-layout-row.dt-layout-table) {
     scrollbar-width: thin;
     scrollbar-color: rgb(var(--dt-tw-gray-400) / 0.6) transparent;
 }
 
-.dt-container.dt-container .dt-scroll-body::-webkit-scrollbar,
-.dt-container.dt-container > .dt-layout-row.dt-layout-table::-webkit-scrollbar {
+.dt-container.dt-container :is(.dt-scroll-body, .dt-layout-row.dt-layout-table)::-webkit-scrollbar {
     width: 0.5rem;
     height: 0.5rem;
 }
 
-.dt-container.dt-container .dt-scroll-body::-webkit-scrollbar-thumb,
-.dt-container.dt-container > .dt-layout-row.dt-layout-table::-webkit-scrollbar-thumb {
+.dt-container.dt-container
+    :is(.dt-scroll-body, .dt-layout-row.dt-layout-table)::-webkit-scrollbar-thumb {
     border-radius: 999px;
     background: rgb(var(--dt-tw-gray-400) / 0.6);
 }
 
-.dt-container.dt-container .dt-scroll-body::-webkit-scrollbar-track,
-.dt-container.dt-container > .dt-layout-row.dt-layout-table::-webkit-scrollbar-track {
+.dt-container.dt-container
+    :is(.dt-scroll-body, .dt-layout-row.dt-layout-table)::-webkit-scrollbar-track {
     background: transparent;
 }
