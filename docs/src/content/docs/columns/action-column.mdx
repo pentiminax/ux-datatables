@@ -450,7 +450,7 @@ Access is checked before the template renders. The endpoint always requires
 a configured permission — there is no fallback. If the action also declares a `setPermission()`, that
 permission is checked in addition: a per-row resolver receives the located entity (never a raw array
 row, even if the table's provider hydrates arrays elsewhere — see
-[`Action::setPermission()`](/ux-datatables/getting-started/security/) for the full contract), and a
+[`Action::setPermission()`](/ux-datatables/guide/security/) for the full contract), and a
 static permission is evaluated as-is. An action the user cannot see is an action they cannot fetch.
 
 <Aside type="note">
@@ -466,5 +466,6 @@ static permission is evaluated as-is. An action the user cannot see is an action
 
 - [Edit Modal](/ux-datatables/reference/edit-modal/)
 - [Securing Ajax Routes](/ux-datatables/getting-started/security/)
+- [Authorization and Voters](/ux-datatables/guide/security/)
 - [Recipe: Actions with CSRF and voter](/ux-datatables/recipes/actions-csrf-voter/)
 - [Columns Overview](/ux-datatables/columns/overview/)
