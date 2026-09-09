@@ -16,7 +16,4 @@ enum StyleFramework: string
     case Bootstrap  = 'bs';
     case Bootstrap4 = 'bs4';
     case Bootstrap5 = 'bs5';
-    case Foundation = 'zf';
-    case JQueryUI   = 'jqui';
-    case SemanticUI = 'se';
 }
