@@ -156,11 +156,12 @@ bundle calls Symfony authorization before reading private row details or mutatin
 - `delete()` checks `isGranted(Permission::DT_DELETE_ROW, $entity)` before removing the entity.
 - `setProperty()` (the inline boolean toggle) checks `isGranted(Permission::DT_EDIT_ROW, $entity)`
   before writing the field.
-- collapsible detail rows check `isGranted(Permission::DT_VIEW_ROW_DETAILS, $entity)` when no
-  action-level permission grants the row.
+- collapsible detail rows always check `isGranted(Permission::DT_VIEW_ROW_DETAILS, $entity)`.
+  The configured detail action also passes through `Permission::DT_EXECUTE_ACTION`; if the action
+  has `Action::permission()`, that permission must grant too.
 
-If either check is denied, the mutation is rejected and the Ajax endpoint responds with `403`
-instead of touching the database.
+If a required check is denied, the Ajax endpoint responds with `403` instead of exposing private row
+details or touching the database.
 
 <Aside type="caution" title="DataTables permissions are not built-in Symfony attributes">
   Unlike `ROLE_ADMIN` or `IS_AUTHENTICATED_FULLY`, the `Permission::DT_*` values are bundle
