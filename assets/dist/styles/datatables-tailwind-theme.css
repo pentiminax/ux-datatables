@@ -1008,3 +1008,163 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     :is(.dt-scroll-body, .dt-layout-row.dt-layout-table)::-webkit-scrollbar-track {
     background: transparent;
 }
+
+/* ---------------------------------------------------------------- modal -- */
+
+/*
+ * The edit modal is a top-level <dialog> appended to document.body (see
+ * DialogModalAdapter), so it cannot rely on `.dt-container` scoping and needs
+ * its own copy of the surface, control and button tokens used above.
+ */
+
+dialog.dt-modal {
+    box-sizing: border-box;
+    width: min(32rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 4rem);
+    padding: 0;
+    border: 0;
+    border-radius: var(--dt-tw-radius-panel);
+    background: rgb(var(--dt-tw-surface));
+    box-shadow: var(--dt-tw-shadow-panel), var(--dt-tw-ring);
+    color: rgb(var(--dt-tw-text));
+    color-scheme: var(--dt-tw-color-scheme, light);
+}
+
+dialog.dt-modal::backdrop {
+    background: rgb(3 7 18 / 0.5);
+}
+
+dialog.dt-modal .dt-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--dt-tw-divider);
+}
+
+dialog.dt-modal .dt-modal-title {
+    margin: 0;
+    color: rgb(var(--dt-tw-text-strong));
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+dialog.dt-modal .dt-modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--dt-tw-radius-control);
+    background: transparent;
+    color: rgb(var(--dt-tw-text-muted));
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--dt-tw-transition);
+}
+
+dialog.dt-modal .dt-modal-close:hover {
+    background: var(--dt-tw-sunken);
+    color: rgb(var(--dt-tw-text));
+}
+
+dialog.dt-modal .dt-modal-body {
+    padding: 1.25rem 1.5rem;
+    overflow-y: auto;
+}
+
+dialog.dt-modal .dt-modal-body label {
+    display: block;
+    margin-bottom: 0.375rem;
+    color: rgb(var(--dt-tw-text-muted));
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+dialog.dt-modal .dt-modal-body > *:not(:last-child) {
+    margin-bottom: 1rem;
+}
+
+dialog.dt-modal .dt-modal-body :is(input, select, textarea) {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 2.25rem;
+    padding: 0.375rem 0.75rem;
+    border: 0;
+    border-radius: var(--dt-tw-radius-control);
+    background: rgb(var(--dt-tw-surface));
+    box-shadow: var(--dt-tw-ring-control), var(--dt-tw-shadow-sm);
+    color: rgb(var(--dt-tw-text));
+    font-size: 0.875rem;
+    font-family: inherit;
+    transition: box-shadow var(--dt-tw-transition);
+}
+
+dialog.dt-modal .dt-modal-body select {
+    appearance: none;
+    padding-inline-end: 2rem;
+    background-image: var(--dt-tw-chevron);
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.15rem;
+}
+
+dialog.dt-modal .dt-modal-body :is(input, select, textarea):focus {
+    outline: none;
+    box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
+}
+
+dialog.dt-modal .dt-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--dt-tw-divider);
+}
+
+dialog.dt-modal .dt-modal-footer .dt-button {
+    display: inline-flex;
+    align-items: center;
+    height: 2.25rem;
+    margin: 0;
+    padding: 0 0.875rem;
+    border: 0;
+    border-radius: var(--dt-tw-radius-control);
+    background: rgb(var(--dt-tw-surface));
+    box-shadow: var(--dt-tw-ring-control), var(--dt-tw-shadow-sm);
+    color: rgb(var(--dt-tw-text));
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+        background-color var(--dt-tw-transition),
+        box-shadow var(--dt-tw-transition);
+}
+
+dialog.dt-modal .dt-modal-footer .dt-button:hover:not(:disabled) {
+    background: rgb(var(--dt-tw-neutral) / 0.12);
+}
+
+dialog.dt-modal .dt-modal-footer .dt-button.dt-button-primary {
+    background: rgb(var(--dt-tw-primary-600));
+    box-shadow: none;
+    color: rgb(var(--dt-tw-on-primary));
+}
+
+dialog.dt-modal .dt-modal-footer .dt-button.dt-button-primary:hover:not(:disabled) {
+    background: rgb(var(--dt-tw-primary-700));
+}
+
+dialog.dt-modal .dt-modal-footer .dt-button:focus-visible {
+    outline: none;
+    box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
+}
+
+dialog.dt-modal .dt-modal-footer .dt-button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
