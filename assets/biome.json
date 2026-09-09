@@ -2,7 +2,9 @@
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "linter": {
     "enabled": true,
-    "rules": { "preset": "recommended" }
+    "rules": {
+      "preset": "recommended"
+    }
   },
   "formatter": {
     "enabled": true,
@@ -15,6 +17,11 @@
       "quoteStyle": "single",
       "semicolons": "asNeeded",
       "trailingCommas": "es5"
+    }
+  },
+  "css": {
+    "formatter": {
+      "quoteStyle": "single"
     }
   }
 }

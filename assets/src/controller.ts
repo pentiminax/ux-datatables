@@ -32,6 +32,7 @@ import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
 import { submitEditForm } from './functions/submitEditForm.js'
+import { applyThemeSearchPlaceholder } from './functions/themeSearchField.js'
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js'
 import {
     applyUrlStateToPayload,
@@ -204,6 +205,12 @@ export default class extends Controller {
         applyCustomButtonActions(payload)
 
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
+
+        const themedContainer = (this.element as HTMLElement).closest('.dt-container')
+
+        if (this.theme !== null && themedContainer) {
+            applyThemeSearchPlaceholder(themedContainer)
+        }
 
         this.dispatchEvent('connect', { table: this.table })
 

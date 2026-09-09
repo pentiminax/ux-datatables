@@ -27,6 +27,7 @@ import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js';
 import { runAjaxAction } from './functions/runAjaxAction.js';
 import { applyServerExportUrls } from './functions/serverExport.js';
 import { submitEditForm } from './functions/submitEditForm.js';
+import { applyThemeSearchPlaceholder } from './functions/themeSearchField.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
 import { applyUrlStateToPayload, isUrlStateEnabled, readUrlState, writeUrlState, } from './functions/urlState.js';
 import { resolveModalAdapter } from './modal/resolveModalAdapter.js';
@@ -128,6 +129,10 @@ class default_1 extends Controller {
         applyServerExportUrls(payload);
         applyCustomButtonActions(payload);
         this.table = new DataTable(this.element, payload);
+        const themedContainer = this.element.closest('.dt-container');
+        if (this.theme !== null && themedContainer) {
+            applyThemeSearchPlaceholder(themedContainer);
+        }
         this.dispatchEvent('connect', { table: this.table });
         if (urlStateCfg && this.table) {
             this.table.on('draw.dt', () => writeUrlState(urlStateCfg, this.table));

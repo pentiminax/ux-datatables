@@ -226,6 +226,15 @@ Stimulus controller reads that custom property to select the matching column sty
 `ChoiceColumn` badges and `BooleanColumn` switches follow the theme instead of emitting Tailwind
 utilities.
 
+The controller also moves the search label into the input's placeholder, so the toolbar keeps the
+export buttons on the left and the search field on the right of a single row. The label element
+stays in the DOM, visually hidden, as the input's accessible name. Set DataTables'
+`language.searchPlaceholder` yourself and the theme leaves your value alone.
+
+Actions rendered by `Action::delete()`, `::edit()` and `::detail()` keep their Bootstrap class
+names, which the theme restyles as soft-tinted chips. An action with a custom `className` is left
+untouched.
+
 ### Rebranding
 
 Reassign the accent tokens after the theme import. Values are space-separated RGB channels, which
