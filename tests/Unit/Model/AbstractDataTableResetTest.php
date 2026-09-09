@@ -14,7 +14,7 @@ use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -200,7 +200,7 @@ final class AbstractDataTableResetTest extends TestCase
                 return $granted;
             });
 
-        $permissionChecker = new PermissionChecker($checker);
+        $permissionChecker = new AuthorizationChecker($checker);
 
         $table = new ConfigurableDataTable(
             [

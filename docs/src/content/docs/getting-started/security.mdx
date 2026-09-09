@@ -5,8 +5,8 @@ order: 50
 ---
 
 UX DataTables registers a small set of Ajax routes automatically. Server-side tables,
-the inline edit modal, row deletion, detail rendering and template resolution all go through
-these endpoints:
+server-side exports, the inline edit modal, row deletion, detail rendering, and template
+resolution all go through these endpoints:
 
 <Table
   headers={['Route name', 'Path', 'Method(s)', 'Used by']}
@@ -18,6 +18,7 @@ these endpoints:
     ['ux_datatables_ajax_edit_form_submit', '/datatables/ajax/edit-form', 'POST', 'Edit modal submit'],
     ['ux_datatables_ajax_detail', '/datatables/ajax/detail', 'POST', 'Row detail rendering'],
     ['ux_datatables_ajax_templates', '/datatables/ajax/templates', 'POST', 'Template column rendering'],
+    ['ux_datatables_ajax_export', '/datatables/ajax/export', 'POST', 'Server-side CSV/XLSX export'],
   ]}
 />
 
@@ -78,6 +79,86 @@ the page and the data endpoint.
   requires the same role to be fetched. Keep the two in sync.
 </Aside>
 
+## Bundle Permission Checks
+
+Route protection is the first boundary. The bundle also calls Symfony voters for table rendering,
+table Ajax access, row actions, and built-in row mutations.
+
+Use `DataTable::setPermission()` when a whole table needs an application-level permission:
+
+```php
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->setPermission('PRODUCT_TABLE_VIEW')
+        ->serverSide()
+        ->processing();
+}
+```
+
+The bundle-owned attributes are exposed as constants:
+
+```php
+use Pentiminax\UX\DataTables\Security\Permission;
+
+Permission::DT_ACCESS_TABLE;       // table rendering and Ajax table resolution
+Permission::DT_EXECUTE_ACTION;     // Action::setPermission() checks
+Permission::DT_EDIT_ROW;           // edit modal submit and boolean toggle writes
+Permission::DT_DELETE_ROW;         // delete mutation
+Permission::DT_VIEW_ROW_DETAILS;   // always required for collapsible detail rows
+```
+
+`Permission::DT_ACCESS_TABLE` and `Permission::DT_EXECUTE_ACTION` are handled by the bundle voter
+(`SecurityVoter`). It only supports those two attributes and abstains on everything else, so it never
+competes with your application voters: it looks up the attribute you passed to
+`DataTable::setPermission()` or `Action::setPermission()` and relays Symfony's decision on *that*
+attribute. When your voter denies, the bundle voter denies too, so Symfony's default `affirmative`
+strategy already behaves correctly — there is nothing to reconfigure.
+
+### Row permission matrix
+
+Beyond `DT_ACCESS_TABLE`/`DT_EXECUTE_ACTION`, four row-level attributes gate the built-in mutation
+and detail endpoints. Each one is checked **in addition to** `Permission::DT_EXECUTE_ACTION` when the
+row exposes an action, except the boolean toggle, which is not an action:
+
+<Table
+  headers={['Endpoint', 'Checks required']}
+  rows={[
+    ['Edit modal', 'DT_EDIT_ROW + DT_EXECUTE_ACTION'],
+    ['Delete', 'DT_DELETE_ROW + DT_EXECUTE_ACTION'],
+    ['Collapsible detail row', 'DT_VIEW_ROW_DETAILS + DT_EXECUTE_ACTION'],
+    ['Boolean toggle', 'DT_EDIT_ROW only (the column permission is evaluated separately by BooleanMutationContextResolver)'],
+  ]}
+/>
+
+An action with no `setPermission()` call never triggers a `DT_EXECUTE_ACTION` vote at all — its
+visibility is entirely up to `Action::displayIf()` or the action column's own permission, not a
+security decision.
+
+<Aside type="caution" title="Migrating from Action::detail()->setPermission() alone">
+  Before this row-permission hardening, a collapsible detail action relied solely on
+  `Action::detail()->setPermission(...)`. `Permission::DT_VIEW_ROW_DETAILS` is now **always**
+  required on top of it, with no fallback. If your application has no voter supporting
+  `DT_VIEW_ROW_DETAILS` on the entity, every detail request now responds `403`. Register a voter for
+  it (see [Writing a Voter](#writing-a-voter) below) before upgrading.
+</Aside>
+
+### What a per-row `setPermission()` resolver receives
+
+`Action::setPermission()` with a resolver is evaluated per row, but the value it receives depends on
+where the action is evaluated:
+
+- At render time, it receives the row source passed to the rendering pipeline
+  (`RowContext::$source`), which is the entity under a projected (Doctrine) data provider, but may be
+  a plain array under a provider that hydrates arrays instead of entities.
+- On the `delete`, `edit-form`, and `detail` Ajax endpoints, it always receives the entity located by
+  id — never a raw array row, regardless of how the table's provider hydrates rows elsewhere.
+
+A resolver shared across both paths should tolerate either shape (entity or array), or the action
+should use a static permission (no resolver) instead.
+
 ## Verifying your configuration
 
 After adding the rule, confirm it is active:
@@ -107,40 +188,40 @@ session-backed delete and toggle endpoints.
 
 `access_control` protects the *route* — it decides who may call `/datatables/ajax/*` at all. It does
 not know anything about the specific row a delete or edit request targets. To close that gap, the
-bundle's `EntityMutator` calls into Symfony's authorization layer before mutating anything:
+bundle calls Symfony authorization before reading private row details or mutating anything:
 
-- `delete()` checks `isGranted('DELETE', $entity)` before removing the entity.
-- `setProperty()` (the inline boolean toggle) checks `isGranted('EDIT', $entity)` before writing the
-  field.
+- `delete()` checks `isGranted(Permission::DT_DELETE_ROW, $entity)` before removing the entity.
+- `setProperty()` (the inline boolean toggle) checks `isGranted(Permission::DT_EDIT_ROW, $entity)`
+  before writing the field.
+- collapsible detail rows always check `isGranted(Permission::DT_VIEW_ROW_DETAILS, $entity)`.
+  The configured detail action also passes through `Permission::DT_EXECUTE_ACTION`; if the action
+  has `Action::setPermission()`, that permission must grant too.
 
-If either check is denied, the mutation is rejected and the Ajax endpoint responds with `403`
-instead of touching the database.
+If a required check is denied, the Ajax endpoint responds with `403` instead of exposing private row
+details or touching the database.
 
-<Aside type="caution" title="'DELETE' and 'EDIT' are not built-in Symfony attributes">
-  Unlike `ROLE_ADMIN` or `IS_AUTHENTICATED_FULLY`, the strings `'DELETE'` and `'EDIT'` are attributes
-  defined by this bundle, not by the Symfony Security component. Symfony's access decision manager
-  denies **any** attribute it has no voter for. That means, until you register a voter that supports
-  `DELETE` and `EDIT` for your entity, these checks deny every mutation for every user — including
-  legitimate ones.
+<Aside type="caution" title="DataTables permissions are not built-in Symfony attributes">
+  Unlike `ROLE_ADMIN` or `IS_AUTHENTICATED_FULLY`, the `Permission::DT_*` values are bundle
+  attributes, not Symfony core attributes. With a firewall active, Symfony denies an attribute that
+  no voter grants. Register voters for the row permissions your tables use.
 </Aside>
 
 ### Why nothing gets denied without a security firewall
 
-The check is performed through a small internal wrapper, `PermissionChecker`, which only grants
+The check is performed through a small internal wrapper, `AuthorizationChecker`, which only grants
 everything automatically when **no security stack is configured at all** — for example in the CLI,
 in a unit test, or in an application that never installed `symfony/security-bundle`. As soon as a
 real `AuthorizationCheckerInterface` is available (i.e. your application has a firewall), the
 wrapper defers entirely to Symfony's normal voting process. With a firewall active but no voter
-registered for `DELETE`/`EDIT` on your entity, access is denied by default — the safe posture, but
-one that also blocks the people who *should* be allowed to edit or delete. Registering a voter is
-what makes the feature usable again for those users, not just a way to lock out attackers.
+registered for the required `Permission::DT_*` attribute on your entity, access is denied by
+default. Registering a voter is what makes the feature usable for legitimate users.
 
 ### Writing a Voter
 
 Implement a [Symfony Voter](https://symfony.com/doc/current/security/voters.html) that supports the
-`EDIT` and `DELETE` attributes for each entity exposed through an editable or deletable
+row permission constants for each entity exposed through an editable, deletable, or collapsible
 [Action Column](../../columns/action-column/). For example, an entity where only its owner or an
-administrator may edit or delete it:
+administrator may edit, delete, or view row details:
 
 ```php
 <?php
@@ -151,8 +232,10 @@ namespace App\Security\Voter;
 
 use App\Entity\Product;
 use App\Entity\User;
-use Symfony\Bundle\SecurityBundle\Security;
+use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
+use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
@@ -160,37 +243,43 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
  */
 final class ProductVoter extends Voter
 {
-    public const EDIT = 'EDIT';
-    public const DELETE = 'DELETE';
-
     public function __construct(
-        private readonly Security $security,
+        private readonly AccessDecisionManagerInterface $decisionManager,
     ) {
     }
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return \in_array($attribute, [self::EDIT, self::DELETE], true)
-            && $subject instanceof Product;
+        return \in_array($attribute, [
+            Permission::DT_EDIT_ROW,
+            Permission::DT_DELETE_ROW,
+            Permission::DT_VIEW_ROW_DETAILS,
+        ], true) && $subject instanceof Product;
     }
 
     /**
      * @param Product $subject
      */
-    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
-    {
+    protected function voteOnAttribute(
+        string $attribute,
+        mixed $subject,
+        TokenInterface $token,
+        ?Vote $vote = null,
+    ): bool {
+        if ($this->decisionManager->decide($token, ['ROLE_ADMIN'])) {
+            return true;
+        }
+
         $user = $token->getUser();
 
         if (!$user instanceof User) {
             return false;
         }
 
-        if ($this->security->isGranted('ROLE_ADMIN')) {
-            return true;
-        }
-
         return match ($attribute) {
-            self::EDIT, self::DELETE => $subject->getOwner()?->getId() === $user->getId(),
+            Permission::DT_EDIT_ROW,
+            Permission::DT_DELETE_ROW,
+            Permission::DT_VIEW_ROW_DETAILS => $subject->getOwner()?->getId() === $user->getId(),
             default => false,
         };
     }
@@ -221,6 +310,31 @@ Keep both layers in place:
 A firewall rule alone would let any authenticated admin-area user delete *any* row reachable through
 the table; the voter is what scopes that down to the rows they're actually allowed to touch.
 
+Custom actions keep their own route authorization and CSRF boundary. `Action::setPermission()` only
+decides whether the button is rendered by the bundle, so custom action routes still need
+`#[IsGranted]`, CSRF validation, or equivalent checks. Direct API Platform endpoints follow the
+same rule: secure those API routes with API Platform and Symfony Security. PHP row voters in this
+bundle can only protect rows processed by the bundle backend; they cannot protect rows returned
+directly by API Platform or another controller.
+
+## Migrating From The Legacy Permission API
+
+UX DataTables no longer ships `PermissionChecker` and no longer falls back to the old implicit row
+attributes. Update application code and tests as follows:
+
+<Table
+  headers={['Before', 'After']}
+  rows={[
+    ['`PermissionChecker`', '`AuthorizationChecker`'],
+    ["`'EDIT'`", '`Permission::DT_EDIT_ROW`'],
+    ["`'DELETE'`", '`Permission::DT_DELETE_ROW`'],
+    ["`'VIEW'`", '`Permission::DT_VIEW_ROW_DETAILS`'],
+  ]}
+/>
+
+There is no compatibility alias for the old class or the old row attributes. Import
+`Pentiminax\UX\DataTables\Security\Permission` in voters and tests that need these attributes.
+
 ## HTML Escaping Checklist
 
 Twig auto-escaping stays enabled for bundle templates. Treat HTML cell content as a security boundary:
@@ -235,6 +349,7 @@ Twig auto-escaping stays enabled for bundle templates. Treat HTML cell content a
 
 1. `access_control` covers `^/datatables/ajax` with the same roles as the pages that render tables.
 2. Session-backed pages for delete / boolean toggle / edit modal (CSRF).
-3. Voters for `EDIT` and `DELETE` on every mutable entity.
+3. Voters for `Permission::DT_EDIT_ROW`, `Permission::DT_DELETE_ROW`, and
+   `Permission::DT_VIEW_ROW_DETAILS` where those row features are enabled.
 4. Template/HTML columns reviewed for escaping (see above).
 5. Unauthenticated probe of `/datatables/ajax/data` returns `401`/`403`, not table JSON.

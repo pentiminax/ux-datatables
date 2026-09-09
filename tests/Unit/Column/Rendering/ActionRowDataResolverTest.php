@@ -7,9 +7,13 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Column\Rendering;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Exception\DuplicateActionNameException;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -95,11 +99,11 @@ final class ActionRowDataResolverTest extends TestCase
 
         yield 'id read from an array source row' => [
             [Action::delete()],
-            ['id'     => 9],
+            ['id' => 9],
             ['DELETE' => ['id' => 9]],
         ];
 
-        // A PermissionChecker without inner checker grants everything.
+        // An AuthorizationChecker without inner checker grants everything.
         yield 'per row permission without authorization checker' => [
             [
                 Action::edit()
@@ -128,19 +132,24 @@ final class ActionRowDataResolverTest extends TestCase
         $inner
             ->expects($this->once())
             ->method('isGranted')
-            ->with('EDIT', $sourceRow)
+            ->with(Permission::DT_EXECUTE_ACTION, $this->callback(
+                static fn (ActionPermissionContext $context): bool => ActionRowDataTableFixture::class === $context->dataTableClass
+                    && $context->currentSource                                                         === $sourceRow
+                    && $context->hasRowContext
+            ))
             ->willReturn($granted);
 
         $action = Action::edit()
             ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
             ->setPermission('EDIT', static fn ($r) => $r);
 
-        $result = $this->resolveRow(new ActionRowDataResolver(new PermissionChecker($inner)), $sourceRow, $action);
+        $result = $this->resolveRow(new ActionRowDataResolver(new AuthorizationChecker($inner)), $sourceRow, $action);
 
         $this->assertSame(
             $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]] : null,
             $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
         );
+        $this->assertSame($granted ? null : ['EDIT'], $result[ActionRowDataResolver::DENIED_ACTIONS_KEY] ?? null);
     }
 
     #[Test]
@@ -153,14 +162,19 @@ final class ActionRowDataResolverTest extends TestCase
         $inner
             ->expects($this->once())
             ->method('isGranted')
-            ->with($expression, $sourceRow)
+            ->with(Permission::DT_EXECUTE_ACTION, $this->callback(
+                static fn (ActionPermissionContext $context): bool => ActionRowDataTableFixture::class === $context->dataTableClass
+                    && $context->action->getPermission()                                               === $expression
+                    && $context->currentSource                                                         === $sourceRow
+                    && $context->hasRowContext
+            ))
             ->willReturn(true);
 
         $action = Action::edit()
             ->linkToUrl(static fn (object $r) => '/items/'.$r->id.'/edit')
             ->setPermission($expression, static fn ($r) => $r);
 
-        $result = $this->resolveRow(new ActionRowDataResolver(new PermissionChecker($inner)), $sourceRow, $action);
+        $result = $this->resolveRow(new ActionRowDataResolver(new AuthorizationChecker($inner)), $sourceRow, $action);
 
         $this->assertSame(
             ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]],
@@ -171,13 +185,16 @@ final class ActionRowDataResolverTest extends TestCase
     #[Test]
     #[TestWith([true])]
     #[TestWith([false])]
-    public function static_permission_decides_action_exposure(bool $granted): void
+    public function static_permission_decides_action_exposure_with_row_context(bool $granted): void
     {
         $inner = $this->createMock(AuthorizationCheckerInterface::class);
         $inner
             ->expects($this->once())
             ->method('isGranted')
-            ->with('ROLE_EDITOR', null)
+            ->with(Permission::DT_EXECUTE_ACTION, $this->callback(
+                static fn (ActionPermissionContext $context): bool => ActionRowDataTableFixture::class === $context->dataTableClass
+                    && $context->hasRowContext
+            ))
             ->willReturn($granted);
 
         $action = Action::edit()
@@ -185,7 +202,7 @@ final class ActionRowDataResolverTest extends TestCase
             ->setPermission('ROLE_EDITOR');
 
         $result = $this->resolveRow(
-            new ActionRowDataResolver(new PermissionChecker($inner)),
+            new ActionRowDataResolver(new AuthorizationChecker($inner)),
             (object) ['id' => 7],
             $action,
         );
@@ -193,6 +210,60 @@ final class ActionRowDataResolverTest extends TestCase
         $this->assertSame(
             $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]] : null,
             $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
+        );
+        $this->assertSame($granted ? null : ['EDIT'], $result[ActionRowDataResolver::DENIED_ACTIONS_KEY] ?? null);
+    }
+
+    #[Test]
+    public function ordinary_action_uses_row_context_when_resolving_row_permissions(): void
+    {
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(RowContextDenyingAuthorizationChecker::create()),
+            (object) ['id' => 42],
+            Action::delete()->setPermission('ROLE_ADMIN'),
+        );
+
+        $this->assertArrayNotHasKey(ActionRowDataResolver::ROW_ACTIONS_KEY, $result);
+        $this->assertSame(['DELETE'], $result[ActionRowDataResolver::DENIED_ACTIONS_KEY] ?? null);
+    }
+
+    #[Test]
+    public function action_without_permission_never_triggers_an_authorization_check(): void
+    {
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->expects($this->never())->method('isGranted');
+
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(new AuthorizationChecker($inner)),
+            (object) ['id' => 42],
+            Action::delete(),
+        );
+
+        $this->assertSame(
+            ['DELETE' => ['id' => 42]],
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
+        );
+    }
+
+    #[Test]
+    public function throws_when_two_action_columns_share_the_same_action_name_on_a_row(): void
+    {
+        $first  = new Actions();
+        $second = new Actions();
+
+        $first->add(Action::delete());
+        $second->add(Action::delete());
+
+        $this->expectException(DuplicateActionNameException::class);
+
+        (new ActionRowDataResolver())->resolveRow(
+            [],
+            (object) ['id' => 42],
+            [
+                ActionColumn::fromActions('actions_1', '', $first),
+                ActionColumn::fromActions('actions_2', '', $second),
+            ],
+            ActionRowDataTableFixture::class,
         );
     }
 
@@ -203,14 +274,16 @@ final class ActionRowDataResolverTest extends TestCase
         $inner
             ->expects($this->once())
             ->method('isGranted')
-            ->with('OWNS', 'alice')
+            ->with(Permission::DT_EXECUTE_ACTION, $this->callback(
+                static fn (ActionPermissionContext $context): bool => 'alice' === ($context->action->getPermissionSubjectResolver())($context->currentSource)
+            ))
             ->willReturn(true);
 
         $action = Action::edit()
             ->linkToUrl(static fn (object $r) => '/items/'.$r->owner)
             ->setPermission('OWNS', static fn (object $r) => $r->owner);
 
-        $this->resolveRow(new ActionRowDataResolver(new PermissionChecker($inner)), (object) ['owner' => 'alice'], $action);
+        $this->resolveRow(new ActionRowDataResolver(new AuthorizationChecker($inner)), (object) ['owner' => 'alice'], $action);
     }
 
     #[Test]
@@ -342,8 +415,12 @@ final class ActionRowDataResolverTest extends TestCase
             $collection->add($action);
         }
 
-        return $resolver->resolveRow([], $sourceRow, [ActionColumn::fromActions('actions', '', $collection)]);
+        return $resolver->resolveRow([], $sourceRow, [ActionColumn::fromActions('actions', '', $collection)], ActionRowDataTableFixture::class);
     }
+}
+
+final class ActionRowDataTableFixture
+{
 }
 
 final class ActionRowDataResolverEntity

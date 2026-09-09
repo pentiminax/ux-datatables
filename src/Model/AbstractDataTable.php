@@ -420,6 +420,7 @@ abstract class AbstractDataTable
         return $this->infrastructure()->runtimeFactory->createRowMapper(
             baseMapper: $this->mapRow(...),
             columns: $this->columns,
+            dataTableClass: static::class,
         );
     }
 

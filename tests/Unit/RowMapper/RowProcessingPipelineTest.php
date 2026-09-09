@@ -16,7 +16,7 @@ use Pentiminax\UX\DataTables\Contracts\RowStageInterface;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowStageContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -63,7 +63,7 @@ final class RowProcessingPipelineTest extends TestCase
                 TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR'),
                 TextColumn::new('name', 'Name'),
             ],
-            columnResolver: new ColumnResolver(permissionChecker: new PermissionChecker($checker)),
+            columnResolver: new ColumnResolver(permissionChecker: new AuthorizationChecker($checker)),
         );
 
         $this->assertSame(
@@ -86,7 +86,7 @@ final class RowProcessingPipelineTest extends TestCase
                 TextColumn::new('user.email', 'Email')->setPermission('ROLE_HR'),
                 TextColumn::new('name', 'Name'),
             ],
-            columnResolver: new ColumnResolver(permissionChecker: new PermissionChecker($checker)),
+            columnResolver: new ColumnResolver(permissionChecker: new AuthorizationChecker($checker)),
         );
 
         $this->assertSame(
@@ -109,7 +109,7 @@ final class RowProcessingPipelineTest extends TestCase
                 TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'),
                 TextColumn::new('name', 'Name'),
             ],
-            columnResolver: new ColumnResolver(permissionChecker: new PermissionChecker($checker)),
+            columnResolver: new ColumnResolver(permissionChecker: new AuthorizationChecker($checker)),
         );
 
         $this->assertSame(

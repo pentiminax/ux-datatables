@@ -13,6 +13,8 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\SecurityVoter;
 use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -35,6 +37,16 @@ final class DataTablesBundleTest extends TestCase
         self::assertArrayHasKey('DataTablesBundle', $this->kernel->getBundles());
         self::assertInstanceOf(DataTableInfrastructure::class, $infrastructure);
         self::assertInstanceOf(DefaultDataTableQueryIntentFactory::class, $infrastructure->queryIntentFactory);
+    }
+
+    #[Test]
+    public function it_wires_the_authorization_services(): void
+    {
+        self::assertInstanceOf(
+            AuthorizationChecker::class,
+            $this->container->get('test.datatables.security.authorization_checker')
+        );
+        self::assertInstanceOf(SecurityVoter::class, $this->container->get('test.datatables.security.voter'));
     }
 
     /**

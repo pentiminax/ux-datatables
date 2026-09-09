@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\ExpressionLanguage\Expression;
 
 /**
  * @internal
@@ -76,6 +77,15 @@ final class DataTableTest extends TestCase
 
         $this->assertSame('custom/modal.html.twig', $table->getEditModalTemplate());
         $this->assertSame('tw', $table->getEditModalAdapter());
+    }
+
+    #[Test]
+    public function it_stores_expression_permissions(): void
+    {
+        $expression = new Expression('"ROLE_ADMIN" in role_names');
+        $table      = (new DataTable('tableId'))->setPermission($expression);
+
+        $this->assertSame($expression, $table->getPermission());
     }
 
     #[Test]

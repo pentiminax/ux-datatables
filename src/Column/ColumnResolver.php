@@ -9,18 +9,18 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\Actions;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 final class ColumnResolver
 {
-    private readonly PermissionChecker $permissionChecker;
+    private readonly AuthorizationChecker $permissionChecker;
 
     public function __construct(
         private readonly ?AttributeColumnReader $attributeColumnReader = null,
         private readonly ?ColumnAutoDetector $columnAutoDetector = null,
-        ?PermissionChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
+        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
 
     /**
@@ -98,7 +98,7 @@ final class ColumnResolver
      *
      * @return ColumnInterface[]
      */
-    public function filterStaticPermissions(array $columns): array
+    public function filterStaticPermissions(array $columns, ?string $dataTableClass = null): array
     {
         $filtered = [];
 
@@ -111,7 +111,7 @@ final class ColumnResolver
 
             if ($column instanceof ActionColumn && null !== $column->getActions()) {
                 $column = clone $column;
-                $column->getActions()?->filterStaticPermissions($this->permissionChecker);
+                $column->getActions()?->filterStaticPermissions($this->permissionChecker, $dataTableClass);
             }
 
             $filtered[] = $column;

@@ -14,7 +14,7 @@ use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContext;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -124,7 +124,7 @@ final class BooleanMutationContextResolverTest extends TestCase
         $checker = $this->createMock(AuthorizationCheckerInterface::class);
         $checker->expects($this->once())->method('isGranted')->with('ROLE_ADMIN', null)->willReturn(false);
 
-        $this->resolver(PermissionGatedBooleanDataTableFixture::class, new PermissionChecker($checker))
+        $this->resolver(PermissionGatedBooleanDataTableFixture::class, new AuthorizationChecker($checker))
             ->resolve($this->token(PermissionGatedBooleanDataTableFixture::class), 'enabled');
     }
 
@@ -139,7 +139,7 @@ final class BooleanMutationContextResolverTest extends TestCase
     /**
      * @param class-string<AbstractDataTable> $dataTableClass
      */
-    private function resolver(string $dataTableClass, ?PermissionChecker $permissionChecker = null): BooleanMutationContextResolver
+    private function resolver(string $dataTableClass, ?AuthorizationChecker $permissionChecker = null): BooleanMutationContextResolver
     {
         $locator = $this->createMock(ContainerInterface::class);
         $locator->method('get')->with('table')->willReturn(new $dataTableClass());
@@ -150,7 +150,7 @@ final class BooleanMutationContextResolverTest extends TestCase
                 new AjaxDataTableTokenManager(self::TOKEN_SECRET),
                 [$dataTableClass => 'table'],
             ),
-            $permissionChecker ?? new PermissionChecker(),
+            $permissionChecker ?? new AuthorizationChecker(),
         );
     }
 

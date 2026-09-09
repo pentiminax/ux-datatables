@@ -66,6 +66,7 @@ final class AjaxTemplateRenderController
             ->createRowMapper(
                 baseMapper: static fn (): array => $row,
                 columns: $columns,
+                dataTableClass: $table::class,
             )
             ->map($sourceRow);
     }

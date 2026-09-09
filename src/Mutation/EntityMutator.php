@@ -14,7 +14,10 @@ use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 final class EntityMutator
@@ -23,7 +26,7 @@ final class EntityMutator
         private readonly EntityLocator $locator,
         private readonly PropertyAccessorInterface $propertyAccessor,
         private readonly MercurePublisherInterface $publisher,
-        private readonly PermissionChecker $permissionChecker,
+        private readonly AuthorizationChecker $permissionChecker,
         private readonly MercureTopicResolver $topicResolver,
     ) {
     }
@@ -33,11 +36,20 @@ final class EntityMutator
      * @throws MutationNotAllowedException
      * @throws MutationPersistenceException
      */
-    public function delete(string $entityClass, int|string $id, string $dataTableClass): void
+    public function delete(string $entityClass, int|string $id, string $dataTableClass, Action $action): void
     {
         $context = $this->locator->locate($entityClass, $id);
 
-        if (!$this->permissionChecker->isGranted('DELETE', $context->entity)) {
+        if (!$this->permissionChecker->isGranted(Permission::DT_DELETE_ROW, $context->entity)) {
+            throw new MutationNotAllowedException();
+        }
+
+        if (!$this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
+            $dataTableClass,
+            $action,
+            $context->entity,
+            true,
+        ))) {
             throw new MutationNotAllowedException();
         }
 
@@ -63,7 +75,7 @@ final class EntityMutator
     {
         $context = $this->locator->locate($entityClass, $id);
 
-        if (!$this->permissionChecker->isGranted('EDIT', $context->entity)) {
+        if (!$this->permissionChecker->isGranted(Permission::DT_EDIT_ROW, $context->entity)) {
             throw new MutationNotAllowedException();
         }
 

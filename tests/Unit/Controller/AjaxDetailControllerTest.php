@@ -19,7 +19,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -80,7 +80,7 @@ final class AjaxDetailControllerTest extends TestCase
         $service = new DetailRowService(
             new EntityLocator($registry),
             new Environment(new ArrayLoader(['detail.html.twig' => 'Email: {{ entity.email }}'])),
-            new PermissionChecker($authorizationChecker),
+            new AuthorizationChecker($authorizationChecker),
         );
 
         return new AjaxDetailController($service, $this->tableRegistry());
