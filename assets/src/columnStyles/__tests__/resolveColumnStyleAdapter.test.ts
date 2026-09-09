@@ -12,14 +12,14 @@ describe('resolveColumnStyleAdapter', () => {
         }
     )
 
-    it.each(['dt', 'zf', 'jqui', 'se'] as const)(
+    it.each(['dt'] as const)(
         'resolves the Tailwind adapter for the %s framework',
         (framework) => {
             expect(resolveColumnStyleAdapter(framework)).toBeInstanceOf(TailwindColumnStyleAdapter)
         }
     )
 
-    it.each(['bs5', 'dt', 'zf'] as const)(
+    it.each(['bs5', 'dt'] as const)(
         'resolves the theme adapter over the %s framework default',
         (framework) => {
             expect(resolveColumnStyleAdapter(framework, 'tailwind')).toBeInstanceOf(

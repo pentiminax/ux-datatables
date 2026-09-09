@@ -1,10 +1,10 @@
 ---
 title: Styling
-description: Use Bootstrap, Foundation, Semantic UI, jQuery UI, or the default DataTables theme
+description: Use Bootstrap or the default DataTables theme
 order: 40
 ---
 
-The bundle supports 7 DataTables CSS frameworks out of the box. The Stimulus controller **automatically detects** which stylesheet you have loaded and picks the matching JavaScript integration — no PHP configuration required.
+The bundle supports 4 DataTables CSS frameworks out of the box. The Stimulus controller **automatically detects** which stylesheet you have loaded and picks the matching JavaScript integration — no PHP configuration required.
 
 ## How It Works
 
@@ -51,7 +51,7 @@ Edit `assets/controllers.json` to enable the CSS file for your target framework 
     }
     ```
   </TabItem>
-  <TabItem label="Foundation / Other">
+  <TabItem label="Bootstrap 4 / 3">
     ```json
     {
       "controllers": {
@@ -60,7 +60,7 @@ Edit `assets/controllers.json` to enable the CSS file for your target framework 
             "enabled": true,
             "autoimport": {
               "datatables.net-dt/css/dataTables.dataTables.min.css": false,
-              "datatables.net-zf/css/dataTables.foundation.min.css": true
+              "datatables.net-bs4/css/dataTables.bootstrap4.min.css": true
             }
           }
         }
@@ -84,7 +84,6 @@ Import the CSS directly in your entry file:
 // assets/app.js — enable exactly one:
 import 'datatables.net-dt/css/dataTables.dataTables.min.css'
 // import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css'
-// import 'datatables.net-zf/css/dataTables.foundation.min.css'
 ```
 
 ## Supported Frameworks
@@ -96,9 +95,6 @@ import 'datatables.net-dt/css/dataTables.dataTables.min.css'
     ['Bootstrap 5', '`bs5`', '`dataTables.bootstrap5`', '`datatables.net-bs5`'],
     ['Bootstrap 4', '`bs4`', '`dataTables.bootstrap4`', '`datatables.net-bs4`'],
     ['Bootstrap 3', '`bs`', '`dataTables.bootstrap`', '`datatables.net-bs`'],
-    ['Zurb Foundation', '`zf`', '`dataTables.foundation`', '`datatables.net-zf`'],
-    ['jQuery UI', '`jqui`', '`dataTables.jqueryui`', '`datatables.net-jqui`'],
-    ['Semantic UI', '`se`', '`dataTables.semanticui`', '`datatables.net-se`'],
   ]}
 />
 
@@ -126,35 +122,17 @@ php bin/console importmap:require datatables.net-bs4
 php bin/console importmap:require datatables.net-bs
 ```
 
-### Zurb Foundation
-
-```bash
-php bin/console importmap:require datatables.net-zf
-```
-
-### jQuery UI
-
-```bash
-php bin/console importmap:require datatables.net-jqui
-```
-
-### Semantic UI
-
-```bash
-php bin/console importmap:require datatables.net-se
-```
-
 ## Installing Extension Packages
 
 Each extension (Select, Responsive, Buttons, etc.) also has framework-specific packages. If you use extensions, install the matching variants alongside the core package.
 
-For example, with **Zurb Foundation**:
+For example, with **Bootstrap 4**:
 
 ```bash
-php bin/console importmap:require datatables.net-zf
-php bin/console importmap:require datatables.net-select-zf
-php bin/console importmap:require datatables.net-responsive-zf
-php bin/console importmap:require datatables.net-buttons-zf
+php bin/console importmap:require datatables.net-bs4
+php bin/console importmap:require datatables.net-select-bs4
+php bin/console importmap:require datatables.net-responsive-bs4
+php bin/console importmap:require datatables.net-buttons-bs4
 # Add other extensions you use…
 ```
 
