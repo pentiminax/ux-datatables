@@ -9,6 +9,22 @@
     --dt-filters-text-muted: #64748b;
     --dt-filters-shadow: 0 12px 32px -8px rgb(15 23 42 / 0.25);
     --dt-filters-radius: 12px;
+
+    /* Chrome, kept in tokens so a theme restyles the filter bar by reassigning
+       them instead of re-declaring every element rule. The defaults below are
+       the unthemed look. Keep this list in sync with the theme's bridge in
+       datatables-theme-tailwind.css. */
+    --dt-filters-radius-control: 8px;
+    --dt-filters-radius-toggle: 10px;
+    --dt-filters-input-border: 1px solid var(--dt-filters-border);
+    --dt-filters-input-shadow: none;
+    --dt-filters-input-border-focus: var(--dt-filters-accent);
+    --dt-filters-input-shadow-focus: 0 0 0 3px rgb(245 158 11 / 0.2);
+    --dt-filters-popover-border: 1px solid var(--dt-filters-border);
+    --dt-filters-select-appearance: auto;
+    --dt-filters-select-padding-end: 0.65rem;
+    --dt-filters-chevron: none;
+    --dt-filters-button-shadow: none;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,7 +38,7 @@
     }
 }
 
-[data-bs-theme="dark"],
+[data-bs-theme='dark'],
 .dark {
     --dt-filters-surface: #1c1f26;
     --dt-filters-surface-muted: #262a33;
@@ -30,13 +46,6 @@
     --dt-filters-text: #e7e9ee;
     --dt-filters-text-muted: #9aa3b2;
     --dt-filters-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.6);
-}
-
-/* Keep the funnel toggle aligned with the search box on the same row. */
-.dt-search--with-filters {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
 }
 
 .dt-filters {
@@ -53,7 +62,7 @@
     height: 2.5rem;
     padding: 0;
     border: 1px solid transparent;
-    border-radius: 10px;
+    border-radius: var(--dt-filters-radius-toggle);
     background: transparent;
     color: var(--dt-filters-text-muted);
     cursor: pointer;
@@ -68,7 +77,7 @@
     background: var(--dt-filters-surface-muted);
 }
 
-.dt-filters-toggle[aria-expanded="true"] {
+.dt-filters-toggle[aria-expanded='true'] {
     color: var(--dt-filters-text);
     border-color: var(--dt-filters-border);
     background: var(--dt-filters-surface-muted);
@@ -113,7 +122,7 @@
     z-index: 1080;
     width: 20rem;
     max-width: calc(100vw - 2rem);
-    border: 1px solid var(--dt-filters-border);
+    border: var(--dt-filters-popover-border);
     border-radius: var(--dt-filters-radius);
     background: var(--dt-filters-surface);
     box-shadow: var(--dt-filters-shadow);
@@ -194,17 +203,29 @@
     width: 100%;
     min-width: 0;
     padding: 0.45rem 0.65rem;
-    border: 1px solid var(--dt-filters-border);
-    border-radius: 8px;
+    border: var(--dt-filters-input-border);
+    border-radius: var(--dt-filters-radius-control);
     background: var(--dt-filters-surface);
+    box-shadow: var(--dt-filters-input-shadow);
     color: var(--dt-filters-text);
     font-size: 0.9rem;
 }
 
 .dt-filter-input:focus {
     outline: none;
-    border-color: var(--dt-filters-accent);
-    box-shadow: 0 0 0 3px rgb(245 158 11 / 0.2);
+    border-color: var(--dt-filters-input-border-focus);
+    box-shadow: var(--dt-filters-input-shadow-focus);
+}
+
+/* A theme that draws its own chevron sets --dt-filters-select-appearance to
+   none; unthemed, the browser's own arrow shows and no image is painted. */
+select.dt-filter-input {
+    appearance: var(--dt-filters-select-appearance);
+    padding-inline-end: var(--dt-filters-select-padding-end);
+    background-image: var(--dt-filters-chevron);
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.15rem;
 }
 
 .dt-filter-range {
@@ -234,8 +255,9 @@
     justify-content: center;
     padding: 0.55rem 1.1rem;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--dt-filters-radius-control);
     background: var(--dt-filters-accent);
+    box-shadow: var(--dt-filters-button-shadow);
     color: var(--dt-filters-accent-contrast);
     font-size: 0.9rem;
     font-weight: 600;

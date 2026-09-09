@@ -20,8 +20,6 @@
 :root {
     --dt-tw-theme: tailwind;
 
-    --dt-tw-primary-50: 255 251 235;
-    --dt-tw-primary-100: 254 243 199;
     --dt-tw-primary-400: 251 191 36;
     --dt-tw-primary-500: 245 158 11;
     --dt-tw-primary-600: 217 119 6;
@@ -36,21 +34,30 @@
     --dt-tw-gray-900: 17 24 39;
     --dt-tw-gray-950: 3 7 18;
 
+    /* Semantic channels, as space-separated RGB so a rule can derive a tint
+       with `rgb(var(--x) / 0.1)`. Each one flips in the dark block below, which
+       is why no component needs a dark-mode rule of its own. */
     --dt-tw-success: 21 128 61;
     --dt-tw-warning: 180 83 9;
     --dt-tw-danger: 185 28 28;
     --dt-tw-info: 3 105 161;
-
-    --dt-tw-surface: 255 255 255;
-    --dt-tw-surface-sunken: var(--dt-tw-gray-50);
-    --dt-tw-on-primary: var(--dt-tw-gray-950);
     --dt-tw-neutral: var(--dt-tw-gray-500);
     --dt-tw-neutral-text: var(--dt-tw-gray-600);
-    --dt-tw-track: rgb(var(--dt-tw-gray-200));
+    --dt-tw-primary-text: var(--dt-tw-primary-700);
 
+    --dt-tw-surface: 255 255 255;
+    --dt-tw-on-primary: var(--dt-tw-gray-950);
     --dt-tw-text: var(--dt-tw-gray-950);
     --dt-tw-text-muted: var(--dt-tw-gray-500);
     --dt-tw-text-strong: var(--dt-tw-gray-950);
+
+    /* Full colors rather than channels: in dark mode a raised area is
+       translucent white over the card, not a second opaque gray, and a channel
+       cannot carry that alpha without a companion token per surface. */
+    --dt-tw-sunken: rgb(var(--dt-tw-gray-50));
+    --dt-tw-head: rgb(var(--dt-tw-gray-100));
+    --dt-tw-track: rgb(var(--dt-tw-gray-200));
+    --dt-tw-color-scheme: light;
 
     /* Every surface is outlined with a ring instead of a border, so the
        hairline never participates in layout. Rendered as an inset box-shadow. */
@@ -69,12 +76,24 @@
     --dt-tw-radius-badge: 0.375rem;
 
     --dt-tw-transition: 75ms ease;
+
+    /* One chevron for the length menu and for the filter selects. The stroke
+       color is baked into the data URI, so the dark palette swaps the token
+       rather than repeating the markup. */
+    --dt-tw-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236b7280' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
 }
 
+/*
+ * The dark palette, and nothing but the palette. It is written twice because
+ * CSS cannot share declarations between a media query and a selector list, and
+ * the two entry points are not interchangeable: the media query follows the
+ * operating system unless the application has opted out with an explicit
+ * `light` marker, while the selector list is the application saying `dark`
+ * outright. The explicit rule comes second so it wins the specificity tie.
+ */
 @media (prefers-color-scheme: dark) {
-    :root:not(.light):not([data-theme='light']):not([data-bs-theme='light']) {
+    :root:not(.light, [data-theme='light'], [data-bs-theme='light']) {
         --dt-tw-surface: var(--dt-tw-gray-900);
-        --dt-tw-surface-sunken: 255 255 255;
         --dt-tw-text: 255 255 255;
         --dt-tw-text-muted: var(--dt-tw-gray-400);
         --dt-tw-text-strong: 255 255 255;
@@ -85,22 +104,25 @@
         --dt-tw-info: 56 189 248;
         --dt-tw-neutral: var(--dt-tw-gray-400);
         --dt-tw-neutral-text: var(--dt-tw-gray-200);
+        --dt-tw-primary-text: var(--dt-tw-primary-400);
+
+        --dt-tw-sunken: rgb(255 255 255 / 0.05);
+        --dt-tw-head: rgb(255 255 255 / 0.05);
         --dt-tw-track: rgb(255 255 255 / 0.1);
+        --dt-tw-color-scheme: dark;
 
         --dt-tw-ring: 0 0 0 1px rgb(255 255 255 / 0.1);
         --dt-tw-ring-control: inset 0 0 0 1px rgb(255 255 255 / 0.2);
         --dt-tw-ring-focus: inset 0 0 0 2px rgb(var(--dt-tw-primary-500));
         --dt-tw-divider: rgb(255 255 255 / 0.08);
-
         --dt-tw-shadow-panel: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+
+        --dt-tw-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239ca3af' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
     }
 }
 
-:root.dark,
-:root[data-theme='dark'],
-:root[data-bs-theme='dark'] {
+:root:is(.dark, [data-theme='dark'], [data-bs-theme='dark']) {
     --dt-tw-surface: var(--dt-tw-gray-900);
-    --dt-tw-surface-sunken: 255 255 255;
     --dt-tw-text: 255 255 255;
     --dt-tw-text-muted: var(--dt-tw-gray-400);
     --dt-tw-text-strong: 255 255 255;
@@ -111,42 +133,20 @@
     --dt-tw-info: 56 189 248;
     --dt-tw-neutral: var(--dt-tw-gray-400);
     --dt-tw-neutral-text: var(--dt-tw-gray-200);
+    --dt-tw-primary-text: var(--dt-tw-primary-400);
+
+    --dt-tw-sunken: rgb(255 255 255 / 0.05);
+    --dt-tw-head: rgb(255 255 255 / 0.05);
     --dt-tw-track: rgb(255 255 255 / 0.1);
+    --dt-tw-color-scheme: dark;
 
     --dt-tw-ring: 0 0 0 1px rgb(255 255 255 / 0.1);
     --dt-tw-ring-control: inset 0 0 0 1px rgb(255 255 255 / 0.2);
     --dt-tw-ring-focus: inset 0 0 0 2px rgb(var(--dt-tw-primary-500));
     --dt-tw-divider: rgb(255 255 255 / 0.08);
-
     --dt-tw-shadow-panel: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-}
 
-/* In dark mode raised areas are tinted with translucent white rather than a
-   second opaque gray, so the card keeps a single background. `--dt-tw-sunken-alpha`
-   carries that difference for every hover/stripe surface below. */
-:root {
-    --dt-tw-sunken-alpha: 1;
-    --dt-tw-color-scheme: light;
-    --dt-tw-head: var(--dt-tw-gray-100);
-    --dt-tw-head-alpha: 1;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root:not(.light):not([data-theme='light']):not([data-bs-theme='light']) {
-        --dt-tw-sunken-alpha: 0.05;
-        --dt-tw-color-scheme: dark;
-        --dt-tw-head: 255 255 255;
-        --dt-tw-head-alpha: 0.05;
-    }
-}
-
-:root.dark,
-:root[data-theme='dark'],
-:root[data-bs-theme='dark'] {
-    --dt-tw-sunken-alpha: 0.05;
-    --dt-tw-color-scheme: dark;
-    --dt-tw-head: 255 255 255;
-    --dt-tw-head-alpha: 0.05;
+    --dt-tw-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239ca3af' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
 }
 
 /* Bridge the DataTables core variables so the parts we do not restyle
@@ -302,7 +302,6 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     white-space: nowrap;
 }
 
-.dt-container.dt-container .dt-input,
 .dt-container.dt-container div.dt-search input,
 .dt-container.dt-container div.dt-length select {
     appearance: none;
@@ -321,24 +320,16 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 .dt-container.dt-container div.dt-length select {
     min-width: 5rem;
     padding-inline-end: 2rem;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236b7280' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+    background-image: var(--dt-tw-chevron);
     background-repeat: no-repeat;
     background-position: right 0.5rem center;
     background-size: 1.15rem;
 }
 
-:root.dark .dt-container.dt-container div.dt-length select,
-:root[data-theme='dark'] .dt-container.dt-container div.dt-length select,
-:root[data-bs-theme='dark'] .dt-container.dt-container div.dt-length select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239ca3af' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
-}
-
-.dt-container.dt-container .dt-input::placeholder,
 .dt-container.dt-container div.dt-search input::placeholder {
     color: rgb(var(--dt-tw-text-muted));
 }
 
-.dt-container.dt-container .dt-input:focus,
 .dt-container.dt-container div.dt-search input:focus,
 .dt-container.dt-container div.dt-length select:focus {
     outline: none;
@@ -382,7 +373,7 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     padding: 0.875rem 0.75rem;
     border: 0;
     border-bottom: 1px solid var(--dt-tw-divider);
-    background: rgb(var(--dt-tw-head) / var(--dt-tw-head-alpha));
+    background: var(--dt-tw-head);
     color: rgb(var(--dt-tw-text-strong));
     font-size: 0.875rem;
     font-weight: 600;
@@ -407,7 +398,7 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 .dt-container.dt-container table.dataTable thead > tr > th.dt-orderable-asc:hover,
 .dt-container.dt-container table.dataTable thead > tr > th.dt-orderable-desc:hover {
     outline: none;
-    background: rgb(var(--dt-tw-surface-sunken) / var(--dt-tw-sunken-alpha));
+    background: var(--dt-tw-sunken);
 }
 
 .dt-container.dt-container table.dataTable thead > tr > th.dt-ordering-asc,
@@ -453,7 +444,7 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 
 @media (hover: hover) {
     .dt-container.dt-container table.dataTable tbody > tr:hover > td {
-        background: rgb(var(--dt-tw-surface-sunken) / var(--dt-tw-sunken-alpha));
+        background: var(--dt-tw-sunken);
     }
 }
 
@@ -819,9 +810,15 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     font-weight: 500;
     line-height: 1rem;
     white-space: nowrap;
-    --dt-tw-badge-color: var(--dt-tw-gray-500);
-    --dt-tw-badge-text: var(--dt-tw-gray-600);
+    --dt-tw-badge-color: var(--dt-tw-neutral);
+    --dt-tw-badge-text: var(--dt-tw-neutral-text);
 }
+
+/*
+ * Every variant only remaps the two badge channels to a semantic token, and
+ * those tokens already flip with the palette, so no variant needs a dark-mode
+ * rule of its own.
+ */
 
 .dt-badge--success {
     --dt-tw-badge-color: var(--dt-tw-success);
@@ -845,64 +842,18 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 
 .dt-badge--primary {
     --dt-tw-badge-color: var(--dt-tw-primary-600);
-    --dt-tw-badge-text: var(--dt-tw-primary-700);
+    --dt-tw-badge-text: var(--dt-tw-primary-text);
 }
 
 .dt-badge--secondary,
 .dt-badge--light {
-    --dt-tw-badge-color: var(--dt-tw-gray-500);
-    --dt-tw-badge-text: var(--dt-tw-gray-600);
+    --dt-tw-badge-color: var(--dt-tw-neutral);
+    --dt-tw-badge-text: var(--dt-tw-neutral-text);
 }
 
 .dt-badge--dark {
-    --dt-tw-badge-color: var(--dt-tw-gray-950);
-    --dt-tw-badge-text: var(--dt-tw-gray-950);
-}
-
-:root.dark,
-:root[data-theme='dark'],
-:root[data-bs-theme='dark'] {
-    --dt-tw-badge-dark-text: 255 255 255;
-}
-
-:root.dark .dt-badge--primary,
-:root[data-theme='dark'] .dt-badge--primary,
-:root[data-bs-theme='dark'] .dt-badge--primary {
-    --dt-tw-badge-text: var(--dt-tw-primary-400);
-}
-
-:root.dark .dt-badge--secondary,
-:root.dark .dt-badge--light,
-:root[data-theme='dark'] .dt-badge--secondary,
-:root[data-theme='dark'] .dt-badge--light,
-:root[data-bs-theme='dark'] .dt-badge--secondary,
-:root[data-bs-theme='dark'] .dt-badge--light {
-    --dt-tw-badge-color: var(--dt-tw-gray-400);
-    --dt-tw-badge-text: var(--dt-tw-gray-200, 229 231 235);
-}
-
-:root.dark .dt-badge--dark,
-:root[data-theme='dark'] .dt-badge--dark,
-:root[data-bs-theme='dark'] .dt-badge--dark {
-    --dt-tw-badge-color: 255 255 255;
-    --dt-tw-badge-text: 255 255 255;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root:not(.light):not([data-theme='light']):not([data-bs-theme='light']) .dt-badge--primary {
-        --dt-tw-badge-text: var(--dt-tw-primary-400);
-    }
-
-    :root:not(.light):not([data-theme='light']):not([data-bs-theme='light']) .dt-badge--secondary,
-    :root:not(.light):not([data-theme='light']):not([data-bs-theme='light']) .dt-badge--light {
-        --dt-tw-badge-color: var(--dt-tw-gray-400);
-        --dt-tw-badge-text: 229 231 235;
-    }
-
-    :root:not(.light):not([data-theme='light']):not([data-bs-theme='light']) .dt-badge--dark {
-        --dt-tw-badge-color: 255 255 255;
-        --dt-tw-badge-text: 255 255 255;
-    }
+    --dt-tw-badge-color: var(--dt-tw-text-strong);
+    --dt-tw-badge-text: var(--dt-tw-text-strong);
 }
 
 .dt-icon {
@@ -932,7 +883,7 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 }
 .dt-icon--secondary,
 .dt-icon--gray {
-    --dt-tw-icon-color: var(--dt-tw-gray-500);
+    --dt-tw-icon-color: var(--dt-tw-neutral);
 }
 .dt-icon--light {
     --dt-tw-icon-color: var(--dt-tw-gray-400);
@@ -1013,67 +964,38 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 
 /* ------------------------------------------------------- filter popover -- */
 
-/* Re-point the filter bar's own tokens at the theme so the popover, the table
-   card and the controls share one palette. */
+/*
+ * The filter bar ships its own stylesheet (datatables-style.css), which keeps
+ * both its palette and its chrome in `--dt-filters-*` tokens. Reassigning them
+ * is the whole of the theme's filter styling: no element rule is repeated here,
+ * and nothing needs a dark-mode rule because every token it reads from already
+ * flips. Keep this list in sync with the token block in that file.
+ */
 :root {
     --dt-filters-accent: rgb(var(--dt-tw-primary-500));
     --dt-filters-accent-contrast: rgb(var(--dt-tw-on-primary));
     --dt-filters-danger: rgb(var(--dt-tw-danger));
     --dt-filters-surface: rgb(var(--dt-tw-surface));
-    --dt-filters-surface-muted: rgb(var(--dt-tw-surface-sunken) / var(--dt-tw-sunken-alpha));
+    --dt-filters-surface-muted: var(--dt-tw-sunken);
     --dt-filters-border: var(--dt-tw-divider);
     --dt-filters-text: rgb(var(--dt-tw-text));
     --dt-filters-text-muted: rgb(var(--dt-tw-text-muted));
-    --dt-filters-shadow: var(--dt-tw-shadow-panel);
+    --dt-filters-shadow: var(--dt-tw-shadow-panel), var(--dt-tw-ring);
     --dt-filters-radius: var(--dt-tw-radius-panel);
-}
 
-.dt-filters-popover {
-    box-shadow: var(--dt-tw-shadow-panel), var(--dt-tw-ring);
-    border: 0;
-}
+    --dt-filters-radius-control: var(--dt-tw-radius-control);
+    --dt-filters-radius-toggle: var(--dt-tw-radius-control);
+    --dt-filters-popover-border: 0;
+    --dt-filters-input-border: 0;
+    --dt-filters-input-shadow: var(--dt-tw-ring-control), var(--dt-tw-shadow-sm);
+    --dt-filters-input-border-focus: transparent;
+    --dt-filters-input-shadow-focus: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
+    --dt-filters-button-shadow: var(--dt-tw-shadow-sm);
 
-.dt-filter-input {
-    border: 0;
-    border-radius: var(--dt-tw-radius-control);
-    box-shadow: var(--dt-tw-ring-control), var(--dt-tw-shadow-sm);
-}
-
-.dt-filter-input:focus {
-    border-color: transparent;
-    box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
-}
-
-/* Match the length menu's drawn chevron so both selects read as one control. */
-select.dt-filter-input {
-    appearance: none;
-    padding-inline-end: 2rem;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236b7280' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.5rem center;
-    background-size: 1.15rem;
-}
-
-:root.dark select.dt-filter-input,
-:root[data-theme='dark'] select.dt-filter-input,
-:root[data-bs-theme='dark'] select.dt-filter-input {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239ca3af' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
-}
-
-@media (prefers-color-scheme: dark) {
-    :root:not(.light):not([data-theme='light']):not([data-bs-theme='light'])
-        select.dt-filter-input {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239ca3af' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
-    }
-}
-
-.dt-filters-apply {
-    border-radius: var(--dt-tw-radius-control);
-    box-shadow: var(--dt-tw-shadow-sm);
-}
-
-.dt-filters-toggle {
-    border-radius: var(--dt-tw-radius-control);
+    /* Same drawn chevron as the length menu, so both selects read as one control. */
+    --dt-filters-select-appearance: none;
+    --dt-filters-select-padding-end: 2rem;
+    --dt-filters-chevron: var(--dt-tw-chevron);
 }
 
 .dt-filters-toggle:focus-visible {
