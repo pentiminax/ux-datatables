@@ -39,6 +39,8 @@ class DataTable
 
     private ?string $dataTableClass = null;
 
+    private ?string $permission = null;
+
     /** @var string[] */
     private array $forwardedQueryParameters = [];
 
@@ -106,6 +108,18 @@ class DataTable
     public function getDataController(): ?string
     {
         return $this->attributes['data-controller'] ?? null;
+    }
+
+    public function setPermission(string $attribute): static
+    {
+        $this->permission = $attribute;
+
+        return $this;
+    }
+
+    public function getPermission(): ?string
+    {
+        return $this->permission;
     }
 
     public function editModalTemplate(string $template): static

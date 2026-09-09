@@ -9,18 +9,18 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\Actions;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 final class ColumnResolver
 {
-    private readonly PermissionChecker $permissionChecker;
+    private readonly AuthorizationChecker $permissionChecker;
 
     public function __construct(
         private readonly ?AttributeColumnReader $attributeColumnReader = null,
         private readonly ?ColumnAutoDetector $columnAutoDetector = null,
-        ?PermissionChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
+        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
 
     /**

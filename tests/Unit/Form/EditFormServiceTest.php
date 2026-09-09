@@ -25,7 +25,7 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -189,7 +189,7 @@ final class EditFormServiceTest extends TestCase
         $this->assertForbidden($this->handleWithoutFormCollaborators(
             handler: $handler,
             registry: $this->createRegistry($this->createEntityManagerThatFinds($entity, 42)),
-            permissionChecker: new PermissionChecker($checker),
+            permissionChecker: new AuthorizationChecker($checker),
         ));
     }
 
@@ -208,7 +208,7 @@ final class EditFormServiceTest extends TestCase
     private function handleWithoutFormCollaborators(
         string $handler,
         ManagerRegistry $registry,
-        ?PermissionChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
     ): AjaxActionResult {
         $formFactory = $this->createMock(FormFactoryInterface::class);
         $formFactory->expects($this->never())->method('createBuilder');

@@ -9,7 +9,7 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\PropertyAccess\Exception\ExceptionInterface as PropertyAccessExceptionInterface;
 use Symfony\Component\PropertyAccess\PropertyAccess;
@@ -22,16 +22,16 @@ final class ActionRowDataResolver
 {
     public const string ROW_ACTIONS_KEY = '__ux_datatables_actions';
 
-    private readonly PermissionChecker $permissionChecker;
+    private readonly AuthorizationChecker $permissionChecker;
     private readonly PropertyAccessorInterface $propertyAccessor;
 
     public function __construct(
-        ?PermissionChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
         ?PropertyAccessorInterface $propertyAccessor = null,
         private readonly ?UrlGeneratorInterface $urlGenerator = null,
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
+        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
         $this->propertyAccessor  = $propertyAccessor  ?? PropertyAccess::createPropertyAccessor();
     }
 

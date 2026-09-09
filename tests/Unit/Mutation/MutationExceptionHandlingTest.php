@@ -24,8 +24,8 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
@@ -74,7 +74,7 @@ final class MutationExceptionHandlingTest extends TestCase
             new EntityLocator($this->registryReturning($entity)),
             $accessor,
             new NullMercurePublisher(),
-            new PermissionChecker(),
+            new AuthorizationChecker(),
             new MercureTopicResolver(),
         ));
 
@@ -157,7 +157,7 @@ final class MutationExceptionHandlingTest extends TestCase
             new EntityLocator($this->registryReturning($entity)),
             $this->createMock(PropertyAccessorInterface::class),
             new NullMercurePublisher(),
-            new PermissionChecker(),
+            new AuthorizationChecker(),
             new MercureTopicResolver(),
         );
     }

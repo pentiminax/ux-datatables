@@ -15,7 +15,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -54,7 +54,7 @@ final class DetailRowServiceTest extends TestCase
         $service = $this->createService(
             $this->locatorReturning(new DetailRowEntity('alice@example.com')),
             $this->twigThatNeverRenders(),
-            new PermissionChecker($checker),
+            new AuthorizationChecker($checker),
         );
 
         $result = $service->handleView($this->resolved(new CollapsibleDetailDataTable()), 7);
@@ -73,7 +73,7 @@ final class DetailRowServiceTest extends TestCase
         $service = $this->createService(
             $this->locatorReturning(new DetailRowEntity('alice@example.com')),
             $this->twigThatNeverRenders(),
-            new PermissionChecker($checker),
+            new AuthorizationChecker($checker),
         );
 
         $result = $service->handleView($this->resolved(new StaticPermissionDetailDataTable()), 7);
@@ -93,7 +93,7 @@ final class DetailRowServiceTest extends TestCase
         $service = $this->createService(
             $this->locatorReturning($entity),
             new Environment(new ArrayLoader(['detail.html.twig' => 'Email: {{ entity.email }}'])),
-            new PermissionChecker($checker),
+            new AuthorizationChecker($checker),
         );
 
         $result = $service->handleView($this->resolved(new PerRowPermissionDetailDataTable()), 7);
@@ -142,9 +142,9 @@ final class DetailRowServiceTest extends TestCase
     private function createService(
         EntityLocator $locator,
         ?Environment $twig,
-        ?PermissionChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
     ): DetailRowService {
-        return new DetailRowService($locator, $twig, $permissionChecker ?? new PermissionChecker());
+        return new DetailRowService($locator, $twig, $permissionChecker ?? new AuthorizationChecker());
     }
 
     private function resolved(AbstractDataTable $dataTable): ResolvedDataTable

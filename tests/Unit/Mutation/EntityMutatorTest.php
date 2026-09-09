@@ -21,7 +21,7 @@ use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -325,14 +325,14 @@ final class EntityMutatorTest extends TestCase
         EntityManagerInterface $manager,
         MercurePublisherInterface $publisher,
         ?PropertyAccessorInterface $accessor = null,
-        ?PermissionChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
         ?MercureTopicResolver $topicResolver = null,
     ): EntityMutator {
         return new EntityMutator(
             new EntityLocator($this->registry($manager)),
             $accessor ?? $this->createStub(PropertyAccessorInterface::class),
             $publisher,
-            $permissionChecker ?? new PermissionChecker(),
+            $permissionChecker ?? new AuthorizationChecker(),
             $topicResolver     ?? new MercureTopicResolver(),
         );
     }
@@ -377,12 +377,12 @@ final class EntityMutatorTest extends TestCase
         return $registry;
     }
 
-    private function denyingChecker(string $attribute, object $subject): PermissionChecker
+    private function denyingChecker(string $attribute, object $subject): AuthorizationChecker
     {
         $checker = $this->createMock(AuthorizationCheckerInterface::class);
         $checker->method('isGranted')->with($attribute, $subject)->willReturn(false);
 
-        return new PermissionChecker($checker);
+        return new AuthorizationChecker($checker);
     }
 }
 

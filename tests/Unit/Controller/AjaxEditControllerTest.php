@@ -31,8 +31,8 @@ use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -183,7 +183,7 @@ final class AjaxEditControllerTest extends TestCase
             new EntityLocator($this->managerRegistry($entity, 799, expectFlush: true)),
             $this->writableAccessor($entity, true),
             $publisher,
-            new PermissionChecker(),
+            new AuthorizationChecker(),
             new MercureTopicResolver($resolver, $dataTables),
         );
 
@@ -207,7 +207,7 @@ final class AjaxEditControllerTest extends TestCase
             new EntityLocator($this->managerRegistry($entity, $id, $expectFlush)),
             $accessor,
             new NullMercurePublisher(),
-            new PermissionChecker(),
+            new AuthorizationChecker(),
             new MercureTopicResolver(),
         );
 
