@@ -18,7 +18,7 @@ function modifier(prefix: string, variant: string): string {
 }
 
 /**
- * Emits the semantic classes styled by `styles/datatables-theme-tailwind.css`.
+ * Emits the semantic classes styled by `styles/datatables-tailwind-theme.css`.
  *
  * Unlike `TailwindColumnStyleAdapter`, none of these class names come from a
  * utility framework, so the chrome renders correctly in apps with no Tailwind

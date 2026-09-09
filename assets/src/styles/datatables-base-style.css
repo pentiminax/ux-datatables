@@ -13,7 +13,7 @@
     /* Chrome, kept in tokens so a theme restyles the filter bar by reassigning
        them instead of re-declaring every element rule. The defaults below are
        the unthemed look. Keep this list in sync with the theme's bridge in
-       datatables-theme-tailwind.css. */
+       datatables-tailwind-theme.css. */
     --dt-filters-radius-control: 8px;
     --dt-filters-radius-toggle: 10px;
     --dt-filters-input-border: 1px solid var(--dt-filters-border);

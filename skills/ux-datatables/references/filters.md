@@ -41,7 +41,7 @@ public function configureFilters(Filters $filters): Filters
 ## Flow
 
 - Serialized into the Stimulus `view` payload under `filters` (only when non-empty), via `DataTable::setFilters()`.
-- Frontend: registered as a custom DataTables feature `filters` (`assets/src/functions/filterFeature.ts` via `DataTable.feature.register`), placed in `layout` (`assets/src/functions/filterLayout.ts`) — default `topEnd` after `search`, or wherever `Feature::FILTERS` is positioned in `->layout()`. `assets/src/functions/filters.ts` builds the funnel toggle + popover, merges applied values into `ajax.data` (`filters[name]`), deferred reload on Apply/Reset. Default styles ship in `assets/dist/styles/datatables-style.css` (auto-imported, light/dark via CSS vars).
+- Frontend: registered as a custom DataTables feature `filters` (`assets/src/functions/filterFeature.ts` via `DataTable.feature.register`), placed in `layout` (`assets/src/functions/filterLayout.ts`) — default `topEnd` after `search`, or wherever `Feature::FILTERS` is positioned in `->layout()`. `assets/src/functions/filters.ts` builds the funnel toggle + popover, merges applied values into `ajax.data` (`filters[name]`), deferred reload on Apply/Reset. Default styles ship in `assets/dist/styles/datatables-base-style.css` (auto-imported, light/dark via CSS vars).
 - Server-side: `DataTableRequest::filters` carries values; `AbstractDataTable::configureQueryBuilder()` applies each filter after the standard `QueryFilterPipeline`, so filtered count + page both reflect the filters. Empty/irrelevant values are no-ops.
 
 ## Gotchas

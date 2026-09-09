@@ -934,7 +934,7 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 /* ------------------------------------------------------- filter popover -- */
 
 /*
- * The filter bar ships its own stylesheet (datatables-style.css), which keeps
+ * The filter bar ships its own stylesheet (datatables-base-style.css), which keeps
  * both its palette and its chrome in `--dt-filters-*` tokens. Reassigning them
  * is the whole of the theme's filter styling: no element rule is repeated here,
  * and nothing needs a dark-mode rule because every token it reads from already
