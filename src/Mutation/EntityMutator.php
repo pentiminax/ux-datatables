@@ -36,7 +36,7 @@ final class EntityMutator
      * @throws MutationNotAllowedException
      * @throws MutationPersistenceException
      */
-    public function delete(string $entityClass, int|string $id, string $dataTableClass, ?Action $action = null): void
+    public function delete(string $entityClass, int|string $id, string $dataTableClass, Action $action): void
     {
         $context = $this->locator->locate($entityClass, $id);
 
@@ -44,7 +44,7 @@ final class EntityMutator
             throw new MutationNotAllowedException();
         }
 
-        if (null !== $action && !$this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
+        if (!$this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
             $dataTableClass,
             $action,
             $context->entity,
