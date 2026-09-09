@@ -25,26 +25,26 @@ use Symfony\Component\ExpressionLanguage\Expression;
 abstract class AbstractColumn implements SearchableColumnInterface
 {
     protected ColumnType $type;
-    protected ?string $cellType          = null;
-    protected ?string $className         = null;
-    protected ?string $name              = null;
-    protected ?string $width             = null;
-    protected ?string $title             = null;
-    protected bool $orderable            = true;
-    protected bool $searchable           = true;
-    protected bool $visible              = true;
-    protected ?string $data              = null;
-    protected bool $exportable           = true;
-    protected ?string $defaultContent    = null;
-    protected ?string $field             = null;
-    protected ?string $orderExpression   = null;
-    protected ?string $searchField       = null;
-    protected bool $globalSearchable     = true;
-    protected bool $columnControlEnabled = true;
-    protected ?array $columnControl      = null;
-    protected array $customOptions       = [];
+    protected ?string $cellType                  = null;
+    protected ?string $className                 = null;
+    protected ?string $name                      = null;
+    protected ?string $width                     = null;
+    protected ?string $title                     = null;
+    protected bool $orderable                    = true;
+    protected bool $searchable                   = true;
+    protected bool $visible                      = true;
+    protected ?string $data                      = null;
+    protected bool $exportable                   = true;
+    protected ?string $defaultContent            = null;
+    protected ?string $field                     = null;
+    protected ?string $orderExpression           = null;
+    protected ?string $searchField               = null;
+    protected bool $globalSearchable             = true;
+    protected bool $columnControlEnabled         = true;
+    protected ?array $columnControl              = null;
+    protected array $customOptions               = [];
     protected string|Expression|null $permission = null;
-    protected ?int $responsivePriority   = null;
+    protected ?int $responsivePriority           = null;
 
     /** @var list<array{join: string, alias: string, conditionType: ?string, condition: ?string}> */
     protected array $searchJoins = [];

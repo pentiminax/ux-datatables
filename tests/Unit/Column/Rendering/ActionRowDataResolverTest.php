@@ -163,8 +163,8 @@ final class ActionRowDataResolverTest extends TestCase
             ->method('isGranted')
             ->with(Permission::DT_EXECUTE_ACTION, $this->callback(
                 static fn (ActionPermissionContext $context): bool => ActionRowDataTableFixture::class === $context->dataTableClass
-                    && $context->action->getPermission()                                                   === $expression
-                    && $context->currentSource                                                             === $sourceRow
+                    && $context->action->getPermission()                                               === $expression
+                    && $context->currentSource                                                         === $sourceRow
                     && $context->hasRowContext
             ))
             ->willReturn(true);
