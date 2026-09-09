@@ -181,6 +181,91 @@ Or per table in Twig:
 {{ render_datatable(table, {'class': 'table table-bordered table-sm'}) }}
 ```
 
+## Tailwind Theme
+
+The bundle ships an optional Tailwind theme, modelled on [Filament](https://filamentphp.com): a card-shaped
+table with ring outlines, an amber accent, drawn pagination chevrons and a matching dark mode.
+
+It is plain CSS built on custom properties — **no Tailwind build step is required**, so it behaves
+identically under AssetMapper, Webpack Encore and Vite. It layers on top of the default `dt`
+stylesheet, which must stay enabled.
+
+### Enabling It
+
+<Tabs>
+  <TabItem label="AssetMapper">
+    ```json
+    {
+      "controllers": {
+        "@pentiminax/ux-datatables": {
+          "datatable": {
+            "enabled": true,
+            "autoimport": {
+              "@pentiminax/ux-datatables/dist/styles/datatables-style.css": true,
+              "@pentiminax/ux-datatables/dist/styles/datatables-theme-tailwind.css": true,
+              "datatables.net-dt/css/dataTables.dataTables.min.css": true
+            }
+          }
+        }
+      }
+    }
+    ```
+  </TabItem>
+  <TabItem label="Webpack Encore / Vite">
+    ```javascript
+    // assets/app.js
+    import 'datatables.net-dt/css/dataTables.dataTables.min.css'
+    import '@pentiminax/ux-datatables/dist/styles/datatables-style.css'
+    import '@pentiminax/ux-datatables/dist/styles/datatables-theme-tailwind.css'
+    ```
+  </TabItem>
+</Tabs>
+
+No PHP configuration is needed. The theme declares `--dt-tw-theme: tailwind` on `:root`, and the
+Stimulus controller reads that custom property to select the matching column style adapter — so
+`ChoiceColumn` badges and `BooleanColumn` switches follow the theme instead of emitting Tailwind
+utilities.
+
+The controller also moves the search label into the input's placeholder, so the toolbar keeps the
+export buttons on the left and the search field on the right of a single row. The label element
+stays in the DOM, visually hidden, as the input's accessible name. Set DataTables'
+`language.searchPlaceholder` yourself and the theme leaves your value alone.
+
+Actions rendered by `Action::delete()`, `::edit()` and `::detail()` keep their Bootstrap class
+names, which the theme restyles as soft-tinted chips. An action with a custom `className` is left
+untouched.
+
+### Rebranding
+
+Reassign the accent tokens after the theme import. Values are space-separated RGB channels, which
+is what lets the theme derive tints and rings from a single hue:
+
+```css
+/* The theme's default amber, swapped for indigo. */
+:root {
+  --dt-tw-primary-400: 129 140 248;
+  --dt-tw-primary-500: 99 102 241;
+  --dt-tw-primary-600: 79 70 229;
+  --dt-tw-primary-700: 67 56 202;
+  --dt-tw-on-primary: 255 255 255;
+}
+```
+
+The same pattern applies to `--dt-tw-gray-*`, the semantic `--dt-tw-success` / `--dt-tw-warning` /
+`--dt-tw-danger` / `--dt-tw-info` tokens, and the `--dt-tw-radius-*` scale.
+
+### Dark Mode
+
+The theme follows `prefers-color-scheme`, and honours an explicit choice from `.dark`,
+`[data-theme="dark"]` or `[data-bs-theme="dark"]` on `<html>` — so it works with Tailwind's class
+strategy and with Bootstrap's colour modes without extra configuration.
+
+<Aside type="note">
+  The theme styles the DataTables core layout, the filter popover, badges and switches. Optional
+  extensions (Buttons, Select, ColumnControl, …) keep their `-dt` stylesheets; their controls
+  inherit the palette but are not individually restyled.
+</Aside>
+
 ## Column Chrome (Badges & Switches)
 
 `ChoiceColumn` badges and `BooleanColumn` switches do not hard-code a single CSS framework. The Stimulus controller resolves a **column style adapter** from the same detected DataTables stylesheet used for the core library:
@@ -189,6 +274,7 @@ Or per table in Twig:
 |--------------------|---------|------------------------|
 | `bs`, `bs4`, `bs5` | Bootstrap | `badge text-bg-*`, `form-check form-switch` |
 | `dt` and other non-Bootstrap keys | Tailwind | Utility classes (`bg-green-100`, peer toggle, …) |
+| Any framework, with the Tailwind theme loaded | Tailwind theme | Semantic classes (`dt-badge dt-badge--success`, `dt-switch`) |
 
 PHP APIs stay framework-agnostic: pass semantic variants such as `success` or `danger` to `renderAsBadges()`. The adapter maps them to the appropriate classes at render time.
 
@@ -239,5 +325,5 @@ Common causes:
 Each extension must use its framework-specific package. If the extension JS and CSS packages don't match your active framework, you'll see styling inconsistencies. Re-run `importmap:require` for the correct `-{key}` variants.
 
 <Aside type="note">
-  DataTables.net has not published official Tailwind CSS packages. Use the default `dt` theme for the table chrome, and rely on the [column style adapters](#column-chrome-badges--switches) for `ChoiceColumn` badges and `BooleanColumn` switches. Full DataTables Tailwind theming remains unsupported until upstream packages exist.
+  DataTables.net has not published official Tailwind CSS packages. Use the default `dt` theme for the table chrome, then either add the [Tailwind theme](#tailwind-theme) for a finished look with no build step, or rely on the [column style adapters](#column-chrome-badges--switches) if your app already compiles Tailwind.
 </Aside>

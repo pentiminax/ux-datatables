@@ -15,6 +15,7 @@
         "autoimport": {
           "@pentiminax/ux-datatables/dist/styles/datatables-style.css": true,
           "datatables.net-dt/css/dataTables.dataTables.min.css": true,
+          "@pentiminax/ux-datatables/dist/styles/datatables-theme-tailwind.css": false,
           "datatables.net-bs5/css/dataTables.bootstrap5.min.css": false,
           "datatables.net-bs4/css/dataTables.bootstrap4.min.css": false,
           "datatables.net-bs/css/dataTables.bootstrap.min.css": false,
@@ -211,7 +212,7 @@
     "pdfmake": "^0.3.11"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && mkdir -p dist/styles && cp src/styles/*.css dist/styles/",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "biome lint src/",
