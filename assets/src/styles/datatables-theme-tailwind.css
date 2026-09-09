@@ -64,14 +64,6 @@
     --dt-tw-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236b7280' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
 }
 
-/*
- * The dark palette, and nothing but the palette. It is written twice because
- * CSS cannot share declarations between a media query and a selector list, and
- * the two entry points are not interchangeable: the media query follows the
- * operating system unless the application has opted out with an explicit
- * `light` marker, while the selector list is the application saying `dark`
- * outright. The explicit rule comes second so it wins the specificity tie.
- */
 @media (prefers-color-scheme: dark) {
     :root:not(.light, [data-theme='light'], [data-bs-theme='light']) {
         --dt-tw-surface: var(--dt-tw-gray-900);
