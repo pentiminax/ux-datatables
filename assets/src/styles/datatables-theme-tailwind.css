@@ -9,6 +9,12 @@
  *
  * `--dt-tw-theme` is the activation probe the Stimulus controller reads to pick
  * the matching column style adapter; it must stay on `:root`.
+ *
+ * Selectors repeat `.dt-container` deliberately. dataTables.dataTables.css and
+ * buttons.dataTables.css reach three levels of specificity on the search input,
+ * the length select and the export buttons, and AssetMapper emits them after
+ * this file. The doubled class outranks them whatever the stylesheet order turns
+ * out to be, so the theme never depends on import order.
  */
 
 :root {
@@ -38,6 +44,8 @@
     --dt-tw-surface: 255 255 255;
     --dt-tw-surface-sunken: var(--dt-tw-gray-50);
     --dt-tw-on-primary: var(--dt-tw-gray-950);
+    --dt-tw-neutral: var(--dt-tw-gray-500);
+    --dt-tw-neutral-text: var(--dt-tw-gray-600);
 
     --dt-tw-text: var(--dt-tw-gray-950);
     --dt-tw-text-muted: var(--dt-tw-gray-500);
@@ -52,7 +60,8 @@
 
     --dt-tw-shadow-sm: 0 1px 2px 0 rgb(var(--dt-tw-gray-950) / 0.05);
     --dt-tw-shadow-panel:
-        0 10px 15px -3px rgb(var(--dt-tw-gray-950) / 0.1), 0 4px 6px -4px rgb(var(--dt-tw-gray-950) / 0.1);
+        0 10px 15px -3px rgb(var(--dt-tw-gray-950) / 0.1),
+        0 4px 6px -4px rgb(var(--dt-tw-gray-950) / 0.1);
 
     --dt-tw-radius-panel: 0.75rem;
     --dt-tw-radius-control: 0.5rem;
@@ -73,14 +82,15 @@
         --dt-tw-warning: 251 191 36;
         --dt-tw-danger: 248 113 113;
         --dt-tw-info: 56 189 248;
+        --dt-tw-neutral: var(--dt-tw-gray-400);
+        --dt-tw-neutral-text: var(--dt-tw-gray-200);
 
         --dt-tw-ring: 0 0 0 1px rgb(255 255 255 / 0.1);
         --dt-tw-ring-control: inset 0 0 0 1px rgb(255 255 255 / 0.2);
         --dt-tw-ring-focus: inset 0 0 0 2px rgb(var(--dt-tw-primary-500));
         --dt-tw-divider: rgb(255 255 255 / 0.08);
 
-        --dt-tw-shadow-panel:
-            0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+        --dt-tw-shadow-panel: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
     }
 }
 
@@ -97,6 +107,8 @@
     --dt-tw-warning: 251 191 36;
     --dt-tw-danger: 248 113 113;
     --dt-tw-info: 56 189 248;
+    --dt-tw-neutral: var(--dt-tw-gray-400);
+    --dt-tw-neutral-text: var(--dt-tw-gray-200);
 
     --dt-tw-ring: 0 0 0 1px rgb(255 255 255 / 0.1);
     --dt-tw-ring-control: inset 0 0 0 1px rgb(255 255 255 / 0.2);
@@ -112,12 +124,16 @@
 :root {
     --dt-tw-sunken-alpha: 1;
     --dt-tw-color-scheme: light;
+    --dt-tw-head: var(--dt-tw-gray-100);
+    --dt-tw-head-alpha: 1;
 }
 
 @media (prefers-color-scheme: dark) {
     :root:not(.light):not([data-theme='light']):not([data-bs-theme='light']) {
         --dt-tw-sunken-alpha: 0.05;
         --dt-tw-color-scheme: dark;
+        --dt-tw-head: 255 255 255;
+        --dt-tw-head-alpha: 0.05;
     }
 }
 
@@ -126,11 +142,13 @@
 :root[data-bs-theme='dark'] {
     --dt-tw-sunken-alpha: 0.05;
     --dt-tw-color-scheme: dark;
+    --dt-tw-head: 255 255 255;
+    --dt-tw-head-alpha: 0.05;
 }
 
 /* Bridge the DataTables core variables so the parts we do not restyle
    (row selection, ordering glyphs) follow the same palette. */
-.dt-container {
+.dt-container.dt-container {
     --dt_background-selected: var(--dt-tw-primary-500);
     --dt_color-selected: var(--dt-tw-gray-950);
     --dt-row_background-hover: var(--dt-tw-gray-950);
@@ -143,21 +161,21 @@
 
 /* DataTables' own layout CSS sizes the rows in a content box, so the card's
    horizontal padding would otherwise push the toolbar past the card edge. */
-.dt-container,
-.dt-container *,
-.dt-container *::before,
-.dt-container *::after {
+.dt-container.dt-container,
+.dt-container.dt-container *,
+.dt-container.dt-container *::before,
+.dt-container.dt-container *::after {
     box-sizing: border-box;
 }
 
 /* Native controls the theme cannot paint — date pickers, select popups, the
    caret — follow `color-scheme`, which inherits into both surfaces. */
-.dt-container,
+.dt-container.dt-container,
 .dt-filters-popover {
     color-scheme: var(--dt-tw-color-scheme, light);
 }
 
-.dt-container {
+.dt-container.dt-container {
     position: relative;
     /* A flex or grid parent sizes its items from max-content unless told
        otherwise, which a wide table turns into page-level overflow. */
@@ -171,7 +189,7 @@
     line-height: 1.25rem;
 }
 
-.dt-container > .dt-layout-row {
+.dt-container.dt-container > .dt-layout-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -181,24 +199,24 @@
 
 /* The toolbar rows read as chrome around the data, so they are separated by a
    rule rather than by whitespace — the table stays flush with the card edge. */
-.dt-container > .dt-layout-row:first-child {
+.dt-container.dt-container > .dt-layout-row:first-child {
     border-bottom: 1px solid var(--dt-tw-divider);
 }
 
-.dt-container > .dt-layout-row:last-child {
+.dt-container.dt-container > .dt-layout-row:last-child {
     border-top: 1px solid var(--dt-tw-divider);
 }
 
 /* A wide table scrolls inside the card instead of pushing the page sideways —
    the card, the toolbar and the pagination stay put on narrow viewports. */
-.dt-container > .dt-layout-row.dt-layout-table {
+.dt-container.dt-container > .dt-layout-row.dt-layout-table {
     display: block;
     padding: 0;
     border: 0;
     overflow-x: auto;
 }
 
-.dt-container .dt-layout-cell {
+.dt-container.dt-container .dt-layout-cell {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -207,35 +225,35 @@
     padding: 0;
 }
 
-.dt-container .dt-layout-end {
+.dt-container.dt-container .dt-layout-end {
     margin-inline-start: auto;
     justify-content: flex-end;
 }
 
-.dt-container .dt-layout-full {
+.dt-container.dt-container .dt-layout-full {
     flex: 1 1 100%;
 }
 
 /* DataTables' own layout CSS uses `div.dt-container div.dt-layout-*` selectors
    and per-child margins; these match that specificity so `gap` stays in charge. */
-div.dt-container div.dt-layout-start > *:not(:last-child),
-div.dt-container div.dt-layout-end > *:not(:first-child) {
+div.dt-container.dt-container div.dt-layout-start > *:not(:last-child),
+div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     margin: 0;
 }
 
 /* 767px is where DataTables switches its own layout rows to a stacked block
    flow; the theme keeps them flex so the toolbar stays left-aligned. */
 @media screen and (max-width: 767px) {
-    .dt-container > .dt-layout-row {
+    .dt-container.dt-container > .dt-layout-row {
         gap: 0.75rem;
         padding-inline: 1rem;
     }
 
-    div.dt-container div.dt-layout-row:not(.dt-layout-table) {
+    div.dt-container.dt-container div.dt-layout-row:not(.dt-layout-table) {
         display: flex;
     }
 
-    div.dt-container div.dt-layout-row:not(.dt-layout-table) div.dt-layout-cell {
+    div.dt-container.dt-container div.dt-layout-row:not(.dt-layout-table) div.dt-layout-cell {
         display: flex;
         flex: 1 1 100%;
         justify-content: flex-start;
@@ -243,38 +261,37 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
         text-align: start;
     }
 
-    div.dt-container div.dt-layout-row:not(.dt-layout-table) div.dt-layout-cell > * {
+    div.dt-container.dt-container div.dt-layout-row:not(.dt-layout-table) div.dt-layout-cell > * {
         margin: 0;
     }
 
-    .dt-container div.dt-search {
+    .dt-container.dt-container div.dt-search {
         flex: 1 1 100%;
     }
 
-    .dt-container div.dt-search input {
+    .dt-container.dt-container div.dt-search input {
         flex: 1 1 auto;
         min-width: 0;
     }
 
-    .dt-container table.dataTable thead > tr > th:first-child,
-    .dt-container table.dataTable tbody > tr > td:first-child,
-    .dt-container table.dataTable tfoot > tr > th:first-child,
-    .dt-container table.dataTable tfoot > tr > td:first-child {
+    .dt-container.dt-container table.dataTable thead > tr > th:first-child,
+    .dt-container.dt-container table.dataTable tbody > tr > td:first-child,
+    .dt-container.dt-container table.dataTable tfoot > tr > th:first-child,
+    .dt-container.dt-container table.dataTable tfoot > tr > td:first-child {
         padding-inline-start: 1rem;
     }
 
-    .dt-container table.dataTable thead > tr > th:last-child,
-    .dt-container table.dataTable tbody > tr > td:last-child,
-    .dt-container table.dataTable tfoot > tr > th:last-child,
-    .dt-container table.dataTable tfoot > tr > td:last-child {
+    .dt-container.dt-container table.dataTable thead > tr > th:last-child,
+    .dt-container.dt-container table.dataTable tbody > tr > td:last-child,
+    .dt-container.dt-container table.dataTable tfoot > tr > th:last-child,
+    .dt-container.dt-container table.dataTable tfoot > tr > td:last-child {
         padding-inline-end: 1rem;
     }
-}
 }
 
 /* ------------------------------------------------------------- controls -- */
 
-.dt-container label {
+.dt-container.dt-container label {
     margin: 0;
     color: rgb(var(--dt-tw-text-muted));
     font-size: 0.875rem;
@@ -282,9 +299,9 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
     white-space: nowrap;
 }
 
-.dt-container .dt-input,
-.dt-container div.dt-search input,
-.dt-container div.dt-length select {
+.dt-container.dt-container .dt-input,
+.dt-container.dt-container div.dt-search input,
+.dt-container.dt-container div.dt-length select {
     appearance: none;
     height: 2.25rem;
     padding: 0 0.75rem;
@@ -298,7 +315,7 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
     transition: box-shadow var(--dt-tw-transition);
 }
 
-.dt-container div.dt-length select {
+.dt-container.dt-container div.dt-length select {
     min-width: 5rem;
     padding-inline-end: 2rem;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236b7280' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
@@ -307,35 +324,49 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
     background-size: 1.15rem;
 }
 
-:root.dark .dt-container div.dt-length select,
-:root[data-theme='dark'] .dt-container div.dt-length select,
-:root[data-bs-theme='dark'] .dt-container div.dt-length select {
+:root.dark .dt-container.dt-container div.dt-length select,
+:root[data-theme='dark'] .dt-container.dt-container div.dt-length select,
+:root[data-bs-theme='dark'] .dt-container.dt-container div.dt-length select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239ca3af' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
 }
 
-.dt-container .dt-input::placeholder,
-.dt-container div.dt-search input::placeholder {
+.dt-container.dt-container .dt-input::placeholder,
+.dt-container.dt-container div.dt-search input::placeholder {
     color: rgb(var(--dt-tw-text-muted));
 }
 
-.dt-container .dt-input:focus,
-.dt-container div.dt-search input:focus,
-.dt-container div.dt-length select:focus {
+.dt-container.dt-container .dt-input:focus,
+.dt-container.dt-container div.dt-search input:focus,
+.dt-container.dt-container div.dt-length select:focus {
     outline: none;
     box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
 }
 
-.dt-container div.dt-search {
+.dt-container.dt-container div.dt-search {
     gap: 0.5rem;
 }
 
-.dt-container div.dt-search input {
+.dt-container.dt-container div.dt-search input {
     min-width: 14rem;
+}
+
+/* `applyThemeSearchPlaceholder` moves the label text into the placeholder and
+   marks the label, which stays in the DOM as the input's accessible name. */
+.dt-container.dt-container div.dt-search label.dt-search-label-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 /* ---------------------------------------------------------------- table -- */
 
-.dt-container table.dataTable {
+.dt-container.dt-container table.dataTable {
     width: 100%;
     margin: 0;
     border-collapse: separate;
@@ -343,12 +374,12 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
     color: rgb(var(--dt-tw-text));
 }
 
-.dt-container table.dataTable thead > tr > th,
-.dt-container table.dataTable thead > tr > td {
+.dt-container.dt-container table.dataTable thead > tr > th,
+.dt-container.dt-container table.dataTable thead > tr > td {
     padding: 0.875rem 0.75rem;
     border: 0;
     border-bottom: 1px solid var(--dt-tw-divider);
-    background: transparent;
+    background: rgb(var(--dt-tw-head) / var(--dt-tw-head-alpha));
     color: rgb(var(--dt-tw-text-strong));
     font-size: 0.875rem;
     font-weight: 600;
@@ -356,28 +387,28 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
     white-space: nowrap;
 }
 
-.dt-container table.dataTable thead > tr > th:first-child,
-.dt-container table.dataTable tbody > tr > td:first-child,
-.dt-container table.dataTable tfoot > tr > th:first-child,
-.dt-container table.dataTable tfoot > tr > td:first-child {
+.dt-container.dt-container table.dataTable thead > tr > th:first-child,
+.dt-container.dt-container table.dataTable tbody > tr > td:first-child,
+.dt-container.dt-container table.dataTable tfoot > tr > th:first-child,
+.dt-container.dt-container table.dataTable tfoot > tr > td:first-child {
     padding-inline-start: 1.5rem;
 }
 
-.dt-container table.dataTable thead > tr > th:last-child,
-.dt-container table.dataTable tbody > tr > td:last-child,
-.dt-container table.dataTable tfoot > tr > th:last-child,
-.dt-container table.dataTable tfoot > tr > td:last-child {
+.dt-container.dt-container table.dataTable thead > tr > th:last-child,
+.dt-container.dt-container table.dataTable tbody > tr > td:last-child,
+.dt-container.dt-container table.dataTable tfoot > tr > th:last-child,
+.dt-container.dt-container table.dataTable tfoot > tr > td:last-child {
     padding-inline-end: 1.5rem;
 }
 
-.dt-container table.dataTable thead > tr > th.dt-orderable-asc:hover,
-.dt-container table.dataTable thead > tr > th.dt-orderable-desc:hover {
+.dt-container.dt-container table.dataTable thead > tr > th.dt-orderable-asc:hover,
+.dt-container.dt-container table.dataTable thead > tr > th.dt-orderable-desc:hover {
     outline: none;
     background: rgb(var(--dt-tw-surface-sunken) / var(--dt-tw-sunken-alpha));
 }
 
-.dt-container table.dataTable thead > tr > th.dt-ordering-asc,
-.dt-container table.dataTable thead > tr > th.dt-ordering-desc {
+.dt-container.dt-container table.dataTable thead > tr > th.dt-ordering-asc,
+.dt-container.dt-container table.dataTable thead > tr > th.dt-ordering-desc {
     color: rgb(var(--dt-tw-text-strong));
 }
 
@@ -385,7 +416,7 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
    Only the active sort stays visible; the rest surface on hover or keyboard
    focus, which is where the affordance is actually needed. */
 @media (hover: hover) {
-    .dt-container
+    .dt-container.dt-container
         table.dataTable
         thead
         > tr
@@ -395,13 +426,13 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
         transition: opacity var(--dt-tw-transition);
     }
 
-    .dt-container table.dataTable thead > tr > th:hover .dt-column-order,
-    .dt-container table.dataTable thead > tr > th:focus-within .dt-column-order {
+    .dt-container.dt-container table.dataTable thead > tr > th:hover .dt-column-order,
+    .dt-container.dt-container table.dataTable thead > tr > th:focus-within .dt-column-order {
         opacity: 1;
     }
 }
 
-.dt-container table.dataTable tbody > tr > td {
+.dt-container.dt-container table.dataTable tbody > tr > td {
     padding: 0.75rem;
     border: 0;
     border-top: 1px solid var(--dt-tw-divider);
@@ -409,21 +440,21 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
     vertical-align: middle;
 }
 
-.dt-container table.dataTable tbody > tr:first-child > td {
+.dt-container.dt-container table.dataTable tbody > tr:first-child > td {
     border-top: 0;
 }
 
-.dt-container table.dataTable tbody > tr {
+.dt-container.dt-container table.dataTable tbody > tr {
     transition: background-color var(--dt-tw-transition);
 }
 
 @media (hover: hover) {
-    .dt-container table.dataTable tbody > tr:hover > td {
+    .dt-container.dt-container table.dataTable tbody > tr:hover > td {
         background: rgb(var(--dt-tw-surface-sunken) / var(--dt-tw-sunken-alpha));
     }
 }
 
-.dt-container table.dataTable tbody > tr.selected > td {
+.dt-container.dt-container table.dataTable tbody > tr.selected > td {
     background: rgb(var(--dt-tw-primary-500) / 0.12);
     box-shadow: none;
     color: rgb(var(--dt-tw-text));
@@ -431,15 +462,15 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
 
 /* Figures line up column-wise only with lining tabular numerals; DataTables
    already tags the columns it detected as numeric or date. */
-.dt-container table.dataTable td.dt-type-numeric,
-.dt-container table.dataTable td.dt-type-date,
-.dt-container div.dt-info,
-.dt-container div.dt-paging {
+.dt-container.dt-container table.dataTable td.dt-type-numeric,
+.dt-container.dt-container table.dataTable td.dt-type-date,
+.dt-container.dt-container div.dt-info,
+.dt-container.dt-container div.dt-paging {
     font-variant-numeric: tabular-nums;
 }
 
-.dt-container table.dataTable tfoot > tr > th,
-.dt-container table.dataTable tfoot > tr > td {
+.dt-container.dt-container table.dataTable tfoot > tr > th,
+.dt-container.dt-container table.dataTable tfoot > tr > td {
     padding: 0.75rem;
     border: 0;
     border-top: 1px solid var(--dt-tw-divider);
@@ -450,7 +481,7 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
 
 /* ---------------------------------------------------------- empty state -- */
 
-.dt-container table.dataTable td.dt-empty {
+.dt-container.dt-container table.dataTable td.dt-empty {
     padding: 3.5rem 1.5rem;
     color: rgb(var(--dt-tw-text-muted));
     font-size: 0.875rem;
@@ -459,7 +490,7 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
 
 /* ---------------------------------------------------------- processing -- */
 
-.dt-container div.dt-processing {
+.dt-container.dt-container div.dt-processing {
     top: 0;
     left: 50%;
     width: auto;
@@ -474,40 +505,40 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
     font-weight: 500;
 }
 
-.dt-container div.dt-processing > div:last-child {
+.dt-container.dt-container div.dt-processing > div:last-child {
     width: 3rem;
     height: 0.5rem;
     margin: 0.35rem auto 0.15rem;
 }
 
-.dt-container div.dt-processing > div:last-child > div {
+.dt-container.dt-container div.dt-processing > div:last-child > div {
     top: 0;
     width: 0.5rem;
     height: 0.5rem;
 }
 
-.dt-container div.dt-processing > div:last-child > div:nth-child(1),
-.dt-container div.dt-processing > div:last-child > div:nth-child(2) {
+.dt-container.dt-container div.dt-processing > div:last-child > div:nth-child(1),
+.dt-container.dt-container div.dt-processing > div:last-child > div:nth-child(2) {
     left: 0;
 }
 
-.dt-container div.dt-processing > div:last-child > div:nth-child(3) {
+.dt-container.dt-container div.dt-processing > div:last-child > div:nth-child(3) {
     left: 1.25rem;
 }
 
-.dt-container div.dt-processing > div:last-child > div:nth-child(4) {
+.dt-container.dt-container div.dt-processing > div:last-child > div:nth-child(4) {
     left: 2.5rem;
 }
 
 /* --------------------------------------------------------------- paging -- */
 
-.dt-container div.dt-info {
+.dt-container.dt-container div.dt-info {
     color: rgb(var(--dt-tw-text-muted));
     font-size: 0.875rem;
     font-weight: 500;
 }
 
-.dt-container div.dt-paging {
+.dt-container.dt-container div.dt-paging {
     display: inline-flex;
     border-radius: var(--dt-tw-radius-control);
     background: rgb(var(--dt-tw-surface));
@@ -515,11 +546,11 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
     overflow: hidden;
 }
 
-.dt-container div.dt-paging nav {
+.dt-container.dt-container div.dt-paging nav {
     display: flex;
 }
 
-.dt-container div.dt-paging button.dt-paging-button {
+.dt-container.dt-container div.dt-paging button.dt-paging-button {
     min-width: 2.25rem;
     height: 2.25rem;
     margin: 0;
@@ -537,26 +568,26 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
         color var(--dt-tw-transition);
 }
 
-.dt-container div.dt-paging button.dt-paging-button + button.dt-paging-button {
+.dt-container.dt-container div.dt-paging button.dt-paging-button + button.dt-paging-button {
     border-inline-start: 1px solid var(--dt-tw-divider);
 }
 
 /* DataTables writes «, ‹, › and » as text. Swapped for drawn chevrons so the
    step controls share the icon weight of the rest of the table. */
-.dt-container div.dt-paging button.dt-paging-button.first,
-.dt-container div.dt-paging button.dt-paging-button.previous,
-.dt-container div.dt-paging button.dt-paging-button.next,
-.dt-container div.dt-paging button.dt-paging-button.last {
+.dt-container.dt-container div.dt-paging button.dt-paging-button.first,
+.dt-container.dt-container div.dt-paging button.dt-paging-button.previous,
+.dt-container.dt-container div.dt-paging button.dt-paging-button.next,
+.dt-container.dt-container div.dt-paging button.dt-paging-button.last {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 0;
 }
 
-.dt-container div.dt-paging button.dt-paging-button.first::before,
-.dt-container div.dt-paging button.dt-paging-button.previous::before,
-.dt-container div.dt-paging button.dt-paging-button.next::before,
-.dt-container div.dt-paging button.dt-paging-button.last::before {
+.dt-container.dt-container div.dt-paging button.dt-paging-button.first::before,
+.dt-container.dt-container div.dt-paging button.dt-paging-button.previous::before,
+.dt-container.dt-container div.dt-paging button.dt-paging-button.next::before,
+.dt-container.dt-container div.dt-paging button.dt-paging-button.last::before {
     content: '';
     width: 1.125rem;
     height: 1.125rem;
@@ -566,64 +597,54 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
     mask-size: contain;
 }
 
-.dt-container div.dt-paging button.dt-paging-button.previous::before {
+.dt-container.dt-container div.dt-paging button.dt-paging-button.previous::before {
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 19.5 7.5 12 15 4.5'/%3E%3C/svg%3E");
 }
 
-.dt-container div.dt-paging button.dt-paging-button.next::before {
+.dt-container.dt-container div.dt-paging button.dt-paging-button.next::before {
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4.5 16.5 12 9 19.5'/%3E%3C/svg%3E");
 }
 
-.dt-container div.dt-paging button.dt-paging-button.first::before {
+.dt-container.dt-container div.dt-paging button.dt-paging-button.first::before {
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18.5 19.5 11 12l7.5-7.5M11.5 19.5 4 12l7.5-7.5'/%3E%3C/svg%3E");
 }
 
-.dt-container div.dt-paging button.dt-paging-button.last::before {
+.dt-container.dt-container div.dt-paging button.dt-paging-button.last::before {
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 4.5 13 12l-7.5 7.5M12.5 4.5 20 12l-7.5 7.5'/%3E%3C/svg%3E");
 }
 
-[dir='rtl'] .dt-container div.dt-paging button.dt-paging-button.first::before,
-[dir='rtl'] .dt-container div.dt-paging button.dt-paging-button.previous::before,
-[dir='rtl'] .dt-container div.dt-paging button.dt-paging-button.next::before,
-[dir='rtl'] .dt-container div.dt-paging button.dt-paging-button.last::before {
+[dir='rtl'] .dt-container.dt-container div.dt-paging button.dt-paging-button.first::before,
+[dir='rtl'] .dt-container.dt-container div.dt-paging button.dt-paging-button.previous::before,
+[dir='rtl'] .dt-container.dt-container div.dt-paging button.dt-paging-button.next::before,
+[dir='rtl'] .dt-container.dt-container div.dt-paging button.dt-paging-button.last::before {
     scale: -1 1;
 }
 
-.dt-container div.dt-paging button.dt-paging-button:hover:not(.disabled),
-.dt-container div.dt-paging button.dt-paging-button:active:not(.disabled) {
+.dt-container.dt-container div.dt-paging button.dt-paging-button:hover:not(.disabled),
+.dt-container.dt-container div.dt-paging button.dt-paging-button:active:not(.disabled) {
     border: 0;
     background: rgb(var(--dt-tw-surface-sunken) / var(--dt-tw-sunken-alpha));
     box-shadow: none;
     color: rgb(var(--dt-tw-text));
 }
 
-.dt-container div.dt-paging button.dt-paging-button + button.dt-paging-button:hover:not(.disabled) {
+.dt-container.dt-container
+    div.dt-paging
+    button.dt-paging-button
+    + button.dt-paging-button:hover:not(.disabled) {
     border-inline-start: 1px solid var(--dt-tw-divider);
 }
 
-.dt-container div.dt-paging button.dt-paging-button.current,
-.dt-container div.dt-paging button.dt-paging-button.current:hover {
-    background: rgb(var(--dt-tw-surface-sunken) / var(--dt-tw-sunken-alpha));
-    color: rgb(var(--dt-tw-primary-700));
+/* The active page is a filled chip, not a tint: inside a segmented group a tint
+   sits too close to the hover state to read as the current page. */
+.dt-container.dt-container div.dt-paging button.dt-paging-button.current,
+.dt-container.dt-container div.dt-paging button.dt-paging-button.current:hover {
+    background: rgb(var(--dt-tw-primary-600));
+    color: rgb(var(--dt-tw-on-primary));
     font-weight: 600;
 }
 
-:root.dark .dt-container div.dt-paging button.dt-paging-button.current,
-:root[data-theme='dark'] .dt-container div.dt-paging button.dt-paging-button.current,
-:root[data-bs-theme='dark'] .dt-container div.dt-paging button.dt-paging-button.current {
-    color: rgb(var(--dt-tw-primary-400));
-}
-
-@media (prefers-color-scheme: dark) {
-    :root:not(.light):not([data-theme='light']):not([data-bs-theme='light'])
-        .dt-container
-        div.dt-paging
-        button.dt-paging-button.current {
-        color: rgb(var(--dt-tw-primary-400));
-    }
-}
-
-.dt-container div.dt-paging button.dt-paging-button.disabled {
+.dt-container.dt-container div.dt-paging button.dt-paging-button.disabled {
     color: rgb(var(--dt-tw-text-muted));
     opacity: 0.7;
     cursor: default;
@@ -631,15 +652,15 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
 
 /* -------------------------------------------------------------- buttons -- */
 
-.dt-container div.dt-buttons {
+.dt-container.dt-container div.dt-buttons {
     display: inline-flex;
     flex-wrap: wrap;
     gap: 0.5rem;
 }
 
-.dt-container button.dt-button,
-.dt-container div.dt-button,
-.dt-container a.dt-button {
+.dt-container.dt-container button.dt-button,
+.dt-container.dt-container div.dt-button,
+.dt-container.dt-container a.dt-button {
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
@@ -656,16 +677,111 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
     transition: background-color var(--dt-tw-transition);
 }
 
-.dt-container button.dt-button:hover:not(.disabled),
-.dt-container a.dt-button:hover:not(.disabled) {
+.dt-container.dt-container button.dt-button:hover:not(.disabled),
+.dt-container.dt-container a.dt-button:hover:not(.disabled) {
     background: rgb(var(--dt-tw-surface-sunken) / var(--dt-tw-sunken-alpha));
     box-shadow: var(--dt-tw-ring-control), var(--dt-tw-shadow-sm);
 }
 
-.dt-container button.dt-button:focus-visible,
-.dt-container a.dt-button:focus-visible {
+.dt-container.dt-container button.dt-button:focus-visible,
+.dt-container.dt-container a.dt-button:focus-visible {
     outline: none;
     box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
+}
+
+/* ------------------------------------------------------- row actions -- */
+
+/*
+ * `Action::delete()`, `::edit()` and `::detail()` default to Bootstrap class
+ * names (`btn btn-danger`, …), and those defaults are part of the public API.
+ * Rather than change them, the theme restyles them inside the table so a
+ * Bootstrap-flavored action row still reads as part of this design. An app that
+ * sets its own `className` keeps whatever it passed.
+ *
+ * The variants only remap `--dt-tw-btn`, and every color they point at already
+ * flips with the palette, so no variant needs a dark-mode rule of its own.
+ */
+
+.dt-container.dt-container table.dataTable .btn {
+    --dt-tw-btn: var(--dt-tw-neutral);
+    --dt-tw-btn-text: var(--dt-tw-neutral-text);
+
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    border: 0;
+    border-radius: var(--dt-tw-radius-control);
+    background: rgb(var(--dt-tw-btn) / 0.1);
+    box-shadow: inset 0 0 0 1px rgb(var(--dt-tw-btn) / 0.2);
+    color: rgb(var(--dt-tw-btn-text));
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1rem;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--dt-tw-transition);
+}
+
+.dt-container.dt-container table.dataTable .btn:hover:not(:disabled) {
+    background: rgb(var(--dt-tw-btn) / 0.18);
+    color: rgb(var(--dt-tw-btn-text));
+}
+
+.dt-container.dt-container table.dataTable .btn:focus-visible {
+    outline: 2px solid rgb(var(--dt-tw-btn));
+    outline-offset: 2px;
+    box-shadow: inset 0 0 0 1px rgb(var(--dt-tw-btn) / 0.2);
+}
+
+.dt-container.dt-container table.dataTable .btn:disabled,
+.dt-container.dt-container table.dataTable .btn[aria-disabled='true'] {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.dt-container.dt-container table.dataTable .btn > i,
+.dt-container.dt-container table.dataTable .btn > svg {
+    flex-shrink: 0;
+}
+
+.dt-container.dt-container table.dataTable .btn-danger,
+.dt-container.dt-container table.dataTable .btn-outline-danger {
+    --dt-tw-btn: var(--dt-tw-danger);
+    --dt-tw-btn-text: var(--dt-tw-danger);
+}
+
+.dt-container.dt-container table.dataTable .btn-warning,
+.dt-container.dt-container table.dataTable .btn-outline-warning {
+    --dt-tw-btn: var(--dt-tw-warning);
+    --dt-tw-btn-text: var(--dt-tw-warning);
+}
+
+.dt-container.dt-container table.dataTable .btn-success,
+.dt-container.dt-container table.dataTable .btn-outline-success {
+    --dt-tw-btn: var(--dt-tw-success);
+    --dt-tw-btn-text: var(--dt-tw-success);
+}
+
+.dt-container.dt-container table.dataTable .btn-info,
+.dt-container.dt-container table.dataTable .btn-outline-info {
+    --dt-tw-btn: var(--dt-tw-info);
+    --dt-tw-btn-text: var(--dt-tw-info);
+}
+
+/* `Action::detail()` ships `btn-primary`, which reads as informational rather
+   than as the table's accent, so it maps to the info palette. */
+.dt-container.dt-container table.dataTable .btn-primary,
+.dt-container.dt-container table.dataTable .btn-outline-primary {
+    --dt-tw-btn: var(--dt-tw-info);
+    --dt-tw-btn-text: var(--dt-tw-info);
+}
+
+.dt-container.dt-container table.dataTable .btn-dark,
+.dt-container.dt-container table.dataTable .btn-outline-dark {
+    --dt-tw-btn: var(--dt-tw-text-strong);
+    --dt-tw-btn-text: var(--dt-tw-text-strong);
 }
 
 /* ------------------------------------------------------- column chrome -- */
@@ -864,7 +980,9 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
 }
 
 .dt-switch__input:focus-visible + .dt-switch__track {
-    box-shadow: 0 0 0 2px rgb(var(--dt-tw-surface)), 0 0 0 4px rgb(var(--dt-tw-primary-600));
+    box-shadow:
+        0 0 0 2px rgb(var(--dt-tw-surface)),
+        0 0 0 4px rgb(var(--dt-tw-primary-600));
 }
 
 .dt-switch__input:disabled + .dt-switch__track {
@@ -887,7 +1005,7 @@ div.dt-container div.dt-layout-end > *:not(:first-child) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .dt-container *,
+    .dt-container.dt-container *,
     .dt-switch__track,
     .dt-switch__track::after {
         transition-duration: 0.01ms !important;
@@ -966,41 +1084,41 @@ select.dt-filter-input {
 
 /* ---------------------------------------------------- browser surfaces -- */
 
-.dt-container ::selection {
+.dt-container.dt-container ::selection {
     background: rgb(var(--dt-tw-primary-500) / 0.3);
     color: rgb(var(--dt-tw-text));
 }
 
-.dt-container input,
-.dt-container select,
-.dt-container textarea {
+.dt-container.dt-container input,
+.dt-container.dt-container select,
+.dt-container.dt-container textarea {
     caret-color: rgb(var(--dt-tw-primary-600));
 }
 
-.dt-container :focus-visible {
+.dt-container.dt-container :focus-visible {
     outline: 2px solid rgb(var(--dt-tw-primary-600));
     outline-offset: 2px;
 }
 
-.dt-container .dt-scroll-body,
-.dt-container > .dt-layout-row.dt-layout-table {
+.dt-container.dt-container .dt-scroll-body,
+.dt-container.dt-container > .dt-layout-row.dt-layout-table {
     scrollbar-width: thin;
     scrollbar-color: rgb(var(--dt-tw-gray-400) / 0.6) transparent;
 }
 
-.dt-container .dt-scroll-body::-webkit-scrollbar,
-.dt-container > .dt-layout-row.dt-layout-table::-webkit-scrollbar {
+.dt-container.dt-container .dt-scroll-body::-webkit-scrollbar,
+.dt-container.dt-container > .dt-layout-row.dt-layout-table::-webkit-scrollbar {
     width: 0.5rem;
     height: 0.5rem;
 }
 
-.dt-container .dt-scroll-body::-webkit-scrollbar-thumb,
-.dt-container > .dt-layout-row.dt-layout-table::-webkit-scrollbar-thumb {
+.dt-container.dt-container .dt-scroll-body::-webkit-scrollbar-thumb,
+.dt-container.dt-container > .dt-layout-row.dt-layout-table::-webkit-scrollbar-thumb {
     border-radius: 999px;
     background: rgb(var(--dt-tw-gray-400) / 0.6);
 }
 
-.dt-container .dt-scroll-body::-webkit-scrollbar-track,
-.dt-container > .dt-layout-row.dt-layout-table::-webkit-scrollbar-track {
+.dt-container.dt-container .dt-scroll-body::-webkit-scrollbar-track,
+.dt-container.dt-container > .dt-layout-row.dt-layout-table::-webkit-scrollbar-track {
     background: transparent;
 }
