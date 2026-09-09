@@ -98,7 +98,7 @@ final class ColumnResolver
      *
      * @return ColumnInterface[]
      */
-    public function filterStaticPermissions(array $columns): array
+    public function filterStaticPermissions(array $columns, ?string $dataTableClass = null): array
     {
         $filtered = [];
 
@@ -111,7 +111,7 @@ final class ColumnResolver
 
             if ($column instanceof ActionColumn && null !== $column->getActions()) {
                 $column = clone $column;
-                $column->getActions()?->filterStaticPermissions($this->permissionChecker);
+                $column->getActions()?->filterStaticPermissions($this->permissionChecker, $dataTableClass);
             }
 
             $filtered[] = $column;

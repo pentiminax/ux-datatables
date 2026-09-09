@@ -37,7 +37,7 @@ final class DataTableRuntimeFactory
      * @param ColumnInterface[]     $columns
      * @param \Closure(mixed):array $baseMapper
      */
-    public function createRowMapper(\Closure $baseMapper, array $columns): RowMapperInterface
+    public function createRowMapper(\Closure $baseMapper, array $columns, ?string $dataTableClass = null): RowMapperInterface
     {
         return (new RowProcessingPipeline(
             $baseMapper,
@@ -46,6 +46,7 @@ final class DataTableRuntimeFactory
             $this->urlColumnDataResolver  ?? new UrlColumnDataResolver(),
             $this->templateColumnRenderer ?? new TemplateColumnRenderer(),
             $this->actionRowDataResolver  ?? new ActionRowDataResolver(),
+            $dataTableClass,
         ))
             ->add(new NormalizationStage())
             ->add(new IconColumnResolutionStage())
@@ -65,7 +66,7 @@ final class DataTableRuntimeFactory
         ?\Closure $pageProjector = null,
         ?callable $configureBaseQueryBuilder = null,
     ): DataTableRuntime {
-        $rowMapper = $this->createRowMapper($baseMapper, $columns);
+        $rowMapper = $this->createRowMapper($baseMapper, $columns, $table->getDataTableClass());
 
         // An export writes only the exportable columns, so its mapper is built from them alone:
         // template rendering and action resolution then have nothing to do, instead of running Twig,
@@ -73,6 +74,7 @@ final class DataTableRuntimeFactory
         $exportRowMapper = $this->createRowMapper(
             baseMapper: $baseMapper,
             columns: $this->columnResolver()->filterExportable($columns),
+            dataTableClass: $table->getDataTableClass(),
         );
 
         return new DataTableRuntime(

@@ -22,6 +22,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -152,7 +153,7 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->never())->method('publish');
 
-        $mutator = $this->mutator($manager, $publisher, permissionChecker: $this->denyingChecker('DELETE', $entity));
+        $mutator = $this->mutator($manager, $publisher, permissionChecker: $this->denyingChecker(Permission::DT_DELETE_ROW, $entity));
 
         $this->expectException(MutationNotAllowedException::class);
 
@@ -184,7 +185,7 @@ final class EntityMutatorTest extends TestCase
             $manager,
             $publisher,
             accessor: $accessor,
-            permissionChecker: $this->denyingChecker('EDIT', $entity),
+            permissionChecker: $this->denyingChecker(Permission::DT_EDIT_ROW, $entity),
         );
 
         $this->expectException(MutationNotAllowedException::class);

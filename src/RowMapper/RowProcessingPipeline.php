@@ -28,6 +28,7 @@ final class RowProcessingPipeline implements RowMapperInterface
         private readonly UrlColumnDataResolver $urlColumnDataResolver = new UrlColumnDataResolver(),
         private readonly TemplateColumnRenderer $templateColumnRenderer = new TemplateColumnRenderer(),
         private readonly ActionRowDataResolver $actionRowDataResolver = new ActionRowDataResolver(),
+        private readonly ?string $dataTableClass = null,
     ) {
     }
 
@@ -40,7 +41,7 @@ final class RowProcessingPipeline implements RowMapperInterface
 
     public function map(mixed $row): array
     {
-        $visibleColumns = $this->columnResolver->filterStaticPermissions($this->columns);
+        $visibleColumns = $this->columnResolver->filterStaticPermissions($this->columns, $this->dataTableClass);
         $mappedRow      = $this->columnResolver->removeDeniedColumnValues(
             ($this->baseMapper)($row),
             $this->columns,
@@ -57,6 +58,6 @@ final class RowProcessingPipeline implements RowMapperInterface
             columns: $visibleColumns,
         );
 
-        return $this->actionRowDataResolver->resolveRow($mappedRow, $row, $visibleColumns);
+        return $this->actionRowDataResolver->resolveRow($mappedRow, $row, $visibleColumns, $this->dataTableClass);
     }
 }

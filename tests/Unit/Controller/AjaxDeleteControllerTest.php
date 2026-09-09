@@ -17,25 +17,31 @@ use Pentiminax\UX\DataTables\Controller\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
+use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
+use Pentiminax\UX\DataTables\Security\Permission;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
@@ -174,6 +180,80 @@ final class AjaxDeleteControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_missing_delete_action_before_touching_the_entity(): void
+    {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManagerForClass');
+
+        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+
+        $controller = $this->createController($registry, $csrfTokenManager, new DeleteActionMissingDataTable());
+
+        $this->expectException(MutationNotAllowedException::class);
+        $controller($this->createRequest(), new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 12));
+    }
+
+    #[Test]
+    public function it_rejects_static_delete_action_denial_before_touching_the_entity(): void
+    {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManagerForClass');
+
+        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+
+        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker->method('isGranted')->willReturn(false);
+
+        $controller = $this->createController(
+            $registry,
+            $csrfTokenManager,
+            new StaticDeniedDeleteActionDataTable(),
+            new AuthorizationChecker($checker),
+        );
+
+        $this->expectException(MutationNotAllowedException::class);
+        $controller($this->createRequest(), new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 12));
+    }
+
+    #[Test]
+    public function it_rejects_row_scoped_delete_action_denial_before_mutation(): void
+    {
+        $entity = new DeletableEntityFixture();
+
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->expects($this->once())->method('find')->with(12)->willReturn($entity);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('getRepository')->with(DeletableEntityFixture::class)->willReturn($repository);
+        $manager->expects($this->never())->method('remove');
+        $manager->expects($this->never())->method('flush');
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->with(DeletableEntityFixture::class)->willReturn($manager);
+
+        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+
+        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker->method('isGranted')->willReturnCallback(
+            static fn (string $attribute, mixed $subject = null): bool => Permission::DT_DELETE_ROW === $attribute
+                || ($subject instanceof ActionPermissionContext && !$subject->hasRowContext)
+        );
+
+        $controller = $this->createController(
+            $registry,
+            $csrfTokenManager,
+            new RowDeniedDeleteActionDataTable(),
+            new AuthorizationChecker($checker),
+        );
+
+        $this->expectException(MutationNotAllowedException::class);
+        $controller($this->createRequest(), new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 12));
+    }
+
+    #[Test]
     public function it_rejects_an_unknown_data_table_token_before_touching_the_entity(): void
     {
         $registry = $this->createMock(ManagerRegistry::class);
@@ -218,18 +298,23 @@ final class AjaxDeleteControllerTest extends TestCase
      * Controller wired on a mutator that publishes nothing, for tests that only assert
      * on the token validation and on the absence of any entity lookup.
      */
-    private function createController(ManagerRegistry $registry, CsrfTokenManagerInterface $csrfTokenManager): AjaxDeleteController
-    {
+    private function createController(
+        ManagerRegistry $registry,
+        CsrfTokenManagerInterface $csrfTokenManager,
+        ?AbstractDataTable $dataTable = null,
+        ?AuthorizationChecker $permissionChecker = null,
+    ): AjaxDeleteController {
         return new AjaxDeleteController(
             new EntityMutator(
                 new EntityLocator($registry),
                 $this->createMock(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
-                new AuthorizationChecker(),
+                $permissionChecker ?? new AuthorizationChecker(),
                 new MercureTopicResolver(),
             ),
             new MutationTokenValidator($csrfTokenManager),
-            $this->registry(),
+            $this->registry($dataTable),
+            $permissionChecker,
         );
     }
 
@@ -268,7 +353,34 @@ final class DeletableEntityFixture
 }
 
 #[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
-final class DeletableEntityFixtureDataTable extends AbstractDataTable
+final class DeleteActionMissingDataTable extends DeletableEntityFixtureDataTable
+{
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions;
+    }
+}
+
+#[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
+final class StaticDeniedDeleteActionDataTable extends DeletableEntityFixtureDataTable
+{
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(Action::delete()->permission('DELETE_BOOK'));
+    }
+}
+
+#[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
+final class RowDeniedDeleteActionDataTable extends DeletableEntityFixtureDataTable
+{
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(Action::delete()->permission('DELETE_BOOK', static fn (object $entity): object => $entity));
+    }
+}
+
+#[AsDataTable(entityClass: DeletableEntityFixture::class, mercure: true)]
+class DeletableEntityFixtureDataTable extends AbstractDataTable
 {
     public function __construct(
         private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
@@ -291,5 +403,10 @@ final class DeletableEntityFixtureDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(Action::delete());
     }
 }

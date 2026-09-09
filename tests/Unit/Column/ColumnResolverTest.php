@@ -16,7 +16,9 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -375,7 +377,20 @@ final class ColumnResolverTest extends TestCase
     private function createResolverWithPermissions(array $isGrantedMap): ColumnResolver
     {
         $inner = $this->createMock(AuthorizationCheckerInterface::class);
-        $inner->method('isGranted')->willReturnMap($isGrantedMap);
+        $inner->method('isGranted')->willReturnCallback(static function (string $attribute, mixed $subject = null) use ($isGrantedMap): bool {
+            if (Permission::DT_EXECUTE_ACTION === $attribute && $subject instanceof ActionPermissionContext) {
+                $attribute = (string) $subject->action->getPermission();
+                $subject   = null;
+            }
+
+            foreach ($isGrantedMap as [$expectedAttribute, $expectedSubject, $granted]) {
+                if ($attribute === $expectedAttribute && $subject === $expectedSubject) {
+                    return $granted;
+                }
+            }
+
+            return true;
+        });
 
         return new ColumnResolver(permissionChecker: new AuthorizationChecker($inner));
     }

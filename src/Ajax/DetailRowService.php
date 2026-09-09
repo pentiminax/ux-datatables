@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Ajax;
 
-use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
-use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use Twig\Environment;
 
 final readonly class DetailRowService
@@ -31,10 +31,14 @@ final readonly class DetailRowService
             return AjaxActionResult::badRequest('Twig is required to render a detail row.');
         }
 
-        $action = $this->resolveCollapsibleDetailAction($dataTable->table);
+        $action = $dataTable->findAction(ActionType::Detail, collapsible: true);
 
         if (null === $action) {
             return AjaxActionResult::badRequest('No collapsible detail action is configured for this DataTable.');
+        }
+
+        if (!$this->isActionGranted($dataTable, $action, null, false)) {
+            return AjaxActionResult::forbidden();
         }
 
         try {
@@ -43,7 +47,7 @@ final readonly class DetailRowService
             return AjaxActionResult::notFound();
         }
 
-        if (!$this->isGranted($action, $context->entity)) {
+        if (!$this->isGranted($dataTable, $action, $context->entity)) {
             return AjaxActionResult::forbidden();
         }
 
@@ -53,41 +57,22 @@ final readonly class DetailRowService
     }
 
     /**
-     * Mirrors the permission the rendering pipeline evaluates for this action, so an
-     * action the user cannot see is also an action they cannot fetch. A per-row
-     * resolver receives the located entity, which is the row source for the Doctrine
-     * tables that can reach this endpoint. Actions without a configured permission
-     * fall back to VIEW on the entity, matching DELETE and EDIT elsewhere.
+     * Mirrors the permissions the rendering pipeline evaluates for this action, so
+     * an action the user cannot see is also an action they cannot fetch.
      */
-    private function isGranted(Action $action, object $entity): bool
+    private function isGranted(ResolvedDataTable $dataTable, Action $action, object $entity): bool
     {
-        if ($action->hasPerRowPermission()) {
-            $resolver = $action->getPermissionSubjectResolver();
-
-            return $this->permissionChecker->isGranted($action->getPermission(), $resolver($entity));
-        }
-
-        if ($action->hasStaticPermission()) {
-            return $this->permissionChecker->isGranted($action->getPermission());
-        }
-
-        return $this->permissionChecker->isGranted('VIEW', $entity);
+        return $this->permissionChecker->isGranted(Permission::DT_VIEW_ROW_DETAILS, $entity)
+            && $this->isActionGranted($dataTable, $action, $entity, $action->hasPerRowPermission());
     }
 
-    private function resolveCollapsibleDetailAction(AbstractDataTable $dataTable): ?Action
+    private function isActionGranted(ResolvedDataTable $dataTable, Action $action, mixed $source, bool $hasRowContext): bool
     {
-        foreach ($dataTable->getConfiguredDataTable()->getColumns() as $column) {
-            if (!$column instanceof ActionsProvidingColumnInterface) {
-                continue;
-            }
-
-            foreach ($column->getActions()?->getActions() ?? [] as $action) {
-                if (ActionType::Detail === $action->getType() && $action->isCollapsible()) {
-                    return $action;
-                }
-            }
-        }
-
-        return null;
+        return $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
+            $dataTable->dataTableClass,
+            $action,
+            $source,
+            $hasRowContext,
+        ));
     }
 }

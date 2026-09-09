@@ -9,7 +9,9 @@ use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -128,7 +130,11 @@ final class ActionRowDataResolverTest extends TestCase
         $inner
             ->expects($this->once())
             ->method('isGranted')
-            ->with('EDIT', $sourceRow)
+            ->with(Permission::DT_EXECUTE_ACTION, $this->callback(
+                static fn (ActionPermissionContext $context): bool => ActionRowDataTableFixture::class === $context->dataTableClass
+                    && $context->currentSource                                                         === $sourceRow
+                    && $context->hasRowContext
+            ))
             ->willReturn($granted);
 
         $action = Action::edit()
@@ -141,6 +147,7 @@ final class ActionRowDataResolverTest extends TestCase
             $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]] : null,
             $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
         );
+        $this->assertSame($granted ? null : ['EDIT'], $result[ActionRowDataResolver::DENIED_ACTIONS_KEY] ?? null);
     }
 
     #[Test]
@@ -177,7 +184,10 @@ final class ActionRowDataResolverTest extends TestCase
         $inner
             ->expects($this->once())
             ->method('isGranted')
-            ->with('ROLE_EDITOR', null)
+            ->with(Permission::DT_EXECUTE_ACTION, $this->callback(
+                static fn (ActionPermissionContext $context): bool => ActionRowDataTableFixture::class === $context->dataTableClass
+                    && !$context->hasRowContext
+            ))
             ->willReturn($granted);
 
         $action = Action::edit()
@@ -194,6 +204,7 @@ final class ActionRowDataResolverTest extends TestCase
             $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]] : null,
             $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
         );
+        $this->assertSame($granted ? null : ['EDIT'], $result[ActionRowDataResolver::DENIED_ACTIONS_KEY] ?? null);
     }
 
     #[Test]
@@ -203,7 +214,9 @@ final class ActionRowDataResolverTest extends TestCase
         $inner
             ->expects($this->once())
             ->method('isGranted')
-            ->with('OWNS', 'alice')
+            ->with(Permission::DT_EXECUTE_ACTION, $this->callback(
+                static fn (ActionPermissionContext $context): bool => 'alice' === ($context->action->getPermissionSubjectResolver())($context->currentSource)
+            ))
             ->willReturn(true);
 
         $action = Action::edit()
@@ -342,8 +355,12 @@ final class ActionRowDataResolverTest extends TestCase
             $collection->add($action);
         }
 
-        return $resolver->resolveRow([], $sourceRow, [ActionColumn::fromActions('actions', '', $collection)]);
+        return $resolver->resolveRow([], $sourceRow, [ActionColumn::fromActions('actions', '', $collection)], ActionRowDataTableFixture::class);
     }
+}
+
+final class ActionRowDataTableFixture
+{
 }
 
 final class ActionRowDataResolverEntity
