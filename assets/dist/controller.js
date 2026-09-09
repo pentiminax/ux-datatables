@@ -10,10 +10,10 @@ import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
 import { ApiPlatformAdapter, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js';
-import { applyServerExportUrls } from './functions/serverExport.js';
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
+import { detectTheme } from './functions/detectTheme.js';
 import { ExtensionRegistry } from './functions/extensionRegistry.js';
 import { fetchDetailRow } from './functions/fetchDetailRow.js';
 import { fetchEditForm } from './functions/fetchEditForm.js';
@@ -25,7 +25,9 @@ import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { applyLocalLanguage } from './functions/localLanguage.js';
 import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js';
 import { runAjaxAction } from './functions/runAjaxAction.js';
+import { applyServerExportUrls } from './functions/serverExport.js';
 import { submitEditForm } from './functions/submitEditForm.js';
+import { applyThemeSearchPlaceholder } from './functions/themeSearchField.js';
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js';
 import { applyUrlStateToPayload, isUrlStateEnabled, readUrlState, writeUrlState, } from './functions/urlState.js';
 import { resolveModalAdapter } from './modal/resolveModalAdapter.js';
@@ -125,6 +127,10 @@ class default_1 extends Controller {
         applyServerExportUrls(payload);
         applyCustomButtonActions(payload);
         this.table = new DataTable(this.element, payload);
+        const themedContainer = this.element.closest('.dt-container');
+        if (themedContainer && detectTheme() !== null) {
+            applyThemeSearchPlaceholder(themedContainer);
+        }
         this.dispatchEvent('connect', { table: this.table });
         if (urlStateCfg && this.table) {
             this.table.on('draw.dt', () => writeUrlState(urlStateCfg, this.table));
@@ -224,7 +230,7 @@ class default_1 extends Controller {
     }
     configureColumns(payload) {
         normalizeDisabledColumnControls(payload);
-        const style = resolveColumnStyleAdapter(this.framework);
+        const style = resolveColumnStyleAdapter(this.framework, detectTheme());
         const columnRenderers = [
             createBooleanColumnRenderer(this.getBooleanToggleUrl(), this.areMutationsEnabled(payload) &&
                 typeof payload.dataTable === 'string' &&

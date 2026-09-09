@@ -1,0 +1,1010 @@
+:root {
+    --dt-tw-theme: tailwind;
+
+    --dt-tw-primary-400: 251 191 36;
+    --dt-tw-primary-500: 245 158 11;
+    --dt-tw-primary-600: 217 119 6;
+    --dt-tw-primary-700: 180 83 9;
+
+    --dt-tw-gray-50: 249 250 251;
+    --dt-tw-gray-100: 243 244 246;
+    --dt-tw-gray-200: 229 231 235;
+    --dt-tw-gray-400: 156 163 175;
+    --dt-tw-gray-500: 107 114 128;
+    --dt-tw-gray-600: 75 85 99;
+    --dt-tw-gray-900: 17 24 39;
+    --dt-tw-gray-950: 3 7 18;
+
+    /* Semantic channels, as space-separated RGB so a rule can derive a tint
+       with `rgb(var(--x) / 0.1)`. Each one flips in the dark block below, which
+       is why no component needs a dark-mode rule of its own. */
+    --dt-tw-success: 21 128 61;
+    --dt-tw-warning: 180 83 9;
+    --dt-tw-danger: 185 28 28;
+    --dt-tw-info: 3 105 161;
+    --dt-tw-neutral: var(--dt-tw-gray-500);
+    --dt-tw-neutral-text: var(--dt-tw-gray-600);
+    --dt-tw-primary-text: var(--dt-tw-primary-700);
+
+    --dt-tw-surface: 255 255 255;
+    --dt-tw-on-primary: var(--dt-tw-gray-950);
+    --dt-tw-text: var(--dt-tw-gray-950);
+    --dt-tw-text-muted: var(--dt-tw-gray-500);
+    --dt-tw-text-strong: var(--dt-tw-gray-950);
+
+    /* Full colors rather than channels: in dark mode a raised area is
+       translucent white over the card, not a second opaque gray, and a channel
+       cannot carry that alpha without a companion token per surface. */
+    --dt-tw-sunken: rgb(var(--dt-tw-gray-50));
+    --dt-tw-head: rgb(var(--dt-tw-gray-100));
+    --dt-tw-track: rgb(var(--dt-tw-gray-200));
+    --dt-tw-color-scheme: light;
+
+    /* Every surface is outlined with a ring instead of a border, so the
+       hairline never participates in layout. Rendered as an inset box-shadow. */
+    --dt-tw-ring: 0 0 0 1px rgb(var(--dt-tw-gray-950) / 0.05);
+    --dt-tw-ring-control: inset 0 0 0 1px rgb(var(--dt-tw-gray-950) / 0.1);
+    --dt-tw-ring-focus: inset 0 0 0 2px rgb(var(--dt-tw-primary-600));
+    --dt-tw-divider: rgb(var(--dt-tw-gray-950) / 0.08);
+
+    --dt-tw-shadow-sm: 0 1px 2px 0 rgb(var(--dt-tw-gray-950) / 0.05);
+    --dt-tw-shadow-panel:
+        0 10px 15px -3px rgb(var(--dt-tw-gray-950) / 0.1),
+        0 4px 6px -4px rgb(var(--dt-tw-gray-950) / 0.1);
+
+    --dt-tw-radius-panel: 0.75rem;
+    --dt-tw-radius-control: 0.5rem;
+    --dt-tw-radius-badge: 0.375rem;
+
+    --dt-tw-transition: 75ms ease;
+
+    /* One chevron for the length menu and for the filter selects. The stroke
+       color is baked into the data URI, so the dark palette swaps the token
+       rather than repeating the markup. */
+    --dt-tw-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%236b7280' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not(.light, [data-theme='light'], [data-bs-theme='light']) {
+        --dt-tw-surface: var(--dt-tw-gray-900);
+        --dt-tw-text: 255 255 255;
+        --dt-tw-text-muted: var(--dt-tw-gray-400);
+        --dt-tw-text-strong: 255 255 255;
+
+        --dt-tw-success: 74 222 128;
+        --dt-tw-warning: 251 191 36;
+        --dt-tw-danger: 248 113 113;
+        --dt-tw-info: 56 189 248;
+        --dt-tw-neutral: var(--dt-tw-gray-400);
+        --dt-tw-neutral-text: var(--dt-tw-gray-200);
+        --dt-tw-primary-text: var(--dt-tw-primary-400);
+
+        --dt-tw-sunken: rgb(255 255 255 / 0.05);
+        --dt-tw-head: rgb(255 255 255 / 0.05);
+        --dt-tw-track: rgb(255 255 255 / 0.1);
+        --dt-tw-color-scheme: dark;
+
+        --dt-tw-ring: 0 0 0 1px rgb(255 255 255 / 0.1);
+        --dt-tw-ring-control: inset 0 0 0 1px rgb(255 255 255 / 0.2);
+        --dt-tw-ring-focus: inset 0 0 0 2px rgb(var(--dt-tw-primary-500));
+        --dt-tw-divider: rgb(255 255 255 / 0.08);
+        --dt-tw-shadow-panel: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+
+        --dt-tw-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239ca3af' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+    }
+}
+
+:root:is(.dark, [data-theme='dark'], [data-bs-theme='dark']) {
+    --dt-tw-surface: var(--dt-tw-gray-900);
+    --dt-tw-text: 255 255 255;
+    --dt-tw-text-muted: var(--dt-tw-gray-400);
+    --dt-tw-text-strong: 255 255 255;
+
+    --dt-tw-success: 74 222 128;
+    --dt-tw-warning: 251 191 36;
+    --dt-tw-danger: 248 113 113;
+    --dt-tw-info: 56 189 248;
+    --dt-tw-neutral: var(--dt-tw-gray-400);
+    --dt-tw-neutral-text: var(--dt-tw-gray-200);
+    --dt-tw-primary-text: var(--dt-tw-primary-400);
+
+    --dt-tw-sunken: rgb(255 255 255 / 0.05);
+    --dt-tw-head: rgb(255 255 255 / 0.05);
+    --dt-tw-track: rgb(255 255 255 / 0.1);
+    --dt-tw-color-scheme: dark;
+
+    --dt-tw-ring: 0 0 0 1px rgb(255 255 255 / 0.1);
+    --dt-tw-ring-control: inset 0 0 0 1px rgb(255 255 255 / 0.2);
+    --dt-tw-ring-focus: inset 0 0 0 2px rgb(var(--dt-tw-primary-500));
+    --dt-tw-divider: rgb(255 255 255 / 0.08);
+    --dt-tw-shadow-panel: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+
+    --dt-tw-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239ca3af' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+}
+
+/* Bridge the DataTables core variables so the parts we do not restyle
+   (row selection, ordering glyphs) follow the same palette. */
+.dt-container.dt-container {
+    --dt_background-selected: var(--dt-tw-primary-500);
+    --dt_color-selected: var(--dt-tw-gray-950);
+    --dt-row_background-hover: var(--dt-tw-gray-950);
+    --dt-row_background-stripe: var(--dt-tw-gray-950);
+    --dt-column-ordering_background: var(--dt-tw-text-muted);
+    --dt-processing-circle_background: var(--dt-tw-primary-500);
+}
+
+/* ---------------------------------------------------------------- shell -- */
+
+/* DataTables' own layout CSS sizes the rows in a content box, so the card's
+   horizontal padding would otherwise push the toolbar past the card edge. */
+.dt-container.dt-container,
+.dt-container.dt-container *,
+.dt-container.dt-container *::before,
+.dt-container.dt-container *::after {
+    box-sizing: border-box;
+}
+
+/* Native controls the theme cannot paint — date pickers, select popups, the
+   caret — follow `color-scheme`, which inherits into both surfaces. */
+.dt-container.dt-container,
+.dt-filters-popover {
+    color-scheme: var(--dt-tw-color-scheme, light);
+}
+
+.dt-container.dt-container {
+    position: relative;
+    /* A flex or grid parent sizes its items from max-content unless told
+       otherwise, which a wide table turns into page-level overflow. */
+    min-width: 0;
+    max-width: 100%;
+    border-radius: var(--dt-tw-radius-panel);
+    background: rgb(var(--dt-tw-surface));
+    box-shadow: var(--dt-tw-shadow-sm), var(--dt-tw-ring);
+    color: rgb(var(--dt-tw-text));
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+.dt-container.dt-container > .dt-layout-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.5rem;
+}
+
+/* The toolbar rows read as chrome around the data, so they are separated by a
+   rule rather than by whitespace — the table stays flush with the card edge. */
+.dt-container.dt-container > .dt-layout-row:first-child {
+    border-bottom: 1px solid var(--dt-tw-divider);
+}
+
+.dt-container.dt-container > .dt-layout-row:last-child {
+    border-top: 1px solid var(--dt-tw-divider);
+}
+
+/* A wide table scrolls inside the card instead of pushing the page sideways —
+   the card, the toolbar and the pagination stay put on narrow viewports. */
+.dt-container.dt-container > .dt-layout-row.dt-layout-table {
+    display: block;
+    padding: 0;
+    border: 0;
+    overflow-x: auto;
+}
+
+.dt-container.dt-container .dt-layout-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 2.25rem;
+    margin: 0;
+    padding: 0;
+}
+
+.dt-container.dt-container .dt-layout-end {
+    margin-inline-start: auto;
+    justify-content: flex-end;
+}
+
+.dt-container.dt-container .dt-layout-full {
+    flex: 1 1 100%;
+}
+
+/* DataTables' own layout CSS uses `div.dt-container div.dt-layout-*` selectors
+   and per-child margins; these match that specificity so `gap` stays in charge. */
+div.dt-container.dt-container div.dt-layout-start > *:not(:last-child),
+div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
+    margin: 0;
+}
+
+/* 767px is where DataTables switches its own layout rows to a stacked block
+   flow; the theme keeps them flex so the toolbar stays left-aligned. */
+@media screen and (max-width: 767px) {
+    .dt-container.dt-container > .dt-layout-row {
+        gap: 0.75rem;
+        padding-inline: 1rem;
+    }
+
+    div.dt-container.dt-container div.dt-layout-row:not(.dt-layout-table) {
+        display: flex;
+    }
+
+    div.dt-container.dt-container div.dt-layout-row:not(.dt-layout-table) div.dt-layout-cell {
+        display: flex;
+        flex: 1 1 100%;
+        justify-content: flex-start;
+        margin-inline-start: 0;
+        text-align: start;
+    }
+
+    div.dt-container.dt-container div.dt-layout-row:not(.dt-layout-table) div.dt-layout-cell > * {
+        margin: 0;
+    }
+
+    .dt-container.dt-container div.dt-search {
+        flex: 1 1 100%;
+    }
+
+    .dt-container.dt-container div.dt-search input {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .dt-container.dt-container
+        table.dataTable
+        :is(thead, tbody, tfoot)
+        > tr
+        > :is(th, td):first-child {
+        padding-inline-start: 1rem;
+    }
+
+    .dt-container.dt-container
+        table.dataTable
+        :is(thead, tbody, tfoot)
+        > tr
+        > :is(th, td):last-child {
+        padding-inline-end: 1rem;
+    }
+}
+
+/* ------------------------------------------------------------- controls -- */
+
+.dt-container.dt-container label {
+    margin: 0;
+    color: rgb(var(--dt-tw-text-muted));
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.dt-container.dt-container div.dt-search input,
+.dt-container.dt-container div.dt-length select {
+    appearance: none;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border: 0;
+    border-radius: var(--dt-tw-radius-control);
+    background: rgb(var(--dt-tw-surface));
+    box-shadow: var(--dt-tw-ring-control), var(--dt-tw-shadow-sm);
+    color: rgb(var(--dt-tw-text));
+    font-size: 0.875rem;
+    line-height: 1.5rem;
+    transition: box-shadow var(--dt-tw-transition);
+}
+
+.dt-container.dt-container div.dt-length select {
+    min-width: 5rem;
+    padding-inline-end: 2rem;
+    background-image: var(--dt-tw-chevron);
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.15rem;
+}
+
+/* `background-position` has no logical equivalent, so the side the chevron is
+   drawn on is the one thing `padding-inline-end` cannot carry into RTL. */
+[dir='rtl'] .dt-container.dt-container div.dt-length select {
+    background-position: left 0.5rem center;
+}
+
+.dt-container.dt-container div.dt-search input::placeholder {
+    color: rgb(var(--dt-tw-text-muted));
+}
+
+.dt-container.dt-container div.dt-search input:focus,
+.dt-container.dt-container div.dt-length select:focus {
+    outline: none;
+    box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
+}
+
+.dt-container.dt-container div.dt-search {
+    gap: 0.5rem;
+}
+
+.dt-container.dt-container div.dt-search input {
+    min-width: 14rem;
+}
+
+/* `applyThemeSearchPlaceholder` moves the label text into the placeholder and
+   marks the label, which stays in the DOM as the input's accessible name. */
+.dt-container.dt-container div.dt-search label.dt-search-label-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* ---------------------------------------------------------------- table -- */
+
+.dt-container.dt-container table.dataTable {
+    width: 100%;
+    margin: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    color: rgb(var(--dt-tw-text));
+}
+
+.dt-container.dt-container table.dataTable thead > tr > :is(th, td) {
+    padding: 0.875rem 0.75rem;
+    border: 0;
+    border-bottom: 1px solid var(--dt-tw-divider);
+    background: var(--dt-tw-head);
+    color: rgb(var(--dt-tw-text-strong));
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25rem;
+    white-space: nowrap;
+}
+
+.dt-container.dt-container table.dataTable :is(thead, tbody, tfoot) > tr > :is(th, td):first-child {
+    padding-inline-start: 1.5rem;
+}
+
+.dt-container.dt-container table.dataTable :is(thead, tbody, tfoot) > tr > :is(th, td):last-child {
+    padding-inline-end: 1.5rem;
+}
+
+.dt-container.dt-container
+    table.dataTable
+    thead
+    > tr
+    > th:is(.dt-orderable-asc, .dt-orderable-desc):hover {
+    outline: none;
+    background: var(--dt-tw-sunken);
+}
+
+.dt-container.dt-container table.dataTable thead > tr > th:is(.dt-ordering-asc, .dt-ordering-desc) {
+    color: rgb(var(--dt-tw-text-strong));
+}
+
+/* A sort caret on every sortable column turns the header into a row of arrows.
+   Only the active sort stays visible; the rest surface on hover or keyboard
+   focus, which is where the affordance is actually needed. */
+@media (hover: hover) {
+    .dt-container.dt-container
+        table.dataTable
+        thead
+        > tr
+        > th:not(.dt-ordering-asc, .dt-ordering-desc)
+        .dt-column-order {
+        opacity: 0;
+        transition: opacity var(--dt-tw-transition);
+    }
+
+    .dt-container.dt-container
+        table.dataTable
+        thead
+        > tr
+        > th:is(:hover, :focus-within)
+        .dt-column-order {
+        opacity: 1;
+    }
+}
+
+.dt-container.dt-container table.dataTable tbody > tr > td {
+    padding: 0.75rem;
+    border: 0;
+    border-top: 1px solid var(--dt-tw-divider);
+    background: transparent;
+    vertical-align: middle;
+}
+
+.dt-container.dt-container table.dataTable tbody > tr:first-child > td {
+    border-top: 0;
+}
+
+.dt-container.dt-container table.dataTable tbody > tr {
+    transition: background-color var(--dt-tw-transition);
+}
+
+@media (hover: hover) {
+    .dt-container.dt-container table.dataTable tbody > tr:hover > td {
+        background: var(--dt-tw-sunken);
+    }
+}
+
+.dt-container.dt-container table.dataTable tbody > tr.selected > td {
+    background: rgb(var(--dt-tw-primary-500) / 0.12);
+    box-shadow: none;
+    color: rgb(var(--dt-tw-text));
+}
+
+/* Figures line up column-wise only with lining tabular numerals; DataTables
+   already tags the columns it detected as numeric or date. */
+.dt-container.dt-container table.dataTable td:is(.dt-type-numeric, .dt-type-date),
+.dt-container.dt-container div.dt-info,
+.dt-container.dt-container div.dt-paging {
+    font-variant-numeric: tabular-nums;
+}
+
+.dt-container.dt-container table.dataTable tfoot > tr > :is(th, td) {
+    padding: 0.75rem;
+    border: 0;
+    border-top: 1px solid var(--dt-tw-divider);
+    color: rgb(var(--dt-tw-text-muted));
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+/* ---------------------------------------------------------- empty state -- */
+
+.dt-container.dt-container table.dataTable td.dt-empty {
+    padding: 3.5rem 1.5rem;
+    color: rgb(var(--dt-tw-text-muted));
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+/* ---------------------------------------------------------- processing -- */
+
+.dt-container.dt-container div.dt-processing {
+    top: 0;
+    left: 50%;
+    width: auto;
+    margin: 0;
+    padding: 0.375rem 1rem;
+    transform: translate(-50%, -50%);
+    border-radius: 999px;
+    background: rgb(var(--dt-tw-surface));
+    box-shadow: var(--dt-tw-shadow-panel), var(--dt-tw-ring);
+    color: rgb(var(--dt-tw-text-muted));
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.dt-container.dt-container div.dt-processing > div:last-child {
+    width: 3rem;
+    height: 0.5rem;
+    margin: 0.35rem auto 0.15rem;
+}
+
+.dt-container.dt-container div.dt-processing > div:last-child > div {
+    top: 0;
+    width: 0.5rem;
+    height: 0.5rem;
+}
+
+.dt-container.dt-container div.dt-processing > div:last-child > div:nth-child(-n + 2) {
+    left: 0;
+}
+
+.dt-container.dt-container div.dt-processing > div:last-child > div:nth-child(3) {
+    left: 1.25rem;
+}
+
+.dt-container.dt-container div.dt-processing > div:last-child > div:nth-child(4) {
+    left: 2.5rem;
+}
+
+/* --------------------------------------------------------------- paging -- */
+
+.dt-container.dt-container div.dt-info {
+    color: rgb(var(--dt-tw-text-muted));
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.dt-container.dt-container div.dt-paging {
+    display: inline-flex;
+    border-radius: var(--dt-tw-radius-control);
+    background: rgb(var(--dt-tw-surface));
+    box-shadow: var(--dt-tw-ring-control), var(--dt-tw-shadow-sm);
+    overflow: hidden;
+}
+
+.dt-container.dt-container div.dt-paging nav {
+    display: flex;
+}
+
+.dt-container.dt-container div.dt-paging button.dt-paging-button {
+    min-width: 2.25rem;
+    height: 2.25rem;
+    margin: 0;
+    padding: 0 0.625rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: rgb(var(--dt-tw-text));
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 2.25rem;
+    transition:
+        background-color var(--dt-tw-transition),
+        color var(--dt-tw-transition);
+}
+
+.dt-container.dt-container div.dt-paging button.dt-paging-button + button.dt-paging-button {
+    border-inline-start: 1px solid var(--dt-tw-divider);
+}
+
+/* DataTables writes «, ‹, › and » as text. Swapped for drawn chevrons so the
+   step controls share the icon weight of the rest of the table. */
+.dt-container.dt-container
+    div.dt-paging
+    button.dt-paging-button:is(.first, .previous, .next, .last) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0;
+}
+
+.dt-container.dt-container
+    div.dt-paging
+    button.dt-paging-button:is(.first, .previous, .next, .last)::before {
+    content: '';
+    width: 1.125rem;
+    height: 1.125rem;
+    background: currentColor;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    mask-size: contain;
+}
+
+.dt-container.dt-container div.dt-paging button.dt-paging-button.previous::before {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 19.5 7.5 12 15 4.5'/%3E%3C/svg%3E");
+}
+
+.dt-container.dt-container div.dt-paging button.dt-paging-button.next::before {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 4.5 16.5 12 9 19.5'/%3E%3C/svg%3E");
+}
+
+.dt-container.dt-container div.dt-paging button.dt-paging-button.first::before {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18.5 19.5 11 12l7.5-7.5M11.5 19.5 4 12l7.5-7.5'/%3E%3C/svg%3E");
+}
+
+.dt-container.dt-container div.dt-paging button.dt-paging-button.last::before {
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 4.5 13 12l-7.5 7.5M12.5 4.5 20 12l-7.5 7.5'/%3E%3C/svg%3E");
+}
+
+[dir='rtl']
+    .dt-container.dt-container
+    div.dt-paging
+    button.dt-paging-button:is(.first, .previous, .next, .last)::before {
+    scale: -1 1;
+}
+
+.dt-container.dt-container
+    div.dt-paging
+    button.dt-paging-button:is(:hover, :active):not(.disabled) {
+    border: 0;
+    background: rgb(var(--dt-tw-neutral) / 0.12);
+    box-shadow: none;
+    color: rgb(var(--dt-tw-text));
+}
+
+.dt-container.dt-container
+    div.dt-paging
+    button.dt-paging-button
+    + button.dt-paging-button:hover:not(.disabled) {
+    border-inline-start: 1px solid var(--dt-tw-divider);
+}
+
+/* The active page is a filled chip, not a tint: inside a segmented group a tint
+   sits too close to the hover state to read as the current page. */
+.dt-container.dt-container div.dt-paging button.dt-paging-button.current,
+.dt-container.dt-container div.dt-paging button.dt-paging-button.current:hover {
+    background: rgb(var(--dt-tw-primary-600));
+    color: rgb(var(--dt-tw-on-primary));
+    font-weight: 600;
+}
+
+.dt-container.dt-container div.dt-paging button.dt-paging-button.disabled {
+    color: rgb(var(--dt-tw-text-muted));
+    opacity: 0.7;
+    cursor: default;
+}
+
+/* -------------------------------------------------------------- buttons -- */
+
+.dt-container.dt-container div.dt-buttons {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.dt-container.dt-container :is(button, div, a).dt-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 2.25rem;
+    margin: 0;
+    padding: 0 0.75rem;
+    border: 0;
+    border-radius: var(--dt-tw-radius-control);
+    background: rgb(var(--dt-tw-surface));
+    box-shadow: var(--dt-tw-ring-control), var(--dt-tw-shadow-sm);
+    color: rgb(var(--dt-tw-text));
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition:
+        background-color var(--dt-tw-transition),
+        box-shadow var(--dt-tw-transition);
+}
+
+.dt-container.dt-container :is(button, div, a).dt-button:hover:not(.disabled) {
+    background: rgb(var(--dt-tw-neutral) / 0.12);
+    box-shadow:
+        inset 0 0 0 1px rgb(var(--dt-tw-neutral) / 0.4),
+        var(--dt-tw-shadow-sm);
+}
+
+.dt-container.dt-container :is(button, div, a).dt-button:active:not(.disabled) {
+    background: rgb(var(--dt-tw-neutral) / 0.2);
+    box-shadow: inset 0 0 0 1px rgb(var(--dt-tw-neutral) / 0.4);
+}
+
+.dt-container.dt-container :is(button, div, a).dt-button:focus-visible {
+    outline: none;
+    box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
+}
+
+/* ------------------------------------------------------- row actions -- */
+
+/*
+ * `Action::delete()`, `::edit()` and `::detail()` default to Bootstrap class
+ * names (`btn btn-danger`, …), and those defaults are part of the public API.
+ * Rather than change them, the theme restyles them inside the table so a
+ * Bootstrap-flavored action row still reads as part of this design. An app that
+ * sets its own `className` keeps whatever it passed.
+ *
+ * The variants only remap `--dt-tw-btn`, and every color they point at already
+ * flips with the palette, so no variant needs a dark-mode rule of its own.
+ */
+
+.dt-container.dt-container table.dataTable .btn {
+    --dt-tw-btn: var(--dt-tw-neutral);
+    --dt-tw-btn-text: var(--dt-tw-neutral-text);
+
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    border: 0;
+    border-radius: var(--dt-tw-radius-control);
+    background: rgb(var(--dt-tw-btn) / 0.1);
+    box-shadow: inset 0 0 0 1px rgb(var(--dt-tw-btn) / 0.2);
+    color: rgb(var(--dt-tw-btn-text));
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1rem;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--dt-tw-transition);
+}
+
+.dt-container.dt-container table.dataTable .btn:hover:not(:disabled) {
+    background: rgb(var(--dt-tw-btn) / 0.18);
+    color: rgb(var(--dt-tw-btn-text));
+}
+
+.dt-container.dt-container table.dataTable .btn:focus-visible {
+    outline: 2px solid rgb(var(--dt-tw-btn));
+    outline-offset: 2px;
+    box-shadow: inset 0 0 0 1px rgb(var(--dt-tw-btn) / 0.2);
+}
+
+.dt-container.dt-container table.dataTable .btn:is(:disabled, [aria-disabled='true']) {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.dt-container.dt-container table.dataTable .btn > :is(i, svg) {
+    flex-shrink: 0;
+}
+
+.dt-container.dt-container table.dataTable :is(.btn-danger, .btn-outline-danger) {
+    --dt-tw-btn: var(--dt-tw-danger);
+    --dt-tw-btn-text: var(--dt-tw-danger);
+}
+
+.dt-container.dt-container table.dataTable :is(.btn-warning, .btn-outline-warning) {
+    --dt-tw-btn: var(--dt-tw-warning);
+    --dt-tw-btn-text: var(--dt-tw-warning);
+}
+
+.dt-container.dt-container table.dataTable :is(.btn-success, .btn-outline-success) {
+    --dt-tw-btn: var(--dt-tw-success);
+    --dt-tw-btn-text: var(--dt-tw-success);
+}
+
+.dt-container.dt-container table.dataTable :is(.btn-info, .btn-outline-info) {
+    --dt-tw-btn: var(--dt-tw-info);
+    --dt-tw-btn-text: var(--dt-tw-info);
+}
+
+/* `Action::detail()` ships `btn-primary`, which reads as informational rather
+   than as the table's accent, so it maps to the info palette. */
+.dt-container.dt-container table.dataTable :is(.btn-primary, .btn-outline-primary) {
+    --dt-tw-btn: var(--dt-tw-info);
+    --dt-tw-btn-text: var(--dt-tw-info);
+}
+
+.dt-container.dt-container table.dataTable :is(.btn-dark, .btn-outline-dark) {
+    --dt-tw-btn: var(--dt-tw-text-strong);
+    --dt-tw-btn-text: var(--dt-tw-text-strong);
+}
+
+/* ------------------------------------------------------- column chrome -- */
+
+/*
+ * Emitted by `TailwindThemeColumnStyleAdapter` for ChoiceColumn badges,
+ * IconColumn glyphs and BooleanColumn switches.
+ */
+
+.dt-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 1.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--dt-tw-radius-badge);
+    background: rgb(var(--dt-tw-badge-color) / 0.1);
+    box-shadow: inset 0 0 0 1px rgb(var(--dt-tw-badge-color) / 0.2);
+    color: rgb(var(--dt-tw-badge-text, var(--dt-tw-badge-color)));
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1rem;
+    white-space: nowrap;
+    --dt-tw-badge-color: var(--dt-tw-neutral);
+    --dt-tw-badge-text: var(--dt-tw-neutral-text);
+}
+
+/*
+ * Every variant only remaps the two badge channels to a semantic token, and
+ * those tokens already flip with the palette, so no variant needs a dark-mode
+ * rule of its own.
+ */
+
+.dt-badge--success {
+    --dt-tw-badge-color: var(--dt-tw-success);
+    --dt-tw-badge-text: var(--dt-tw-success);
+}
+
+.dt-badge--warning {
+    --dt-tw-badge-color: var(--dt-tw-warning);
+    --dt-tw-badge-text: var(--dt-tw-warning);
+}
+
+.dt-badge--danger {
+    --dt-tw-badge-color: var(--dt-tw-danger);
+    --dt-tw-badge-text: var(--dt-tw-danger);
+}
+
+.dt-badge--info {
+    --dt-tw-badge-color: var(--dt-tw-info);
+    --dt-tw-badge-text: var(--dt-tw-info);
+}
+
+.dt-badge--primary {
+    --dt-tw-badge-color: var(--dt-tw-primary-600);
+    --dt-tw-badge-text: var(--dt-tw-primary-text);
+}
+
+.dt-badge--secondary,
+.dt-badge--light {
+    --dt-tw-badge-color: var(--dt-tw-neutral);
+    --dt-tw-badge-text: var(--dt-tw-neutral-text);
+}
+
+.dt-badge--dark {
+    --dt-tw-badge-color: var(--dt-tw-text-strong);
+    --dt-tw-badge-text: var(--dt-tw-text-strong);
+}
+
+.dt-icon {
+    display: inline-flex;
+    color: rgb(var(--dt-tw-icon-color, var(--dt-tw-gray-400)));
+}
+
+.dt-icon svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.dt-icon--success {
+    --dt-tw-icon-color: var(--dt-tw-success);
+}
+.dt-icon--warning {
+    --dt-tw-icon-color: var(--dt-tw-warning);
+}
+.dt-icon--danger {
+    --dt-tw-icon-color: var(--dt-tw-danger);
+}
+.dt-icon--info {
+    --dt-tw-icon-color: var(--dt-tw-info);
+}
+.dt-icon--primary {
+    --dt-tw-icon-color: var(--dt-tw-primary-600);
+}
+.dt-icon--secondary,
+.dt-icon--gray {
+    --dt-tw-icon-color: var(--dt-tw-neutral);
+}
+.dt-icon--light {
+    --dt-tw-icon-color: var(--dt-tw-gray-400);
+}
+.dt-icon--dark {
+    --dt-tw-icon-color: var(--dt-tw-text-strong);
+}
+
+.dt-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    cursor: pointer;
+}
+
+.dt-switch__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.dt-switch__track {
+    position: relative;
+    width: 2.25rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background: var(--dt-tw-track);
+    box-shadow: var(--dt-tw-ring-control);
+    transition: background-color 150ms ease;
+}
+
+.dt-switch__track::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 0.125rem;
+    inset-inline-start: 0.125rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 1px 2px 0 rgb(var(--dt-tw-gray-950) / 0.2);
+    transition: inset-inline-start 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dt-switch__input:checked + .dt-switch__track {
+    background: rgb(var(--dt-tw-primary-500));
+}
+
+/* 1.125rem = the resting 0.125rem inset plus the 1rem of track the knob has
+   left to cross. A physical `translate` would move the knob the wrong way in a
+   right-to-left document; the logical inset follows the writing direction. */
+.dt-switch__input:checked + .dt-switch__track::after {
+    inset-inline-start: 1.125rem;
+}
+
+.dt-switch__input:focus-visible + .dt-switch__track {
+    box-shadow:
+        0 0 0 2px rgb(var(--dt-tw-surface)),
+        0 0 0 4px rgb(var(--dt-tw-primary-600));
+}
+
+.dt-switch__input:disabled + .dt-switch__track {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dt-container.dt-container *,
+    .dt-switch__track,
+    .dt-switch__track::after {
+        /* biome-ignore lint/complexity/noImportantStyles: `.dt-container.dt-container *`
+           is (0, 2, 1) and cannot otherwise beat the component rules it has to
+           override; the alternative is enumerating every one of them. */
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ------------------------------------------------------- filter popover -- */
+
+/*
+ * The filter bar ships its own stylesheet (datatables-style.css), which keeps
+ * both its palette and its chrome in `--dt-filters-*` tokens. Reassigning them
+ * is the whole of the theme's filter styling: no element rule is repeated here,
+ * and nothing needs a dark-mode rule because every token it reads from already
+ * flips. Keep this list in sync with the token block in that file.
+ */
+:root {
+    --dt-filters-accent: rgb(var(--dt-tw-primary-500));
+    --dt-filters-accent-contrast: rgb(var(--dt-tw-on-primary));
+    --dt-filters-danger: rgb(var(--dt-tw-danger));
+    --dt-filters-surface: rgb(var(--dt-tw-surface));
+    --dt-filters-surface-muted: var(--dt-tw-sunken);
+    --dt-filters-border: var(--dt-tw-divider);
+    --dt-filters-text: rgb(var(--dt-tw-text));
+    --dt-filters-text-muted: rgb(var(--dt-tw-text-muted));
+    --dt-filters-shadow: var(--dt-tw-shadow-panel), var(--dt-tw-ring);
+    --dt-filters-radius: var(--dt-tw-radius-panel);
+
+    --dt-filters-radius-control: var(--dt-tw-radius-control);
+    --dt-filters-radius-toggle: var(--dt-tw-radius-control);
+    --dt-filters-popover-border: 0;
+    --dt-filters-input-border: 0;
+    --dt-filters-input-shadow: var(--dt-tw-ring-control), var(--dt-tw-shadow-sm);
+    --dt-filters-input-border-focus: transparent;
+    --dt-filters-input-shadow-focus: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
+    --dt-filters-button-shadow: var(--dt-tw-shadow-sm);
+
+    /* Same drawn chevron as the length menu, so both selects read as one control. */
+    --dt-filters-select-appearance: none;
+    --dt-filters-select-padding-end: 2rem;
+    --dt-filters-chevron: var(--dt-tw-chevron);
+}
+
+.dt-filters-toggle:focus-visible {
+    outline: none;
+    box-shadow: var(--dt-tw-ring-focus);
+}
+
+/* ---------------------------------------------------- browser surfaces -- */
+
+.dt-container.dt-container ::selection {
+    background: rgb(var(--dt-tw-primary-500) / 0.3);
+    color: rgb(var(--dt-tw-text));
+}
+
+.dt-container.dt-container :is(input, select, textarea) {
+    caret-color: rgb(var(--dt-tw-primary-600));
+}
+
+.dt-container.dt-container :focus-visible {
+    outline: 2px solid rgb(var(--dt-tw-primary-600));
+    outline-offset: 2px;
+}
+
+.dt-container.dt-container :is(.dt-scroll-body, .dt-layout-row.dt-layout-table) {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--dt-tw-gray-400) / 0.6) transparent;
+}
+
+.dt-container.dt-container :is(.dt-scroll-body, .dt-layout-row.dt-layout-table)::-webkit-scrollbar {
+    width: 0.5rem;
+    height: 0.5rem;
+}
+
+.dt-container.dt-container
+    :is(.dt-scroll-body, .dt-layout-row.dt-layout-table)::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgb(var(--dt-tw-gray-400) / 0.6);
+}
+
+.dt-container.dt-container
+    :is(.dt-scroll-body, .dt-layout-row.dt-layout-table)::-webkit-scrollbar-track {
+    background: transparent;
+}
