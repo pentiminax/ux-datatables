@@ -41,8 +41,28 @@ final class AuthorizationCheckerTest extends TestCase
     }
 
     #[Test]
-    public function delegates_to_inner_checker_with_attribute_subject_and_decision(): void
+    public function delegates_to_inner_checker_with_attribute_and_subject(): void
     {
+        $subject = new \stdClass();
+        $inner   = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner
+            ->expects($this->once())
+            ->method('isGranted')
+            ->with('EDIT', $subject)
+            ->willReturn(true);
+
+        $this->assertTrue((new AuthorizationChecker($inner))->isGranted('EDIT', $subject));
+    }
+
+    #[Test]
+    public function delegates_to_inner_checker_with_access_decision_when_supported(): void
+    {
+        if (!class_exists(AccessDecision::class)) {
+            $this->addToAssertionCount(1);
+
+            return;
+        }
+
         $subject        = new \stdClass();
         $accessDecision = new AccessDecision();
         $inner          = $this->createMock(AuthorizationCheckerInterface::class);
