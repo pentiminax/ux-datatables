@@ -34,7 +34,7 @@ final readonly class DetailRowService
         $action = $dataTable->findAction(ActionType::Detail, collapsible: true);
 
         if (null === $action) {
-            return AjaxActionResult::badRequest('No collapsible detail action is configured for this DataTable.');
+            return AjaxActionResult::forbidden();
         }
 
         if (!$this->isActionGranted($dataTable, $action, null, false)) {
@@ -63,7 +63,7 @@ final readonly class DetailRowService
     private function isGranted(ResolvedDataTable $dataTable, Action $action, object $entity): bool
     {
         return $this->permissionChecker->isGranted(Permission::DT_VIEW_ROW_DETAILS, $entity)
-            && $this->isActionGranted($dataTable, $action, $entity, $action->hasPerRowPermission());
+            && $this->isActionGranted($dataTable, $action, $entity, true);
     }
 
     private function isActionGranted(ResolvedDataTable $dataTable, Action $action, mixed $source, bool $hasRowContext): bool

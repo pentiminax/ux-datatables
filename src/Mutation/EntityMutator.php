@@ -48,7 +48,7 @@ final class EntityMutator
             $dataTableClass,
             $action,
             $context->entity,
-            $action->hasPerRowPermission(),
+            true,
         ))) {
             throw new MutationNotAllowedException();
         }

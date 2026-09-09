@@ -19,10 +19,12 @@ use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
+use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -164,6 +166,29 @@ final class EntityMutatorTest extends TestCase
 
             throw $exception;
         }
+    }
+
+    #[Test]
+    public function ordinary_delete_action_uses_row_context_after_entity_lookup(): void
+    {
+        $entity = new EntityMutatorFixture();
+
+        $manager = $this->managerReturning($entity, 5);
+        $manager->expects($this->never())->method('remove');
+        $manager->expects($this->never())->method('flush');
+
+        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher->expects($this->never())->method('publish');
+
+        $mutator = $this->mutator(
+            $manager,
+            $publisher,
+            permissionChecker: RowContextDenyingAuthorizationChecker::create(),
+        );
+
+        $this->expectException(MutationNotAllowedException::class);
+
+        $mutator->delete(EntityMutatorFixture::class, 5, self::DATA_TABLE_CLASS, Action::delete());
     }
 
     #[Test]

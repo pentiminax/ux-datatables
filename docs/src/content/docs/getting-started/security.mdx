@@ -116,11 +116,17 @@ decision manager with the current token. Your application voters still own the p
 to those methods.
 
 <Aside type="caution" title="Check unanimous access decisions">
-  If your application uses Symfony's `unanimous` access decision strategy, every voter that votes on
-  the delegated attribute must grant access. A single deny wins. Make sure catch-all voters abstain
-  for attributes they do not own, and test table rendering plus Ajax requests after enabling
-  `DataTable::setPermission()` or `Action::permission()`.
+  If your application voters deny attributes used by `DataTable::setPermission()` or
+  `Action::permission()`, configure Symfony's `unanimous` strategy. Symfony's default
+  `affirmative` strategy can still grant access when the bundle voter grants and your voter denies.
 </Aside>
+
+```yaml
+# config/packages/security.yaml
+security:
+    access_decision_manager:
+        strategy: unanimous
+```
 
 ## Verifying your configuration
 
@@ -198,6 +204,7 @@ use App\Entity\User;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
+use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
@@ -222,8 +229,12 @@ final class ProductVoter extends Voter
     /**
      * @param Product $subject
      */
-    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
-    {
+    protected function voteOnAttribute(
+        string $attribute,
+        mixed $subject,
+        TokenInterface $token,
+        ?Vote $vote = null,
+    ): bool {
         if ($this->decisionManager->decide($token, ['ROLE_ADMIN'])) {
             return true;
         }

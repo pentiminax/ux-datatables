@@ -64,7 +64,7 @@ final class ActionRowDataResolver
                     $dataTableClass ?? '',
                     $action,
                     $sourceRow,
-                    $action->hasPerRowPermission(),
+                    true,
                 ))) {
                     $deniedActions[] = $action->getName();
 
