@@ -36,6 +36,12 @@ Neither activates implicitly. Set `apiPlatform: true` / call `apiPlatform()`, an
 ## `setPermission()` removes, never hides client-side
 Static `setPermission()` on actions/columns is evaluated server-side before serialization; ungranted items are dropped and the attribute or expression is never sent to the browser. Don't rely on it for purely visual toggling — use `displayIf()` (actions) or `setVisible()` (columns) for that.
 
+## `setPermission()` on an action does not secure the mutation
+The built-in edit / delete / detail endpoints also require your own voter on `Permission::DT_EDIT_ROW`, `DT_DELETE_ROW`, or `DT_VIEW_ROW_DETAILS` — cumulative with the action permission, no fallback. With a firewall active and no such voter, every mutation returns `403`; with no security stack at all, every check returns `true`. Neither replaces `access_control` on `^/datatables/ajax`. See `references/security.md`.
+
+## Old `EDIT` / `DELETE` / `VIEW` voters grant nothing
+The bundle moved to the `Permission::DT_*` constants. A voter still supporting the bare `EDIT`, `DELETE`, or `VIEW` attributes is never consulted — rename its `supports()` cases.
+
 ## `ButtonType::COLUMN_VISIBILITY`
 The enum case is `COLUMN_VISIBILITY` (serialized value `'colvis'`), not `COL_VIS`.
 

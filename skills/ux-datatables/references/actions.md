@@ -32,7 +32,9 @@ public function configureActions(Actions $actions): Actions
 
 Every action name must be non-empty and unique within the collection. Custom names cannot use the
 reserved native names `DELETE`, `DETAIL`, `EDIT`, or `CUSTOM` (case-insensitive). Invalid or duplicate
-names throw `InvalidArgumentException` while configuring the table.
+names throw `InvalidArgumentException` while configuring the table. Uniqueness must also hold
+*across* action columns — hand-assembling two `ActionColumn::fromActions()` collections that share a
+name throws `DuplicateActionNameException` at render or on the Ajax endpoints.
 
 ## Fluent configuration
 
@@ -59,9 +61,14 @@ Action::detail()
 `setPermission(string|Expression $attribute, ?callable $subjectResolver = null)`:
 
 - **Static** (no resolver) — evaluated once before serialization. If not granted, the action is removed entirely. Use for role checks: `->setPermission('ROLE_ADMIN')`.
-- **Per-row** (with resolver) — evaluated per row; the resolver receives the raw row and returns the voter subject: `->setPermission('EDIT', fn ($row) => $row)`.
+- **Per-row** (with resolver) — evaluated per row; the resolver returns the voter subject: `->setPermission('EDIT_PRODUCT', fn ($row) => $row)`. **The value it receives differs by call site**: the row source at render time (an array if the provider hydrates arrays), the located entity on the `delete` / `edit-form` / `detail` endpoints.
 
 Same model applies to columns (`AbstractColumn::setPermission()`), but columns only support the static form.
+
+`setPermission()` alone is **not** enough to secure a mutation. The built-in endpoints also require
+your own voter on `Permission::DT_EDIT_ROW`, `DT_DELETE_ROW`, or `DT_VIEW_ROW_DETAILS` — they
+cumulate, neither replaces the other. See `references/security.md` for the full matrix, the
+table-level `DataTable::setPermission()`, and the Ajax route protection these checks assume.
 
 Delete actions and inline boolean toggles require an active session for CSRF protection. In a
 stateless or session-less rendering context, the payload exposes `mutationsEnabled: false` and the
