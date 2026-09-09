@@ -21,6 +21,7 @@ export function createActionColumnRenderer(mutationsEnabled = true): ColumnRende
                 }
 
                 return actions
+                    .filter((action) => !isDeniedAction(action, row as ActionRowData))
                     .filter((action) => {
                         if (!action.displayCondition) {
                             return true
@@ -177,6 +178,10 @@ function renderActionIcon(action: ActionConfig): string {
     }
 
     return action.icon ? `<i class="${escapeHtml(action.icon)}"></i> ` : ''
+}
+
+function isDeniedAction(action: ActionConfig, row: ActionRowData): boolean {
+    return row.__ux_datatables_denied_actions?.includes(action.name) ?? false
 }
 
 function resolveActionId(action: ActionConfig, row: ActionRowData): string | number | null {

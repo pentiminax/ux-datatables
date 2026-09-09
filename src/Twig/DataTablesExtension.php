@@ -9,9 +9,12 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
+use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
 use Twig\Extension\AbstractExtension;
@@ -26,6 +29,7 @@ class DataTablesExtension extends AbstractExtension
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
         private readonly ?AjaxDataTableRegistry $ajaxRegistry = null,
         private readonly ?DataTableProfiler $profiler = null,
+        private readonly ?AuthorizationChecker $permissionChecker = null,
     ) {
     }
 
@@ -39,10 +43,16 @@ class DataTablesExtension extends AbstractExtension
     public function renderDataTable(AbstractDataTable $table, array $attributes = []): string
     {
         $dataTableClass = $table::class;
-        $dataTable      = $table->getDataTable();
+        $table->getConfiguredDataTable();
+
+        if (false === $this->permissionChecker?->isGranted(Permission::DT_ACCESS_TABLE, $table)) {
+            throw new AccessDeniedException('Access to this DataTable is denied.');
+        }
+
+        $dataTable = $table->getDataTable();
 
         $originalColumns = array_values($dataTable->getColumns());
-        $columns         = $this->columnResolver->filterStaticPermissions($originalColumns);
+        $columns         = $this->columnResolver->filterStaticPermissions($originalColumns, $dataTableClass);
 
         $dataTable->setAttributes(array_merge($dataTable->getAttributes(), $attributes));
 

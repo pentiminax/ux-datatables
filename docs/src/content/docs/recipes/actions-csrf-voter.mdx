@@ -36,13 +36,15 @@ Then:
 
 1. Import bundle routes.
 2. Add `access_control` for `^/datatables/ajax`.
-3. Register a voter supporting `EDIT` and `DELETE` for your entity.
+3. Register a voter supporting `Permission::DT_EDIT_ROW` and `Permission::DT_DELETE_ROW` for your
+   entity.
 
 ## Pitfalls
 
 <Aside type="danger">
-  Without a voter for `EDIT`/`DELETE`, Symfony denies every mutation once a firewall is present.
-  Session-backed pages are required for CSRF; otherwise `mutationsEnabled` is `false`.
+  Without a voter for `Permission::DT_EDIT_ROW` and `Permission::DT_DELETE_ROW`, Symfony denies
+  every mutation once a firewall is present. Session-backed pages are required for CSRF; otherwise
+  `mutationsEnabled` is `false`.
 </Aside>
 
 ## Related

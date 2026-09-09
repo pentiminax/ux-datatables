@@ -14,6 +14,7 @@ export function createActionColumnRenderer(mutationsEnabled = true) {
                     return '';
                 }
                 return actions
+                    .filter((action) => !isDeniedAction(action, row))
                     .filter((action) => {
                     if (!action.displayCondition) {
                         return true;
@@ -132,6 +133,9 @@ function renderActionIcon(action) {
         return icon === null ? '' : `${icon} `;
     }
     return action.icon ? `<i class="${escapeHtml(action.icon)}"></i> ` : '';
+}
+function isDeniedAction(action, row) {
+    return row.__ux_datatables_denied_actions?.includes(action.name) ?? false;
 }
 function resolveActionId(action, row) {
     const idField = action.idField ?? 'id';

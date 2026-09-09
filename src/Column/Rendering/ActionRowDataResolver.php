@@ -7,9 +7,12 @@ namespace Pentiminax\UX\DataTables\Column\Rendering;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
+use Pentiminax\UX\DataTables\Exception\DuplicateActionNameException;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\PropertyAccess\Exception\ExceptionInterface as PropertyAccessExceptionInterface;
 use Symfony\Component\PropertyAccess\PropertyAccess;
@@ -20,25 +23,26 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 final class ActionRowDataResolver
 {
-    public const string ROW_ACTIONS_KEY = '__ux_datatables_actions';
+    public const string ROW_ACTIONS_KEY    = '__ux_datatables_actions';
+    public const string DENIED_ACTIONS_KEY = '__ux_datatables_denied_actions';
 
-    private readonly PermissionChecker $permissionChecker;
+    private readonly AuthorizationChecker $permissionChecker;
     private readonly PropertyAccessorInterface $propertyAccessor;
 
     public function __construct(
-        ?PermissionChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
         ?PropertyAccessorInterface $propertyAccessor = null,
         private readonly ?UrlGeneratorInterface $urlGenerator = null,
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
     ) {
-        $this->permissionChecker = $permissionChecker ?? new PermissionChecker();
+        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
         $this->propertyAccessor  = $propertyAccessor  ?? PropertyAccess::createPropertyAccessor();
     }
 
     /**
      * @param iterable<ColumnInterface> $columns
      */
-    public function resolveRow(array $row, mixed $sourceRow, iterable $columns): array
+    public function resolveRow(array $row, mixed $sourceRow, iterable $columns, ?string $dataTableClass = null): array
     {
         if (\array_key_exists(self::ROW_ACTIONS_KEY, $row)) {
             return $row;
@@ -48,7 +52,9 @@ final class ActionRowDataResolver
             $sourceRow = $sourceRow->source;
         }
 
-        $actions = [];
+        $actions       = [];
+        $deniedActions = [];
+        $seenNames     = [];
 
         foreach ($columns as $column) {
             if (!$column instanceof ActionsProvidingColumnInterface) {
@@ -56,19 +62,23 @@ final class ActionRowDataResolver
             }
 
             foreach ($column->getActions()?->getActions() ?? [] as $action) {
-                if ($action->hasStaticPermission()
-                    && !$this->permissionChecker->isGranted($action->getPermission())
-                ) {
-                    continue;
+                $name = $action->getName();
+
+                if (isset($seenNames[$name])) {
+                    throw DuplicateActionNameException::forName($name);
                 }
 
-                if ($action->hasPerRowPermission()) {
-                    $resolver = $action->getPermissionSubjectResolver();
-                    $subject  = null !== $resolver ? $resolver($sourceRow) : null;
+                $seenNames[$name] = true;
 
-                    if (!$this->permissionChecker->isGranted($action->getPermission(), $subject)) {
-                        continue;
-                    }
+                if (null !== $action->getPermission() && !$this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
+                    $dataTableClass ?? '',
+                    $action,
+                    $sourceRow,
+                    true,
+                ))) {
+                    $deniedActions[] = $name;
+
+                    continue;
                 }
 
                 $actionData = $this->resolveActionData($action, $sourceRow);
@@ -77,8 +87,12 @@ final class ActionRowDataResolver
                     continue;
                 }
 
-                $actions[$action->getName()] = $actionData;
+                $actions[$name] = $actionData;
             }
+        }
+
+        if ([] !== $deniedActions) {
+            $row[self::DENIED_ACTIONS_KEY] = $deniedActions;
         }
 
         if ([] === $actions) {

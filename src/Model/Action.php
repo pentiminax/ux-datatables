@@ -328,8 +328,18 @@ final class Action implements \JsonSerializable
      * Restrict this action with a Symfony security attribute or expression.
      *
      * Without a subject resolver, the attribute is evaluated once before serialization
-     * (e.g. `ROLE_ADMIN`). With a resolver, the attribute is evaluated per row and
-     * the resolver receives the raw row passed to the rendering pipeline.
+     * (e.g. `ROLE_ADMIN`). With a resolver, the attribute is evaluated per row, but the value the
+     * resolver receives differs by call site:
+     *
+     * - At render time, it receives the row source passed to the rendering pipeline
+     *   ({@see \Pentiminax\UX\DataTables\RowMapper\RowContext::$source}), which is the entity under
+     *   a projected (Doctrine) provider, but may be a plain array for a QueryBuilder or provider
+     *   that hydrates array rows instead of entities.
+     * - On the mutation endpoints (`delete`, `edit-form`, `detail`), it always receives the
+     *   entity located by id, never a raw array row.
+     *
+     * A resolver used on both paths should tolerate either shape (entity or array), or the action
+     * should use a static permission (no resolver) instead.
      */
     public function setPermission(string|Expression $attribute, ?callable $subjectResolver = null): self
     {

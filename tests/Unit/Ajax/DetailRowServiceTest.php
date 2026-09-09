@@ -15,7 +15,10 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -49,12 +52,14 @@ final class DetailRowServiceTest extends TestCase
     public function it_returns_forbidden_without_rendering_when_view_is_not_granted(): void
     {
         $checker = $this->createMock(AuthorizationCheckerInterface::class);
-        $checker->method('isGranted')->with('VIEW', $this->anything())->willReturn(false);
+        $checker->method('isGranted')->willReturnCallback(
+            static fn (string $attribute): bool => Permission::DT_VIEW_ROW_DETAILS !== $attribute
+        );
 
         $service = $this->createService(
             $this->locatorReturning(new DetailRowEntity('alice@example.com')),
             $this->twigThatNeverRenders(),
-            new PermissionChecker($checker),
+            new AuthorizationChecker($checker),
         );
 
         $result = $service->handleView($this->resolved(new CollapsibleDetailDataTable()), 7);
@@ -67,13 +72,22 @@ final class DetailRowServiceTest extends TestCase
     #[Test]
     public function it_enforces_the_permission_configured_on_the_detail_action(): void
     {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManagerForClass');
+
         $checker = $this->createMock(AuthorizationCheckerInterface::class);
-        $checker->expects($this->once())->method('isGranted')->with('SHOW_DETAIL', null)->willReturn(false);
+        $checker->expects($this->once())
+            ->method('isGranted')
+            ->with(Permission::DT_EXECUTE_ACTION, $this->callback(
+                static fn (ActionPermissionContext $context): bool => 'SHOW_DETAIL' === $context->action->getPermission()
+                    && !$context->hasRowContext
+            ))
+            ->willReturn(false);
 
         $service = $this->createService(
-            $this->locatorReturning(new DetailRowEntity('alice@example.com')),
+            new EntityLocator($registry),
             $this->twigThatNeverRenders(),
-            new PermissionChecker($checker),
+            new AuthorizationChecker($checker),
         );
 
         $result = $service->handleView($this->resolved(new StaticPermissionDetailDataTable()), 7);
@@ -88,12 +102,19 @@ final class DetailRowServiceTest extends TestCase
         $entity = new DetailRowEntity('alice@example.com');
 
         $checker = $this->createMock(AuthorizationCheckerInterface::class);
-        $checker->expects($this->once())->method('isGranted')->with('SHOW_DETAIL', 'alice@example.com')->willReturn(true);
+        $checker->expects($this->exactly(3))
+            ->method('isGranted')
+            ->willReturnCallback(
+                static fn (string $attribute, mixed $subject): bool => Permission::DT_VIEW_ROW_DETAILS === $attribute
+                    || (Permission::DT_EXECUTE_ACTION === $attribute
+                        && $subject instanceof ActionPermissionContext
+                        && (!$subject->hasRowContext || 'alice@example.com' === ($subject->action->getPermissionSubjectResolver())($subject->currentSource)))
+            );
 
         $service = $this->createService(
             $this->locatorReturning($entity),
             new Environment(new ArrayLoader(['detail.html.twig' => 'Email: {{ entity.email }}'])),
-            new PermissionChecker($checker),
+            new AuthorizationChecker($checker),
         );
 
         $result = $service->handleView($this->resolved(new PerRowPermissionDetailDataTable()), 7);
@@ -103,14 +124,33 @@ final class DetailRowServiceTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_bad_request_when_no_collapsible_detail_action_is_configured(): void
+    public function it_returns_forbidden_without_lookup_when_no_collapsible_detail_action_is_configured(): void
     {
-        $service = $this->createService(new EntityLocator(null), $this->twigThatNeverRenders());
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManagerForClass');
+
+        $service = $this->createService(new EntityLocator($registry), $this->twigThatNeverRenders());
 
         $result = $service->handleView($this->resolved(new PlainDetailDataTable()), 7);
 
         $this->assertFalse($result->success);
-        $this->assertSame(400, $result->statusCode);
+        $this->assertSame(403, $result->statusCode);
+        $this->assertNull($result->html);
+    }
+
+    #[Test]
+    public function ordinary_detail_action_uses_row_context_after_entity_lookup(): void
+    {
+        $service = $this->createService(
+            $this->locatorReturning(new DetailRowEntity('alice@example.com')),
+            $this->twigThatNeverRenders(),
+            RowContextDenyingAuthorizationChecker::create(),
+        );
+
+        $result = $service->handleView($this->resolved(new CollapsibleDetailDataTable()), 7);
+
+        $this->assertFalse($result->success);
+        $this->assertSame(403, $result->statusCode);
         $this->assertNull($result->html);
     }
 
@@ -142,9 +182,9 @@ final class DetailRowServiceTest extends TestCase
     private function createService(
         EntityLocator $locator,
         ?Environment $twig,
-        ?PermissionChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
     ): DetailRowService {
-        return new DetailRowService($locator, $twig, $permissionChecker ?? new PermissionChecker());
+        return new DetailRowService($locator, $twig, $permissionChecker ?? new AuthorizationChecker());
     }
 
     private function resolved(AbstractDataTable $dataTable): ResolvedDataTable

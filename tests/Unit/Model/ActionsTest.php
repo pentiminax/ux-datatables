@@ -9,7 +9,9 @@ use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -135,12 +137,13 @@ final class ActionsTest extends TestCase
             ->add(Action::detail());
 
         $checker = $this->createStub(AuthorizationCheckerInterface::class);
-        $checker->method('isGranted')->willReturnMap([
-            ['ROLE_ADMIN', null, false],
-            ['ROLE_EDITOR', null, true],
-        ]);
+        $checker->method('isGranted')->willReturnCallback(
+            static fn (string $attribute, mixed $subject = null): bool => Permission::DT_EXECUTE_ACTION !== $attribute
+                || !$subject instanceof ActionPermissionContext
+                || 'ROLE_ADMIN' !== $subject->action->getPermission()
+        );
 
-        $actions->filterStaticPermissions(new PermissionChecker($checker));
+        $actions->filterStaticPermissions(new AuthorizationChecker($checker));
 
         $types = array_map(static fn (Action $action) => $action->getType(), $actions->getActions());
         $this->assertSame([ActionType::Edit, ActionType::Detail], $types);
@@ -151,7 +154,7 @@ final class ActionsTest extends TestCase
     {
         $actions = (new Actions())->add(Action::delete()->setPermission('DELETE', static fn ($row) => $row));
 
-        $actions->filterStaticPermissions(new PermissionChecker($this->createStub(AuthorizationCheckerInterface::class)));
+        $actions->filterStaticPermissions(new AuthorizationChecker($this->createStub(AuthorizationCheckerInterface::class)));
 
         $this->assertSame(1, $actions->count());
     }
@@ -161,7 +164,7 @@ final class ActionsTest extends TestCase
     {
         $actions = (new Actions())->add(Action::delete()->setPermission('ROLE_ADMIN'));
 
-        $actions->filterStaticPermissions(new PermissionChecker());
+        $actions->filterStaticPermissions(new AuthorizationChecker());
 
         $this->assertSame(1, $actions->count());
     }

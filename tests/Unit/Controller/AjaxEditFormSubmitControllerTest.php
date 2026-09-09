@@ -26,10 +26,13 @@ use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Pentiminax\UX\DataTables\Security\PermissionChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -113,7 +116,9 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $templateResolver->expects($this->never())->method('resolveColumns');
 
         $authorizationChecker = $this->createMock(AuthorizationCheckerInterface::class);
-        $authorizationChecker->method('isGranted')->with('EDIT', $entity)->willReturn(false);
+        $authorizationChecker->method('isGranted')->willReturnCallback(
+            static fn (string $attribute, mixed $subject = null): bool => Permission::DT_EDIT_ROW !== $attribute || $subject !== $entity
+        );
 
         $controller = $this->controller(new EditFormService(
             new EntityLocator($this->createRegistry($entityManager)),
@@ -122,7 +127,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $templateResolver,
             new NullMercurePublisher(),
             new MercureTopicResolver(),
-            new PermissionChecker($authorizationChecker),
+            new AuthorizationChecker($authorizationChecker),
         ));
 
         $response = $controller($this->validTokenRequest(), $this->payload());
@@ -244,12 +249,12 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         );
     }
 
-    private function permissionCheckerGranting(bool $granted): PermissionChecker
+    private function permissionCheckerGranting(bool $granted): AuthorizationChecker
     {
         $authorizationChecker = $this->createMock(AuthorizationCheckerInterface::class);
         $authorizationChecker->method('isGranted')->willReturn($granted);
 
-        return new PermissionChecker($authorizationChecker);
+        return new AuthorizationChecker($authorizationChecker);
     }
 
     private function tableRegistry(): AjaxDataTableRegistry
@@ -411,5 +416,10 @@ final class AjaxEditFormSubmitControllerDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(Action::edit());
     }
 }

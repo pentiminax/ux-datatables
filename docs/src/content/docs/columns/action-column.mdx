@@ -246,6 +246,10 @@ A failed request dispatches `datatables:action:error` and re-enables the button.
   can be issued (no session, no token manager).
 </Aside>
 
+Direct API Platform endpoints and custom controllers keep their own authorization and CSRF checks.
+PHP row voters in the bundle only run for rows processed by the bundle backend; they cannot secure
+rows returned directly by API Platform or another controller.
+
 ## `Actions` API
 
 <Table
@@ -441,16 +445,19 @@ public function configureActions(Actions $actions): Actions
 The template receives the located entity as `entity`, plus any extra parameters given to
 `collapsible()`. Auto-escaping applies as usual.
 
-Access is checked before the template renders, mirroring what the rendering pipeline evaluated for
-that action: a per-row `setPermission()` resolver receives the located entity, a static `setPermission()`
-is evaluated as-is, and an action with no configured permission falls back to `VIEW` on the entity —
-the same convention delete and edit follow. An action the user cannot see is an action they cannot
-fetch.
+Access is checked before the template renders. The endpoint always requires
+`Permission::DT_VIEW_ROW_DETAILS` on the located entity, regardless of whether the detail action has
+a configured permission — there is no fallback. If the action also declares a `setPermission()`, that
+permission is checked in addition: a per-row resolver receives the located entity (never a raw array
+row, even if the table's provider hydrates arrays elsewhere — see
+[`Action::setPermission()`](/ux-datatables/getting-started/security/) for the full contract), and a
+static permission is evaluated as-is. An action the user cannot see is an action they cannot fetch.
 
 <Aside type="note">
   The endpoint needs Twig, a table that declares an entity class, and exactly one collapsible
-  detail action to resolve; it answers `400` otherwise, `404` when the entity no longer exists, and
-  `403` when the permission check denies it. Like every bundle Ajax route, it must still be
+  detail action to resolve; it answers `400` when Twig is unavailable, `403` when the collapsible
+  detail action is missing or permission denies, and `404` when the entity no longer exists. Like
+  every bundle Ajax route, it must still be
   protected by your own `security.firewalls` configuration — see
   [Securing Ajax Routes](/ux-datatables/getting-started/security/).
 </Aside>
