@@ -293,3 +293,144 @@ The CRITICAL risk is expected for this task because authorization enforcement cr
 - `composer fix` was run with PHP 8.4.1 and emitted the repository warning that the project minimum is PHP 8.3.
 - The JetBrains MCP tools referenced by the local pre-commit skill were not available in this session; repository formatting was performed with `composer fix`.
 - Earliest raw RED logs were not available after resume; reconstructed RED evidence is included from retained session output summaries.
+
+## Review round 1 — MEDIUM fix
+
+### Finding
+
+`src/Controller/AjaxDeleteController.php:26` and `:37`: Static delete-action denial is optional when the controller is directly constructed without the new fourth `AuthorizationChecker` argument. The nullsafe call evaluates to null, so static denials do not fail before entity lookup. Store a non-null `AuthorizationChecker`, initialize null to `new AuthorizationChecker()` in the constructor, and call it without nullsafe access.
+
+### Implementation
+
+- Changed `AjaxDeleteController` to store a non-null `AuthorizationChecker`.
+- Kept the constructor argument nullable for backward-compatible direct construction.
+- Normalized `null` to `new AuthorizationChecker()` in the constructor.
+- Replaced the nullsafe static action permission call with a direct `$this->permissionChecker->isGranted(...)` call.
+- Added a focused regression test proving direct construction without the fourth argument leaves a default checker installed.
+
+### RED
+
+The first attempted RED run exposed a PHP test-fixture load error before the intended assertion because helper subclasses extended a base class declared later in the same file:
+
+```bash
+vendor/bin/phpunit tests/Unit/Controller/AjaxDeleteControllerTest.php --filter=it_keeps_a_default_authorization_checker_when_constructed_without_one
+```
+
+```text
+An error occurred inside PHPUnit.
+
+Message:  Class "Pentiminax\UX\DataTables\Tests\Unit\Controller\DeletableEntityFixtureDataTable" not found
+Location: /Users/tanguylemarie/.codex/worktrees/e889/ux-datatables/tests/Unit/Controller/AjaxDeleteControllerTest.php:376
+```
+
+After moving the shared fixture base above its subclasses, the intended RED was confirmed:
+
+```bash
+vendor/bin/phpunit tests/Unit/Controller/AjaxDeleteControllerTest.php --filter=it_keeps_a_default_authorization_checker_when_constructed_without_one
+```
+
+```text
+PHPUnit 11.5.56 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.4.1
+Configuration: /Users/tanguylemarie/.codex/worktrees/e889/ux-datatables/phpunit.xml.dist
+
+F                                                                   1 / 1 (100%)
+
+There was 1 failure:
+
+1) Pentiminax\UX\DataTables\Tests\Unit\Controller\AjaxDeleteControllerTest::it_keeps_a_default_authorization_checker_when_constructed_without_one
+Failed asserting that null is an instance of class Pentiminax\UX\DataTables\Security\AuthorizationChecker.
+
+/Users/tanguylemarie/.codex/worktrees/e889/ux-datatables/tests/Unit/Controller/AjaxDeleteControllerTest.php:237
+
+FAILURES!
+Tests: 1, Assertions: 1, Failures: 1.
+```
+
+### GREEN and verification
+
+Focused regression:
+
+```bash
+vendor/bin/phpunit tests/Unit/Controller/AjaxDeleteControllerTest.php --filter=it_keeps_a_default_authorization_checker_when_constructed_without_one
+```
+
+```text
+OK (1 test, 1 assertion)
+```
+
+Focused controller suite:
+
+```bash
+vendor/bin/phpunit tests/Unit/Controller/AjaxDeleteControllerTest.php
+```
+
+```text
+OK (10 tests, 59 assertions)
+```
+
+Full backend suite:
+
+```bash
+vendor/bin/phpunit
+```
+
+```text
+OK (1374 tests, 5750 assertions)
+```
+
+PHP formatting:
+
+```bash
+composer fix
+```
+
+Sandbox output:
+
+```text
+Failed to listen on "tcp://127.0.0.1:0": Operation not permitted (EPERM)
+```
+
+Escalated rerun output:
+
+```text
+PHP CS Fixer 3.95.25 Adalbertus by Fabien Potencier, Dariusz Ruminski and contributors.
+PHP runtime: 8.4.1
+Loaded config default from "/Users/tanguylemarie/.codex/worktrees/e889/ux-datatables/.php-cs-fixer.dist.php".
+Fixed 1 of 399 files in 0.772 seconds, 42.00 MB memory used
+```
+
+The formatter again touched one unrelated alignment-only test file; that incidental diff was reverted before staging.
+
+Composer audit:
+
+```bash
+composer audit
+```
+
+```text
+No security vulnerability advisories found.
+```
+
+Whitespace:
+
+```bash
+git diff --check
+```
+
+```text
+exit code 0
+```
+
+GitNexus change detection:
+
+```bash
+node .gitnexus/run.cjs detect_changes --repo /Users/tanguylemarie/.codex/worktrees/e889/ux-datatables
+```
+
+```text
+Changes: 3 files, 5 symbols
+Affected processes: 12
+Risk level: high
+```

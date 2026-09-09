@@ -19,12 +19,15 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 
 final class AjaxDeleteController
 {
+    private readonly AuthorizationChecker $permissionChecker;
+
     public function __construct(
         private readonly EntityMutator $mutator,
         private readonly MutationTokenValidator $tokenValidator,
         private readonly AjaxDataTableRegistry $registry,
-        private readonly ?AuthorizationChecker $permissionChecker = null,
+        ?AuthorizationChecker $permissionChecker = null,
     ) {
+        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
 
     public function __invoke(Request $request, #[MapRequestPayload] AjaxEntityQueryDto $payload): Response
@@ -34,7 +37,7 @@ final class AjaxDeleteController
         $dataTable = $this->registry->resolveAction($payload->dataTable);
         $action    = $dataTable->findAction(ActionType::Delete);
 
-        if (null === $action || false === $this->permissionChecker?->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
+        if (null === $action || false === $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
             $dataTable->dataTableClass,
             $action,
             null,
