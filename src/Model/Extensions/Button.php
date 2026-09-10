@@ -14,6 +14,13 @@ final class Button implements \JsonSerializable
     private const string DEFAULT_EXPORT_COLUMNS = ':visible:not(.not-exportable)';
 
     /**
+     * A server-side export button carries no `extend`, so DataTables never adds the format class
+     * its own HTML5 buttons get. Writing it here keeps both kinds of export button stylable by the
+     * same selector; an app-provided `className()` wins.
+     */
+    private const string EXPORT_MARKER_CLASS_PREFIX = 'buttons-';
+
+    /**
      * Button types that never export data: no default `exportOptions` is injected for these.
      *
      * @var list<ButtonType>
@@ -261,9 +268,10 @@ final class Button implements \JsonSerializable
         if (null !== $this->exportFormat) {
             $payload = $this->options;
             unset($payload['extend'], $payload['exportOptions']);
-            $payload['action']    = self::SERVER_EXPORT_ACTION;
-            $payload['format']    = $this->exportFormat->value;
-            $payload['exportKey'] = $this->getExportKey();
+            $payload['action']      = self::SERVER_EXPORT_ACTION;
+            $payload['format']      = $this->exportFormat->value;
+            $payload['exportKey']   = $this->getExportKey();
+            $payload['className'] ??= self::EXPORT_MARKER_CLASS_PREFIX.$this->type->value;
 
             return $payload;
         }
