@@ -38,7 +38,7 @@ export const relativeDateColumnRenderer = {
                 return data;
             }
             if (data === null || data === undefined || data === '') {
-                return '';
+                return null;
             }
             const timestamp = Date.parse(String(data));
             if (Number.isNaN(timestamp)) {
