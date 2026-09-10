@@ -45,9 +45,15 @@ DateColumn::new('lastLoginAt', 'Last login')
 
 The label is produced in the browser with
 [`Intl.RelativeTimeFormat`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat),
-so it needs no extra dependency, follows the locale of the `<html lang>` attribute, and stays
-correct in a tab left open. Sorting and searching keep using the underlying date, and
+so it needs no extra dependency and follows the locale of the `<html lang>` attribute, falling back
+to `navigator.language`. Sorting and searching keep using the underlying date, and
 `setDefaultContent()` covers null values.
+
+The label is recomputed on every draw — paging, sorting, searching, an Ajax reload, a Mercure
+update — and not on a timer. An idle table therefore keeps the labels it was last drawn with, so
+"20 seconds ago" stays on screen until the next draw. Call
+`table.rows().invalidate().draw(false)` on an interval if a table is meant to sit open on
+second-accurate values.
 
 While `relative()` is enabled the serialized value switches to ISO 8601 so the browser can compute
 the offset, which makes any format set through `setFormat()` irrelevant. Disabling it with

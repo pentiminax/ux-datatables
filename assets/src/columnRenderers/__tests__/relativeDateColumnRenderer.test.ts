@@ -38,12 +38,12 @@ describe('relativeDateColumnRenderer', () => {
         expect(render('2026-09-10T11:55:00+00:00', 'filter')).toBe('2026-09-10T11:55:00+00:00')
     })
 
-    it('renders an empty cell for missing values', () => {
+    it('returns null for missing values so DataTables can apply defaultContent', () => {
         const render = configuredRender()
 
-        expect(render(null, 'display')).toBe('')
-        expect(render(undefined, 'display')).toBe('')
-        expect(render('', 'display')).toBe('')
+        expect(render(null, 'display')).toBeNull()
+        expect(render(undefined, 'display')).toBeNull()
+        expect(render('', 'display')).toBeNull()
     })
 
     it('renders past dates as relative labels', () => {

@@ -49,8 +49,10 @@ export const relativeDateColumnRenderer: ColumnRenderer = {
                 return data
             }
 
+            // Returning null lets DataTables substitute the column defaultContent; an empty
+            // string would be taken as the final display value and suppress it.
             if (data === null || data === undefined || data === '') {
-                return ''
+                return null
             }
 
             const timestamp = Date.parse(String(data))
