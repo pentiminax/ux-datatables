@@ -32,10 +32,36 @@ Pass `null` to revert to the default `Y-m-d`:
 $column->setFormat(null);
 ```
 
+## Relative Dates
+
+Call `relative()` to render the cell as a localized relative label ("3 minutes ago") instead of a
+formatted date:
+
+```php
+DateColumn::new('lastLoginAt', 'Last login')
+    ->relative()
+    ->setDefaultContent('Never');
+```
+
+The label is produced in the browser with
+[`Intl.RelativeTimeFormat`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/RelativeTimeFormat),
+so it needs no extra dependency, follows the locale of the `<html lang>` attribute, and stays
+correct in a tab left open. Sorting and searching keep using the underlying date, and
+`setDefaultContent()` covers null values.
+
+While `relative()` is enabled the serialized value switches to ISO 8601 so the browser can compute
+the offset, which makes any format set through `setFormat()` irrelevant. Disabling it with
+`relative(false)` restores the configured format.
+
+<Aside type="caution">
+  Server-side exports are not affected: a CSV or XLSX export of a relative column still contains the
+  date, not the relative label.
+</Aside>
+
 ## Display Formatting
 
-To display dates in a different format than the raw stored value, attach a renderer through
-the `datatables:pre-connect` event:
+For anything other than a relative label, attach a renderer through the
+`datatables:pre-connect` event:
 
 ```javascript
 this.element.addEventListener('datatables:pre-connect', (event) => {
@@ -57,7 +83,9 @@ this.element.addEventListener('datatables:pre-connect', (event) => {
   rows={[
     ["`DateColumn::new(string $name, string $title = '')`", 'Creates a new DateColumn (type: `date`). Default format: `Y-m-d`.'],
     ['`setFormat(?string $format)`', 'Set the expected date format; `null` resets to default'],
-    ['`getFormat()`', 'Returns the active format string'],
+    ['`getFormat()`', 'Returns the active format string, or ISO 8601 while `relative()` is enabled'],
+    ['`relative(bool $relative = true)`', 'Render the cell as a localized relative label in the browser'],
+    ['`isRelative()`', 'Whether relative rendering is enabled'],
   ]}
 />
 

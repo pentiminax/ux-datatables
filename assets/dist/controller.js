@@ -6,6 +6,7 @@ import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js';
 import { createIconColumnRenderer } from './columnRenderers/iconColumnRenderer.js';
 import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js';
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js';
+import { relativeDateColumnRenderer } from './columnRenderers/relativeDateColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
 import { ApiPlatformAdapter, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
@@ -238,6 +239,7 @@ class default_1 extends Controller {
             createChoiceColumnRenderer(style),
             emailColumnRenderer,
             moneyColumnRenderer,
+            relativeDateColumnRenderer,
             imageColumnRenderer,
             urlColumnRenderer,
             createIconColumnRenderer(style),

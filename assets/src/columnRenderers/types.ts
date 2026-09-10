@@ -44,6 +44,12 @@ export interface MoneyCustomOptions {
     showCurrencySign?: boolean
 }
 
+export interface DateCustomOptions {
+    relative?: boolean
+    dateFormat?: string
+    locale?: string
+}
+
 export interface EmailCustomOptions {
     isEmail?: boolean
     obfuscate?: boolean
