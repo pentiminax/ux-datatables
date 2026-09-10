@@ -13,6 +13,54 @@ Use Buttons when users need export actions (CSV, Excel, PDF, Print) or column vi
 
 ```php
 use Pentiminax\UX\DataTables\Enum\ButtonType;
+
+$dataTable->buttons([
+    ButtonType::COPY,
+    ButtonType::CSV,
+    ButtonType::EXCEL,
+]);
+```
+
+Buttons is a layout-aware extension, so it needs two things: the button list,
+and a marker telling DataTables where to render the `.dt-buttons` container.
+`buttons()` writes both. It accepts `ButtonType` enums, `Button` objects, and
+raw DataTables button names.
+
+### Choosing The Position
+
+The second argument is a DataTables position name and defaults to `topStart`:
+
+```php
+$dataTable->buttons([ButtonType::CSV], 'topEnd');
+```
+
+The target position keeps whatever it already holds, so ordering `layout()`
+before `buttons()` combines features instead of replacing them:
+
+```php
+use Pentiminax\UX\DataTables\Enum\Feature;
+
+$dataTable
+    ->layout([
+        'topStart' => Feature::PAGE_LENGTH,
+        'topEnd' => Feature::SEARCH,
+    ])
+    ->buttons([ButtonType::CSV]);
+
+// topStart renders the page length selector, then the buttons container.
+```
+
+Buttons are keyed by extension name like every other extension, so calling
+`buttons()` twice replaces the button list rather than appending to it. Build
+the full list in one call.
+
+### Configuring The Extension Directly
+
+`buttons()` is a shortcut over `addExtension()` plus `Feature::BUTTONS`. Use
+the explicit form when you need to hold the extension in a variable, or when
+`layout()` should stay the single source of truth for positioning:
+
+```php
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 
@@ -20,7 +68,6 @@ $dataTable
     ->addExtension(new ButtonsExtension([
         ButtonType::COPY,
         ButtonType::CSV,
-        ButtonType::EXCEL,
     ]))
     ->layout([
         'topStart' => Feature::BUTTONS,
@@ -28,10 +75,8 @@ $dataTable
     ]);
 ```
 
-Buttons is a layout-aware extension: `ButtonsExtension` configures the buttons,
-and `Feature::BUTTONS` tells DataTables where to render the `.dt-buttons`
-container. Without `Feature::BUTTONS` in `layout()`, no buttons container is
-generated.
+Without `Feature::BUTTONS` in `layout()`, this form generates no buttons
+container at all.
 
 ## Available Button Types
 
@@ -52,6 +97,9 @@ generated.
 
 ## Advanced Example
 
+`ButtonsExtension` exposes a fluent `with*Button()` API for building a list
+across several statements:
+
 ```php
 $buttons = (new ButtonsExtension([ButtonType::CSV]))
     ->withExcelButton()
@@ -70,25 +118,18 @@ Use `Button` objects when you need DataTables button options such as `text`,
 `className`, `exportOptions`, or export-specific options like `filename`.
 
 ```php
-use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
-use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 
-$dataTable
-    ->addExtension(new ButtonsExtension([
-        Button::csv()
-            ->text('Export CSV')
-            ->className('btn btn-sm btn-outline-primary')
-            ->exportOptions(['columns' => ':visible:not(.not-exportable)']),
-        Button::excel()
-            ->text('Excel')
-            ->option('filename', 'users-export'),
-        Button::colVis()->text('Columns'),
-    ]))
-    ->layout([
-        'topStart' => Feature::BUTTONS,
-        'topEnd' => Feature::SEARCH,
-    ]);
+$dataTable->buttons([
+    Button::csv()
+        ->text('Export CSV')
+        ->className('btn btn-sm btn-outline-primary')
+        ->exportOptions(['columns' => ':visible:not(.not-exportable)']),
+    Button::excel()
+        ->text('Excel')
+        ->option('filename', 'users-export'),
+    Button::colVis()->text('Columns'),
+]);
 ```
 
 Button options must be JSON-serializable. JavaScript callbacks such as
@@ -324,7 +365,9 @@ action nested this way is registered exactly like a top-level one.
 
 ## Frequent Pitfalls
 
-- Adding `ButtonsExtension` without adding `Feature::BUTTONS` to the layout.
+- Adding `ButtonsExtension` without adding `Feature::BUTTONS` to the layout — `buttons()`
+  avoids this entirely.
+- Calling `buttons()` twice and expecting the lists to merge; the second call replaces the first.
 - Mixing button values as invalid strings.
 - Forgetting that non-column-visibility buttons apply export filtering by default.
 - Using `Button::ccSearchClear()` without also enabling `ColumnControlExtension` on the table.
