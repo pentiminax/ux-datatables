@@ -137,6 +137,7 @@ final class ButtonTest extends TestCase
                 'exportKey' => 'csv',
                 'text'      => 'Export CSV',
                 'filename'  => 'users',
+                'className' => 'buttons-csv',
             ],
         ];
     }
@@ -174,6 +175,7 @@ final class ButtonTest extends TestCase
                     'exportKey' => 'csv',
                     'text'      => 'CSV',
                     'filename'  => 'users',
+                    'className' => 'buttons-csv',
                 ],
             ],
             'text' => 'Export',
@@ -194,6 +196,7 @@ final class ButtonTest extends TestCase
             'exportKey' => 'xlsx',
             'text'      => 'Excel',
             'filename'  => 'users',
+            'className' => 'buttons-excel',
         ], json_decode(json_encode($button), true));
     }
 
