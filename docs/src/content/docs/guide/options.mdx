@@ -393,6 +393,18 @@ $dataTable->layout([
 ]);
 ```
 
+### buttons
+
+The Buttons extension needs both a button list and a `Feature::BUTTONS` marker in the layout.
+`buttons()` writes both at once, defaulting to the `topStart` position and keeping the features
+that position already holds. See the Buttons extension page.
+
+```php
+use Pentiminax\UX\DataTables\Enum\ButtonType;
+
+$dataTable->buttons([ButtonType::CSV, ButtonType::EXCEL], 'topEnd');
+```
+
 ## Complete Example
 
 ```php
