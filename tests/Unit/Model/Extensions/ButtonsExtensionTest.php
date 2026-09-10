@@ -129,6 +129,7 @@ final class ButtonsExtensionTest extends DataTableTestCase
                 'format'    => 'csv',
                 'exportKey' => 'csv',
                 'text'      => 'CSV',
+                'className' => 'buttons-csv',
             ],
         ], $extension);
     }
@@ -144,6 +145,7 @@ final class ButtonsExtensionTest extends DataTableTestCase
                 'format'    => 'xlsx',
                 'exportKey' => 'xlsx',
                 'text'      => 'Excel',
+                'className' => 'buttons-excel',
             ],
         ], $extension);
     }
