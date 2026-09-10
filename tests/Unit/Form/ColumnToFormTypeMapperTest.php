@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Form;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
@@ -18,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -96,4 +98,48 @@ class ColumnToFormTypeMapperTest extends TestCase
         yield 'nested field path' => [TextColumn::new('author', 'Author')->setField('author.firstName')];
         yield 'hidden when updating' => [TextColumn::new('createdAt', 'Created At')->setCustomOption('hideWhenUpdating', true)];
     }
+
+    public function test_enum_typed_property_maps_to_enum_type_with_choice_column_labels(): void
+    {
+        $column = ChoiceColumn::new('role', 'Role')->setChoices(ColumnToFormTypeMapperRole::class);
+
+        $mapped = $this->mapper->map($column, new ColumnToFormTypeMapperEntity());
+
+        $this->assertSame(EnumType::class, $mapped['formType']);
+        $this->assertSame(ColumnToFormTypeMapperRole::class, $mapped['options']['class']);
+        $this->assertSame('Administrator', ($mapped['options']['choice_label'])(ColumnToFormTypeMapperRole::Admin));
+    }
+
+    public function test_enum_typed_property_maps_to_enum_type_without_a_choice_column(): void
+    {
+        $mapped = $this->mapper->map(TextColumn::new('role', 'Role'), new ColumnToFormTypeMapperEntity());
+
+        $this->assertSame(EnumType::class, $mapped['formType']);
+        $this->assertArrayNotHasKey('choice_label', $mapped['options']);
+    }
+
+    public function test_scalar_property_is_unaffected_by_the_entity(): void
+    {
+        $mapped = $this->mapper->map(TextColumn::new('name', 'Name'), new ColumnToFormTypeMapperEntity());
+
+        $this->assertSame(TextType::class, $mapped['formType']);
+    }
+}
+
+enum ColumnToFormTypeMapperRole: string
+{
+    case Admin = 'admin';
+    case User  = 'user';
+
+    public function getLabel(): string
+    {
+        return self::Admin === $this ? 'Administrator' : 'User';
+    }
+}
+
+final class ColumnToFormTypeMapperEntity
+{
+    public string $name = 'Ada';
+
+    public ?ColumnToFormTypeMapperRole $role = null;
 }
