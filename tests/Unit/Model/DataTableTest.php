@@ -188,6 +188,8 @@ final class DataTableTest extends TestCase
         yield 'feature enum' => [Feature::BUTTONS];
         yield 'raw feature name' => ['buttons'];
         yield 'inside a list' => [[Feature::SEARCH, Feature::BUTTONS]];
+        yield 'raw buttons feature object' => [['buttons' => [['extend' => 'csv']]]];
+        yield 'raw buttons object in a list' => [[Feature::SEARCH, ['buttons' => [['extend' => 'csv']]]]];
     }
 
     #[Test]
@@ -198,14 +200,27 @@ final class DataTableTest extends TestCase
             ->layout(['topStart' => $slot])
             ->buttons([ButtonType::CSV]);
 
-        $buttonsConfig = ['buttons' => (new ButtonsExtension([ButtonType::CSV]))->jsonSerialize()];
-        $topStart      = $table->getOptions()['layout']['topStart'];
+        $topStart = $table->getOptions()['layout']['topStart'];
+        $entries  = \is_array($topStart) && array_is_list($topStart) ? $topStart : [$topStart];
 
-        $occurrences = \is_array($topStart) && array_is_list($topStart)
-            ? \count(array_filter($topStart, static fn ($item): bool => $item === $buttonsConfig))
-            : (int) ($topStart === $buttonsConfig);
+        $containers = \count(array_filter(
+            $entries,
+            static fn ($entry): bool => \is_array($entry) && \array_key_exists('buttons', $entry),
+        ));
 
-        $this->assertSame(1, $occurrences);
+        $this->assertSame(1, $containers);
+    }
+
+    #[Test]
+    public function buttons_leaves_a_raw_buttons_feature_object_alone(): void
+    {
+        $rawButtons = ['buttons' => [['extend' => 'csv', 'text' => 'Hand-rolled']]];
+
+        $table = (new DataTable('testTable'))
+            ->layout(['topStart' => $rawButtons])
+            ->buttons([ButtonType::EXCEL]);
+
+        $this->assertSame($rawButtons, $table->getOptions()['layout']['topStart']);
     }
 
     #[Test]
