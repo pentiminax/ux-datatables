@@ -6,11 +6,14 @@ namespace Pentiminax\UX\DataTables\Model;
 
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
+use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Enum\StyleFramework;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicFactory;
+use Pentiminax\UX\DataTables\Model\Extensions\Button;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
@@ -659,6 +662,47 @@ class DataTable
     }
 
     /**
+     * Register the Buttons extension and place its container in the layout in one call.
+     *
+     * Buttons needs two pieces of configuration: the button list, and a `Feature::BUTTONS` marker
+     * telling DataTables where to render the `.dt-buttons` container. Forgetting the marker
+     * silently renders no buttons at all, so this method writes both.
+     *
+     * The target position keeps whatever it already holds: a slot carrying `Feature::PAGE_LENGTH`
+     * becomes `[Feature::PAGE_LENGTH, Feature::BUTTONS]` rather than losing that feature. A
+     * position that already declares `Feature::BUTTONS` is left untouched.
+     *
+     * Like every other extension, buttons are keyed by extension name, so a second call replaces
+     * the previously registered button list instead of appending to it.
+     *
+     * @param list<ButtonType|Button|string> $buttons
+     * @param string                         $position DataTables position name (e.g. 'topStart',
+     *                                                 'topEnd', 'bottomStart', 'bottomEnd')
+     *
+     * @see layout() for full control over the DataTables layout
+     */
+    public function buttons(array $buttons, string $position = 'topStart'): static
+    {
+        $this->extensions->addExtension(new ButtonsExtension($buttons));
+
+        $layout = $this->options->get('layout');
+        $layout = \is_array($layout) ? $layout : [];
+        $slot   = $layout[$position] ?? null;
+
+        if ($this->slotDeclaresButtons($slot)) {
+            return $this->layout($layout);
+        }
+
+        $layout[$position] = match (true) {
+            null === $slot                           => Feature::BUTTONS,
+            \is_array($slot) && array_is_list($slot) => [...$slot, Feature::BUTTONS],
+            default                                  => [$slot, Feature::BUTTONS],
+        };
+
+        return $this->layout($layout);
+    }
+
+    /**
      * Configure the layout of DataTables UI features.
      *
      * Keys are DataTables position names (e.g. 'topStart', 'topEnd', 'bottomStart',
@@ -770,6 +814,21 @@ class DataTable
     public function getDataTableClass(): ?string
     {
         return $this->dataTableClass;
+    }
+
+    /**
+     * Whether a layout position already renders the buttons container, whether it was declared
+     * with the {@see Feature} enum or with the raw DataTables feature name.
+     */
+    private function slotDeclaresButtons(mixed $slot): bool
+    {
+        foreach (\is_array($slot) ? $slot : [$slot] as $item) {
+            if (Feature::BUTTONS === $item || Feature::BUTTONS->value === $item) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function addButtonsToLayout(array &$options): void

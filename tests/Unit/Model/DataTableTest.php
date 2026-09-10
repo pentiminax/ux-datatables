@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Enum\StyleFramework;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Extensions\Button;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
@@ -106,6 +109,135 @@ final class DataTableTest extends TestCase
             'bottomStart' => null,
             'bottomEnd'   => 'paging',
         ], $table->getOptions()['layout']);
+    }
+
+    #[Test]
+    public function buttons_registers_the_extension_and_places_the_container_in_the_layout(): void
+    {
+        $table = (new DataTable('testTable'))->buttons([ButtonType::CSV, ButtonType::EXCEL]);
+
+        $expectedButtons = (new ButtonsExtension([ButtonType::CSV, ButtonType::EXCEL]))->jsonSerialize();
+
+        $this->assertSame(
+            ['buttons' => $expectedButtons],
+            $table->getOptions()['layout']['topStart'],
+        );
+    }
+
+    #[Test]
+    public function buttons_places_the_container_at_the_requested_position(): void
+    {
+        $table = (new DataTable('testTable'))->buttons([ButtonType::CSV], 'bottomEnd');
+
+        $layout = $table->getOptions()['layout'];
+
+        $this->assertArrayNotHasKey('topStart', $layout);
+        $this->assertSame(
+            ['buttons' => (new ButtonsExtension([ButtonType::CSV]))->jsonSerialize()],
+            $layout['bottomEnd'],
+        );
+    }
+
+    #[Test]
+    public function buttons_keeps_the_feature_already_declared_in_the_target_position(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout(['topStart' => Feature::PAGE_LENGTH])
+            ->buttons([ButtonType::CSV]);
+
+        $this->assertSame(
+            ['pageLength', ['buttons' => (new ButtonsExtension([ButtonType::CSV]))->jsonSerialize()]],
+            $table->getOptions()['layout']['topStart'],
+        );
+    }
+
+    #[Test]
+    public function buttons_appends_the_container_to_a_list_of_features(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout(['topEnd' => [Feature::SEARCH, Feature::PAGE_LENGTH]])
+            ->buttons([ButtonType::CSV], 'topEnd');
+
+        $this->assertSame(
+            ['search', 'pageLength', ['buttons' => (new ButtonsExtension([ButtonType::CSV]))->jsonSerialize()]],
+            $table->getOptions()['layout']['topEnd'],
+        );
+    }
+
+    #[Test]
+    public function buttons_wraps_a_raw_feature_object_instead_of_merging_into_it(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout(['top' => ['div' => ['html' => '<h2>Title</h2>']]])
+            ->buttons([ButtonType::CSV], 'top');
+
+        $this->assertSame(
+            [
+                ['div' => ['html' => '<h2>Title</h2>']],
+                ['buttons' => (new ButtonsExtension([ButtonType::CSV]))->jsonSerialize()],
+            ],
+            $table->getOptions()['layout']['top'],
+        );
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function alreadyDeclaredButtonsProvider(): iterable
+    {
+        yield 'feature enum' => [Feature::BUTTONS];
+        yield 'raw feature name' => ['buttons'];
+        yield 'inside a list' => [[Feature::SEARCH, Feature::BUTTONS]];
+    }
+
+    #[Test]
+    #[DataProvider('alreadyDeclaredButtonsProvider')]
+    public function buttons_does_not_duplicate_a_container_the_layout_already_declares(mixed $slot): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout(['topStart' => $slot])
+            ->buttons([ButtonType::CSV]);
+
+        $buttonsConfig = ['buttons' => (new ButtonsExtension([ButtonType::CSV]))->jsonSerialize()];
+        $topStart      = $table->getOptions()['layout']['topStart'];
+
+        $occurrences = \is_array($topStart) && array_is_list($topStart)
+            ? \count(array_filter($topStart, static fn ($item): bool => $item === $buttonsConfig))
+            : (int) ($topStart === $buttonsConfig);
+
+        $this->assertSame(1, $occurrences);
+    }
+
+    #[Test]
+    public function buttons_accepts_customized_button_objects(): void
+    {
+        $table = (new DataTable('testTable'))->buttons([
+            Button::csv()->text('Export CSV'),
+            Button::colVis()->text('Columns'),
+        ]);
+
+        $expectedButtons = (new ButtonsExtension([
+            Button::csv()->text('Export CSV'),
+            Button::colVis()->text('Columns'),
+        ]))->jsonSerialize();
+
+        $this->assertSame(
+            ['buttons' => $expectedButtons],
+            $table->getOptions()['layout']['topStart'],
+        );
+    }
+
+    #[Test]
+    public function buttons_replaces_a_previously_registered_button_list(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->buttons([ButtonType::CSV])
+            ->buttons([ButtonType::PRINT]);
+
+        $this->assertSame(
+            ['buttons' => (new ButtonsExtension([ButtonType::PRINT]))->jsonSerialize()],
+            $table->getOptions()['layout']['topStart'],
+        );
     }
 
     #[Test]
