@@ -78,6 +78,12 @@ final class NormalizationStageTest extends TestCase
             ['date' => '01/06/2024'],
         ];
 
+        yield 'relative date column formats datetime as ISO 8601' => [
+            ['date' => new \DateTimeImmutable('2024-06-01 14:30:00+02:00')],
+            [DateColumn::new('date')->setFormat('d/m/Y')->relative()],
+            ['date' => '2024-06-01T14:30:00+02:00'],
+        ];
+
         yield 'dotted field path is resolved' => [
             ['company' => $company],
             [TextColumn::new('company')->setField('company.name')],
