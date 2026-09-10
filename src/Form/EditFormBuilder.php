@@ -26,7 +26,7 @@ final class EditFormBuilder
         $builder = $this->formFactory->createBuilder(FormType::class, $entity);
 
         foreach ($columns as $column) {
-            $mapped = $this->mapper->map($column);
+            $mapped = $this->mapper->map($column, $entity);
 
             if (null === $mapped) {
                 continue;
