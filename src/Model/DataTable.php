@@ -817,18 +817,39 @@ class DataTable
     }
 
     /**
-     * Whether a layout position already renders the buttons container, whether it was declared
-     * with the {@see Feature} enum or with the raw DataTables feature name.
+     * Whether a layout position already renders the buttons container, either as the whole slot or
+     * as one entry of a feature list.
      */
     private function slotDeclaresButtons(mixed $slot): bool
     {
-        foreach (\is_array($slot) ? $slot : [$slot] as $item) {
-            if (Feature::BUTTONS === $item || Feature::BUTTONS->value === $item) {
+        if ($this->isButtonsFeature($slot)) {
+            return true;
+        }
+
+        if (!\is_array($slot) || !array_is_list($slot)) {
+            return false;
+        }
+
+        foreach ($slot as $item) {
+            if ($this->isButtonsFeature($item)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * A layout entry renders the buttons container when it is the {@see Feature} enum, the raw
+     * DataTables feature name, or a feature object already carrying a `buttons` configuration.
+     */
+    private function isButtonsFeature(mixed $value): bool
+    {
+        if (Feature::BUTTONS === $value || Feature::BUTTONS->value === $value) {
+            return true;
+        }
+
+        return \is_array($value) && \array_key_exists(Feature::BUTTONS->value, $value);
     }
 
     private function addButtonsToLayout(array &$options): void
