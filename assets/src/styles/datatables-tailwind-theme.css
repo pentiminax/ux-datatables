@@ -29,7 +29,7 @@
     --dt-tw-primary-text: var(--dt-tw-primary-700);
 
     --dt-tw-surface: 255 255 255;
-    --dt-tw-on-primary: var(--dt-tw-gray-950);
+    --dt-tw-on-primary: 255 255 255;
     --dt-tw-text: var(--dt-tw-gray-950);
     --dt-tw-text-muted: var(--dt-tw-gray-500);
     --dt-tw-text-strong: var(--dt-tw-gray-950);

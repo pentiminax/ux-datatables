@@ -29,7 +29,7 @@
     --dt-tw-primary-text: var(--dt-tw-primary-700);
 
     --dt-tw-surface: 255 255 255;
-    --dt-tw-on-primary: var(--dt-tw-gray-950);
+    --dt-tw-on-primary: 255 255 255;
     --dt-tw-text: var(--dt-tw-gray-950);
     --dt-tw-text-muted: var(--dt-tw-gray-500);
     --dt-tw-text-strong: var(--dt-tw-gray-950);
@@ -665,15 +665,6 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     outline: none;
     box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
 }
-
-/*
- * Export buttons keep the format in their class name — DataTables writes
- * `buttons-csv` / `buttons-excel` on its own HTML5 buttons, and
- * `Button::jsonSerialize()` writes the same class for server-side exports — so
- * the theme can tint each format and prefix a glyph without the app pulling in
- * an icon font. A `className()` set by the app replaces the marker and opts the
- * button back out of this styling.
- */
 
 .dt-container.dt-container :is(button, div, a).dt-button:is(.buttons-csv, .buttons-excel) {
     background: rgb(var(--dt-tw-export) / 0.1);
