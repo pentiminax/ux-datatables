@@ -21,6 +21,7 @@ import { fetchEditForm } from './functions/fetchEditForm.js';
 import { registerFilterFeature } from './functions/filterFeature.js';
 import { applyFilterLayout } from './functions/filterLayout.js';
 import { FilterBar, hasFilters } from './functions/filters.js';
+import { isHighlightEnabled } from './functions/highlightUpdates.js';
 import { isDataTableClone } from './functions/isDataTableClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { applyLocalLanguage } from './functions/localLanguage.js';
@@ -65,6 +66,7 @@ class default_1 extends Controller {
         this.table = null;
         this.isDataTableInitialized = false;
         this.eventSource = null;
+        this.highlighter = null;
         this.framework = 'dt';
         this.popstateHandler = null;
         this.onTurboBeforeCache = () => {
@@ -147,6 +149,8 @@ class default_1 extends Controller {
         document.removeEventListener('turbo:before-cache', this.onTurboBeforeCache);
         this.eventSource?.close();
         this.eventSource = null;
+        this.highlighter?.destroy();
+        this.highlighter = null;
         if (this.popstateHandler) {
             window.removeEventListener('popstate', this.popstateHandler);
             this.popstateHandler = null;
@@ -260,13 +264,23 @@ class default_1 extends Controller {
         }
     }
     async initMercure(payload) {
-        if (this.isMercureEnabled(payload)) {
-            const { createMercureSubscription } = await import('./functions/mercureSubscription.js');
-            this.eventSource = createMercureSubscription(payload.mercure, (event) => {
-                this.dispatchEvent('mercure:message', { data: event.data, event });
-                this.table?.ajax?.reload(null, false);
-            });
+        if (!this.isMercureEnabled(payload)) {
+            return;
         }
+        await this.initHighlighter(payload);
+        const { createMercureSubscription } = await import('./functions/mercureSubscription.js');
+        this.eventSource = createMercureSubscription(payload.mercure, (event) => {
+            this.dispatchEvent('mercure:message', { data: event.data, event });
+            this.highlighter?.arm();
+            this.table?.ajax?.reload(() => this.highlighter?.diff(), false);
+        });
+    }
+    async initHighlighter(payload) {
+        if (!this.table || !isHighlightEnabled(payload)) {
+            return;
+        }
+        const { UpdateHighlighter } = await import('./functions/highlightUpdates.js');
+        this.highlighter = new UpdateHighlighter(this.table, payload.highlight, Array.isArray(payload.columns) ? payload.columns : [], (cells) => this.dispatchEvent('highlight', { cells }));
     }
     bindActionHandler(payload) {
         ;

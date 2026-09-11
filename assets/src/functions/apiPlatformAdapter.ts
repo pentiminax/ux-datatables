@@ -85,12 +85,36 @@ function toCount(value: unknown): number {
     return 0
 }
 
+/**
+ * Mirrors `HighlightConfig::ROW_ID_KEY`; duplicated rather than imported so the highlight module
+ * stays lazily loaded.
+ */
+const ROW_ID_KEY = 'DT_RowId'
+
+const DEFAULT_ROW_ID_FIELD = 'id'
+
+function resolveRowIdField(highlight: unknown): string | null {
+    if (!isRecord(highlight)) {
+        return null
+    }
+
+    const idField = highlight.idField
+
+    return 'string' === typeof idField && '' !== idField ? idField : DEFAULT_ROW_ID_FIELD
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 export class ApiPlatformAdapter {
     private readonly columns: ReadonlyArray<ColumnConfig>
+
+    /**
+     * Hydra members never go through the PHP row mapper, so the row id the update highlight and the
+     * DataTables `rowId` option read is added here instead of by `RowIdStage`.
+     */
+    private rowIdField: string | null = null
 
     constructor(columns: ColumnConfig[]) {
         this.columns = columns
@@ -152,12 +176,13 @@ export class ApiPlatformAdapter {
             draw,
             recordsTotal: totalItems,
             recordsFiltered: totalItems,
-            data,
+            data: this.withRowIds(data),
         }
     }
 
     configure(payload: Record<string, unknown>): void {
         const ajaxConfig = payload.ajax as Record<string, unknown>
+        this.rowIdField = resolveRowIdField(payload.highlight)
         const originalData = ajaxConfig.data
         const originalDataFilter = ajaxConfig.dataFilter
         const templateRendering = this.resolveTemplateRenderingConfig(
@@ -321,6 +346,31 @@ export class ApiPlatformAdapter {
             value.table.trim() !== ''
             ? { url: value.url, table: value.table }
             : null
+    }
+
+    private withRowIds(rows: unknown[]): unknown[] {
+        const field = this.rowIdField
+
+        if (null === field) {
+            return rows
+        }
+
+        return rows.map((row: unknown): unknown => {
+            if (!isRecord(row) || row[ROW_ID_KEY] !== undefined) {
+                return row
+            }
+
+            const id = row[field]
+
+            if ('number' !== typeof id && ('string' !== typeof id || '' === id)) {
+                return row
+            }
+
+            return {
+                ...row,
+                [ROW_ID_KEY]: String(id),
+            }
+        })
     }
 
     private appendQueryString(url: string, params: URLSearchParams): string {
