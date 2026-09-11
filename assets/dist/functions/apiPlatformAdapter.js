@@ -21,11 +21,21 @@ function toCount(value) {
     }
     return 0;
 }
+const ROW_ID_KEY = 'DT_RowId';
+const DEFAULT_ROW_ID_FIELD = 'id';
+function resolveRowIdField(highlight) {
+    if (!isRecord(highlight)) {
+        return null;
+    }
+    const idField = highlight.idField;
+    return 'string' === typeof idField && '' !== idField ? idField : DEFAULT_ROW_ID_FIELD;
+}
 function isRecord(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 export class ApiPlatformAdapter {
     constructor(columns) {
+        this.rowIdField = null;
         this.columns = columns;
     }
     buildRequestParams(params) {
@@ -71,11 +81,12 @@ export class ApiPlatformAdapter {
             draw,
             recordsTotal: totalItems,
             recordsFiltered: totalItems,
-            data,
+            data: this.withRowIds(data),
         };
     }
     configure(payload) {
         const ajaxConfig = payload.ajax;
+        this.rowIdField = resolveRowIdField(payload.highlight);
         const originalData = ajaxConfig.data;
         const originalDataFilter = ajaxConfig.dataFilter;
         const templateRendering = this.resolveTemplateRenderingConfig(payload.apiPlatformTemplateRendering);
@@ -185,6 +196,25 @@ export class ApiPlatformAdapter {
             value.table.trim() !== ''
             ? { url: value.url, table: value.table }
             : null;
+    }
+    withRowIds(rows) {
+        const field = this.rowIdField;
+        if (null === field) {
+            return rows;
+        }
+        return rows.map((row) => {
+            if (!isRecord(row) || row[ROW_ID_KEY] !== undefined) {
+                return row;
+            }
+            const id = row[field];
+            if ('number' !== typeof id && ('string' !== typeof id || '' === id)) {
+                return row;
+            }
+            return {
+                ...row,
+                [ROW_ID_KEY]: String(id),
+            };
+        });
     }
     appendQueryString(url, params) {
         const query = params.toString();

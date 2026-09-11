@@ -47,7 +47,7 @@ $publisher->publishForDataTable($table->getDataTable(), ['type' => 'custom']);
 
 ## Highlighting updated cells
 
-`->highlightUpdates(durationMs: 1200, ignoreColumns: [], idField: 'id')` emphasizes the cells a Mercure refresh changed. Enabling it serializes a `highlight` payload object and adds `DT_RowId` to every row (also fed to the DataTables `rowId` option).
+`->highlightUpdates(durationMs: 1200, ignoreColumns: [], idField: 'id')` emphasizes the cells a Mercure refresh changed. Enabling it serializes a `highlight` payload object and adds `DT_RowId` to every row (also fed to the DataTables `rowId` option); with API Platform, whose rows bypass the PHP row mapper, the frontend adapter adds that key from `idField`.
 
 On an SSE message the controller snapshots the displayed values, reloads, then after the draw matches rows by id and compares field by field. Changed cells get the `dt-cell-updated` class; a `datatables:highlight` event carries their nodes.
 

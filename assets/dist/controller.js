@@ -272,7 +272,7 @@ class default_1 extends Controller {
         this.eventSource = createMercureSubscription(payload.mercure, (event) => {
             this.dispatchEvent('mercure:message', { data: event.data, event });
             this.highlighter?.arm();
-            this.table?.ajax?.reload(null, false);
+            this.table?.ajax?.reload(() => this.highlighter?.diff(), false);
         });
     }
     async initHighlighter(payload) {

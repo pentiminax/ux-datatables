@@ -43,6 +43,20 @@ final class HighlightConfigTest extends TestCase
     }
 
     #[Test]
+    public function it_serializes_a_custom_id_field_for_the_client(): void
+    {
+        $config = new HighlightConfig(idField: 'uuid');
+
+        $this->assertSame(['durationMs' => 1200, 'idField' => 'uuid'], $config->jsonSerialize());
+    }
+
+    #[Test]
+    public function it_omits_the_default_id_field(): void
+    {
+        $this->assertArrayNotHasKey('idField', (new HighlightConfig())->jsonSerialize());
+    }
+
+    #[Test]
     public function it_discards_empty_ignored_columns(): void
     {
         $config = new HighlightConfig(ignoreColumns: ['lastLoginAt', '', 'updatedAt']);

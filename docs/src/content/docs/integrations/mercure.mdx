@@ -136,11 +136,14 @@ bury the real updates under constant noise. List those columns here.
 ### How It Works
 
 1. Enabling the option serializes a `highlight` object into the frontend payload and adds a
-   `DT_RowId` key to every row, which also feeds the DataTables `rowId` option.
+   `DT_RowId` key to every row, which also feeds the DataTables `rowId` option. API Platform rows
+   never go through the PHP row mapper, so there the key is added client-side from `idField`.
 2. On an incoming Mercure message the controller records the values currently displayed, then
    reloads the table.
-3. After the draw, rows are matched by `DT_RowId` and compared field by field. Changed cells receive
-   the `dt-cell-updated` class, and a `datatables:highlight` event carries their nodes.
+3. Once that reload has redrawn the table, rows are matched by `DT_RowId` and compared field by
+   field. Changed cells receive the `dt-cell-updated` class, and a `datatables:highlight` event
+   carries their nodes. A sort, a search or a paging draw landing while the refresh is in flight
+   leaves the recorded values untouched.
 
 Comparison runs on row data rather than on rendered markup: a redraw regenerates cell HTML even
 where nothing changed, so comparing markup would light up the whole table. Matching rows by id means

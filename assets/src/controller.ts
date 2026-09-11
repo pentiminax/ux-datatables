@@ -426,9 +426,10 @@ export default class extends Controller {
         const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
         this.eventSource = createMercureSubscription(payload.mercure, (event) => {
             this.dispatchEvent('mercure:message', { data: event.data, event })
-            // Armed before the reload so the diff compares against what the viewer is looking at.
+            // Armed before the reload so the diff compares against what the viewer is looking at,
+            // and run from the reload callback so an unrelated draw cannot consume the snapshot.
             this.highlighter?.arm()
-            this.table?.ajax?.reload(null, false)
+            this.table?.ajax?.reload(() => this.highlighter?.diff(), false)
         })
     }
 
@@ -700,7 +701,7 @@ export default class extends Controller {
 
 type DataTableWithAjax = {
     ajax?: {
-        reload: (callback?: null, resetPaging?: boolean) => void
+        reload: (callback?: (() => void) | null, resetPaging?: boolean) => void
     }
     on: (event: string, callback: (...args: any[]) => void) => DataTableWithAjax
     off: (event: string, callback?: (...args: any[]) => void) => DataTableWithAjax
