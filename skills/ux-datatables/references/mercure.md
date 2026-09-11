@@ -45,6 +45,18 @@ $publisher->publish($topics, ['type' => 'custom', 'id' => $id]);
 $publisher->publishForDataTable($table->getDataTable(), ['type' => 'custom']);
 ```
 
+## Highlighting updated cells
+
+`->highlightUpdates(durationMs: 1200, ignoreColumns: [], idField: 'id')` emphasizes the cells a Mercure refresh changed. Enabling it serializes a `highlight` payload object and adds `DT_RowId` to every row (also fed to the DataTables `rowId` option).
+
+On an SSE message the controller snapshots the displayed values, reloads, then after the draw matches rows by id and compares field by field. Changed cells get the `dt-cell-updated` class; a `datatables:highlight` event carries their nodes.
+
+- Diffing runs on row data, not rendered markup: a redraw regenerates cell HTML everywhere, so markup comparison would light up the whole table.
+- Rows are matched by id, so a row that only moved is not reported as updated.
+- Only Mercure-triggered refreshes are compared — sorting, searching and paging never highlight.
+- `ignoreColumns` is not cosmetic: a relative date or counter column changes on every refresh and would highlight constantly.
+- Colors come from `--dt-highlight-color`; `prefers-reduced-motion: reduce` swaps the animation for a static background.
+
 ## Cross links
 
 - `references/api-platform.md` — `mercure.topics` metadata feeds auto-resolution.
