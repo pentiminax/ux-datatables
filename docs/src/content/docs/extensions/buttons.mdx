@@ -124,7 +124,7 @@ $dataTable->buttons([
     Button::csv()
         ->text('Export CSV')
         ->className('btn btn-sm btn-outline-primary')
-        ->exportOptions(['columns' => ':visible:not(.not-exportable)']),
+        ->exportOptions(['columns' => '.dt-exportable:visible']),
     Button::excel()
         ->text('Excel')
         ->option('filename', 'users-export'),

@@ -502,8 +502,8 @@ abstract class AbstractColumn implements SearchableColumnInterface
     {
         $className = $this->className;
 
-        if (!$this->exportable) {
-            $className = trim(\sprintf('%s not-exportable', $className ?? '')) ?: null;
+        if ($this->exportable) {
+            $className = trim(\sprintf('%s dt-exportable', $className ?? '')) ?: null;
         }
 
         $options = array_filter([

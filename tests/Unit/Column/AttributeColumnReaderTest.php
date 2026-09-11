@@ -103,7 +103,7 @@ final class AttributeColumnReaderTest extends TestCase
         $this->assertFalse($data['visible']);
         $this->assertSame('120px', $data['width']);
         $this->assertSame(2, $data['responsivePriority']);
-        $this->assertSame('text-center not-exportable', $data['className']);
+        $this->assertSame('text-center', $data['className']);
         $this->assertSame('th', $data['cellType']);
         $this->assertArrayNotHasKey('render', $data);
         $this->assertSame('N/A', $data['defaultContent']);

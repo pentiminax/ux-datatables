@@ -29,7 +29,6 @@ final class AbstractColumnTest extends TestCase
         $column->setCustomOption('format', 'badge');
 
         $this->assertSame([
-            'className'     => 'not-exportable',
             'name'          => 'status',
             'orderable'     => true,
             'searchable'    => true,

@@ -63,7 +63,7 @@ final class ButtonTest extends TestCase
             [
                 'extend'        => 'csv',
                 'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
+                    'columns' => '.dt-exportable:visible',
                 ],
                 'text' => 'CSV',
             ],
@@ -74,7 +74,7 @@ final class ButtonTest extends TestCase
             [
                 'extend'        => 'excel',
                 'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
+                    'columns' => '.dt-exportable:visible',
                 ],
                 'text' => 'Excel',
             ],
@@ -152,7 +152,7 @@ final class ButtonTest extends TestCase
             'buttons' => [
                 [
                     'extend'        => 'csv',
-                    'exportOptions' => ['columns' => ':visible:not(.not-exportable)'],
+                    'exportOptions' => ['columns' => '.dt-exportable:visible'],
                     'text'          => 'CSV',
                 ],
                 'colvis',
@@ -210,7 +210,7 @@ final class ButtonTest extends TestCase
 
         $this->assertSame([
             'extend'        => 'excel',
-            'exportOptions' => ['columns' => ':visible:not(.not-exportable)'],
+            'exportOptions' => ['columns' => '.dt-exportable:visible'],
             'text'          => 'Excel',
         ], json_decode(json_encode(Button::excel()), true));
     }

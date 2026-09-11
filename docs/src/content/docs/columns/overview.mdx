@@ -183,7 +183,10 @@ this.element.addEventListener('datatables:pre-connect', (event) => {
 $column->setExportable(false);        // Exclude from CSV/Excel exports
 ```
 
-Non-exportable columns automatically receive the `not-exportable` CSS class.
+Exportable columns automatically receive the `dt-exportable` CSS class, which the default
+export selector (`.dt-exportable:visible`) relies on. DataTables' column selector only
+accepts a plain CSS selector before `:visible`, so the marker is positive rather than a
+`:not()` exclusion.
 
 ### Edit Form Control
 

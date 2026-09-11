@@ -77,7 +77,7 @@ final class TemplateColumnRendererTest extends TestCase
             ['column.html.twig' => '<b>{{ data }}</b>'],
             [TemplateColumn::new('author_name')->setField('author.name')->setTemplate('column.html.twig')],
             [],
-            ['author'      => ['name' => 'Ada']],
+            ['author' => ['name' => 'Ada']],
             ['author_name' => '<b>Ada</b>'],
         ];
 

@@ -44,7 +44,7 @@ final class ActionColumnTest extends TestCase
         $this->assertSame(1, $data['responsivePriority']);
         $this->assertSame('bookActions', $data['field']);
         $this->assertFalse($data['visible']);
-        $this->assertSame('not-exportable', $data['className']);
+        $this->assertArrayNotHasKey('className', $data);
         $this->assertFalse($data['orderable']);
         $this->assertFalse($data['searchable']);
         $this->assertSame([], $data['columnControl']);

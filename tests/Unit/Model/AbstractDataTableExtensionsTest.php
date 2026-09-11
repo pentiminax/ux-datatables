@@ -49,7 +49,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
                     [
                         'extend'        => 'csv',
                         'exportOptions' => [
-                            'columns' => ':visible:not(.not-exportable)',
+                            'columns' => '.dt-exportable:visible',
                         ],
                     ],
                 ],
@@ -158,7 +158,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
                             [
                                 'extend'        => 'csv',
                                 'exportOptions' => [
-                                    'columns' => ':visible:not(.not-exportable)',
+                                    'columns' => '.dt-exportable:visible',
                                 ],
                             ],
                         ],

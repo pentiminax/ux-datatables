@@ -11,7 +11,7 @@ final class Button implements \JsonSerializable
 {
     public const string SERVER_EXPORT_ACTION = 'ux:export';
 
-    private const string DEFAULT_EXPORT_COLUMNS = ':visible:not(.not-exportable)';
+    private const string DEFAULT_EXPORT_COLUMNS = '.dt-exportable:visible';
 
     /**
      * A server-side export button carries no `extend`, so DataTables never adds the format class
@@ -268,9 +268,9 @@ final class Button implements \JsonSerializable
         if (null !== $this->exportFormat) {
             $payload = $this->options;
             unset($payload['extend'], $payload['exportOptions']);
-            $payload['action']      = self::SERVER_EXPORT_ACTION;
-            $payload['format']      = $this->exportFormat->value;
-            $payload['exportKey']   = $this->getExportKey();
+            $payload['action']    = self::SERVER_EXPORT_ACTION;
+            $payload['format']    = $this->exportFormat->value;
+            $payload['exportKey'] = $this->getExportKey();
             $payload['className'] ??= self::EXPORT_MARKER_CLASS_PREFIX.$this->type->value;
 
             return $payload;
