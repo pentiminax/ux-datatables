@@ -74,6 +74,7 @@ final class DataTablesExtensionTest extends TestCase
             ],
             'columns' => [
                 [
+                    'className'  => 'dt-exportable',
                     'data'       => 'firstColumn',
                     'name'       => 'firstColumn',
                     'orderable'  => true,
@@ -84,6 +85,7 @@ final class DataTablesExtensionTest extends TestCase
                     'field'      => 'firstColumn',
                 ],
                 [
+                    'className'  => 'dt-exportable',
                     'data'       => 'secondColumn',
                     'name'       => 'secondColumn',
                     'orderable'  => true,

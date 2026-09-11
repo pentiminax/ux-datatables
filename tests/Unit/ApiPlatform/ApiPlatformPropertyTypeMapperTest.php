@@ -36,6 +36,7 @@ final class ApiPlatformPropertyTypeMapperTest extends TestCase
 
         $this->assertInstanceOf($expectedColumnClass, $column);
         $this->assertSame([
+            'className'  => 'dt-exportable',
             'data'       => 'price',
             'name'       => 'price',
             'orderable'  => true,

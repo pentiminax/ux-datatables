@@ -71,7 +71,7 @@ final class ColumnTypesTest extends TestCase
             ->setExportable(false)
             ->jsonSerialize();
 
-        $this->assertSame('text-bold not-exportable', $data['className']);
+        $this->assertSame('text-bold', $data['className']);
     }
 
     #[Test]

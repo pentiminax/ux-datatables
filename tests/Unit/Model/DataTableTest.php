@@ -442,6 +442,7 @@ final class DataTableTest extends TestCase
 
         $this->assertCount(2, $definitions);
         $this->assertSame([
+            'className'  => 'dt-exportable',
             'data'       => 'first_name',
             'name'       => 'first_name',
             'orderable'  => true,

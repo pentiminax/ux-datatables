@@ -40,13 +40,13 @@ final class ButtonsExtensionTest extends DataTableTestCase
             [
                 'extend'        => 'pdf',
                 'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
+                    'columns' => '.dt-exportable:visible',
                 ],
             ],
             [
                 'extend'        => 'copy',
                 'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
+                    'columns' => '.dt-exportable:visible',
                 ],
             ],
             [
@@ -60,7 +60,7 @@ final class ButtonsExtensionTest extends DataTableTestCase
             [
                 'extend'        => 'excel',
                 'exportOptions' => [
-                    'columns' => ':visible:not(.not-exportable)',
+                    'columns' => '.dt-exportable:visible',
                 ],
                 'text'     => 'Excel',
                 'filename' => 'users-export',

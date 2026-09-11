@@ -58,7 +58,7 @@ final class AbstractDataTableActionsTest extends TestCase
 
         $this->assertInstanceOf(ActionColumn::class, $column);
         $this->assertSame('dt-center', $column->getClassName());
-        $this->assertSame('dt-center not-exportable', $column->jsonSerialize()['className']);
+        $this->assertSame('dt-center', $column->jsonSerialize()['className']);
     }
 
     /**

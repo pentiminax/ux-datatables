@@ -99,6 +99,7 @@ final class ColumnAutoDetectorTest extends TestCase
         );
         $this->assertSame([
             [
+                'className'  => 'dt-exportable',
                 'data'       => 'id',
                 'name'       => 'id',
                 'orderable'  => true,
@@ -109,6 +110,7 @@ final class ColumnAutoDetectorTest extends TestCase
                 'field'      => 'id',
             ],
             [
+                'className'  => 'dt-exportable',
                 'data'       => 'name',
                 'name'       => 'name',
                 'orderable'  => true,
@@ -119,6 +121,7 @@ final class ColumnAutoDetectorTest extends TestCase
                 'field'      => 'name',
             ],
             [
+                'className'  => 'dt-exportable',
                 'data'       => 'price',
                 'name'       => 'price',
                 'orderable'  => true,
@@ -129,6 +132,7 @@ final class ColumnAutoDetectorTest extends TestCase
                 'field'      => 'price',
             ],
             [
+                'className'  => 'dt-exportable',
                 'data'       => 'active',
                 'name'       => 'active',
                 'orderable'  => true,
