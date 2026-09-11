@@ -97,7 +97,8 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
     ['`linkToRoute(string $routeName, array|callable|null $params = null)`', 'Target a Symfony route generated per row (static parameters array, or a callable receiving the raw row). Mutually exclusive with `linkToUrl()`: the last call wins'],
     ["`asAjaxRequest(string|callable $csrfTokenId, string $method = 'POST')`", 'Send the action as a same-origin Ajax request instead of navigating. `$method` accepts `POST` or `DELETE`. The CSRF token id is resolved per row and its value is posted as `_token`. See [Ajax Actions](#ajax-actions)'],
     ['`collapsible(string $template, array $parameters = [])`', 'Render a `detail` action as an expand/collapse control that lazily loads a Twig child row (the template receives the row as `entity`, plus any extra `$parameters`). Only meaningful for `Action::detail()`'],
-    ['`setPermission(string|Expression $attribute, ?callable $subjectResolver = null)`', 'Restrict the action with a Symfony security attribute (role/voter/expression). Without a resolver it is evaluated once before serialization; with a resolver it is evaluated per row (the resolver receives the raw source row). Denied actions are removed and never serialized to the client'],
+    ['`setPermission(string|Expression $attribute, ?callable $subjectResolver = null)`', 'Restrict the action with a Symfony security attribute (role/voter/expression). Without a resolver it is evaluated once before serialization; with a resolver it is evaluated per row (the resolver receives the raw source row). Denied actions are removed and never serialized to the client, unless the action opts into `disabledWhenDenied()`'],
+    ['`disabledWhenDenied(bool $disabled = true)`', 'Render the action as a disabled button instead of hiding it when its permission is denied. The disabled control carries no URL, CSRF token, or row id. See [Disabling denied actions](#disabling-denied-actions)'],
     ['`position(?ActionsPosition $position)`', 'Override the column placement for this action only (`null` inherits the `Actions` collection position). See [Column Position & Alignment](#column-position--alignment)'],
   ]}
 />
@@ -118,6 +119,34 @@ Action::new('publish', 'Publish')
 
 Symfony evaluates the expression with its standard security variables, including `user`,
 `role_names`, `token`, and `subject` when a subject resolver is configured.
+
+### Disabling Denied Actions
+
+By default a denied action disappears from the column, which makes rows with different permissions
+render a different number of buttons. Call `disabledWhenDenied()` to keep the control in place and
+render it inert instead:
+
+```php
+use Pentiminax\UX\DataTables\Model\Action;
+
+Action::delete(label: '')
+    ->icon('fa-solid fa-trash')
+    ->setPermission('PRODUCT_DELETE', static fn (Product $product): Product => $product)
+    ->disabledWhenDenied();
+```
+
+The action then renders as `<button disabled aria-disabled="true" class="... disabled">`, whatever
+its type — a denied link action becomes a button too, because HTML has no disabled `<a>`.
+
+A disabled action is rendered **without** its URL, its CSRF token, and its row id: the client never
+receives the data needed to trigger it. This is a presentation choice only. Authorization is still
+enforced on the Ajax endpoints, so a crafted request is rejected exactly as it would be for a hidden
+action.
+
+<Aside type="note" title="Hiding remains the default">
+  Showing a disabled control tells the user the action exists but is not available to them. Keep the
+  default hiding behavior when the mere existence of an action should not be disclosed.
+</Aside>
 
 ### Action Icons
 

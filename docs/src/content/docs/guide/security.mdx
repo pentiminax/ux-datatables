@@ -123,6 +123,22 @@ where the action is evaluated:
 A resolver shared across both paths should tolerate either shape (entity or array), or the action
 should use a static permission (no resolver) instead.
 
+### Showing a denied action as disabled
+
+A denied action is removed from the payload, so rows the user may not act on render fewer buttons.
+`Action::disabledWhenDenied()` keeps the control and renders it disabled instead, for both static and
+per-row permissions:
+
+```php
+Action::delete()
+    ->setPermission('PRODUCT_DELETE', static fn (Product $product): Product => $product)
+    ->disabledWhenDenied();
+```
+
+The disabled control is serialized without its URL, its CSRF token, and its row id, and the mutation
+endpoints keep enforcing the permission on their own. It changes what the user sees, never what the
+user may do.
+
 ## Writing a voter
 
 Implement a [Symfony voter](https://symfony.com/doc/current/security/voters.html) that supports the

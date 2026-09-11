@@ -14,7 +14,8 @@ export function createActionColumnRenderer(mutationsEnabled = true) {
                     return '';
                 }
                 return actions
-                    .filter((action) => !isDeniedAction(action, row))
+                    .filter((action) => !isDeniedAction(action, row) ||
+                    action.disabledWhenDenied === true)
                     .filter((action) => {
                     if (!action.displayCondition) {
                         return true;
@@ -23,6 +24,9 @@ export function createActionColumnRenderer(mutationsEnabled = true) {
                     return row[field] === value;
                 })
                     .map((action) => {
+                    if (isDeniedAction(action, row)) {
+                        return renderDeniedAction(action);
+                    }
                     const id = resolveActionId(action, row);
                     const escapedId = escapeHtml(String(id ?? ''));
                     const escapedLabel = escapeHtml(action.label);
@@ -135,7 +139,34 @@ function renderActionIcon(action) {
     return action.icon ? `<i class="${escapeHtml(action.icon)}"></i> ` : '';
 }
 function isDeniedAction(action, row) {
+    if (action.denied === true) {
+        return true;
+    }
     return row.__ux_datatables_denied_actions?.includes(action.name) ?? false;
+}
+const DENIED_RESERVED_ATTRIBUTES = new Set([
+    'type',
+    'class',
+    'data-action-type',
+    'data-id',
+    'data-confirm',
+    'data-ajax-method',
+    'data-ajax-url',
+    'data-ajax-token',
+    'href',
+    'disabled',
+    'aria-disabled',
+]);
+function renderDeniedAction(action) {
+    const attrs = [
+        `type="button"`,
+        `class="${escapeHtml(`${action.className} disabled`.trim())}"`,
+        `data-action-type="${escapeHtml(action.type)}"`,
+        'disabled',
+        'aria-disabled="true"',
+        ...serializeHtmlAttributes(action.htmlAttributes, DENIED_RESERVED_ATTRIBUTES),
+    ];
+    return `<button ${attrs.join(' ')}>${renderActionIcon(action)}${escapeHtml(action.label)}</button>`;
 }
 function resolveActionId(action, row) {
     const idField = action.idField ?? 'id';

@@ -35,6 +35,8 @@ final class Action implements \JsonSerializable
     private ?string $collapsibleTemplate         = null;
     private array $collapsibleParameters         = [];
     private ?ActionsPosition $position           = null;
+    private bool $disabledWhenDenied             = false;
+    private bool $denied                         = false;
 
     private function __construct(ActionType $type, string $name, string $label, string $className)
     {
@@ -371,6 +373,40 @@ final class Action implements \JsonSerializable
         return null !== $this->permission && null !== $this->permissionSubjectResolver;
     }
 
+    /**
+     * Render the action as a disabled control instead of hiding it when its permission is denied.
+     *
+     * The disabled control never carries a URL, a CSRF token, or a row id, and the mutation
+     * endpoints still enforce the permission on their own.
+     */
+    public function disabledWhenDenied(bool $disabled = true): self
+    {
+        $this->disabledWhenDenied = $disabled;
+
+        return $this;
+    }
+
+    public function isDisabledWhenDenied(): bool
+    {
+        return $this->disabledWhenDenied;
+    }
+
+    /**
+     * @internal copy marked as denied by a static permission check, serialized without actionable data
+     */
+    public function asDenied(): self
+    {
+        $clone         = clone $this;
+        $clone->denied = true;
+
+        return $clone;
+    }
+
+    public function isDenied(): bool
+    {
+        return $this->denied;
+    }
+
     public function resolveUrl(mixed $row): ?string
     {
         $url = $this->url;
@@ -430,6 +466,16 @@ final class Action implements \JsonSerializable
 
         if ($this->isCollapsible()) {
             $data['collapsible'] = true;
+        }
+
+        if ($this->disabledWhenDenied) {
+            $data['disabledWhenDenied'] = true;
+        }
+
+        if ($this->denied) {
+            $data['denied'] = true;
+
+            unset($data['url'], $data['ajaxMethod'], $data['entityClass'], $data['confirm'], $data['collapsible']);
         }
 
         return $data;

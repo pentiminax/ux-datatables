@@ -21,7 +21,11 @@ export function createActionColumnRenderer(mutationsEnabled = true): ColumnRende
                 }
 
                 return actions
-                    .filter((action) => !isDeniedAction(action, row as ActionRowData))
+                    .filter(
+                        (action) =>
+                            !isDeniedAction(action, row as ActionRowData) ||
+                            action.disabledWhenDenied === true
+                    )
                     .filter((action) => {
                         if (!action.displayCondition) {
                             return true
@@ -31,6 +35,10 @@ export function createActionColumnRenderer(mutationsEnabled = true): ColumnRende
                         return row[field] === value
                     })
                     .map((action) => {
+                        if (isDeniedAction(action, row as ActionRowData)) {
+                            return renderDeniedAction(action)
+                        }
+
                         const id = resolveActionId(action, row as ActionRowData)
                         const escapedId = escapeHtml(String(id ?? ''))
                         const escapedLabel = escapeHtml(action.label)
@@ -181,7 +189,42 @@ function renderActionIcon(action: ActionConfig): string {
 }
 
 function isDeniedAction(action: ActionConfig, row: ActionRowData): boolean {
+    if (action.denied === true) {
+        return true
+    }
+
     return row.__ux_datatables_denied_actions?.includes(action.name) ?? false
+}
+
+const DENIED_RESERVED_ATTRIBUTES = new Set([
+    'type',
+    'class',
+    'data-action-type',
+    'data-id',
+    'data-confirm',
+    'data-ajax-method',
+    'data-ajax-url',
+    'data-ajax-token',
+    'href',
+    'disabled',
+    'aria-disabled',
+])
+
+/**
+ * A denied action never carries a URL, a CSRF token, or a row id, so it renders as an inert button
+ * whatever its type, links included.
+ */
+function renderDeniedAction(action: ActionConfig): string {
+    const attrs = [
+        `type="button"`,
+        `class="${escapeHtml(`${action.className} disabled`.trim())}"`,
+        `data-action-type="${escapeHtml(action.type)}"`,
+        'disabled',
+        'aria-disabled="true"',
+        ...serializeHtmlAttributes(action.htmlAttributes, DENIED_RESERVED_ATTRIBUTES),
+    ]
+
+    return `<button ${attrs.join(' ')}>${renderActionIcon(action)}${escapeHtml(action.label)}</button>`
 }
 
 function resolveActionId(action: ActionConfig, row: ActionRowData): string | number | null {

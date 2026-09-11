@@ -478,6 +478,69 @@ describe('actionColumnRenderer', () => {
       expect(html).toBe('')
     })
 
+    it('renders a per-row denied action as a disabled button when it opts in', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'DELETE',
+            name: 'DELETE',
+            label: 'Delete',
+            className: 'btn btn-danger',
+            idField: 'id',
+            disabledWhenDenied: true,
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', {
+        id: 42,
+        __ux_datatables_denied_actions: ['DELETE'],
+      })
+
+      expect(html).toContain('<button ')
+      expect(html).toContain('disabled')
+      expect(html).toContain('aria-disabled="true"')
+      expect(html).toContain('class="btn btn-danger disabled"')
+      expect(html).not.toContain('data-id=')
+    })
+
+    it('renders a statically denied action as an inert button without url or token', () => {
+      const column: Record<string, any> = {
+        actions: [
+          {
+            type: 'EDIT',
+            name: 'EDIT',
+            label: 'Edit',
+            className: 'btn btn-warning',
+            idField: 'id',
+            url: '/users/42/edit',
+            disabledWhenDenied: true,
+            denied: true,
+          },
+        ],
+      }
+
+      actionColumnRenderer.configure(column)
+
+      const html = column.render(null, 'display', {
+        id: 42,
+        __ux_datatables_actions: {
+          EDIT: {
+            url: '/users/42/edit',
+            token: 'secret-token',
+          },
+        },
+      })
+
+      expect(html).not.toContain('<a ')
+      expect(html).not.toContain('href')
+      expect(html).not.toContain('secret-token')
+      expect(html).not.toContain('/users/42/edit')
+      expect(html).toContain('aria-disabled="true"')
+    })
+
     it('escapes button id resolved from action metadata', () => {
       const column: Record<string, any> = {
         actions: [
