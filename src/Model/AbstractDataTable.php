@@ -421,6 +421,7 @@ abstract class AbstractDataTable
             baseMapper: $this->mapRow(...),
             columns: $this->columns,
             dataTableClass: static::class,
+            highlight: $this->table->getHighlightConfig(),
         );
     }
 

@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Enum\StyleFramework;
+use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicFactory;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
@@ -36,6 +37,8 @@ class DataTable
     private bool $templateColumnsRendered = false;
 
     private ?MercureConfig $mercureConfig = null;
+
+    private ?HighlightConfig $highlightConfig = null;
 
     private ?string $editModalTemplate = null;
 
@@ -82,6 +85,11 @@ class DataTable
 
         if (null !== $this->mercureConfig) {
             $options['mercure'] = $this->mercureConfig->jsonSerialize();
+        }
+
+        if (null !== $this->highlightConfig) {
+            $options['highlight'] = $this->highlightConfig->jsonSerialize();
+            $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
         }
 
         if (null !== $this->filters && !$this->filters->isEmpty()) {
@@ -413,6 +421,38 @@ class DataTable
         );
 
         return $this;
+    }
+
+    /**
+     * Briefly emphasizes the cells whose value changed when a Mercure update refreshes the table.
+     *
+     * @param string[] $ignoreColumns Data keys of columns that change on every refresh (relative
+     *                                dates, counters), which would otherwise highlight constantly
+     */
+    public function highlightUpdates(
+        int $durationMs = 1200,
+        array $ignoreColumns = [],
+        string $idField = 'id',
+    ): static {
+        $this->highlightConfig = new HighlightConfig(
+            durationMs: $durationMs,
+            ignoreColumns: $ignoreColumns,
+            idField: $idField,
+        );
+
+        return $this;
+    }
+
+    public function setHighlightConfig(HighlightConfig $config): static
+    {
+        $this->highlightConfig = $config;
+
+        return $this;
+    }
+
+    public function getHighlightConfig(): ?HighlightConfig
+    {
+        return $this->highlightConfig;
     }
 
     public function setMercureConfig(MercureConfig $config): static

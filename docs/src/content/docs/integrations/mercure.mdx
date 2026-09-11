@@ -108,12 +108,76 @@ When boolean inline edit is called with `topics`, the controller publishes:
 
 You can also publish manually with `MercureUpdatePublisher::publish()` or `publishForDataTable()`.
 
+## Highlighting Updated Cells
+
+A refresh that changes a value silently is easy to miss. `highlightUpdates()` briefly emphasizes the
+cells a Mercure refresh changed:
+
+```php
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->mercure(topics: ['https://example.com/users'])
+        ->highlightUpdates(ignoreColumns: ['lastLoginAt'])
+        ->serverSide();
+}
+```
+
+| Parameter | Default | Purpose |
+| --- | --- | --- |
+| `durationMs` | `1200` | How long a cell stays emphasized. |
+| `ignoreColumns` | `[]` | Data keys never highlighted. |
+| `idField` | `'id'` | Property read to identify a row. |
+
+`ignoreColumns` matters more than it looks. A column whose rendered value changes on every refresh -
+a relative date, a counter, an "updated at" stamp - would be highlighted on every single event and
+bury the real updates under constant noise. List those columns here.
+
+### How It Works
+
+1. Enabling the option serializes a `highlight` object into the frontend payload and adds a
+   `DT_RowId` key to every row, which also feeds the DataTables `rowId` option.
+2. On an incoming Mercure message the controller records the values currently displayed, then
+   reloads the table.
+3. After the draw, rows are matched by `DT_RowId` and compared field by field. Changed cells receive
+   the `dt-cell-updated` class, and a `datatables:highlight` event carries their nodes.
+
+Comparison runs on row data rather than on rendered markup: a redraw regenerates cell HTML even
+where nothing changed, so comparing markup would light up the whole table. Matching rows by id means
+a row that only moved to another position is not reported as updated.
+
+Only refreshes triggered by Mercure are compared - sorting, searching, and paging never highlight.
+
+### Styling
+
+The animation lives in the bundle stylesheet and is driven by two custom properties:
+
+```css
+:root {
+    --dt-highlight-color: rgb(16 185 129 / 0.3);
+}
+```
+
+`--dt-highlight-duration` is written inline from `durationMs`. Under
+`prefers-reduced-motion: reduce` the animation is replaced by a static background.
+
+To drive your own effect instead, skip the class and listen to the event:
+
+```js
+document.addEventListener('datatables:highlight', (event) => {
+    for (const cell of event.detail.cells) {
+        // ...
+    }
+})
+```
+
 ## Operational Notes
 
 - Mercure refresh uses `ajax.reload(...)`: tables configured only with static `data` will not auto-refresh from SSE.
 - No Mercure config means no SSE subscription (dynamic import is skipped).
 - If the table receives many events, tune `debounceMs` to protect backend load.
 - `private: true` from API Platform metadata is not mapped automatically to `withCredentials`.
+- `highlightUpdates()` needs rows to expose an identifier; a table whose `idField` cannot be read leaves those rows unhighlighted.
 
 ## Cross Links
 

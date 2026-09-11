@@ -49,6 +49,8 @@
     --dt-tw-ring-focus: inset 0 0 0 2px rgb(var(--dt-tw-primary-600));
     --dt-tw-divider: rgb(var(--dt-tw-gray-950) / 0.08);
 
+    --dt-highlight-color: rgb(var(--dt-tw-primary-600) / 0.28);
+
     --dt-tw-shadow-sm: 0 1px 2px 0 rgb(var(--dt-tw-gray-950) / 0.05);
     --dt-tw-shadow-panel:
         0 10px 15px -3px rgb(var(--dt-tw-gray-950) / 0.1),
@@ -90,6 +92,8 @@
         --dt-tw-ring-control: inset 0 0 0 1px rgb(255 255 255 / 0.2);
         --dt-tw-ring-focus: inset 0 0 0 2px rgb(var(--dt-tw-primary-500));
         --dt-tw-divider: rgb(255 255 255 / 0.08);
+
+        --dt-highlight-color: rgb(var(--dt-tw-primary-400) / 0.3);
         --dt-tw-shadow-panel: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
 
         --dt-tw-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239ca3af' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
@@ -119,6 +123,8 @@
     --dt-tw-ring-control: inset 0 0 0 1px rgb(255 255 255 / 0.2);
     --dt-tw-ring-focus: inset 0 0 0 2px rgb(var(--dt-tw-primary-500));
     --dt-tw-divider: rgb(255 255 255 / 0.08);
+
+    --dt-highlight-color: rgb(var(--dt-tw-primary-400) / 0.3);
     --dt-tw-shadow-panel: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
 
     --dt-tw-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%239ca3af' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
