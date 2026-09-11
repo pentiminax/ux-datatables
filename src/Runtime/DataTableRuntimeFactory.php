@@ -13,11 +13,13 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
+use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
 use Pentiminax\UX\DataTables\RowMapper\Stage\BooleanSwitchMetadataStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\IconColumnResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
+use Pentiminax\UX\DataTables\RowMapper\Stage\RowIdStage;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 final class DataTableRuntimeFactory
@@ -37,9 +39,13 @@ final class DataTableRuntimeFactory
      * @param ColumnInterface[]     $columns
      * @param \Closure(mixed):array $baseMapper
      */
-    public function createRowMapper(\Closure $baseMapper, array $columns, ?string $dataTableClass = null): RowMapperInterface
-    {
-        return (new RowProcessingPipeline(
+    public function createRowMapper(
+        \Closure $baseMapper,
+        array $columns,
+        ?string $dataTableClass = null,
+        ?HighlightConfig $highlight = null,
+    ): RowMapperInterface {
+        $pipeline = (new RowProcessingPipeline(
             $baseMapper,
             $columns,
             $this->columnResolver(),
@@ -51,6 +57,12 @@ final class DataTableRuntimeFactory
             ->add(new NormalizationStage())
             ->add(new IconColumnResolutionStage())
             ->add(new BooleanSwitchMetadataStage());
+
+        if (null !== $highlight) {
+            $pipeline->add(new RowIdStage($highlight->idField));
+        }
+
+        return $pipeline;
     }
 
     /**
@@ -66,7 +78,12 @@ final class DataTableRuntimeFactory
         ?\Closure $pageProjector = null,
         ?callable $configureBaseQueryBuilder = null,
     ): DataTableRuntime {
-        $rowMapper = $this->createRowMapper($baseMapper, $columns, $table->getDataTableClass());
+        $rowMapper = $this->createRowMapper(
+            baseMapper: $baseMapper,
+            columns: $columns,
+            dataTableClass: $table->getDataTableClass(),
+            highlight: $table->getHighlightConfig(),
+        );
 
         // An export writes only the exportable columns, so its mapper is built from them alone:
         // template rendering and action resolution then have nothing to do, instead of running Twig,

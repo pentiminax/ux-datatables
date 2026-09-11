@@ -21,6 +21,8 @@
     --dt-filters-input-border-focus: var(--dt-filters-accent);
     --dt-filters-input-shadow-focus: 0 0 0 3px rgb(245 158 11 / 0.2);
     --dt-filters-popover-border: 1px solid var(--dt-filters-border);
+    --dt-highlight-color: rgb(99 102 241 / 0.32);
+    --dt-highlight-duration: 1200ms;
     --dt-filters-select-appearance: auto;
     --dt-filters-select-padding-end: 0.65rem;
     --dt-filters-chevron: none;
@@ -273,4 +275,27 @@ select.dt-filter-input {
 
 .dt-filters-apply:hover {
     filter: brightness(1.05);
+}
+
+/* Update highlight, applied by the Stimulus controller to the cells a real-time refresh changed.
+   The duration is written inline from the PHP `highlightUpdates()` configuration. */
+table.dataTable td.dt-cell-updated {
+    animation: dt-cell-updated var(--dt-highlight-duration) ease-out;
+}
+
+@keyframes dt-cell-updated {
+    from {
+        background-color: var(--dt-highlight-color);
+    }
+
+    to {
+        background-color: transparent;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    table.dataTable td.dt-cell-updated {
+        animation: none;
+        background-color: var(--dt-highlight-color);
+    }
 }

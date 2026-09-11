@@ -110,6 +110,43 @@ describe('ApiPlatformAdapter', () => {
                 data: [{id: 1, createdAt: '2025-01-31'}],
             });
         });
+
+        it('adds the row id the update highlight needs when it is enabled', () => {
+            const payload: Record<string, any> = {
+                columns: [],
+                highlight: {durationMs: 1200},
+                ajax: {url: '/api/books'},
+            };
+            const adapter = new ApiPlatformAdapter(payload.columns);
+            adapter.configure(payload);
+
+            const converted = adapter.buildResponse(
+                {'hydra:member': [{id: 7, title: 'Dune'}, {title: 'No id'}], 'hydra:totalItems': 2},
+                1
+            );
+
+            expect(converted.data).toEqual([
+                {id: 7, title: 'Dune', DT_RowId: '7'},
+                {title: 'No id'},
+            ]);
+        });
+
+        it('reads the row id from the configured id field', () => {
+            const payload: Record<string, any> = {
+                columns: [],
+                highlight: {durationMs: 1200, idField: 'uuid'},
+                ajax: {url: '/api/books'},
+            };
+            const adapter = new ApiPlatformAdapter(payload.columns);
+            adapter.configure(payload);
+
+            const converted = adapter.buildResponse(
+                {'hydra:member': [{uuid: 'a-b-c', title: 'Dune'}], 'hydra:totalItems': 1},
+                1
+            );
+
+            expect(converted.data).toEqual([{uuid: 'a-b-c', title: 'Dune', DT_RowId: 'a-b-c'}]);
+        });
     });
 
     describe('configure', () => {

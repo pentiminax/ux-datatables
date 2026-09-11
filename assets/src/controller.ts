@@ -26,6 +26,7 @@ import { fetchEditForm } from './functions/fetchEditForm.js'
 import { registerFilterFeature } from './functions/filterFeature.js'
 import { applyFilterLayout } from './functions/filterLayout.js'
 import { FilterBar, hasFilters } from './functions/filters.js'
+import { isHighlightEnabled, type UpdateHighlighter } from './functions/highlightUpdates.js'
 import { isDataTableClone } from './functions/isDataTableClone.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
 import { applyLocalLanguage } from './functions/localLanguage.js'
@@ -98,6 +99,7 @@ export default class extends Controller {
     private table: DataTableWithAjax | null = null
     private isDataTableInitialized = false
     private eventSource: EventSource | null = null
+    private highlighter: UpdateHighlighter | null = null
     private framework: StyleFramework = 'dt'
     private popstateHandler: (() => void) | null = null
 
@@ -231,6 +233,9 @@ export default class extends Controller {
 
         this.eventSource?.close()
         this.eventSource = null
+
+        this.highlighter?.destroy()
+        this.highlighter = null
 
         if (this.popstateHandler) {
             window.removeEventListener('popstate', this.popstateHandler)
@@ -412,13 +417,35 @@ export default class extends Controller {
     }
 
     private async initMercure(payload: Record<string, any>): Promise<void> {
-        if (this.isMercureEnabled(payload)) {
-            const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
-            this.eventSource = createMercureSubscription(payload.mercure, (event) => {
-                this.dispatchEvent('mercure:message', { data: event.data, event })
-                this.table?.ajax?.reload(null, false)
-            })
+        if (!this.isMercureEnabled(payload)) {
+            return
         }
+
+        await this.initHighlighter(payload)
+
+        const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
+        this.eventSource = createMercureSubscription(payload.mercure, (event) => {
+            this.dispatchEvent('mercure:message', { data: event.data, event })
+            // Armed before the reload so the diff compares against what the viewer is looking at,
+            // and run from the reload callback so an unrelated draw cannot consume the snapshot.
+            this.highlighter?.arm()
+            this.table?.ajax?.reload(() => this.highlighter?.diff(), false)
+        })
+    }
+
+    private async initHighlighter(payload: Record<string, any>): Promise<void> {
+        if (!this.table || !isHighlightEnabled(payload)) {
+            return
+        }
+
+        const { UpdateHighlighter } = await import('./functions/highlightUpdates.js')
+
+        this.highlighter = new UpdateHighlighter(
+            this.table,
+            payload.highlight,
+            Array.isArray(payload.columns) ? (payload.columns as ColumnConfig[]) : [],
+            (cells) => this.dispatchEvent('highlight', { cells })
+        )
     }
 
     private bindActionHandler(payload: Record<string, any>): void {
@@ -674,9 +701,12 @@ export default class extends Controller {
 
 type DataTableWithAjax = {
     ajax?: {
-        reload: (callback?: null, resetPaging?: boolean) => void
+        reload: (callback?: (() => void) | null, resetPaging?: boolean) => void
     }
     on: (event: string, callback: (...args: any[]) => void) => DataTableWithAjax
+    off: (event: string, callback?: (...args: any[]) => void) => DataTableWithAjax
+    rows: () => { indexes: () => { toArray: () => number[] } }
+    cell: (rowIdx: number, colIdx: number) => { node: () => HTMLElement | null }
     table?: () => { container: () => HTMLElement | null }
     search: (input: string) => DataTableWithAjax
     order: (order: any) => DataTableWithAjax

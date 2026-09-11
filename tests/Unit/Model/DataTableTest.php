@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Enum\StyleFramework;
+use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
@@ -414,6 +415,29 @@ final class DataTableTest extends TestCase
             'topics'     => ['/datatables/product-data-tables/{id}'],
             'debounceMs' => 300,
         ], $options['mercure']);
+    }
+
+    #[Test]
+    public function it_includes_highlight_and_row_id_in_get_options(): void
+    {
+        $options = (new DataTable('ProductDataTable'))
+            ->highlightUpdates(durationMs: 800, ignoreColumns: ['updatedAt'])
+            ->getOptions();
+
+        $this->assertSame([
+            'durationMs'    => 800,
+            'ignoreColumns' => ['updatedAt'],
+        ], $options['highlight']);
+        $this->assertSame(HighlightConfig::ROW_ID_KEY, $options['rowId']);
+    }
+
+    #[Test]
+    public function it_does_not_include_highlight_in_get_options_when_not_configured(): void
+    {
+        $options = (new DataTable('ProductDataTable'))->getOptions();
+
+        $this->assertArrayNotHasKey('highlight', $options);
+        $this->assertArrayNotHasKey('rowId', $options);
     }
 
     #[Test]
