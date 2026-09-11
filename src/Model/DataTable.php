@@ -432,7 +432,7 @@ class DataTable
     public function highlightUpdates(
         int $durationMs = 1200,
         array $ignoreColumns = [],
-        string $idField = 'id',
+        string $idField = HighlightConfig::DEFAULT_ID_FIELD,
     ): static {
         $this->highlightConfig = new HighlightConfig(
             durationMs: $durationMs,

@@ -17,6 +17,13 @@ final class HighlightConfig implements \JsonSerializable
     public const string ROW_ID_KEY = 'DT_RowId';
 
     /**
+     * Property the row identifier is read from unless the table configures another one. Emitted to
+     * the client only when it differs, since API Platform rows carry no server-side row id and the
+     * frontend adapter has to add one itself.
+     */
+    public const string DEFAULT_ID_FIELD = 'id';
+
+    /**
      * @var string[]
      */
     public readonly array $ignoreColumns;
@@ -29,7 +36,7 @@ final class HighlightConfig implements \JsonSerializable
     public function __construct(
         public readonly int $durationMs = 1200,
         array $ignoreColumns = [],
-        public readonly string $idField = 'id',
+        public readonly string $idField = self::DEFAULT_ID_FIELD,
     ) {
         if ($durationMs <= 0) {
             throw new \InvalidArgumentException('Highlight duration must be a positive number of milliseconds.');
@@ -54,6 +61,10 @@ final class HighlightConfig implements \JsonSerializable
 
         if ([] !== $this->ignoreColumns) {
             $data['ignoreColumns'] = $this->ignoreColumns;
+        }
+
+        if (self::DEFAULT_ID_FIELD !== $this->idField) {
+            $data['idField'] = $this->idField;
         }
 
         return $data;

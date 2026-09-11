@@ -1,4 +1,3 @@
-import { resolveColumnDataKey } from './apiPlatformAdapter.js';
 export const HIGHLIGHT_CLASS = 'dt-cell-updated';
 const ROW_ID_KEY = 'DT_RowId';
 const DEFAULT_DURATION_MS = 1200;
@@ -8,56 +7,54 @@ export class UpdateHighlighter {
         this.onHighlight = onHighlight;
         this.timers = new Map();
         this.snapshot = null;
-        this.onDraw = () => {
-            const previous = this.snapshot;
-            if (previous === null) {
-                return;
-            }
-            this.snapshot = null;
-            const highlighted = [];
-            for (const rowIndex of this.rowIndexes()) {
-                const data = this.table.row(rowIndex).data();
-                const rowId = readRowId(data);
-                if (rowId === null) {
-                    continue;
-                }
-                const before = previous.get(rowId);
-                if (before === undefined) {
-                    continue;
-                }
-                this.columnKeys.forEach((key, columnIndex) => {
-                    if (key === null || this.ignored.has(key)) {
-                        return;
-                    }
-                    if (!valuesDiffer(before[key], data[key])) {
-                        return;
-                    }
-                    const node = this.table.cell(rowIndex, columnIndex).node();
-                    if (node !== null) {
-                        this.flash(node);
-                        highlighted.push(node);
-                    }
-                });
-            }
-            if (highlighted.length > 0) {
-                this.onHighlight?.(highlighted);
-            }
-        };
         this.durationMs = config.durationMs ?? DEFAULT_DURATION_MS;
         this.ignored = new Set(config.ignoreColumns ?? []);
-        this.columnKeys = columns.map((column) => resolveColumnDataKey(column) ?? null);
-        this.table.on('draw.dt', this.onDraw);
+        this.columnKeys = columns.map((column) => column.data ?? column.name ?? null);
     }
     arm() {
         this.snapshot = this.readRows();
     }
     destroy() {
-        this.table.off('draw.dt', this.onDraw);
         for (const timer of this.timers.values()) {
             clearTimeout(timer);
         }
         this.timers.clear();
         this.snapshot = null;
+    }
+    diff() {
+        const previous = this.snapshot;
+        if (previous === null) {
+            return;
+        }
+        this.snapshot = null;
+        const highlighted = [];
+        for (const rowIndex of this.rowIndexes()) {
+            const data = this.table.row(rowIndex).data();
+            const rowId = readRowId(data);
+            if (rowId === null) {
+                continue;
+            }
+            const before = previous.get(rowId);
+            if (before === undefined) {
+                continue;
+            }
+            this.columnKeys.forEach((key, columnIndex) => {
+                if (key === null || this.ignored.has(key)) {
+                    return;
+                }
+                if (!valuesDiffer(before[key], data[key])) {
+                    return;
+                }
+                const node = this.table.cell(rowIndex, columnIndex).node();
+                if (node !== null) {
+                    this.flash(node);
+                    highlighted.push(node);
+                }
+            });
+        }
+        if (highlighted.length > 0) {
+            this.onHighlight?.(highlighted);
+        }
     }
     readRows() {
         const rows = new Map();

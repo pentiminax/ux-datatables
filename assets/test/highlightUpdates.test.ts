@@ -8,22 +8,9 @@ import {
 type Row = Record<string, unknown>
 
 class FakeTable {
-    private drawHandler: (() => void) | null = null
     readonly nodes = new Map<string, HTMLElement>()
 
     constructor(public rowsData: Row[]) {}
-
-    on(event: string, callback: () => void): void {
-        if (event === 'draw.dt') {
-            this.drawHandler = callback
-        }
-    }
-
-    off(event: string): void {
-        if (event === 'draw.dt') {
-            this.drawHandler = null
-        }
-    }
 
     rows() {
         return { indexes: () => ({ toArray: () => this.rowsData.map((_, index) => index) }) }
@@ -43,10 +30,9 @@ class FakeTable {
         return { node: () => this.nodes.get(key) ?? null }
     }
 
-    /** Replaces the displayed rows and fires the draw the controller would have triggered. */
+    /** Replaces the displayed rows, as the refresh redraw would have. */
     redrawWith(rows: Row[]): void {
         this.rowsData = rows
-        this.drawHandler?.()
     }
 
     flashedCells(): string[] {
@@ -92,16 +78,20 @@ describe('UpdateHighlighter', () => {
             { DT_RowId: '2', email: 'b@example.com', active: false, lastLoginAt: '2 minutes ago' },
         ])
 
+        highlighter.diff()
+
         expect(table.flashedCells()).toEqual(['0:1'])
     })
 
     it('ignores a draw it was not armed for', () => {
-        createHighlighter(table)
+        const highlighter = createHighlighter(table)
 
         table.redrawWith([
             { DT_RowId: '1', email: 'a@example.com', active: false, lastLoginAt: '1 minute ago' },
             ...structuredClone(ROWS).slice(1),
         ])
+
+        highlighter.diff()
 
         expect(table.flashedCells()).toEqual([])
     })
@@ -111,6 +101,8 @@ describe('UpdateHighlighter', () => {
         highlighter.arm()
 
         table.redrawWith(structuredClone(ROWS).reverse())
+
+        highlighter.diff()
 
         expect(table.flashedCells()).toEqual([])
     })
@@ -124,6 +116,8 @@ describe('UpdateHighlighter', () => {
             ...structuredClone(ROWS).slice(1),
         ])
 
+        highlighter.diff()
+
         expect(table.flashedCells()).toEqual([])
     })
 
@@ -134,6 +128,8 @@ describe('UpdateHighlighter', () => {
         table.redrawWith([
             { DT_RowId: '9', email: 'new@example.com', active: true, lastLoginAt: 'Never' },
         ])
+
+        highlighter.diff()
 
         expect(table.flashedCells()).toEqual([])
     })
@@ -146,6 +142,8 @@ describe('UpdateHighlighter', () => {
             { DT_RowId: '1', email: 'a@example.com', active: false, lastLoginAt: '1 minute ago' },
             ...structuredClone(ROWS).slice(1),
         ])
+
+        highlighter.diff()
 
         const cell = table.cell(0, 1).node() as HTMLElement
         expect(cell.style.getPropertyValue('--dt-highlight-duration')).toBe('500ms')
@@ -165,8 +163,40 @@ describe('UpdateHighlighter', () => {
             ...structuredClone(ROWS).slice(1),
         ])
 
+        highlighter.diff()
+
         expect(onHighlight).toHaveBeenCalledTimes(1)
         expect(onHighlight.mock.calls[0][0]).toHaveLength(2)
+    })
+
+    it('keeps the snapshot until the refresh that armed it reports back', () => {
+        const highlighter = createHighlighter(table)
+        highlighter.arm()
+
+        // A sort, a search or a paging draw lands while the refresh is still in flight.
+        table.redrawWith(structuredClone(ROWS).reverse())
+
+        table.redrawWith([
+            { DT_RowId: '1', email: 'a@example.com', active: false, lastLoginAt: '1 minute ago' },
+            ...structuredClone(ROWS).slice(1),
+        ])
+
+        highlighter.diff()
+
+        expect(table.flashedCells()).toEqual(['0:1'])
+    })
+
+    it('diffs columns under the key their value is stored at, not their source field', () => {
+        const aliased = [{ data: 'company', field: 'company.name', name: 'company' }]
+        const rows: Row[] = [{ DT_RowId: '1', company: 'Acme' }]
+        const aliasedTable = new FakeTable(structuredClone(rows))
+        const highlighter = new UpdateHighlighter(aliasedTable as never, {}, aliased as never)
+
+        highlighter.arm()
+        aliasedTable.redrawWith([{ DT_RowId: '1', company: 'Globex' }])
+        highlighter.diff()
+
+        expect(aliasedTable.flashedCells()).toEqual(['0:0'])
     })
 
     it('stops diffing once destroyed', () => {
@@ -178,6 +208,8 @@ describe('UpdateHighlighter', () => {
             { DT_RowId: '1', email: 'a@example.com', active: false, lastLoginAt: '1 minute ago' },
             ...structuredClone(ROWS).slice(1),
         ])
+
+        highlighter.diff()
 
         expect(table.flashedCells()).toEqual([])
     })

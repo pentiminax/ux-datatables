@@ -1,4 +1,4 @@
-import { type ColumnConfig, resolveColumnDataKey } from './apiPlatformAdapter.js'
+import type { ColumnConfig } from './apiPlatformAdapter.js'
 
 export const HIGHLIGHT_CLASS = 'dt-cell-updated'
 
@@ -11,8 +11,6 @@ export interface HighlightConfig {
 }
 
 interface HighlightTable {
-    on: (event: string, callback: (...args: unknown[]) => void) => unknown
-    off: (event: string, callback?: (...args: unknown[]) => void) => unknown
     rows: () => { indexes: () => { toArray: () => number[] } }
     row: (selector: number) => { data: () => Record<string, unknown> }
     cell: (rowIdx: number, colIdx: number) => { node: () => HTMLElement | null }
@@ -24,8 +22,8 @@ interface HighlightTable {
  * Diffing happens on row data rather than on rendered markup: a redraw regenerates cell HTML even
  * where nothing changed, so comparing markup would light up the whole table. Rows are matched by
  * their server-provided id, so a row that only moved to another position is not reported as
- * updated. Nothing is compared unless {@see UpdateHighlighter.arm} ran first, which keeps user
- * actions - sorting, searching, paging - out of the diff.
+ * updated. Nothing is compared unless {@see UpdateHighlighter.arm} ran first and the refresh it
+ * armed completed, which keeps user actions - sorting, searching, paging - out of the diff.
  */
 export class UpdateHighlighter {
     private readonly durationMs: number
@@ -43,21 +41,18 @@ export class UpdateHighlighter {
     ) {
         this.durationMs = config.durationMs ?? DEFAULT_DURATION_MS
         this.ignored = new Set(config.ignoreColumns ?? [])
-        this.columnKeys = columns.map((column) => resolveColumnDataKey(column) ?? null)
-
-        this.table.on('draw.dt', this.onDraw)
+        this.columnKeys = columns.map((column) => column.data ?? column.name ?? null)
     }
 
     /**
-     * Records the values currently displayed, so the next draw can be compared against them.
+     * Records the values currently displayed, so the refresh about to run can be compared against
+     * them once {@see UpdateHighlighter.diff} reports it completed.
      */
     arm(): void {
         this.snapshot = this.readRows()
     }
 
     destroy(): void {
-        this.table.off('draw.dt', this.onDraw)
-
         for (const timer of this.timers.values()) {
             clearTimeout(timer)
         }
@@ -66,7 +61,12 @@ export class UpdateHighlighter {
         this.snapshot = null
     }
 
-    private readonly onDraw = (): void => {
+    /**
+     * Compares the redrawn rows against the armed snapshot. Called by the refresh that armed the
+     * snapshot once its draw completed, so a sort, a search or a paging draw racing the refresh
+     * neither consumes nor invalidates it.
+     */
+    diff(): void {
         const previous = this.snapshot
 
         if (previous === null) {
