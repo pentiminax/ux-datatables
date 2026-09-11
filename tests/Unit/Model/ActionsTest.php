@@ -150,6 +150,40 @@ final class ActionsTest extends TestCase
     }
 
     #[Test]
+    public function it_keeps_denied_actions_marked_when_they_opt_into_disabled_rendering(): void
+    {
+        $actions = (new Actions())
+            ->add(Action::delete()->setPermission('ROLE_ADMIN')->disabledWhenDenied())
+            ->add(Action::edit()->setPermission('ROLE_ADMIN'));
+
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
+        $checker->method('isGranted')->willReturn(false);
+
+        $actions->filterStaticPermissions(new AuthorizationChecker($checker));
+
+        $remaining = $actions->getActions();
+        $this->assertCount(1, $remaining);
+
+        $denied = reset($remaining);
+        $this->assertSame(ActionType::Delete, $denied->getType());
+        $this->assertTrue($denied->isDenied());
+    }
+
+    #[Test]
+    public function it_does_not_mark_the_original_action_as_denied(): void
+    {
+        $delete  = Action::delete()->setPermission('ROLE_ADMIN')->disabledWhenDenied();
+        $actions = (new Actions())->add($delete);
+
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
+        $checker->method('isGranted')->willReturn(false);
+
+        $actions->filterStaticPermissions(new AuthorizationChecker($checker));
+
+        $this->assertFalse($delete->isDenied());
+    }
+
+    #[Test]
     public function it_ignores_per_row_permissions_when_filtering(): void
     {
         $actions = (new Actions())->add(Action::delete()->setPermission('DELETE', static fn ($row) => $row));

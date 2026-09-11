@@ -86,6 +86,37 @@ final class ActionTest extends TestCase
     }
 
     #[Test]
+    public function it_serializes_the_disabled_when_denied_flag(): void
+    {
+        $json = Action::delete()->setPermission('ROLE_ADMIN')->disabledWhenDenied()->jsonSerialize();
+
+        $this->assertTrue($json['disabledWhenDenied']);
+        $this->assertArrayNotHasKey('denied', $json);
+    }
+
+    #[Test]
+    public function it_strips_actionable_data_from_a_denied_action(): void
+    {
+        $action = Action::delete()
+            ->linkToUrl('/users/1/delete')
+            ->asAjaxRequest('delete_user')
+            ->askConfirmation('Are you sure?')
+            ->setEntityClass('App\\Entity\\User')
+            ->setPermission('ROLE_ADMIN')
+            ->disabledWhenDenied();
+
+        $json = $action->asDenied()->jsonSerialize();
+
+        $this->assertTrue($json['denied']);
+        $this->assertTrue($json['disabledWhenDenied']);
+        $this->assertArrayNotHasKey('url', $json);
+        $this->assertArrayNotHasKey('ajaxMethod', $json);
+        $this->assertArrayNotHasKey('entityClass', $json);
+        $this->assertArrayNotHasKey('confirm', $json);
+        $this->assertSame('Delete', $json['label']);
+    }
+
+    #[Test]
     public function it_applies_fluent_setters(): void
     {
         $action = Action::delete()

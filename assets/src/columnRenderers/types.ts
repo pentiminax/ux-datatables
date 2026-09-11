@@ -108,6 +108,8 @@ export interface ActionConfig {
     url?: string
     collapsible?: boolean
     ajaxMethod?: string
+    disabledWhenDenied?: boolean
+    denied?: boolean
 }
 
 export interface ActionRowConfig {

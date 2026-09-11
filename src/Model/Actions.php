@@ -182,7 +182,8 @@ final class Actions implements \JsonSerializable
     }
 
     /**
-     * Remove actions whose static permission is not granted. Mutates in place.
+     * Remove actions whose static permission is not granted, or mark them denied when the action
+     * opts into {@see Action::disabledWhenDenied()}. Mutates in place.
      */
     public function filterStaticPermissions(AuthorizationChecker $checker, ?string $dataTableClass = null): self
     {
@@ -197,6 +198,12 @@ final class Actions implements \JsonSerializable
                 null,
                 false,
             ))) {
+                if ($action->isDisabledWhenDenied()) {
+                    $this->actions[$key] = $action->asDenied();
+
+                    continue;
+                }
+
                 unset($this->actions[$key]);
             }
         }
