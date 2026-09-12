@@ -4,14 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Ajax;
 
-use Doctrine\Persistence\ManagerRegistry;
-use Doctrine\Persistence\Mapping\ClassMetadata;
-use Doctrine\Persistence\ObjectManager;
-use Doctrine\Persistence\ObjectRepository;
-use Pentiminax\UX\DataTables\Ajax\RowIdentifierExtractor;
 use Pentiminax\UX\DataTables\Ajax\SourceRowResolver;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformItemResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -21,110 +16,50 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SourceRowResolver::class)]
 final class SourceRowResolverTest extends TestCase
 {
-    /**
-     * @param list<array<string, mixed>>                    $rows
-     * @param list<int>                                     $expectedQueriedIds
-     * @param list<SourceRowResolverUserFixture>            $foundEntities
-     * @param array<int, SourceRowResolverUserFixture|null> $expected
-     */
     #[Test]
-    #[DataProvider('provideResolvableRows')]
-    public function it_resolves_rows_through_a_single_batched_find_by(array $rows, array $expectedQueriedIds, array $foundEntities, array $expected): void
+    public function it_returns_all_null_without_an_item_resolver(): void
     {
-        $repository = $this->createMock(ObjectRepository::class);
-        $repository->expects($this->once())
-            ->method('findBy')
-            ->with(['id' => $expectedQueriedIds])
-            ->willReturn($foundEntities);
+        $resolved = (new SourceRowResolver())->resolve(SourceRowResolverUserFixture::class, [['id' => 7], ['id' => 9]]);
 
-        $resolver = new SourceRowResolver(new RowIdentifierExtractor(), $this->createDoctrine($repository));
-
-        $this->assertSame($expected, $resolver->resolve(SourceRowResolverUserFixture::class, $rows));
+        $this->assertSame([0 => null, 1 => null], $resolved);
     }
 
-    public static function provideResolvableRows(): iterable
+    #[Test]
+    public function it_returns_all_null_without_an_entity_class(): void
+    {
+        $itemResolver = $this->createMock(ApiPlatformItemResolver::class);
+        $itemResolver->expects($this->never())->method('resolve');
+
+        $this->assertSame([0 => null], (new SourceRowResolver($itemResolver))->resolve(null, [['id' => 7]]));
+    }
+
+    #[Test]
+    public function it_delegates_each_row_to_the_item_resolver(): void
     {
         $seven = new SourceRowResolverUserFixture(7);
-        $nine  = new SourceRowResolverUserFixture(9);
 
-        yield 'batches multiple rows into one query' => [
+        $itemResolver = $this->createMock(ApiPlatformItemResolver::class);
+        $itemResolver->expects($this->exactly(2))
+            ->method('resolve')
+            ->willReturnCallback(static fn (string $class, array $row): ?object => 7 === $row['id'] ? $seven : null);
+
+        $resolved = (new SourceRowResolver($itemResolver))->resolve(
+            SourceRowResolverUserFixture::class,
             [['id' => 7], ['id' => 9]],
-            [7, 9],
-            [$seven, $nine],
-            [0 => $seven, 1 => $nine],
-        ];
-
-        yield 'aligns resolved entities with their original row keys' => [
-            [['email' => 'no-id@example.com'], ['id' => 9]],
-            [9],
-            [$nine],
-            [0 => null, 1 => $nine],
-        ];
-    }
-
-    /**
-     * @param list<array<string, mixed>> $rows
-     */
-    #[Test]
-    #[DataProvider('provideCasesWithoutDoctrineLookup')]
-    public function it_returns_all_null_without_consulting_doctrine(?string $entityClass, array $rows): void
-    {
-        $doctrine = $this->createMock(ManagerRegistry::class);
-        $doctrine->expects($this->never())->method('getManagerForClass');
-
-        $resolved = (new SourceRowResolver(new RowIdentifierExtractor(), $doctrine))->resolve($entityClass, $rows);
-
-        $this->assertSame([0 => null], $resolved);
-    }
-
-    public static function provideCasesWithoutDoctrineLookup(): iterable
-    {
-        yield 'the entity class is null' => [null, [['id' => 7]]];
-
-        yield 'no identifier can be resolved' => [SourceRowResolverUserFixture::class, [['email' => 'user@example.com']]];
-    }
-
-    #[Test]
-    public function it_returns_all_null_when_doctrine_is_unavailable(): void
-    {
-        $resolved = (new SourceRowResolver(new RowIdentifierExtractor()))->resolve(SourceRowResolverUserFixture::class, [['id' => 7]]);
-
-        $this->assertSame([0 => null], $resolved);
-    }
-
-    #[Test]
-    public function it_skips_rehydration_for_composite_key_entities(): void
-    {
-        $repository = $this->createMock(ObjectRepository::class);
-        $repository->expects($this->never())->method('findBy');
-
-        $resolved = (new SourceRowResolver(
-            new RowIdentifierExtractor(),
-            $this->createDoctrine($repository, ['user_id', 'role_id']),
-        ))->resolve(SourceRowResolverUserFixture::class, [['id' => 7]]);
-
-        $this->assertSame([0 => null], $resolved);
-    }
-
-    /**
-     * @param list<string> $identifierFields
-     */
-    private function createDoctrine(ObjectRepository $repository, array $identifierFields = ['id']): ManagerRegistry
-    {
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('getIdentifierFieldNames')->willReturn($identifierFields);
-        $metadata->method('getIdentifierValues')->willReturnCallback(
-            static fn (object $entity): array => ['id' => $entity->getId()],
         );
 
-        $manager = $this->createMock(ObjectManager::class);
-        $manager->method('getRepository')->with(SourceRowResolverUserFixture::class)->willReturn($repository);
-        $manager->method('getClassMetadata')->with(SourceRowResolverUserFixture::class)->willReturn($metadata);
+        $this->assertSame([0 => $seven, 1 => null], $resolved);
+    }
 
-        $doctrine = $this->createMock(ManagerRegistry::class);
-        $doctrine->method('getManagerForClass')->with(SourceRowResolverUserFixture::class)->willReturn($manager);
+    #[Test]
+    public function it_keeps_non_array_rows_unresolved(): void
+    {
+        $itemResolver = $this->createMock(ApiPlatformItemResolver::class);
+        $itemResolver->expects($this->never())->method('resolve');
 
-        return $doctrine;
+        $resolved = (new SourceRowResolver($itemResolver))->resolve(SourceRowResolverUserFixture::class, ['not-a-row']);
+
+        $this->assertSame([0 => null], $resolved);
     }
 }
 
