@@ -131,7 +131,7 @@ final class SearchConditionBuilderTest extends TestCase
             ->method('setParameter')
             ->with('param_0', '%ALiCe%');
 
-        $result = SearchConditionBuilder::text($qb, 'e', 'name', 'ALiCe', 'param_0', caseSensitive: true);
+        $result = SearchConditionBuilder::text($qb, 'e', 'name', 'ALiCe', 'param_0', normalize: false);
 
         $this->assertSame("e.name LIKE :param_0 ESCAPE '!'", $result);
     }

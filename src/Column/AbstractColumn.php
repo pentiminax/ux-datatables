@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Column;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Symfony\Component\ExpressionLanguage\Expression;
@@ -22,7 +23,7 @@ use Symfony\Component\ExpressionLanguage\Expression;
  * column — see the "Columns" documentation for usage. Only createWithType() below is genuinely
  * internal, restricted to how the bundled column types build themselves.
  */
-abstract class AbstractColumn implements SearchableColumnInterface
+abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSearchColumnInterface
 {
     protected ColumnType $type;
     protected ?string $cellType                  = null;
@@ -45,7 +46,7 @@ abstract class AbstractColumn implements SearchableColumnInterface
     protected array $customOptions               = [];
     protected string|Expression|null $permission = null;
     protected ?int $responsivePriority           = null;
-    protected bool $caseSensitiveSearch          = false;
+    protected bool $searchNormalized             = true;
 
     /** @var list<array{join: string, alias: string, conditionType: ?string, condition: ?string}> */
     protected array $searchJoins = [];
@@ -128,28 +129,24 @@ abstract class AbstractColumn implements SearchableColumnInterface
     }
 
     /**
-     * Let server-side text search on this column follow the database collation.
+     * Whether server-side LIKE searches on this column lowercase both sides.
      *
-     * Server-side LIKE searches lowercase both the column and the term by default, which makes
-     * them case-insensitive on every platform but prevents the database from using a plain
-     * index on the column. Opt out when a "starts with" search must stay sargable on a MySQL
-     * prefix index and the stored values already have a known case. The bare LIKE is then
-     * case-sensitive on PostgreSQL and binary collations only; a case-insensitive MySQL
-     * collation keeps matching regardless of case.
-     *
-     * Only columns extending {@see AbstractColumn} carry this flag: a column implementing
-     * {@see ColumnInterface} directly is always searched case-insensitively.
+     * Normalized (the default), a search behaves the same on every platform, but LOWER() on the
+     * column prevents the database from using a plain index on it. Pass false when a "starts
+     * with" search must stay sargable on a MySQL prefix index and the stored values already have
+     * a known case. The bare LIKE then follows the column's collation: case-sensitive on
+     * PostgreSQL and binary collations, still case-insensitive on a `_ci` MySQL collation.
      */
-    public function setCaseSensitiveSearch(bool $caseSensitive = true): static
+    public function setSearchNormalization(bool $normalized = true): static
     {
-        $this->caseSensitiveSearch = $caseSensitive;
+        $this->searchNormalized = $normalized;
 
         return $this;
     }
 
-    public function isCaseSensitiveSearch(): bool
+    public function isSearchNormalized(): bool
     {
-        return $this->caseSensitiveSearch;
+        return $this->searchNormalized;
     }
 
     public function isGlobalSearchable(): bool

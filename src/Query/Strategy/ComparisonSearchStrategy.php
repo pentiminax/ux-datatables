@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query\Strategy;
 
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
@@ -34,7 +34,7 @@ use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
  * that builds its own predicate stays searchable on the Contains logic.
  *
  * The LIKE logics (StartsWith, EndsWith, NotContains) lowercase both the column and the term
- * unless the column opts out with {@see AbstractColumn::setCaseSensitiveSearch()}.
+ * unless the column opts out through {@see NormalizedSearchColumnInterface}.
  */
 final class ComparisonSearchStrategy implements SearchStrategyInterface
 {
@@ -78,9 +78,9 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
         $field     = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
         $paramName = \sprintf('column_control_param_%d', $paramIndex);
 
-        $caseSensitive = $column instanceof AbstractColumn && $column->isCaseSensitiveSearch();
+        $normalize = !$column instanceof NormalizedSearchColumnInterface || $column->isSearchNormalized();
 
-        if ($usesLike && !$caseSensitive && \is_string($bindValue)) {
+        if ($usesLike && $normalize && \is_string($bindValue)) {
             $field     = \sprintf('LOWER(%s)', $field);
             $bindValue = mb_strtolower($bindValue);
         }
