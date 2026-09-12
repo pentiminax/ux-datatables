@@ -352,7 +352,7 @@ export class ApiPlatformAdapter {
 
         if (!renderedResponse.ok) {
             console.warn(
-                `Template rendering failed (${renderedResponse.status}). Rows are displayed unrendered.`
+                `Template rendering failed (${renderedResponse.status}). Rows displayed unrendered.`
             )
 
             return response
@@ -363,7 +363,10 @@ export class ApiPlatformAdapter {
         try {
             renderedPayload = await renderedResponse.json()
         } catch (error) {
-            console.warn('Template rendering returned an unreadable body. Rows are displayed unrendered.', error)
+            console.warn(
+                'Template rendering returned an unreadable body. Rows are displayed unrendered.',
+                error
+            )
 
             return response
         }
