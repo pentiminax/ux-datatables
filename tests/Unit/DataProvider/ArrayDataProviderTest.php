@@ -17,6 +17,8 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
+use Pentiminax\UX\DataTables\Filter\TextFilter;
+use Pentiminax\UX\DataTables\Model\Filters;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -274,17 +276,46 @@ final class ArrayDataProviderTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('ArrayDataProvider does not support ColumnControl searches or configured Filters.');
 
-        (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData($request);
+        (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns(), self::filters()))->fetchData($request);
     }
 
     #[Test]
     public function it_ignores_empty_filter_values(): void
     {
-        $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData(
+        $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns(), self::filters()))->fetchData(
             self::request(start: 0, length: 2, filters: ['status' => '', 'tags' => []]),
         );
 
         $this->assertSame(4, $result->recordsFiltered);
+    }
+
+    /**
+     * The Doctrine pipeline reads only configured filter names, so a stray key -- a stale client,
+     * a filter removed from the table -- must not turn into a 500 here either.
+     */
+    #[Test]
+    public function it_ignores_filter_values_for_names_that_are_not_configured(): void
+    {
+        $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns(), self::filters()))->fetchData(
+            self::request(start: 0, length: 2, filters: ['unknown' => 'value']),
+        );
+
+        $this->assertSame(4, $result->recordsFiltered);
+    }
+
+    #[Test]
+    public function it_ignores_filter_values_when_no_filters_are_configured(): void
+    {
+        $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData(
+            self::request(start: 0, length: 2, filters: ['status' => 'active']),
+        );
+
+        $this->assertSame(4, $result->recordsFiltered);
+    }
+
+    private static function filters(): Filters
+    {
+        return (new Filters())->add(TextFilter::new('status'));
     }
 
     /**

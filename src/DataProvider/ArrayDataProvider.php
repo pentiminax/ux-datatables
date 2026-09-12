@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
+use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Query\Intent\ColumnReadReference;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
@@ -27,7 +28,7 @@ use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
  * Search is case-insensitive and the term is trimmed. `getOrderExpression()` is DQL and is
  * ignored here.
  *
- * ColumnControl searches and configured {@see \Pentiminax\UX\DataTables\Model\Filters} are
+ * ColumnControl searches and configured {@see Filters} are
  * not implemented in memory: a request carrying either raises instead of silently returning
  * unfiltered rows with HTTP 200.
  */
@@ -38,11 +39,15 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
      * @param list<ColumnInterface>  $columns configured, permission-filtered columns -- the list
      *                                        {@see \Pentiminax\UX\DataTables\Model\AbstractDataTable::getResolvedColumns()}
      *                                        returns. Left empty, nothing is orderable or searchable.
+     * @param Filters|null           $filters the table's configured filters, so a request carrying a
+     *                                        value for one of them is rejected. Left null, filter values
+     *                                        are ignored like the Doctrine provider ignores them.
      */
     public function __construct(
         private readonly iterable $items,
         private readonly RowMapperInterface $rowMapper,
         private readonly array $columns = [],
+        private readonly ?Filters $filters = null,
         private readonly DefaultDataTableQueryIntentFactory $intentFactory = new DefaultDataTableQueryIntentFactory(),
         private readonly PropertyAccessorInterface $propertyAccessor = new PropertyAccessor(),
     ) {
@@ -81,13 +86,19 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
     }
 
     /**
-     * The client omits a filter whose control is empty, so any value left here is an applied
-     * filter. Emptiness is tested exactly as {@see \Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline}
-     * tests it, so the same request is "filtered" for both providers.
+     * Only configured filter names count, and emptiness is tested exactly as
+     * {@see \Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline} tests it, so the same
+     * request is "filtered" for both providers: an unknown key is ignored, not rejected.
      */
     private function hasActiveFilters(DataTableRequest $request): bool
     {
-        foreach ($request->filters as $value) {
+        if (null === $this->filters) {
+            return false;
+        }
+
+        foreach ($this->filters->getFilters() as $filter) {
+            $value = $request->filters[$filter->getName()] ?? null;
+
             if (null !== $value && '' !== $value && [] !== $value) {
                 return true;
             }

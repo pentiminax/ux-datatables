@@ -147,17 +147,23 @@ returns `false` from `isSearchNormalized()`.
 `Filters`, and answered every such request with HTTP 200 and unfiltered rows. It now reads the same
 `DataTableQueryIntent` the Doctrine provider consumes.
 
-- The constructor takes three new optional arguments: the configured columns, a
-  `DefaultDataTableQueryIntentFactory`, and a `PropertyAccessorInterface`. Existing two-argument
-  constructions keep working, but with no columns nothing is orderable or searchable — pass
-  `$this->getResolvedColumns()` (new, on `AbstractDataTable`) to get ordering and search:
+- The constructor takes four new optional arguments: the configured columns, the table's
+  `Filters`, a `DefaultDataTableQueryIntentFactory`, and a `PropertyAccessorInterface`. Existing
+  two-argument constructions keep working, but with no columns nothing is orderable or searchable —
+  pass `$this->getResolvedColumns()` (new, on `AbstractDataTable`) to get ordering and search, and
+  the configured filters so a filtered request is rejected instead of silently ignored:
 
   ```php
   // Before
   return new ArrayDataProvider($this->rows, $this->createRowMapper());
 
   // After
-  return new ArrayDataProvider($this->rows, $this->createRowMapper(), $this->getResolvedColumns());
+  return new ArrayDataProvider(
+      $this->rows,
+      $this->createRowMapper(),
+      $this->getResolvedColumns(),
+      $this->getConfiguredDataTable()->getFilters(),
+  );
   ```
 
 - Global search now reads the **source** value of each item (the property named by the column's
@@ -167,8 +173,9 @@ returns `false` from `isSearchNormalized()`.
   value only exists after mapping — is no longer searchable in memory.
 - Ordering compares the source value: strings with `strnatcasecmp()`, other values with `<=>`, rows
   without a value last in both directions. `getOrderExpression()` is DQL and is ignored in memory.
-- A request carrying ColumnControl searches or values for configured `Filters` now throws a
-  `LogicException` instead of silently returning unfiltered rows. Implement
+- A request carrying ColumnControl searches, or a value for one of the `Filters` passed to the
+  constructor, now throws a `LogicException` instead of silently returning unfiltered rows. Filter
+  values whose name is not configured are ignored, as the Doctrine provider ignores them. Implement
   `DataProviderInterface` yourself for a table that needs either in memory.
 
 ## v0.84 → v0.85
