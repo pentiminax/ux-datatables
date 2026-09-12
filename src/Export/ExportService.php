@@ -79,7 +79,9 @@ final class ExportService
      */
     private function exportableColumns(AbstractDataTable $table): array
     {
-        $columns = $this->columnResolver->filterExportable($table->getConfiguredDataTable()->getColumns());
+        $columns = $this->columnResolver->filterExportable(
+            $this->columnResolver->filterStaticPermissions($table->getConfiguredDataTable()->getColumns(), $table::class),
+        );
 
         if ([] === $columns) {
             throw new BadRequestHttpException('This table has no exportable column.');

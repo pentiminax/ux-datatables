@@ -6,6 +6,8 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\EventListener;
 
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
+use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Exception\MutationException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -48,6 +50,30 @@ final class MutationExceptionListenerTest extends TestCase
         (new MutationExceptionListener())($event);
 
         $this->assertNull($event->getResponse());
+    }
+
+    /**
+     * The response body is client-facing: a DataTable FQCN leaked there is free reconnaissance.
+     */
+    #[Test]
+    #[DataProvider('provideExceptionsCarryingADataTableClass')]
+    public function it_never_leaks_the_datatable_class_in_the_response_body(MutationException $exception): void
+    {
+        $event = $this->createEvent($exception);
+
+        (new MutationExceptionListener())($event);
+
+        $this->assertStringNotContainsString('App\\', (string) $event->getResponse()?->getContent());
+    }
+
+    /**
+     * @return iterable<string, array{MutationException}>
+     */
+    public static function provideExceptionsCarryingADataTableClass(): iterable
+    {
+        yield 'missing entity class' => [InvalidDataTableTokenException::missingEntityClass('App\\DataTable\\ProductDataTable')];
+
+        yield 'field not switchable' => [InvalidBooleanMutationContextException::fieldNotSwitchable('enabled', 'App\\DataTable\\ProductDataTable')];
     }
 
     /**
