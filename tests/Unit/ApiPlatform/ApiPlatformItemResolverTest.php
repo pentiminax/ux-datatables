@@ -20,6 +20,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
+use Symfony\Component\Routing\RouterInterface;
 
 /**
  * @internal
@@ -138,11 +140,11 @@ final class ApiPlatformItemResolverTest extends TestCase
     }
 
     /**
-     * The IRI converter picks the operation matching the posted @id, which is not necessarily
-     * the first Get: an unguarded first operation must not let a guarded one leak.
+     * The IRI names the operation that serves it, which is not necessarily the first Get: only
+     * that operation's security applies, so an admin-only sibling neither leaks nor denies.
      */
     #[Test]
-    public function it_requires_every_get_operation_security_to_grant_the_item(): void
+    public function it_evaluates_the_security_of_the_operation_matched_by_the_iri(): void
     {
         $iriConverter = $this->createMock(IriConverterInterface::class);
         $iriConverter->method('getResourceFromIri')->willReturn(new ItemResolverUserFixture(7));
@@ -158,9 +160,52 @@ final class ApiPlatformItemResolverTest extends TestCase
             $this->createMock(ProviderInterface::class),
             [new Get(), new Get(security: 'is_granted("ROLE_ADMIN")')],
             $accessChecker,
+            router: $this->routerMatching('/api/admin/users/7', '_api_users_get1'),
         );
 
-        $this->assertNull($resolver->resolve(ItemResolverUserFixture::class, ['@id' => '/api/users/7']));
+        $this->assertNull($resolver->resolve(ItemResolverUserFixture::class, ['@id' => '/api/admin/users/7']));
+    }
+
+    #[Test]
+    public function it_ignores_the_security_of_operations_the_iri_does_not_match(): void
+    {
+        $user = new ItemResolverUserFixture(7);
+
+        $iriConverter = $this->createMock(IriConverterInterface::class);
+        $iriConverter->method('getResourceFromIri')->willReturn($user);
+
+        $accessChecker = $this->createMock(ResourceAccessCheckerInterface::class);
+        $accessChecker->expects($this->never())->method('isGranted');
+
+        $resolver = $this->createResolver(
+            $iriConverter,
+            $this->createMock(ProviderInterface::class),
+            [new Get(), new Get(security: 'is_granted("ROLE_ADMIN")')],
+            $accessChecker,
+            router: $this->routerMatching('/api/users/7', '_api_users_get0'),
+        );
+
+        $this->assertSame($user, $resolver->resolve(ItemResolverUserFixture::class, ['@id' => '/api/users/7']));
+    }
+
+    #[Test]
+    public function it_returns_null_when_the_iri_matches_no_route_or_another_resource(): void
+    {
+        $router = $this->createMock(RouterInterface::class);
+        $router->method('match')->willReturnCallback(static fn (string $iri): array => match ($iri) {
+            '/api/invoices/7' => ['_api_resource_class' => \stdClass::class, '_api_operation_name' => '_api_invoices_get'],
+            default           => throw new ResourceNotFoundException(),
+        });
+
+        $resolver = $this->createResolver(
+            $this->neverCalledIriConverter(),
+            $this->createMock(ProviderInterface::class),
+            new Get(),
+            router: $router,
+        );
+
+        $this->assertNull($resolver->resolve(ItemResolverUserFixture::class, ['@id' => '/nowhere/7']));
+        $this->assertNull($resolver->resolve(ItemResolverUserFixture::class, ['@id' => '/api/invoices/7']));
     }
 
     #[Test]
@@ -201,6 +246,7 @@ final class ApiPlatformItemResolverTest extends TestCase
         Operation|array|null $getOperation,
         ?ResourceAccessCheckerInterface $accessChecker = null,
         ?RequestStack $requestStack = null,
+        ?RouterInterface $router = null,
     ): ApiPlatformItemResolver {
         $getOperations = match (true) {
             null === $getOperation             => [],
@@ -220,7 +266,31 @@ final class ApiPlatformItemResolverTest extends TestCase
                 (new ApiResource())->withOperations(new Operations($operations)),
             ]));
 
-        return new ApiPlatformItemResolver($iriConverter, $resourceMetadataFactory, $provider, $accessChecker, $requestStack);
+        return new ApiPlatformItemResolver(
+            $iriConverter,
+            $resourceMetadataFactory,
+            $provider,
+            $router ?? $this->routerMatching(null, '_api_users_get0'),
+            $accessChecker,
+            $requestStack,
+        );
+    }
+
+    /**
+     * @param string|null $iri the only IRI the router matches, null for any IRI
+     */
+    private function routerMatching(?string $iri, string $operationName): RouterInterface
+    {
+        $router = $this->createMock(RouterInterface::class);
+        $router->method('match')->willReturnCallback(static function (string $matched) use ($iri, $operationName): array {
+            if (null !== $iri && $matched !== $iri) {
+                throw new ResourceNotFoundException();
+            }
+
+            return ['_api_resource_class' => ItemResolverUserFixture::class, '_api_operation_name' => $operationName, 'id' => '7'];
+        });
+
+        return $router;
     }
 
     private function neverCalledIriConverter(): IriConverterInterface
