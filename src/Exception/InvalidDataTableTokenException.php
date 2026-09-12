@@ -6,9 +6,13 @@ namespace Pentiminax\UX\DataTables\Exception;
 
 final class InvalidDataTableTokenException extends MutationException
 {
-    public function __construct(string $message, private readonly ?string $clientMessage = null)
-    {
-        parent::__construct($message);
+    public function __construct(
+        string $message = '',
+        int $code = 0,
+        ?\Throwable $previous = null,
+        private readonly ?string $clientMessage = null,
+    ) {
+        parent::__construct($message, $code, $previous);
     }
 
     public function getStatusCode(): int
@@ -33,7 +37,7 @@ final class InvalidDataTableTokenException extends MutationException
     {
         return new self(
             \sprintf('DataTable "%s" must define an entity class.', $dataTableClass),
-            'This DataTable does not support entity mutations.',
+            clientMessage: 'This DataTable does not support entity mutations.',
         );
     }
 }

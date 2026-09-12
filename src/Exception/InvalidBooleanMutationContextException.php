@@ -6,9 +6,13 @@ namespace Pentiminax\UX\DataTables\Exception;
 
 final class InvalidBooleanMutationContextException extends MutationException
 {
-    public function __construct(string $message, private readonly ?string $clientMessage = null)
-    {
-        parent::__construct($message);
+    public function __construct(
+        string $message = '',
+        int $code = 0,
+        ?\Throwable $previous = null,
+        private readonly ?string $clientMessage = null,
+    ) {
+        parent::__construct($message, $code, $previous);
     }
 
     public function getStatusCode(): int
@@ -29,7 +33,7 @@ final class InvalidBooleanMutationContextException extends MutationException
     {
         return new self(
             \sprintf('Field "%s" is not a switchable boolean column on DataTable "%s".', $field, $dataTableClass),
-            \sprintf('Field "%s" is not a switchable boolean column.', $field),
+            clientMessage: \sprintf('Field "%s" is not a switchable boolean column.', $field),
         );
     }
 }
