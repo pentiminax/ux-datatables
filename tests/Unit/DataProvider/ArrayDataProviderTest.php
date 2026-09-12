@@ -4,11 +4,19 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\DataProvider;
 
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
+use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -57,13 +65,6 @@ final class ArrayDataProviderTest extends TestCase
     {
         $numbered = [['id' => 1], ['id' => 2], ['id' => 3], ['id' => 4], ['id' => 5]];
 
-        $named = [
-            ['id' => 1, 'name' => 'Alice'],
-            ['id' => 2, 'name' => 'Bob'],
-            ['id' => 3, 'name' => 'Alicia'],
-            ['id' => 4, 'name' => 'Carol'],
-        ];
-
         yield 'non-positive length means no limit' => [
             [['id' => 1], ['id' => 2], ['id' => 3]],
             self::request(start: 1, length: 0),
@@ -73,9 +74,8 @@ final class ArrayDataProviderTest extends TestCase
             2,
         ];
 
-        // Without a search, only the two returned rows are mapped: out-of-page rows
-        // are never mapped, and each returned row is mapped exactly once.
-        yield 'no search maps only the returned rows' => [
+        // Out-of-page rows are never mapped, and each returned row is mapped exactly once.
+        yield 'only the returned rows are mapped' => [
             $numbered,
             self::request(start: 1, length: 2),
             5,
@@ -97,28 +97,7 @@ final class ArrayDataProviderTest extends TestCase
             [['id' => 2], ['id' => 3]],
         ];
 
-        // Every element is mapped exactly once (no double mapping for filter + output).
-        yield 'search maps each element exactly once' => [
-            $named,
-            self::request(start: 0, length: 10, search: new Search('ali', false)),
-            4,
-            2,
-            [['id' => 1, 'name' => 'Alice'], ['id' => 3, 'name' => 'Alicia']],
-            4,
-        ];
-
-        // Three rows match 'ali'; the page boundary applies to the matched set, so
-        // start: 1, length: 1 selects the second match (Alicia), not the first or all.
-        yield 'search pagination applies to the matched rows' => [
-            [...$named, ['id' => 5, 'name' => 'Alina']],
-            self::request(start: 1, length: 1, search: new Search('ali', false)),
-            5,
-            3,
-            [['id' => 3, 'name' => 'Alicia']],
-            5,
-        ];
-
-        yield 'object items without a search' => [
+        yield 'object items' => [
             [(object) ['id' => 1, 'name' => 'Alice'], (object) ['id' => 2, 'name' => 'Bob'], (object) ['id' => 3, 'name' => 'Carol']],
             self::request(start: 1, length: 1),
             3,
@@ -126,88 +105,244 @@ final class ArrayDataProviderTest extends TestCase
             [['id' => 2, 'name' => 'Bob']],
             1,
         ];
+    }
 
-        yield 'object items with a search' => [
-            array_map(static fn (array $row): object => (object) $row, $named),
-            self::request(start: 0, length: 10, search: new Search('ali', false)),
-            4,
-            2,
-            [['id' => 1, 'name' => 'Alice'], ['id' => 3, 'name' => 'Alicia']],
-            4,
-        ];
+    #[Test]
+    public function it_keeps_working_without_configured_columns(): void
+    {
+        $mapper = new CountingRowMapper();
+
+        // Two-argument construction: no columns means nothing is searchable or orderable,
+        // but the request must still page correctly instead of raising.
+        $result = (new ArrayDataProvider(self::people(), $mapper))->fetchData(self::request(
+            start: 1,
+            length: 2,
+            search: new Search('ali', false),
+            order: [new Order(0, 'desc', 'name')],
+        ));
+
+        $this->assertSame(4, $result->recordsTotal);
+        $this->assertSame(4, $result->recordsFiltered);
+        $this->assertSame(
+            [['id' => 2, 'name' => 'Bob', 'score' => 30], ['id' => 3, 'name' => 'alicia', 'score' => null]],
+            iterator_to_array($result->data),
+        );
+        $this->assertSame(2, $mapper->calls);
     }
 
     /**
-     * The default row mapper attaches `__ux_datatables_actions` / `__ux_datatables_urls`
-     * as nested arrays. Casting those to string is an Error on PHP 8, so a server-side
-     * ArrayDataProvider table with an ActionColumn used to 500 on every global search.
+     * @param list<array{id: int, name: string|null, score: int|null}> $expected
      */
     #[Test]
-    public function it_searches_scalar_cells_when_the_mapped_row_contains_nested_arrays(): void
+    #[DataProvider('order_cases')]
+    public function it_orders_rows_by_the_requested_column(string $columnName, string $direction, array $expected): void
     {
-        $mapper = new class implements RowMapperInterface {
-            public function map(mixed $row): array
-            {
-                $row = (array) $row;
+        $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData(self::request(
+            start: 0,
+            length: 10,
+            order: [new Order(0, $direction, $columnName)],
+        ));
 
-                return [
-                    'id'                      => $row['id'],
-                    'name'                    => $row['name'],
-                    '__ux_datatables_actions' => ['EDIT' => ['url' => '/edit/'.$row['id']]],
-                    '__ux_datatables_urls'    => ['profile' => '/users/'.$row['id']],
-                ];
-            }
-        };
+        $this->assertSame($expected, iterator_to_array($result->data));
+    }
 
-        $result = (new ArrayDataProvider([
-            ['id' => 1, 'name' => 'Alice'],
-            ['id' => 2, 'name' => 'Bob'],
-        ], $mapper))->fetchData(self::request(start: 0, length: 10, search: new Search('ali', false)));
+    /**
+     * @return iterable<string, array{string, string, list<array>}>
+     */
+    public static function order_cases(): iterable
+    {
+        $alice  = ['id' => 1, 'name' => 'Alice', 'score' => 10];
+        $bob    = ['id' => 2, 'name' => 'Bob', 'score' => 30];
+        $alicia = ['id' => 3, 'name' => 'alicia', 'score' => null];
+        $carol  = ['id' => 4, 'name' => null, 'score' => 20];
 
-        $this->assertSame(2, $result->recordsTotal);
-        $this->assertSame(1, $result->recordsFiltered);
-        $this->assertSame([
-            [
-                'id'                      => 1,
-                'name'                    => 'Alice',
-                '__ux_datatables_actions' => ['EDIT' => ['url' => '/edit/1']],
-                '__ux_datatables_urls'    => ['profile' => '/users/1'],
-            ],
-        ], iterator_to_array($result->data));
+        // strnatcasecmp: 'alicia' sorts next to 'Alice', not after 'Bob'.
+        yield 'strings ascending, nulls last' => ['name', 'asc', [$alice, $alicia, $bob, $carol]];
+        yield 'strings descending, nulls last' => ['name', 'desc', [$bob, $alicia, $alice, $carol]];
+        yield 'numbers ascending, nulls last' => ['score', 'asc', [$alice, $carol, $bob, $alicia]];
+        yield 'numbers descending, nulls last' => ['score', 'desc', [$bob, $carol, $alice, $alicia]];
     }
 
     #[Test]
-    public function it_does_not_match_needles_that_only_appear_inside_nested_arrays(): void
+    public function it_applies_the_global_search_on_globally_searchable_columns_only(): void
     {
-        $mapper = new class implements RowMapperInterface {
-            public function map(mixed $row): array
-            {
-                $row = (array) $row;
+        $columns    = self::columns();
+        $columns[1] = TextColumn::new('name')->disableGlobalSearch();
 
-                return [
-                    'id'                      => $row['id'],
-                    'name'                    => $row['name'],
-                    '__ux_datatables_actions' => ['EDIT' => ['url' => '/edit/secret-token']],
-                ];
-            }
-        };
-
-        $result = (new ArrayDataProvider([
-            ['id' => 1, 'name' => 'Alice'],
-        ], $mapper))->fetchData(self::request(start: 0, length: 10, search: new Search('secret-token', false)));
+        $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), $columns))->fetchData(
+            self::request(start: 0, length: 10, search: new Search('ali', false)),
+        );
 
         $this->assertSame(0, $result->recordsFiltered);
         $this->assertSame([], iterator_to_array($result->data));
     }
 
-    private static function request(int $start, int $length, ?Search $search = null): DataTableRequest
+    #[Test]
+    public function it_applies_column_searches_cumulatively(): void
     {
+        $request = self::request(
+            start: 0,
+            length: 10,
+            requestColumns: [
+                self::requestColumn('name', new Search('ali', false)),
+                self::requestColumn('score', new Search('10', false)),
+            ],
+        );
+
+        $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData($request);
+
+        // Alice matches both; alicia matches the name only and has no score.
+        $this->assertSame(1, $result->recordsFiltered);
+        $this->assertSame([['id' => 1, 'name' => 'Alice', 'score' => 10]], iterator_to_array($result->data));
+    }
+
+    #[Test]
+    public function it_trims_the_search_term_and_ignores_case(): void
+    {
+        $provider = new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns());
+
+        $global = $provider->fetchData(self::request(start: 0, length: 10, search: new Search('  AL ', false)));
+        $this->assertSame(2, $global->recordsFiltered);
+
+        $perColumn = $provider->fetchData(self::request(
+            start: 0,
+            length: 10,
+            requestColumns: [self::requestColumn('name', new Search(' ALICIA ', false))],
+        ));
+        $this->assertSame(1, $perColumn->recordsFiltered);
+        $this->assertSame([['id' => 3, 'name' => 'alicia', 'score' => null]], iterator_to_array($perColumn->data));
+    }
+
+    #[Test]
+    public function it_does_not_search_non_searchable_columns(): void
+    {
+        $columns    = self::columns();
+        $columns[1] = TextColumn::new('name')->setSearchable(false);
+
+        $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), $columns))->fetchData(
+            self::request(start: 0, length: 10, search: new Search('ali', false)),
+        );
+
+        $this->assertSame(0, $result->recordsFiltered);
+    }
+
+    /**
+     * A column without a matching source property (an ActionColumn, a TemplateColumn) reads as
+     * null and never matches, where the previous mapped-row search had to guard against casting
+     * the nested action array that such a column puts on the mapped row.
+     */
+    #[Test]
+    public function it_ignores_columns_without_a_readable_source_value(): void
+    {
+        $columns = [...self::columns(), TextColumn::new('actions')];
+
+        $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), $columns))->fetchData(
+            self::request(start: 0, length: 10, search: new Search('actions', false)),
+        );
+
+        $this->assertSame(0, $result->recordsFiltered);
+    }
+
+    #[Test]
+    public function it_throws_when_the_request_carries_column_control_searches(): void
+    {
+        $request = self::request(
+            start: 0,
+            length: 10,
+            requestColumns: [
+                new RequestColumn(
+                    data: 'name',
+                    name: 'name',
+                    searchable: true,
+                    orderable: true,
+                    columnControl: new ColumnControl(new ColumnControlSearch('Alice', ColumnControlLogic::Equal, 'text')),
+                ),
+            ],
+        );
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('ArrayDataProvider does not support ColumnControl searches or configured Filters.');
+
+        (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData($request);
+    }
+
+    #[Test]
+    public function it_throws_when_the_request_carries_configured_filters(): void
+    {
+        $request = self::request(start: 0, length: 10, filters: ['status' => 'active']);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('ArrayDataProvider does not support ColumnControl searches or configured Filters.');
+
+        (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData($request);
+    }
+
+    #[Test]
+    public function it_ignores_empty_filter_values(): void
+    {
+        $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData(
+            self::request(start: 0, length: 2, filters: ['status' => '', 'tags' => []]),
+        );
+
+        $this->assertSame(4, $result->recordsFiltered);
+    }
+
+    /**
+     * @return list<array{id: int, name: string|null, score: int|null}>
+     */
+    private static function people(): array
+    {
+        return [
+            ['id' => 1, 'name' => 'Alice', 'score' => 10],
+            ['id' => 2, 'name' => 'Bob', 'score' => 30],
+            ['id' => 3, 'name' => 'alicia', 'score' => null],
+            ['id' => 4, 'name' => null, 'score' => 20],
+        ];
+    }
+
+    /**
+     * @return list<ColumnInterface>
+     */
+    private static function columns(): array
+    {
+        return [
+            NumberColumn::new('id'),
+            TextColumn::new('name'),
+            NumberColumn::new('score'),
+        ];
+    }
+
+    private static function requestColumn(string $name, ?Search $search = null): RequestColumn
+    {
+        return new RequestColumn(data: $name, name: $name, searchable: true, orderable: true, search: $search);
+    }
+
+    /**
+     * @param list<Order>          $order
+     * @param list<RequestColumn>  $requestColumns
+     * @param array<string, mixed> $filters
+     */
+    private static function request(
+        int $start,
+        int $length,
+        ?Search $search = null,
+        array $order = [],
+        array $requestColumns = [],
+        array $filters = [],
+    ): DataTableRequest {
+        $indexed = [];
+        foreach ($requestColumns as $column) {
+            $indexed[$column->name] = $column;
+        }
+
         return new DataTableRequest(
             draw: 1,
-            columns: new Columns([]),
+            columns: new Columns($indexed),
             start: $start,
             length: $length,
             search: $search,
+            order: $order,
+            filters: $filters,
         );
     }
 }
