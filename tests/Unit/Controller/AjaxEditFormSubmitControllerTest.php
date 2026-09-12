@@ -29,6 +29,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
@@ -78,6 +79,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $templateResolver,
             new NullMercurePublisher(),
             new MercureTopicResolver(dataTables: $this->registeredDataTables()),
+            new MutationFlusher(),
             $this->permissionCheckerGranting(true),
         ));
 
@@ -127,6 +129,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $templateResolver,
             new NullMercurePublisher(),
             new MercureTopicResolver(),
+            new MutationFlusher(),
             new AuthorizationChecker($authorizationChecker),
         ));
 
@@ -185,6 +188,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             $templateResolver,
             new MercureUpdatePublisher($hub),
             new MercureTopicResolver($resolver, $this->registeredDataTables()),
+            new MutationFlusher(),
             $this->permissionCheckerGranting(true),
         ));
 
@@ -222,6 +226,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
                 $this->createMock(EditModalTemplateResolver::class),
                 new NullMercurePublisher(),
                 new MercureTopicResolver(),
+                new MutationFlusher(),
                 $this->permissionCheckerGranting(true),
             ),
             $csrfTokenManager,

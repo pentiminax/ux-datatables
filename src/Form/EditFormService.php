@@ -10,10 +10,12 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
+use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
@@ -30,6 +32,7 @@ final class EditFormService
         private readonly EditModalTemplateResolver $templateResolver,
         private readonly MercurePublisherInterface $publisher,
         private readonly MercureTopicResolver $topicResolver,
+        private readonly MutationFlusher $flusher,
         ?AuthorizationChecker $permissionChecker = null,
     ) {
         $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
@@ -61,6 +64,8 @@ final class EditFormService
 
     /**
      * @param array<string, mixed> $formData
+     *
+     * @throws MutationPersistenceException when the persistence layer rejects the flush
      */
     public function handleSubmit(ResolvedDataTable $dataTable, int|string $id, array $formData): AjaxActionResult
     {
@@ -95,7 +100,7 @@ final class EditFormService
             return AjaxActionResult::invalid($html);
         }
 
-        $context->manager->flush();
+        $this->flusher->flush($context->manager);
 
         $this->publisher->publish($this->topicResolver->resolve($dataTable->requireEntityClass(), $dataTable->dataTableClass), [
             'type' => 'edit',

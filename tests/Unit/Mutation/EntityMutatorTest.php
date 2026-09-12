@@ -22,6 +22,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Security\SecurityVoter;
@@ -409,6 +410,7 @@ final class EntityMutatorTest extends TestCase
             $publisher,
             $permissionChecker ?? new AuthorizationChecker(),
             $topicResolver     ?? new MercureTopicResolver(),
+            new MutationFlusher(),
         );
     }
 

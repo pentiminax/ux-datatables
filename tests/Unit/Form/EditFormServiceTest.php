@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Form;
 
+use Doctrine\DBAL\Driver\Exception as DriverException;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\Mapping\ClassMetadata;
@@ -13,6 +15,7 @@ use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
@@ -26,6 +29,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
@@ -99,6 +103,7 @@ final class EditFormServiceTest extends TestCase
             $this->createRenderingTemplateResolver(EditFormServiceFixtureDataTable::class),
             new NullMercurePublisher(),
             new MercureTopicResolver(),
+            new MutationFlusher(),
         );
 
         $result = $service->handleView($this->resolved(new EditFormServiceFixtureDataTable()), '42');
@@ -134,6 +139,7 @@ final class EditFormServiceTest extends TestCase
             $this->createRenderingTemplateResolver(EditFormServiceFixtureDataTable::class),
             new NullMercurePublisher(),
             new MercureTopicResolver(),
+            new MutationFlusher(),
         );
 
         $result = $service->handleSubmit($this->resolved(new EditFormServiceFixtureDataTable()), 42, ['name' => 'Alice']);
@@ -179,6 +185,35 @@ final class EditFormServiceTest extends TestCase
         $this->assertTrue($result->success);
         $this->assertNull($result->html);
         $this->assertSame('', $result->message);
+    }
+
+    /**
+     * Regression: the submit flush used to be unguarded, so a unique constraint
+     * violation surfaced as a 500 leaking SQL instead of the 409 the delete and
+     * inline-edit paths already return.
+     */
+    #[Test]
+    public function it_maps_a_unique_constraint_violation_on_submit_to_a_persistence_exception(): void
+    {
+        $driverException = new class('constraint violation') extends \RuntimeException implements DriverException {
+            public function getSQLState(): ?string
+            {
+                return '23505';
+            }
+        };
+        $previous = new UniqueConstraintViolationException($driverException, null);
+
+        $caught = null;
+
+        try {
+            $this->handleValidSubmit(new NullMercurePublisher(), $previous);
+        } catch (MutationPersistenceException $exception) {
+            $caught = $exception;
+        }
+
+        $this->assertInstanceOf(MutationPersistenceException::class, $caught);
+        $this->assertSame(409, $caught->getStatusCode());
+        $this->assertSame($previous, $caught->getPrevious());
     }
 
     #[Test]
@@ -289,6 +324,7 @@ final class EditFormServiceTest extends TestCase
             $templateResolver,
             new NullMercurePublisher(),
             new MercureTopicResolver(),
+            new MutationFlusher(),
             $permissionChecker,
         );
 
@@ -308,14 +344,20 @@ final class EditFormServiceTest extends TestCase
 
     /**
      * Submits a valid form and returns the result; the modal must never be re-rendered.
+     *
+     * When $flushFailure is given, the persistence layer rejects the flush instead.
      */
-    private function handleValidSubmit(MercurePublisherInterface $publisher): AjaxActionResult
+    private function handleValidSubmit(MercurePublisherInterface $publisher, ?\Throwable $flushFailure = null): AjaxActionResult
     {
         $dataTable      = new EditFormServiceFixtureDataTable();
         $dataTableClass = $dataTable::class;
         $entity         = new EditFormServiceFixture();
         $entityManager  = $this->createEntityManagerWithEntity($entity, 42);
-        $entityManager->expects($this->once())->method('flush');
+        $flush          = $entityManager->expects($this->once())->method('flush');
+
+        if (null !== $flushFailure) {
+            $flush->willThrowException($flushFailure);
+        }
 
         $form = $this->createMock(FormInterface::class);
         $form->expects($this->once())->method('submit')->with(['name' => 'Alice']);
@@ -341,6 +383,7 @@ final class EditFormServiceTest extends TestCase
             $templateResolver,
             $publisher,
             $this->topicResolverReturning(self::TOPICS),
+            new MutationFlusher(),
         );
 
         return $service->handleSubmit($this->resolved($dataTable), 42, ['name' => 'Alice']);
