@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Profiler;
 
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\DataTableRequest\Column;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
+use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
@@ -125,8 +128,9 @@ final class DataTablePanelRenderTest extends TestCase
     }
 
     /**
-     * Regression test: ColumnControl::$list is unvalidated request input, so a client can
-     * submit a nested array for one entry. The panel used to forward it unchanged into a
+     * Regression test: ColumnControl::$list accepts any array, so a nested entry can reach
+     * the panel from a request built in code even though ColumnControl::fromArray() now
+     * drops non-scalar entries. The panel used to forward it unchanged into a
      * `|join(', ')` filter, which cannot render an array as a string and threw a
      * Twig\Error\RuntimeError ("Array to string conversion"), crashing the entire panel --
      * not just that one row.
@@ -143,15 +147,16 @@ final class DataTablePanelRenderTest extends TestCase
         $profiler->collectAjaxQuery(
             class: 'App\\ProductDataTable',
             token: 'token',
-            request: DataTableRequest::fromRequest(Request::create('/datatables', 'GET', [
-                'draw'    => '1',
-                'columns' => [
-                    [
-                        'data'          => '0', 'name' => 'department', 'searchable' => 'true', 'orderable' => 'true',
-                        'columnControl' => ['list' => ['Sales', ['nested' => 'value']]],
-                    ],
-                ],
-            ])),
+            request: new DataTableRequest(
+                draw: 1,
+                columns: new Columns(['department' => new Column(
+                    data: '0',
+                    name: 'department',
+                    searchable: true,
+                    orderable: true,
+                    columnControl: new ColumnControl(list: ['Sales', ['nested' => 'value']]),
+                )]),
+            ),
             recordsTotal: 1,
             recordsFiltered: 1,
             durationMs: 0.5,

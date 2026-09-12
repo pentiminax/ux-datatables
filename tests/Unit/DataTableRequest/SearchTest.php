@@ -35,6 +35,15 @@ final class SearchTest extends TestCase
     }
 
     #[Test]
+    public function it_drops_a_non_scalar_search_value(): void
+    {
+        $search = Search::fromArray(['value' => ['oops']]);
+
+        $this->assertNull($search->value);
+        $this->assertFalse($search->regex);
+    }
+
+    #[Test]
     public function it_parses_from_a_post_request_body(): void
     {
         $request = Request::create('/ajax', 'POST', [

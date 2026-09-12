@@ -270,11 +270,10 @@ final class DataTableProfiler
     }
 
     /**
-     * ColumnControl::$list is unvalidated request input (ColumnControl::fromArray() reads
-     * $data['list'] ?? [] verbatim) -- a client can submit a nested array for one entry (e.g.
-     * columns[0][columnControl][list][0][x]=y), which the panel's join() filter cannot render
-     * as a string. Reduce every entry to a safe scalar here so the template never has to
-     * account for what a request happened to send.
+     * ColumnControl::fromArray() drops non-scalar list entries, but the constructor accepts any
+     * array, so a request built in code can still carry one (e.g. a nested array), which the
+     * panel's join() filter cannot render as a string. Reduce every entry to a safe scalar here
+     * so the template never has to account for what it was handed.
      *
      * @param list<mixed> $list
      *
