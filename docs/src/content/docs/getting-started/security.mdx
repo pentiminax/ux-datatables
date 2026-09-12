@@ -17,10 +17,21 @@ resolution all go through these endpoints:
     ['ux_datatables_ajax_edit_form', '/datatables/ajax/edit-form/view', 'POST', 'Edit modal form'],
     ['ux_datatables_ajax_edit_form_submit', '/datatables/ajax/edit-form', 'POST', 'Edit modal submit'],
     ['ux_datatables_ajax_detail', '/datatables/ajax/detail', 'POST', 'Row detail rendering'],
-    ['ux_datatables_ajax_templates', '/datatables/ajax/templates', 'POST', 'Template column rendering'],
+    [
+      'ux_datatables_ajax_templates',
+      '/datatables/ajax/templates',
+      'POST',
+      'Template column rendering (rows authorized by the API Platform item provider)',
+    ],
     ['ux_datatables_ajax_export', '/datatables/ajax/export', 'POST', 'Server-side CSV/XLSX export'],
   ]}
 />
+
+`/datatables/ajax/templates` is the one route that authorizes the rows it is given: each posted row
+is rehydrated through the resource's API Platform `Get` operation, so its state provider, its
+Doctrine item extensions and its `security` expression decide what may be rendered. See
+[Template rendering security](/integrations/api-platform/#template-rendering-security). Every other
+route relies entirely on the `access_control` rule below.
 
 ## Why this matters
 

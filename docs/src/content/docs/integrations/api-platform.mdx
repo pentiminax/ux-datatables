@@ -91,6 +91,43 @@ Notes:
   | `select` with `multiple()` | `?name[0]=value&name[1]=value` |
   | `dateRange` | `?name[after]=YYYY-MM-DD&name[before]=YYYY-MM-DD` |
 
+## Template rendering security
+
+`TemplateColumn`, detail actions and `UrlColumn` need the entity, not the JSON row, so the browser
+posts the rows it received back to `POST /datatables/ajax/templates` to have them rendered. Those
+rows are client input: their identifiers prove nothing about who may read them.
+
+The route therefore rehydrates each row through the resource's API Platform `Get` operation, using
+the row's `@id` when present and its `id` otherwise. That applies exactly what a
+`GET /resource/{id}` would: the operation's state provider, its Doctrine item extensions
+(`QueryItemExtensionInterface`, tenant scoping, filtered query builders) and its `security`
+expression.
+
+A row API Platform does not serve — unknown, filtered out by an extension, or denied by `security`
+— is returned to the browser exactly as posted, with no template rendered and no action or URL
+resolved. Nothing is ever rendered against client-supplied data.
+
+```php
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+
+#[ApiResource(operations: [
+    new GetCollection(),
+    // Required for template columns: the item operation is the authorization boundary.
+    new Get(security: 'is_granted("VIEW", object)'),
+])]
+final class User
+{
+}
+```
+
+<Aside type="caution" title="A resource with no `Get` operation renders nothing">
+  Without a `Get` operation — or without API Platform at all — no row can be resolved, so every row
+  comes back unrendered. The route also rejects a request carrying more rows than
+  `data_tables.max_page_length` (1000 by default) with a 400 response.
+</Aside>
+
 ## Global search
 
 The DataTables global search box is mapped to the API Platform `q` query parameter.

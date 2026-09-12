@@ -178,6 +178,33 @@ returns `false` from `isSearchNormalized()`.
   values whose name is not configured are ignored, as the Doctrine provider ignores them. Implement
   `DataProviderInterface` yourself for a table that needs either in memory.
 
+### Template rendering is authorized by API Platform
+
+`/datatables/ajax/templates` used to rehydrate the rows posted by the browser with an unscoped
+`findBy()` on their identifiers, so any authenticated user could obtain the rendered
+`TemplateColumn` output, action URLs and link targets of every entity of the class. The route now
+rehydrates each row through the resource's API Platform `Get` operation, which applies the same
+state provider, Doctrine item extensions and `security` expression as `GET /resource/{id}`.
+
+| Behavior | Before | After |
+| --- | --- | --- |
+| Row rehydration | Unscoped Doctrine `findBy()` on the posted identifiers | API Platform `Get` item provider, including its `security` expression |
+| Row API Platform does not serve | Templates rendered against the client-supplied array | Returned exactly as posted, unrendered |
+| Number of posted rows | Unbounded | Capped at `data_tables.max_page_length`, beyond which the route returns 400 |
+
+A resource without a `Get` operation, or an application without API Platform, resolves no row at
+all: every row comes back unrendered instead of being loaded unscoped. Declare a `Get` operation on
+the resource to keep template columns, detail actions and URL columns rendering.
+
+| Removed | Replacement |
+| --- | --- |
+| `Ajax\RowIdentifierExtractor` | none, the item resolver reads `@id`/`id` itself |
+
+| Changed | New signature |
+| --- | --- |
+| `Ajax\SourceRowResolver::__construct()` | `?ApiPlatform\ApiPlatformItemResolver $itemResolver = null` replaces `RowIdentifierExtractor` and `ManagerRegistry` |
+| `Controller\AjaxTemplateRenderController::__construct()` | an `int $maxRows` is appended after `$sourceRowResolver` |
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`

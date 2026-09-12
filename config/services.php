@@ -36,7 +36,6 @@ use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
-use Pentiminax\UX\DataTables\Ajax\RowIdentifierExtractor;
 use Pentiminax\UX\DataTables\Ajax\SourceRowResolver;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
@@ -236,18 +235,15 @@ return static function (ContainerConfigurator $container): void {
         ->tag('controller.service_arguments')
         ->public();
 
-    $services->set('datatables.rehydration.identifier_extractor', RowIdentifierExtractor::class)
-        ->private();
-
     $services->set('datatables.rehydration.source_row_resolver', SourceRowResolver::class)
-        ->arg(0, service('datatables.rehydration.identifier_extractor'))
-        ->arg(1, service('doctrine')->nullOnInvalid())
+        ->arg(0, service('datatables.api_platform.item_resolver')->nullOnInvalid())
         ->private();
 
     $services->set('datatables.controller.ajax_templates', AjaxTemplateRenderController::class)
         ->arg(0, service('datatables.ajax.registry'))
         ->arg(1, service('datatables.runtime.factory'))
         ->arg(2, service('datatables.rehydration.source_row_resolver'))
+        ->arg(3, param('datatables.max_page_length'))
         ->tag('controller.service_arguments')
         ->public();
 
