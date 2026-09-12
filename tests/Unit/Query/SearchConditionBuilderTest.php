@@ -29,7 +29,7 @@ final class SearchConditionBuilderTest extends TestCase
             'text',
             'name',
             'hello',
-            "e.name LIKE :param_0 ESCAPE '!'",
+            "LOWER(e.name) LIKE :param_0 ESCAPE '!'",
             ['param_0', '%hello%'],
             null,
         ];
@@ -38,7 +38,7 @@ final class SearchConditionBuilderTest extends TestCase
             'text',
             'author.firstName',
             'john',
-            "author.firstName LIKE :param_0 ESCAPE '!'",
+            "LOWER(author.firstName) LIKE :param_0 ESCAPE '!'",
             ['param_0', '%john%'],
             ['e.author', 'author'],
         ];
@@ -47,7 +47,7 @@ final class SearchConditionBuilderTest extends TestCase
             'text',
             'name',
             '50%_off',
-            "e.name LIKE :param_0 ESCAPE '!'",
+            "LOWER(e.name) LIKE :param_0 ESCAPE '!'",
             ['param_0', '%50!%!_off%'],
             null,
         ];
@@ -104,6 +104,51 @@ final class SearchConditionBuilderTest extends TestCase
         $result = SearchConditionBuilder::$method($qb, 'e', $fieldPath, $value, 'param_0');
 
         $this->assertSame($expectedCondition, $result);
+    }
+
+    #[Test]
+    public function it_lowercases_both_sides_by_default(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('param_0', '%alice%');
+
+        $result = SearchConditionBuilder::text($qb, 'e', 'name', 'ALiCe', 'param_0');
+
+        $this->assertSame("LOWER(e.name) LIKE :param_0 ESCAPE '!'", $result);
+    }
+
+    #[Test]
+    public function it_keeps_the_raw_field_when_the_column_is_case_sensitive(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('param_0', '%ALiCe%');
+
+        $result = SearchConditionBuilder::text($qb, 'e', 'name', 'ALiCe', 'param_0', caseSensitive: true);
+
+        $this->assertSame("e.name LIKE :param_0 ESCAPE '!'", $result);
+    }
+
+    #[Test]
+    public function it_escapes_wildcards_after_lowercasing_the_term(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->with('join')->willReturn([]);
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('param_0', '%50!%!_off!!%');
+
+        $result = SearchConditionBuilder::text($qb, 'e', 'name', '50%_OFF!', 'param_0');
+
+        $this->assertSame("LOWER(e.name) LIKE :param_0 ESCAPE '!'", $result);
     }
 
     #[Test]
