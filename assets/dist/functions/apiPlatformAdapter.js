@@ -194,7 +194,7 @@ export class ApiPlatformAdapter {
             return response;
         }
         if (!renderedResponse.ok) {
-            console.warn(`Template rendering failed (${renderedResponse.status}). Rows are displayed unrendered.`);
+            console.warn(`Template rendering failed (${renderedResponse.status}). Rows displayed unrendered.`);
             return response;
         }
         let renderedPayload;

@@ -218,7 +218,7 @@ describe('template rendering failures', () => {
         vi.restoreAllMocks()
     })
 
-    it('returns the original rows when template rendering responds with an error status', async () => {
+    it('returns the original rows when template rendering responds with an error', async () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
         vi.stubGlobal(
             'fetch',
