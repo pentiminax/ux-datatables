@@ -353,6 +353,10 @@ the table declaratively and let the request-scoped boundaries do the rest:
     ['`getResponse()`', 'Get JsonResponse for Ajax; returns an empty dataset when no provider is available'],
     ['`getDataTable()`', 'Get the configured DataTable'],
     ['`getConfiguredDataTable()`', 'Read the configured DataTable without rendering preparation or data hydration'],
+    [
+      '`getResolvedColumns()`',
+      'The configured columns after static permission filtering — pass them to a provider built in `createDataProvider()`',
+    ],
   ]}
 />
 
@@ -375,7 +379,7 @@ final class CustomUsersDataTable extends AbstractDataTable
             ['id' => 2, 'name' => 'Jane Smith'],
         ];
 
-        return new ArrayDataProvider($rows, $this->createRowMapper());
+        return new ArrayDataProvider($rows, $this->createRowMapper(), $this->getResolvedColumns());
     }
 
     protected function mapRow(mixed $row): array
