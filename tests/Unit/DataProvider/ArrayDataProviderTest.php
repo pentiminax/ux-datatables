@@ -179,6 +179,23 @@ final class ArrayDataProviderTest extends TestCase
         $this->assertSame([], iterator_to_array($result->data));
     }
 
+    /**
+     * The Doctrine GlobalSearchFilter reads isGlobalSearchable() only: setSearchable(false) turns
+     * off the per-column search box, not the global one.
+     */
+    #[Test]
+    public function it_applies_the_global_search_to_a_column_whose_column_search_is_disabled(): void
+    {
+        $columns    = self::columns();
+        $columns[1] = TextColumn::new('name')->setSearchable(false);
+
+        $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), $columns))->fetchData(
+            self::request(start: 0, length: 10, search: new Search('ali', false)),
+        );
+
+        $this->assertSame(2, $result->recordsFiltered);
+    }
+
     #[Test]
     public function it_applies_column_searches_cumulatively(): void
     {
@@ -216,16 +233,20 @@ final class ArrayDataProviderTest extends TestCase
     }
 
     #[Test]
-    public function it_does_not_search_non_searchable_columns(): void
+    public function it_ignores_a_column_search_on_a_non_searchable_column(): void
     {
         $columns    = self::columns();
         $columns[1] = TextColumn::new('name')->setSearchable(false);
 
         $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), $columns))->fetchData(
-            self::request(start: 0, length: 10, search: new Search('ali', false)),
+            self::request(
+                start: 0,
+                length: 10,
+                requestColumns: [self::requestColumn('name', new Search('alicia', false))],
+            ),
         );
 
-        $this->assertSame(0, $result->recordsFiltered);
+        $this->assertSame(4, $result->recordsFiltered);
     }
 
     /**
