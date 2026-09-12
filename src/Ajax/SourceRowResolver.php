@@ -4,24 +4,22 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Ajax;
 
-use Doctrine\Persistence\ManagerRegistry;
-use Doctrine\Persistence\ObjectManager;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformItemResolver;
 
 final class SourceRowResolver
 {
     public function __construct(
-        private readonly RowIdentifierExtractor $identifierExtractor,
-        private readonly ?ManagerRegistry $doctrine = null,
+        private readonly ?ApiPlatformItemResolver $itemResolver = null,
     ) {
     }
 
     /**
-     * Batch-rehydrate the source entity backing each row in a single query.
+     * Rehydrate the source entity backing each client-supplied row.
      *
-     * The returned array preserves the keys of $rows: each entry holds the
-     * resolved entity, or null when the row carries no resolvable identifier
-     * or no matching entity exists. The identifier is extracted exactly once
-     * per row.
+     * The returned array preserves the keys of $rows: each entry holds the resolved
+     * entity, or null when API Platform does not serve it to the current user. Without
+     * API Platform there is no authorization boundary to rehydrate through, so every
+     * row stays unresolved rather than being loaded unscoped.
      *
      * @param array<array-key, mixed> $rows
      *
@@ -31,49 +29,14 @@ final class SourceRowResolver
     {
         $resolved = array_fill_keys(array_keys($rows), null);
 
-        if (null === $entityClass || null === $this->doctrine) {
+        if (null === $entityClass || null === $this->itemResolver) {
             return $resolved;
         }
 
-        $idByRowKey = [];
-        $ids        = [];
         foreach ($rows as $key => $row) {
-            if (\is_array($row) && null !== ($id = $this->identifierExtractor->extract($row))) {
-                $idByRowKey[$key]  = (string) $id;
-                $ids[(string) $id] = $id;
+            if (\is_array($row)) {
+                $resolved[$key] = $this->itemResolver->resolve($entityClass, $row);
             }
-        }
-
-        if ([] === $ids) {
-            return $resolved;
-        }
-
-        $manager = $this->doctrine->getManagerForClass($entityClass);
-
-        if (!$manager instanceof ObjectManager) {
-            return $resolved;
-        }
-
-        $metadata         = $manager->getClassMetadata($entityClass);
-        $identifierFields = $metadata->getIdentifierFieldNames();
-
-        // Rows carry a single scalar identifier, so composite keys cannot be
-        // matched reliably; skip rehydration rather than silently mismatch rows.
-        if (1 !== \count($identifierFields)) {
-            return $resolved;
-        }
-
-        $entities = [];
-        foreach ($manager->getRepository($entityClass)->findBy([$identifierFields[0] => array_values($ids)]) as $entity) {
-            $identifierValues = $metadata->getIdentifierValues($entity);
-            $identifier       = reset($identifierValues);
-            if (false !== $identifier) {
-                $entities[(string) $identifier] = $entity;
-            }
-        }
-
-        foreach ($idByRowKey as $key => $id) {
-            $resolved[$key] = $entities[$id] ?? null;
         }
 
         return $resolved;
