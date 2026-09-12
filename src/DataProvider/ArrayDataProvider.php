@@ -14,7 +14,6 @@ use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Query\Intent\ColumnReadReference;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
-use Symfony\Component\PropertyAccess\Exception\ExceptionInterface as PropertyAccessException;
 use Symfony\Component\PropertyAccess\PropertyAccessor;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
@@ -218,13 +217,19 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
         });
     }
 
+    /**
+     * A column with no matching source property -- an ActionColumn, a TemplateColumn, a value that
+     * only exists after mapping -- has no value to search or order by, so it reads as null.
+     */
     private function readValue(object $item, ColumnReadReference $column): mixed
     {
-        try {
-            return $this->propertyAccessor->getValue($item, $column->fieldPath ?? $column->name);
-        } catch (PropertyAccessException) {
+        $path = $column->fieldPath ?? $column->name;
+
+        if (!$this->propertyAccessor->isReadable($item, $path)) {
             return null;
         }
+
+        return $this->propertyAccessor->getValue($item, $path);
     }
 
     /**
