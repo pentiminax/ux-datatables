@@ -68,6 +68,7 @@ export class ApiPlatformAdapter {
             }
             result[fieldName] = searchValue;
         }
+        this.appendFilters(result, params.filters);
         return result;
     }
     buildResponse(json, draw) {
@@ -99,11 +100,13 @@ export class ApiPlatformAdapter {
             return;
         }
         let draw = 0;
-        ajaxConfig.data = (params) => {
+        const buildData = (params) => {
             const resolvedParams = this.resolveDataTableParams(params, originalData);
             draw = this.toDraw(resolvedParams.draw);
             return this.buildRequestParams(resolvedParams);
         };
+        buildData.consumesFilters = true;
+        ajaxConfig.data = buildData;
         ajaxConfig.dataFilter = (rawData, type) => {
             const filteredRawData = this.resolveRawResponse(rawData, type, originalDataFilter);
             const parsedPayload = this.parseResponsePayload(filteredRawData);
@@ -196,6 +199,41 @@ export class ApiPlatformAdapter {
             value.table.trim() !== ''
             ? { url: value.url, table: value.table }
             : null;
+    }
+    appendFilters(result, filters) {
+        if (!isRecord(filters)) {
+            return;
+        }
+        for (const [name, value] of Object.entries(filters)) {
+            if ('string' === typeof value) {
+                if ('' !== value.trim()) {
+                    result[name] = value;
+                }
+                continue;
+            }
+            if (Array.isArray(value)) {
+                let index = 0;
+                for (const entry of value) {
+                    if ('string' !== typeof entry || '' === entry) {
+                        continue;
+                    }
+                    result[`${name}[${index}]`] = entry;
+                    index++;
+                }
+                continue;
+            }
+            if (!isRecord(value)) {
+                continue;
+            }
+            const from = value.from;
+            const to = value.to;
+            if ('string' === typeof from && '' !== from.trim()) {
+                result[`${name}[after]`] = from;
+            }
+            if ('string' === typeof to && '' !== to.trim()) {
+                result[`${name}[before]`] = to;
+            }
+        }
     }
     withRowIds(rows) {
         const field = this.rowIdField;
