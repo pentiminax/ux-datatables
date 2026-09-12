@@ -128,12 +128,14 @@ abstract class AbstractColumn implements SearchableColumnInterface
     }
 
     /**
-     * Make server-side text search on this column case-sensitive.
+     * Let server-side text search on this column follow the database collation.
      *
      * Server-side LIKE searches lowercase both the column and the term by default, which makes
      * them case-insensitive on every platform but prevents the database from using a plain
      * index on the column. Opt out when a "starts with" search must stay sargable on a MySQL
-     * prefix index and the stored values already have a known case.
+     * prefix index and the stored values already have a known case. The bare LIKE is then
+     * case-sensitive on PostgreSQL and binary collations only; a case-insensitive MySQL
+     * collation keeps matching regardless of case.
      *
      * Only columns extending {@see AbstractColumn} carry this flag: a column implementing
      * {@see ColumnInterface} directly is always searched case-insensitively.

@@ -92,6 +92,10 @@ TextColumn::new('reference', 'Reference')
     ->setCaseSensitiveSearch();
 ```
 
+Opting out restores a bare `LIKE`, which follows the column's collation: case-sensitive on
+PostgreSQL and on binary collations, still case-insensitive on a `_ci` MySQL collation. The flag
+trades the guaranteed behavior for index usage; it does not force case sensitivity.
+
 The flag lives on `AbstractColumn`, so a column class implementing `ColumnInterface` directly is
 always searched case-insensitively. `setSearchPredicate()` stays the escape hatch for anything
 neither mode expresses.
