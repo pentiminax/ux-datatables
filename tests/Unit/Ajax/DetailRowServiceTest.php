@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -184,7 +185,7 @@ final class DetailRowServiceTest extends TestCase
         ?Environment $twig,
         ?AuthorizationChecker $permissionChecker = null,
     ): DetailRowService {
-        return new DetailRowService($locator, $twig, $permissionChecker ?? new AuthorizationChecker());
+        return new DetailRowService($locator, $twig, $permissionChecker ?? new AuthorizationChecker(new TestAuthorizationChecker()));
     }
 
     private function resolved(AbstractDataTable $dataTable): ResolvedDataTable

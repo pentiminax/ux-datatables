@@ -103,7 +103,7 @@ final class ActionRowDataResolverTest extends TestCase
             ['DELETE' => ['id' => 9]],
         ];
 
-        // An AuthorizationChecker without inner checker grants everything.
+        // An AuthorizationChecker without inner checker grants the bundle's own attributes.
         yield 'per row permission without authorization checker' => [
             [
                 Action::edit()

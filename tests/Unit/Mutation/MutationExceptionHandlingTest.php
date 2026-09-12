@@ -29,6 +29,7 @@ use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
@@ -53,6 +54,7 @@ final class MutationExceptionHandlingTest extends TestCase
             $this->mutatorReturning(null),
             new MutationTokenValidator($this->validCsrfTokenManager()),
             $this->dataTableRegistry(),
+            new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
         $response = $this->handleControllerException(
@@ -77,7 +79,7 @@ final class MutationExceptionHandlingTest extends TestCase
             new EntityLocator($this->registryReturning($entity)),
             $accessor,
             new NullMercurePublisher(),
-            new AuthorizationChecker(),
+            new AuthorizationChecker(new TestAuthorizationChecker()),
             new MercureTopicResolver(),
             new MutationFlusher(),
         ));
@@ -161,7 +163,7 @@ final class MutationExceptionHandlingTest extends TestCase
             new EntityLocator($this->registryReturning($entity)),
             $this->createMock(PropertyAccessorInterface::class),
             new NullMercurePublisher(),
-            new AuthorizationChecker(),
+            new AuthorizationChecker(new TestAuthorizationChecker()),
             new MercureTopicResolver(),
             new MutationFlusher(),
         );
