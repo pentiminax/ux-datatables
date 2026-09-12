@@ -175,17 +175,24 @@ export class ApiPlatformAdapter {
         if (response.data.length === 0) {
             return response;
         }
-        const renderedResponse = await fetch(templateRendering.url, {
-            body: JSON.stringify({
-                table: templateRendering.table,
-                rows: response.data,
-            }),
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            method: 'POST',
-        });
+        let renderedResponse;
+        try {
+            renderedResponse = await fetch(templateRendering.url, {
+                body: JSON.stringify({
+                    table: templateRendering.table,
+                    rows: response.data,
+                }),
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                method: 'POST',
+            });
+        }
+        catch (error) {
+            console.warn('Template rendering request failed. Rows are displayed unrendered.', error);
+            return response;
+        }
         if (!renderedResponse.ok) {
             console.warn(`Template rendering failed (${renderedResponse.status}). Rows are displayed unrendered.`);
             return response;

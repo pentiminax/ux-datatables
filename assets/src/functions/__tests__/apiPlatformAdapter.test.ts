@@ -237,6 +237,18 @@ describe('template rendering failures', () => {
         expect(warn).toHaveBeenCalledOnce()
     })
 
+    it('returns the original rows when the template rendering request rejects', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+
+        const adapter = new ApiPlatformAdapter(columns)
+
+        await expect(
+            adapter.renderTemplateRows(renderedResponse, templateRendering)
+        ).resolves.toEqual(renderedResponse)
+        expect(warn).toHaveBeenCalledOnce()
+    })
+
     it('returns the original rows when the template rendering body is not JSON', async () => {
         vi.stubGlobal(
             'fetch',
