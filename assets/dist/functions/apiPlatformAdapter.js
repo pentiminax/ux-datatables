@@ -68,6 +68,7 @@ export class ApiPlatformAdapter {
             }
             result[fieldName] = searchValue;
         }
+        this.appendFilters(result, params.filters);
         return result;
     }
     buildResponse(json, draw) {
@@ -99,11 +100,13 @@ export class ApiPlatformAdapter {
             return;
         }
         let draw = 0;
-        ajaxConfig.data = (params) => {
+        const buildData = (params) => {
             const resolvedParams = this.resolveDataTableParams(params, originalData);
             draw = this.toDraw(resolvedParams.draw);
             return this.buildRequestParams(resolvedParams);
         };
+        buildData.consumesFilters = true;
+        ajaxConfig.data = buildData;
         ajaxConfig.dataFilter = (rawData, type) => {
             const filteredRawData = this.resolveRawResponse(rawData, type, originalDataFilter);
             const parsedPayload = this.parseResponsePayload(filteredRawData);
@@ -197,6 +200,47 @@ export class ApiPlatformAdapter {
             ? { url: value.url, table: value.table }
             : null;
     }
+    appendFilters(result, filters) {
+        if (!isRecord(filters)) {
+            return;
+        }
+        for (const [name, value] of Object.entries(filters)) {
+            if ('string' === typeof value) {
+                if ('' !== value.trim()) {
+                    this.setFilterParam(result, name, value);
+                }
+                continue;
+            }
+            if (Array.isArray(value)) {
+                let index = 0;
+                for (const entry of value) {
+                    if ('string' !== typeof entry || '' === entry) {
+                        continue;
+                    }
+                    this.setFilterParam(result, `${name}[${index}]`, entry);
+                    index++;
+                }
+                continue;
+            }
+            if (!isRecord(value)) {
+                continue;
+            }
+            const from = value.from;
+            const to = value.to;
+            if ('string' === typeof from && '' !== from.trim()) {
+                this.setFilterParam(result, `${name}[after]`, from);
+            }
+            if ('string' === typeof to && '' !== to.trim()) {
+                this.setFilterParam(result, `${name}[before]`, to);
+            }
+        }
+    }
+    setFilterParam(result, key, value) {
+        if (key in result) {
+            return;
+        }
+        result[key] = value;
+    }
     withRowIds(rows) {
         const field = this.rowIdField;
         if (null === field) {
@@ -251,7 +295,7 @@ export class ApiPlatformAdapter {
         if (typeof originalData === 'function') {
             const transformed = originalData(params);
             if (isRecord(transformed)) {
-                return transformed;
+                return this.withFilters(transformed, params.filters);
             }
             return params;
         }
@@ -262,6 +306,15 @@ export class ApiPlatformAdapter {
             };
         }
         return params;
+    }
+    withFilters(params, filters) {
+        if (undefined === filters || undefined !== params.filters) {
+            return params;
+        }
+        return {
+            ...params,
+            filters,
+        };
     }
     toDraw(value) {
         if (typeof value === 'number' && Number.isFinite(value)) {

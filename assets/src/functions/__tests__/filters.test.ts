@@ -216,6 +216,55 @@ describe('FilterBar', () => {
         expect(reload).toHaveBeenCalledTimes(2)
     })
 
+    it('skips the nested filters object when the ajax.data callback consumed the filters', () => {
+        const apiPlatformData = Object.assign(
+            (params: Record<string, any>) => ({
+                page: '1',
+                itemsPerPage: String(params.length),
+                name: params.filters?.name,
+            }),
+            { consumesFilters: true }
+        )
+        const payload: Record<string, any> = {
+            filters: [{ name: 'name', type: 'text' }],
+            ajax: { url: '/api/books', data: apiPlatformData },
+        }
+        const bar = new FilterBar(payload, 'dt')
+        bar.attachToPayload(payload)
+
+        const wrapper = bar.render(vi.fn())
+        ;(wrapper.querySelector('input[type="search"]') as HTMLInputElement).value = 'john'
+        clickApply(wrapper)
+
+        expect(payload.ajax.data({ draw: 1, start: 0, length: 25 })).toEqual({
+            page: '1',
+            itemsPerPage: '25',
+            name: 'john',
+        })
+    })
+
+    it('attaches filters to a function ajax used by API Platform template rendering', () => {
+        const ajax = vi.fn()
+        const payload: Record<string, any> = {
+            filters: [{ name: 'name', type: 'text' }],
+            ajax,
+        }
+        const bar = new FilterBar(payload, 'dt')
+        bar.attachToPayload(payload)
+
+        const wrapper = bar.render(vi.fn())
+        ;(wrapper.querySelector('input[type="search"]') as HTMLInputElement).value = 'john'
+        clickApply(wrapper)
+
+        const callback = vi.fn()
+        payload.ajax({ draw: 1, start: 0, length: 25 }, callback)
+
+        expect(ajax).toHaveBeenCalledWith(
+            expect.objectContaining({ filters: { name: 'john' } }),
+            callback
+        )
+    })
+
     it('toggles the popover open and closed', () => {
         const { bar } = makeBar([{ name: 'name', type: 'text' }])
         const wrapper = bar.render(vi.fn())

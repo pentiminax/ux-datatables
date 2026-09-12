@@ -82,6 +82,13 @@ Notes:
 
 - Date formatting is handled by the backend payload. The adapter does not reformat date values on the client.
 - When API Platform adapter mode is enabled, `serverSide` is enforced so sorting and filtering stay consistent with API queries.
+- Filter bar values are flattened into API Platform's own query shape, so each filter needs a matching API Platform filter on the resource:
+
+  | Filter type | Query parameters |
+  | --- | --- |
+  | `text`, `select`, `ternary`, `checkbox` | `?name=value` |
+  | `select` with `multiple()` | `?name[0]=value&name[1]=value` |
+  | `dateRange` | `?name[after]=YYYY-MM-DD&name[before]=YYYY-MM-DD` |
 
 ## Global search
 

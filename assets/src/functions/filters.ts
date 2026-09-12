@@ -127,6 +127,17 @@ export class FilterBar {
      * DataTables protocol instead of Hydra query parameters.
      */
     attachToPayload(payload: Record<string, any>): void {
+        if (typeof payload.ajax === 'function') {
+            const originalAjax = payload.ajax
+            payload.ajax = (data: Record<string, any>, ...rest: unknown[]) => {
+                data.filters = this.collectValues()
+
+                return originalAjax(data, ...rest)
+            }
+
+            return
+        }
+
         if (!payload.ajax || typeof payload.ajax !== 'object') {
             return
         }
@@ -140,7 +151,9 @@ export class FilterBar {
                     return transformed
                 }
                 if (isPlainRecord(transformed)) {
-                    transformed.filters = this.collectValues()
+                    if (true !== (existing as { consumesFilters?: boolean }).consumesFilters) {
+                        transformed.filters = this.collectValues()
+                    }
 
                     return transformed
                 }
