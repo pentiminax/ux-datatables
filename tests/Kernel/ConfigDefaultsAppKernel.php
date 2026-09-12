@@ -46,7 +46,8 @@ final class ConfigDefaultsAppKernel extends Kernel
             ]);
 
             $container->loadFromExtension('data_tables', [
-                'options' => [
+                'max_page_length' => 50,
+                'options'         => [
                     'pageLength' => 25,
                     'paging'     => [
                         'buttons'   => 5,

@@ -45,6 +45,34 @@ bundle's `SecurityVoter` is not registered either, so there is nothing to vote o
 application with no firewall keeps rendering its tables. An empty or `null` attribute — meaning
 no permission is configured — is also still granted.
 
+### Ajax pagination is bounded
+
+Affects server-side tables whose Ajax requests relied on an unbounded page size. Table
+configuration, columns, Twig templates, the Ajax routes, and every JSON payload on the wire are
+unchanged.
+
+The `length` parameter of an Ajax request is now capped at the `data_tables.max_page_length`
+parameter (1000 by default), and a negative `start` is clamped to `0`.
+
+DataTables' "show all" (`length=-1`, or a missing `length`) is honored only when the table declares
+`-1` in its `lengthMenu()`. A table that relied on an implicit unbounded page must declare it, or
+raise the bound:
+
+```php
+// before: any length was served, including "show all"
+$table->lengthMenu([10, 25, 50]);
+
+// after: declare "show all" to keep serving an unbounded page
+$table->lengthMenu([[10, 25, 50, -1], ['10', '25', '50', 'All']]);
+```
+
+```yaml
+# config/packages/data_tables.yaml
+data_tables:
+  max_page_length: 5000
+```
+
+Exports are unaffected: they drop pagination explicitly and still stream every filtered row.
 
 ## v0.84 → v0.85
 

@@ -10,6 +10,7 @@ Configure bundle-wide defaults in `config/packages/data_tables.yaml`.
 
 ```yaml
 data_tables:
+  max_page_length: 1000
   options:
     language: en-GB
     layout:
@@ -32,6 +33,30 @@ data_tables:
     select:
       style: single
 ```
+
+## max_page_length
+
+Upper bound applied to the `length` parameter of every server-side Ajax request, so a crafted
+`length=999999` cannot make a table hydrate its whole dataset.
+
+```yaml
+data_tables:
+  max_page_length: 1000
+```
+
+DataTables sends `length=-1` for its "show all" entry. That is honored only when the table offers
+it, that is when `lengthMenu()` declares `-1`; otherwise the request is served with
+`max_page_length` rows. A negative `start` is clamped to `0`.
+
+```php
+// Show all is honored: this table offers it.
+$table->lengthMenu([10, 25, -1]);
+
+// Show all is capped to max_page_length: this table never offers it.
+$table->lengthMenu([10, 25]);
+```
+
+Exports are not affected: they read every filtered row by design.
 
 ## Options
 
@@ -122,6 +147,9 @@ $table->lengthMenu([
     [10, 25, 50, 'All']
 ]);
 ```
+
+Declaring `-1` also tells the bundle that an unbounded Ajax page is intentional for this table.
+See [`max_page_length`](#max_page_length).
 
 ### pageLength
 
