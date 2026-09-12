@@ -20,6 +20,7 @@ interface DataTableServerSideParams {
     order?: DataTableServerSideOrder[]
     columns?: DataTableServerSideColumn[]
     search?: DataTableServerSideSearch
+    filters?: unknown
 }
 
 export interface ColumnConfig {
@@ -161,6 +162,8 @@ export class ApiPlatformAdapter {
             result[fieldName] = searchValue
         }
 
+        this.appendFilters(result, params.filters)
+
         return result
     }
 
@@ -211,12 +214,15 @@ export class ApiPlatformAdapter {
 
         let draw = 0
 
-        ajaxConfig.data = (params: DataTableServerSideParams): Record<string, string> => {
+        const buildData = (params: DataTableServerSideParams): Record<string, string> => {
             const resolvedParams = this.resolveDataTableParams(params, originalData)
             draw = this.toDraw(resolvedParams.draw)
 
             return this.buildRequestParams(resolvedParams)
         }
+        buildData.consumesFilters = true
+
+        ajaxConfig.data = buildData
 
         ajaxConfig.dataFilter = (rawData: string, type: string): string => {
             const filteredRawData = this.resolveRawResponse(rawData, type, originalDataFilter)
@@ -346,6 +352,56 @@ export class ApiPlatformAdapter {
             value.table.trim() !== ''
             ? { url: value.url, table: value.table }
             : null
+    }
+
+    /**
+     * Filter bar values are flattened into API Platform's query shape: scalars become `name=value`,
+     * multi-selects `name[0]=value`, and date ranges `name[after]` / `name[before]`. Left as the
+     * nested `filters` object they were silently dropped by API Platform.
+     */
+    private appendFilters(result: Record<string, string>, filters: unknown): void {
+        if (!isRecord(filters)) {
+            return
+        }
+
+        for (const [name, value] of Object.entries(filters)) {
+            if ('string' === typeof value) {
+                if ('' !== value.trim()) {
+                    result[name] = value
+                }
+
+                continue
+            }
+
+            if (Array.isArray(value)) {
+                let index = 0
+                for (const entry of value) {
+                    if ('string' !== typeof entry || '' === entry) {
+                        continue
+                    }
+
+                    result[`${name}[${index}]`] = entry
+                    index++
+                }
+
+                continue
+            }
+
+            if (!isRecord(value)) {
+                continue
+            }
+
+            const from = value.from
+            const to = value.to
+
+            if ('string' === typeof from && '' !== from.trim()) {
+                result[`${name}[after]`] = from
+            }
+
+            if ('string' === typeof to && '' !== to.trim()) {
+                result[`${name}[before]`] = to
+            }
+        }
     }
 
     private withRowIds(rows: unknown[]): unknown[] {
