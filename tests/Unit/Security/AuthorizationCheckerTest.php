@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Security;
 
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -32,12 +33,40 @@ final class AuthorizationCheckerTest extends TestCase
     }
 
     #[Test]
-    public function grants_everything_when_no_checker_is_provided(): void
+    public function it_grants_empty_and_null_attributes_without_a_checker(): void
     {
         $checker = new AuthorizationChecker();
 
-        $this->assertTrue($checker->isGranted('ROLE_ADMIN'));
-        $this->assertTrue($checker->isGranted('EDIT', new \stdClass()));
+        $this->assertTrue($checker->isGranted(null));
+        $this->assertTrue($checker->isGranted(''));
+    }
+
+    #[Test]
+    public function it_grants_bundle_permissions_without_a_checker(): void
+    {
+        $checker = new AuthorizationChecker();
+
+        foreach (Permission::all() as $permission) {
+            $this->assertTrue($checker->isGranted($permission, new \stdClass()));
+        }
+    }
+
+    #[Test]
+    public function it_throws_when_a_permission_is_configured_without_a_symfony_checker(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('A permission "ROLE_ADMIN" is configured but no Symfony authorization checker is available.');
+
+        (new AuthorizationChecker())->isGranted('ROLE_ADMIN');
+    }
+
+    #[Test]
+    public function it_throws_without_casting_an_expression_permission(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('A permission ""ROLE_ADMIN" in role_names" is configured');
+
+        (new AuthorizationChecker())->isGranted(new Expression('"ROLE_ADMIN" in role_names'));
     }
 
     #[Test]

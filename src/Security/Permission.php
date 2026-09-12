@@ -15,4 +15,18 @@ final class Permission
     private function __construct()
     {
     }
+
+    /**
+     * @return list<string>
+     */
+    public static function all(): array
+    {
+        return [
+            self::DT_ACCESS_TABLE,
+            self::DT_EXECUTE_ACTION,
+            self::DT_EDIT_ROW,
+            self::DT_DELETE_ROW,
+            self::DT_VIEW_ROW_DETAILS,
+        ];
+    }
 }

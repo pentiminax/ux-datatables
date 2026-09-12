@@ -27,6 +27,7 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Security\SecurityVoter;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -408,7 +409,7 @@ final class EntityMutatorTest extends TestCase
             new EntityLocator($this->registry($manager)),
             $accessor ?? $this->createStub(PropertyAccessorInterface::class),
             $publisher,
-            $permissionChecker ?? new AuthorizationChecker(),
+            $permissionChecker ?? new AuthorizationChecker(new TestAuthorizationChecker()),
             $topicResolver     ?? new MercureTopicResolver(),
             new MutationFlusher(),
         );

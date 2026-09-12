@@ -35,6 +35,7 @@ use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -104,6 +105,7 @@ final class EditFormServiceTest extends TestCase
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
+            new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
         $result = $service->handleView($this->resolved(new EditFormServiceFixtureDataTable()), '42');
@@ -140,6 +142,7 @@ final class EditFormServiceTest extends TestCase
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
+            new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
         $result = $service->handleSubmit($this->resolved(new EditFormServiceFixtureDataTable()), 42, ['name' => 'Alice']);
@@ -325,7 +328,7 @@ final class EditFormServiceTest extends TestCase
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
-            $permissionChecker,
+            $permissionChecker ?? new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
         $dataTable = $this->resolved($dataTable ?? new EditFormServiceFixtureDataTable());
@@ -384,6 +387,7 @@ final class EditFormServiceTest extends TestCase
             $publisher,
             $this->topicResolverReturning(self::TOPICS),
             new MutationFlusher(),
+            new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
         return $service->handleSubmit($this->resolved($dataTable), 42, ['name' => 'Alice']);
