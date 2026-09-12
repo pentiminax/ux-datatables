@@ -66,7 +66,7 @@ final class GlobalSearchFilterTest extends TestCase
         yield 'simple field' => [
             TextColumn::new('name', 'Name')->setField('name'),
             'test',
-            "e.name LIKE :search_param_0 ESCAPE '!'",
+            "LOWER(e.name) LIKE :search_param_0 ESCAPE '!'",
             '%test%',
             null,
         ];
@@ -74,7 +74,7 @@ final class GlobalSearchFilterTest extends TestCase
         yield 'field with like wildcards is escaped, not interpreted' => [
             TextColumn::new('name', 'Name')->setField('name'),
             '50%_off',
-            "e.name LIKE :search_param_0 ESCAPE '!'",
+            "LOWER(e.name) LIKE :search_param_0 ESCAPE '!'",
             '%50!%!_off%',
             null,
         ];
@@ -82,7 +82,7 @@ final class GlobalSearchFilterTest extends TestCase
         yield 'dot notation field' => [
             TextColumn::new('authorName', 'Author')->setField('author.firstName'),
             'john',
-            "author.firstName LIKE :search_param_0 ESCAPE '!'",
+            "LOWER(author.firstName) LIKE :search_param_0 ESCAPE '!'",
             '%john%',
             ['e.author', 'author'],
         ];
@@ -225,8 +225,8 @@ final class GlobalSearchFilterTest extends TestCase
         $expr = $this->createMock(Expr::class);
         $expr->expects($this->once())
             ->method('orX')
-            ->with("e.name LIKE :search_param_0 ESCAPE '!'")
-            ->willReturn(new Expr\Orx(["e.name LIKE :search_param_0 ESCAPE '!'"]));
+            ->with("LOWER(e.name) LIKE :search_param_0 ESCAPE '!'")
+            ->willReturn(new Expr\Orx(["LOWER(e.name) LIKE :search_param_0 ESCAPE '!'"]));
 
         $qb->method('expr')->willReturn($expr);
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);
@@ -255,8 +255,8 @@ final class GlobalSearchFilterTest extends TestCase
         $expr = $this->createMock(Expr::class);
         $expr->expects($this->once())
             ->method('orX')
-            ->with("donorProvider.name LIKE :search_param_0 ESCAPE '!'")
-            ->willReturn(new Expr\Orx(["donorProvider.name LIKE :search_param_0 ESCAPE '!'"]));
+            ->with("LOWER(donorProvider.name) LIKE :search_param_0 ESCAPE '!'")
+            ->willReturn(new Expr\Orx(["LOWER(donorProvider.name) LIKE :search_param_0 ESCAPE '!'"]));
 
         $qb->method('expr')->willReturn($expr);
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);
@@ -275,8 +275,8 @@ final class GlobalSearchFilterTest extends TestCase
         $expr = $this->createMock(Expr::class);
         $expr->expects($this->once())
             ->method('orX')
-            ->with("dp.name LIKE :search_param_0 ESCAPE '!'")
-            ->willReturn(new Expr\Orx(["dp.name LIKE :search_param_0 ESCAPE '!'"]));
+            ->with("LOWER(dp.name) LIKE :search_param_0 ESCAPE '!'")
+            ->willReturn(new Expr\Orx(["LOWER(dp.name) LIKE :search_param_0 ESCAPE '!'"]));
 
         $qb->method('expr')->willReturn($expr);
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);
@@ -328,8 +328,8 @@ final class GlobalSearchFilterTest extends TestCase
         $expr = $this->createMock(Expr::class);
         $expr->expects($this->once())
             ->method('orX')
-            ->with("e.name LIKE :search_param_0 ESCAPE '!'")
-            ->willReturn(new Expr\Orx(["e.name LIKE :search_param_0 ESCAPE '!'"]));
+            ->with("LOWER(e.name) LIKE :search_param_0 ESCAPE '!'")
+            ->willReturn(new Expr\Orx(["LOWER(e.name) LIKE :search_param_0 ESCAPE '!'"]));
 
         $qb->method('expr')->willReturn($expr);
         $qb->expects($this->once())->method('andWhere')->willReturn($qb);

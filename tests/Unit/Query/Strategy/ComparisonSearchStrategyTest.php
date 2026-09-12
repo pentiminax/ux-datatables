@@ -69,6 +69,29 @@ final class ComparisonSearchStrategyTest extends TestCase
         $strategy->apply($qb, $column, $search, 3, 'e');
     }
 
+    #[Test]
+    #[DataProvider('case_sensitive_cases')]
+    public function it_keeps_the_raw_column_when_the_column_opts_out_of_case_insensitive_search(
+        ColumnControlLogic $logic,
+        string $expectedExpression,
+        string $expectedParameter,
+    ): void {
+        $strategy = new ComparisonSearchStrategy($logic);
+        $column   = TextColumn::new('name')->setSearchNormalization(false);
+
+        $qb = $this->createMock(QueryBuilder::class);
+
+        $qb->expects($this->once())
+            ->method('andWhere')
+            ->with($expectedExpression);
+
+        $qb->expects($this->once())
+            ->method('setParameter')
+            ->with('column_control_param_3', $expectedParameter, null);
+
+        $strategy->apply($qb, $column, new ColumnControlSearch('Ali', $logic, 'text'), 3, 'e');
+    }
+
     /**
      * Two independent guards, both observable as "the query builder is never touched":
      * a LIKE against a uuid-typed column crashes on PostgreSQL and SQL Server, and a
@@ -345,29 +368,53 @@ final class ComparisonSearchStrategyTest extends TestCase
         yield 'starts' => [
             ColumnControlLogic::Starts,
             'Ali',
+            "LOWER(e.name) LIKE :column_control_param_3 ESCAPE '!'",
+            'ali%',
+        ];
+
+        yield 'ends' => [
+            ColumnControlLogic::Ends,
+            'Ice',
+            "LOWER(e.name) LIKE :column_control_param_3 ESCAPE '!'",
+            '%ice',
+        ];
+
+        yield 'notContains' => [
+            ColumnControlLogic::NotContains,
+            'ALI',
+            "LOWER(e.name) NOT LIKE :column_control_param_3 ESCAPE '!'",
+            '%ali%',
+        ];
+
+        yield 'starts with like wildcards is escaped, not interpreted' => [
+            ColumnControlLogic::Starts,
+            '50%_OFF',
+            "LOWER(e.name) LIKE :column_control_param_3 ESCAPE '!'",
+            '50!%!_off%',
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{ColumnControlLogic, string, string}>
+     */
+    public static function case_sensitive_cases(): iterable
+    {
+        yield 'starts' => [
+            ColumnControlLogic::Starts,
             "e.name LIKE :column_control_param_3 ESCAPE '!'",
             'Ali%',
         ];
 
         yield 'ends' => [
             ColumnControlLogic::Ends,
-            'ice',
             "e.name LIKE :column_control_param_3 ESCAPE '!'",
-            '%ice',
+            '%Ali',
         ];
 
         yield 'notContains' => [
             ColumnControlLogic::NotContains,
-            'ali',
             "e.name NOT LIKE :column_control_param_3 ESCAPE '!'",
-            '%ali%',
-        ];
-
-        yield 'starts with like wildcards is escaped, not interpreted' => [
-            ColumnControlLogic::Starts,
-            '50%_off',
-            "e.name LIKE :column_control_param_3 ESCAPE '!'",
-            '50!%!_off%',
+            '%Ali%',
         ];
     }
 

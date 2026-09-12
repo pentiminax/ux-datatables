@@ -16,7 +16,9 @@ use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 /**
  * Strategy for 'contains' search logic.
  *
- * Performs a case-sensitive substring search using SQL LIKE %value%.
+ * Performs a case-insensitive substring search using SQL LIKE %value% (LOWER() on both sides),
+ * unless the column opts out through
+ * {@see \Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface}.
  * For numeric columns, performs exact match if the value is numeric.
  *
  * Predicate construction is delegated to {@see SearchPredicateBuilderInterface} so the
