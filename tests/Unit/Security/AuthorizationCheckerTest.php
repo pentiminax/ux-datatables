@@ -64,7 +64,7 @@ final class AuthorizationCheckerTest extends TestCase
     public function it_throws_without_casting_an_expression_permission(): void
     {
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage(\sprintf('A permission "%s" is configured', Expression::class));
+        $this->expectExceptionMessage('A permission ""ROLE_ADMIN" in role_names" is configured');
 
         (new AuthorizationChecker())->isGranted(new Expression('"ROLE_ADMIN" in role_names'));
     }

@@ -36,7 +36,7 @@ final class AuthorizationChecker implements AuthorizationCheckerInterface
         }
 
         if (null === $this->checker) {
-            throw new \LogicException(\sprintf('A permission "%s" is configured but no Symfony authorization checker is available. Enable the SecurityBundle (a firewall must be configured) or remove the permission.', \is_string($attribute) ? $attribute : get_debug_type($attribute)));
+            throw new \LogicException(\sprintf('A permission "%s" is configured but no Symfony authorization checker is available. Enable the SecurityBundle (a firewall must be configured) or remove the permission.', \is_string($attribute) || $attribute instanceof \Stringable ? (string) $attribute : get_debug_type($attribute)));
         }
 
         try {
