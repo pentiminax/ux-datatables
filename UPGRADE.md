@@ -105,8 +105,20 @@ an auto-detected column reads the value outside that check, so a table relying o
 now be missing a column it used to render.
 
 ```php
-// The property is skipped by auto-detection; add the column yourself and guard it.
-$table->addColumn(TextColumn::new('salary')->setPermission('ROLE_ADMIN'));
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(Employee::class, apiPlatform: true)]
+final class EmployeesDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        // Keep the auto-detected columns, then add the secured property yourself and guard it.
+        yield from parent::configureColumns();
+        yield TextColumn::new('salary')->setPermission('ROLE_ADMIN');
+    }
+}
 ```
 
 ## v0.84 → v0.85
