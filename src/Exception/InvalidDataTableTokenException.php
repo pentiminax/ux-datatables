@@ -6,12 +6,8 @@ namespace Pentiminax\UX\DataTables\Exception;
 
 final class InvalidDataTableTokenException extends MutationException
 {
-    public function __construct(
-        string $message = '',
-        int $code = 0,
-        ?\Throwable $previous = null,
-        private readonly ?string $clientMessage = null,
-    ) {
+    public function __construct(string $message = '', int $code = 0, ?\Throwable $previous = null, private readonly ?string $clientMessage = null)
+    {
         parent::__construct($message, $code, $previous);
     }
 

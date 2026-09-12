@@ -83,4 +83,33 @@ final class MutationExceptionTest extends TestCase
 
         yield 'field not switchable' => [InvalidBooleanMutationContextException::fieldNotSwitchable('enabled', 'App\\DataTable\\ProductDataTable')];
     }
+
+    /**
+     * The client message is an extra, named-only argument: code and previous still reach
+     * \RuntimeException so existing constructions keep working.
+     *
+     * @param class-string<MutationException> $class
+     */
+    #[Test]
+    #[DataProvider('provideExceptionClassesWithAClientMessage')]
+    public function it_keeps_the_runtime_exception_signature(string $class): void
+    {
+        $previous  = new \RuntimeException('Cause.');
+        $exception = new $class('Technical message.', 42, $previous);
+
+        $this->assertSame(42, $exception->getCode());
+        $this->assertSame($previous, $exception->getPrevious());
+        $this->assertSame('Technical message.', $exception->getClientMessage());
+        $this->assertSame('Client message.', (new $class('Technical message.', clientMessage: 'Client message.'))->getClientMessage());
+    }
+
+    /**
+     * @return iterable<string, array{class-string<MutationException>}>
+     */
+    public static function provideExceptionClassesWithAClientMessage(): iterable
+    {
+        yield 'invalid datatable token' => [InvalidDataTableTokenException::class];
+
+        yield 'invalid boolean mutation context' => [InvalidBooleanMutationContextException::class];
+    }
 }
