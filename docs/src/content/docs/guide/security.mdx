@@ -37,15 +37,27 @@ Permission::DT_VIEW_ROW_DETAILS;   // always required for collapsible detail row
   no voter grants. Register voters for the row permissions your tables use.
 </Aside>
 
-### Why nothing gets denied without a security firewall
+### What happens without a security firewall
 
-The check is performed through a small internal wrapper, `AuthorizationChecker`, which grants
-everything automatically only when **no security stack is configured at all** — for example in the
-CLI, in a unit test, or in an application that never installed `symfony/security-bundle`. As soon as
-a real `AuthorizationCheckerInterface` is available (i.e. your application has a firewall), the
-wrapper defers entirely to Symfony's normal voting process. With a firewall active but no voter
-registered for the required `Permission::DT_*` attribute on your entity, access is denied by
-default. Registering a voter is what makes the feature usable for legitimate users.
+The check is performed through a small internal wrapper, `AuthorizationChecker`. When a real
+`AuthorizationCheckerInterface` is available (i.e. your application has a firewall), the wrapper
+defers entirely to Symfony's normal voting process. With a firewall active but no voter registered
+for the required `Permission::DT_*` attribute on your entity, access is denied by default.
+Registering a voter is what makes the feature usable for legitimate users.
+
+When **no security stack is configured at all** — for example in an application that never
+enabled `symfony/security-bundle` or that has no firewall — the wrapper fails closed on the
+permissions your application configures. Asking for one throws a `LogicException` instead of
+silently granting access:
+
+```
+A permission "ROLE_HR" is configured but no Symfony authorization checker is available.
+Enable the SecurityBundle (a firewall must be configured) or remove the permission.
+```
+
+The bundle's own `Permission::DT_*` attributes stay granted in that situation: without the
+SecurityBundle the bundle's `SecurityVoter` is not registered either, so there is nothing to vote
+on, and an application with no firewall must keep rendering its tables.
 
 ## Table-level permissions
 

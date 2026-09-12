@@ -30,6 +30,22 @@ $mutator = new EntityMutator($locator, $propertyAccessor, $publisher, $checker, 
 
 `MutationFlusher` is stateless and has no constructor arguments.
 
+### Changed
+
+| Behavior | Before | After |
+| --- | --- | --- |
+| Permission check without a Symfony authorization checker | Silently granted | Throws a `LogicException` |
+
+Configuring `setPermission()` without the Symfony authorization checker now throws a
+`LogicException` instead of silently granting access. Enable `symfony/security-bundle` with a
+firewall, or drop the permission.
+
+The bundle's own `Permission::DT_*` attributes are unaffected: without the SecurityBundle the
+bundle's `SecurityVoter` is not registered either, so there is nothing to vote on and an
+application with no firewall keeps rendering its tables. An empty or `null` attribute — meaning
+no permission is configured — is also still granted.
+
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`

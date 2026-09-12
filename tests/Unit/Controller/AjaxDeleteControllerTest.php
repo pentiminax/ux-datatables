@@ -36,6 +36,7 @@ use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\Permission;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -76,14 +77,14 @@ final class AjaxDeleteControllerTest extends TestCase
         $topicResolver = $this->createStub(MercureTopicResolver::class);
         $topicResolver->method('resolve')->willReturn(['/server/deletable-entity-fixtures/{id}']);
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, new AuthorizationChecker(), $topicResolver, new MutationFlusher());
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, new AuthorizationChecker(new TestAuthorizationChecker()), $topicResolver, new MutationFlusher());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')
             ->with(new CsrfToken(MutationTokenValidator::TOKEN_ID, 'valid-token'))
             ->willReturn(true);
 
-        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry());
+        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry(), new AuthorizationChecker(new TestAuthorizationChecker()));
 
         $response = $controller($this->createRequest(), new AjaxEntityQueryDto(
             dataTable: $this->dataTableToken(),
@@ -123,7 +124,7 @@ final class AjaxDeleteControllerTest extends TestCase
             new EntityLocator($registry),
             $this->createMock(PropertyAccessorInterface::class),
             $publisher,
-            new AuthorizationChecker(),
+            new AuthorizationChecker(new TestAuthorizationChecker()),
             new MercureTopicResolver($resolver, $dataTables),
             new MutationFlusher(),
         );
@@ -131,7 +132,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
 
-        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry($dataTable));
+        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry($dataTable), new AuthorizationChecker(new TestAuthorizationChecker()));
 
         $controller($this->createRequest(), new AjaxEntityQueryDto(
             dataTable: $this->dataTableToken(),
@@ -227,7 +228,7 @@ final class AjaxDeleteControllerTest extends TestCase
                 new EntityLocator($this->createMock(ManagerRegistry::class)),
                 $this->createMock(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
-                new AuthorizationChecker(),
+                new AuthorizationChecker(new TestAuthorizationChecker()),
                 new MercureTopicResolver(),
                 new MutationFlusher(),
             ),
@@ -327,12 +328,14 @@ final class AjaxDeleteControllerTest extends TestCase
         ?AbstractDataTable $dataTable = null,
         ?AuthorizationChecker $permissionChecker = null,
     ): AjaxDeleteController {
+        $permissionChecker ??= new AuthorizationChecker(new TestAuthorizationChecker());
+
         return new AjaxDeleteController(
             new EntityMutator(
                 new EntityLocator($registry),
                 $this->createMock(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
-                $permissionChecker ?? new AuthorizationChecker(),
+                $permissionChecker,
                 new MercureTopicResolver(),
                 new MutationFlusher(),
             ),
