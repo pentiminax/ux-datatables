@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Mutation;
 
-use Doctrine\DBAL\Exception as DBALException;
-use Doctrine\ORM\OptimisticLockException;
-use Doctrine\Persistence\ObjectManager;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
@@ -28,6 +25,7 @@ final class EntityMutator
         private readonly MercurePublisherInterface $publisher,
         private readonly AuthorizationChecker $permissionChecker,
         private readonly MercureTopicResolver $topicResolver,
+        private readonly MutationFlusher $flusher,
     ) {
     }
 
@@ -54,7 +52,7 @@ final class EntityMutator
         }
 
         $context->manager->remove($context->entity);
-        $this->flush($context->manager);
+        $this->flusher->flush($context->manager);
 
         $this->publisher->publish($this->topicResolver->resolve($entityClass, $dataTableClass), [
             'type' => 'delete',
@@ -90,28 +88,12 @@ final class EntityMutator
         }
 
         $this->propertyAccessor->setValue($context->entity, $field, $value);
-        $this->flush($context->manager);
+        $this->flusher->flush($context->manager);
 
         $this->publisher->publish($this->topicResolver->resolve($entityClass, $dataTableClass), [
             'type'  => 'edit',
             'id'    => $id,
             'field' => $field,
         ]);
-    }
-
-    /**
-     * @throws MutationPersistenceException when the underlying persistence layer rejects the flush
-     */
-    private function flush(ObjectManager $manager): void
-    {
-        try {
-            $manager->flush();
-        } catch (DBALException|OptimisticLockException $exception) {
-            // The 409 primarily targets constraint/conflict cases — a unique
-            // violation or an optimistic-lock version mismatch. Broader DBAL
-            // failures (e.g. a lost connection) are deliberately mapped here
-            // too rather than leaking as a raw 500.
-            throw new MutationPersistenceException(previous: $exception);
-        }
     }
 }

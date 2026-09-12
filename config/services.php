@@ -33,6 +33,7 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Ajax\RowIdentifierExtractor;
@@ -152,12 +153,16 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(MercureTopicResolver::class, 'datatables.mercure.topic_resolver')
         ->private();
 
+    $services->set('datatables.mutation.flusher', MutationFlusher::class)
+        ->private();
+
     $services->set('datatables.mutation.mutator', EntityMutator::class)
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('property_accessor'))
         ->arg(2, service(MercurePublisherInterface::class))
         ->arg(3, service('datatables.security.authorization_checker'))
         ->arg(4, service('datatables.mercure.topic_resolver'))
+        ->arg(5, service('datatables.mutation.flusher'))
         ->private();
 
     $services->set('datatables.mutation.boolean_context_resolver', BooleanMutationContextResolver::class)

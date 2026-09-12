@@ -3,6 +3,33 @@
 Each section covers one version bump. When you skip versions, apply every section between your
 current version and the target, oldest first.
 
+## v0.90 → v1.0
+
+### `EntityMutator` and `EditFormService` take a `MutationFlusher`
+
+The guarded flush that maps a rejected write to a 409 response lives in the new
+`Mutation\MutationFlusher`. `EntityMutator` no longer owns it privately, and the edit-form submit
+path now shares it, so a unique constraint violation on submit returns the same 409 JSON as delete
+and inline edit instead of a 500.
+
+| Changed | New signature |
+| --- | --- |
+| `Mutation\EntityMutator::__construct()` | a `Mutation\MutationFlusher` is appended after `$topicResolver` |
+| `Form\EditFormService::__construct()` | a `Mutation\MutationFlusher` is inserted after `$topicResolver`, before the optional `$permissionChecker` |
+
+Both services are wired by the bundle, so nothing changes for DI users. Only code that instantiates
+either class by hand — typically a test — has to pass the collaborator:
+
+```php
+// before
+$mutator = new EntityMutator($locator, $propertyAccessor, $publisher, $checker, $topicResolver);
+
+// after
+$mutator = new EntityMutator($locator, $propertyAccessor, $publisher, $checker, $topicResolver, new MutationFlusher());
+```
+
+`MutationFlusher` is stateless and has no constructor arguments.
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
