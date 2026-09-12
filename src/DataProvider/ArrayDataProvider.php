@@ -119,14 +119,17 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
             return $items;
         }
 
+        // Same eligibility as the Doctrine GlobalSearchFilter: isSearchable() only governs the
+        // per-column search box, and a term no column can carry filters nothing rather than
+        // everything.
         $globalColumns = array_values(array_filter(
             $intent->columns,
-            static fn (ColumnReadReference $column): bool => $column->searchable && $column->globalSearchable,
+            static fn (ColumnReadReference $column): bool => $column->globalSearchable,
         ));
 
         $matched = [];
         foreach ($items as $item) {
-            if (null !== $globalSearch && !$this->matchesAny($item, $globalColumns, $globalSearch)) {
+            if (null !== $globalSearch && [] !== $globalColumns && !$this->matchesAny($item, $globalColumns, $globalSearch)) {
                 continue;
             }
 
