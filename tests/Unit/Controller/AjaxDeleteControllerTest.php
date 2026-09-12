@@ -29,6 +29,7 @@ use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
@@ -75,7 +76,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $topicResolver = $this->createStub(MercureTopicResolver::class);
         $topicResolver->method('resolve')->willReturn(['/server/deletable-entity-fixtures/{id}']);
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, new AuthorizationChecker(), $topicResolver);
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, new AuthorizationChecker(), $topicResolver, new MutationFlusher());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')
@@ -124,6 +125,7 @@ final class AjaxDeleteControllerTest extends TestCase
             $publisher,
             new AuthorizationChecker(),
             new MercureTopicResolver($resolver, $dataTables),
+            new MutationFlusher(),
         );
 
         $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
@@ -227,6 +229,7 @@ final class AjaxDeleteControllerTest extends TestCase
                 new NullMercurePublisher(),
                 new AuthorizationChecker(),
                 new MercureTopicResolver(),
+                new MutationFlusher(),
             ),
             new MutationTokenValidator($this->createStub(CsrfTokenManagerInterface::class)),
             $this->registry(new StaticDeniedDeleteActionDataTable()),
@@ -331,6 +334,7 @@ final class AjaxDeleteControllerTest extends TestCase
                 new NullMercurePublisher(),
                 $permissionChecker ?? new AuthorizationChecker(),
                 new MercureTopicResolver(),
+                new MutationFlusher(),
             ),
             new MutationTokenValidator($csrfTokenManager),
             $this->registry($dataTable),
