@@ -70,7 +70,7 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
 
         $filteredCount = $this->count($qb, $alias);
 
-        if ($request->start) {
+        if ($request->start > 0) {
             $qb->setFirstResult($request->start);
         }
 

@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\SecurityVoter;
+use Pentiminax\UX\DataTables\Tests\Kernel\ConfigDefaultsAppKernel;
 use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -75,6 +76,25 @@ final class DataTablesBundleTest extends TestCase
         self::assertInstanceOf(ExporterRegistry::class, $registry);
         self::assertInstanceOf(CsvExporter::class, $registry->get(ExportFormat::CSV));
         self::assertInstanceOf(XlsxExporter::class, $registry->get(ExportFormat::XLSX));
+    }
+
+    #[Test]
+    public function it_defines_the_maximum_page_length_parameter(): void
+    {
+        self::assertSame(1000, $this->kernel->getContainer()->getParameter('datatables.max_page_length'));
+    }
+
+    #[Test]
+    public function it_lets_the_application_override_the_maximum_page_length(): void
+    {
+        $kernel = new ConfigDefaultsAppKernel('test', true);
+        $kernel->boot();
+
+        try {
+            self::assertSame(50, $kernel->getContainer()->getParameter('datatables.max_page_length'));
+        } finally {
+            $kernel->shutdown();
+        }
     }
 
     #[Test]

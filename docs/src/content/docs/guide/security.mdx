@@ -252,6 +252,19 @@ same rule: secure those API routes with API Platform and Symfony Security. PHP r
 bundle can only protect rows processed by the bundle backend; they cannot protect rows returned
 directly by API Platform or another controller.
 
+## Request bounds
+
+Ajax pagination parameters come from the browser, so the bundle does not trust them. A negative
+`start` is clamped to `0` instead of reaching the database as a negative offset, and `length` is
+capped at the `data_tables.max_page_length` parameter (1000 by default).
+
+DataTables' "show all" (`length=-1`) is honored only when the table declares `-1` in its
+`lengthMenu()`. Without that declaration a crafted `length=-1` or `length=999999` is served with
+`max_page_length` rows rather than hydrating the whole dataset, which is what protects the process
+from running out of memory on a large table.
+
+See [`max_page_length`](/guide/configuration/#max_page_length) to change the bound.
+
 ## Migrating from the legacy permission API
 
 UX DataTables no longer ships `PermissionChecker` and no longer falls back to the old implicit row

@@ -36,7 +36,7 @@ final readonly class DataTableRequest
         return new self(
             draw: $bag->getInt('draw'),
             columns: $columns,
-            start: $bag->getInt('start'),
+            start: max(0, $bag->getInt('start')),
             length: $bag->getInt('length'),
             search: Search::fromRequest($request),
             order: $orders,
@@ -51,6 +51,37 @@ final readonly class DataTableRequest
     public function pageLength(int $default = 25): int
     {
         return $this->length > 0 ? $this->length : $default;
+    }
+
+    /**
+     * Caps the requested page size so a crafted "length" cannot make a provider hydrate the
+     * whole table.
+     *
+     * DataTables sends 0 or -1 for "show all". That is honored only when $allowShowAll -- the
+     * table declares -1 in its lengthMenu -- and is otherwise narrowed to $maxLength rather
+     * than to a single row, so an unexpected length still returns a usable page.
+     */
+    public function withBoundedLength(int $maxLength, bool $allowShowAll): self
+    {
+        if ($this->length <= 0) {
+            $length = $allowShowAll ? -1 : $maxLength;
+        } else {
+            $length = min($this->length, $maxLength);
+        }
+
+        if ($length === $this->length) {
+            return $this;
+        }
+
+        return new self(
+            draw: $this->draw,
+            columns: $this->columns,
+            start: $this->start,
+            length: $length,
+            search: $this->search,
+            order: $this->order,
+            filters: $this->filters,
+        );
     }
 
     /**

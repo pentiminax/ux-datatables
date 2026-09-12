@@ -32,6 +32,7 @@ final class DataTableRuntimeFactory
         private readonly ?ActionRowDataResolver $actionRowDataResolver = null,
         private readonly ?UrlColumnDataResolver $urlColumnDataResolver = null,
         private readonly ?AuthorizationChecker $permissionChecker = null,
+        private readonly int $maxPageLength = 1000,
     ) {
     }
 
@@ -105,6 +106,7 @@ final class DataTableRuntimeFactory
                 pageProjector: $pageProjector,
                 configureBaseQueryBuilder: $configureBaseQueryBuilder,
             ),
+            maxPageLength: $this->maxPageLength,
         );
     }
 
