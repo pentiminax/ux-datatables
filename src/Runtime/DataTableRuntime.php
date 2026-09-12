@@ -24,6 +24,7 @@ final class DataTableRuntime
     public function __construct(
         private readonly DataTable $table,
         private readonly \Closure $dataProviderFactory,
+        private readonly int $maxPageLength = 1000,
     ) {
     }
 
@@ -40,7 +41,28 @@ final class DataTableRuntime
     public function handleRequest(Request $request): void
     {
         $this->httpRequest = $request;
-        $this->request     = DataTableRequest::fromRequest($request);
+        $this->request     = DataTableRequest::fromRequest($request)
+            ->withBoundedLength($this->maxPageLength, $this->allowsShowAll());
+    }
+
+    /**
+     * Whether the table offers DataTables' "show all" entry, the only case where an
+     * unbounded page size is what the developer asked for.
+     *
+     * lengthMenu() accepts both `[10, 25, -1]` and the two-dimensional
+     * `[[10, 25, -1], ['10', '25', 'All']]` form, whose first entry holds the values.
+     */
+    private function allowsShowAll(): bool
+    {
+        $menu = $this->table->getOption('lengthMenu');
+
+        if (!\is_array($menu)) {
+            return false;
+        }
+
+        $values = isset($menu[0]) && \is_array($menu[0]) ? $menu[0] : $menu;
+
+        return \in_array(-1, $values, true);
     }
 
     public function isRequestHandled(): bool
