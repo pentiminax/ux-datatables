@@ -80,6 +80,15 @@ Exports are unaffected: they drop pagination explicitly and still stream every f
 | --- | --- |
 | `ColumnControlSearch::fromArray()` returns `null` on malformed input | A column control search with an unknown or missing logic, a non-scalar value, or a missing type is dropped instead of raising an error. Malformed `search` and `list` payloads are dropped by `ColumnControl::fromArray()` the same way. |
 
+### Client error messages and export headings
+
+- Mutation errors no longer expose the DataTable class to the client. `InvalidBooleanMutationContextException`
+  and `InvalidDataTableTokenException` keep the fully qualified class name in `getMessage()` for the
+  logs, and the JSON error response now carries a generic message instead.
+- Server-side exports no longer write the heading of a column the current user may not see. Columns
+  denied by `setPermission()` are filtered out before the exporter runs, so the exported file no
+  longer contains an empty column named after restricted data.
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`

@@ -53,13 +53,63 @@ final class MutationExceptionTest extends TestCase
         yield 'missing entity class' => [
             InvalidDataTableTokenException::missingEntityClass('App\\DataTable\\ProductDataTable'),
             400,
-            'DataTable "App\\DataTable\\ProductDataTable" must define an entity class.',
+            'This DataTable does not support entity mutations.',
         ];
 
         yield 'field not switchable' => [
             InvalidBooleanMutationContextException::fieldNotSwitchable('enabled', 'App\\DataTable\\ProductDataTable'),
             400,
-            'Field "enabled" is not a switchable boolean column on DataTable "App\\DataTable\\ProductDataTable".',
+            'Field "enabled" is not a switchable boolean column.',
         ];
+    }
+
+    /**
+     * The DataTable FQCN belongs in the logs, never in a response the client reads.
+     */
+    #[Test]
+    #[DataProvider('provideExceptionsCarryingADataTableClass')]
+    public function it_hides_the_datatable_class_from_the_client_message(MutationException $exception): void
+    {
+        $this->assertStringContainsString('App\\DataTable\\ProductDataTable', $exception->getMessage());
+        $this->assertStringNotContainsString('App\\', $exception->getClientMessage());
+    }
+
+    /**
+     * @return iterable<string, array{MutationException}>
+     */
+    public static function provideExceptionsCarryingADataTableClass(): iterable
+    {
+        yield 'missing entity class' => [InvalidDataTableTokenException::missingEntityClass('App\\DataTable\\ProductDataTable')];
+
+        yield 'field not switchable' => [InvalidBooleanMutationContextException::fieldNotSwitchable('enabled', 'App\\DataTable\\ProductDataTable')];
+    }
+
+    /**
+     * The client message is an extra, named-only argument: code and previous still reach
+     * \RuntimeException so existing constructions keep working.
+     *
+     * @param class-string<MutationException> $class
+     */
+    #[Test]
+    #[DataProvider('provideExceptionClassesWithAClientMessage')]
+    public function it_keeps_the_runtime_exception_signature(string $class): void
+    {
+        $previous  = new \RuntimeException('Cause.');
+        $exception = new $class('Technical message.', 42, $previous);
+
+        $this->assertSame(42, $exception->getCode());
+        $this->assertSame($previous, $exception->getPrevious());
+        $this->assertSame('Technical message.', $exception->getClientMessage());
+        $this->assertSame('Client message.', (new $class('Technical message.', clientMessage: 'Client message.'))->getClientMessage());
+    }
+
+    /**
+     * @return iterable<string, array{class-string<MutationException>}>
+     */
+    public static function provideExceptionClassesWithAClientMessage(): iterable
+    {
+        yield 'invalid datatable token' => [InvalidDataTableTokenException::class];
+
+        yield 'invalid boolean mutation context' => [InvalidBooleanMutationContextException::class];
     }
 }

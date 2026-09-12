@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Export;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
@@ -21,6 +22,7 @@ use Pentiminax\UX\DataTables\Model\DataTableExtensions;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\RecordingExporter;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -29,6 +31,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * @internal
@@ -65,6 +68,39 @@ final class ExportServiceTest extends TestCase
 
         $table = new ConfigurableDataTable(
             [TextColumn::new('email'), TextColumn::new('name')->setVisible(false)],
+            extensions: static fn (DataTableExtensions $extensions): DataTableExtensions => $extensions->addExtension(
+                new ButtonsExtension([Button::csv(serverSide: true)]),
+            ),
+            dataProvider: $this->provider(),
+        );
+
+        $this->send($service->export($table, $this->exportRequest()));
+
+        $this->assertSame(['email'], array_map(
+            static fn (ColumnInterface $column): string => $column->getName(),
+            $csv->columns,
+        ));
+    }
+
+    /**
+     * Purging the denied values was not enough: the exporter still wrote the heading,
+     * so every export carried an empty column named after data the user may not see.
+     */
+    #[Test]
+    public function it_omits_denied_columns_from_export_headings(): void
+    {
+        $csv = new RecordingExporter();
+
+        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner->method('isGranted')->willReturnCallback(static fn (string $attribute): bool => 'ROLE_HR' !== $attribute);
+
+        $service = new ExportService(
+            new ExporterRegistry([$csv]),
+            new ColumnResolver(permissionChecker: new AuthorizationChecker($inner)),
+        );
+
+        $table = new ConfigurableDataTable(
+            [TextColumn::new('email'), TextColumn::new('salary')->setPermission('ROLE_HR')],
             extensions: static fn (DataTableExtensions $extensions): DataTableExtensions => $extensions->addExtension(
                 new ButtonsExtension([Button::csv(serverSide: true)]),
             ),
