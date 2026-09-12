@@ -76,7 +76,7 @@ one class per operator: the enum supplies the SQL operator, the parameter wrappi
 whether the logic is expressed with `LIKE`. Constructing it with a logic it cannot express — such as
 `ColumnControlLogic::Empty` — throws an `InvalidArgumentException`.
 
-### Case sensitivity
+### Search normalization
 
 Every shipped `LIKE` logic — `contains`, `starts`, `ends`, `notContains` — is case-insensitive:
 the condition is built as `LOWER(field) LIKE :param` and the bound term is lowercased with
@@ -89,16 +89,17 @@ already known — opt the column out:
 
 ```php
 TextColumn::new('reference', 'Reference')
-    ->setCaseSensitiveSearch();
+    ->setSearchNormalization(false);
 ```
 
 Opting out restores a bare `LIKE`, which follows the column's collation: case-sensitive on
 PostgreSQL and on binary collations, still case-insensitive on a `_ci` MySQL collation. The flag
 trades the guaranteed behavior for index usage; it does not force case sensitivity.
 
-The flag lives on `AbstractColumn`, so a column class implementing `ColumnInterface` directly is
-always searched case-insensitively. `setSearchPredicate()` stays the escape hatch for anything
-neither mode expresses.
+`AbstractColumn` implements `NormalizedSearchColumnInterface` and exposes it as
+`setSearchNormalization()`. A column class implementing `ColumnInterface` directly can implement
+that interface to make the same choice; otherwise it is normalized. `setSearchPredicate()` stays
+the escape hatch for anything neither mode expresses.
 
 <Aside type="note">
   `ColumnControlLogic::In` has no dedicated strategy. ColumnControl list selections

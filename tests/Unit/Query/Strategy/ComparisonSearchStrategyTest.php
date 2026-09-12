@@ -77,7 +77,7 @@ final class ComparisonSearchStrategyTest extends TestCase
         string $expectedParameter,
     ): void {
         $strategy = new ComparisonSearchStrategy($logic);
-        $column   = TextColumn::new('name')->setCaseSensitiveSearch();
+        $column   = TextColumn::new('name')->setSearchNormalization(false);
 
         $qb = $this->createMock(QueryBuilder::class);
 

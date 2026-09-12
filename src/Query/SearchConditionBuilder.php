@@ -21,19 +21,18 @@ final class SearchConditionBuilder
      * that escaping — see {@see LikeValueEscaper}.
      *
      * Both sides are lowercased by default, because a bare LIKE is case-sensitive on
-     * PostgreSQL and on binary MySQL collations. $caseSensitive keeps the raw column in the
+     * PostgreSQL and on binary MySQL collations. $normalize = false keeps the raw column in the
      * condition so a prefix index stays usable; the comparison then follows the column's
-     * collation, which on a case-insensitive MySQL collation still matches regardless of case —
-     * see {@see \Pentiminax\UX\DataTables\Column\AbstractColumn::setCaseSensitiveSearch()}.
+     * collation — see {@see \Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface}.
      */
-    public static function text(QueryBuilder $qb, string $alias, string $fieldPath, string $value, string $paramName, bool $caseSensitive = false): string
+    public static function text(QueryBuilder $qb, string $alias, string $fieldPath, string $value, string $paramName, bool $normalize = true): string
     {
         $field  = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
-        $needle = $caseSensitive ? $value : mb_strtolower($value);
+        $needle = $normalize ? mb_strtolower($value) : $value;
 
         $qb->setParameter($paramName, \sprintf('%%%s%%', LikeValueEscaper::escape($needle)));
 
-        $expr = $caseSensitive ? $field : \sprintf('LOWER(%s)', $field);
+        $expr = $normalize ? \sprintf('LOWER(%s)', $field) : $field;
 
         return \sprintf("%s LIKE :%s ESCAPE '%s'", $expr, $paramName, LikeValueEscaper::ESCAPE_CHARACTER);
     }

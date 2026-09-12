@@ -75,19 +75,19 @@ final class AbstractColumnTest extends TestCase
     }
 
     #[Test]
-    public function it_searches_case_insensitively_unless_the_column_opts_out(): void
+    public function it_normalizes_search_unless_the_column_opts_out(): void
     {
         $column = (new class extends AbstractColumn {})
             ->setType(ColumnType::STRING)
             ->setName('name');
 
-        $this->assertFalse($column->isCaseSensitiveSearch());
+        $this->assertTrue($column->isSearchNormalized());
 
-        $this->assertSame($column, $column->setCaseSensitiveSearch());
-        $this->assertTrue($column->isCaseSensitiveSearch());
+        $this->assertSame($column, $column->setSearchNormalization(false));
+        $this->assertFalse($column->isSearchNormalized());
 
-        $this->assertSame($column, $column->setCaseSensitiveSearch(false));
-        $this->assertFalse($column->isCaseSensitiveSearch());
+        $this->assertSame($column, $column->setSearchNormalization());
+        $this->assertTrue($column->isSearchNormalized());
     }
 
     #[Test]

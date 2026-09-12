@@ -128,16 +128,18 @@ Server-side text search (global search, per-column search, and the ColumnControl
 condition compares `LOWER(field)` against a lowercased term instead of using a bare `LIKE`, which
 was case-sensitive on PostgreSQL and on MySQL binary collations.
 
-Call `->setCaseSensitiveSearch()` on a column to restore the previous behavior — for instance to
-keep a `starts` search sargable on a MySQL prefix index:
+Call `->setSearchNormalization(false)` on a column to restore the previous bare `LIKE` — for
+instance to keep a `starts` search sargable on a MySQL prefix index. The comparison then follows
+the column's collation, so it is case-sensitive only where the collation is:
 
 ```php
 TextColumn::new('reference', 'Reference')
-    ->setCaseSensitiveSearch();
+    ->setSearchNormalization(false);
 ```
 
-The flag lives on `AbstractColumn`; a column class implementing `ColumnInterface` directly is always
-searched case-insensitively.
+`AbstractColumn` implements the new `Contracts\NormalizedSearchColumnInterface`. A column class
+implementing `ColumnInterface` directly is normalized unless it implements that interface and
+returns `false` from `isSearchNormalized()`.
 
 ## v0.84 → v0.85
 

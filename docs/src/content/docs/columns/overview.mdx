@@ -74,24 +74,26 @@ $column
     ->setOrderable(false)             // Disable sorting
     ->setSearchable(false)            // Disable column search
     ->disableGlobalSearch()           // Exclude from global search
-    ->setCaseSensitiveSearch();       // Compare without LOWER() on either side
+    ->setSearchNormalization(false);  // Bare LIKE on the raw column, no LOWER()
 ```
 
-#### Case sensitivity
+#### Search normalization
 
 Server-side text search lowercases both the column and the search term, so it behaves the same on
-PostgreSQL, on MySQL, and on binary collations. `setCaseSensitiveSearch()` opts a single column out
-of that and compares the raw column instead, which is what keeps a `starts` search usable on a
-MySQL prefix index. It applies to global search, per-column search, and the ColumnControl
-`contains`, `starts`, `ends`, and `notContains` logics.
+PostgreSQL, on MySQL, and on binary collations. `setSearchNormalization(false)` opts a single
+column out of that and compares the raw column with a bare `LIKE` instead, which is what keeps a
+`starts` search usable on a MySQL prefix index. The bare `LIKE` follows the column's collation, so
+it is case-sensitive only where the collation is. It applies to global search, per-column search,
+and the ColumnControl `contains`, `starts`, `ends`, and `notContains` logics.
 
 ```php
 TextColumn::new('reference', 'Reference')
-    ->setCaseSensitiveSearch();
+    ->setSearchNormalization(false);
 ```
 
-Only columns extending `AbstractColumn` carry the flag: a class implementing `ColumnInterface`
-directly is always searched case-insensitively.
+`AbstractColumn` carries the flag. A class implementing `ColumnInterface` directly is normalized
+unless it also implements `NormalizedSearchColumnInterface` and returns `false` from
+`isSearchNormalized()`.
 
 #### Sorting on a custom expression
 

@@ -94,7 +94,7 @@ final class ContainsSearchStrategyTest extends TestCase
         ];
 
         yield 'text column opting out of case-insensitive search' => [
-            TextColumn::new('name')->setField('name')->setCaseSensitiveSearch(),
+            TextColumn::new('name')->setField('name')->setSearchNormalization(false),
             'text',
             3,
             'Foo',
