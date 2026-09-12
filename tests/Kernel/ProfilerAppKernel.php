@@ -56,9 +56,13 @@ class ProfilerAppKernel extends Kernel
         });
     }
 
+    /**
+     * Keyed on the project dir so parallel checkouts never reuse each other's
+     * compiled container.
+     */
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir().'/ux_datatables/profiler_cache/'.$this->environment;
+        return sys_get_temp_dir().'/ux_datatables/profiler_cache/'.substr(md5($this->getProjectDir()), 0, 8).'/'.$this->environment;
     }
 
     public function getLogDir(): string

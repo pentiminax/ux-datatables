@@ -367,8 +367,15 @@ final class ColumnResolverTest extends TestCase
      */
     public static function provideColumnsKeptWithoutPermissionCheck(): iterable
     {
-        yield 'permission granted by the default checker' => [TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR')];
         yield 'custom column implementing ColumnInterface with no permission' => [self::createStub(ColumnInterface::class)];
+    }
+
+    #[Test]
+    public function filter_static_permissions_throws_without_an_authorization_checker(): void
+    {
+        $this->expectException(\LogicException::class);
+
+        (new ColumnResolver())->filterStaticPermissions([TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR')]);
     }
 
     /**
