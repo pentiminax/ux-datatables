@@ -8,6 +8,7 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface;
 use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -41,7 +42,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
             null,
             'hello',
             false,
-            "e.name LIKE :p_0 ESCAPE '!'",
+            "LOWER(e.name) LIKE :p_0 ESCAPE '!'",
             ['p_0', '%hello%'],
         ];
 
@@ -50,8 +51,17 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
             null,
             '50%_off',
             false,
-            "e.name LIKE :p_0 ESCAPE '!'",
+            "LOWER(e.name) LIKE :p_0 ESCAPE '!'",
             ['p_0', '%50!%!_off%'],
+        ];
+
+        yield 'text column opting out of case-insensitive search' => [
+            TextColumn::new('name', 'Name')->setField('name')->setSearchNormalization(false),
+            null,
+            'Hello',
+            false,
+            "e.name LIKE :p_0 ESCAPE '!'",
+            ['p_0', '%Hello%'],
         ];
 
         yield 'numeric column with numeric value' => [
@@ -289,6 +299,26 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
         $this->assertSame($expectedCondition, $result);
     }
 
+    /**
+     * A column implementing ColumnInterface directly is not an AbstractColumn, so the opt-out has
+     * to be readable through the contract for third-party columns to keep an index-usable LIKE.
+     */
+    #[Test]
+    public function it_lets_a_direct_column_implementation_opt_out_through_the_contract(): void
+    {
+        $column = $this->createMock(NormalizedSearchColumnInterface::class);
+        $column->method('getField')->willReturn('name');
+        $column->method('isNumber')->willReturn(false);
+        $column->method('isSearchNormalized')->willReturn(false);
+
+        $qb = $this->queryBuilderWithFieldType('name', null);
+        $qb->expects($this->once())->method('setParameter')->with('p_0', '%Hello%');
+
+        $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'name', 'Hello', 'p_0', false);
+
+        $this->assertSame("e.name LIKE :p_0 ESCAPE '!'", $result);
+    }
+
     #[Test]
     public function it_returns_null_for_text_column_with_association_field(): void
     {
@@ -385,6 +415,6 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
 
         $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'name', 'acme', 'p_0');
 
-        $this->assertSame("e.name LIKE :p_0 ESCAPE '!'", $result);
+        $this->assertSame("LOWER(e.name) LIKE :p_0 ESCAPE '!'", $result);
     }
 }

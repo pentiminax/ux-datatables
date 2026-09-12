@@ -80,7 +80,7 @@ final class ContainsSearchStrategyTest extends TestCase
             'text',
             3,
             'foo',
-            "e.name LIKE :column_control_param_3 ESCAPE '!'",
+            "LOWER(e.name) LIKE :column_control_param_3 ESCAPE '!'",
             ['column_control_param_3', '%foo%'],
         ];
 
@@ -89,8 +89,17 @@ final class ContainsSearchStrategyTest extends TestCase
             'text',
             3,
             '50%_off',
-            "e.name LIKE :column_control_param_3 ESCAPE '!'",
+            "LOWER(e.name) LIKE :column_control_param_3 ESCAPE '!'",
             ['column_control_param_3', '%50!%!_off%'],
+        ];
+
+        yield 'text column opting out of case-insensitive search' => [
+            TextColumn::new('name')->setField('name')->setSearchNormalization(false),
+            'text',
+            3,
+            'Foo',
+            "e.name LIKE :column_control_param_3 ESCAPE '!'",
+            ['column_control_param_3', '%Foo%'],
         ];
 
         yield 'numeric column uses exact match' => [

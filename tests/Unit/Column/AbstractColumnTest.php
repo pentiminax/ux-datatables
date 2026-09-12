@@ -75,6 +75,22 @@ final class AbstractColumnTest extends TestCase
     }
 
     #[Test]
+    public function it_normalizes_search_unless_the_column_opts_out(): void
+    {
+        $column = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('name');
+
+        $this->assertTrue($column->isSearchNormalized());
+
+        $this->assertSame($column, $column->setSearchNormalization(false));
+        $this->assertFalse($column->isSearchNormalized());
+
+        $this->assertSame($column, $column->setSearchNormalization());
+        $this->assertTrue($column->isSearchNormalized());
+    }
+
+    #[Test]
     public function it_overrides_column_control_content_for_a_single_column(): void
     {
         $column = (new class extends AbstractColumn {})

@@ -19,13 +19,22 @@ final class SearchConditionBuilder
      * $value is escaped so a literal `%` or `_` in the search term is matched literally
      * rather than treated as a wildcard; the ESCAPE clause is what makes the database honor
      * that escaping — see {@see LikeValueEscaper}.
+     *
+     * Both sides are lowercased by default, because a bare LIKE is case-sensitive on
+     * PostgreSQL and on binary MySQL collations. $normalize = false keeps the raw column in the
+     * condition so a prefix index stays usable; the comparison then follows the column's
+     * collation — see {@see \Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface}.
      */
-    public static function text(QueryBuilder $qb, string $alias, string $fieldPath, string $value, string $paramName): string
+    public static function text(QueryBuilder $qb, string $alias, string $fieldPath, string $value, string $paramName, bool $normalize = true): string
     {
-        $field = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
-        $qb->setParameter($paramName, \sprintf('%%%s%%', LikeValueEscaper::escape($value)));
+        $field  = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
+        $needle = $normalize ? mb_strtolower($value) : $value;
 
-        return \sprintf("%s LIKE :%s ESCAPE '%s'", $field, $paramName, LikeValueEscaper::ESCAPE_CHARACTER);
+        $qb->setParameter($paramName, \sprintf('%%%s%%', LikeValueEscaper::escape($needle)));
+
+        $expr = $normalize ? \sprintf('LOWER(%s)', $field) : $field;
+
+        return \sprintf("%s LIKE :%s ESCAPE '%s'", $expr, $paramName, LikeValueEscaper::ESCAPE_CHARACTER);
     }
 
     /**

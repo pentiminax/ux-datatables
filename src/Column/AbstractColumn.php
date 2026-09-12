@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Column;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Symfony\Component\ExpressionLanguage\Expression;
@@ -22,7 +23,7 @@ use Symfony\Component\ExpressionLanguage\Expression;
  * column — see the "Columns" documentation for usage. Only createWithType() below is genuinely
  * internal, restricted to how the bundled column types build themselves.
  */
-abstract class AbstractColumn implements SearchableColumnInterface
+abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSearchColumnInterface
 {
     protected ColumnType $type;
     protected ?string $cellType                  = null;
@@ -45,6 +46,7 @@ abstract class AbstractColumn implements SearchableColumnInterface
     protected array $customOptions               = [];
     protected string|Expression|null $permission = null;
     protected ?int $responsivePriority           = null;
+    protected bool $searchNormalized             = true;
 
     /** @var list<array{join: string, alias: string, conditionType: ?string, condition: ?string}> */
     protected array $searchJoins = [];
@@ -124,6 +126,27 @@ abstract class AbstractColumn implements SearchableColumnInterface
     public function isSearchable(): bool
     {
         return $this->searchable;
+    }
+
+    /**
+     * Whether server-side LIKE searches on this column lowercase both sides.
+     *
+     * Normalized (the default), a search behaves the same on every platform, but LOWER() on the
+     * column prevents the database from using a plain index on it. Pass false when a "starts
+     * with" search must stay sargable on a MySQL prefix index and the stored values already have
+     * a known case. The bare LIKE then follows the column's collation: case-sensitive on
+     * PostgreSQL and binary collations, still case-insensitive on a `_ci` MySQL collation.
+     */
+    public function setSearchNormalization(bool $normalized = true): static
+    {
+        $this->searchNormalized = $normalized;
+
+        return $this;
+    }
+
+    public function isSearchNormalized(): bool
+    {
+        return $this->searchNormalized;
     }
 
     public function isGlobalSearchable(): bool
