@@ -12,6 +12,7 @@ use ApiPlatform\Metadata\IriConverterInterface;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use ApiPlatform\Metadata\ResourceAccessCheckerInterface;
 use ApiPlatform\State\ProviderInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Rehydrates a client-supplied row through API Platform's item pipeline.
@@ -22,6 +23,10 @@ use ApiPlatform\State\ProviderInterface;
  * extensions (tenant scoping, filtered query builders) and its `security` expression.
  * Anything API Platform would not serve resolves to null.
  *
+ * A resource may declare several `Get` operations and the IRI converter picks its own from
+ * the posted `@id`, so every `Get` security expression of the resource must grant the item:
+ * over-restrictive when the operations disagree, never more permissive than the API.
+ *
  * Not final: doubled in tests, like ColumnAutoDetector.
  */
 class ApiPlatformItemResolver
@@ -31,6 +36,7 @@ class ApiPlatformItemResolver
         private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataFactory,
         private readonly ProviderInterface $provider,
         private readonly ?ResourceAccessCheckerInterface $accessChecker = null,
+        private readonly ?RequestStack $requestStack = null,
     ) {
     }
 
@@ -41,25 +47,37 @@ class ApiPlatformItemResolver
      */
     public function resolve(string $resourceClass, array $row): ?object
     {
-        $operation = $this->findGetOperation($resourceClass);
-        $item      = $this->fetch($resourceClass, $row, $operation);
+        $operations = $this->findGetOperations($resourceClass);
+        $item       = $this->fetch($resourceClass, $row, $operations[0] ?? null);
 
         if (!$item instanceof $resourceClass) {
             return null;
         }
 
-        $expression = $operation?->getSecurity();
+        foreach ($operations as $operation) {
+            $expression = $operation->getSecurity();
 
-        if (null === $expression) {
-            return $item;
+            if (null === $expression) {
+                continue;
+            }
+
+            // Fail closed: the resource guards its items with an expression we cannot evaluate.
+            if (null === $this->accessChecker) {
+                return null;
+            }
+
+            $granted = $this->accessChecker->isGranted($resourceClass, $expression, [
+                'object'          => $item,
+                'previous_object' => null,
+                'request'         => $this->requestStack?->getCurrentRequest(),
+            ]);
+
+            if (!$granted) {
+                return null;
+            }
         }
 
-        // Fail closed: the resource guards its items with an expression we cannot evaluate.
-        if (null === $this->accessChecker) {
-            return null;
-        }
-
-        return $this->accessChecker->isGranted($resourceClass, $expression, ['object' => $item]) ? $item : null;
+        return $item;
     }
 
     /**
@@ -97,22 +115,27 @@ class ApiPlatformItemResolver
         return \is_array($uriVariables) ? (array_key_first($uriVariables) ?? 'id') : 'id';
     }
 
-    private function findGetOperation(string $resourceClass): ?Get
+    /**
+     * @return list<Get>
+     */
+    private function findGetOperations(string $resourceClass): array
     {
         try {
             $metadataCollection = $this->resourceMetadataFactory->create($resourceClass);
         } catch (ResourceClassNotFoundException) {
-            return null;
+            return [];
         }
+
+        $operations = [];
 
         foreach ($metadataCollection as $resource) {
             foreach ($resource->getOperations() ?? [] as $operation) {
                 if ($operation instanceof Get) {
-                    return $operation;
+                    $operations[] = $operation;
                 }
             }
         }
 
-        return null;
+        return $operations;
     }
 }

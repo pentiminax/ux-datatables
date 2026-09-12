@@ -18,6 +18,8 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformItemResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * @internal
@@ -135,13 +137,81 @@ final class ApiPlatformItemResolverTest extends TestCase
         $this->assertNull($resolver->resolve(ItemResolverUserFixture::class, ['id' => 7]));
     }
 
+    /**
+     * The IRI converter picks the operation matching the posted @id, which is not necessarily
+     * the first Get: an unguarded first operation must not let a guarded one leak.
+     */
+    #[Test]
+    public function it_requires_every_get_operation_security_to_grant_the_item(): void
+    {
+        $iriConverter = $this->createMock(IriConverterInterface::class);
+        $iriConverter->method('getResourceFromIri')->willReturn(new ItemResolverUserFixture(7));
+
+        $accessChecker = $this->createMock(ResourceAccessCheckerInterface::class);
+        $accessChecker->expects($this->once())
+            ->method('isGranted')
+            ->with(ItemResolverUserFixture::class, 'is_granted("ROLE_ADMIN")')
+            ->willReturn(false);
+
+        $resolver = $this->createResolver(
+            $iriConverter,
+            $this->createMock(ProviderInterface::class),
+            [new Get(), new Get(security: 'is_granted("ROLE_ADMIN")')],
+            $accessChecker,
+        );
+
+        $this->assertNull($resolver->resolve(ItemResolverUserFixture::class, ['@id' => '/api/users/7']));
+    }
+
+    #[Test]
+    public function it_passes_the_current_request_to_the_security_expression(): void
+    {
+        $user    = new ItemResolverUserFixture(7);
+        $request = Request::create('/datatables/ajax/templates');
+
+        $requestStack = new RequestStack();
+        $requestStack->push($request);
+
+        $provider = $this->createMock(ProviderInterface::class);
+        $provider->method('provide')->willReturn($user);
+
+        $accessChecker = $this->createMock(ResourceAccessCheckerInterface::class);
+        $accessChecker->expects($this->once())
+            ->method('isGranted')
+            ->with(ItemResolverUserFixture::class, 'request.isSecure()', ['object' => $user, 'previous_object' => null, 'request' => $request])
+            ->willReturn(true);
+
+        $resolver = $this->createResolver(
+            $this->neverCalledIriConverter(),
+            $provider,
+            new Get(security: 'request.isSecure()'),
+            $accessChecker,
+            $requestStack,
+        );
+
+        $this->assertSame($user, $resolver->resolve(ItemResolverUserFixture::class, ['id' => 7]));
+    }
+
+    /**
+     * @param Operation|list<Operation>|null $getOperation
+     */
     private function createResolver(
         IriConverterInterface $iriConverter,
         ProviderInterface $provider,
-        ?Operation $getOperation,
+        Operation|array|null $getOperation,
         ?ResourceAccessCheckerInterface $accessChecker = null,
+        ?RequestStack $requestStack = null,
     ): ApiPlatformItemResolver {
-        $operations = null === $getOperation ? [] : ['_api_users_get' => $getOperation];
+        $getOperations = match (true) {
+            null === $getOperation             => [],
+            $getOperation instanceof Operation => [$getOperation],
+            default                            => $getOperation,
+        };
+
+        $operations = [];
+        foreach ($getOperations as $index => $operation) {
+            $operations['_api_users_get'.$index] = $operation;
+        }
 
         $resourceMetadataFactory = $this->createMock(ResourceMetadataCollectionFactoryInterface::class);
         $resourceMetadataFactory->method('create')
@@ -150,7 +220,7 @@ final class ApiPlatformItemResolverTest extends TestCase
                 (new ApiResource())->withOperations(new Operations($operations)),
             ]));
 
-        return new ApiPlatformItemResolver($iriConverter, $resourceMetadataFactory, $provider, $accessChecker);
+        return new ApiPlatformItemResolver($iriConverter, $resourceMetadataFactory, $provider, $accessChecker, $requestStack);
     }
 
     private function neverCalledIriConverter(): IriConverterInterface
