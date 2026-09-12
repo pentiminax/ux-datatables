@@ -166,6 +166,31 @@ final class ColumnAutoDetectorTest extends TestCase
     }
 
     #[Test]
+    public function it_skips_properties_protected_by_an_api_property_security_expression(): void
+    {
+        $this->givenProperties(['name', 'salary']);
+
+        $this->propertyMetadataFactory
+            ->method('create')
+            ->willReturnCallback(static function (string $class, string $property): ApiProperty {
+                $metadata = (new ApiProperty())->withReadable(true);
+
+                return 'salary' === $property
+                    ? $metadata->withSecurity("is_granted('ROLE_ADMIN')")
+                    : $metadata;
+            });
+
+        $this->propertyInfoExtractor->setTypeResolver(static fn (): ?Type => Type::string());
+
+        $columns = $this->createDetector()->detectColumns('App\Entity\Employee');
+
+        $this->assertSame(['name'], array_map(
+            static fn (ColumnInterface $column): string => $column->getName(),
+            $columns
+        ));
+    }
+
+    #[Test]
     public function it_humanizes_labels(): void
     {
         $this->givenProperties(['createdAt', 'first_name', 'id', 'userId']);
