@@ -29,6 +29,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
@@ -185,6 +186,7 @@ final class AjaxEditControllerTest extends TestCase
             $publisher,
             new AuthorizationChecker(),
             new MercureTopicResolver($resolver, $dataTables),
+            new MutationFlusher(),
         );
 
         $controller = new AjaxEditController(
@@ -209,6 +211,7 @@ final class AjaxEditControllerTest extends TestCase
             new NullMercurePublisher(),
             new AuthorizationChecker(),
             new MercureTopicResolver(),
+            new MutationFlusher(),
         );
 
         return new AjaxEditController(

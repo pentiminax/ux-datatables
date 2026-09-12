@@ -26,6 +26,7 @@ use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use PHPUnit\Framework\Attributes\Test;
@@ -78,6 +79,7 @@ final class MutationExceptionHandlingTest extends TestCase
             new NullMercurePublisher(),
             new AuthorizationChecker(),
             new MercureTopicResolver(),
+            new MutationFlusher(),
         ));
 
         $response = $this->handleControllerException(
@@ -161,6 +163,7 @@ final class MutationExceptionHandlingTest extends TestCase
             new NullMercurePublisher(),
             new AuthorizationChecker(),
             new MercureTopicResolver(),
+            new MutationFlusher(),
         );
     }
 
