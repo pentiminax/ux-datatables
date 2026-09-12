@@ -33,6 +33,62 @@ Built-in providers:
   ]}
 />
 
+## ArrayDataProvider
+
+`ArrayDataProvider` serves a page from an in-memory collection. Give it the table's resolved
+columns so it can honor the request, and its configured filters so a filtered request is rejected
+instead of silently ignored:
+
+```php
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+
+protected function createDataProvider(): ?DataProviderInterface
+{
+    return new ArrayDataProvider(
+        $this->rows,
+        $this->createRowMapper(),
+        $this->getResolvedColumns(),
+        $this->getConfiguredDataTable()->getFilters(),
+    );
+}
+```
+
+`getResolvedColumns()` returns the configured columns after static permission filtering — the same
+list the Doctrine provider queries with. Both arguments are optional: without columns the provider
+still pages correctly, but nothing is orderable or searchable; without filters, filter values in
+the request are ignored, as the Doctrine provider ignores values for unconfigured names.
+
+### Supported request features
+
+<Table
+  headers={['Request feature', 'Behavior']}
+  rows={[
+    ['Pagination', 'Honored. Only the returned page reaches the row mapper.'],
+    [
+      'Ordering',
+      'Honored, by the column\'s source value. `getOrderExpression()` is DQL and is ignored here. Strings compare with `strnatcasecmp()`, other values with `<=>`, and rows without a value sort last in both directions.',
+    ],
+    [
+      'Global search',
+      'Honored on columns that are both searchable and globally searchable. The term is trimmed and matching is case-insensitive.',
+    ],
+    ['Per-column search', 'Honored, cumulatively: a row must match every active column search.'],
+    ['ColumnControl searches', 'Not supported — throws a `LogicException`.'],
+    ['Configured `Filters`', 'Not supported — a value for a configured filter throws a `LogicException`.'],
+  ]}
+/>
+
+Search and ordering read the **source** value of each item — the property named by the column's
+field path, resolved with Symfony's PropertyAccess — not the mapped row. This matches the Doctrine
+semantics: a column with no matching property, such as an `ActionColumn` or a `TemplateColumn`, is
+simply not searchable or orderable in memory. Non-text values (booleans, dates) are not searchable,
+exactly as they are excluded from a Doctrine `LIKE`.
+
+A table that needs ColumnControl or configured `Filters` in memory must implement
+`DataProviderInterface` itself; the exception exists so those requests fail loudly instead of
+returning unfiltered rows with HTTP 200.
+
 ## RowMapperInterface
 
 ```php
@@ -158,7 +214,7 @@ use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 
 protected function createDataProvider(): ?DataProviderInterface
 {
-    return new ArrayDataProvider($this->rows, $this->createRowMapper());
+    return new ArrayDataProvider($this->rows, $this->createRowMapper(), $this->getResolvedColumns());
 }
 ```
 

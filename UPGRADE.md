@@ -141,6 +141,43 @@ TextColumn::new('reference', 'Reference')
 implementing `ColumnInterface` directly is normalized unless it implements that interface and
 returns `false` from `isSearchNormalized()`.
 
+### `ArrayDataProvider` honors ordering and search
+
+`ArrayDataProvider` previously ignored ordering, per-column searches, ColumnControl and configured
+`Filters`, and answered every such request with HTTP 200 and unfiltered rows. It now reads the same
+`DataTableQueryIntent` the Doctrine provider consumes.
+
+- The constructor takes four new optional arguments: the configured columns, the table's
+  `Filters`, a `DefaultDataTableQueryIntentFactory`, and a `PropertyAccessorInterface`. Existing
+  two-argument constructions keep working, but with no columns nothing is orderable or searchable —
+  pass `$this->getResolvedColumns()` (new, on `AbstractDataTable`) to get ordering and search, and
+  the configured filters so a filtered request is rejected instead of silently ignored:
+
+  ```php
+  // Before
+  return new ArrayDataProvider($this->rows, $this->createRowMapper());
+
+  // After
+  return new ArrayDataProvider(
+      $this->rows,
+      $this->createRowMapper(),
+      $this->getResolvedColumns(),
+      $this->getConfiguredDataTable()->getFilters(),
+  );
+  ```
+
+- Global search now reads the **source** value of each item (the property named by the column's
+  field path) instead of every scalar cell of the mapped row, matching the Doctrine semantics. It
+  honors `isSearchable()` and `isGlobalSearchable()`, trims the term, and is case-insensitive. A
+  column with no matching source property — an `ActionColumn`, a `TemplateColumn`, or a column whose
+  value only exists after mapping — is no longer searchable in memory.
+- Ordering compares the source value: strings with `strnatcasecmp()`, other values with `<=>`, rows
+  without a value last in both directions. `getOrderExpression()` is DQL and is ignored in memory.
+- A request carrying ColumnControl searches, or a value for one of the `Filters` passed to the
+  constructor, now throws a `LogicException` instead of silently returning unfiltered rows. Filter
+  values whose name is not configured are ignored, as the Doctrine provider ignores them. Implement
+  `DataProviderInterface` yourself for a table that needs either in memory.
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
