@@ -201,7 +201,8 @@ export class ApiPlatformAdapter {
         try {
             renderedPayload = await renderedResponse.json();
         }
-        catch {
+        catch (error) {
+            console.warn('Template rendering returned an unreadable body. Rows are displayed unrendered.', error);
             return response;
         }
         const data = isRecord(renderedPayload) && Array.isArray(renderedPayload.data)

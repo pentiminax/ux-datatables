@@ -250,6 +250,7 @@ describe('template rendering failures', () => {
     })
 
     it('returns the original rows when the template rendering body is not JSON', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
         vi.stubGlobal(
             'fetch',
             vi.fn().mockResolvedValue({
@@ -264,5 +265,6 @@ describe('template rendering failures', () => {
         await expect(
             adapter.renderTemplateRows(renderedResponse, templateRendering)
         ).resolves.toEqual(renderedResponse)
+        expect(warn).toHaveBeenCalledOnce()
     })
 })
