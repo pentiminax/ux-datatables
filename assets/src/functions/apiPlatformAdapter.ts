@@ -367,7 +367,7 @@ export class ApiPlatformAdapter {
         for (const [name, value] of Object.entries(filters)) {
             if ('string' === typeof value) {
                 if ('' !== value.trim()) {
-                    result[name] = value
+                    this.setFilterParam(result, name, value)
                 }
 
                 continue
@@ -380,7 +380,7 @@ export class ApiPlatformAdapter {
                         continue
                     }
 
-                    result[`${name}[${index}]`] = entry
+                    this.setFilterParam(result, `${name}[${index}]`, entry)
                     index++
                 }
 
@@ -395,13 +395,25 @@ export class ApiPlatformAdapter {
             const to = value.to
 
             if ('string' === typeof from && '' !== from.trim()) {
-                result[`${name}[after]`] = from
+                this.setFilterParam(result, `${name}[after]`, from)
             }
 
             if ('string' === typeof to && '' !== to.trim()) {
-                result[`${name}[before]`] = to
+                this.setFilterParam(result, `${name}[before]`, to)
             }
         }
+    }
+
+    /**
+     * Filter names are free-form, so one called `page` or `itemsPerPage` would otherwise silently
+     * replace the pagination the table just requested. Protocol parameters win.
+     */
+    private setFilterParam(result: Record<string, string>, key: string, value: string): void {
+        if (key in result) {
+            return
+        }
+
+        result[key] = value
     }
 
     private withRowIds(rows: unknown[]): unknown[] {
@@ -485,7 +497,7 @@ export class ApiPlatformAdapter {
                 params
             )
             if (isRecord(transformed)) {
-                return transformed as DataTableServerSideParams
+                return this.withFilters(transformed as DataTableServerSideParams, params.filters)
             }
 
             return params
@@ -499,6 +511,25 @@ export class ApiPlatformAdapter {
         }
 
         return params
+    }
+
+    /**
+     * A user `ajax.data` callback may return a replacement object rather than the request params it
+     * was handed. The filter bar merges its values into the original object, so they are carried
+     * over unless the callback set its own.
+     */
+    private withFilters(
+        params: DataTableServerSideParams,
+        filters: unknown
+    ): DataTableServerSideParams {
+        if (undefined === filters || undefined !== params.filters) {
+            return params
+        }
+
+        return {
+            ...params,
+            filters,
+        }
     }
 
     toDraw(value: number | string | undefined): number {
