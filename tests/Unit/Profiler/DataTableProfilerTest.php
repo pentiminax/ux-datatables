@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Profiler;
 
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\DataTableRequest\Column;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
+use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
@@ -230,23 +233,24 @@ final class DataTableProfilerTest extends TestCase
     }
 
     /**
-     * ColumnControl::$list is unvalidated request input -- ColumnControl::fromArray() reads
-     * $data['list'] ?? [] verbatim, so a client can submit a nested array for one entry. The
-     * panel's join() filter cannot render an array as a string and used to crash the whole
-     * profiler panel; every entry must reduce to a safe scalar before it ever reaches Twig.
+     * ColumnControl::$list accepts any array, so a nested entry can still reach the profiler
+     * from a request built in code even though ColumnControl::fromArray() now drops non-scalar
+     * entries. The panel's join() filter cannot render an array as a string and used to crash
+     * the whole profiler panel; every entry must reduce to a safe scalar before it reaches Twig.
      */
     #[Test]
     public function it_normalizes_a_non_scalar_search_list_entry_instead_of_forwarding_it_unchanged(): void
     {
-        $request = DataTableRequest::fromRequest(Request::create('/datatables', 'GET', [
-            'draw'    => '1',
-            'columns' => [
-                [
-                    'data'          => '0', 'name' => 'department', 'searchable' => 'true', 'orderable' => 'true',
-                    'columnControl' => ['list' => ['Sales', ['nested' => 'value']]],
-                ],
-            ],
-        ]));
+        $request = new DataTableRequest(
+            draw: 1,
+            columns: new Columns(['department' => new Column(
+                data: '0',
+                name: 'department',
+                searchable: true,
+                orderable: true,
+                columnControl: new ColumnControl(list: ['Sales', ['nested' => 'value']]),
+            )]),
+        );
 
         $profiler = new DataTableProfiler();
         $profiler->collectAjaxQuery('App\\ProductDataTable', 'token', $request, 10, 10, 1.0);

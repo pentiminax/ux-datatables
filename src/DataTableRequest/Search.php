@@ -16,9 +16,11 @@ final readonly class Search
 
     public static function fromArray(array $data): self
     {
+        $value = $data['value'] ?? null;
+
         return new self(
-            value: $data['value'],
-            regex: 'true' === $data['regex'],
+            value: \is_scalar($value) ? (string) $value : null,
+            regex: 'true' === ($data['regex'] ?? null),
         );
     }
 

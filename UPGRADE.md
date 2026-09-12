@@ -74,6 +74,12 @@ data_tables:
 
 Exports are unaffected: they drop pagination explicitly and still stream every filtered row.
 
+### Malformed column control payloads are dropped
+
+| Change | Impact |
+| --- | --- |
+| `ColumnControlSearch::fromArray()` returns `null` on malformed input | A column control search with an unknown or missing logic, a non-scalar value, or a missing type is dropped instead of raising an error. Malformed `search` and `list` payloads are dropped by `ColumnControl::fromArray()` the same way. |
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
