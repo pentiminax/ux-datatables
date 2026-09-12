@@ -413,6 +413,23 @@ abstract class AbstractDataTable
         return null;
     }
 
+    /**
+     * The configured columns after static permission filtering -- the exact list the Doctrine
+     * path queries with.
+     *
+     * Pass it to an {@see \Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider} built in
+     * {@see self::createDataProvider()} so in-memory ordering and search honor the table's
+     * column configuration, permissions included.
+     *
+     * @return list<ColumnInterface>
+     */
+    final protected function getResolvedColumns(): array
+    {
+        $this->initialize();
+
+        return $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns, static::class);
+    }
+
     final protected function createRowMapper(): RowMapperInterface
     {
         $this->initialize();
