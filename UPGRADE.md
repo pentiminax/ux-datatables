@@ -97,6 +97,18 @@ Exports are unaffected: they drop pagination explicitly and still stream every f
 - A failed template rendering request no longer leaves the table spinning: rows are displayed
   unrendered instead.
 
+### Secured API Platform properties are no longer auto-detected
+
+Properties carrying `#[ApiProperty(security: …)]` are never auto-detected; declare them explicitly
+and use `setPermission()`. API Platform evaluates that expression per request in its normalizer, and
+an auto-detected column reads the value outside that check, so a table relying on auto-detection can
+now be missing a column it used to render.
+
+```php
+// The property is skipped by auto-detection; add the column yourself and guard it.
+$table->addColumn(TextColumn::new('salary')->setPermission('ROLE_ADMIN'));
+```
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
