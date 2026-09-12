@@ -45,6 +45,7 @@ abstract class AbstractColumn implements SearchableColumnInterface
     protected array $customOptions               = [];
     protected string|Expression|null $permission = null;
     protected ?int $responsivePriority           = null;
+    protected bool $caseSensitiveSearch          = false;
 
     /** @var list<array{join: string, alias: string, conditionType: ?string, condition: ?string}> */
     protected array $searchJoins = [];
@@ -124,6 +125,29 @@ abstract class AbstractColumn implements SearchableColumnInterface
     public function isSearchable(): bool
     {
         return $this->searchable;
+    }
+
+    /**
+     * Make server-side text search on this column case-sensitive.
+     *
+     * Server-side LIKE searches lowercase both the column and the term by default, which makes
+     * them case-insensitive on every platform but prevents the database from using a plain
+     * index on the column. Opt out when a "starts with" search must stay sargable on a MySQL
+     * prefix index and the stored values already have a known case.
+     *
+     * Only columns extending {@see AbstractColumn} carry this flag: a column implementing
+     * {@see ColumnInterface} directly is always searched case-insensitively.
+     */
+    public function setCaseSensitiveSearch(bool $caseSensitive = true): static
+    {
+        $this->caseSensitiveSearch = $caseSensitive;
+
+        return $this;
+    }
+
+    public function isCaseSensitiveSearch(): bool
+    {
+        return $this->caseSensitiveSearch;
     }
 
     public function isGlobalSearchable(): bool

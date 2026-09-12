@@ -41,7 +41,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
             null,
             'hello',
             false,
-            "e.name LIKE :p_0 ESCAPE '!'",
+            "LOWER(e.name) LIKE :p_0 ESCAPE '!'",
             ['p_0', '%hello%'],
         ];
 
@@ -50,8 +50,17 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
             null,
             '50%_off',
             false,
-            "e.name LIKE :p_0 ESCAPE '!'",
+            "LOWER(e.name) LIKE :p_0 ESCAPE '!'",
             ['p_0', '%50!%!_off%'],
+        ];
+
+        yield 'text column opting out of case-insensitive search' => [
+            TextColumn::new('name', 'Name')->setField('name')->setCaseSensitiveSearch(),
+            null,
+            'Hello',
+            false,
+            "e.name LIKE :p_0 ESCAPE '!'",
+            ['p_0', '%Hello%'],
         ];
 
         yield 'numeric column with numeric value' => [
@@ -385,6 +394,6 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
 
         $result = (new DefaultSearchPredicateBuilder())->build($qb, $column, 'e', 'name', 'acme', 'p_0');
 
-        $this->assertSame("e.name LIKE :p_0 ESCAPE '!'", $result);
+        $this->assertSame("LOWER(e.name) LIKE :p_0 ESCAPE '!'", $result);
     }
 }

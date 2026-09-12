@@ -76,6 +76,26 @@ one class per operator: the enum supplies the SQL operator, the parameter wrappi
 whether the logic is expressed with `LIKE`. Constructing it with a logic it cannot express — such as
 `ColumnControlLogic::Empty` — throws an `InvalidArgumentException`.
 
+### Case sensitivity
+
+Every shipped `LIKE` logic — `contains`, `starts`, `ends`, `notContains` — is case-insensitive:
+the condition is built as `LOWER(field) LIKE :param` and the bound term is lowercased with
+`mb_strtolower()`. A bare `LIKE` is case-sensitive on PostgreSQL and on MySQL binary collations,
+so without this the same table answered differently depending on the database.
+
+`LOWER()` on the column also prevents the database from using a plain index on it. When that
+matters — a `starts` search on a large MySQL table with a prefix index, on values whose case is
+already known — opt the column out:
+
+```php
+TextColumn::new('reference', 'Reference')
+    ->setCaseSensitiveSearch();
+```
+
+The flag lives on `AbstractColumn`, so a column class implementing `ColumnInterface` directly is
+always searched case-insensitively. `setSearchPredicate()` stays the escape hatch for anything
+neither mode expresses.
+
 <Aside type="note">
   `ColumnControlLogic::In` has no dedicated strategy. ColumnControl list selections
   (`searchList`) are applied by `ColumnControlSearchFilter` through an explicit `IN` branch, which
@@ -100,10 +120,10 @@ use Pentiminax\UX\DataTables\Query\LikeValueEscaper;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
 /**
- * Case-insensitive "starts with": the shipped `starts` logic compares with a plain LIKE, which is
- * case-sensitive on MySQL binary collations and on PostgreSQL.
+ * Word-prefix "starts with": the shipped `starts` logic anchors on the beginning of the value,
+ * so searching "doe" never matches "John Doe". This one also matches the start of any word.
  */
-final class CaseInsensitiveStartsSearchStrategy implements SearchStrategyInterface
+final class WordPrefixStartsSearchStrategy implements SearchStrategyInterface
 {
     public function apply(
         QueryBuilder $qb,
@@ -126,17 +146,27 @@ final class CaseInsensitiveStartsSearchStrategy implements SearchStrategyInterfa
         // for a column without the search contract.
         RelationFieldResolver::applySearchJoins($qb, $column);
 
-        // LOWER() on a uuid or a datetime column is rejected by strict engines.
+        // LOWER() and LIKE on a uuid or a datetime column are rejected by strict engines.
         if (!RelationFieldResolver::supportsTextSearch($qb, $fieldPath)) {
             return;
         }
 
         $field = RelationFieldResolver::resolve($qb, $alias, $fieldPath);
-        $paramName = sprintf('starts_ci_%d', $paramIndex);
+        $prefix = sprintf('word_prefix_%d', $paramIndex);
+        $anywhere = sprintf('word_anywhere_%d', $paramIndex);
+        $escaped = LikeValueEscaper::escape(mb_strtolower($value));
+        $escape = LikeValueEscaper::ESCAPE_CHARACTER;
 
         $qb
-            ->andWhere(sprintf("LOWER(%s) LIKE :%s ESCAPE '%s'", $field, $paramName, LikeValueEscaper::ESCAPE_CHARACTER))
-            ->setParameter($paramName, strtolower(LikeValueEscaper::escape($value)).'%');
+            ->andWhere(sprintf(
+                "(LOWER(%1\$s) LIKE :%2\$s ESCAPE '%4\$s' OR LOWER(%1\$s) LIKE :%3\$s ESCAPE '%4\$s')",
+                $field,
+                $prefix,
+                $anywhere,
+                $escape,
+            ))
+            ->setParameter($prefix, $escaped.'%')
+            ->setParameter($anywhere, '% '.$escaped.'%');
     }
 
     public function getLogic(): string
@@ -153,7 +183,7 @@ use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 protected function createSearchStrategyRegistry(): SearchStrategyRegistry
 {
     $registry = new DefaultSearchStrategyRegistry();
-    $registry->register(new CaseInsensitiveStartsSearchStrategy());
+    $registry->register(new WordPrefixStartsSearchStrategy());
 
     return $registry;
 }
@@ -209,7 +239,7 @@ type:
 | numeric (or `$forceNumeric`) | exact match when the term is numeric, `null` otherwise             |
 | date                         | `null` — a partial date term has no meaningful `LIKE`              |
 | native UUID / ULID           | exact match when the term is a well-formed identifier of that type |
-| anything else                | `LIKE %term%` when the field supports text search                  |
+| anything else                | `LOWER(field) LIKE %term%` when the field supports text search      |
 
 `$field` is resolved by the caller through `RelationFieldResolver::resolveSearchField()` before the
 builder is reached, so a `setSearchField()` override and any `addSearchJoin()` are already in

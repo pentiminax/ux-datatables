@@ -121,6 +121,24 @@ final class EmployeesDataTable extends AbstractDataTable
 }
 ```
 
+### Case-insensitive server-side text search
+
+Server-side text search (global search, per-column search, and the ColumnControl `contains`,
+`starts`, `ends`, and `notContains` logics) is now case-insensitive on every platform: the
+condition compares `LOWER(field)` against a lowercased term instead of using a bare `LIKE`, which
+was case-sensitive on PostgreSQL and on MySQL binary collations.
+
+Call `->setCaseSensitiveSearch()` on a column to restore the previous behavior — for instance to
+keep a `starts` search sargable on a MySQL prefix index:
+
+```php
+TextColumn::new('reference', 'Reference')
+    ->setCaseSensitiveSearch();
+```
+
+The flag lives on `AbstractColumn`; a column class implementing `ColumnInterface` directly is always
+searched case-insensitively.
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`

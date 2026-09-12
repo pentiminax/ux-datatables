@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Query;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
@@ -29,7 +30,9 @@ use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
  * every other column in a global search — when the term happens to be numeric.
  * For native UUID/ULID columns: exact match when the value is a well-formed identifier of
  * that field's type, null otherwise.
- * For other columns: LIKE %value% when the field supports search filtering, null otherwise.
+ * For other columns: LIKE %value% when the field supports search filtering, null otherwise. That
+ * LIKE is case-insensitive unless the column opts out with
+ * {@see AbstractColumn::setCaseSensitiveSearch()}.
  *
  * A column is treated as numeric when {@see ColumnInterface::isNumber()} is true or when
  * the caller forces numeric handling via $forceNumeric (e.g. based on an external type hint).
@@ -77,7 +80,7 @@ final class DefaultSearchPredicateBuilder implements SearchPredicateBuilderInter
             return null;
         }
 
-        return SearchConditionBuilder::text($qb, $alias, $field, $value, $paramName);
+        return SearchConditionBuilder::text($qb, $alias, $field, $value, $paramName, $column instanceof AbstractColumn && $column->isCaseSensitiveSearch());
     }
 
     /**
