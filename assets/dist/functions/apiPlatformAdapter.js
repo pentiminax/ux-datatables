@@ -49,7 +49,10 @@ export class ApiPlatformAdapter {
             result.q = globalSearchValue.trim();
         }
         for (const order of params.order ?? []) {
-            const columnConfig = this.columns[order.column];
+            const columnConfig = this.resolveColumnConfig(params.columns?.[order.column], order.column);
+            if (undefined === columnConfig) {
+                continue;
+            }
             const fieldName = columnConfig.field ?? columnConfig.data ?? columnConfig.name;
             if (null === fieldName) {
                 continue;
@@ -61,7 +64,10 @@ export class ApiPlatformAdapter {
             if (typeof searchValue !== 'string' || searchValue.trim() === '') {
                 continue;
             }
-            const columnConfig = this.columns[index];
+            const columnConfig = this.resolveColumnConfig(column, index);
+            if (undefined === columnConfig) {
+                continue;
+            }
             const fieldName = columnConfig.field ?? columnConfig.data ?? columnConfig.name;
             if (null === fieldName) {
                 continue;
@@ -180,7 +186,17 @@ export class ApiPlatformAdapter {
             },
             method: 'POST',
         });
-        const renderedPayload = await renderedResponse.json();
+        if (!renderedResponse.ok) {
+            console.warn(`Template rendering failed (${renderedResponse.status}). Rows are displayed unrendered.`);
+            return response;
+        }
+        let renderedPayload;
+        try {
+            renderedPayload = await renderedResponse.json();
+        }
+        catch {
+            return response;
+        }
         const data = isRecord(renderedPayload) && Array.isArray(renderedPayload.data)
             ? renderedPayload.data
             : response.data;
@@ -199,6 +215,15 @@ export class ApiPlatformAdapter {
             value.table.trim() !== ''
             ? { url: value.url, table: value.table }
             : null;
+    }
+    resolveColumnConfig(requestColumn, index) {
+        const key = requestColumn?.name || requestColumn?.data;
+        if ('string' === typeof key && '' !== key) {
+            return (this.columns.find((column) => column.name === key) ??
+                this.columns.find((column) => column.data === key) ??
+                this.columns.find((column) => column.field === key));
+        }
+        return this.columns[index];
     }
     appendFilters(result, filters) {
         if (!isRecord(filters)) {
