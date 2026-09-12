@@ -19,6 +19,7 @@ final class AjaxTemplateRenderController
         private readonly AjaxDataTableRegistry $registry,
         private readonly DataTableRuntimeFactory $runtimeFactory,
         private readonly SourceRowResolver $sourceRowResolver,
+        private readonly int $maxRows,
     ) {
     }
 
@@ -39,8 +40,12 @@ final class AjaxTemplateRenderController
 
         $rows = $payload->all()['rows'] ?? [];
 
-        if ([] === $rows) {
+        if (!\is_array($rows) || [] === $rows) {
             throw new BadRequestHttpException('No rows provided.');
+        }
+
+        if (\count($rows) > $this->maxRows) {
+            throw new BadRequestHttpException('Too many rows.');
         }
 
         $sourceRows = $this->sourceRowResolver->resolve($table->getEntityClass(), $rows);
@@ -59,7 +64,12 @@ final class AjaxTemplateRenderController
             return $row;
         }
 
-        $sourceRow ??= $row;
+        // No source entity means API Platform did not serve this row to the current user.
+        // Rendering it would run Twig, actions and URL generation on client-supplied data.
+        if (null === $sourceRow) {
+            return $row;
+        }
+
         $columns = $table->getConfiguredDataTable()->getColumns();
 
         return $this->runtimeFactory

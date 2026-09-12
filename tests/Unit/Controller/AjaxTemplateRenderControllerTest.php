@@ -4,14 +4,10 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Controller;
 
-use Doctrine\Persistence\ManagerRegistry;
-use Doctrine\Persistence\Mapping\ClassMetadata;
-use Doctrine\Persistence\ObjectManager;
-use Doctrine\Persistence\ObjectRepository;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
-use Pentiminax\UX\DataTables\Ajax\RowIdentifierExtractor;
 use Pentiminax\UX\DataTables\Ajax\SourceRowResolver;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformItemResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
@@ -54,15 +50,18 @@ final class AjaxTemplateRenderControllerTest extends TestCase
                     'user.html.twig' => '<span>{{ row.email }}:{{ data }}</span>',
                 ]))),
             ),
+            $this->createItemResolver(new TemplateRenderUserFixture(7)),
         );
 
         $response = $controller($this->createRequest($registry->getToken(TemplateRenderDataTableFixture::class), [
+            'id'     => 7,
             'avatar' => 'https://example.test/avatar.png',
             'email'  => 'user@example.com',
         ]));
 
         $this->assertSame([
             [
+                'id'     => 7,
                 'avatar' => '<span>user@example.com:https://example.test/avatar.png</span>',
                 'email'  => 'user@example.com',
             ],
@@ -77,7 +76,7 @@ final class AjaxTemplateRenderControllerTest extends TestCase
         $controller = $this->createController(
             $registry,
             new DataTableRuntimeFactory(actionRowDataResolver: new ActionRowDataResolver()),
-            $this->createDoctrine(new TemplateRenderUserFixture(7)),
+            $this->createItemResolver(new TemplateRenderUserFixture(7)),
         );
 
         $response = $controller($this->createRequest($registry->getToken(TemplateRenderActionDataTableFixture::class), [
@@ -102,7 +101,7 @@ final class AjaxTemplateRenderControllerTest extends TestCase
         $controller = $this->createController(
             $registry,
             new DataTableRuntimeFactory(urlColumnDataResolver: new UrlColumnDataResolver($urlGenerator)),
-            $this->createDoctrine(new TemplateRenderUserFixture(7)),
+            $this->createItemResolver(new TemplateRenderUserFixture(7)),
         );
 
         $response = $controller($this->createRequest($registry->getToken(TemplateRenderUrlDataTableFixture::class), [
@@ -111,6 +110,88 @@ final class AjaxTemplateRenderControllerTest extends TestCase
         ]));
 
         $this->assertSame('/users/7', $this->decodeData($response)[0]['__ux_datatables_urls']['profile']);
+    }
+
+    /**
+     * A row API Platform refuses to serve must come back exactly as posted: rendering it
+     * would leak the Twig output of TemplateColumn templates for an out-of-scope entity.
+     */
+    #[Test]
+    public function it_returns_unresolved_rows_untouched_without_rendering_templates(): void
+    {
+        $registry = $this->createRegistry(new TemplateRenderDataTableFixture());
+
+        $controller = $this->createController(
+            $registry,
+            new DataTableRuntimeFactory(
+                templateColumnRenderer: new TemplateColumnRenderer(new Environment(new ArrayLoader([
+                    'user.html.twig' => '<span>{{ row.secret }}</span>',
+                ]))),
+            ),
+            $this->createItemResolver(null),
+        );
+
+        $response = $controller($this->createRequest($registry->getToken(TemplateRenderDataTableFixture::class), [
+            'id'     => 4242,
+            'avatar' => 'https://example.test/avatar.png',
+            'email'  => 'victim@example.com',
+            'secret' => 'leaked',
+        ]));
+
+        $this->assertSame([
+            [
+                'id'     => 4242,
+                'avatar' => 'https://example.test/avatar.png',
+                'email'  => 'victim@example.com',
+                'secret' => 'leaked',
+            ],
+        ], $this->decodeData($response));
+    }
+
+    #[Test]
+    public function it_returns_rows_untouched_when_no_item_resolver_is_available(): void
+    {
+        $registry = $this->createRegistry(new TemplateRenderDataTableFixture());
+
+        $controller = $this->createController(
+            $registry,
+            new DataTableRuntimeFactory(
+                templateColumnRenderer: new TemplateColumnRenderer(new Environment(new ArrayLoader([
+                    'user.html.twig' => '<span>{{ row.email }}</span>',
+                ]))),
+            ),
+        );
+
+        $response = $controller($this->createRequest($registry->getToken(TemplateRenderDataTableFixture::class), [
+            'id'     => 7,
+            'avatar' => 'https://example.test/avatar.png',
+            'email'  => 'user@example.com',
+        ]));
+
+        $this->assertSame([
+            [
+                'id'     => 7,
+                'avatar' => 'https://example.test/avatar.png',
+                'email'  => 'user@example.com',
+            ],
+        ], $this->decodeData($response));
+    }
+
+    #[Test]
+    public function it_throws_400_when_more_rows_than_max_page_length_are_posted(): void
+    {
+        $registry   = $this->createRegistry(new TemplateRenderDataTableFixture());
+        $controller = $this->createController($registry, new DataTableRuntimeFactory(), maxRows: 2);
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('Too many rows.');
+
+        $controller($this->createRequest(
+            $registry->getToken(TemplateRenderDataTableFixture::class),
+            ['id' => 1],
+            ['id' => 2],
+            ['id' => 3],
+        ));
     }
 
     #[Test]
@@ -151,41 +232,29 @@ final class AjaxTemplateRenderControllerTest extends TestCase
     private function createController(
         AjaxDataTableRegistry $registry,
         DataTableRuntimeFactory $runtimeFactory,
-        ?ManagerRegistry $doctrine = null,
+        ?ApiPlatformItemResolver $itemResolver = null,
+        int $maxRows = 1000,
     ): AjaxTemplateRenderController {
         return new AjaxTemplateRenderController(
             $registry,
             $runtimeFactory,
-            new SourceRowResolver(new RowIdentifierExtractor(), $doctrine),
+            new SourceRowResolver($itemResolver),
+            $maxRows,
         );
     }
 
     /**
-     * Doctrine wiring rehydrating $user exactly once from the identifiers of the posted rows.
+     * An item resolver standing in for API Platform: it serves $user, or nothing at all
+     * when $user is null (item out of scope, denied by `security`, or simply unknown).
      */
-    private function createDoctrine(TemplateRenderUserFixture $user): ManagerRegistry
+    private function createItemResolver(?TemplateRenderUserFixture $user): ApiPlatformItemResolver
     {
-        $repository = $this->createMock(ObjectRepository::class);
-        $repository->expects($this->once())
-            ->method('findBy')
-            ->with(['id' => [$user->getId()]])
-            ->willReturn([$user]);
-
-        $metadata = $this->createMock(ClassMetadata::class);
-        $metadata->method('getIdentifierFieldNames')->willReturn(['id']);
-        $metadata->method('getIdentifierValues')->with($user)->willReturn(['id' => $user->getId()]);
-
-        $manager = $this->createMock(ObjectManager::class);
-        $manager->method('getRepository')->with(TemplateRenderUserFixture::class)->willReturn($repository);
-        $manager->method('getClassMetadata')->with(TemplateRenderUserFixture::class)->willReturn($metadata);
-
-        $doctrine = $this->createMock(ManagerRegistry::class);
-        $doctrine->expects($this->once())
-            ->method('getManagerForClass')
+        $itemResolver = $this->createMock(ApiPlatformItemResolver::class);
+        $itemResolver->method('resolve')
             ->with(TemplateRenderUserFixture::class)
-            ->willReturn($manager);
+            ->willReturn($user);
 
-        return $doctrine;
+        return $itemResolver;
     }
 
     /**
@@ -208,6 +277,7 @@ final class AjaxTemplateRenderControllerTest extends TestCase
     }
 }
 
+#[AsDataTable(entityClass: TemplateRenderUserFixture::class, apiPlatform: true)]
 final class TemplateRenderDataTableFixture extends AbstractDataTable
 {
     public function configureColumns(): iterable
@@ -251,12 +321,19 @@ final class TemplateRenderUrlDataTableFixture extends AbstractDataTable
 
 final class TemplateRenderUserFixture
 {
-    public function __construct(private readonly int $id)
-    {
+    public function __construct(
+        private readonly int $id,
+        private readonly string $email = 'user@example.com',
+    ) {
     }
 
     public function getId(): int
     {
         return $this->id;
+    }
+
+    public function getEmail(): string
+    {
+        return $this->email;
     }
 }
