@@ -168,7 +168,7 @@ returns `false` from `isSearchNormalized()`.
 
 - Global search now reads the **source** value of each item (the property named by the column's
   field path) instead of every scalar cell of the mapped row, matching the Doctrine semantics. It
-  honors `isSearchable()` and `isGlobalSearchable()`, trims the term, and is case-insensitive. A
+  honors `isGlobalSearchable()`, trims the term, and is case-insensitive. A
   column with no matching source property — an `ActionColumn`, a `TemplateColumn`, or a column whose
   value only exists after mapping — is no longer searchable in memory.
 - Ordering compares the source value: strings with `strnatcasecmp()`, other values with `<=>`, rows
