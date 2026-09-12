@@ -63,6 +63,14 @@ export class FilterBar {
         this.wrapper.appendChild(this.popover);
     }
     attachToPayload(payload) {
+        if (typeof payload.ajax === 'function') {
+            const originalAjax = payload.ajax;
+            payload.ajax = (data, ...rest) => {
+                data.filters = this.collectValues();
+                return originalAjax(data, ...rest);
+            };
+            return;
+        }
         if (!payload.ajax || typeof payload.ajax !== 'object') {
             return;
         }
@@ -75,7 +83,9 @@ export class FilterBar {
                     return transformed;
                 }
                 if (isPlainRecord(transformed)) {
-                    transformed.filters = this.collectValues();
+                    if (true !== existing.consumesFilters) {
+                        transformed.filters = this.collectValues();
+                    }
                     return transformed;
                 }
                 data.filters = this.collectValues();
