@@ -22,8 +22,9 @@ final class SearchConditionBuilder
      *
      * Both sides are lowercased by default, because a bare LIKE is case-sensitive on
      * PostgreSQL and on binary MySQL collations. $caseSensitive keeps the raw column in the
-     * condition so a prefix index stays usable — see
-     * {@see \Pentiminax\UX\DataTables\Column\AbstractColumn::setCaseSensitiveSearch()}.
+     * condition so a prefix index stays usable; the comparison then follows the column's
+     * collation, which on a case-insensitive MySQL collation still matches regardless of case —
+     * see {@see \Pentiminax\UX\DataTables\Column\AbstractColumn::setCaseSensitiveSearch()}.
      */
     public static function text(QueryBuilder $qb, string $alias, string $fieldPath, string $value, string $paramName, bool $caseSensitive = false): string
     {
