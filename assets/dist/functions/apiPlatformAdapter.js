@@ -207,7 +207,7 @@ export class ApiPlatformAdapter {
         for (const [name, value] of Object.entries(filters)) {
             if ('string' === typeof value) {
                 if ('' !== value.trim()) {
-                    result[name] = value;
+                    this.setFilterParam(result, name, value);
                 }
                 continue;
             }
@@ -217,7 +217,7 @@ export class ApiPlatformAdapter {
                     if ('string' !== typeof entry || '' === entry) {
                         continue;
                     }
-                    result[`${name}[${index}]`] = entry;
+                    this.setFilterParam(result, `${name}[${index}]`, entry);
                     index++;
                 }
                 continue;
@@ -228,12 +228,18 @@ export class ApiPlatformAdapter {
             const from = value.from;
             const to = value.to;
             if ('string' === typeof from && '' !== from.trim()) {
-                result[`${name}[after]`] = from;
+                this.setFilterParam(result, `${name}[after]`, from);
             }
             if ('string' === typeof to && '' !== to.trim()) {
-                result[`${name}[before]`] = to;
+                this.setFilterParam(result, `${name}[before]`, to);
             }
         }
+    }
+    setFilterParam(result, key, value) {
+        if (key in result) {
+            return;
+        }
+        result[key] = value;
     }
     withRowIds(rows) {
         const field = this.rowIdField;
@@ -289,7 +295,7 @@ export class ApiPlatformAdapter {
         if (typeof originalData === 'function') {
             const transformed = originalData(params);
             if (isRecord(transformed)) {
-                return transformed;
+                return this.withFilters(transformed, params.filters);
             }
             return params;
         }
@@ -300,6 +306,15 @@ export class ApiPlatformAdapter {
             };
         }
         return params;
+    }
+    withFilters(params, filters) {
+        if (undefined === filters || undefined !== params.filters) {
+            return params;
+        }
+        return {
+            ...params,
+            filters,
+        };
     }
     toDraw(value) {
         if (typeof value === 'number' && Number.isFinite(value)) {

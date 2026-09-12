@@ -102,3 +102,48 @@ describe('filter bar values', () => {
         )
     })
 })
+
+describe('filter parameter collisions', () => {
+    it('keeps protocol parameters when a filter shares their name', () => {
+        const adapter = new ApiPlatformAdapter([{ name: 'email' }])
+
+        const params = adapter.buildRequestParams({
+            start: 50,
+            length: 25,
+            filters: { page: '2', itemsPerPage: '100', status: 'active' },
+        })
+
+        expect(params).toEqual({
+            page: '3',
+            itemsPerPage: '25',
+            status: 'active',
+        })
+    })
+
+    it('keeps filters when a user ajax.data callback returns a replacement object', () => {
+        const adapter = new ApiPlatformAdapter([{ name: 'email' }])
+        const payload: Record<string, unknown> = {
+            ajax: {
+                url: '/api/users',
+                data: (params: Record<string, unknown>) => ({
+                    draw: params.draw,
+                    start: params.start,
+                    length: params.length,
+                }),
+            },
+            columns: [{ name: 'email' }],
+        }
+
+        adapter.configure(payload)
+
+        const ajaxConfig = payload.ajax as { data: (params: unknown) => Record<string, string> }
+
+        expect(
+            ajaxConfig.data({ draw: 1, start: 0, length: 10, filters: { status: 'active' } })
+        ).toEqual({
+            page: '1',
+            itemsPerPage: '10',
+            status: 'active',
+        })
+    })
+})
