@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiPlatformAdapter, type ColumnConfig } from '../apiPlatformAdapter.js'
 
 const columns: ColumnConfig[] = [
@@ -145,5 +145,126 @@ describe('filter parameter collisions', () => {
             itemsPerPage: '10',
             status: 'active',
         })
+    })
+})
+
+describe('column resolution by name', () => {
+    it('resolves order columns by name when the client prepends a select column', () => {
+        const adapter = new ApiPlatformAdapter(columns)
+
+        expect(
+            adapter.buildRequestParams({
+                start: 0,
+                length: 25,
+                columns: [
+                    { data: null },
+                    { data: 'avatar', name: 'avatar' },
+                    { data: 'email', name: 'email' },
+                ],
+                order: [{ column: 1, dir: 'asc' }],
+            })
+        ).toMatchObject({
+            'order[avatar]': 'asc',
+        })
+    })
+
+    it('skips an order entry whose column cannot be resolved', () => {
+        const adapter = new ApiPlatformAdapter(columns)
+
+        expect(
+            adapter.buildRequestParams({
+                start: 0,
+                length: 25,
+                order: [{ column: 7, dir: 'asc' }],
+            })
+        ).toEqual({
+            page: '1',
+            itemsPerPage: '25',
+        })
+    })
+
+    it('maps column searches by name when indexes are shifted', () => {
+        const adapter = new ApiPlatformAdapter(columns)
+
+        expect(
+            adapter.buildRequestParams({
+                start: 0,
+                length: 25,
+                columns: [
+                    { data: null },
+                    { data: 'avatar', name: 'avatar' },
+                    { data: 'email', name: 'email', search: { value: 'admin@example.com' } },
+                ],
+            })
+        ).toEqual({
+            page: '1',
+            itemsPerPage: '25',
+            email: 'admin@example.com',
+        })
+    })
+})
+
+describe('template rendering failures', () => {
+    const templateRendering = { table: 'users', url: '/datatables/ajax/templates' }
+    const renderedResponse = {
+        draw: 1,
+        recordsTotal: 1,
+        recordsFiltered: 1,
+        data: [{ id: 1, email: 'admin@example.com' }],
+    }
+
+    afterEach(() => {
+        vi.unstubAllGlobals()
+        vi.restoreAllMocks()
+    })
+
+    it('returns the original rows when template rendering responds with an error', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: false,
+                status: 403,
+                json: () => Promise.reject(new Error('Body must not be read.')),
+            })
+        )
+
+        const adapter = new ApiPlatformAdapter(columns)
+
+        await expect(
+            adapter.renderTemplateRows(renderedResponse, templateRendering)
+        ).resolves.toEqual(renderedResponse)
+        expect(warn).toHaveBeenCalledOnce()
+    })
+
+    it('returns the original rows when the template rendering request rejects', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+
+        const adapter = new ApiPlatformAdapter(columns)
+
+        await expect(
+            adapter.renderTemplateRows(renderedResponse, templateRendering)
+        ).resolves.toEqual(renderedResponse)
+        expect(warn).toHaveBeenCalledOnce()
+    })
+
+    it('returns the original rows when the template rendering body is not JSON', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                status: 200,
+                json: () => Promise.reject(new SyntaxError('Unexpected token < in JSON.')),
+            })
+        )
+
+        const adapter = new ApiPlatformAdapter(columns)
+
+        await expect(
+            adapter.renderTemplateRows(renderedResponse, templateRendering)
+        ).resolves.toEqual(renderedResponse)
+        expect(warn).toHaveBeenCalledOnce()
     })
 })

@@ -135,7 +135,15 @@ export class ApiPlatformAdapter {
         }
 
         for (const order of params.order ?? []) {
-            const columnConfig = this.columns[order.column]
+            const columnConfig = this.resolveColumnConfig(
+                params.columns?.[order.column],
+                order.column
+            )
+
+            if (undefined === columnConfig) {
+                continue
+            }
+
             const fieldName = columnConfig.field ?? columnConfig.data ?? columnConfig.name
 
             if (null === fieldName) {
@@ -152,7 +160,12 @@ export class ApiPlatformAdapter {
                 continue
             }
 
-            const columnConfig = this.columns[index]
+            const columnConfig = this.resolveColumnConfig(column, index)
+
+            if (undefined === columnConfig) {
+                continue
+            }
+
             const fieldName = columnConfig.field ?? columnConfig.data ?? columnConfig.name
 
             if (null === fieldName) {
@@ -317,19 +330,47 @@ export class ApiPlatformAdapter {
             return response
         }
 
-        const renderedResponse = await fetch(templateRendering.url, {
-            body: JSON.stringify({
-                table: templateRendering.table,
-                rows: response.data,
-            }),
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            method: 'POST',
-        })
+        let renderedResponse: Response
 
-        const renderedPayload = await renderedResponse.json()
+        try {
+            renderedResponse = await fetch(templateRendering.url, {
+                body: JSON.stringify({
+                    table: templateRendering.table,
+                    rows: response.data,
+                }),
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                method: 'POST',
+            })
+        } catch (error) {
+            console.warn('Template rendering request failed. Rows are displayed unrendered.', error)
+
+            return response
+        }
+
+        if (!renderedResponse.ok) {
+            console.warn(
+                `Template rendering failed (${renderedResponse.status}). Rows displayed unrendered.`
+            )
+
+            return response
+        }
+
+        let renderedPayload: unknown
+
+        try {
+            renderedPayload = await renderedResponse.json()
+        } catch (error) {
+            console.warn(
+                'Template rendering returned an unreadable body. Rows are displayed unrendered.',
+                error
+            )
+
+            return response
+        }
+
         const data =
             isRecord(renderedPayload) && Array.isArray(renderedPayload.data)
                 ? renderedPayload.data
@@ -352,6 +393,28 @@ export class ApiPlatformAdapter {
             value.table.trim() !== ''
             ? { url: value.url, table: value.table }
             : null
+    }
+
+    /**
+     * Mirrors `DefaultDataTableQueryIntentFactory`: request columns are matched onto the configured
+     * ones by name, never by display index, because the client may prepend columns the server never
+     * configured (the Select extension unshifts a checkbox column in `checkbox` mode).
+     */
+    private resolveColumnConfig(
+        requestColumn: DataTableServerSideColumn | undefined,
+        index: number
+    ): ColumnConfig | undefined {
+        const key = requestColumn?.name || requestColumn?.data
+
+        if ('string' === typeof key && '' !== key) {
+            return (
+                this.columns.find((column) => column.name === key) ??
+                this.columns.find((column) => column.data === key) ??
+                this.columns.find((column) => column.field === key)
+            )
+        }
+
+        return this.columns[index]
     }
 
     /**
