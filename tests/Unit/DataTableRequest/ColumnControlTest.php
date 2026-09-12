@@ -46,6 +46,10 @@ final class ColumnControlTest extends TestCase
         yield 'non-array search' => [['search' => 'oops']];
         yield 'non-array list' => [['list' => 'oops']];
         yield 'search without logic' => [['search' => ['value' => 'x']]];
+        yield 'search without value' => [['search' => ['logic' => 'equal', 'type' => 'text']]];
+        yield 'search with array value' => [['search' => ['logic' => 'equal', 'value' => ['x'], 'type' => 'text']]];
+        yield 'search without type' => [['search' => ['logic' => 'equal', 'value' => 'x']]];
+        yield 'search with non-string type' => [['search' => ['logic' => 'equal', 'value' => 'x', 'type' => ['text']]]];
     }
 
     #[Test]
