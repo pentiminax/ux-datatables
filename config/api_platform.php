@@ -47,7 +47,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('api_platform.iri_converter'))
         ->arg(1, service('api_platform.metadata.resource.metadata_collection_factory'))
         ->arg(2, service('api_platform.state_provider'))
-        ->arg(3, service('api_platform.security.resource_access_checker')->nullOnInvalid())
-        ->arg(4, service('request_stack'))
+        ->arg(3, service('api_platform.router'))
+        ->arg(4, service('api_platform.security.resource_access_checker')->nullOnInvalid())
+        ->arg(5, service('request_stack'))
         ->private();
 };
