@@ -129,7 +129,6 @@ When you configure the table to use the same route as its Ajax endpoint, handle 
 
 ```php
 use App\DataTables\UsersDataTable;
-use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -145,11 +144,6 @@ class UsersController extends AbstractController
 
         if ($table->isRequestHandled()) {
             return $table->getResponse();
-        }
-
-        // For client-side tables, fetch data before rendering
-        if (!$table->getDataTable()->isServerSide()) {
-            $table->fetchData(DataTableRequest::fromRequest($request));
         }
 
         return $this->render('users/index.html.twig', [

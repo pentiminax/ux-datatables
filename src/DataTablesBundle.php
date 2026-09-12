@@ -32,6 +32,11 @@ class DataTablesBundle extends AbstractBundle
     {
         $definition->rootNode()
             ->children()
+                ->integerNode('max_page_length')
+                    ->min(1)
+                    ->defaultValue(1000)
+                    ->info('Upper bound applied to the DataTables "length" parameter on Ajax requests. "length=-1" (show all) is honored only when the table declares -1 in lengthMenu(); otherwise it is capped to this value.')
+                ->end()
                 ->arrayNode('options')
                     ->children()
                         ->scalarNode('language')->defaultValue('en-GB')->end()
@@ -105,7 +110,8 @@ class DataTablesBundle extends AbstractBundle
             ->set('datatables.extensions', $config['extensions'] ?? [])
             ->set('datatables.edit_modal.template', $config['edit_modal']['template'])
             ->set('datatables.edit_modal.body_template', $config['edit_modal']['body_template'])
-            ->set('datatables.edit_modal.default_title', $config['edit_modal']['default_title']);
+            ->set('datatables.edit_modal.default_title', $config['edit_modal']['default_title'])
+            ->set('datatables.max_page_length', $config['max_page_length']);
 
         $container->import('../config/services.php');
 

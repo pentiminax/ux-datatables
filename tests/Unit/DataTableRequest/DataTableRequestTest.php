@@ -197,6 +197,57 @@ final class DataTableRequestTest extends TestCase
     }
 
     #[Test]
+    public function it_clamps_a_negative_start_to_zero(): void
+    {
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest(['start' => -5]));
+
+        $this->assertSame(0, $dataTableRequest->start);
+    }
+
+    #[Test]
+    public function it_caps_length_to_the_maximum(): void
+    {
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest(['length' => 999999]))
+            ->withBoundedLength(1000, false);
+
+        $this->assertSame(1000, $dataTableRequest->length);
+    }
+
+    #[Test]
+    public function it_maps_show_all_to_the_maximum_when_not_allowed(): void
+    {
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest(['length' => -1]))
+            ->withBoundedLength(1000, false);
+
+        $this->assertSame(1000, $dataTableRequest->length);
+    }
+
+    #[Test]
+    public function it_keeps_show_all_when_allowed(): void
+    {
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest(['length' => -1]))
+            ->withBoundedLength(1000, true);
+
+        $this->assertSame(-1, $dataTableRequest->length);
+    }
+
+    #[Test]
+    public function it_keeps_a_length_within_bounds(): void
+    {
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest([
+            'draw'   => 5,
+            'start'  => 20,
+            'length' => 25,
+            'search' => ['value' => 'test', 'regex' => false],
+        ]))->withBoundedLength(1000, false);
+
+        $this->assertSame(25, $dataTableRequest->length);
+        $this->assertSame(5, $dataTableRequest->draw);
+        $this->assertSame(20, $dataTableRequest->start);
+        $this->assertSame('test', $dataTableRequest->search->value);
+    }
+
+    #[Test]
     #[DataProvider('provideSearchTerms')]
     public function it_resolves_search_term(?string $rawSearch, ?string $expected): void
     {
