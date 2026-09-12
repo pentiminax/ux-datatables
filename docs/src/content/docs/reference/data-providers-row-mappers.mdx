@@ -36,7 +36,8 @@ Built-in providers:
 ## ArrayDataProvider
 
 `ArrayDataProvider` serves a page from an in-memory collection. Give it the table's resolved
-columns so it can honor the request:
+columns so it can honor the request, and its configured filters so a filtered request is rejected
+instead of silently ignored:
 
 ```php
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
@@ -44,13 +45,19 @@ use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 
 protected function createDataProvider(): ?DataProviderInterface
 {
-    return new ArrayDataProvider($this->rows, $this->createRowMapper(), $this->getResolvedColumns());
+    return new ArrayDataProvider(
+        $this->rows,
+        $this->createRowMapper(),
+        $this->getResolvedColumns(),
+        $this->getConfiguredDataTable()->getFilters(),
+    );
 }
 ```
 
 `getResolvedColumns()` returns the configured columns after static permission filtering — the same
-list the Doctrine provider queries with. The argument is optional: without it the provider still
-pages correctly, but nothing is orderable or searchable.
+list the Doctrine provider queries with. Both arguments are optional: without columns the provider
+still pages correctly, but nothing is orderable or searchable; without filters, filter values in
+the request are ignored, as the Doctrine provider ignores values for unconfigured names.
 
 ### Supported request features
 
@@ -68,7 +75,7 @@ pages correctly, but nothing is orderable or searchable.
     ],
     ['Per-column search', 'Honored, cumulatively: a row must match every active column search.'],
     ['ColumnControl searches', 'Not supported — throws a `LogicException`.'],
-    ['Configured `Filters`', 'Not supported — throws a `LogicException`.'],
+    ['Configured `Filters`', 'Not supported — a value for a configured filter throws a `LogicException`.'],
   ]}
 />
 
