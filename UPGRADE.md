@@ -89,6 +89,14 @@ Exports are unaffected: they drop pagination explicitly and still stream every f
   denied by `setPermission()` are filtered out before the exporter runs, so the exported file no
   longer contains an empty column named after restricted data.
 
+### API Platform frontend adapter
+
+- The API Platform frontend adapter now matches ordering and column searches by column name instead
+  of by display index, so a client-inserted column (the Select extension in `checkbox` mode) no
+  longer sorts or searches on the wrong field. Unresolvable columns are skipped.
+- A failed template rendering request no longer leaves the table spinning: rows are displayed
+  unrendered instead.
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`

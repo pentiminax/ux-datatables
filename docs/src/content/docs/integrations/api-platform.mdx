@@ -82,6 +82,7 @@ Notes:
 
 - Date formatting is handled by the backend payload. The adapter does not reformat date values on the client.
 - When API Platform adapter mode is enabled, `serverSide` is enforced so sorting and filtering stay consistent with API queries.
+- Ordering and column search are matched by column name, so a column inserted by the client (the Select extension in `checkbox` mode) does not shift the fields sent to the API.
 - Filter bar values are flattened into API Platform's own query shape, so each filter needs a matching API Platform filter on the resource:
 
   | Filter type | Query parameters |
