@@ -53,13 +53,34 @@ final class MutationExceptionTest extends TestCase
         yield 'missing entity class' => [
             InvalidDataTableTokenException::missingEntityClass('App\\DataTable\\ProductDataTable'),
             400,
-            'DataTable "App\\DataTable\\ProductDataTable" must define an entity class.',
+            'This DataTable does not support entity mutations.',
         ];
 
         yield 'field not switchable' => [
             InvalidBooleanMutationContextException::fieldNotSwitchable('enabled', 'App\\DataTable\\ProductDataTable'),
             400,
-            'Field "enabled" is not a switchable boolean column on DataTable "App\\DataTable\\ProductDataTable".',
+            'Field "enabled" is not a switchable boolean column.',
         ];
+    }
+
+    /**
+     * The DataTable FQCN belongs in the logs, never in a response the client reads.
+     */
+    #[Test]
+    #[DataProvider('provideExceptionsCarryingADataTableClass')]
+    public function it_hides_the_datatable_class_from_the_client_message(MutationException $exception): void
+    {
+        $this->assertStringContainsString('App\\DataTable\\ProductDataTable', $exception->getMessage());
+        $this->assertStringNotContainsString('App\\', $exception->getClientMessage());
+    }
+
+    /**
+     * @return iterable<string, array{MutationException}>
+     */
+    public static function provideExceptionsCarryingADataTableClass(): iterable
+    {
+        yield 'missing entity class' => [InvalidDataTableTokenException::missingEntityClass('App\\DataTable\\ProductDataTable')];
+
+        yield 'field not switchable' => [InvalidBooleanMutationContextException::fieldNotSwitchable('enabled', 'App\\DataTable\\ProductDataTable')];
     }
 }
