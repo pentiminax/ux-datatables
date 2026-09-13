@@ -223,26 +223,26 @@ return static function (ContainerConfigurator $container): void {
         ->tag('controller.service_arguments')
         ->public();
 
-    $services->set('datatables.detail.row_service', DetailRowService::class)
+    $services->set('datatables.ajax.detail_row_service', DetailRowService::class)
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('twig')->nullOnInvalid())
         ->arg(2, service('datatables.security.authorization_checker'))
         ->private();
 
     $services->set('datatables.controller.ajax_detail', AjaxDetailController::class)
-        ->arg(0, service('datatables.detail.row_service'))
+        ->arg(0, service('datatables.ajax.detail_row_service'))
         ->arg(1, service('datatables.ajax.registry'))
         ->tag('controller.service_arguments')
         ->public();
 
-    $services->set('datatables.rehydration.source_row_resolver', SourceRowResolver::class)
+    $services->set('datatables.ajax.source_row_resolver', SourceRowResolver::class)
         ->arg(0, service('datatables.api_platform.item_resolver')->nullOnInvalid())
         ->private();
 
     $services->set('datatables.controller.ajax_templates', AjaxTemplateRenderController::class)
         ->arg(0, service('datatables.ajax.registry'))
         ->arg(1, service('datatables.runtime.factory'))
-        ->arg(2, service('datatables.rehydration.source_row_resolver'))
+        ->arg(2, service('datatables.ajax.source_row_resolver'))
         ->arg(3, param('datatables.max_page_length'))
         ->tag('controller.service_arguments')
         ->public();
