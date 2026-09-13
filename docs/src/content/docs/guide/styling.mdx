@@ -248,11 +248,13 @@ strategy and with Bootstrap's colour modes without extra configuration.
 
 `ChoiceColumn` badges and `BooleanColumn` switches do not hard-code a single CSS framework. The Stimulus controller resolves a **column style adapter** from the same detected DataTables stylesheet used for the core library:
 
-| Detected framework | Adapter | Badge / switch styling |
-|--------------------|---------|------------------------|
-| `bs`, `bs4`, `bs5` | Bootstrap | `badge text-bg-*`, `form-check form-switch` |
-| `dt` and other non-Bootstrap keys | Tailwind | Utility classes (`bg-green-100`, peer toggle, …) |
-| Any framework, with the Tailwind theme loaded | Tailwind theme | Semantic classes (`dt-badge dt-badge--success`, `dt-switch`) |
+| Detected framework | Registry key | Adapter | Badge / switch styling |
+|--------------------|--------------|---------|------------------------|
+| `bs`, `bs4`, `bs5` | `bs`, `bs4`, `bs5` | Bootstrap | `badge text-bg-*`, `form-check form-switch` |
+| `dt` and other non-Bootstrap keys | `dt` | Tailwind | Utility classes (`bg-green-100`, peer toggle, …) |
+| Any framework, with the Tailwind theme loaded | `tailwind` | Tailwind theme | Semantic classes (`dt-badge dt-badge--success`, `dt-switch`) |
+
+The `tailwind` key is the detected theme rather than a stylesheet framework, and it wins over the framework key when the theme is loaded. DataTables.net ships no badge or switch styles of its own, so `dt` is the non-Bootstrap default rather than a DataTables chrome entry: on plain `dt`, with neither Tailwind compiled nor the [Tailwind theme](#tailwind-theme) enabled, badges and switches render unstyled.
 
 PHP APIs stay framework-agnostic: pass semantic variants such as `success` or `danger` to `renderAsBadges()`. The adapter maps them to the appropriate classes at render time.
 
@@ -278,7 +280,7 @@ PHP APIs stay framework-agnostic: pass semantic variants such as `success` or `d
 | `light` | `bg-gray-50 text-gray-700` |
 | `dark` | `bg-gray-800 text-gray-100` |
 
-The adapter registry is extensible — custom adapters can be registered for other themes later. The edit modal uses a separate adapter system and is not covered by this column chrome layer.
+The adapter registry is extensible: `columnStyleAdapters.register('dt', () => new MyAdapter())` replaces the adapter for any key in the table above, the `tailwind` theme key included. The edit modal uses a separate adapter system and is not covered by this column chrome layer.
 
 ## Troubleshooting
 
