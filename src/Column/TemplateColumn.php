@@ -26,8 +26,8 @@ class TemplateColumn extends AbstractColumn implements TemplateAwareColumnInterf
 
     /**
      * @param array<string, mixed> $parameters Extra Twig variables. Keys `row`, `source`, `payload`,
-     *                                         `data`, `column`, and the deprecated alias `entity`
-     *                                         are reserved and throw when passed.
+     *                                         `data`, `column`, and `entity` are reserved and throw
+     *                                         when passed.
      */
     public function setTemplate(string $template, array $parameters = []): static
     {

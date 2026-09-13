@@ -16,9 +16,8 @@ final class TemplateColumnRenderer
      *
      * `row` is the object passed to mapRow(), `payload` the array it returned.
      *
-     * `entity` is a deprecated alias of `row` for TemplateColumn templates only, and remains
-     * reserved until it is removed. Detail rows and the edit modal expose their own `entity`,
-     * which is neither an alias nor deprecated.
+     * `entity` stays reserved so a template parameter cannot collide with the `entity` variable
+     * exposed by detail rows and the edit modal.
      */
     public const array RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row', 'source', 'payload'];
 
@@ -60,7 +59,6 @@ final class TemplateColumnRenderer
                 'payload' => $payload,
                 'data'    => $data,
                 'column'  => $column->jsonSerialize(),
-                'entity'  => $contextRow,
             ];
 
             foreach ($column->getTemplateParameters() as $key => $value) {
