@@ -15,7 +15,7 @@ class ActionColumn extends AbstractColumn implements ActionsProvidingColumnInter
 
     public static function fromActions(string $name, string $title, Actions $actions): static
     {
-        $instance = new self(
+        $instance = new static(
             name: $name,
             title: '' === $title ? $name : $title,
         );

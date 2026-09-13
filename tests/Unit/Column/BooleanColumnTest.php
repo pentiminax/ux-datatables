@@ -67,4 +67,18 @@ final class BooleanColumnTest extends DataTableTestCase
         $this->assertSame('isActive', $column->getToggleField());
         $this->assertCustomOption('isActive', 'toggleField', $column);
     }
+
+    #[Test]
+    public function it_keeps_the_subclass_type_through_fluent_calls(): void
+    {
+        $column = BooleanColumnSubclassFixture::new('active');
+
+        $this->assertInstanceOf(BooleanColumnSubclassFixture::class, $column->renderAsSwitch());
+        $this->assertInstanceOf(BooleanColumnSubclassFixture::class, $column->setToggleAjax());
+        $this->assertInstanceOf(BooleanColumnSubclassFixture::class, $column->setEntityClass('App\\Entity\\User'));
+    }
+}
+
+final class BooleanColumnSubclassFixture extends BooleanColumn
+{
 }
