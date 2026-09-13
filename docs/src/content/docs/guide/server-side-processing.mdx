@@ -213,9 +213,9 @@ What this means for a search term:
 - Hyphens are required in UUIDs: `018f2c3e12347abc9def0123456789ab` is not recognized.
 
 <Aside type="caution">
-On MySQL and SQLite, where UUIDs are usually stored as text, partial search on these columns worked
-before and no longer does. Add a searchable text column (a slug, a reference number, or a
-`string` copy of the identifier) when users need partial matching.
+On MySQL and SQLite, where UUIDs are usually stored as text, partial search on these columns is not
+supported. Add a searchable text column (a slug, a reference number, or a `string` copy of the
+identifier) when users need partial matching.
 </Aside>
 
 ## Sorting Computed Columns
