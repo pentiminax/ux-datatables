@@ -8,19 +8,5 @@ use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 
 abstract class AbstractExtension implements ExtensionInterface
 {
-    protected bool $enabled = false;
-
     abstract public function getKey(): string;
-
-    public function enabled(bool $enabled = true): static
-    {
-        $this->enabled = $enabled;
-
-        return $this;
-    }
-
-    public function isEnabled(): bool
-    {
-        return $this->enabled;
-    }
 }
