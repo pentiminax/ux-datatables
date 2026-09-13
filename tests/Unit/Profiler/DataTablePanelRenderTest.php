@@ -12,6 +12,8 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Profiler\DataTableCollector;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
@@ -180,8 +182,8 @@ final class DataTablePanelRenderTest extends TestCase
         $table->columns([TextColumn::new('name')]);
         $table->data([['name' => 'Sensitive-Row-Value']]);
         $table->setFilters((new Filters())->add(TextFilter::new('name')));
-        $table->getExtensionsCollection()->addButtonsExtension([ButtonType::CSV]);
-        $table->getExtensionsCollection()->addResponsiveExtension();
+        $table->getExtensionsCollection()->addExtension(new ButtonsExtension([ButtonType::CSV]));
+        $table->getExtensionsCollection()->addExtension(new ResponsiveExtension());
 
         return $table;
     }

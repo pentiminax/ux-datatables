@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
@@ -57,8 +58,8 @@ final class DataTableProfilerTest extends TestCase
     {
         $table = new DataTable('products');
         $table->getExtensionsCollection()
-            ->addButtonsExtension([ButtonType::CSV])
-            ->addSelectExtension(static fn (SelectExtension $extension) => $extension->withCheckbox());
+            ->addExtension(new ButtonsExtension([ButtonType::CSV]))
+            ->addExtension((new SelectExtension())->withCheckbox());
 
         $profiler = new DataTableProfiler();
         $profiler->collectRenderedTable('App\\ProductDataTable', $table);
