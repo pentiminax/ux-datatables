@@ -163,20 +163,12 @@ final class TemplateColumnRendererTest extends TestCase
             ['first_badge' => 'first:A', 'second_badge' => 'second:A|B'],
         ];
 
-        yield 'entity remains a deprecated alias of row' => [
-            ['column.html.twig' => '{{ entity.getStatus() }}'],
-            [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
-            ['id' => 42],
-            new TemplateEntity(id: 42, status: 'verified'),
-            ['id' => 42, 'status_display' => 'verified'],
-        ];
-
         yield 'projected row and original source of a row context' => [
-            ['column.html.twig' => '{{ row.getStatus() }}|{{ source.getStatus() }}|{{ entity.getStatus() }}'],
+            ['column.html.twig' => '{{ row.getStatus() }}|{{ source.getStatus() }}'],
             [TemplateColumn::new('status_display')->setField('status')->setTemplate('column.html.twig')],
             ['id' => 1],
             new RowContext(new TemplateEntity(id: 1, status: 'raw'), new TemplateEntity(id: 1, status: 'projected')),
-            ['id' => 1, 'status_display' => 'projected|raw|projected'],
+            ['id' => 1, 'status_display' => 'projected|raw'],
         ];
 
         yield 'item is not reserved and can be passed as a template parameter' => [
