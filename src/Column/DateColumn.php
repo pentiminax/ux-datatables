@@ -17,7 +17,7 @@ class DateColumn extends AbstractColumn
         return static::createWithType($name, $title, ColumnType::DATE);
     }
 
-    public function setFormat(?string $format): self
+    public function setFormat(?string $format): static
     {
         if (null === $format) {
             unset($this->customOptions[self::OPTION_DATE_FORMAT]);
@@ -38,7 +38,7 @@ class DateColumn extends AbstractColumn
      * the format set through setFormat() irrelevant while this is enabled. Ordering still happens
      * on the underlying field, and defaultContent covers null values.
      */
-    public function relative(bool $relative = true): self
+    public function relative(bool $relative = true): static
     {
         if (!$relative) {
             unset($this->customOptions[self::OPTION_RELATIVE]);
