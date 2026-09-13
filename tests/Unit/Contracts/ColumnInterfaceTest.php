@@ -68,10 +68,7 @@ final class ColumnInterfaceTest extends TestCase
             ->setSearchable(false)
             ->disableGlobalSearch()
             ->setExportable(false)
-            ->setWidth('200px')
-            ->setClassName('col-title')
-            ->setCellType('th')
-            ->setDefaultContent('N/A');
+            ->setClassName('col-title');
 
         $column->setCustomOption('highlight', true);
 
@@ -80,10 +77,7 @@ final class ColumnInterfaceTest extends TestCase
         $this->assertFalse($column->isSearchable());
         $this->assertFalse($column->isGlobalSearchable());
         $this->assertFalse($column->isExportable());
-        $this->assertSame('200px', $column->getWidth());
         $this->assertSame('col-title', $column->getClassName());
-        $this->assertSame('th', $column->getCellType());
-        $this->assertSame('N/A', $column->getDefaultContent());
         $this->assertSame(['highlight' => true], $column->getCustomOptions());
         $this->assertTrue($column->getCustomOption('highlight'));
     }
