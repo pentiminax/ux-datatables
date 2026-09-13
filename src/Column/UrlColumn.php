@@ -134,8 +134,9 @@ class UrlColumn extends AbstractColumn
 
     /**
      * By default, a row with no resolvable URL renders as plain (escaped) text instead of an
-     * `<a>` tag, since a href-less anchor has no accessible name/purpose. Opt back into the
-     * old always-render-an-anchor behavior with `renderEmptyAsAnchor(true)`.
+     * `<a>` tag, since a href-less anchor has no accessible name/purpose.
+     * `renderEmptyAsAnchor(true)` renders the `<a>` tag anyway, for stylesheets or scripts that
+     * expect one in every cell.
      */
     public function renderEmptyAsAnchor(bool $render = true): static
     {
