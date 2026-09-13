@@ -51,7 +51,7 @@ final class MoneyColumnTest extends DataTableTestCase
     public static function provideCustomOptions(): iterable
     {
         yield 'currency is uppercased' => ['currency', 'usd', 'currency', 'USD'];
-        yield 'currency via setter' => ['setCurrency', 'GBP', 'currency', 'GBP'];
+        yield 'currency already uppercase' => ['currency', 'GBP', 'currency', 'GBP'];
         yield 'stored as units' => ['storedAsCents', false, 'storedAsCents', false];
         yield 'decimals' => ['decimals', 0, 'decimals', 0];
         yield 'currency sign shown' => ['showCurrencySign', true, 'showCurrencySign', true];
