@@ -314,12 +314,11 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('datatables.column.resolver'))
         ->arg(1, service('datatables.rendering.preparer'))
         ->arg(2, service('datatables.runtime.factory'))
-        ->arg(3, service('datatables.query.intent_factory'))
-        ->arg(4, service('datatables.query.filter_pipeline'))
-        ->arg(5, param('datatables.options'))
-        ->arg(6, param('datatables.table_attributes'))
-        ->arg(7, param('datatables.extensions'))
-        ->arg(8, service('datatables.profiler')->nullOnInvalid())
+        ->arg(3, service('datatables.query.filter_pipeline'))
+        ->arg(4, param('datatables.options'))
+        ->arg(5, param('datatables.table_attributes'))
+        ->arg(6, param('datatables.extensions'))
+        ->arg(7, service('datatables.profiler')->nullOnInvalid())
         ->private();
 
     $services->alias(DataTableInfrastructure::class, 'datatables.infrastructure')
