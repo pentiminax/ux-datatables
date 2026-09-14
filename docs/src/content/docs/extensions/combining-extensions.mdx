@@ -11,14 +11,11 @@ navTitle: Combining Extensions
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
-use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
-use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
-use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 
 $dataTable
-    ->addExtension(new ButtonsExtension([ButtonType::CSV, ButtonType::EXCEL]))
-    ->addExtension(new SelectExtension(SelectStyle::MULTI))
-    ->addExtension(new ResponsiveExtension())
+    ->buttons([ButtonType::CSV, ButtonType::EXCEL])
+    ->select(SelectStyle::MULTI)
+    ->responsive()
     ->layout([
         'topStart' => Feature::BUTTONS,
         'topEnd' => Feature::SEARCH,

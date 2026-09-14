@@ -279,9 +279,16 @@ Six undocumented helpers duplicated `DataTable::buttons()`/`responsive()`/`colum
 | `Model\DataTableExtensions::addButtonsExtension()` | `DataTable::buttons()` |
 | `Model\DataTableExtensions::addResponsiveExtension()` | `DataTable::responsive()` |
 | `Model\DataTableExtensions::addColumnControlExtension()` | `DataTable::columnControl()` |
-| `Model\DataTableExtensions::addSelectExtension()` | `addExtension(new SelectExtension())` |
-| `Model\DataTableExtensions::addKeyTableExtension()` | `addExtension(new KeyTableExtension())` |
-| `Model\DataTableExtensions::addScrollerExtension()` | `addExtension(new ScrollerExtension())` |
+| `Model\DataTableExtensions::addSelectExtension()` | `DataTable::select()` |
+| `Model\DataTableExtensions::addKeyTableExtension()` | `DataTable::keyTable()` |
+| `Model\DataTableExtensions::addScrollerExtension()` | `DataTable::scroller()` |
+
+`DataTable` now carries a shortcut for every bundled extension: `select()`, `keyTable()`,
+`scroller()`, `colReorder()`, `fixedColumns()`, `fixedHeader()` and `rowGroup()` join the existing
+`buttons()`, `responsive()` and `columnControl()`. Each mirrors the parameter names and defaults of
+the matching extension constructor, so extensions are configurable with named arguments straight
+from `configureDataTable()`. `responsive()` gained the `ResponsiveExtension` constructor parameters;
+calling it without arguments is unchanged, and `addExtension(new XExtension(...))` keeps working.
 
 ## v0.84 → v0.85
 
