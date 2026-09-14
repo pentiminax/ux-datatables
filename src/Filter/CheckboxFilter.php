@@ -11,7 +11,7 @@ use Doctrine\ORM\QueryBuilder;
  *
  * The closure runs only when the checkbox is checked (truthy submitted value).
  */
-final class Filter extends AbstractFilter
+final class CheckboxFilter extends AbstractFilter
 {
     protected function getType(): string
     {

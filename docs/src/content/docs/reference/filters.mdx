@@ -19,7 +19,7 @@ Doctrine condition server-side.
 
 ```php
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Filter\{ChoiceFilter, DateRangeFilter, Filter, TernaryFilter, TextFilter};
+use Pentiminax\UX\DataTables\Filter\{CheckboxFilter, ChoiceFilter, DateRangeFilter, TernaryFilter, TextFilter};
 use Pentiminax\UX\DataTables\Model\Filters;
 
 public function configureFilters(Filters $filters): Filters
@@ -38,7 +38,7 @@ public function configureFilters(Filters $filters): Filters
     $createdAtFilter = DateRangeFilter::new('createdAt')
         ->label('Created');
 
-    $vipFilter = Filter::new('vip')
+    $vipFilter = CheckboxFilter::new('vip')
         ->label('VIP only')
         ->query(
             fn (QueryBuilder $qb, mixed $value, string $alias) => $qb->andWhere("$alias.score > :vip")->setParameter('vip', 100)
@@ -111,12 +111,12 @@ time-bearing `to`, and any `to` on a date column, stay inclusive (`<=`).
 DateRangeFilter::new('createdAt')->label('Created');
 ```
 
-### Filter (generic)
+### CheckboxFilter (generic)
 
 A checkbox driven entirely by a `query()` closure, executed only when checked.
 
 ```php
-Filter::new('vip')->query(
+CheckboxFilter::new('vip')->query(
     fn (QueryBuilder $qb, mixed $value, string $alias) =>
         $qb->andWhere("$alias.score > :vip")->setParameter('vip', 100)
 );
