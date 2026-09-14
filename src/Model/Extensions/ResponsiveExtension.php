@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model\Extensions;
 
-class ResponsiveExtension extends AbstractExtension
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
+
+class ResponsiveExtension implements ExtensionInterface
 {
     /**
      * @param list<array{name: string, width: int}>|null $breakpoints   omitted when null, so DataTables

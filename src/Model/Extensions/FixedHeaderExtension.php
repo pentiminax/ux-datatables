@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model\Extensions;
 
-final class FixedHeaderExtension extends AbstractExtension
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
+
+final class FixedHeaderExtension implements ExtensionInterface
 {
     public function __construct(
         private readonly bool $header = true,

@@ -10,18 +10,11 @@ namespace Pentiminax\UX\DataTables\Contracts;
  *
  * getKey() is the extension's stable identifier (`buttons`, `select`, ...) and must be unique
  * within one table: DataTableExtensions indexes on it. jsonSerialize() must return only what the
- * client understands for that key, and enabled(false) must keep the extension out of the payload
- * rather than shipping an inert entry.
+ * client understands for that key. An extension is active as soon as it is declared.
  *
- * Extend {@see \Pentiminax\UX\DataTables\Model\Extensions\AbstractExtension} for the
- * enabled-flag plumbing. Tables declare extensions in
- * AbstractDataTable::configureExtensions(); there is no service tag.
+ * Tables declare extensions in AbstractDataTable::configureExtensions(); there is no service tag.
  */
 interface ExtensionInterface extends \JsonSerializable
 {
     public function getKey(): string;
-
-    public function enabled(bool $enabled = true): static;
-
-    public function isEnabled(): bool;
 }

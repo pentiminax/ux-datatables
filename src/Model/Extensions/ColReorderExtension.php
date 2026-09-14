@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model\Extensions;
 
-class ColReorderExtension extends AbstractExtension
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
+
+class ColReorderExtension implements ExtensionInterface
 {
     /**
      * @param string|list<int> $columns    column selector restricting which columns end users can

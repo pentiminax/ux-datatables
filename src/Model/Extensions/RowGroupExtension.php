@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model\Extensions;
 
-final class RowGroupExtension extends AbstractExtension
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
+
+final class RowGroupExtension implements ExtensionInterface
 {
     /**
      * @param int|string|list<int|string> $dataSrc
