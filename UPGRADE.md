@@ -205,6 +205,14 @@ the resource to keep template columns, detail actions and URL columns rendering.
 | `Ajax\SourceRowResolver::__construct()` | `?ApiPlatform\ApiPlatformItemResolver $itemResolver = null` replaces `RowIdentifierExtractor` and `ManagerRegistry` |
 | `Controller\AjaxTemplateRenderController::__construct()` | an `int $maxRows` is appended after `$sourceRowResolver` |
 
+### `entity` Twig variable removed from `TemplateColumn` templates
+
+The alias was the last `@deprecated` symbol in the bundle, announced since v0.81.
+
+| Removed | Replacement |
+| --- | --- |
+| `entity` Twig variable in `TemplateColumn` templates | `row` (`entity` stays a reserved context key, and the unrelated `entity` used by detail rows and the edit modal is untouched) |
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
