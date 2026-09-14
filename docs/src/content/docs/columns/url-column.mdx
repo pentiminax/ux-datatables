@@ -41,8 +41,8 @@ This also applies to `linkToRoute()`/`linkToUrl()`: when the resolver returns no
 particular row, that row falls back to plain text too — the cell's own value (e.g. a name) is
 never substituted in as a fake `href`, since it isn't a URL at all.
 
-If a use case genuinely needs the old always-render-an-anchor behavior, opt back in with
-`renderEmptyAsAnchor()`:
+When a stylesheet or a script expects an `<a>` tag in every cell, `renderEmptyAsAnchor()` renders
+one anyway:
 
 ```php
 UrlColumn::new('website', 'Website')
