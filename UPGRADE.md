@@ -269,6 +269,20 @@ data_tables:
     class: 'table table-striped'
 ```
 
+### `DataTableExtensions::add*Extension()` helpers removed
+
+Six undocumented helpers duplicated `DataTable::buttons()`/`responsive()`/`columnControl()` and
+`addExtension(new XExtension())` for the rest.
+
+| Removed | Replacement |
+| --- | --- |
+| `Model\DataTableExtensions::addButtonsExtension()` | `DataTable::buttons()` |
+| `Model\DataTableExtensions::addResponsiveExtension()` | `DataTable::responsive()` |
+| `Model\DataTableExtensions::addColumnControlExtension()` | `DataTable::columnControl()` |
+| `Model\DataTableExtensions::addSelectExtension()` | `addExtension(new SelectExtension())` |
+| `Model\DataTableExtensions::addKeyTableExtension()` | `addExtension(new KeyTableExtension())` |
+| `Model\DataTableExtensions::addScrollerExtension()` | `addExtension(new ScrollerExtension())` |
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
