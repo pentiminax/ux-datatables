@@ -224,6 +224,17 @@ Four redundant setters duplicated the fluent names.
 | `Column\MoneyColumn::setStoredAsCents()` | `storedAsCents()` |
 | `Column\MoneyColumn::setShowCurrencySign()` | `showCurrencySign()` |
 
+### `ExtensionInterface::enabled()`/`isEnabled()` and `AbstractExtension` removed
+
+| Removed | Replacement |
+| --- | --- |
+| `Contracts\ExtensionInterface::enabled()` and `::isEnabled()` | none, extensions are always active once declared |
+| `Model\Extensions\AbstractExtension` | `implements ExtensionInterface` directly; the class only re-declared `getKey()`, which the interface already requires |
+
+The flag behind `ExtensionInterface::enabled()` was never read: `DataTableExtensions::jsonSerialize()`
+omits only the buttons extension, so `enabled(false)` never kept anything out of the payload, and
+`isEnabled()` reported `false` for extensions that were fully active.
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`

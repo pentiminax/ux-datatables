@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model\Extensions;
 
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 
-final class ButtonsExtension extends AbstractExtension
+final class ButtonsExtension implements ExtensionInterface
 {
     /** @var Button[] */
     private array $buttons = [];
