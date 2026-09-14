@@ -290,6 +290,12 @@ the matching extension constructor, so extensions are configurable with named ar
 from `configureDataTable()`. `responsive()` gained the `ResponsiveExtension` constructor parameters;
 calling it without arguments is unchanged, and `addExtension(new XExtension(...))` keeps working.
 
+### `BaseColumnData` (TypeScript) removed
+
+| Removed | Replacement |
+| --- | --- |
+| `BaseColumnData` (TypeScript) | none, it was exported but never used or re-exported |
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
