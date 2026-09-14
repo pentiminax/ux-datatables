@@ -41,7 +41,7 @@ class ChoiceColumn extends AbstractColumn
      *
      * @param array<string|int, string|int>|list<\BackedEnum>|class-string<\BackedEnum> $choices
      */
-    public function setChoices(array|string $choices): self
+    public function setChoices(array|string $choices): static
     {
         if (\is_string($choices)) {
             if (!is_a($choices, \BackedEnum::class, true)) {
@@ -74,7 +74,7 @@ class ChoiceColumn extends AbstractColumn
      *
      * @param array<string, string>|bool $badgeSelector Per-value variant map, `true` to enable with defaults, or `false` to disable
      */
-    public function renderAsBadges(array|bool $badgeSelector = [], string $defaultVariant = 'secondary'): self
+    public function renderAsBadges(array|bool $badgeSelector = [], string $defaultVariant = 'secondary'): static
     {
         if (false === $badgeSelector) {
             $this->setCustomOption(self::OPTION_RENDER_AS_BADGES, null);

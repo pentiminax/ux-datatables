@@ -68,4 +68,17 @@ final class DateColumnTest extends DataTableTestCase
         $this->assertSame('d/m/Y', $column->getFormat());
         $this->assertCustomOptions(['dateFormat' => 'd/m/Y'], $column);
     }
+
+    #[Test]
+    public function it_keeps_the_subclass_type_through_fluent_calls(): void
+    {
+        $column = DateColumnSubclassFixture::new('lastLoginAt');
+
+        $this->assertInstanceOf(DateColumnSubclassFixture::class, $column->setFormat('d/m/Y'));
+        $this->assertInstanceOf(DateColumnSubclassFixture::class, $column->relative());
+    }
+}
+
+final class DateColumnSubclassFixture extends DateColumn
+{
 }

@@ -26,7 +26,7 @@ class BooleanColumn extends AbstractColumn
      * The Stimulus controller renders a Bootstrap 5 form switch or a Tailwind
      * toggle according to the detected DataTables style framework.
      */
-    public function renderAsSwitch(bool $defaultState = false): self
+    public function renderAsSwitch(bool $defaultState = false): static
     {
         $this->setCustomOption(self::OPTION_RENDER_AS_SWITCH, true);
         $this->setCustomOption(self::OPTION_DEFAULT_STATE, $defaultState);
@@ -34,7 +34,7 @@ class BooleanColumn extends AbstractColumn
         return $this;
     }
 
-    public function setToggleAjax(string $idField = 'id', string $method = 'PATCH'): self
+    public function setToggleAjax(string $idField = 'id', string $method = 'PATCH'): static
     {
         $this->setCustomOption(self::OPTION_TOGGLE_ID_FIELD, $idField);
         $this->setCustomOption(self::OPTION_TOGGLE_METHOD, strtoupper($method));
@@ -42,7 +42,7 @@ class BooleanColumn extends AbstractColumn
         return $this;
     }
 
-    public function setEntityClass(string $entityClass): self
+    public function setEntityClass(string $entityClass): static
     {
         $this->setCustomOption(self::OPTION_ENTITY_CLASS, ltrim($entityClass, '\\'));
 
