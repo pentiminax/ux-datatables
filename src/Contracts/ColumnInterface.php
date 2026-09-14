@@ -55,13 +55,7 @@ interface ColumnInterface extends \JsonSerializable
 
     public function isExportable(): bool;
 
-    public function getWidth(): ?string;
-
     public function getClassName(): ?string;
-
-    public function getCellType(): ?string;
-
-    public function getDefaultContent(): ?string;
 
     public function getCustomOption(string $optionName): mixed;
 

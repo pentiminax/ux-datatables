@@ -334,6 +334,12 @@ stored on the resulting object.
 | --- | --- |
 | `DataTableInfrastructure::$queryIntentFactory` | none -- construct your own `DefaultDataTableQueryIntentFactory` where you need one |
 
+### `ColumnInterface` narrowed to the getters the bundle consumes
+
+| Removed | Replacement |
+| --- | --- |
+| `Contracts\ColumnInterface::getWidth()`, `::getCellType()`, `::getDefaultContent()` | none on the interface; `AbstractColumn` keeps both the setters and the getters, and all three still serialize into the client payload |
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
