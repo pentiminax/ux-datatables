@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformItemResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
@@ -36,7 +37,6 @@ use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
-use Pentiminax\UX\DataTables\Ajax\SourceRowResolver;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
@@ -235,15 +235,14 @@ return static function (ContainerConfigurator $container): void {
         ->tag('controller.service_arguments')
         ->public();
 
-    $services->set('datatables.ajax.source_row_resolver', SourceRowResolver::class)
-        ->arg(0, service('datatables.api_platform.item_resolver')->nullOnInvalid())
-        ->private();
-
     $services->set('datatables.controller.ajax_templates', AjaxTemplateRenderController::class)
         ->arg(0, service('datatables.ajax.registry'))
         ->arg(1, service('datatables.runtime.factory'))
-        ->arg(2, service('datatables.ajax.source_row_resolver'))
-        ->arg(3, param('datatables.max_page_length'))
+        ->arg(2, service('http_kernel'))
+        ->arg(3, service('request_stack'))
+        ->arg(4, service(ApiResourceCollectionUrlResolver::class)->nullOnInvalid())
+        ->arg(5, service(ApiPlatformItemResolver::class)->nullOnInvalid())
+        ->arg(6, param('datatables.max_page_length'))
         ->tag('controller.service_arguments')
         ->public();
 

@@ -138,7 +138,7 @@ export class ApiPlatformAdapter {
                 data: [],
             };
         }
-        return this.renderTemplateRows(this.buildResponse(parsedPayload, draw), templateRendering);
+        return this.renderTemplateRows(this.buildResponse(parsedPayload, draw), templateRendering, new URLSearchParams(queryParams).toString());
     }
     withDefaultColumnContent(columns) {
         if (!Array.isArray(columns)) {
@@ -171,8 +171,8 @@ export class ApiPlatformAdapter {
         requestInit.body = query;
         return fetch(url, requestInit).then((response) => response.text());
     }
-    async renderTemplateRows(response, templateRendering) {
-        if (response.data.length === 0) {
+    async renderTemplateRows(response, templateRendering, query = '') {
+        if (response.data.length === 0 || query === '') {
             return response;
         }
         let renderedResponse;
@@ -180,7 +180,8 @@ export class ApiPlatformAdapter {
             renderedResponse = await fetch(templateRendering.url, {
                 body: JSON.stringify({
                     table: templateRendering.table,
-                    rows: response.data,
+                    draw: response.draw,
+                    query,
                 }),
                 credentials: 'same-origin',
                 headers: {
@@ -205,12 +206,14 @@ export class ApiPlatformAdapter {
             console.warn('Template rendering returned an unreadable body. Rows are displayed unrendered.', error);
             return response;
         }
-        const data = isRecord(renderedPayload) && Array.isArray(renderedPayload.data)
-            ? renderedPayload.data
-            : response.data;
+        if (!isRecord(renderedPayload) || !Array.isArray(renderedPayload.data)) {
+            return response;
+        }
         return {
-            ...response,
-            data,
+            draw: toCount(renderedPayload.draw),
+            recordsTotal: toCount(renderedPayload.recordsTotal),
+            recordsFiltered: toCount(renderedPayload.recordsFiltered),
+            data: renderedPayload.data,
         };
     }
     resolveTemplateRenderingConfig(value) {

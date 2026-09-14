@@ -96,6 +96,10 @@ Exports are unaffected: they drop pagination explicitly and still stream every f
   longer sorts or searches on the wrong field. Unresolvable columns are skipped.
 - A failed template rendering request no longer leaves the table spinning: rows are displayed
   unrendered instead.
+- Template-enabled API Platform tables now post `{ table, draw, query }` to
+  `/datatables/ajax/templates`. The endpoint no longer accepts or trusts client-provided rows. It
+  repeats the collection GET as a subrequest, maps the entities loaded by API Platform and returns
+  the complete DataTables response. This replaces N item-provider calls with one collection call.
 
 ### Secured API Platform properties are no longer auto-detected
 
@@ -182,23 +186,24 @@ returns `false` from `isSearchNormalized()`.
 
 ### Template rendering is authorized by API Platform
 
-`/datatables/ajax/templates` used to rehydrate the rows posted by the browser with an unscoped
-`findBy()` on their identifiers, so any authenticated user could obtain the rendered
-`TemplateColumn` output, action URLs and link targets of every entity of the class. The route now
-rehydrates each row through the resource's API Platform `Get` operation, which applies the same
-state provider, Doctrine item extensions and `security` expression as `GET /resource/{id}`.
-Rows carrying only `id` first generate an IRI for that operation, so API Platform applies its URI
-variable transformers before calling the state provider.
+`/datatables/ajax/templates` now accepts the API Platform collection query instead of serialized
+rows. It resolves the collection URL from metadata and runs a GET subrequest through API Platform's
+normal provider, filter, pagination, eager-loading and collection-security chain. The loaded page
+is available to the row pipeline without an item query per row.
+
+The `Get` operation's item `security` expression is still evaluated for each loaded entity, in
+memory. A denied entity keeps the serialized collection data the browser was already allowed to
+read, but templates, actions and URLs are not rendered for it.
 
 | Behavior | Before | After |
 | --- | --- | --- |
-| Row rehydration | Unscoped Doctrine `findBy()` on the posted identifiers | API Platform `Get` item provider, including its `security` expression |
-| Row API Platform does not serve | Templates rendered against the client-supplied array | Returned exactly as posted, unrendered |
-| Number of posted rows | Unbounded | Capped at `data_tables.max_page_length`, beyond which the route returns 400 |
+| Template request body | `{ table, rows }` | `{ table, draw, query }` |
+| Data loading | One item-provider call per posted row | One API Platform collection subrequest |
+| Item security | Evaluated while loading every item | Evaluated in memory on the loaded entities |
+| Page bound | Number of posted rows | `itemsPerPage` capped at `data_tables.max_page_length` |
 
-A resource without a `Get` operation, or an application without API Platform, resolves no row at
-all: every row comes back unrendered instead of being loaded unscoped. Declare a `Get` operation on
-the resource to keep template columns, detail actions and URL columns rendering.
+A resource without a `Get` operation renders no template, action or URL output because item
+security cannot be evaluated. Declare a `Get` operation to enable that output.
 
 | Removed | Replacement |
 | --- | --- |
@@ -206,8 +211,9 @@ the resource to keep template columns, detail actions and URL columns rendering.
 
 | Changed | New signature |
 | --- | --- |
-| `Ajax\SourceRowResolver::__construct()` | `?ApiPlatform\ApiPlatformItemResolver $itemResolver = null` replaces `RowIdentifierExtractor` and `ManagerRegistry` |
-| `Controller\AjaxTemplateRenderController::__construct()` | an `int $maxRows` is appended after `$sourceRowResolver` |
+| `Controller\AjaxTemplateRenderController::__construct()` | `HttpKernelInterface`, `RequestStack`, `ApiResourceCollectionUrlResolver` and `ApiPlatformItemResolver` replace `SourceRowResolver` before `$maxRows` |
+
+`Ajax\SourceRowResolver` and its private `datatables.ajax.source_row_resolver` service are removed.
 
 ### `entity` Twig variable removed from `TemplateColumn` templates
 
@@ -908,9 +914,8 @@ Collapsible detail rows (`Action::collapsible()`) and edit modals also expose an
 variable. That one is unrelated to `TemplateColumn`, is not an alias, and is not deprecated — leave
 those templates alone.
 
-Do not branch on `payload` for authorization or visibility. On the API Platform render route the
-rows are posted by the browser, so `payload` is client-controlled input; read `row` or `source`
-instead.
+Do not branch on `payload` for authorization or visibility. It contains the serialized collection
+row, while `row` and `source` contain the loaded entity. Use `row` or `source` for access decisions.
 
 ### Reserved `TemplateColumn` template parameters now throw
 

@@ -20,18 +20,16 @@ use Symfony\Component\Routing\Exception\ExceptionInterface as RoutingException;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
- * Rehydrates a client-supplied row through API Platform's item pipeline.
+ * Resolves legacy row identifiers and checks item-operation security for loaded entities.
  *
- * The row is only a set of identifiers sent back by the browser, so it carries no
- * authorization of its own. Going through the `Get` operation applies the very same
- * rules as `GET /resource/{id}`: the operation's state provider with its Doctrine
- * extensions (tenant scoping, filtered query builders) and its `security` expression.
- * Anything API Platform would not serve resolves to null.
+ * resolve() keeps the identifier-based behavior for callers that need API Platform's item
+ * provider. isGranted() evaluates the matched `Get` operation against an entity already loaded
+ * by the collection provider and performs no item fetch.
  *
- * A resource may declare several item operations for different audiences. A row posted with
+ * A resource may declare several item operations for different audiences. A serialized row with
  * an `@id` is matched through the router to the operation that IRI serves, exactly as the IRI
- * converter does, and only that operation's `security` is evaluated. A row posted with a bare
- * `id` goes through the first `Get` of the resource.
+ * converter does, and only that operation's `security` is evaluated. A row with a bare `id` goes
+ * through the first `Get` of the resource.
  *
  * Not final: doubled in tests, like ColumnAutoDetector.
  */
@@ -71,15 +69,45 @@ class ApiPlatformItemResolver
             return null;
         }
 
+        return $this->isOperationGranted($resourceClass, $item, $operation) ? $item : null;
+    }
+
+    /**
+     * @param array<array-key, mixed> $row
+     */
+    public function isGranted(string $resourceClass, object $item, array $row): bool
+    {
+        if (!$item instanceof $resourceClass) {
+            return false;
+        }
+
+        try {
+            $metadataCollection = $this->resourceMetadataFactory->create($resourceClass);
+        } catch (ResourceClassNotFoundException) {
+            return false;
+        }
+
+        $iri = $this->resolveIri($resourceClass, $row, $metadataCollection);
+        if (null === $iri) {
+            return false;
+        }
+
+        $operation = $this->matchIriOperation($iri, $resourceClass, $metadataCollection);
+
+        return null !== $operation && $this->isOperationGranted($resourceClass, $item, $operation);
+    }
+
+    private function isOperationGranted(string $resourceClass, object $item, Operation $operation): bool
+    {
         $expression = $operation->getSecurity();
 
         if (null === $expression) {
-            return $item;
+            return true;
         }
 
         // Fail closed: the operation guards its items with an expression we cannot evaluate.
         if (null === $this->accessChecker) {
-            return null;
+            return false;
         }
 
         $granted = $this->accessChecker->isGranted($resourceClass, $expression, [
@@ -88,7 +116,7 @@ class ApiPlatformItemResolver
             'request'         => $this->requestStack?->getCurrentRequest(),
         ]);
 
-        return $granted ? $item : null;
+        return $granted;
     }
 
     private function fetchByIri(string $iri): ?object
