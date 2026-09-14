@@ -16,7 +16,6 @@ final class DataTableInfrastructure
         public readonly ColumnResolver $columnResolver,
         public readonly RenderingPreparer $renderingPreparer,
         public readonly DataTableRuntimeFactory $runtimeFactory,
-        public readonly DefaultDataTableQueryIntentFactory $queryIntentFactory,
         public readonly QueryFilterPipeline $queryFilterPipeline,
         public readonly array $options = [],
         public readonly array $attributes = [],
@@ -36,14 +35,13 @@ final class DataTableInfrastructure
         array $extensions = [],
         ?DataTableProfiler $profiler = null,
     ): self {
-        $queryIntentFactory ??= new DefaultDataTableQueryIntentFactory();
+        $queryFilterPipeline ??= new QueryFilterPipeline($queryIntentFactory ?? new DefaultDataTableQueryIntentFactory());
 
         return new self(
             columnResolver: $columnResolver       ?? new ColumnResolver(),
             renderingPreparer: $renderingPreparer ?? new RenderingPreparer(),
             runtimeFactory: $runtimeFactory       ?? new DataTableRuntimeFactory(),
-            queryIntentFactory: $queryIntentFactory,
-            queryFilterPipeline: $queryFilterPipeline ?? new QueryFilterPipeline($queryIntentFactory),
+            queryFilterPipeline: $queryFilterPipeline,
             options: $options,
             attributes: $attributes,
             extensions: $extensions,
