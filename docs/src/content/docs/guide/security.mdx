@@ -113,12 +113,11 @@ An action with no `setPermission()` call never triggers a `DT_EXECUTE_ACTION` vo
 visibility is entirely up to `Action::displayIf()` or the action column's own permission, not a
 security decision.
 
-<Aside type="caution" title="Migrating from Action::detail()->setPermission() alone">
-  Before this row-permission hardening, a collapsible detail action relied solely on
-  `Action::detail()->setPermission(...)`. `Permission::DT_VIEW_ROW_DETAILS` is now **always**
-  required on top of it, with no fallback. If your application has no voter supporting
-  `DT_VIEW_ROW_DETAILS` on the entity, every detail request now responds `403`. Register a voter for
-  it (see [Writing a voter](#writing-a-voter) below) before upgrading.
+<Aside type="caution" title="Detail rows always require DT_VIEW_ROW_DETAILS">
+  `Permission::DT_VIEW_ROW_DETAILS` is required on top of any
+  `Action::detail()->setPermission(...)` you declare, with no fallback. Without a voter supporting
+  `DT_VIEW_ROW_DETAILS` on the entity, every detail request responds `403`. Register one (see
+  [Writing a voter](#writing-a-voter) below).
 </Aside>
 
 ### What a per-row `setPermission()` resolver receives
@@ -264,24 +263,6 @@ DataTables' "show all" (`length=-1`) is honored only when the table declares `-1
 from running out of memory on a large table.
 
 See [`max_page_length`](/guide/configuration/#max_page_length) to change the bound.
-
-## Migrating from the legacy permission API
-
-UX DataTables no longer ships `PermissionChecker` and no longer falls back to the old implicit row
-attributes. Update application code and tests as follows:
-
-<Table
-  headers={['Before', 'After']}
-  rows={[
-    ['`PermissionChecker`', '`AuthorizationChecker`'],
-    ["`'EDIT'`", '`Permission::DT_EDIT_ROW`'],
-    ["`'DELETE'`", '`Permission::DT_DELETE_ROW`'],
-    ["`'VIEW'`", '`Permission::DT_VIEW_ROW_DETAILS`'],
-  ]}
-/>
-
-There is no compatibility alias for the old class or the old row attributes. Import
-`Pentiminax\UX\DataTables\Security\Permission` in voters and tests that need these attributes.
 
 ## Related
 
