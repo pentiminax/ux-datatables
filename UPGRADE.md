@@ -235,6 +235,12 @@ The flag behind `ExtensionInterface::enabled()` was never read: `DataTableExtens
 omits only the buttons extension, so `enabled(false)` never kept anything out of the payload, and
 `isEnabled()` reported `false` for extensions that were fully active.
 
+### Fluent methods on non-final columns return `static`
+
+Fluent methods on the non-final columns (`BooleanColumn`, `ChoiceColumn`, `DateColumn`,
+`ActionColumn::fromActions()`) now return `static` instead of `self`, so a subclass keeps its own
+type through a chain; code that re-narrowed the type by hand can drop the cast.
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
