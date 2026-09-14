@@ -269,7 +269,7 @@ abstract class AbstractDataTable
      * Declare user-facing filters rendered above the table.
      *
      * Override to add TextFilter, ChoiceFilter, TernaryFilter, DateRangeFilter
-     * or a generic Filter with a query() closure.
+     * or a generic CheckboxFilter with a query() closure.
      */
     public function configureFilters(Filters $filters): Filters
     {

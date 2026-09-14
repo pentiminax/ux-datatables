@@ -241,6 +241,16 @@ Fluent methods on the non-final columns (`BooleanColumn`, `ChoiceColumn`, `DateC
 `ActionColumn::fromActions()`) now return `static` instead of `self`, so a subclass keeps its own
 type through a chain; code that re-narrowed the type by hand can drop the cast.
 
+### `Filter` is renamed to `CheckboxFilter`
+
+The generic, query()-driven checkbox filter was named `Filter`, the same word as the `FilterInterface`
+contract and the `Filter\` namespace it lives in. It is renamed to match its sibling filter types
+(`TextFilter`, `ChoiceFilter`, `TernaryFilter`, `DateRangeFilter`).
+
+| Removed | Replacement |
+| --- | --- |
+| `Filter\Filter` | `Filter\CheckboxFilter` |
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`

@@ -4,7 +4,7 @@ Declarative filter popover (server-side Doctrine only). Declare filters in `conf
 
 ```php
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Filter\{DateRangeFilter, Filter, ChoiceFilter, TernaryFilter, TextFilter};
+use Pentiminax\UX\DataTables\Filter\{CheckboxFilter, DateRangeFilter, ChoiceFilter, TernaryFilter, TextFilter};
 use Pentiminax\UX\DataTables\Model\Filters;
 
 public function configureFilters(Filters $filters): Filters
@@ -14,7 +14,7 @@ public function configureFilters(Filters $filters): Filters
         ->add(ChoiceFilter::new('status')->options(['Draft' => 'draft', 'Published' => 'published']))
         ->add(TernaryFilter::new('verified')->field('emailVerifiedAt')->trueLabel('Verified')->falseLabel('Not verified'))
         ->add(DateRangeFilter::new('createdAt'))
-        ->add(Filter::new('vip')->query(
+        ->add(CheckboxFilter::new('vip')->query(
             fn (QueryBuilder $qb, mixed $value, string $alias) =>
                 $qb->andWhere("$alias.score > :vip")->setParameter('vip', 100)
         ));
@@ -36,7 +36,7 @@ public function configureFilters(Filters $filters): Filters
 | `ChoiceFilter` | select (`multiple()` for multi) | `field = value` / `field IN (...)`; `options()` accepts `[label => value]`, enum cases, or enum class-string |
 | `TernaryFilter` | all/true/false select | `field IS [NOT] NULL`; `values($true, $false)` to compare concrete values |
 | `DateRangeFilter` | two date inputs | `field >= from`; date-only `to` on datetime is `< next midnight`, otherwise `field <= to` (each bound optional) |
-| `Filter` | checkbox | none — requires `query()`, runs only when checked |
+| `CheckboxFilter` | checkbox | none — requires `query()`, runs only when checked |
 
 ## Flow
 
