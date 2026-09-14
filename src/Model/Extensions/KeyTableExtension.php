@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model\Extensions;
 
-class KeyTableExtension extends AbstractExtension
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
+
+class KeyTableExtension implements ExtensionInterface
 {
     /**
      * @param array{0: int, 1: int}|null $focus a [row, column] pair to focus on load, or null for none

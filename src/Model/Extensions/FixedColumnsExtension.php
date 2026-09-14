@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model\Extensions;
 
-class FixedColumnsExtension extends AbstractExtension
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
+
+class FixedColumnsExtension implements ExtensionInterface
 {
     public function __construct(
         private readonly int $start = 1,
