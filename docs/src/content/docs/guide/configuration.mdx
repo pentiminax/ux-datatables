@@ -26,7 +26,7 @@ data_tables:
       firstLast: true
       numbers: true
       previousNext: true
-  template_parameters:
+  table_attributes:
     class: 'table'
   extensions:
     buttons: [csv, excel, pdf, print]
@@ -192,13 +192,13 @@ data_tables:
 Override it per table with `$table->paging(...)`, or disable pagination entirely with
 `$table->withoutPaging()`.
 
-## Template Parameters
+## Table Attributes
 
 Default HTML attributes for the generated `<table>` element:
 
 ```yaml
 data_tables:
-  template_parameters:
+  table_attributes:
     class: 'table table-striped table-hover'
     id: 'my-default-table'
 ```
