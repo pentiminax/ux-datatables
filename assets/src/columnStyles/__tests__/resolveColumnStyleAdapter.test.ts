@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { BootstrapColumnStyleAdapter } from '../BootstrapColumnStyleAdapter.js'
+import { columnStyleAdapters } from '../ColumnStyleAdapterRegistry.js'
 import { TailwindThemeColumnStyleAdapter } from '../TailwindThemeColumnStyleAdapter.js'
 import { resolveColumnStyleAdapter } from '../resolveColumnStyleAdapter.js'
 import { TailwindColumnStyleAdapter } from '../TailwindColumnStyleAdapter.js'
@@ -30,5 +31,18 @@ describe('resolveColumnStyleAdapter', () => {
 
     it('keeps the framework default when no theme is active', () => {
         expect(resolveColumnStyleAdapter('bs5', null)).toBeInstanceOf(BootstrapColumnStyleAdapter)
+    })
+
+    it('honours a custom registration for the theme key', () => {
+        const previous = columnStyleAdapters.get('tailwind')
+        const custom = new TailwindThemeColumnStyleAdapter()
+
+        columnStyleAdapters.register('tailwind', () => custom)
+
+        try {
+            expect(resolveColumnStyleAdapter('dt', 'tailwind')).toBe(custom)
+        } finally {
+            columnStyleAdapters.register('tailwind', previous ?? (() => custom))
+        }
     })
 })

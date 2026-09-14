@@ -1,11 +1,8 @@
 import { columnStyleAdapters } from './ColumnStyleAdapterRegistry.js';
-import { TailwindThemeColumnStyleAdapter } from './TailwindThemeColumnStyleAdapter.js';
 import { TailwindColumnStyleAdapter } from './TailwindColumnStyleAdapter.js';
 export function resolveColumnStyleAdapter(framework, theme = null) {
-    if (theme === 'tailwind') {
-        return new TailwindThemeColumnStyleAdapter();
-    }
-    const factory = columnStyleAdapters.get(framework);
+    const themeFactory = theme === null ? null : columnStyleAdapters.get(theme);
+    const factory = themeFactory ?? columnStyleAdapters.get(framework);
     if (!factory) {
         return new TailwindColumnStyleAdapter();
     }

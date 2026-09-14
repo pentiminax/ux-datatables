@@ -2,6 +2,7 @@ export { BootstrapColumnStyleAdapter } from './columnStyles/BootstrapColumnStyle
 export { ColumnStyleAdapterRegistry, columnStyleAdapters, } from './columnStyles/ColumnStyleAdapterRegistry.js';
 export { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
 export { TailwindColumnStyleAdapter } from './columnStyles/TailwindColumnStyleAdapter.js';
+export { TailwindThemeColumnStyleAdapter } from './columnStyles/TailwindThemeColumnStyleAdapter.js';
 export { default, default as DataTableController } from './controller.js';
 export { buttonActions, ButtonActionRegistry } from './functions/buttonActionRegistry.js';
 export { BootstrapModalAdapter } from './modal/BootstrapModalAdapter.js';
