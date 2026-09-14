@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model\Extensions;
 
-class ScrollerExtension extends AbstractExtension
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
+
+class ScrollerExtension implements ExtensionInterface
 {
     public function __construct(
         private readonly float $boundaryScale = 0.5,

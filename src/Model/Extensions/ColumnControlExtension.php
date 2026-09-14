@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model\Extensions;
 
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
+
 /**
  * ColumnControl's `columnControl` configuration: a list of control groups, each placing content in
  * one header or footer row.
@@ -16,7 +18,7 @@ namespace Pentiminax\UX\DataTables\Model\Extensions;
  * first header row and a search input on the second. Pass an explicit list to replace them, `[]`
  * to start from nothing, or call {@see self::add()} to build the list up.
  */
-class ColumnControlExtension extends AbstractExtension
+class ColumnControlExtension implements ExtensionInterface
 {
     /**
      * @var list<array{target: int|string, content: list<mixed>}>
