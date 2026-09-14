@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\DataProvider;
 
+use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -14,8 +15,6 @@ use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Query\Intent\ColumnReadReference;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
-use Symfony\Component\PropertyAccess\PropertyAccessor;
-use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 /**
  * Serves a page from an in-memory collection, honoring the request through the same
@@ -48,7 +47,6 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
         private readonly array $columns = [],
         private readonly ?Filters $filters = null,
         private readonly DefaultDataTableQueryIntentFactory $intentFactory = new DefaultDataTableQueryIntentFactory(),
-        private readonly PropertyAccessorInterface $propertyAccessor = new PropertyAccessor(),
     ) {
     }
 
@@ -226,13 +224,10 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
      */
     private function readValue(object $item, ColumnReadReference $column): mixed
     {
-        $path = $column->fieldPath ?? $column->name;
+        $path  = $column->fieldPath ?? $column->name;
+        $value = PropertyReader::readPath($item, $path);
 
-        if (!$this->propertyAccessor->isReadable($item, $path)) {
-            return null;
-        }
-
-        return $this->propertyAccessor->getValue($item, $path);
+        return $value instanceof \BackedEnum ? $value->value : $value;
     }
 
     /**

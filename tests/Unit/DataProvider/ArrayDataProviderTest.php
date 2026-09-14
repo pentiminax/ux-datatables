@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\DataProvider;
 
+use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -233,6 +234,76 @@ final class ArrayDataProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_reads_nested_values_from_arrays_and_objects(): void
+    {
+        $rows = [
+            ['id' => 1, 'customer' => ['name' => 'Alice']],
+            (object) ['id' => 2, 'customer' => ['name' => 'Bob']],
+            ['id' => 3, 'customer' => (object) ['name' => 'Carol']],
+            (object) ['id' => 4, 'customer' => (object) ['name' => 'Dave']],
+            ['id' => 5, 'customer' => []],
+        ];
+        $columns  = [TextColumn::new('customerName')->setField('customer.name')];
+        $provider = new ArrayDataProvider($rows, new CountingRowMapper(), $columns);
+
+        $global = $provider->fetchData(self::request(
+            start: 0,
+            length: 10,
+            search: new Search('alice', false),
+        ));
+        $this->assertSame([1], array_column(iterator_to_array($global->data), 'id'));
+
+        $column = $provider->fetchData(self::request(
+            start: 0,
+            length: 10,
+            requestColumns: [self::requestColumn('customerName', new Search('carol', false))],
+        ));
+        $this->assertSame([3], array_column(iterator_to_array($column->data), 'id'));
+
+        $ordered = $provider->fetchData(self::request(
+            start: 0,
+            length: 10,
+            order: [new Order(0, 'asc', 'customerName')],
+        ));
+        $this->assertSame([1, 2, 3, 4, 5], array_column(iterator_to_array($ordered->data), 'id'));
+    }
+
+    #[Test]
+    public function it_normalizes_backed_enum_values_for_search_and_ordering(): void
+    {
+        $rows = [
+            ['id' => 1, 'status' => ArrayProviderStatus::Pending, 'priority' => ArrayProviderPriority::High],
+            ['id' => 2, 'status' => ArrayProviderStatus::Active, 'priority' => ArrayProviderPriority::Low],
+        ];
+        $columns = [
+            ChoiceColumn::new('status')->setChoices(ArrayProviderStatus::class),
+            ChoiceColumn::new('priority')->setChoices(ArrayProviderPriority::class),
+        ];
+        $provider = new ArrayDataProvider($rows, new CountingRowMapper(), $columns);
+
+        $global = $provider->fetchData(self::request(
+            start: 0,
+            length: 10,
+            search: new Search('active', false),
+        ));
+        $this->assertSame([2], array_column(iterator_to_array($global->data), 'id'));
+
+        $column = $provider->fetchData(self::request(
+            start: 0,
+            length: 10,
+            requestColumns: [self::requestColumn('priority', new Search('20', false))],
+        ));
+        $this->assertSame([1], array_column(iterator_to_array($column->data), 'id'));
+
+        $ordered = $provider->fetchData(self::request(
+            start: 0,
+            length: 10,
+            order: [new Order(0, 'asc', 'status')],
+        ));
+        $this->assertSame([2, 1], array_column(iterator_to_array($ordered->data), 'id'));
+    }
+
+    #[Test]
     public function it_ignores_a_column_search_on_a_non_searchable_column(): void
     {
         $columns    = self::columns();
@@ -397,6 +468,18 @@ final class ArrayDataProviderTest extends TestCase
             filters: $filters,
         );
     }
+}
+
+enum ArrayProviderStatus: string
+{
+    case Active  = 'active';
+    case Pending = 'pending';
+}
+
+enum ArrayProviderPriority: int
+{
+    case Low  = 10;
+    case High = 20;
 }
 
 /**
