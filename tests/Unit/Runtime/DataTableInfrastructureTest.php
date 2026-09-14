@@ -29,7 +29,6 @@ final class DataTableInfrastructureTest extends TestCase
         $this->assertInstanceOf(ColumnResolver::class, $infrastructure->columnResolver);
         $this->assertInstanceOf(RenderingPreparer::class, $infrastructure->renderingPreparer);
         $this->assertInstanceOf(DataTableRuntimeFactory::class, $infrastructure->runtimeFactory);
-        $this->assertInstanceOf(DefaultDataTableQueryIntentFactory::class, $infrastructure->queryIntentFactory);
         $this->assertInstanceOf(QueryFilterPipeline::class, $infrastructure->queryFilterPipeline);
         $this->assertSame([], $infrastructure->options);
         $this->assertSame([], $infrastructure->attributes);
@@ -59,7 +58,6 @@ final class DataTableInfrastructureTest extends TestCase
         $this->assertSame($columnResolver, $infrastructure->columnResolver);
         $this->assertSame($renderingPreparer, $infrastructure->renderingPreparer);
         $this->assertSame($runtimeFactory, $infrastructure->runtimeFactory);
-        $this->assertSame($intentFactory, $infrastructure->queryIntentFactory);
         $this->assertSame($queryFilterPipeline, $infrastructure->queryFilterPipeline);
         $this->assertSame($profiler, $infrastructure->profiler);
     }

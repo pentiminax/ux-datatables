@@ -310,6 +310,30 @@ valid implementation when the filter exposes no translatable string.
 | --- | --- |
 | `Contracts\TranslatableFilterInterface` | `Contracts\FilterInterface::translateLabels()` |
 
+### `DataTableInfrastructure::$queryIntentFactory` is removed
+
+The property was promoted to public API in v0.83 alongside `columnResolver`, `renderingPreparer`,
+`runtimeFactory`, `queryFilterPipeline`, and `profiler`, but unlike its siblings it was never read
+by `AbstractDataTable` or anything else -- `ArrayDataProvider` and `QueryFilterPipeline` each build
+or receive their own `DefaultDataTableQueryIntentFactory` independently. It stays unread even after
+`ArrayDataProvider` started consuming `DataTableQueryIntent` (v0.90), so it is removed.
+
+```php
+// before
+new DataTableInfrastructure($columnResolver, $renderingPreparer, $runtimeFactory, $queryIntentFactory, $queryFilterPipeline, ...);
+
+// after
+new DataTableInfrastructure($columnResolver, $renderingPreparer, $runtimeFactory, $queryFilterPipeline, ...);
+```
+
+`DataTableInfrastructure::createDefault()` keeps its `queryIntentFactory` parameter unchanged: it is
+still used to build the default `QueryFilterPipeline` when none is passed, it just stops being
+stored on the resulting object.
+
+| Removed | Replacement |
+| --- | --- |
+| `DataTableInfrastructure::$queryIntentFactory` | none -- construct your own `DefaultDataTableQueryIntentFactory` where you need one |
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`

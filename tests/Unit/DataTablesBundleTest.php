@@ -11,7 +11,6 @@ use Pentiminax\UX\DataTables\Export\ExporterRegistry;
 use Pentiminax\UX\DataTables\Export\XlsxExporter;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
-use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\SecurityVoter;
@@ -31,13 +30,12 @@ final class DataTablesBundleTest extends TestCase
     use BootsTwigKernel;
 
     #[Test]
-    public function it_wires_the_query_intent_factory_through_the_datatable_infrastructure(): void
+    public function it_wires_the_datatable_infrastructure(): void
     {
         $infrastructure = $this->kernel->getContainer()->get('test.datatables.infrastructure');
 
         self::assertArrayHasKey('DataTablesBundle', $this->kernel->getBundles());
         self::assertInstanceOf(DataTableInfrastructure::class, $infrastructure);
-        self::assertInstanceOf(DefaultDataTableQueryIntentFactory::class, $infrastructure->queryIntentFactory);
     }
 
     #[Test]
