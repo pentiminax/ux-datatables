@@ -213,6 +213,17 @@ The alias was the last `@deprecated` symbol in the bundle, announced since v0.81
 | --- | --- |
 | `entity` Twig variable in `TemplateColumn` templates | `row` (`entity` stays a reserved context key, and the unrelated `entity` used by detail rows and the edit modal is untouched) |
 
+### `MoneyColumn` duplicate setters removed
+
+Four redundant setters duplicated the fluent names.
+
+| Removed | Replacement |
+| --- | --- |
+| `Column\MoneyColumn::setCurrency()` | `currency()` |
+| `Column\MoneyColumn::setNumDecimals()` | `decimals()` |
+| `Column\MoneyColumn::setStoredAsCents()` | `storedAsCents()` |
+| `Column\MoneyColumn::setShowCurrencySign()` | `showCurrencySign()` |
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
