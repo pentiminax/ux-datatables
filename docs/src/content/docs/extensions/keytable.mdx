@@ -12,26 +12,22 @@ Use KeyTable for keyboard-first workflows, data entry, and power-user grids.
 ## Minimal Example
 
 ```php
-use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
-
-$dataTable->addExtension(new KeyTableExtension());
+$dataTable->keyTable();
 ```
 
 ## Advanced Example
 
 ```php
-$dataTable->addExtension(
-    new KeyTableExtension(
-        blurable: false,
-        className: 'cell-focus',
-        clipboard: true,
-        clipboardOrthogonal: 'display',
-        columns: ':not(:first-child)',
-        editOnFocus: false,
-        focus: [0, 1],
-        keys: [37, 38, 39, 40],
-        tabIndex: 0,
-    )
+$dataTable->keyTable(
+    blurable: false,
+    className: 'cell-focus',
+    clipboard: true,
+    clipboardOrthogonal: 'display',
+    columns: ':not(:first-child)',
+    editOnFocus: false,
+    focus: [0, 1],
+    keys: [37, 38, 39, 40],
+    tabIndex: 0,
 );
 ```
 

@@ -13,21 +13,17 @@ relying on the DataTables core `scrollY` scrolling feature.
 ## Minimal Example
 
 ```php
-use Pentiminax\UX\DataTables\Model\Extensions\FixedHeaderExtension;
-
-$dataTable->addExtension(new FixedHeaderExtension());
+$dataTable->fixedHeader();
 ```
 
 ## Advanced Example
 
 ```php
-$dataTable->addExtension(
-    new FixedHeaderExtension(
-        header: true,
-        footer: true,
-        headerOffset: 56,
-        footerOffset: 0,
-    )
+$dataTable->fixedHeader(
+    header: true,
+    footer: true,
+    headerOffset: 56,
+    footerOffset: 0,
 );
 ```
 

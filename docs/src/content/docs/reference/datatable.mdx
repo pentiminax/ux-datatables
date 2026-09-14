@@ -152,10 +152,26 @@ new DataTable(
     ['`extensions(array $extensions)`', 'Set multiple extensions'],
     ['`getExtensions(): array`', 'Return configured extensions'],
     ['`setExtensions(DataTableExtensions $extensions)`', 'Replace extension collection'],
-    ['`responsive()`', 'Convenience helper for the Responsive extension'],
+    [
+      '`responsive(bool $auto = true, ?array $breakpoints = null, int|string $detailsTarget = 0, string|false $detailsType = \'inline\', string $orthogonal = \'display\')`',
+      'Add the Responsive extension',
+    ],
     [
       '`columnControl(int|string|null $target = null, ?array $content = null)`',
       'Add Column Control; a target replaces the defaults with that single control group',
+    ],
+    [
+      '`select(SelectStyle $style = SelectStyle::SINGLE, ..., bool $withCheckbox = false, bool $headerCheckbox = false)`',
+      'Add the Select extension, checkbox column included',
+    ],
+    ['`keyTable(bool $blurable = true, ...)`', 'Add the KeyTable extension'],
+    ['`scroller(float $boundaryScale = 0.5, ...)`', 'Add the Scroller extension; pair it with `scrollY()`'],
+    ['`colReorder(bool $enable = true, ...)`', 'Add the ColReorder extension'],
+    ['`fixedColumns(int $start = 1, int $end = 0)`', 'Add the FixedColumns extension'],
+    ['`fixedHeader(bool $header = true, bool $footer = false, ...)`', 'Add the FixedHeader extension'],
+    [
+      '`rowGroup(int|string|array $dataSrc, ...)`',
+      'Add the RowGroup extension; the grouping data source is required',
     ],
   ]}
 />

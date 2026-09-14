@@ -5,16 +5,25 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Enum\SelectItemType;
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Enum\StyleFramework;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ColReorderExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\FixedColumnsExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\FixedHeaderExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\RowGroupExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -650,5 +659,170 @@ final class DataTableTest extends TestCase
 
         $this->assertNull($table->getOption('styleFramework'));
         $this->assertArrayNotHasKey('styleFramework', $table->getOptions());
+    }
+
+    /**
+     * @param \Closure(DataTable): DataTable $configure
+     */
+    #[Test]
+    #[DataProvider('extensionShortcutProvider')]
+    public function it_registers_extensions_through_their_shortcut(
+        \Closure $configure,
+        string $key,
+        ExtensionInterface $expected,
+    ): void {
+        $table = $configure(new DataTable('tableId'));
+
+        $this->assertSame([$key => $expected->jsonSerialize()], $table->getExtensions());
+    }
+
+    public static function extensionShortcutProvider(): iterable
+    {
+        yield 'select defaults' => [
+            static fn (DataTable $table): DataTable => $table->select(),
+            'select',
+            new SelectExtension(),
+        ];
+
+        yield 'select configured' => [
+            static fn (DataTable $table): DataTable => $table->select(
+                style: SelectStyle::MULTI,
+                items: SelectItemType::CELL,
+                keys: true,
+                withCheckbox: true,
+                headerCheckbox: true,
+            ),
+            'select',
+            (new SelectExtension(style: SelectStyle::MULTI, items: SelectItemType::CELL, keys: true))
+                ->withCheckbox()
+                ->headerCheckbox(),
+        ];
+
+        yield 'keyTable defaults' => [
+            static fn (DataTable $table): DataTable => $table->keyTable(),
+            'keys',
+            new KeyTableExtension(),
+        ];
+
+        yield 'keyTable configured' => [
+            static fn (DataTable $table): DataTable => $table->keyTable(
+                blurable: false,
+                className: 'cell-focus',
+                columns: ':not(:first-child)',
+                focus: [0, 1],
+                keys: [37, 38, 39, 40],
+                tabIndex: 0,
+            ),
+            'keys',
+            new KeyTableExtension(
+                blurable: false,
+                className: 'cell-focus',
+                columns: ':not(:first-child)',
+                focus: [0, 1],
+                keys: [37, 38, 39, 40],
+                tabIndex: 0,
+            ),
+        ];
+
+        yield 'scroller defaults' => [
+            static fn (DataTable $table): DataTable => $table->scroller(),
+            'scroller',
+            new ScrollerExtension(),
+        ];
+
+        yield 'scroller configured' => [
+            static fn (DataTable $table): DataTable => $table->scroller(
+                boundaryScale: 0.75,
+                displayBuffer: 20,
+                rowHeight: 42,
+                serverWait: 400,
+            ),
+            'scroller',
+            new ScrollerExtension(boundaryScale: 0.75, displayBuffer: 20, rowHeight: 42, serverWait: 400),
+        ];
+
+        yield 'colReorder defaults' => [
+            static fn (DataTable $table): DataTable => $table->colReorder(),
+            'colReorder',
+            new ColReorderExtension(),
+        ];
+
+        yield 'colReorder configured' => [
+            static fn (DataTable $table): DataTable => $table->colReorder(
+                columns: ':not(:first-child)',
+                headerRows: [0],
+                order: [2, 0, 1],
+            ),
+            'colReorder',
+            new ColReorderExtension(columns: ':not(:first-child)', headerRows: [0], order: [2, 0, 1]),
+        ];
+
+        yield 'fixedColumns defaults' => [
+            static fn (DataTable $table): DataTable => $table->fixedColumns(),
+            'fixedColumns',
+            new FixedColumnsExtension(),
+        ];
+
+        yield 'fixedColumns configured' => [
+            static fn (DataTable $table): DataTable => $table->fixedColumns(start: 2, end: 1),
+            'fixedColumns',
+            new FixedColumnsExtension(start: 2, end: 1),
+        ];
+
+        yield 'fixedHeader defaults' => [
+            static fn (DataTable $table): DataTable => $table->fixedHeader(),
+            'fixedHeader',
+            new FixedHeaderExtension(),
+        ];
+
+        yield 'fixedHeader configured' => [
+            static fn (DataTable $table): DataTable => $table->fixedHeader(
+                footer: true,
+                headerOffset: 64,
+                footerOffset: 16,
+            ),
+            'fixedHeader',
+            new FixedHeaderExtension(footer: true, headerOffset: 64, footerOffset: 16),
+        ];
+
+        yield 'rowGroup with the mandatory data source' => [
+            static fn (DataTable $table): DataTable => $table->rowGroup('category'),
+            'rowGroup',
+            new RowGroupExtension('category'),
+        ];
+
+        yield 'rowGroup configured' => [
+            static fn (DataTable $table): DataTable => $table->rowGroup(
+                dataSrc: ['category', 'author'],
+                className: 'book-group',
+                emptyDataGroup: null,
+            ),
+            'rowGroup',
+            new RowGroupExtension(
+                dataSrc: ['category', 'author'],
+                className: 'book-group',
+                emptyDataGroup: null,
+            ),
+        ];
+
+        yield 'responsive defaults' => [
+            static fn (DataTable $table): DataTable => $table->responsive(),
+            'responsive',
+            new ResponsiveExtension(),
+        ];
+
+        yield 'responsive configured' => [
+            static fn (DataTable $table): DataTable => $table->responsive(
+                auto: false,
+                breakpoints: [['name' => 'tablet', 'width' => 1024]],
+                detailsType: false,
+            ),
+            'responsive',
+            new ResponsiveExtension(
+                auto: false,
+                breakpoints: [['name' => 'tablet', 'width' => 1024]],
+                detailsType: false,
+            ),
+        ];
     }
 }
