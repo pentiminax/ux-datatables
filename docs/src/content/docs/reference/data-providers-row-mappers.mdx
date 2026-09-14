@@ -80,7 +80,8 @@ the request are ignored, as the Doctrine provider ignores values for unconfigure
 />
 
 Search and ordering read the **source** value of each item — the property named by the column's
-field path, resolved with Symfony's PropertyAccess — not the mapped row. This matches the Doctrine
+field path — not the mapped row. A field path traverses any mix of nested arrays and objects.
+Backed enums use their string or integer value for both operations. This matches the Doctrine
 semantics: a column with no matching property, such as an `ActionColumn` or a `TemplateColumn`, is
 simply not searchable or orderable in memory. Non-text values (booleans, dates) are not searchable,
 exactly as they are excluded from a Doctrine `LIKE`.

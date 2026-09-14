@@ -99,8 +99,10 @@ rows are client input: their identifiers prove nothing about who may read them.
 
 The route therefore rehydrates each row through the resource's API Platform `Get` operation. A row
 carrying an `@id` is matched through the router to the item operation serving that IRI, as the IRI
-converter does; a row carrying only an `id` goes through the resource's first `Get`. That applies
-exactly what a `GET /resource/{id}` would: the operation's state provider, its Doctrine item
+converter does; a row carrying only an `id` generates an IRI through the resource's first `Get`
+before it is loaded. This lets API Platform transform custom identifiers such as UUID or value
+objects before invoking the provider. Both forms apply exactly what a `GET /resource/{id}` would:
+the operation's state provider, its Doctrine item
 extensions (`QueryItemExtensionInterface`, tenant scoping, filtered query builders) and its
 `security` expression. Sibling item operations for other audiences are neither consulted nor
 enforced.

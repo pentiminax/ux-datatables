@@ -14,7 +14,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use ApiPlatform\Metadata\Resource\ResourceMetadataCollection;
 use ApiPlatform\Metadata\ResourceAccessCheckerInterface;
-use ApiPlatform\State\ProviderInterface;
+use ApiPlatform\Metadata\UrlGeneratorInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Exception\ExceptionInterface as RoutingException;
 use Symfony\Component\Routing\RouterInterface;
@@ -40,7 +40,6 @@ class ApiPlatformItemResolver
     public function __construct(
         private readonly IriConverterInterface $iriConverter,
         private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataFactory,
-        private readonly ProviderInterface $provider,
         private readonly RouterInterface $router,
         private readonly ?ResourceAccessCheckerInterface $accessChecker = null,
         private readonly ?RequestStack $requestStack = null,
@@ -60,15 +59,13 @@ class ApiPlatformItemResolver
             return null;
         }
 
-        $iri = $row['@id'] ?? null;
-
-        if (\is_string($iri) && '' !== trim($iri)) {
-            $operation = $this->matchIriOperation($iri, $resourceClass, $metadataCollection);
-            $item      = null === $operation ? null : $this->fetchByIri($iri);
-        } else {
-            $operation = $this->findFirstGetOperation($metadataCollection);
-            $item      = null === $operation ? null : $this->fetchById($operation, $row['id'] ?? null);
+        $iri = $this->resolveIri($resourceClass, $row, $metadataCollection);
+        if (null === $iri) {
+            return null;
         }
+
+        $operation = $this->matchIriOperation($iri, $resourceClass, $metadataCollection);
+        $item      = null === $operation ? null : $this->fetchByIri($iri);
 
         if (null === $operation || !$item instanceof $resourceClass) {
             return null;
@@ -105,15 +102,40 @@ class ApiPlatformItemResolver
         }
     }
 
-    private function fetchById(Get $operation, mixed $id): ?object
+    /**
+     * @param array<array-key, mixed> $row
+     */
+    private function resolveIri(string $resourceClass, array $row, ResourceMetadataCollection $metadataCollection): ?string
     {
-        if (!\is_scalar($id)) {
+        $iri = $row['@id'] ?? null;
+        if (\is_string($iri) && '' !== trim($iri)) {
+            return trim($iri);
+        }
+
+        $operation = $this->findFirstGetOperation($metadataCollection);
+        $id        = $row['id'] ?? null;
+
+        if (null === $operation || !\is_scalar($id)) {
             return null;
         }
 
-        $item = $this->provider->provide($operation, [$this->identifierName($operation) => $id]);
+        $uriVariables = $operation->getUriVariables() ?? [];
+        if (1 < \count($uriVariables)) {
+            return null;
+        }
 
-        return \is_object($item) ? $item : null;
+        $identifierName = array_key_first($uriVariables) ?? 'id';
+
+        try {
+            return $this->iriConverter->getIriFromResource(
+                $resourceClass,
+                UrlGeneratorInterface::ABS_PATH,
+                $operation,
+                ['uri_variables' => [$identifierName => $id]],
+            );
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     /**
@@ -141,13 +163,6 @@ class ApiPlatformItemResolver
         }
 
         return $operation instanceof Get ? $operation : null;
-    }
-
-    private function identifierName(Get $operation): string
-    {
-        $uriVariables = $operation->getUriVariables() ?? [];
-
-        return \is_array($uriVariables) ? (array_key_first($uriVariables) ?? 'id') : 'id';
     }
 
     private function findFirstGetOperation(ResourceMetadataCollection $metadataCollection): ?Get

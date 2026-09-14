@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\ApiPlatform;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Exception\InvalidArgumentException;
 use ApiPlatform\Metadata\Exception\ItemNotFoundException;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\IriConverterInterface;
+use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Operations;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use ApiPlatform\Metadata\Resource\ResourceMetadataCollection;
 use ApiPlatform\Metadata\ResourceAccessCheckerInterface;
-use ApiPlatform\State\ProviderInterface;
+use ApiPlatform\Metadata\UrlGeneratorInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformItemResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -40,41 +42,99 @@ final class ApiPlatformItemResolverTest extends TestCase
             ->with('/api/users/7', ['fetch_data' => true])
             ->willReturn($user);
 
-        $provider = $this->createMock(ProviderInterface::class);
-        $provider->expects($this->never())->method('provide');
-
-        $resolver = $this->createResolver($iriConverter, $provider, new Get());
+        $resolver = $this->createResolver($iriConverter, new Get());
 
         $this->assertSame($user, $resolver->resolve(ItemResolverUserFixture::class, ['@id' => '/api/users/7', 'id' => 7]));
     }
 
     #[Test]
-    public function it_resolves_a_row_by_id_through_the_get_operation_provider(): void
+    public function it_resolves_a_row_by_id_through_a_generated_iri(): void
     {
         $user      = new ItemResolverUserFixture(7);
         $operation = new Get();
 
-        $provider = $this->createMock(ProviderInterface::class);
-        $provider->expects($this->once())
-            ->method('provide')
-            ->with($operation, ['id' => 7])
+        $iriConverter = $this->createMock(IriConverterInterface::class);
+        $iriConverter->expects($this->once())
+            ->method('getIriFromResource')
+            ->with(ItemResolverUserFixture::class, UrlGeneratorInterface::ABS_PATH, $operation, ['uri_variables' => ['id' => 7]])
+            ->willReturn('/api/users/7');
+        $iriConverter->expects($this->once())
+            ->method('getResourceFromIri')
+            ->with('/api/users/7', ['fetch_data' => true])
             ->willReturn($user);
 
-        $resolver = $this->createResolver($this->neverCalledIriConverter(), $provider, $operation);
+        $resolver = $this->createResolver($iriConverter, $operation);
 
         $this->assertSame($user, $resolver->resolve(ItemResolverUserFixture::class, ['id' => 7]));
+    }
+
+    #[Test]
+    public function it_resolves_a_bare_id_through_a_generated_iri(): void
+    {
+        $identifier = new ItemResolverIdentifierFixture('custom-7');
+        $user       = new ItemResolverUserFixture($identifier);
+        $operation  = new Get();
+
+        $iriConverter = $this->createMock(IriConverterInterface::class);
+        $iriConverter->expects($this->once())
+            ->method('getIriFromResource')
+            ->with(ItemResolverUserFixture::class, UrlGeneratorInterface::ABS_PATH, $operation, ['uri_variables' => ['id' => 'custom-7']])
+            ->willReturn('/api/users/custom-7');
+        $iriConverter->expects($this->once())
+            ->method('getResourceFromIri')
+            ->with('/api/users/custom-7', ['fetch_data' => true])
+            ->willReturn($user);
+
+        $resolver = $this->createResolver($iriConverter, $operation);
+
+        $resolved = $resolver->resolve(ItemResolverUserFixture::class, ['id' => 'custom-7']);
+
+        $this->assertSame($user, $resolved);
+        $this->assertInstanceOf(ItemResolverUserFixture::class, $resolved);
+        $this->assertSame($identifier, $resolved->getId());
+    }
+
+    #[Test]
+    public function it_returns_null_when_an_iri_cannot_be_generated_from_the_id(): void
+    {
+        $iriConverter = $this->createMock(IriConverterInterface::class);
+        $iriConverter->method('getIriFromResource')->willThrowException(new InvalidArgumentException());
+
+        $resolver = $this->createResolver(
+            $iriConverter,
+            new Get(),
+        );
+
+        $this->assertNull($resolver->resolve(ItemResolverUserFixture::class, ['id' => 7]));
+    }
+
+    #[Test]
+    public function it_returns_null_when_a_bare_id_cannot_fill_composite_uri_variables(): void
+    {
+        $iriConverter = $this->createMock(IriConverterInterface::class);
+        $iriConverter->expects($this->never())->method('getIriFromResource');
+
+        $operation = new Get(uriVariables: [
+            'tenant' => new Link(fromClass: ItemResolverUserFixture::class),
+            'id'     => new Link(fromClass: ItemResolverUserFixture::class),
+        ]);
+
+        $resolver = $this->createResolver(
+            $iriConverter,
+            $operation,
+        );
+
+        $this->assertNull($resolver->resolve(ItemResolverUserFixture::class, ['id' => 7]));
     }
 
     #[Test]
     public function it_returns_null_when_the_item_is_not_found(): void
     {
         $iriConverter = $this->createMock(IriConverterInterface::class);
+        $iriConverter->method('getIriFromResource')->willReturn('/api/users/7');
         $iriConverter->method('getResourceFromIri')->willThrowException(new ItemNotFoundException());
 
-        $provider = $this->createMock(ProviderInterface::class);
-        $provider->method('provide')->willReturn(null);
-
-        $resolver = $this->createResolver($iriConverter, $provider, new Get());
+        $resolver = $this->createResolver($iriConverter, new Get());
 
         $this->assertNull($resolver->resolve(ItemResolverUserFixture::class, ['@id' => '/api/users/7']));
         $this->assertNull($resolver->resolve(ItemResolverUserFixture::class, ['id' => 7]));
@@ -83,9 +143,6 @@ final class ApiPlatformItemResolverTest extends TestCase
     #[Test]
     public function it_returns_null_when_the_operation_security_denies_the_item(): void
     {
-        $provider = $this->createMock(ProviderInterface::class);
-        $provider->method('provide')->willReturn(new ItemResolverUserFixture(7));
-
         $accessChecker = $this->createMock(ResourceAccessCheckerInterface::class);
         $accessChecker->expects($this->once())
             ->method('isGranted')
@@ -93,8 +150,7 @@ final class ApiPlatformItemResolverTest extends TestCase
             ->willReturn(false);
 
         $resolver = $this->createResolver(
-            $this->neverCalledIriConverter(),
-            $provider,
+            $this->iriConverterForId(new ItemResolverUserFixture(7)),
             new Get(security: 'is_granted("VIEW", object)'),
             $accessChecker,
         );
@@ -105,12 +161,8 @@ final class ApiPlatformItemResolverTest extends TestCase
     #[Test]
     public function it_returns_null_when_security_is_configured_but_no_access_checker_is_available(): void
     {
-        $provider = $this->createMock(ProviderInterface::class);
-        $provider->method('provide')->willReturn(new ItemResolverUserFixture(7));
-
         $resolver = $this->createResolver(
-            $this->neverCalledIriConverter(),
-            $provider,
+            $this->iriConverterForId(new ItemResolverUserFixture(7)),
             new Get(security: 'is_granted("VIEW", object)'),
         );
 
@@ -123,7 +175,7 @@ final class ApiPlatformItemResolverTest extends TestCase
         $iriConverter = $this->createMock(IriConverterInterface::class);
         $iriConverter->method('getResourceFromIri')->willReturn(new \stdClass());
 
-        $resolver = $this->createResolver($iriConverter, $this->createMock(ProviderInterface::class), new Get());
+        $resolver = $this->createResolver($iriConverter, new Get());
 
         $this->assertNull($resolver->resolve(ItemResolverUserFixture::class, ['@id' => '/api/invoices/7']));
     }
@@ -131,10 +183,7 @@ final class ApiPlatformItemResolverTest extends TestCase
     #[Test]
     public function it_returns_null_when_the_resource_has_no_get_operation(): void
     {
-        $provider = $this->createMock(ProviderInterface::class);
-        $provider->expects($this->never())->method('provide');
-
-        $resolver = $this->createResolver($this->neverCalledIriConverter(), $provider, null);
+        $resolver = $this->createResolver($this->neverCalledIriConverter(), null);
 
         $this->assertNull($resolver->resolve(ItemResolverUserFixture::class, ['id' => 7]));
     }
@@ -157,7 +206,6 @@ final class ApiPlatformItemResolverTest extends TestCase
 
         $resolver = $this->createResolver(
             $iriConverter,
-            $this->createMock(ProviderInterface::class),
             [new Get(), new Get(security: 'is_granted("ROLE_ADMIN")')],
             $accessChecker,
             router: $this->routerMatching('/api/admin/users/7', '_api_users_get1'),
@@ -179,7 +227,6 @@ final class ApiPlatformItemResolverTest extends TestCase
 
         $resolver = $this->createResolver(
             $iriConverter,
-            $this->createMock(ProviderInterface::class),
             [new Get(), new Get(security: 'is_granted("ROLE_ADMIN")')],
             $accessChecker,
             router: $this->routerMatching('/api/users/7', '_api_users_get0'),
@@ -199,7 +246,6 @@ final class ApiPlatformItemResolverTest extends TestCase
 
         $resolver = $this->createResolver(
             $this->neverCalledIriConverter(),
-            $this->createMock(ProviderInterface::class),
             new Get(),
             router: $router,
         );
@@ -217,9 +263,6 @@ final class ApiPlatformItemResolverTest extends TestCase
         $requestStack = new RequestStack();
         $requestStack->push($request);
 
-        $provider = $this->createMock(ProviderInterface::class);
-        $provider->method('provide')->willReturn($user);
-
         $accessChecker = $this->createMock(ResourceAccessCheckerInterface::class);
         $accessChecker->expects($this->once())
             ->method('isGranted')
@@ -227,8 +270,7 @@ final class ApiPlatformItemResolverTest extends TestCase
             ->willReturn(true);
 
         $resolver = $this->createResolver(
-            $this->neverCalledIriConverter(),
-            $provider,
+            $this->iriConverterForId($user),
             new Get(security: 'request.isSecure()'),
             $accessChecker,
             $requestStack,
@@ -242,7 +284,6 @@ final class ApiPlatformItemResolverTest extends TestCase
      */
     private function createResolver(
         IriConverterInterface $iriConverter,
-        ProviderInterface $provider,
         Operation|array|null $getOperation,
         ?ResourceAccessCheckerInterface $accessChecker = null,
         ?RequestStack $requestStack = null,
@@ -269,7 +310,6 @@ final class ApiPlatformItemResolverTest extends TestCase
         return new ApiPlatformItemResolver(
             $iriConverter,
             $resourceMetadataFactory,
-            $provider,
             $router ?? $this->routerMatching(null, '_api_users_get0'),
             $accessChecker,
             $requestStack,
@@ -296,7 +336,17 @@ final class ApiPlatformItemResolverTest extends TestCase
     private function neverCalledIriConverter(): IriConverterInterface
     {
         $iriConverter = $this->createMock(IriConverterInterface::class);
+        $iriConverter->expects($this->never())->method('getIriFromResource');
         $iriConverter->expects($this->never())->method('getResourceFromIri');
+
+        return $iriConverter;
+    }
+
+    private function iriConverterForId(object $item): IriConverterInterface
+    {
+        $iriConverter = $this->createMock(IriConverterInterface::class);
+        $iriConverter->method('getIriFromResource')->willReturn('/api/users/7');
+        $iriConverter->method('getResourceFromIri')->willReturn($item);
 
         return $iriConverter;
     }
@@ -304,12 +354,19 @@ final class ApiPlatformItemResolverTest extends TestCase
 
 final class ItemResolverUserFixture
 {
-    public function __construct(private readonly int $id)
+    public function __construct(private readonly int|ItemResolverIdentifierFixture $id)
     {
     }
 
-    public function getId(): int
+    public function getId(): int|ItemResolverIdentifierFixture
     {
         return $this->id;
+    }
+}
+
+final readonly class ItemResolverIdentifierFixture
+{
+    public function __construct(public string $value)
+    {
     }
 }
