@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
+import { BootstrapColumnStyleAdapter } from '../BootstrapColumnStyleAdapter.js'
 import type { ColumnStyleAdapter } from '../ColumnStyleAdapter.js'
-import { ColumnStyleAdapterRegistry } from '../ColumnStyleAdapterRegistry.js'
+import { ColumnStyleAdapterRegistry, columnStyleAdapters } from '../ColumnStyleAdapterRegistry.js'
+import { TailwindColumnStyleAdapter } from '../TailwindColumnStyleAdapter.js'
+import { TailwindThemeColumnStyleAdapter } from '../TailwindThemeColumnStyleAdapter.js'
 
 describe('ColumnStyleAdapterRegistry', () => {
     it('registers and returns factories', () => {
@@ -26,5 +29,20 @@ describe('ColumnStyleAdapterRegistry', () => {
         registry.register('custom', secondFactory)
 
         expect(registry.get('custom')).toBe(secondFactory)
+    })
+})
+
+describe('columnStyleAdapters', () => {
+    it.each([
+        ['bs', BootstrapColumnStyleAdapter],
+        ['bs4', BootstrapColumnStyleAdapter],
+        ['bs5', BootstrapColumnStyleAdapter],
+        ['dt', TailwindColumnStyleAdapter],
+        ['tailwind', TailwindThemeColumnStyleAdapter],
+    ])('builds the %s adapter', (key, expected) => {
+        const factory = columnStyleAdapters.get(key)
+
+        expect(factory).not.toBeNull()
+        expect(factory?.()).toBeInstanceOf(expected)
     })
 })
