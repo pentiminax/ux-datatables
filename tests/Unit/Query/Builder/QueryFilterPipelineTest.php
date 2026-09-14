@@ -27,6 +27,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @internal
@@ -249,6 +250,10 @@ final class QueryFilterPipelineTest extends TestCase
             public function apply(QueryBuilder $qb, mixed $value, string $alias): void
             {
                 $this->applied[] = [$qb, $value, $alias];
+            }
+
+            public function translateLabels(TranslatorInterface $translator, ?string $locale = null): void
+            {
             }
 
             public function jsonSerialize(): array

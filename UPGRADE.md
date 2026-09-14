@@ -296,6 +296,20 @@ calling it without arguments is unchanged, and `addExtension(new XExtension(...)
 | --- | --- |
 | `BaseColumnData` (TypeScript) | none, it was exported but never used or re-exported |
 
+### `FilterInterface` declares `translateLabels()`
+
+`TranslatableFilterInterface` held a single method and a single implementation. It is gone: filters
+now declare `translateLabels(TranslatorInterface $translator, ?string $locale = null): void` on
+`FilterInterface` itself, and `RenderingPreparer` calls it on every configured filter instead of
+testing for the optional interface first. Filters extending `AbstractFilter` need no change.
+
+A custom filter implementing `FilterInterface` directly must add the method; an empty body is a
+valid implementation when the filter exposes no translatable string.
+
+| Removed | Replacement |
+| --- | --- |
+| `Contracts\TranslatableFilterInterface` | `Contracts\FilterInterface::translateLabels()` |
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`

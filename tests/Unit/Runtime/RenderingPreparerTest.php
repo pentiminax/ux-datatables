@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\FilterInterface;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
@@ -665,6 +666,25 @@ final class RenderingPreparerTest extends TestCase
         (new RenderingPreparer(translator: $translator))->prepare($table, null);
 
         $this->assertSame('Last Login At', $table->getOptions()['filters'][0]['label']);
+    }
+
+    #[Test]
+    public function it_translates_the_labels_of_every_configured_filter(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator->method('trans')->willReturnArgument(0);
+
+        $filter = $this->createMock(FilterInterface::class);
+        $filter->method('getName')->willReturn('status');
+        $filter->method('jsonSerialize')->willReturn(['name' => 'status']);
+        $filter
+            ->expects($this->once())
+            ->method('translateLabels')
+            ->with($translator, null);
+
+        $table = (new DataTable('Test'))->setFilters((new Filters())->add($filter));
+
+        (new RenderingPreparer(translator: $translator))->prepare($table, null);
     }
 
     #[Test]

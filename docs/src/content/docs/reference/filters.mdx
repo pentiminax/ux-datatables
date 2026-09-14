@@ -67,6 +67,14 @@ key (`filters[name]`).
 
 A `query()` closure fully replaces the default behaviour of the filter type.
 
+Every built-in filter extends `AbstractFilter`, which implements the
+`FilterInterface` contract: `getName()`, `apply()`, `jsonSerialize()`, and
+`translateLabels()` — called by the rendering preparer so labels and
+placeholders are resolved through the translator at render time rather than in
+`configureFilters()`. A custom filter implementing `FilterInterface` directly
+must declare `translateLabels()` too; an empty body is fine when the filter
+exposes no translatable string.
+
 ## Filter types
 
 ### TextFilter
