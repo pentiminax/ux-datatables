@@ -54,7 +54,7 @@ final class ConfigDefaultsAppKernel extends Kernel
                         'firstLast' => false,
                     ],
                 ],
-                'template_parameters' => [
+                'table_attributes' => [
                     'class' => 'table table-striped',
                 ],
                 'extensions' => [

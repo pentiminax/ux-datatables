@@ -251,6 +251,24 @@ contract and the `Filter\` namespace it lives in. It is renamed to match its sib
 | --- | --- |
 | `Filter\Filter` | `Filter\CheckboxFilter` |
 
+### `template_parameters` configuration is renamed to `table_attributes`
+
+The `data_tables.template_parameters` configuration node held HTML attributes for the generated
+`<table>` element (`class`, ...); it was never related to `TemplateColumn`'s own parameters. It is
+renamed to describe what it actually configures.
+
+```yaml
+# before
+data_tables:
+  template_parameters:
+    class: 'table table-striped'
+
+# after
+data_tables:
+  table_attributes:
+    class: 'table table-striped'
+```
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
