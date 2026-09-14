@@ -12,15 +12,13 @@ Use Fixed Columns for wide tables where IDs or actions must stay visible while s
 ## Minimal Example
 
 ```php
-use Pentiminax\UX\DataTables\Model\Extensions\FixedColumnsExtension;
-
-$dataTable->addExtension(new FixedColumnsExtension());
+$dataTable->fixedColumns();
 ```
 
 ## Advanced Example
 
 ```php
-$dataTable->addExtension(new FixedColumnsExtension(start: 2, end: 1));
+$dataTable->fixedColumns(start: 2, end: 1);
 ```
 
 ## Frequent Pitfalls

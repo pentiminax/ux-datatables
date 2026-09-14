@@ -173,8 +173,8 @@ final class AbstractDataTableExtensionsTest extends TestCase
     {
         $table = $this->tableWith(
             [],
-            fn (DataTableExtensions $extensions) => $extensions->addSelectExtension(
-                fn (SelectExtension $select) => $select->withCheckbox()->headerCheckbox()
+            fn (DataTableExtensions $extensions) => $extensions->addExtension(
+                (new SelectExtension())->withCheckbox()->headerCheckbox()
             ),
         );
 

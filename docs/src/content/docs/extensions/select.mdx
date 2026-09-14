@@ -13,9 +13,8 @@ Use Select for batch actions, row detail workflows, or keyboard-assisted data re
 
 ```php
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
-use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 
-$dataTable->addExtension(new SelectExtension(SelectStyle::SINGLE));
+$dataTable->select(SelectStyle::SINGLE);
 ```
 
 ## Advanced Example
@@ -24,7 +23,7 @@ $dataTable->addExtension(new SelectExtension(SelectStyle::SINGLE));
 use Pentiminax\UX\DataTables\Enum\SelectItemType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 
-$select = new SelectExtension(
+$dataTable->select(
     style: SelectStyle::MULTI,
     blurable: true,
     className: 'selected',
@@ -33,14 +32,13 @@ $select = new SelectExtension(
     keys: true,
     selector: 'td, th',
     toggleable: true,
+    withCheckbox: true,
+    headerCheckbox: true,
 );
-
-$select
-    ->headerCheckbox(true)
-    ->withCheckbox(true);
-
-$dataTable->addExtension($select);
 ```
+
+`select()` covers every option; build the extension yourself with
+`addExtension(new SelectExtension(...))` when you need to hold on to the instance.
 
 ## Frequent Pitfalls
 
