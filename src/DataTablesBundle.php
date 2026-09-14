@@ -63,7 +63,7 @@ class DataTablesBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
-                ->arrayNode('template_parameters')
+                ->arrayNode('table_attributes')
                     ->children()
                         ->scalarNode('class')->defaultValue('table')->end()
                     ->end()
@@ -106,7 +106,7 @@ class DataTablesBundle extends AbstractBundle
 
         $container->parameters()
             ->set('datatables.options', $config['options'] ?? [])
-            ->set('datatables.template_parameters', $config['template_parameters'] ?? [])
+            ->set('datatables.table_attributes', $config['table_attributes'] ?? [])
             ->set('datatables.extensions', $config['extensions'] ?? [])
             ->set('datatables.edit_modal.template', $config['edit_modal']['template'])
             ->set('datatables.edit_modal.body_template', $config['edit_modal']['body_template'])

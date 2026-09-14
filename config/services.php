@@ -317,7 +317,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(3, service('datatables.query.intent_factory'))
         ->arg(4, service('datatables.query.filter_pipeline'))
         ->arg(5, param('datatables.options'))
-        ->arg(6, param('datatables.template_parameters'))
+        ->arg(6, param('datatables.table_attributes'))
         ->arg(7, param('datatables.extensions'))
         ->arg(8, service('datatables.profiler')->nullOnInvalid())
         ->private();
