@@ -7,11 +7,10 @@ namespace Pentiminax\UX\DataTables\Filter;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
 use Pentiminax\UX\DataTables\Contracts\FilterInterface;
-use Pentiminax\UX\DataTables\Contracts\TranslatableFilterInterface;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
-abstract class AbstractFilter implements FilterInterface, TranslatableFilterInterface
+abstract class AbstractFilter implements FilterInterface
 {
     protected ?string $label = null;
 
