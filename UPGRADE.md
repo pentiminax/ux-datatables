@@ -269,6 +269,27 @@ data_tables:
     class: 'table table-striped'
 ```
 
+### `DataTableExtensions::add*Extension()` helpers removed
+
+Six undocumented helpers duplicated `DataTable::buttons()`/`responsive()`/`columnControl()` and
+`addExtension(new XExtension())` for the rest.
+
+| Removed | Replacement |
+| --- | --- |
+| `Model\DataTableExtensions::addButtonsExtension()` | `DataTable::buttons()` |
+| `Model\DataTableExtensions::addResponsiveExtension()` | `DataTable::responsive()` |
+| `Model\DataTableExtensions::addColumnControlExtension()` | `DataTable::columnControl()` |
+| `Model\DataTableExtensions::addSelectExtension()` | `DataTable::select()` |
+| `Model\DataTableExtensions::addKeyTableExtension()` | `DataTable::keyTable()` |
+| `Model\DataTableExtensions::addScrollerExtension()` | `DataTable::scroller()` |
+
+`DataTable` now carries a shortcut for every bundled extension: `select()`, `keyTable()`,
+`scroller()`, `colReorder()`, `fixedColumns()`, `fixedHeader()` and `rowGroup()` join the existing
+`buttons()`, `responsive()` and `columnControl()`. Each mirrors the parameter names and defaults of
+the matching extension constructor, so extensions are configurable with named arguments straight
+from `configureDataTable()`. `responsive()` gained the `ResponsiveExtension` constructor parameters;
+calling it without arguments is unchanged, and `addExtension(new XExtension(...))` keeps working.
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`

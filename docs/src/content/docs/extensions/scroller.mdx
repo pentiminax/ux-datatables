@@ -12,10 +12,8 @@ Use Scroller when table size is large enough to impact browser rendering perform
 ## Minimal Example
 
 ```php
-use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
-
 $dataTable
-    ->addExtension(new ScrollerExtension())
+    ->scroller()
     ->scrollY('480px');
 ```
 
@@ -23,13 +21,11 @@ $dataTable
 
 ```php
 $dataTable
-    ->addExtension(
-        new ScrollerExtension(
-            boundaryScale: 0.5,
-            displayBuffer: 9,
-            rowHeight: 'auto',
-            serverWait: 200,
-        )
+    ->scroller(
+        boundaryScale: 0.5,
+        displayBuffer: 9,
+        rowHeight: 'auto',
+        serverWait: 200,
     )
     ->scrollY('480px');
 ```

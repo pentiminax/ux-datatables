@@ -9,14 +9,23 @@ use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Enum\SelectItemType;
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Enum\StyleFramework;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicFactory;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ColReorderExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\FixedColumnsExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\FixedHeaderExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\RowGroupExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
 use Symfony\Component\ExpressionLanguage\Expression;
 
@@ -759,9 +768,217 @@ class DataTable
         return $this;
     }
 
-    public function responsive(): static
+    /**
+     * Add the Responsive extension.
+     *
+     * @param list<array{name: string, width: int}>|null $breakpoints   omitted when null, so DataTables
+     *                                                                  keeps its own built-in breakpoint
+     *                                                                  list
+     * @param int|string                                 $detailsTarget column index or selector the
+     *                                                                  hidden-column details control
+     *                                                                  attaches to
+     * @param string|false                               $detailsType   'inline'|'column'|'colvis', or
+     *                                                                  false to disable the details
+     *                                                                  display entirely
+     */
+    public function responsive(
+        bool $auto = true,
+        ?array $breakpoints = null,
+        int|string $detailsTarget = 0,
+        string|false $detailsType = 'inline',
+        string $orthogonal = 'display',
+    ): static {
+        $this->extensions->addExtension(new ResponsiveExtension(
+            auto: $auto,
+            breakpoints: $breakpoints,
+            detailsTarget: $detailsTarget,
+            detailsType: $detailsType,
+            orthogonal: $orthogonal,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the Select extension.
+     *
+     * `withCheckbox` prepends a client-only selection column, and `headerCheckbox` adds the
+     * select-all control to its header.
+     */
+    public function select(
+        SelectStyle $style = SelectStyle::SINGLE,
+        bool $blurable = false,
+        string $className = 'selected',
+        bool $info = true,
+        SelectItemType $items = SelectItemType::ROW,
+        bool $keys = false,
+        string $selector = 'td, th',
+        bool $toggleable = true,
+        bool $withCheckbox = false,
+        bool $headerCheckbox = false,
+    ): static {
+        $extension = new SelectExtension(
+            style: $style,
+            blurable: $blurable,
+            className: $className,
+            info: $info,
+            items: $items,
+            keys: $keys,
+            selector: $selector,
+            toggleable: $toggleable,
+        );
+
+        $this->extensions->addExtension(
+            $extension
+                ->withCheckbox($withCheckbox)
+                ->headerCheckbox($headerCheckbox)
+        );
+
+        return $this;
+    }
+
+    /**
+     * Add the KeyTable extension.
+     *
+     * @param array{0: int, 1: int}|null $focus a [row, column] pair to focus on load, or null for none
+     * @param list<int|string>|null      $keys  key codes to listen for, or null for every key
+     */
+    public function keyTable(
+        bool $blurable = true,
+        string $className = 'focus',
+        bool $clipboard = true,
+        string $clipboardOrthogonal = 'display',
+        string $columns = '',
+        bool $editOnFocus = false,
+        ?array $focus = null,
+        ?array $keys = null,
+        ?int $tabIndex = null,
+    ): static {
+        $this->extensions->addExtension(new KeyTableExtension(
+            blurable: $blurable,
+            className: $className,
+            clipboard: $clipboard,
+            clipboardOrthogonal: $clipboardOrthogonal,
+            columns: $columns,
+            editOnFocus: $editOnFocus,
+            focus: $focus,
+            keys: $keys,
+            tabIndex: $tabIndex,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the Scroller extension.
+     *
+     * Scroller needs a vertical scrolling viewport, so pair it with {@see self::scrollY()}.
+     *
+     * @param int|string $rowHeight a pixel height, or 'auto' to measure it from the rendered rows
+     */
+    public function scroller(
+        float $boundaryScale = 0.5,
+        int $displayBuffer = 9,
+        int|string $rowHeight = 'auto',
+        int $serverWait = 200,
+    ): static {
+        $this->extensions->addExtension(new ScrollerExtension(
+            boundaryScale: $boundaryScale,
+            displayBuffer: $displayBuffer,
+            rowHeight: $rowHeight,
+            serverWait: $serverWait,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the ColReorder extension.
+     *
+     * @param string|list<int> $columns    column selector restricting which columns end users can
+     *                                     reorder — a DataTables column-selector string (e.g.
+     *                                     ':not(:first-child)') or a list of column indexes
+     * @param list<int>|null   $headerRows restricts reordering to these header row indexes, or null
+     *                                     for every row
+     * @param list<int>|null   $order      initial column order (original column indexes in their
+     *                                     new positions), or null to keep document order
+     */
+    public function colReorder(
+        bool $enable = true,
+        string|array $columns = '',
+        ?array $headerRows = null,
+        ?array $order = null,
+    ): static {
+        $this->extensions->addExtension(new ColReorderExtension(
+            enable: $enable,
+            columns: $columns,
+            headerRows: $headerRows,
+            order: $order,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the FixedColumns extension.
+     *
+     * @param int $start number of columns frozen on the leading edge
+     * @param int $end   number of columns frozen on the trailing edge
+     */
+    public function fixedColumns(int $start = 1, int $end = 0): static
     {
-        $this->extensions->addExtension(new ResponsiveExtension());
+        $this->extensions->addExtension(new FixedColumnsExtension(
+            start: $start,
+            end: $end,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the FixedHeader extension.
+     *
+     * Offsets are pixel values, useful when a sticky site header would otherwise overlap the
+     * floating table header or footer.
+     */
+    public function fixedHeader(
+        bool $header = true,
+        bool $footer = false,
+        int $headerOffset = 0,
+        int $footerOffset = 0,
+    ): static {
+        $this->extensions->addExtension(new FixedHeaderExtension(
+            header: $header,
+            footer: $footer,
+            headerOffset: $headerOffset,
+            footerOffset: $footerOffset,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the RowGroup extension.
+     *
+     * @param int|string|list<int|string> $dataSrc column name, index, or list of them the rows are
+     *                                             grouped by
+     */
+    public function rowGroup(
+        int|string|array $dataSrc,
+        bool $enable = true,
+        string $className = 'group',
+        string $startClassName = 'group-start',
+        string $endClassName = 'group-end',
+        ?string $emptyDataGroup = 'No group',
+    ): static {
+        $this->extensions->addExtension(new RowGroupExtension(
+            dataSrc: $dataSrc,
+            enable: $enable,
+            className: $className,
+            startClassName: $startClassName,
+            endClassName: $endClassName,
+            emptyDataGroup: $emptyDataGroup,
+        ));
 
         return $this;
     }

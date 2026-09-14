@@ -18,15 +18,11 @@ $dataTable->responsive();
 ## Advanced Example
 
 ```php
-use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
-
-$dataTable->addExtension(
-    new ResponsiveExtension(
-        auto: true,
-        detailsTarget: 0,
-        detailsType: 'inline',
-        orthogonal: 'display',
-    )
+$dataTable->responsive(
+    auto: true,
+    detailsTarget: 0,
+    detailsType: 'inline',
+    orthogonal: 'display',
 );
 ```
 

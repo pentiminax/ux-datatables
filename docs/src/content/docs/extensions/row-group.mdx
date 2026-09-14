@@ -17,14 +17,11 @@ The grouping source is required. Use a property name for object rows or a column
 rows.
 
 ```php
-use Pentiminax\UX\DataTables\Model\DataTableExtensions;
-use Pentiminax\UX\DataTables\Model\Extensions\RowGroupExtension;
+use Pentiminax\UX\DataTables\Model\DataTable;
 
-public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
+public function configureDataTable(DataTable $table): DataTable
 {
-    return $extensions->addExtension(
-        new RowGroupExtension(dataSrc: 'department')
-    );
+    return $table->rowGroup(dataSrc: 'department');
 }
 ```
 
@@ -36,13 +33,13 @@ the grouping source is a column, apply an initial order for that column in `conf
 Pass a list ordered from the outermost group to the innermost group:
 
 ```php
-new RowGroupExtension(dataSrc: ['department', 'office']);
+$table->rowGroup(dataSrc: ['department', 'office']);
 ```
 
 ## Configuration Options
 
 ```php
-new RowGroupExtension(
+$table->rowGroup(
     dataSrc: 'department',
     enable: false,
     className: 'table-group',

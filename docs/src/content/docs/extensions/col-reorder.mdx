@@ -12,17 +12,13 @@ Use ColReorder when users need personalized table views and ad-hoc exploration.
 ## Minimal Example
 
 ```php
-use Pentiminax\UX\DataTables\Model\Extensions\ColReorderExtension;
-
-$dataTable->addExtension(new ColReorderExtension());
+$dataTable->colReorder();
 ```
 
 ## Advanced Example
 
 ```php
-$dataTable->addExtension(
-    new ColReorderExtension(enable: false, columns: ':not(:first-child)')
-);
+$dataTable->colReorder(enable: false, columns: ':not(:first-child)');
 ```
 
 `enable: false` loads ColReorder but leaves it initially disabled — pair with the DataTables API
@@ -32,9 +28,7 @@ column-selector string (`':not(:first-child)'`) or a plain list of column indexe
 the default `''` allows every column.
 
 ```php
-$dataTable->addExtension(
-    new ColReorderExtension(headerRows: [0], order: [2, 0, 1])
-);
+$dataTable->colReorder(headerRows: [0], order: [2, 0, 1]);
 ```
 
 `headerRows` restricts reordering to specific header row indexes in a multi-row header; omit it (or
