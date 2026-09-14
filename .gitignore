@@ -4,7 +4,7 @@
 .grepai/
 .idea/
 var/
-vendor/
+/vendor/
 
 .php-cs-fixer.cache
 .phpunit.cache/
