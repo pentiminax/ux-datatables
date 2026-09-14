@@ -500,8 +500,8 @@ This includes:
 />
 
 <Aside type="note">
-  `prepareForRendering()` still exists and remains idempotent, but normal rendering no longer needs
-  to call it explicitly. `getDataTable()` is now the canonical rendering entrypoint.
+  `getDataTable()` is the rendering entrypoint; `prepareForRendering()` stays idempotent and does
+  not need to be called.
 </Aside>
 
 <Aside type="tip">
