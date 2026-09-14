@@ -117,4 +117,16 @@ final class ActionColumnTest extends TestCase
         $this->assertSame(2, $column->getResponsivePriority());
         $this->assertSame(2, $column->jsonSerialize()['responsivePriority']);
     }
+
+    #[Test]
+    public function it_keeps_the_subclass_type_when_built_from_actions(): void
+    {
+        $column = ActionColumnSubclassFixture::fromActions('actions', 'Actions', new Actions());
+
+        $this->assertInstanceOf(ActionColumnSubclassFixture::class, $column);
+    }
+}
+
+final class ActionColumnSubclassFixture extends ActionColumn
+{
 }

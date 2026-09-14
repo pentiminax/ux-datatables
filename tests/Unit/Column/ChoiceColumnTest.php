@@ -105,4 +105,17 @@ final class ChoiceColumnTest extends DataTableTestCase
 
         ChoiceColumn::new('status')->renderAsBadges($mapped, $default);
     }
+
+    #[Test]
+    public function it_keeps_the_subclass_type_through_fluent_calls(): void
+    {
+        $column = ChoiceColumnSubclassFixture::new('status');
+
+        $this->assertInstanceOf(ChoiceColumnSubclassFixture::class, $column->setChoices(['draft' => 'Draft']));
+        $this->assertInstanceOf(ChoiceColumnSubclassFixture::class, $column->renderAsBadges());
+    }
+}
+
+final class ChoiceColumnSubclassFixture extends ChoiceColumn
+{
 }
