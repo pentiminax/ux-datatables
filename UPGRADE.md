@@ -340,6 +340,18 @@ stored on the resulting object.
 | --- | --- |
 | `Contracts\ColumnInterface::getWidth()`, `::getCellType()`, `::getDefaultContent()` | none on the interface; `AbstractColumn` keeps both the setters and the getters, and all three still serialize into the client payload |
 
+### Two private Ajax service ids renamed
+
+DetailRowService and SourceRowResolver both live in Ajax\, so their
+service ids are renamed to match. Both are private, so there is no BC
+guarantee, but a compiler pass or `#[AsDecorator]` referencing the old id
+by name would fail at container compile time.
+
+| Renamed service id | New id |
+| --- | --- |
+| `datatables.detail.row_service` | `datatables.ajax.detail_row_service` |
+| `datatables.rehydration.source_row_resolver` | `datatables.ajax.source_row_resolver` |
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
