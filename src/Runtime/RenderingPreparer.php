@@ -8,7 +8,6 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\TranslatableFilterInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
@@ -330,9 +329,7 @@ final class RenderingPreparer
         }
 
         foreach ($filters->getFilters() as $filter) {
-            if ($filter instanceof TranslatableFilterInterface) {
-                $filter->translateLabels($this->translator);
-            }
+            $filter->translateLabels($this->translator);
         }
 
         $table->setPreparedFilterLabels(
