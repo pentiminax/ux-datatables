@@ -49,8 +49,9 @@ final class DataTableRuntime
      * Whether the table offers DataTables' "show all" entry, the only case where an
      * unbounded page size is what the developer asked for.
      *
-     * lengthMenu() accepts both `[10, 25, -1]` and the two-dimensional
-     * `[[10, 25, -1], ['10', '25', 'All']]` form, whose first entry holds the values.
+     * lengthMenu() accepts `[10, 25, -1]`, the two-dimensional
+     * `[[10, 25, -1], ['10', '25', 'All']]` form, and associative entries such as
+     * `['label' => 'All', 'value' => -1]`.
      */
     private function allowsShowAll(): bool
     {
@@ -60,9 +61,19 @@ final class DataTableRuntime
             return false;
         }
 
-        $values = isset($menu[0]) && \is_array($menu[0]) ? $menu[0] : $menu;
+        $entries = isset($menu[0]) && \is_array($menu[0]) && array_is_list($menu[0])
+            ? $menu[0]
+            : $menu;
 
-        return \in_array(-1, $values, true);
+        foreach ($entries as $entry) {
+            $value = \is_array($entry) ? ($entry['value'] ?? null) : $entry;
+
+            if (-1 === $value) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function isRequestHandled(): bool
