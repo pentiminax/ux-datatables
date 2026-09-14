@@ -16,14 +16,14 @@ final class ApiPlatformPropertyTypeMapper
     /**
      * Map a PropertyInfo type to the appropriate column class.
      *
-     * Anything that is not a `Type` -- including `null`, when PropertyInfo could not resolve the
-     * property -- falls back to a text column, which renders as well as anything else.
+     * A null type means PropertyInfo could not resolve the property, which a text column renders
+     * as well as anything else.
      *
      * @return class-string<ColumnInterface>
      */
-    public function mapType(mixed $type): string
+    public function mapType(?Type $type): string
     {
-        if (!$type instanceof Type) {
+        if (null === $type) {
             return TextColumn::class;
         }
 
@@ -40,7 +40,7 @@ final class ApiPlatformPropertyTypeMapper
     /**
      * Create a column instance from a property name, label, and type.
      */
-    public function createColumn(string $name, string $label, mixed $type): ColumnInterface
+    public function createColumn(string $name, string $label, ?Type $type): ColumnInterface
     {
         $columnClass = $this->mapType($type);
 
