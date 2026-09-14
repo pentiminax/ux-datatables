@@ -147,6 +147,36 @@ final class DataTableRuntimeTest extends TestCase
     {
         yield 'flat menu' => [[10, 25, -1]];
         yield 'menu with its own labels' => [[[10, 25, -1], ['10', '25', 'All']]];
+        yield 'menu with an object entry' => [[10, 25, ['label' => 'All', 'value' => -1]]];
+        yield 'menu starting with an object entry' => [[
+            ['label' => 'All', 'value' => -1],
+            ['label' => '25', 'value' => 25],
+        ]];
+    }
+
+    #[Test]
+    #[DataProvider('invalidShowAllLengthMenus')]
+    public function it_caps_show_all_for_malformed_object_entries(array $lengthMenu): void
+    {
+        $runtime = new DataTableRuntime(
+            table: (new DataTable('movies'))->lengthMenu($lengthMenu),
+            dataProviderFactory: static fn (): ?DataProviderInterface => null,
+            maxPageLength: 100,
+        );
+
+        $runtime->handleRequest(new Request(query: ['draw' => 1, 'length' => -1]));
+
+        $this->assertSame(100, $runtime->getRequest()?->length);
+    }
+
+    /**
+     * @return iterable<string, array{0: array<mixed>}>
+     */
+    public static function invalidShowAllLengthMenus(): iterable
+    {
+        yield 'missing value' => [[10, ['label' => 'All']]];
+        yield 'string value' => [[10, ['label' => 'All', 'value' => '-1']]];
+        yield 'different value' => [[10, ['label' => 'All', 'value' => -2]]];
     }
 
     #[Test]
