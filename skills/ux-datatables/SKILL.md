@@ -9,6 +9,13 @@ description: Use when building, configuring, or debugging DataTables with the pe
 
 `pentiminax/ux-datatables` integrates [DataTables.net](https://datatables.net) into Symfony. You declare a class extending `AbstractDataTable`, annotate it with `#[AsDataTable(Entity::class)]`, define columns, and render with the Twig `render_datatable()` function. A Stimulus controller (`@pentiminax/ux-datatables/datatable`) lazy-loads DataTables and its extensions.
 
+## PHP example shape
+
+Put bundle configuration in a concrete `AbstractDataTable` subclass. Show `configureDataTable()`
+for table-wide options, `configureColumns()` for columns, and `configureActions()` for row actions.
+Do not emit standalone `$dataTable->...` or column fragments without the hook that owns them unless
+the user explicitly asks for a minimal diff.
+
 ## Decision tree: client-side vs server-side
 
 ```
@@ -73,7 +80,8 @@ Scaffold from an entity: `php bin/console make:datatable`.
 - `references/defining-a-datatable.md` — `AbstractDataTable`, `#[AsDataTable]`, the `configure*()` hooks, data providers, `customizeQueryBuilder()`, page projection (`projectPage()`).
 - `references/columns.md` — all 11 column types + shared `AbstractColumn` methods.
 - `references/server-side.md` — server-side wiring, route import, Stimulus events, custom Ajax, computed columns (`setOrderExpression()`).
-- `references/extensions.md` — Buttons, Select, Responsive, RowGroup, ColumnControl, Scroller, KeyTable, ColReorder, FixedColumns, FixedHeader.
+- `references/extensions.md` — Buttons, Select, Responsive, RowGroup, Scroller, KeyTable, ColReorder, FixedColumns, FixedHeader.
+- `references/column-control.md` — ColumnControl placement, per-column overrides, search lists, enums, Ajax option providers, and custom content.
 - `references/exporters.md` — replacing the CSV/XLSX writer for server-side export (`ExporterInterface`, `AbstractExporter`).
 - `references/actions.md` — row actions, permissions, conditional display.
 - `references/security.md` — Ajax route protection, `Permission::DT_*` attributes, the row permission matrix, `DataTable::setPermission()`, per-row resolvers, CSRF.

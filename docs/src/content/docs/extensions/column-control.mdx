@@ -11,8 +11,22 @@ Use Column Control when users need direct per-column order and filter controls i
 
 ## Minimal Example
 
+Enable the extension in `configureDataTable()`, the hook that owns table-wide options:
+
 ```php
-$dataTable->columnControl();
+use App\Entity\Employee;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+#[AsDataTable(Employee::class)]
+final class EmployeeDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->columnControl();
+    }
+}
 ```
 
 ## Behavior
@@ -22,166 +36,258 @@ The bundled `ColumnControlExtension` serializes default controls for:
 - ordering actions (asc, desc, add/remove order)
 - per-column search input
 
-Search logics that rely on SQL `LIKE` — `contains`, `notContains`, `starts`, and `ends` — are
-ignored on columns mapped to a native identifier type (`guid`, `uuid`, `ulid`, `uuid_binary`,
+Search logics that rely on SQL `LIKE`, including `contains`, `notContains`, `starts`, and `ends`,
+are ignored on columns mapped to a native identifier type (`guid`, `uuid`, `ulid`, `uuid_binary`,
 `uuid_binary_ordered_time`), because PostgreSQL and SQL Server reject `LIKE` on those columns.
-`equal` and `notEqual` still work and match a complete identifier. `empty` and `notEmpty` only
-test `IS NULL` / `IS NOT NULL` on those columns — they must not compare the identifier to an
-empty string. See
+`equal` and `notEqual` still match a complete identifier. `empty` and `notEmpty` test only
+`IS NULL` / `IS NOT NULL`. See
 [Searching UUID and ULID columns](/ux-datatables/guide/server-side-processing/#searching-uuid-and-ulid-columns).
 
 ## Choosing Where The Controls Go
 
 Each control group targets one row: a header row index (`0`, `1`, ...) or a `tfoot` string
-(`'tfoot'`, `'tfoot:1'`). Pass a target to replace the defaults with that single group.
+(`'tfoot'`, `'tfoot:1'`). Passing a target replaces the defaults with one group. ColumnControl
+creates the target row, so the rendered table needs no `<tfoot>` markup:
 
 ```php
-// Per-column search inputs in the table footer instead of the second header row.
-$dataTable->columnControl(target: 'tfoot');
+use App\Entity\Employee;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 
-// A specific content type in a header row.
-$dataTable->columnControl(target: 1, content: ['searchText']);
+#[AsDataTable(Employee::class)]
+final class EmployeeDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->columnControl(target: 'tfoot', content: ['searchText']);
+    }
+}
 ```
 
-ColumnControl creates the targeted row when the table does not render one, so a footer target
-needs no `<tfoot>` markup — `render_datatable()` emits an empty `<table>` and every row is built
-at initialization.
-
-Naming a target drops the default order controls. Keep both by building the extension directly:
+Build `ColumnControlExtension` directly when the table needs several groups:
 
 ```php
+use App\Entity\Employee;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 
-$dataTable->addExtension(
-    (new ColumnControlExtension([]))
-        ->add(0, ['order'])
-        ->add('tfoot', ['search'])
-);
+#[AsDataTable(Employee::class)]
+final class EmployeeDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->addExtension(
+            (new ColumnControlExtension([]))
+                ->add(0, ['order'])
+                ->add('tfoot', ['search'])
+        );
+    }
+}
 ```
 
-`new ColumnControlExtension()` keeps the defaults, `new ColumnControlExtension([])` starts from
-nothing, and `add()` appends one group per call in call order.
-
-`content` needs a target to be placed in: `columnControl(content: ['searchText'])` throws rather
-than silently keeping the defaults.
+`new ColumnControlExtension()` keeps the defaults. `new ColumnControlExtension([])` starts from
+nothing, and `add()` appends groups in call order. Passing `content` without a target throws because
+the bundle cannot know which row should contain it.
 
 <Aside type="note">
-  `content: ['search']` picks the input for the column's type — text, number, date, or a value list.
-  Use `searchText`, `searchNumber`, `searchDateTime`, or `searchList` to pin one, and
-  `searchDropdown` for a dropdown trigger rather than an always-visible input.
+  `content: ['search']` selects an input from the column type. Use `searchText`, `searchNumber`,
+  `searchDateTime`, or `searchList` to pin one, and `searchDropdown` for a dropdown trigger.
 </Aside>
 
 ## Per-column Overrides
 
-Override the control content for a single column with `setColumnControl()`, using the same content
-descriptors as the DataTables `columns.columnControl` option:
+Enable the extension in `configureDataTable()`, then put an override on the column returned by
+`configureColumns()`:
 
 ```php
+use App\Entity\Employee;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 
-$dataTable->columnControl();
+#[AsDataTable(Employee::class)]
+final class EmployeeDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('name', 'Name')
+            ->setColumnControl(['colvisDropdown']);
 
-TextColumn::new('name', 'Name')
-    ->setColumnControl(['colvisDropdown']);
+        yield TextColumn::new('office', 'Office');
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->columnControl();
+    }
+}
 ```
 
 `setColumnControl()` takes precedence over `disableColumnControl()` regardless of call order. Both
-require `ColumnControlExtension` to be added to the table — the frontend only loads the
-ColumnControl plugin bundle when the table-level extension is present, so a column-level override
-or a disabled column stays inert without it.
+need the table-level extension because that is what loads the ColumnControl frontend bundle.
 
 ## Search Lists
 
-Use the typed `SearchList` content descriptor when a column has a finite set of searchable values.
-With no explicit options and no Ajax provider, ColumnControl derives the unique values from the
-rows loaded in the browser:
+Use the typed `SearchList` descriptor when a column has a finite set of searchable values.
+
+### Local Options
+
+With no static options or Ajax provider, ColumnControl derives unique values from the rows loaded
+in the browser. This works for client-side tables, where the browser has the complete dataset:
 
 ```php
+use App\Entity\Employee;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 
-$dataTable->columnControl(target: 1, content: [SearchList::new()]);
+#[AsDataTable(Employee::class)]
+final class EmployeeDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->columnControl(target: 1, content: [SearchList::new()]);
+    }
+}
 ```
 
-This local fallback is useful for client-side tables. A server-side table only has one page in the
-browser, so it needs static options or options returned with the Ajax response.
+A server-side table only has one page in the browser, so it needs static options or options returned
+with the Ajax response.
 
 ### Specific Columns
 
-Keep the default search input on most columns and replace it with a list on selected columns:
+Keep typed search inputs on most columns and replace them with lists on selected columns:
 
 ```php
+use App\Entity\Employee;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 
-$dataTable->columnControl(target: 1, content: ['search']);
+#[AsDataTable(Employee::class)]
+final class EmployeeDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('name', 'Name');
 
-TextColumn::new('office', 'Office')
-    ->setColumnControl([
-        ['target' => 1, 'content' => [SearchList::new()]],
-    ]);
+        yield TextColumn::new('office', 'Office')->setColumnControl([
+            [
+                'target'  => 1,
+                'content' => [SearchList::new()],
+            ],
+        ]);
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->columnControl(target: 1, content: ['search']);
+    }
+}
 ```
 
-`SearchList` also composes with another search control in the same cell:
+A list and typed input can also share one dropdown:
 
 ```php
-$dataTable->columnControl(
-    target: 1,
-    content: [['search', SearchList::new()]],
-);
+use App\Entity\Employee;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
+
+#[AsDataTable(Employee::class)]
+final class EmployeeDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->columnControl(
+            target: 1,
+            content: [['search', SearchList::new()]],
+        );
+    }
+}
 ```
 
 ### Static and Enum Options
 
 `options()` accepts simple values, DataTables `label` / `value` arrays, a `[label => value]` map,
-a list of `BackedEnum` cases, or a `BackedEnum` class:
+a list of `BackedEnum` cases, or a backed enum class:
 
 ```php
+use App\Entity\Employee;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 
-enum OrderStatus: string
+enum EmploymentStatus: string
 {
-    case Draft = 'draft';
-    case Paid = 'paid';
+    case Active = 'active';
+    case Inactive = 'inactive';
 
     public function getLabel(): string
     {
         return match ($this) {
-            self::Draft => 'Draft order',
-            self::Paid => 'Paid order',
+            self::Active => 'Active employee',
+            self::Inactive => 'Former employee',
         };
     }
 }
 
-$dataTable->columnControl();
+#[AsDataTable(Employee::class)]
+final class EmployeeDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('name', 'Name');
 
-TextColumn::new('status', 'Status')
-    ->setColumnControl([
-        [
-            'target'  => 1,
-            'content' => [SearchList::new()->options(OrderStatus::class)],
-        ],
-    ]);
+        yield TextColumn::new('status', 'Status')->setColumnControl([
+            [
+                'target'  => 1,
+                'content' => [SearchList::new()->options(EmploymentStatus::class)],
+            ],
+        ]);
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->columnControl();
+    }
+}
 ```
 
-Enum option labels use `TranslatableInterface` when Symfony's translator is available. Otherwise,
-the bundle checks `getLabel()`, then `label()`, and finally uses the case name. Backed values keep
-their original string or integer type.
+An enum implementing `TranslatableInterface` uses Symfony's translator when one is available.
+Otherwise, labels fall back to `getLabel()`, then `label()`, then the case name. Backed values keep
+their string or integer type.
 
 ### Options from the Ajax Response
 
-For a dynamic list, pass a closure or an application service implementing
-`SearchListOptionsProviderInterface`. The bundle calls the provider after it has handled the
-DataTables request and adds the normalized options to `columnControl.<columnName>`:
+For dynamic options, use a closure or an application service implementing
+`SearchListOptionsProviderInterface`. The provider receives the normalized request and each
+permitted, searchable column. The bundle returns its options under `columnControl.<columnName>`:
 
 ```php
+use App\Entity\Employee;
+use App\Repository\OfficeRepository;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchListOptionsProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 
-final class OfficeSearchListOptionsProvider implements SearchListOptionsProviderInterface
+final class OfficeOptionsProvider implements SearchListOptionsProviderInterface
 {
-    public function __construct(private OfficeRepository $offices)
+    public function __construct(private readonly OfficeRepository $offices)
     {
     }
 
@@ -194,114 +300,123 @@ final class OfficeSearchListOptionsProvider implements SearchListOptionsProvider
         return $this->offices->labelValueOptions();
     }
 }
-```
 
-Inject the provider into the DataTable service and attach it at table level. The provider receives
-each permitted, searchable column and returns `null` for columns it does not handle:
-
-```php
-use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
-
-final class EmployeesDataTable extends AbstractDataTable
+#[AsDataTable(Employee::class)]
+final class EmployeeDataTable extends AbstractDataTable
 {
-    public function __construct(
-        private readonly OfficeSearchListOptionsProvider $officeOptions,
-    ) {
+    public function __construct(private readonly OfficeOptionsProvider $officeOptions)
+    {
         parent::__construct();
     }
 
     public function configureDataTable(DataTable $table): DataTable
     {
-        return $table->columnControl(
-            target: 1,
-            content: [
-                SearchList::new()
-                    ->ajaxOptionsProvider($this->officeOptions)
-                    ->ajaxOnly(false),
-            ],
-        );
+        return $table
+            ->serverSide()
+            ->processing()
+            ->columnControl(
+                target: 1,
+                content: [SearchList::new()->ajaxOptionsProvider($this->officeOptions)],
+            );
     }
 }
 ```
 
-`ajaxOnly()` defaults to ColumnControl's installed version because the descriptor omits options
-that were not explicitly configured. Set `ajaxOnly(false)` to derive local options for columns
-that the provider omits on a client-side Ajax table. Server-side tables never derive options from
-the current page.
+The provider decides whether active filters affect its options and must apply the same tenant and
+authorization scope as the table query. Returning `null` omits the column. Returning an empty
+iterable publishes an empty list. Static options and an Ajax provider cannot be combined on one
+descriptor because DataTables gives static options priority.
 
-The provider can inspect the normalized request to implement dependent lists, but the bundle does
-not apply filtering rules to option queries automatically. Inject the required repository and
-decide which active filters should affect the available options in the application service.
-The provider must also apply the same tenant and authorization scope as the table query; option
-labels and values are returned directly to the current user.
-
-Returning `null` omits the column from the Ajax options. Returning an empty iterable publishes an
-empty list. `options()` and `ajaxOptionsProvider()` cannot be combined on the same descriptor,
-because DataTables always gives static options priority over Ajax options.
-
-With `hidable(false)`, the bundle keeps an empty `columnControl` object in the Ajax response even
-when every provider returns `null`, so ColumnControl leaves the empty control visible.
-
-Dynamic providers run for the bundle's Ajax endpoint and for manual endpoints that call
-`AbstractDataTable::getResponse()`. An external Ajax or API Platform endpoint must add its own
-`columnControl` object. Static and enum options still work with those endpoints because they are
-part of the initial DataTables configuration.
+Dynamic providers run for the bundle's Ajax endpoint and manual endpoints that call
+`AbstractDataTable::getResponse()`. API Platform and external Ajax endpoints must add their own
+`columnControl` response object.
 
 ### Display Options
 
-The descriptor exposes the main `searchList` settings without fixing their defaults:
+The descriptor exposes the main `searchList` settings but omits values that were not explicitly
+configured, leaving their defaults to the installed ColumnControl version:
 
 ```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 
-SearchList::new()
-    ->ajaxOnly(false)
-    ->hidable(false)
-    ->orthogonal('filter')
-    ->search(true)
-    ->select(true)
-    ->title('Choose [title]');
+final class EmployeeDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('name', 'Name');
+        yield TextColumn::new('office', 'Office');
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->ajax('/employees.json')
+            ->columnControl(
+                target: 1,
+                content: [
+                    SearchList::new()
+                        ->ajaxOnly(false)
+                        ->hidable(false)
+                        ->orthogonal('filter')
+                        ->search(true)
+                        ->select(true)
+                        ->title('Choose [title]'),
+                ],
+            );
+    }
+}
 ```
 
-`orthogonal()` only changes labels derived from locally loaded rows. Static and Ajax options
-already carry their own labels. `[title]` in `title()` is replaced with the host column title.
+`ajaxOnly(false)` lets a client-side Ajax table derive local options when its response omits a
+column. A server-side table never derives a complete list from the current page. `orthogonal()`
+only changes labels derived from local rows. `[title]` is replaced with the column title.
 
-State saving, scrolling, FixedHeader, and FixedColumns continue to use ColumnControl's native
-behavior and need no bundle-specific configuration.
+With `hidable(false)`, the bundle keeps an empty `columnControl` object when every provider returns
+`null`, so ColumnControl leaves the empty control visible.
+
+State saving, scrolling, FixedHeader, and FixedColumns use ColumnControl's native behavior.
 
 ### Overriding The Actions Column
 
-The auto-generated actions column is built internally and has ColumnControl disabled by default, so
-`setColumnControl()` on `AbstractColumn` doesn't reach it. Use `Actions::setColumnControl()` in
-`configureActions()` instead — it flows through to the generated column the same way
-`setColumnClassName()` already does:
+The generated actions column has ColumnControl disabled by default. Configure it through
+`configureActions()`, because it is not one of the columns returned by `configureColumns()`:
 
 ```php
+use App\Entity\Employee;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Model\DataTable;
 
-public function configureActions(Actions $actions): Actions
+#[AsDataTable(Employee::class)]
+final class EmployeeDataTable extends AbstractDataTable
 {
-    return $actions
-        ->setColumnControl(['colvisDropdown'])
-        ->add(Action::edit());
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->columnControl();
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions
+            ->setColumnControl(['colvisDropdown'])
+            ->add(Action::edit());
+    }
 }
 ```
 
 ## Custom Content Types
 
-ColumnControl resolves the content descriptors above against `DataTable.ColumnControl.content`, a
-plugin registry ([see the DataTables.net docs](https://datatables.net/manual/extensions/columncontrol/custom))
-— registering a custom type means adding to that object before the table is constructed. Neither
-existing controller event fits: `datatables:pre-connect` fires before ColumnControl's plugin bundle
-has loaded, so `DataTable.ColumnControl` doesn't exist yet; `datatables:connect` fires after the
-table is already constructed, which is too late — an unregistered content type makes construction
-throw. Use `datatables:pre-init`, which fires once extension plugins have loaded but before the
-table is built:
+ColumnControl resolves content descriptors against `DataTable.ColumnControl.content`. Register a
+custom type on `datatables:pre-init`, after the plugin loads but before DataTables constructs the
+table:
 
 ```javascript
-// assets/controllers/mytable_controller.js
+// assets/controllers/employee_table_controller.js
 import { Controller } from '@hotwired/stimulus'
 
 export default class extends Controller {
@@ -335,30 +450,47 @@ export default class extends Controller {
 }
 ```
 
-Then reference the type by name from PHP, same as any built-in content descriptor:
+Reference that content name from `configureColumns()` and enable the extension in
+`configureDataTable()`:
 
 ```php
-TextColumn::new('rating', 'Rating')
-    ->setColumnControl(['myRating']);
+use App\Entity\Employee;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+#[AsDataTable(Employee::class)]
+final class EmployeeDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('name', 'Name');
+        yield NumberColumn::new('rating', 'Rating')
+            ->setColumnControl(['myRating']);
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->columnControl();
+    }
+}
 ```
 
-Registering onto `DataTable.ColumnControl.content` only needs to happen once per page, not once
-per table — a listener attached to one table's controller instance still runs before that table's
-own construction, which is all a plugin registration needs.
+Registering the content once per page is enough. `datatables:pre-connect` is too early because the
+plugin has not loaded, and `datatables:connect` is too late because construction has finished.
 
 ## Frequent Pitfalls
 
-- Calling `setColumnControl()` or `disableColumnControl()` without also enabling
-  `ColumnControlExtension` on the table (`$table->columnControl()`); the column-level setting is
-  silently inert because the frontend never loads the plugin bundle.
-- Enabling it without ensuring the target columns are searchable/orderable.
-- Passing a target and expecting the default order controls to stay — they are replaced. Add them
-  back with `add(0, ['order'])`.
-- Expecting partial search (`contains`, `starts`) to work on a UUID or ULID column.
-- Registering a custom content type on `datatables:pre-connect` instead of `datatables:pre-init` —
-  `pre-connect` fires before the DataTable library and its extensions have even loaded, so its
-  event detail has no `DataTable` reference to register against. The table then throws
-  `Unknown ColumnControl content type` once it's constructed.
+- Calling `setColumnControl()` or `disableColumnControl()` without enabling ColumnControl in
+  `configureDataTable()`.
+- Enabling controls on columns that are not searchable or orderable.
+- Passing a target and expecting default order controls to stay. Add every required group through
+  `ColumnControlExtension`.
+- Expecting partial UUID or ULID searches to work.
+- Returning provider options without applying the table's tenant and authorization scope.
+- Registering custom content on `datatables:pre-connect` instead of `datatables:pre-init`.
 
 ## Cross Links
 
