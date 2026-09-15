@@ -245,6 +245,9 @@ describe('ApiPlatformAdapter', () => {
                     'hydra:totalItems': 1,
                 })))
                 .mockResolvedValueOnce(new Response(JSON.stringify({
+                    draw: 6,
+                    recordsTotal: 1,
+                    recordsFiltered: 1,
                     data: [{id: 1, avatar: '<img src="https://example.test/avatar.png" alt="">'}],
                 })));
 
@@ -296,7 +299,8 @@ describe('ApiPlatformAdapter', () => {
             expect(fetchMock.mock.calls[1][1]).toMatchObject({
                 body: JSON.stringify({
                     table: 'signed-token',
-                    rows: [{id: 1, avatar: 'https://example.test/avatar.png'}],
+                    draw: 6,
+                    query: 'page=1&itemsPerPage=25&order%5Bemail%5D=asc&email=user%40example.com',
                 }),
                 credentials: 'same-origin',
                 method: 'POST',

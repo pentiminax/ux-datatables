@@ -159,6 +159,38 @@ final class ApiPlatformItemResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_checks_security_for_an_already_loaded_item_without_fetching_it_again(): void
+    {
+        $user = new ItemResolverUserFixture(7);
+
+        $iriConverter = $this->createMock(IriConverterInterface::class);
+        $iriConverter->expects($this->never())->method('getResourceFromIri');
+
+        $accessChecker = $this->createMock(ResourceAccessCheckerInterface::class);
+        $accessChecker->expects($this->once())
+            ->method('isGranted')
+            ->with(ItemResolverUserFixture::class, 'is_granted("VIEW", object)', [
+                'object'          => $user,
+                'previous_object' => null,
+                'request'         => null,
+            ])
+            ->willReturn(false);
+
+        $resolver = $this->createResolver(
+            $iriConverter,
+            new Get(security: 'is_granted("VIEW", object)'),
+            $accessChecker,
+            router: $this->routerMatching('/api/users/7', '_api_users_get0'),
+        );
+
+        $this->assertFalse($resolver->isGranted(
+            ItemResolverUserFixture::class,
+            $user,
+            ['@id' => '/api/users/7'],
+        ));
+    }
+
+    #[Test]
     public function it_returns_null_when_security_is_configured_but_no_access_checker_is_available(): void
     {
         $resolver = $this->createResolver(

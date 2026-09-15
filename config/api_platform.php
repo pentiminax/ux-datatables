@@ -50,4 +50,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(3, service('api_platform.security.resource_access_checker')->nullOnInvalid())
         ->arg(4, service('request_stack'))
         ->private();
+
+    $services->alias(ApiPlatformItemResolver::class, 'datatables.api_platform.item_resolver')
+        ->private();
 };

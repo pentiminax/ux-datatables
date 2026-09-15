@@ -94,22 +94,21 @@ Notes:
 ## Template rendering security
 
 `TemplateColumn`, detail actions and `UrlColumn` need the entity, not the JSON row, so the browser
-posts the rows it received back to `POST /datatables/ajax/templates` to have them rendered. Those
-rows are client input: their identifiers prove nothing about who may read them.
+sends the collection query and DataTables draw number to `POST /datatables/ajax/templates`. It does
+not send rows or identifiers.
 
-The route therefore rehydrates each row through the resource's API Platform `Get` operation. A row
-carrying an `@id` is matched through the router to the item operation serving that IRI, as the IRI
-converter does; a row carrying only an `id` generates an IRI through the resource's first `Get`
-before it is loaded. This lets API Platform transform custom identifiers such as UUID or value
-objects before invoking the provider. Both forms apply exactly what a `GET /resource/{id}` would:
-the operation's state provider, its Doctrine item
-extensions (`QueryItemExtensionInterface`, tenant scoping, filtered query builders) and its
-`security` expression. Sibling item operations for other audiences are neither consulted nor
-enforced.
+The route resolves the collection URL from API Platform metadata and runs one GET subrequest with
+the same query string. This goes through API Platform's normal collection provider, filters,
+pagination, eager loading and operation security. The route reads the loaded entities from the
+subrequest and maps the page through the normal row pipeline, so template, action and URL rendering
+does not perform one item lookup per row.
 
-A row API Platform does not serve — unknown, filtered out by an extension, or denied by `security`
-— is returned to the browser exactly as posted, with no template rendered and no action or URL
-resolved. Nothing is ever rendered against client-supplied data.
+The browser still fetches the Hydra collection first in this compatibility path. Template-enabled
+tables therefore make two collection requests, but the server performs no N+1 item hydration.
+
+When the resource has a `Get` operation, its item `security` expression is also evaluated against
+each entity already loaded by the collection request. This check performs no item query. A denied
+item keeps its serialized collection row but receives no template, action or URL output.
 
 ```php
 use ApiPlatform\Metadata\ApiResource;
@@ -127,9 +126,9 @@ final class User
 ```
 
 <Aside type="caution" title="A resource with no `Get` operation renders nothing">
-  Without a `Get` operation — or without API Platform at all — no row can be resolved, so every row
-  comes back unrendered. The route also rejects a request carrying more rows than
-  `data_tables.max_page_length` (1000 by default) with a 400 response.
+  Without a `Get` operation, item security cannot be evaluated, so every row comes back unrendered.
+  The route caps `itemsPerPage` at `data_tables.max_page_length` (1000 by default) and rejects a
+  collection that still returns more rows than that limit.
 </Aside>
 
 ## Global search

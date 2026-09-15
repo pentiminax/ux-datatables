@@ -232,7 +232,7 @@ describe('template rendering failures', () => {
         const adapter = new ApiPlatformAdapter(columns)
 
         await expect(
-            adapter.renderTemplateRows(renderedResponse, templateRendering)
+            adapter.renderTemplateRows(renderedResponse, templateRendering, 'page=1&itemsPerPage=10')
         ).resolves.toEqual(renderedResponse)
         expect(warn).toHaveBeenCalledOnce()
     })
@@ -244,7 +244,7 @@ describe('template rendering failures', () => {
         const adapter = new ApiPlatformAdapter(columns)
 
         await expect(
-            adapter.renderTemplateRows(renderedResponse, templateRendering)
+            adapter.renderTemplateRows(renderedResponse, templateRendering, 'page=1&itemsPerPage=10')
         ).resolves.toEqual(renderedResponse)
         expect(warn).toHaveBeenCalledOnce()
     })
@@ -263,7 +263,7 @@ describe('template rendering failures', () => {
         const adapter = new ApiPlatformAdapter(columns)
 
         await expect(
-            adapter.renderTemplateRows(renderedResponse, templateRendering)
+            adapter.renderTemplateRows(renderedResponse, templateRendering, 'page=1&itemsPerPage=10')
         ).resolves.toEqual(renderedResponse)
         expect(warn).toHaveBeenCalledOnce()
     })

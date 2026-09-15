@@ -1,0 +1,7 @@
+assets/dist/
+assets/node_modules/
+docs/dist/
+docs/.astro/
+node_modules/
+var/
+vendor/

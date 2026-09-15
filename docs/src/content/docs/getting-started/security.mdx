@@ -21,15 +21,16 @@ resolution all go through these endpoints:
       'ux_datatables_ajax_templates',
       '/datatables/ajax/templates',
       'POST',
-      'Template column rendering (rows authorized by the API Platform item provider)',
+      'Template column rendering (collection and item security applied by API Platform)',
     ],
     ['ux_datatables_ajax_export', '/datatables/ajax/export', 'POST', 'Server-side CSV/XLSX export'],
   ]}
 />
 
-`/datatables/ajax/templates` is the one route that authorizes the rows it is given: each posted row
-is rehydrated through the resource's API Platform `Get` operation, so its state provider, its
-Doctrine item extensions and its `security` expression decide what may be rendered. See
+`/datatables/ajax/templates` receives a collection query, not rows. It runs that query through an
+API Platform GET subrequest, so collection providers, Doctrine extensions and operation security
+decide which entities may be rendered. It then evaluates item `Get` security in memory before
+rendering templates, actions or URLs. See
 [Template rendering security](/integrations/api-platform/#template-rendering-security). Every other
 route relies entirely on the `access_control` rule below.
 
