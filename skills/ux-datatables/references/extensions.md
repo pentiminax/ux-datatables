@@ -1,6 +1,10 @@
 # Extensions
 
-DataTables extensions live in `src/Model/Extensions/`. Add them by overriding `configureExtensions()` or fluently in `configureDataTable()` via `$table->addExtension(...)`. Two have dedicated shortcuts: `$table->responsive()` and `$table->columnControl()`.
+DataTables extensions live in `src/Model/Extensions/`. Add them by overriding
+`configureExtensions()` or fluently in `configureDataTable()` via `$table->addExtension(...)`.
+
+ColumnControl has its own configuration model, request payload, and search-list providers. Read
+`references/column-control.md` for that extension rather than treating it as a simple toggle.
 
 ```php
 public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
@@ -14,7 +18,6 @@ public function configureDataTable(DataTable $table): DataTable
 {
     return $table
         ->responsive()
-        ->columnControl()
         ->addExtension(new ButtonsExtension([ButtonType::CSV]));
 }
 ```
@@ -160,17 +163,5 @@ new ScrollerExtension(boundaryScale: 0.5, displayBuffer: 9, rowHeight: 'auto', s
 ```
 
 All params optional and match DataTables' own defaults.
-
-## Toggle-only extensions
-
-No constructor args needed:
-
-| Extension | Effect |
-|-----------|--------|
-| `ColumnControlExtension` | per-column order/search controls (`$table->columnControl()`) |
-
-```php
-$extensions->addExtension(new ColumnControlExtension());
-```
 
 See `docs/src/content/docs/extensions/combining-extensions.mdx` for compatible combinations.
