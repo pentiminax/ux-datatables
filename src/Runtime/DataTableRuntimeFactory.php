@@ -33,6 +33,7 @@ final class DataTableRuntimeFactory
         private readonly ?UrlColumnDataResolver $urlColumnDataResolver = null,
         private readonly ?AuthorizationChecker $permissionChecker = null,
         private readonly int $maxPageLength = 1000,
+        private readonly ?SearchListOptionsResolver $searchListOptionsResolver = null,
     ) {
     }
 
@@ -107,6 +108,10 @@ final class DataTableRuntimeFactory
                 configureBaseQueryBuilder: $configureBaseQueryBuilder,
             ),
             maxPageLength: $this->maxPageLength,
+            columns: $columns,
+            searchListOptionsResolver: $this->searchListOptionsResolver ?? new SearchListOptionsResolver(
+                columnResolver: $this->columnResolver(),
+            ),
         );
     }
 

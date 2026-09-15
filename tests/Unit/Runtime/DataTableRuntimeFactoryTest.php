@@ -8,10 +8,12 @@ use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
@@ -21,9 +23,13 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
@@ -31,6 +37,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 
@@ -116,6 +124,55 @@ final class DataTableRuntimeFactoryTest extends TestCase
         $runtime->getDataProvider();
 
         $this->assertSame(1, $factoryCalls, 'Factory must not be called again on subsequent getDataProvider()');
+    }
+
+    #[Test]
+    public function create_runtime_only_resolves_search_list_options_for_permitted_columns(): void
+    {
+        $seen     = [];
+        $provider = static function (DataTableRequest $request, ColumnInterface $column) use (&$seen): array {
+            $seen[] = $column->getName();
+
+            return [$column->getName()];
+        };
+        $public = TextColumn::new('public');
+        $secret = TextColumn::new('secret')->setPermission('ROLE_ADMIN');
+        $table  = (new DataTable('records'))
+            ->columns([$public, $secret])
+            ->addExtension((new ColumnControlExtension([]))->add(1, [
+                SearchList::new()->ajaxOptionsProvider($provider),
+            ]));
+        $symfonyChecker = $this->createStub(AuthorizationCheckerInterface::class);
+        $symfonyChecker->method('isGranted')->willReturn(false);
+        $permissionChecker = new AuthorizationChecker($symfonyChecker);
+        $runtime           = (new DataTableRuntimeFactory(
+            permissionChecker: $permissionChecker,
+            searchListOptionsResolver: new SearchListOptionsResolver(
+                columnResolver: new ColumnResolver(
+                    permissionChecker: $permissionChecker,
+                ),
+            ),
+        ))->createRuntime(
+            table: $table,
+            columns: [$public, $secret],
+            asDataTable: null,
+            baseMapper: static fn (): array => [],
+            manualDataProviderFactory: static fn (): DataProviderInterface => new class implements DataProviderInterface {
+                public function fetchData(DataTableRequest $request): DataTableResult
+                {
+                    return new DataTableResult(0, 0, []);
+                }
+            },
+            configureQueryBuilder: static fn ($qb, $request) => $qb,
+        );
+        $runtime->handleRequest(new Request(query: ['draw' => 1]));
+
+        $payload = json_decode((string) $runtime->getResponse()->getContent(), true);
+
+        $this->assertSame(['public'], $seen);
+        $this->assertSame([
+            'public' => [['label' => 'public', 'value' => 'public']],
+        ], $payload['columnControl']);
     }
 
     #[Test]

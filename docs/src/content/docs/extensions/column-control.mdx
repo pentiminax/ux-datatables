@@ -90,6 +90,187 @@ require `ColumnControlExtension` to be added to the table — the frontend only 
 ColumnControl plugin bundle when the table-level extension is present, so a column-level override
 or a disabled column stays inert without it.
 
+## Search Lists
+
+Use the typed `SearchList` content descriptor when a column has a finite set of searchable values.
+With no explicit options and no Ajax provider, ColumnControl derives the unique values from the
+rows loaded in the browser:
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
+
+$dataTable->columnControl(target: 1, content: [SearchList::new()]);
+```
+
+This local fallback is useful for client-side tables. A server-side table only has one page in the
+browser, so it needs static options or options returned with the Ajax response.
+
+### Specific Columns
+
+Keep the default search input on most columns and replace it with a list on selected columns:
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
+
+$dataTable->columnControl(target: 1, content: ['search']);
+
+TextColumn::new('office', 'Office')
+    ->setColumnControl([
+        ['target' => 1, 'content' => [SearchList::new()]],
+    ]);
+```
+
+`SearchList` also composes with another search control in the same cell:
+
+```php
+$dataTable->columnControl(
+    target: 1,
+    content: [['search', SearchList::new()]],
+);
+```
+
+### Static and Enum Options
+
+`options()` accepts simple values, DataTables `label` / `value` arrays, a `[label => value]` map,
+a list of `BackedEnum` cases, or a `BackedEnum` class:
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
+
+enum OrderStatus: string
+{
+    case Draft = 'draft';
+    case Paid = 'paid';
+
+    public function getLabel(): string
+    {
+        return match ($this) {
+            self::Draft => 'Draft order',
+            self::Paid => 'Paid order',
+        };
+    }
+}
+
+$dataTable->columnControl();
+
+TextColumn::new('status', 'Status')
+    ->setColumnControl([
+        [
+            'target'  => 1,
+            'content' => [SearchList::new()->options(OrderStatus::class)],
+        ],
+    ]);
+```
+
+Enum option labels use `TranslatableInterface` when Symfony's translator is available. Otherwise,
+the bundle checks `getLabel()`, then `label()`, and finally uses the case name. Backed values keep
+their original string or integer type.
+
+### Options from the Ajax Response
+
+For a dynamic list, pass a closure or an application service implementing
+`SearchListOptionsProviderInterface`. The bundle calls the provider after it has handled the
+DataTables request and adds the normalized options to `columnControl.<columnName>`:
+
+```php
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchListOptionsProviderInterface;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+
+final class OfficeSearchListOptionsProvider implements SearchListOptionsProviderInterface
+{
+    public function __construct(private OfficeRepository $offices)
+    {
+    }
+
+    public function provide(DataTableRequest $request, ColumnInterface $column): ?iterable
+    {
+        if ('office' !== $column->getName()) {
+            return null;
+        }
+
+        return $this->offices->labelValueOptions();
+    }
+}
+```
+
+Inject the provider into the DataTable service and attach it at table level. The provider receives
+each permitted, searchable column and returns `null` for columns it does not handle:
+
+```php
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
+
+final class EmployeesDataTable extends AbstractDataTable
+{
+    public function __construct(
+        private readonly OfficeSearchListOptionsProvider $officeOptions,
+    ) {
+        parent::__construct();
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->columnControl(
+            target: 1,
+            content: [
+                SearchList::new()
+                    ->ajaxOptionsProvider($this->officeOptions)
+                    ->ajaxOnly(false),
+            ],
+        );
+    }
+}
+```
+
+`ajaxOnly()` defaults to ColumnControl's installed version because the descriptor omits options
+that were not explicitly configured. Set `ajaxOnly(false)` to derive local options for columns
+that the provider omits on a client-side Ajax table. Server-side tables never derive options from
+the current page.
+
+The provider can inspect the normalized request to implement dependent lists, but the bundle does
+not apply filtering rules to option queries automatically. Inject the required repository and
+decide which active filters should affect the available options in the application service.
+The provider must also apply the same tenant and authorization scope as the table query; option
+labels and values are returned directly to the current user.
+
+Returning `null` omits the column from the Ajax options. Returning an empty iterable publishes an
+empty list. `options()` and `ajaxOptionsProvider()` cannot be combined on the same descriptor,
+because DataTables always gives static options priority over Ajax options.
+
+With `hidable(false)`, the bundle keeps an empty `columnControl` object in the Ajax response even
+when every provider returns `null`, so ColumnControl leaves the empty control visible.
+
+Dynamic providers run for the bundle's Ajax endpoint and for manual endpoints that call
+`AbstractDataTable::getResponse()`. An external Ajax or API Platform endpoint must add its own
+`columnControl` object. Static and enum options still work with those endpoints because they are
+part of the initial DataTables configuration.
+
+### Display Options
+
+The descriptor exposes the main `searchList` settings without fixing their defaults:
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
+
+SearchList::new()
+    ->ajaxOnly(false)
+    ->hidable(false)
+    ->orthogonal('filter')
+    ->search(true)
+    ->select(true)
+    ->title('Choose [title]');
+```
+
+`orthogonal()` only changes labels derived from locally loaded rows. Static and Ajax options
+already carry their own labels. `[title]` in `title()` is replaced with the host column title.
+
+State saving, scrolling, FixedHeader, and FixedColumns continue to use ColumnControl's native
+behavior and need no bundle-specific configuration.
+
 ### Overriding The Actions Column
 
 The auto-generated actions column is built internally and has ColumnControl disabled by default, so

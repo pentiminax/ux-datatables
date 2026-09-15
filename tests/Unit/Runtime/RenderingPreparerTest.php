@@ -19,9 +19,12 @@ use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -40,6 +43,16 @@ enum RenderingPreparerRole: string implements TranslatableInterface
     public function trans(TranslatorInterface $translator, ?string $locale = null): string
     {
         return $translator->trans('role.'.$this->value, [], null, $locale);
+    }
+}
+
+enum RenderingPreparerSearchListStatus: string implements TranslatableInterface
+{
+    case Draft = 'draft';
+
+    public function trans(TranslatorInterface $translator, ?string $locale = null): string
+    {
+        return $translator->trans('status.'.$this->value, [], null, $locale);
     }
 }
 
@@ -63,6 +76,31 @@ final class RenderingPreparerTest extends TestCase
 
         $this->assertNull($table->getOption('ajax'));
         $this->assertNull($table->getMercureConfig());
+    }
+
+    #[Test]
+    public function it_prepares_translated_static_search_list_options(): void
+    {
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnMap([
+            ['status.draft', [], null, null, 'Brouillon'],
+            ['status', [], null, null, 'status'],
+        ]);
+        $searchList = SearchList::new()->options(RenderingPreparerSearchListStatus::class);
+        $table      = (new DataTable('orders'))
+            ->columns([TextColumn::new('status')])
+            ->addExtension((new ColumnControlExtension([]))->add(1, [$searchList]));
+        $preparer = new RenderingPreparer(
+            translator: $translator,
+            searchListOptionsResolver: new SearchListOptionsResolver($translator),
+        );
+
+        $preparer->prepareBeforeDataHydration($table, null);
+
+        $this->assertSame([
+            'extend'  => 'searchList',
+            'options' => [['label' => 'Brouillon', 'value' => 'draft']],
+        ], $searchList->jsonSerialize());
     }
 
     /**
