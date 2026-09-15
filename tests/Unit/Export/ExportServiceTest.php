@@ -18,10 +18,9 @@ use Pentiminax\UX\DataTables\Export\ExporterRegistry;
 use Pentiminax\UX\DataTables\Export\ExportService;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Actions;
-use Pentiminax\UX\DataTables\Model\DataTableExtensions;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
-use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\RecordingExporter;
@@ -68,9 +67,9 @@ final class ExportServiceTest extends TestCase
 
         $table = new ConfigurableDataTable(
             [TextColumn::new('email'), TextColumn::new('name')->setVisible(false)],
-            extensions: static fn (DataTableExtensions $extensions): DataTableExtensions => $extensions->addExtension(
-                new ButtonsExtension([Button::csv(serverSide: true)]),
-            ),
+            configureTable: static fn (DataTable $table): DataTable => $table->buttons([
+                Button::csv(serverSide: true),
+            ]),
             dataProvider: $this->provider(),
         );
 
@@ -101,9 +100,9 @@ final class ExportServiceTest extends TestCase
 
         $table = new ConfigurableDataTable(
             [TextColumn::new('email'), TextColumn::new('salary')->setPermission('ROLE_HR')],
-            extensions: static fn (DataTableExtensions $extensions): DataTableExtensions => $extensions->addExtension(
-                new ButtonsExtension([Button::csv(serverSide: true)]),
-            ),
+            configureTable: static fn (DataTable $table): DataTable => $table->buttons([
+                Button::csv(serverSide: true),
+            ]),
             dataProvider: $this->provider(),
         );
 
@@ -124,9 +123,10 @@ final class ExportServiceTest extends TestCase
 
         $table = new ConfigurableDataTable(
             [TextColumn::new('email')],
-            extensions: static fn (DataTableExtensions $extensions): DataTableExtensions => $extensions->addExtension(
-                new ButtonsExtension([Button::csv(serverSide: true), Button::excel(serverSide: true)]),
-            ),
+            configureTable: static fn (DataTable $table): DataTable => $table->buttons([
+                Button::csv(serverSide: true),
+                Button::excel(serverSide: true),
+            ]),
             dataProvider: $this->provider(),
         );
 
@@ -148,9 +148,9 @@ final class ExportServiceTest extends TestCase
         $csv   = new RecordingExporter();
         $table = new ConfigurableDataTable(
             [TextColumn::new('email')],
-            extensions: static fn (DataTableExtensions $extensions): DataTableExtensions => $extensions->addExtension(
-                new ButtonsExtension([Button::csv(serverSide: true)]),
-            ),
+            configureTable: static fn (DataTable $table): DataTable => $table->buttons([
+                Button::csv(serverSide: true),
+            ]),
             dataProvider: new class implements DataProviderInterface {
                 public function fetchData(DataTableRequest $request): DataTableResult
                 {
@@ -249,9 +249,9 @@ final class ExportServiceTest extends TestCase
     {
         $table = new ConfigurableDataTable(
             [TextColumn::new('secret')->setExportable(false)],
-            extensions: static fn (DataTableExtensions $extensions): DataTableExtensions => $extensions->addExtension(
-                new ButtonsExtension([Button::csv(serverSide: true)]),
-            ),
+            configureTable: static fn (DataTable $table): DataTable => $table->buttons([
+                Button::csv(serverSide: true),
+            ]),
             dataProvider: $this->provider(),
         );
 
@@ -266,9 +266,9 @@ final class ExportServiceTest extends TestCase
     {
         $table = new ConfigurableDataTable(
             [TextColumn::new('email')],
-            extensions: static fn (DataTableExtensions $extensions): DataTableExtensions => $extensions->addExtension(
-                new ButtonsExtension([Button::csv(serverSide: true)]),
-            ),
+            configureTable: static fn (DataTable $table): DataTable => $table->buttons([
+                Button::csv(serverSide: true),
+            ]),
         );
 
         $this->expectException(\LogicException::class);
@@ -313,9 +313,9 @@ final class ExportServiceTest extends TestCase
                 ActionColumn::fromActions('actions', 'Actions', new Actions()),
                 TextColumn::new('name'),
             ],
-            extensions: static fn (DataTableExtensions $extensions): DataTableExtensions => $extensions->addExtension(
-                new ButtonsExtension([Button::csv(serverSide: true)->filename('users')]),
-            ),
+            configureTable: static fn (DataTable $table): DataTable => $table->buttons([
+                Button::csv(serverSide: true)->filename('users'),
+            ]),
             dataProvider: $this->provider(),
         );
     }
@@ -372,9 +372,9 @@ final class QueryScopedExportTable extends AbstractDataTable
         yield TextColumn::new('email');
     }
 
-    public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
+    public function configureDataTable(DataTable $table): DataTable
     {
-        return $extensions->addExtension(new ButtonsExtension([Button::csv(serverSide: true)]));
+        return $table->buttons([Button::csv(serverSide: true)]);
     }
 
     protected function createDataProvider(): DataProviderInterface

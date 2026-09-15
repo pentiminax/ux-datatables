@@ -77,10 +77,6 @@ abstract class AbstractDataTable
 
     private bool $renderingPrepared = false;
 
-    public function __construct()
-    {
-    }
-
     final public function setDataTableInfrastructure(DataTableInfrastructure $infrastructure): void
     {
         if ($this->initialized || null !== $this->runtime) {
@@ -132,10 +128,6 @@ abstract class AbstractDataTable
 
         $this->filters = $this->configureFilters(new Filters());
         $this->table->setFilters($this->filters);
-
-        $this->table->setExtensions(
-            $this->configureExtensions($this->table->getExtensionsCollection())
-        );
 
         $this->initialized = true;
     }
@@ -258,11 +250,6 @@ abstract class AbstractDataTable
     public function configureActions(Actions $actions): Actions
     {
         return $actions;
-    }
-
-    public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
-    {
-        return $extensions;
     }
 
     /**

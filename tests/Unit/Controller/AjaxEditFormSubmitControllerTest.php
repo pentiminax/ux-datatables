@@ -414,7 +414,6 @@ final class AjaxEditFormSubmitControllerDataTable extends AbstractDataTable
 {
     public function __construct()
     {
-        parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault());
     }
 

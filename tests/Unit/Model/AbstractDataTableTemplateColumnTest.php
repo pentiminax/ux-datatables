@@ -44,7 +44,6 @@ final class TemplatePipelineTable extends AbstractDataTable
 {
     public function __construct(private readonly TemplateColumnRenderer $renderer)
     {
-        parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             runtimeFactory: new DataTableRuntimeFactory(
                 templateColumnRenderer: $this->renderer,

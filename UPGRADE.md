@@ -5,6 +5,28 @@ current version and the target, oldest first.
 
 ## v0.90 → v1.0
 
+### `AbstractDataTable::configureExtensions()` and the empty constructor removed
+
+Declare extensions from `configureDataTable()` with the fluent helpers on `DataTable`. Use
+`addExtension()` there for a custom extension that has no dedicated helper.
+
+```php
+// before
+public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
+{
+    return $extensions->addExtension(new ButtonsExtension([ButtonType::CSV]));
+}
+
+// after
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table->buttons([ButtonType::CSV]);
+}
+```
+
+The empty `AbstractDataTable::__construct()` was also removed. Delete `parent::__construct()` from
+subclass constructors; no replacement call is needed.
+
 ### `EntityMutator` and `EditFormService` take a `MutationFlusher`
 
 The guarded flush that maps a rejected write to a 409 response lives in the new

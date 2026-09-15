@@ -1,24 +1,18 @@
 # Extensions
 
-DataTables extensions live in `src/Model/Extensions/`. Add them by overriding
-`configureExtensions()` or fluently in `configureDataTable()` via `$table->addExtension(...)`.
+DataTables extensions live in `src/Model/Extensions/`. Configure them fluently in
+`configureDataTable()` with their dedicated helper, or use `$table->addExtension(...)` for a custom
+extension.
 
 ColumnControl has its own configuration model, request payload, and search-list providers. Read
 `references/column-control.md` for that extension rather than treating it as a simple toggle.
 
 ```php
-public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
-{
-    return $extensions
-        ->addExtension(new ResponsiveExtension())
-        ->addExtension(new ButtonsExtension([ButtonType::CSV, ButtonType::EXCEL]));
-}
-// or
 public function configureDataTable(DataTable $table): DataTable
 {
     return $table
         ->responsive()
-        ->addExtension(new ButtonsExtension([ButtonType::CSV]));
+        ->buttons([ButtonType::CSV, ButtonType::EXCEL]);
 }
 ```
 

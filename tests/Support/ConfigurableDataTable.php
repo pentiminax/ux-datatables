@@ -9,7 +9,6 @@ use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Model\DataTableExtensions;
 
 /**
  * A minimal table whose configuration hooks are supplied per instance.
@@ -25,19 +24,16 @@ use Pentiminax\UX\DataTables\Model\DataTableExtensions;
 final class ConfigurableDataTable extends AbstractDataTable
 {
     /**
-     * @param list<ColumnInterface>                                     $columnsConfig
-     * @param (\Closure(Actions): Actions)|null                         $actions
-     * @param (\Closure(DataTableExtensions): DataTableExtensions)|null $extensions
-     * @param (\Closure(DataTable): DataTable)|null                     $configureTable
+     * @param list<ColumnInterface>                 $columnsConfig
+     * @param (\Closure(Actions): Actions)|null     $actions
+     * @param (\Closure(DataTable): DataTable)|null $configureTable
      */
     public function __construct(
         private readonly array $columnsConfig,
         private readonly ?\Closure $actions = null,
-        private readonly ?\Closure $extensions = null,
         private readonly ?\Closure $configureTable = null,
         private readonly ?DataProviderInterface $dataProvider = null,
     ) {
-        parent::__construct();
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -53,11 +49,6 @@ final class ConfigurableDataTable extends AbstractDataTable
     public function configureActions(Actions $actions): Actions
     {
         return null === $this->actions ? $actions : ($this->actions)($actions);
-    }
-
-    public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
-    {
-        return null === $this->extensions ? $extensions : ($this->extensions)($extensions);
     }
 
     protected function createDataProvider(): ?DataProviderInterface
