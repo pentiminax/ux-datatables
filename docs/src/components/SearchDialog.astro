@@ -32,7 +32,9 @@ const sectionLabels = Object.fromEntries(sections.map((section) => [section.id, 
 
   <div class="search-body">
     <ul class="search-results" id="search-results" role="listbox" data-search-results></ul>
-    <p class="search-status" data-search-status>Type to search columns, filters, options, and extensions.</p>
+    <p class="search-status" data-search-status>
+      Type to search columns, filters, options, and extensions.
+    </p>
   </div>
 
   <p class="search-hint">
@@ -119,7 +121,10 @@ const sectionLabels = Object.fromEntries(sections.map((section) => [section.id, 
 
         const excerpt = document.createElement('span')
         excerpt.className = 'search-result-excerpt'
-        excerpt.textContent = (fragment.excerpt ?? '').replace(/<[^>]+>/g, '')
+        excerpt.textContent = new DOMParser().parseFromString(
+          fragment.excerpt ?? '',
+          'text/html'
+        ).body.textContent
 
         link.append(heading, excerpt)
         item.append(link)
@@ -136,7 +141,10 @@ const sectionLabels = Object.fromEntries(sections.map((section) => [section.id, 
 
     document.addEventListener('keydown', (event) => {
       const isShortcut = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k'
-      const isSlash = event.key === '/' && !dialog.open && !/^(INPUT|TEXTAREA)$/.test((event.target as HTMLElement)?.tagName ?? '')
+      const isSlash =
+        event.key === '/' &&
+        !dialog.open &&
+        !/^(INPUT|TEXTAREA)$/.test((event.target as HTMLElement)?.tagName ?? '')
       if (isShortcut || isSlash) {
         event.preventDefault()
         open()
@@ -150,7 +158,10 @@ const sectionLabels = Object.fromEntries(sections.map((section) => [section.id, 
     dialog.addEventListener('click', (event) => {
       const box = dialog.getBoundingClientRect()
       const outside =
-        event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom
+        event.clientX < box.left ||
+        event.clientX > box.right ||
+        event.clientY < box.top ||
+        event.clientY > box.bottom
       if (outside) dialog.close()
     })
 
