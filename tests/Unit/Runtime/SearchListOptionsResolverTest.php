@@ -53,6 +53,28 @@ final class SearchListOptionsResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_ignores_provider_keys_when_values_are_structured_options(): void
+    {
+        $column = TextColumn::new('office');
+        $table  = $this->table([$column], SearchList::new()->ajaxOptionsProvider(
+            static fn (): array => [
+                42 => ['label' => 'Paris', 'value' => 42],
+                99 => SearchListTranslatableStatus::Draft,
+            ],
+        ));
+
+        $resolved = (new SearchListOptionsResolver())->resolve($table, [$column], $this->request());
+
+        $this->assertSame(
+            ['office' => [
+                ['label' => 'Paris', 'value' => 42],
+                ['label' => 'Draft', 'value' => 'draft'],
+            ]],
+            json_decode(json_encode($resolved, \JSON_THROW_ON_ERROR), true, flags: \JSON_THROW_ON_ERROR),
+        );
+    }
+
+    #[Test]
     public function it_distinguishes_no_provider_null_options_and_an_explicit_empty_list(): void
     {
         $column = TextColumn::new('status');

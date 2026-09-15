@@ -50,23 +50,16 @@ final class SearchListOptionsNormalizer
      */
     private static function normalizeArray(array $options, ?TranslatorInterface $translator): array
     {
-        if (!array_is_list($options)) {
-            $normalized = [];
+        $normalized = [];
+        $isList     = array_is_list($options);
 
-            foreach ($options as $label => $value) {
-                if (!\is_scalar($value)) {
-                    self::throwInvalidOptions();
-                }
+        foreach ($options as $label => $option) {
+            if (!$isList && \is_scalar($option)) {
+                $normalized[] = ['label' => (string) $label, 'value' => $option];
 
-                $normalized[] = ['label' => (string) $label, 'value' => $value];
+                continue;
             }
 
-            return $normalized;
-        }
-
-        $normalized = [];
-
-        foreach ($options as $option) {
             if ($option instanceof \BackedEnum) {
                 $normalized[] = [
                     'label' => self::enumLabel($option, $translator),
