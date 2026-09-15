@@ -13,7 +13,6 @@ class AutoDetectNoAttributeDataTable extends AbstractDataTable
 {
     public function __construct(private readonly ?ColumnAutoDetector $columnAutoDetector = null)
     {
-        parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             columnResolver: new ColumnResolver(columnAutoDetector: $this->columnAutoDetector)
         ));

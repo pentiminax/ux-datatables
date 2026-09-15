@@ -15,9 +15,8 @@ use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\Export\ExporterRegistry;
 use Pentiminax\UX\DataTables\Export\ExportService;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Model\DataTableExtensions;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
-use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\RecordingExporter;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -96,9 +95,9 @@ final class AjaxExportControllerTest extends TestCase
     {
         return new ConfigurableDataTable(
             [TextColumn::new('email')],
-            extensions: static fn (DataTableExtensions $extensions): DataTableExtensions => $extensions->addExtension(
-                new ButtonsExtension([Button::csv(serverSide: true)]),
-            ),
+            configureTable: static fn (DataTable $table): DataTable => $table->buttons([
+                Button::csv(serverSide: true),
+            ]),
             dataProvider: $this->provider(),
         );
     }

@@ -202,7 +202,6 @@ final class TopicResolverServerSideFixtureDataTable extends AbstractDataTable
         private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
         private readonly ?DataProviderInterface $dataProviderSpy = null,
     ) {
-        parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
@@ -238,7 +237,6 @@ final class TopicResolverMismatchedFixtureDataTable extends AbstractDataTable
     public function __construct(
         private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
     ) {
-        parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,
@@ -271,7 +269,6 @@ final class TopicResolverClientSideFixtureDataTable extends AbstractDataTable
         private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
         private readonly ?DataProviderInterface $dataProviderSpy = null,
     ) {
-        parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,

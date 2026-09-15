@@ -688,7 +688,6 @@ final class ProviderHydratedDataTable extends AbstractDataTable
         private readonly array $items,
         private readonly string $mode = 'default',
     ) {
-        parent::__construct();
     }
 
     public function configureDataTable(DataTable $table): DataTable

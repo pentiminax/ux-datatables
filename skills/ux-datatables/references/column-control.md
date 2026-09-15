@@ -124,7 +124,6 @@ final class EmployeeDataTable extends AbstractDataTable
 {
     public function __construct(private readonly OfficeOptionsProvider $officeOptions)
     {
-        parent::__construct();
     }
 
     public function configureDataTable(DataTable $table): DataTable

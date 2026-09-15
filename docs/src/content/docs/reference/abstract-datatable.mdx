@@ -237,17 +237,14 @@ Add `->ajax(url: '/users')` only when you want to override the automatic bundle 
 ```php
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
-use Pentiminax\UX\DataTables\Model\DataTableExtensions;
-use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
-use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
-use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Model\DataTable;
 
-public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
+public function configureDataTable(DataTable $table): DataTable
 {
-    return $extensions
-        ->addExtension(new ButtonsExtension([ButtonType::CSV, ButtonType::EXCEL]))
-        ->addExtension(new SelectExtension(SelectStyle::MULTI))
-        ->addExtension(new ColumnControlExtension());
+    return $table
+        ->buttons([ButtonType::CSV, ButtonType::EXCEL])
+        ->select(style: SelectStyle::MULTI)
+        ->columnControl();
 }
 ```
 
@@ -286,9 +283,8 @@ into each action. See the [Action Columns](../action-columns/) reference for the
   headers={['Method', 'Description']}
   rows={[
     ['`configureActions(Actions $actions)`', 'Configure built-in row actions'],
-    ['`configureDataTable(DataTable $table)`', 'Configure table options'],
+    ['`configureDataTable(DataTable $table)`', 'Configure table options and extensions'],
     ['`configureColumns()`', 'Define columns (required)'],
-    ['`configureExtensions(DataTableExtensions $ext)`', 'Configure all extensions'],
   ]}
 />
 
