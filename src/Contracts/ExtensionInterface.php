@@ -12,7 +12,7 @@ namespace Pentiminax\UX\DataTables\Contracts;
  * within one table: DataTableExtensions indexes on it. jsonSerialize() must return only what the
  * client understands for that key. An extension is active as soon as it is declared.
  *
- * Tables declare extensions in AbstractDataTable::configureExtensions(); there is no service tag.
+ * Tables declare extensions through DataTable's fluent methods; there is no service tag.
  */
 interface ExtensionInterface extends \JsonSerializable
 {

@@ -17,7 +17,6 @@ class TestDataTableWithoutAttribute extends AbstractDataTable
         private readonly ?ApiResourceCollectionUrlResolver $apiResourceCollectionUrlResolver = null,
         private readonly ?MercureConfigResolver $mercureConfigResolver = null,
     ) {
-        parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer($this->apiResourceCollectionUrlResolver, $this->mercureConfigResolver)
         ));

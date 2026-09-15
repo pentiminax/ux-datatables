@@ -33,11 +33,11 @@ Override only what you need; each returns its argument fluently.
 | Hook | Purpose |
 |------|---------|
 | `configureColumns(): iterable` | Return the column list. If omitted, columns are auto-detected from the entity (respecting `serializationGroups`). |
-| `configureDataTable(DataTable $table): DataTable` | Fluent options: `serverSide()`, `processing()`, `pageLength()`, `searching()`, `ordering()`, `responsive()`, `layout()`, `language()`, etc. |
+| `configureDataTable(DataTable $table): DataTable` | Fluent options and extensions: `serverSide()`, `processing()`, `pageLength()`, `searching()`, `ordering()`, `responsive()`, `buttons()`, `layout()`, `language()`, etc. |
 | `configureActions(Actions $actions): Actions` | Add row actions — see `references/actions.md`. |
-| `configureExtensions(DataTableExtensions $extensions): DataTableExtensions` | Register extensions — see `references/extensions.md`. |
 
-> Extensions can be added either by overriding `configureExtensions()` or fluently inside `configureDataTable()` via `$table->addExtension(...)` / `$table->responsive()` / `$table->columnControl()`.
+> Configure bundled extensions with their fluent helpers in `configureDataTable()`. Use
+> `$table->addExtension(...)` for a custom extension without a dedicated helper.
 
 ## Data: client-side options
 

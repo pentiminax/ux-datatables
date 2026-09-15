@@ -157,16 +157,15 @@ protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $req
 
 ```php
 use Pentiminax\UX\DataTables\Enum\ButtonType;
-use Pentiminax\UX\DataTables\Model\DataTableExtensions;
-use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Model\DataTable;
 
-public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
+public function configureDataTable(DataTable $table): DataTable
 {
-    return $extensions->addExtension(new ButtonsExtension([
+    return $table->buttons([
         ButtonType::CSV,
         ButtonType::EXCEL,
         ButtonType::PDF,
-    ]));
+    ]);
 }
 ```
 
