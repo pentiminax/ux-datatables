@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -120,6 +125,43 @@ final class DataTableRuntimeTest extends TestCase
         $this->assertSame($provider, $runtime->getDataProvider());
         $this->assertSame($provider, $runtime->getDataProvider());
         $this->assertSame(1, $factoryCalls);
+    }
+
+    #[Test]
+    public function it_adds_dynamic_search_list_options_to_the_json_response(): void
+    {
+        $column = TextColumn::new('status');
+        $table  = (new DataTable('orders'))
+            ->columns([$column])
+            ->addExtension((new ColumnControlExtension([]))->add(1, [
+                SearchList::new()->ajaxOptionsProvider(
+                    static fn (DataTableRequest $request, ColumnInterface $resolvedColumn): array => [
+                        ['label' => 'Draft', 'value' => 'draft'],
+                    ],
+                ),
+            ]));
+        $runtime = new DataTableRuntime(
+            table: $table,
+            dataProviderFactory: static fn (): DataProviderInterface => new class implements DataProviderInterface {
+                public function fetchData(DataTableRequest $request): DataTableResult
+                {
+                    return new DataTableResult(1, 1, [['status' => 'draft']]);
+                }
+            },
+            columns: [$column],
+            searchListOptionsResolver: new SearchListOptionsResolver(),
+        );
+        $runtime->handleRequest(new Request(query: ['draw' => 7]));
+
+        $this->assertSame([
+            'draw'            => 7,
+            'recordsTotal'    => 1,
+            'recordsFiltered' => 1,
+            'data'            => [['status' => 'draft']],
+            'columnControl'   => [
+                'status' => [['label' => 'Draft', 'value' => 'draft']],
+            ],
+        ], json_decode((string) $runtime->getResponse()->getContent(), true));
     }
 
     #[Test]
