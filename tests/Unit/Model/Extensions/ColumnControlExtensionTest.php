@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Model\Extensions;
 
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -90,5 +92,23 @@ final class ColumnControlExtensionTest extends TestCase
         $controls = [['target' => 'tfoot:1', 'content' => ['searchNumber']]];
 
         $this->assertSame($controls, (new ColumnControlExtension($controls))->jsonSerialize());
+    }
+
+    #[Test]
+    public function it_serializes_typed_search_lists_at_table_and_column_level(): void
+    {
+        $tableControl = (new ColumnControlExtension([]))->add(1, [
+            SearchList::new()->search(false),
+        ]);
+        $column = TextColumn::new('status')->setColumnControl([
+            SearchList::new()->options(['Draft' => 'draft']),
+        ]);
+
+        $this->assertSame([
+            ['target' => 1, 'content' => [['extend' => 'searchList', 'search' => false]]],
+        ], json_decode(json_encode($tableControl->jsonSerialize(), \JSON_THROW_ON_ERROR), true, flags: \JSON_THROW_ON_ERROR));
+        $this->assertSame([
+            ['extend' => 'searchList', 'options' => [['label' => 'Draft', 'value' => 'draft']]],
+        ], json_decode(json_encode($column->jsonSerialize()['columnControl'], \JSON_THROW_ON_ERROR), true, flags: \JSON_THROW_ON_ERROR));
     }
 }

@@ -10,7 +10,9 @@ use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -129,6 +131,19 @@ final class AbstractDataTableResponseTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
     }
 
+    #[Test]
+    public function it_adds_search_list_options_through_the_complete_ajax_runtime(): void
+    {
+        $table = new SearchListResponseTestTable(new FixedResultDataProvider());
+        $table->handleRequest(new Request(query: ['draw' => 3]));
+
+        $payload = json_decode((string) $table->getResponse()->getContent(), true);
+
+        $this->assertSame([
+            'status' => [['label' => 'Draft', 'value' => 'draft']],
+        ], $payload['columnControl']);
+    }
+
     /**
      * Regression test: DataTableRuntime::getResponse() only resolves a data provider once a
      * request has actually been handled -- calling getResponse() without handleRequest()
@@ -195,6 +210,36 @@ final class FixedResultDataProvider implements DataProviderInterface
                 ['id' => 2, 'name' => 'Heat'],
             ],
         );
+    }
+}
+
+final class SearchListResponseTestTable extends AbstractDataTable
+{
+    public function __construct(private readonly DataProviderInterface $provider)
+    {
+        parent::__construct();
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('status')->setColumnControl([
+            [
+                'target'  => 1,
+                'content' => [SearchList::new()->ajaxOptionsProvider(
+                    static fn (): array => [['label' => 'Draft', 'value' => 'draft']],
+                )],
+            ],
+        ]);
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->columnControl();
+    }
+
+    protected function createDataProvider(): ?DataProviderInterface
+    {
+        return $this->provider;
     }
 }
 

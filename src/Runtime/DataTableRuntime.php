@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Runtime;
 
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -25,6 +26,9 @@ final class DataTableRuntime
         private readonly DataTable $table,
         private readonly \Closure $dataProviderFactory,
         private readonly int $maxPageLength = 1000,
+        /** @var list<ColumnInterface> */
+        private readonly array $columns = [],
+        private readonly SearchListOptionsResolver $searchListOptionsResolver = new SearchListOptionsResolver(),
     ) {
     }
 
@@ -104,18 +108,20 @@ final class DataTableRuntime
         }
 
         $provider = $this->getDataProvider();
-        if (null === $provider) {
-            return $this->createEmptyResponse($this->request->draw);
-        }
-
-        $data = $provider->fetchData($this->request);
-
-        return new JsonResponse([
+        $data     = null === $provider ? $this->createEmptyResult() : $provider->fetchData($this->request);
+        $payload  = [
             'draw'            => $this->request->draw,
             'recordsTotal'    => $data->recordsTotal,
             'recordsFiltered' => $data->recordsFiltered,
             'data'            => iterator_to_array($data->data),
-        ]);
+        ];
+
+        $searchListOptions = $this->searchListOptionsResolver->resolve($this->table, $this->columns, $this->request);
+        if (null !== $searchListOptions) {
+            $payload['columnControl'] = $searchListOptions;
+        }
+
+        return new JsonResponse($payload);
     }
 
     public function fetchData(DataTableRequest $request): DataTableResult
