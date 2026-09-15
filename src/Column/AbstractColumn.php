@@ -544,7 +544,7 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
             'field'              => $this->getField(),
             'customOptions'      => $this->customOptions,
             'responsivePriority' => $this->responsivePriority,
-        ], static fn (mixed $value) => null !== $value && '' !== $value && [] !== $value);
+        ], static fn (mixed $value, string $key) => null !== $value && [] !== $value && ('' !== $value || 'defaultContent' === $key), ARRAY_FILTER_USE_BOTH);
 
         if (null !== $this->columnControl) {
             $options['columnControl'] = $this->columnControl;

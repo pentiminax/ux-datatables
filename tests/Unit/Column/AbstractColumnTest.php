@@ -63,6 +63,18 @@ final class AbstractColumnTest extends TestCase
     }
 
     #[Test]
+    public function it_serializes_an_empty_default_content(): void
+    {
+        $column = (new class extends AbstractColumn {})
+            ->setType(ColumnType::STRING)
+            ->setName('foo')
+            ->setDefaultContent('');
+
+        $this->assertArrayHasKey('defaultContent', $column->jsonSerialize());
+        $this->assertSame('', $column->jsonSerialize()['defaultContent']);
+    }
+
+    #[Test]
     public function it_can_disable_column_control_without_disabling_search(): void
     {
         $column = (new class extends AbstractColumn {})
