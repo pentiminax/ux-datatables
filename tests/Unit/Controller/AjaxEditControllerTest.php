@@ -334,7 +334,6 @@ final class ToggleBooleanEntityFixtureDataTable extends AbstractDataTable
     public function __construct(
         private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
     ) {
-        parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
                 mercureHubUrlResolver: $this->mercureHubUrlResolver,

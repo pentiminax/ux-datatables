@@ -22,7 +22,6 @@ class TestDataTableWithManualMercure extends AbstractDataTable
         private readonly ?MercureConfigResolver $mercureConfigResolver = null,
         private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
     ) {
-        parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             renderingPreparer: new RenderingPreparer(
                 $this->apiResourceCollectionUrlResolver,

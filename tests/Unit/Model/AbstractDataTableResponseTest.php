@@ -184,7 +184,6 @@ final class ResponseTestTable extends AbstractDataTable
 {
     public function __construct(private readonly ?DataProviderInterface $provider = null)
     {
-        parent::__construct();
     }
 
     public function configureColumns(): iterable
@@ -217,7 +216,6 @@ final class SearchListResponseTestTable extends AbstractDataTable
 {
     public function __construct(private readonly DataProviderInterface $provider)
     {
-        parent::__construct();
     }
 
     public function configureColumns(): iterable

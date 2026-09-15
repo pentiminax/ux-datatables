@@ -9,11 +9,7 @@ use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Model\DataTableExtensions;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
-use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
-use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
-use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -28,7 +24,7 @@ use PHPUnit\Framework\TestCase;
 final class AbstractDataTableExtensionsTest extends TestCase
 {
     #[Test]
-    public function it_configures_all_extensions_through_configure_extensions(): void
+    public function it_configures_all_extensions_through_configure_data_table(): void
     {
         $table = $this->tableWith(
             [
@@ -37,10 +33,10 @@ final class AbstractDataTableExtensionsTest extends TestCase
                 'bottomStart' => Feature::INFO,
                 'bottomEnd'   => Feature::PAGING,
             ],
-            fn (DataTableExtensions $extensions) => $extensions
-                ->addExtension(new ButtonsExtension([ButtonType::CSV]))
-                ->addExtension(new ColumnControlExtension())
-                ->addExtension(new SelectExtension()),
+            static fn (DataTable $table): DataTable => $table
+                ->buttons([ButtonType::CSV])
+                ->columnControl()
+                ->select(),
         );
 
         $this->assertSame([
@@ -102,18 +98,18 @@ final class AbstractDataTableExtensionsTest extends TestCase
      */
     #[Test]
     #[DataProvider('buttonsLayoutProvider')]
-    public function it_injects_buttons_into_the_layout(array $layout, array $buttons, array $expectedLayout): void
+    public function it_injects_buttons_into_the_layout(array $layout, array $buttons, string $position, array $expectedLayout): void
     {
         $table = $this->tableWith(
             $layout,
-            fn (DataTableExtensions $extensions) => $extensions->addExtension(new ButtonsExtension($buttons)),
+            static fn (DataTable $table): DataTable => $table->buttons($buttons, $position),
         );
 
         $this->assertSame($expectedLayout, $table->getDataTable()->getOptions()['layout']);
     }
 
     /**
-     * @return iterable<string, array{array<string, mixed>, list<Button|ButtonType>, array<string, mixed>}>
+     * @return iterable<string, array{array<string, mixed>, list<Button|ButtonType>, string, array<string, mixed>}>
      */
     public static function buttonsLayoutProvider(): iterable
     {
@@ -128,6 +124,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
                     ->className('btn btn-primary')
                     ->exportOptions(['columns' => ':visible']),
             ],
+            'topStart',
             [
                 'topStart' => [
                     'buttons' => [
@@ -150,6 +147,7 @@ final class AbstractDataTableExtensionsTest extends TestCase
                 'topEnd' => [Feature::SEARCH, Feature::BUTTONS],
             ],
             [ButtonType::CSV],
+            'topEnd',
             [
                 'topEnd' => [
                     'search',
@@ -173,8 +171,9 @@ final class AbstractDataTableExtensionsTest extends TestCase
     {
         $table = $this->tableWith(
             [],
-            fn (DataTableExtensions $extensions) => $extensions->addExtension(
-                (new SelectExtension())->withCheckbox()->headerCheckbox()
+            static fn (DataTable $table): DataTable => $table->select(
+                withCheckbox: true,
+                headerCheckbox: true,
             ),
         );
 
@@ -185,15 +184,16 @@ final class AbstractDataTableExtensionsTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed>                               $layout              an empty array leaves the default layout untouched
-     * @param \Closure(DataTableExtensions): DataTableExtensions $configureExtensions
+     * @param array<string, mixed>           $layout                   an empty array leaves the default layout untouched
+     * @param \Closure(DataTable): DataTable $configureTableExtensions
      */
-    private function tableWith(array $layout, \Closure $configureExtensions): AbstractDataTable
+    private function tableWith(array $layout, \Closure $configureTableExtensions): AbstractDataTable
     {
         return new ConfigurableDataTable(
             [TextColumn::new('id')],
-            extensions: $configureExtensions,
-            configureTable: static fn (DataTable $table): DataTable => [] === $layout ? $table : $table->layout($layout),
+            configureTable: static fn (DataTable $table): DataTable => $configureTableExtensions(
+                [] === $layout ? $table : $table->layout($layout)
+            ),
         );
     }
 }

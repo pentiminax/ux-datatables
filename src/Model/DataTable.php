@@ -639,9 +639,7 @@ class DataTable
      * Mutable extension collection, already seeded with the bundle-wide
      * `data_tables.extensions` configuration.
      *
-     * @internal used by {@see AbstractDataTable::initialize()} to seed
-     *           `configureExtensions()`. Use {@see self::getExtensions()} or the
-     *           fluent extension methods instead.
+     * @internal use {@see self::getExtensions()} or the fluent extension methods instead
      */
     public function getExtensionsCollection(): DataTableExtensions
     {

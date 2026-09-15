@@ -218,7 +218,6 @@ final class MapRowTestTable extends AbstractDataTable
         private readonly ?\Closure $detailActionUrl = null,
         ?UrlGeneratorInterface $urlGenerator = null,
     ) {
-        parent::__construct();
         $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             runtimeFactory: new DataTableRuntimeFactory(
                 actionRowDataResolver: new ActionRowDataResolver(),
