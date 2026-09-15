@@ -38,6 +38,7 @@ use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Ajax\SourceRowResolver;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
@@ -289,9 +290,15 @@ return static function (ContainerConfigurator $container): void {
         ->arg(4, service('router')->nullOnInvalid())
         ->arg(5, service('datatables.ajax.registry'))
         ->arg(6, service('request_stack')->nullOnInvalid())
+        ->arg(7, service('datatables.column_control.search_list_options_resolver'))
         ->private();
 
     $services->alias(RenderingPreparer::class, 'datatables.rendering.preparer')
+        ->private();
+
+    $services->set('datatables.column_control.search_list_options_resolver', SearchListOptionsResolver::class)
+        ->arg(0, service(TranslatorInterface::class)->nullOnInvalid())
+        ->arg(1, service('datatables.column.resolver'))
         ->private();
 
     $services->set('datatables.data_provider.auto_factory', AutoDataProviderFactory::class)
@@ -305,6 +312,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(3, service(UrlColumnDataResolver::class)->nullOnInvalid())
         ->arg(4, service('datatables.security.authorization_checker'))
         ->arg(5, param('datatables.max_page_length'))
+        ->arg(6, service('datatables.column_control.search_list_options_resolver'))
         ->private();
 
     $services->alias(DataTableRuntimeFactory::class, 'datatables.runtime.factory')

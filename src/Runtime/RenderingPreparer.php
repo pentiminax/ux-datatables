@@ -30,6 +30,7 @@ final class RenderingPreparer
         private readonly ?UrlGeneratorInterface $urlGenerator = null,
         private readonly ?AjaxDataTableRegistry $ajaxRegistry = null,
         private readonly ?RequestStack $requestStack = null,
+        private readonly ?SearchListOptionsResolver $searchListOptionsResolver = null,
     ) {
     }
 
@@ -49,6 +50,7 @@ final class RenderingPreparer
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
         $this->translateFilterLabels($table);
+        ($this->searchListOptionsResolver ?? new SearchListOptionsResolver($this->translator))->prepare($table);
     }
 
     public function prepareAfterDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
