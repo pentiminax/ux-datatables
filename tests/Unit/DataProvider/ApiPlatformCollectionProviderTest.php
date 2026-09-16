@@ -11,6 +11,7 @@ use ApiPlatform\Metadata\Operations;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use ApiPlatform\Metadata\Resource\ResourceMetadataCollection;
 use ApiPlatform\State\Pagination\PaginatorInterface;
+use ApiPlatform\State\Pagination\PartialPaginatorInterface;
 use ApiPlatform\State\ProviderInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformQueryParameterFactory;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
@@ -106,9 +107,9 @@ final class ApiPlatformCollectionProviderTest extends TestCase
     public function it_walks_the_collection_page_by_page_on_export(): void
     {
         $provider = new RecordingProvider([
-            $this->items(2),
-            $this->items(2),
-            $this->items(1),
+            $this->paginator($this->items(2), 5, lastPage: 3),
+            $this->paginator($this->items(2), 5, lastPage: 3),
+            $this->paginator($this->items(1), 5, lastPage: 3),
         ]);
 
         $rows = iterator_to_array(
@@ -124,9 +125,9 @@ final class ApiPlatformCollectionProviderTest extends TestCase
     }
 
     #[Test]
-    public function it_stops_exporting_as_soon_as_a_page_is_incomplete(): void
+    public function it_stops_exporting_on_the_last_page_the_operation_reports(): void
     {
-        $provider = new RecordingProvider([$this->items(1)]);
+        $provider = new RecordingProvider([$this->paginator($this->items(1), 1)]);
 
         iterator_to_array(
             $this->provider($provider, exportChunkSize: 250)->iterateRows($this->request()->withoutPagination()),
@@ -134,6 +135,60 @@ final class ApiPlatformCollectionProviderTest extends TestCase
         );
 
         $this->assertCount(1, $provider->calls);
+    }
+
+    #[Test]
+    public function it_exports_every_page_when_the_operation_caps_the_page_size(): void
+    {
+        // An operation declaring paginationMaximumItemsPerPage returns pages shorter than the ones
+        // asked for. Reading the end of the collection off the requested chunk size would truncate
+        // the export at the first page, silently.
+        $provider = new RecordingProvider([
+            $this->paginator($this->items(2), 5, lastPage: 3),
+            $this->paginator($this->items(2), 5, lastPage: 3),
+            $this->paginator($this->items(1), 5, lastPage: 3),
+        ]);
+
+        $rows = iterator_to_array(
+            $this->provider($provider, exportChunkSize: 250)->iterateRows($this->request()->withoutPagination()),
+            false,
+        );
+
+        $this->assertCount(5, $rows);
+        $this->assertCount(3, $provider->calls);
+    }
+
+    #[Test]
+    public function it_exports_in_one_pass_when_the_operation_does_not_paginate(): void
+    {
+        // Pagination disabled on the operation: everything arrives at once, and asking for a second
+        // page would return the same rows forever.
+        $provider = new RecordingProvider([$this->items(250), $this->items(250)]);
+
+        $rows = iterator_to_array(
+            $this->provider($provider, exportChunkSize: 250)->iterateRows($this->request()->withoutPagination()),
+            false,
+        );
+
+        $this->assertCount(250, $rows);
+        $this->assertCount(1, $provider->calls);
+    }
+
+    #[Test]
+    public function it_follows_a_partial_paginator_until_it_returns_a_short_page(): void
+    {
+        $provider = new RecordingProvider([
+            $this->partialPaginator($this->items(2)),
+            $this->partialPaginator($this->items(1), itemsPerPage: 2),
+        ]);
+
+        $rows = iterator_to_array(
+            $this->provider($provider, exportChunkSize: 2)->iterateRows($this->request()->withoutPagination()),
+            false,
+        );
+
+        $this->assertCount(3, $rows);
+        $this->assertCount(2, $provider->calls);
     }
 
     private function provider(
@@ -193,15 +248,16 @@ final class ApiPlatformCollectionProviderTest extends TestCase
     /**
      * @param list<object> $items
      */
-    private function paginator(array $items, int $totalItems): PaginatorInterface
+    private function paginator(array $items, int $totalItems, int $lastPage = 1): PaginatorInterface
     {
-        return new class($items, $totalItems) implements PaginatorInterface, \IteratorAggregate {
+        return new class($items, $totalItems, $lastPage) implements PaginatorInterface, \IteratorAggregate {
             /**
              * @param list<object> $items
              */
             public function __construct(
                 private readonly array $items,
                 private readonly int $totalItems,
+                private readonly int $lastPage,
             ) {
             }
 
@@ -227,12 +283,49 @@ final class ApiPlatformCollectionProviderTest extends TestCase
 
             public function getLastPage(): float
             {
-                return 1.0;
+                return (float) $this->lastPage;
             }
 
             public function getTotalItems(): float
             {
                 return (float) $this->totalItems;
+            }
+        };
+    }
+
+    /**
+     * @param list<object> $items
+     */
+    private function partialPaginator(array $items, ?int $itemsPerPage = null): PartialPaginatorInterface
+    {
+        return new class($items, $itemsPerPage ?? \count($items)) implements PartialPaginatorInterface, \IteratorAggregate {
+            /**
+             * @param list<object> $items
+             */
+            public function __construct(
+                private readonly array $items,
+                private readonly int $itemsPerPage,
+            ) {
+            }
+
+            public function getIterator(): \Traversable
+            {
+                return new \ArrayIterator($this->items);
+            }
+
+            public function count(): int
+            {
+                return \count($this->items);
+            }
+
+            public function getCurrentPage(): float
+            {
+                return 1.0;
+            }
+
+            public function getItemsPerPage(): float
+            {
+                return (float) $this->itemsPerPage;
             }
         };
     }

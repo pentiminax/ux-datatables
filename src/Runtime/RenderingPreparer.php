@@ -7,6 +7,8 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
+use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
@@ -71,9 +73,9 @@ final class RenderingPreparer
 
         $table->apiPlatform();
 
-        // A template, action or URL column renders from the source entity, which the browser never
-        // holds. Those tables read the collection server-side, through the same operation, and the
-        // Stimulus adapter stays out of the way.
+        // A template, action or resolved URL column renders from the source entity, which the
+        // browser never holds. Those tables read the collection server-side, through the same
+        // operation, and the Stimulus adapter stays out of the way.
         if ($this->configureApiPlatformServerSide($table)) {
             return;
         }
@@ -86,7 +88,7 @@ final class RenderingPreparer
      */
     private function configureApiPlatformServerSide(DataTable $table): bool
     {
-        if (!$this->hasTemplateColumn($table)) {
+        if (!$this->hasEntityDependentColumn($table)) {
             return false;
         }
 
@@ -121,10 +123,22 @@ final class RenderingPreparer
             && ($asDataTable->apiPlatform || $table->getOption('apiPlatform'));
     }
 
-    private function hasTemplateColumn(DataTable $table): bool
+    /**
+     * Whether a column renders from the entity rather than from the row the browser holds.
+     *
+     * Templates are rendered by Twig, action metadata by the voters, the URL generator and the CSRF
+     * token manager, and a resolved URL by a closure taking the entity. None of the three can be
+     * produced from a normalized API response, so any one of them sends the whole table
+     * server-side.
+     */
+    private function hasEntityDependentColumn(DataTable $table): bool
     {
         foreach ($table->getColumns() as $column) {
-            if ($column instanceof TemplateAwareColumnInterface) {
+            if ($column instanceof TemplateAwareColumnInterface || $column instanceof ActionsProvidingColumnInterface) {
+                return true;
+            }
+
+            if ($column instanceof UrlColumn && $column->hasUrlResolver()) {
                 return true;
             }
         }

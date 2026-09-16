@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\DataProvider;
 
 use ApiPlatform\State\Pagination\PaginatorInterface;
+use ApiPlatform\State\Pagination\PartialPaginatorInterface;
 use ApiPlatform\State\ProviderInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformQueryParameterFactory;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
@@ -77,6 +78,11 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
      * An export arrives without pagination, so it walks the collection one page at a time rather
      * than asking the operation for everything at once. Requesting `pagination=false` would only
      * work on operations that opted into client-controlled pagination.
+     *
+     * The requested chunk size says nothing about where the collection ends: an operation capping
+     * itemsPerPage returns short pages forever, and one with pagination disabled returns everything
+     * on the first call. Only the paginator the operation hands back knows, so termination is read
+     * from it rather than from the number of rows that came back.
      */
     public function iterateRows(DataTableRequest $request): iterable
     {
@@ -85,19 +91,38 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
         $pageSize   = max(1, $this->exportChunkSize);
 
         for ($page = 1;; ++$page) {
-            $items = $this->toList($this->provide([
+            $data = $this->provide([
                 'page'         => (string) $page,
                 'itemsPerPage' => (string) $pageSize,
-            ] + $parameters));
+            ] + $parameters);
+            $items = $this->toList($data);
 
             foreach ($items as $item) {
                 yield $mapper->map($item);
             }
 
-            if (\count($items) < $pageSize) {
+            if ([] === $items || !$this->hasPageAfter($data, $page, \count($items))) {
                 return;
             }
         }
+    }
+
+    /**
+     * A full paginator knows its last page. A partial one only knows the page size it actually
+     * applied, so a full page is the signal to ask for the next one. Anything else -- a plain array
+     * or an operation with pagination disabled -- returned the whole collection at once.
+     */
+    private function hasPageAfter(mixed $data, int $page, int $returned): bool
+    {
+        if ($data instanceof PaginatorInterface) {
+            return $page < $data->getLastPage();
+        }
+
+        if ($data instanceof PartialPaginatorInterface) {
+            return $returned >= max(1, (int) $data->getItemsPerPage());
+        }
+
+        return false;
     }
 
     /**

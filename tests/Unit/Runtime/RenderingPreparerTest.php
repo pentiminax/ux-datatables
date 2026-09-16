@@ -8,14 +8,18 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\FilterInterface;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
@@ -181,7 +185,7 @@ final class RenderingPreparerTest extends TestCase
      */
     #[Test]
     #[DataProvider('provideColumnsForServerSideReading')]
-    public function it_reads_the_collection_server_side_only_for_template_columns(array $columns, bool $expectsServerSide): void
+    public function it_reads_the_collection_server_side_only_for_entity_dependent_columns(array $columns, bool $expectsServerSide): void
     {
         $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $urlResolver->method('resolveCollectionUrl')
@@ -236,7 +240,22 @@ final class RenderingPreparerTest extends TestCase
             true,
         ];
 
-        yield 'without a template column' => [[TextColumn::new('email', 'Email')], false];
+        yield 'with an action column' => [
+            [
+                TextColumn::new('email', 'Email'),
+                ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::delete())),
+            ],
+            true,
+        ];
+
+        yield 'with a resolved url column' => [
+            [UrlColumn::new('profile', 'Profile')->linkToRoute('app_user_show', ['id' => 'id'])],
+            true,
+        ];
+
+        yield 'with a url column carrying no url' => [[UrlColumn::new('profile', 'Profile')], false];
+
+        yield 'without an entity dependent column' => [[TextColumn::new('email', 'Email')], false];
     }
 
     #[Test]
