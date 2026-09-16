@@ -43,7 +43,6 @@ final class RenderingPreparer
     public function prepareBeforeDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
     {
         $this->configureApiPlatform($table, $asDataTable);
-        $this->configureApiPlatformTemplateRendering($table);
         $this->configureAutoAjax($table);
         $this->configureExportUrl($table);
         $this->configureForwardedQueryParameters($table);
@@ -66,10 +65,51 @@ final class RenderingPreparer
 
         $collectionUrl = $this->urlResolver->resolveCollectionUrl($asDataTable->entityClass);
 
-        if (null !== $collectionUrl) {
-            $table->ajax($collectionUrl);
-            $table->apiPlatform();
+        if (null === $collectionUrl) {
+            return;
         }
+
+        $table->apiPlatform();
+
+        // A template, action or URL column renders from the source entity, which the browser never
+        // holds. Those tables read the collection server-side, through the same operation, and the
+        // Stimulus adapter stays out of the way.
+        if ($this->configureApiPlatformServerSide($table)) {
+            return;
+        }
+
+        $table->ajax($collectionUrl);
+    }
+
+    /**
+     * @return bool whether the table now reads its collection through the bundle's Ajax endpoint
+     */
+    private function configureApiPlatformServerSide(DataTable $table): bool
+    {
+        if (!$this->hasTemplateColumn($table)) {
+            return false;
+        }
+
+        $fqcn = $table->getDataTableClass();
+        if (null === $fqcn || null === $this->urlGenerator || null === $this->ajaxRegistry) {
+            return false;
+        }
+
+        $token = $this->ajaxRegistry->getToken($fqcn);
+        if (null === $token) {
+            return false;
+        }
+
+        $table->apiPlatformServerSide();
+        // The Stimulus adapter used to force serverSide on the payload; nothing does it now.
+        $table->serverSide();
+        $table->ajaxRequestData(
+            url: $this->urlGenerator->generate(self::AJAX_DATA_ROUTE),
+            data: ['table' => $token],
+            type: 'GET',
+        );
+
+        return true;
     }
 
     private function canAutoWireApiPlatform(DataTable $table, ?AsDataTable $asDataTable): bool
@@ -79,40 +119,6 @@ final class RenderingPreparer
             && null !== $this->urlResolver
             && null !== $asDataTable
             && ($asDataTable->apiPlatform || $table->getOption('apiPlatform'));
-    }
-
-    private function configureApiPlatformTemplateRendering(DataTable $table): void
-    {
-        if (true !== $table->getOption('apiPlatform')) {
-            return;
-        }
-
-        if (null !== $table->getOption('apiPlatformTemplateRendering')) {
-            return;
-        }
-
-        if (null === $this->urlGenerator || null === $this->ajaxRegistry) {
-            return;
-        }
-
-        if (!$this->hasTemplateColumn($table)) {
-            return;
-        }
-
-        $fqcn = $table->getDataTableClass();
-        if (null === $fqcn) {
-            return;
-        }
-
-        $token = $this->ajaxRegistry->getToken($fqcn);
-        if (null === $token) {
-            return;
-        }
-
-        $table->apiPlatformTemplateRendering(
-            url: $this->urlGenerator->generate('ux_datatables_ajax_templates'),
-            tableToken: $token,
-        );
     }
 
     private function hasTemplateColumn(DataTable $table): bool

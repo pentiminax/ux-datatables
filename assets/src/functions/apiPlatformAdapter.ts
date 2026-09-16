@@ -43,6 +43,17 @@ export function resolveColumnDataKey(column: ColumnConfig): string | null | unde
     return column.field ?? column.data
 }
 
+/**
+ * Whether the browser queries the API Platform collection itself.
+ *
+ * A table whose collection is read server-side is an ordinary server-side table by the time it
+ * reaches the browser: rows already carry rendered templates, actions and URLs, keyed by column
+ * name. Rewriting its ajax transport or its column accessors here would break both.
+ */
+export function isApiPlatformAdapterEnabled(payload: Record<string, unknown>): boolean {
+    return true === payload?.apiPlatform && true !== payload?.apiPlatformServerSide
+}
+
 interface HydraCollectionResponse {
     'hydra:member'?: unknown[]
     member?: unknown[]
@@ -56,13 +67,6 @@ interface DataTableServerSideResponse {
     recordsFiltered: number
     data: unknown[]
 }
-
-interface ApiPlatformTemplateRenderingConfig {
-    table: string
-    url: string
-}
-
-type DataTableAjaxCallback = (response: DataTableServerSideResponse) => void
 
 function toPositiveLength(length: number | undefined): number {
     return typeof length === 'number' && Number.isFinite(length) && length > 0
@@ -201,29 +205,9 @@ export class ApiPlatformAdapter {
         this.rowIdField = resolveRowIdField(payload.highlight)
         const originalData = ajaxConfig.data
         const originalDataFilter = ajaxConfig.dataFilter
-        const templateRendering = this.resolveTemplateRenderingConfig(
-            payload.apiPlatformTemplateRendering
-        )
 
         payload.serverSide = true
         payload.columns = this.withDefaultColumnContent(payload.columns)
-
-        if (null !== templateRendering) {
-            payload.ajax = (
-                params: DataTableServerSideParams,
-                callback: DataTableAjaxCallback
-            ): void => {
-                void this.fetchDataTableResponse(
-                    ajaxConfig,
-                    params,
-                    originalData,
-                    originalDataFilter,
-                    templateRendering
-                ).then(callback)
-            }
-
-            return
-        }
 
         let draw = 0
 
@@ -252,32 +236,6 @@ export class ApiPlatformAdapter {
         }
     }
 
-    async fetchDataTableResponse(
-        ajaxConfig: Record<string, unknown>,
-        params: DataTableServerSideParams,
-        originalData: unknown,
-        originalDataFilter: unknown,
-        templateRendering: ApiPlatformTemplateRenderingConfig
-    ): Promise<DataTableServerSideResponse> {
-        const resolvedParams = this.resolveDataTableParams(params, originalData)
-        const draw = this.toDraw(resolvedParams.draw)
-        const queryParams = this.buildRequestParams(resolvedParams)
-        const rawData = await this.fetchApiPlatformData(ajaxConfig, queryParams)
-        const filteredRawData = this.resolveRawResponse(rawData, 'json', originalDataFilter)
-        const parsedPayload = this.parseResponsePayload(filteredRawData)
-
-        if (null === parsedPayload) {
-            return {
-                draw,
-                recordsTotal: 0,
-                recordsFiltered: 0,
-                data: [],
-            }
-        }
-
-        return this.renderTemplateRows(this.buildResponse(parsedPayload, draw), templateRendering)
-    }
-
     withDefaultColumnContent(columns: unknown): unknown {
         if (!Array.isArray(columns)) {
             return columns
@@ -293,106 +251,6 @@ export class ApiPlatformAdapter {
                 defaultContent: '',
             }
         })
-    }
-
-    async fetchApiPlatformData(
-        ajaxConfig: Record<string, unknown>,
-        params: Record<string, string>
-    ): Promise<string> {
-        const url = typeof ajaxConfig.url === 'string' ? ajaxConfig.url : ''
-        const methodValue = ajaxConfig.type ?? ajaxConfig.method
-        const method = typeof methodValue === 'string' ? methodValue.toUpperCase() : 'GET'
-        const query = new URLSearchParams(params)
-        const headers = this.resolveHeaders(ajaxConfig.headers)
-
-        const requestInit: RequestInit = {
-            credentials: 'same-origin',
-            method,
-        }
-
-        if ('GET' === method) {
-            return fetch(this.appendQueryString(url, query), requestInit).then((response) =>
-                response.text()
-            )
-        }
-
-        requestInit.headers = headers
-        requestInit.body = query
-
-        return fetch(url, requestInit).then((response) => response.text())
-    }
-
-    async renderTemplateRows(
-        response: DataTableServerSideResponse,
-        templateRendering: ApiPlatformTemplateRenderingConfig
-    ): Promise<DataTableServerSideResponse> {
-        if (response.data.length === 0) {
-            return response
-        }
-
-        let renderedResponse: Response
-
-        try {
-            renderedResponse = await fetch(templateRendering.url, {
-                body: JSON.stringify({
-                    table: templateRendering.table,
-                    rows: response.data,
-                }),
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                method: 'POST',
-            })
-        } catch (error) {
-            console.warn('Template rendering request failed. Rows are displayed unrendered.', error)
-
-            return response
-        }
-
-        if (!renderedResponse.ok) {
-            console.warn(
-                `Template rendering failed (${renderedResponse.status}). Rows displayed unrendered.`
-            )
-
-            return response
-        }
-
-        let renderedPayload: unknown
-
-        try {
-            renderedPayload = await renderedResponse.json()
-        } catch (error) {
-            console.warn(
-                'Template rendering returned an unreadable body. Rows are displayed unrendered.',
-                error
-            )
-
-            return response
-        }
-
-        const data =
-            isRecord(renderedPayload) && Array.isArray(renderedPayload.data)
-                ? renderedPayload.data
-                : response.data
-
-        return {
-            ...response,
-            data,
-        }
-    }
-
-    resolveTemplateRenderingConfig(value: unknown): ApiPlatformTemplateRenderingConfig | null {
-        if (!isRecord(value)) {
-            return null
-        }
-
-        return typeof value.url === 'string' &&
-            value.url.trim() !== '' &&
-            typeof value.table === 'string' &&
-            value.table.trim() !== ''
-            ? { url: value.url, table: value.table }
-            : null
     }
 
     /**
@@ -502,20 +360,6 @@ export class ApiPlatformAdapter {
                 [ROW_ID_KEY]: String(id),
             }
         })
-    }
-
-    private appendQueryString(url: string, params: URLSearchParams): string {
-        const query = params.toString()
-
-        if ('' === query) {
-            return url
-        }
-
-        return url.includes('?') ? `${url}&${query}` : `${url}?${query}`
-    }
-
-    private resolveHeaders(headers: unknown): HeadersInit | undefined {
-        return isRecord(headers) ? (headers as HeadersInit) : undefined
     }
 
     parseResponsePayload(rawData: unknown): HydraCollectionResponse | null {

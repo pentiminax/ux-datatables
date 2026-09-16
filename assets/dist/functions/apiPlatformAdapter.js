@@ -4,6 +4,9 @@ export function resolveColumnDataKey(column) {
     }
     return column.field ?? column.data;
 }
+export function isApiPlatformAdapterEnabled(payload) {
+    return true === payload?.apiPlatform && true !== payload?.apiPlatformServerSide;
+}
 function toPositiveLength(length) {
     return typeof length === 'number' && Number.isFinite(length) && length > 0
         ? Math.floor(length)
@@ -96,15 +99,8 @@ export class ApiPlatformAdapter {
         this.rowIdField = resolveRowIdField(payload.highlight);
         const originalData = ajaxConfig.data;
         const originalDataFilter = ajaxConfig.dataFilter;
-        const templateRendering = this.resolveTemplateRenderingConfig(payload.apiPlatformTemplateRendering);
         payload.serverSide = true;
         payload.columns = this.withDefaultColumnContent(payload.columns);
-        if (null !== templateRendering) {
-            payload.ajax = (params, callback) => {
-                void this.fetchDataTableResponse(ajaxConfig, params, originalData, originalDataFilter, templateRendering).then(callback);
-            };
-            return;
-        }
         let draw = 0;
         const buildData = (params) => {
             const resolvedParams = this.resolveDataTableParams(params, originalData);
@@ -123,23 +119,6 @@ export class ApiPlatformAdapter {
             return JSON.stringify(response);
         };
     }
-    async fetchDataTableResponse(ajaxConfig, params, originalData, originalDataFilter, templateRendering) {
-        const resolvedParams = this.resolveDataTableParams(params, originalData);
-        const draw = this.toDraw(resolvedParams.draw);
-        const queryParams = this.buildRequestParams(resolvedParams);
-        const rawData = await this.fetchApiPlatformData(ajaxConfig, queryParams);
-        const filteredRawData = this.resolveRawResponse(rawData, 'json', originalDataFilter);
-        const parsedPayload = this.parseResponsePayload(filteredRawData);
-        if (null === parsedPayload) {
-            return {
-                draw,
-                recordsTotal: 0,
-                recordsFiltered: 0,
-                data: [],
-            };
-        }
-        return this.renderTemplateRows(this.buildResponse(parsedPayload, draw), templateRendering);
-    }
     withDefaultColumnContent(columns) {
         if (!Array.isArray(columns)) {
             return columns;
@@ -153,76 +132,6 @@ export class ApiPlatformAdapter {
                 defaultContent: '',
             };
         });
-    }
-    async fetchApiPlatformData(ajaxConfig, params) {
-        const url = typeof ajaxConfig.url === 'string' ? ajaxConfig.url : '';
-        const methodValue = ajaxConfig.type ?? ajaxConfig.method;
-        const method = typeof methodValue === 'string' ? methodValue.toUpperCase() : 'GET';
-        const query = new URLSearchParams(params);
-        const headers = this.resolveHeaders(ajaxConfig.headers);
-        const requestInit = {
-            credentials: 'same-origin',
-            method,
-        };
-        if ('GET' === method) {
-            return fetch(this.appendQueryString(url, query), requestInit).then((response) => response.text());
-        }
-        requestInit.headers = headers;
-        requestInit.body = query;
-        return fetch(url, requestInit).then((response) => response.text());
-    }
-    async renderTemplateRows(response, templateRendering) {
-        if (response.data.length === 0) {
-            return response;
-        }
-        let renderedResponse;
-        try {
-            renderedResponse = await fetch(templateRendering.url, {
-                body: JSON.stringify({
-                    table: templateRendering.table,
-                    rows: response.data,
-                }),
-                credentials: 'same-origin',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                method: 'POST',
-            });
-        }
-        catch (error) {
-            console.warn('Template rendering request failed. Rows are displayed unrendered.', error);
-            return response;
-        }
-        if (!renderedResponse.ok) {
-            console.warn(`Template rendering failed (${renderedResponse.status}). Rows displayed unrendered.`);
-            return response;
-        }
-        let renderedPayload;
-        try {
-            renderedPayload = await renderedResponse.json();
-        }
-        catch (error) {
-            console.warn('Template rendering returned an unreadable body. Rows are displayed unrendered.', error);
-            return response;
-        }
-        const data = isRecord(renderedPayload) && Array.isArray(renderedPayload.data)
-            ? renderedPayload.data
-            : response.data;
-        return {
-            ...response,
-            data,
-        };
-    }
-    resolveTemplateRenderingConfig(value) {
-        if (!isRecord(value)) {
-            return null;
-        }
-        return typeof value.url === 'string' &&
-            value.url.trim() !== '' &&
-            typeof value.table === 'string' &&
-            value.table.trim() !== ''
-            ? { url: value.url, table: value.table }
-            : null;
     }
     resolveColumnConfig(requestColumn, index) {
         const key = requestColumn?.name || requestColumn?.data;
@@ -292,16 +201,6 @@ export class ApiPlatformAdapter {
                 [ROW_ID_KEY]: String(id),
             };
         });
-    }
-    appendQueryString(url, params) {
-        const query = params.toString();
-        if ('' === query) {
-            return url;
-        }
-        return url.includes('?') ? `${url}&${query}` : `${url}?${query}`;
-    }
-    resolveHeaders(headers) {
-        return isRecord(headers) ? headers : undefined;
     }
     parseResponsePayload(rawData) {
         if (isRecord(rawData)) {
