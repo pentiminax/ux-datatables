@@ -5,8 +5,8 @@ order: 50
 ---
 
 UX DataTables registers a small set of Ajax routes automatically. Server-side tables,
-server-side exports, the inline edit modal, row deletion, detail rendering, and template
-resolution all go through these endpoints:
+server-side exports, the inline edit modal, row deletion and detail rendering all go through
+these endpoints:
 
 <Table
   headers={['Route name', 'Path', 'Method(s)', 'Used by']}
@@ -17,21 +17,19 @@ resolution all go through these endpoints:
     ['ux_datatables_ajax_edit_form', '/datatables/ajax/edit-form/view', 'POST', 'Edit modal form'],
     ['ux_datatables_ajax_edit_form_submit', '/datatables/ajax/edit-form', 'POST', 'Edit modal submit'],
     ['ux_datatables_ajax_detail', '/datatables/ajax/detail', 'POST', 'Row detail rendering'],
-    [
-      'ux_datatables_ajax_templates',
-      '/datatables/ajax/templates',
-      'POST',
-      'Template column rendering (rows authorized by the API Platform item provider)',
-    ],
     ['ux_datatables_ajax_export', '/datatables/ajax/export', 'POST', 'Server-side CSV/XLSX export'],
   ]}
 />
 
-`/datatables/ajax/templates` is the one route that authorizes the rows it is given: each posted row
-is rehydrated through the resource's API Platform `Get` operation, so its state provider, its
-Doctrine item extensions and its `security` expression decide what may be rendered. See
-[Template rendering security](/integrations/api-platform/#template-rendering-security). Every other
-route relies entirely on the `access_control` rule below.
+Every one of these routes relies entirely on the `access_control` rule below.
+
+A table that combines API Platform with a `TemplateColumn`, an action column or a `UrlColumn` reads
+its rows through `ux_datatables_ajax_data` rather than querying the API from the browser. The
+collection operation's `security` expression still runs on every draw, but the rows are read through
+the API Platform state provider, not through an HTTP request: `access_control` rules matching the
+API path are **not** evaluated for them. Secure such a table exactly as you would a Doctrine table —
+with the rule below, plus `security` on the collection operation. See
+[Reading the collection server-side](/integrations/api-platform/#reading-the-collection-server-side).
 
 ## Why this matters
 
@@ -152,4 +150,6 @@ Twig auto-escaping stays enabled for bundle templates. Treat HTML cell content a
 3. [Voters](/guide/security/) for `Permission::DT_EDIT_ROW`, `Permission::DT_DELETE_ROW`, and
    `Permission::DT_VIEW_ROW_DETAILS` where those row features are enabled.
 4. Template/HTML columns reviewed for escaping (see above).
-5. Unauthenticated probe of `/datatables/ajax/data` returns `401`/`403`, not table JSON.
+5. `security` on the collection operation of every API Platform table that renders template, action
+   or URL columns — the API path's own `access_control` rule does not cover it.
+6. Unauthenticated probe of `/datatables/ajax/data` returns `401`/`403`, not table JSON.

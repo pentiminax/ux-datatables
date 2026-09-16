@@ -73,6 +73,23 @@ final class ApiResourceCollectionUrlResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_resolves_the_url_and_the_operation_from_one_choice(): void
+    {
+        $served = new GetCollection(uriTemplate: '/books{._format}', routePrefix: '/api', name: 'served');
+
+        $resource = (new ApiResource())->withOperations(new Operations([
+            new GetCollection(uriTemplate: '/books/{category}{._format}', name: 'skipped'),
+            $served,
+        ]));
+
+        $resolved = $this->resolver($resource)->resolveCollection(self::ENTITY_CLASS);
+
+        $this->assertNotNull($resolved);
+        $this->assertSame('/api/books', $resolved->url);
+        $this->assertSame('served', $resolved->operation->getName());
+    }
+
+    #[Test]
     public function it_excludes_operations_that_are_not_collection_operations(): void
     {
         $resource = (new ApiResource())->withOperations(new Operations([

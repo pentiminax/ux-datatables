@@ -13,6 +13,7 @@ import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdap
 import {
     ApiPlatformAdapter,
     type ColumnConfig,
+    isApiPlatformAdapterEnabled,
     resolveColumnDataKey,
 } from './functions/apiPlatformAdapter.js'
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js'
@@ -670,7 +671,7 @@ export default class extends Controller {
     }
 
     private isApiPlatformEnabled(payload: Record<string, any>): boolean {
-        return true === payload?.apiPlatform
+        return isApiPlatformAdapterEnabled(payload)
     }
 
     private isMercureEnabled(payload: Record<string, any>): boolean {

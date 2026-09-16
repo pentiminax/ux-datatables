@@ -399,12 +399,15 @@ class DataTable
         return $this;
     }
 
-    public function apiPlatformTemplateRendering(string $url, string $tableToken): static
+    /**
+     * Read the API Platform collection on the server instead of from the browser.
+     *
+     * Template, action and URL columns need the source entity, which only the server has. The
+     * Stimulus adapter stands down and the table behaves as an ordinary server-side table.
+     */
+    public function apiPlatformServerSide(bool $enabled = true): static
     {
-        $this->options->set('apiPlatformTemplateRendering', [
-            'url'   => $url,
-            'table' => $tableToken,
-        ]);
+        $this->options->set('apiPlatformServerSide', $enabled);
 
         return $this;
     }

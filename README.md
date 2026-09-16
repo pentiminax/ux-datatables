@@ -98,7 +98,7 @@ public function index(UserDataTable $table, Request $request): Response
 
 The bundle auto-registers a set of Ajax routes under `/datatables/ajax/*` (`ux_datatables_ajax_data`,
 `ux_datatables_ajax_delete`, `ux_datatables_ajax_edit`, `ux_datatables_ajax_edit_form`,
-`ux_datatables_ajax_edit_form_submit`, `ux_datatables_ajax_detail`, `ux_datatables_ajax_templates`).
+`ux_datatables_ajax_edit_form_submit`, `ux_datatables_ajax_detail`, `ux_datatables_ajax_export`).
 
 The table token embedded in the rendered HTML identifies **which** table is requested, not **who** is
 requesting it — it is **not** a user-authentication or per-user authorization mechanism. If a table is
