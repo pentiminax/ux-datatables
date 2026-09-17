@@ -56,8 +56,9 @@ protected function createDataProvider(): ?DataProviderInterface
 
 `getResolvedColumns()` returns the configured columns after static permission filtering — the same
 list the Doctrine provider queries with. Both arguments are optional: without columns the provider
-still pages correctly, but nothing is orderable or searchable; without filters, filter values in
-the request are ignored, as the Doctrine provider ignores values for unconfigured names.
+still pages correctly but nothing is orderable, and a request carrying a search term raises rather
+than returning every row as a match; without filters, filter values in the request are ignored, as
+the Doctrine provider ignores values for unconfigured names.
 
 ### Supported request features
 
@@ -187,7 +188,7 @@ protected function createDataProvider(): ?DataProviderInterface
         }
     };
 
-    return new ArrayDataProvider($this->rows, $mapper);
+    return new ArrayDataProvider($this->rows, $mapper, $this->getResolvedColumns());
 }
 ```
 

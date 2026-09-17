@@ -41,13 +41,19 @@ final class AutoDataProviderFactory
         }
 
         if ($apiPlatform && null !== $this->apiPlatformProviderFactory) {
-            return $this->apiPlatformProviderFactory->create(
+            $apiPlatformProvider = $this->apiPlatformProviderFactory->create(
                 entityClass: $asDataTable->entityClass,
                 columns: $columns,
                 rowMapper: $rowMapper,
                 exportRowMapper: $exportRowMapper,
                 dataTableClass: $dataTableClass,
             );
+
+            // An entity with no collection operation falls through to Doctrine, the same
+            // fallback the RenderingPreparer applies when it cannot resolve a collection URL.
+            if (null !== $apiPlatformProvider) {
+                return $apiPlatformProvider;
+            }
         }
 
         if (null === $this->em) {

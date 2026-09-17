@@ -20,15 +20,19 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
+use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * @internal
@@ -191,6 +195,114 @@ final class ApiPlatformCollectionProviderTest extends TestCase
         $this->assertCount(2, $provider->calls);
     }
 
+    #[Test]
+    public function it_reads_the_requested_window_when_the_offset_is_not_a_multiple_of_the_page_size(): void
+    {
+        // Scroller scrolls to an arbitrary row: start=37 with length=50 lands inside page 1, whose
+        // rows 37..49 only cover part of the window. The remainder comes from page 2.
+        $provider = new RecordingProvider([
+            $this->paginator($this->items(50), 640, lastPage: 13),
+            $this->paginator($this->items(50, 50), 640, lastPage: 13),
+        ]);
+
+        $result = $this->provider($provider)->fetchData($this->request(start: 37, length: 50));
+        $rows   = iterator_to_array($result->data, false);
+
+        $this->assertCount(50, $rows);
+        $this->assertSame('Book 37', $rows[0]['title']);
+        $this->assertSame('Book 86', $rows[49]['title']);
+        $this->assertSame(
+            [['page' => '1', 'itemsPerPage' => '50'], ['page' => '2', 'itemsPerPage' => '50']],
+            array_map(static fn (array $call): array => $call[2]['request']->query->all(), $provider->calls),
+        );
+    }
+
+    #[Test]
+    public function it_serves_a_misaligned_offset_from_the_last_page_alone(): void
+    {
+        $provider = new RecordingProvider([$this->paginator($this->items(50), 50, lastPage: 1)]);
+
+        $result = $this->provider($provider)->fetchData($this->request(start: 37, length: 50));
+        $rows   = iterator_to_array($result->data, false);
+
+        $this->assertCount(13, $rows);
+        $this->assertSame('Book 37', $rows[0]['title']);
+        $this->assertCount(1, $provider->calls);
+    }
+
+    #[Test]
+    public function it_reads_an_aligned_offset_with_a_single_call(): void
+    {
+        $provider = $this->recordingProvider($this->paginator($this->items(50), 640, lastPage: 13));
+
+        $result = $this->provider($provider)->fetchData($this->request(start: 100, length: 50));
+
+        $this->assertCount(50, iterator_to_array($result->data));
+        $this->assertCount(1, $provider->calls);
+        $this->assertSame(['page' => '3', 'itemsPerPage' => '50'], $provider->calls[0][2]['request']->query->all());
+    }
+
+    #[Test]
+    public function it_fills_the_window_when_the_operation_caps_the_page_size(): void
+    {
+        // The operation serves 20 rows whatever itemsPerPage asks for -- a cap, or API Platform's
+        // default of ignoring the client's page size. The page number the request carries was
+        // computed from the requested length, so it points at the wrong rows: both it and the
+        // offset are recomputed from the size the paginator reports.
+        $provider = new RecordingProvider([
+            $this->paginator($this->items(20, 40), 640, lastPage: 32),
+            $this->paginator($this->items(20, 120), 640, lastPage: 32),
+            $this->paginator($this->items(20, 140), 640, lastPage: 32),
+            $this->paginator($this->items(20, 160), 640, lastPage: 32),
+            $this->paginator($this->items(20, 180), 640, lastPage: 32),
+        ]);
+
+        $result = $this->provider($provider)->fetchData($this->request(start: 137, length: 50));
+        $rows   = iterator_to_array($result->data, false);
+
+        $this->assertCount(50, $rows);
+        $this->assertSame('Book 137', $rows[0]['title']);
+        $this->assertSame('Book 186', $rows[49]['title']);
+
+        // Page 3 is what the requested length pointed at; rows 137..186 live on pages 7 to 10 of
+        // the 20-row pages the operation actually serves.
+        $this->assertSame(
+            ['3', '7', '8', '9', '10'],
+            array_map(static fn (array $call): string => $call[2]['request']->query->get('page'), $provider->calls),
+        );
+    }
+
+    #[Test]
+    public function it_stops_filling_the_window_at_the_last_page(): void
+    {
+        $provider = new RecordingProvider([
+            $this->paginator($this->items(20), 50, lastPage: 3),
+            $this->paginator($this->items(20, 20), 50, lastPage: 3),
+            $this->paginator($this->items(10, 40), 50, lastPage: 3),
+        ]);
+
+        $result = $this->provider($provider)->fetchData($this->request(start: 37, length: 50));
+        $rows   = iterator_to_array($result->data, false);
+
+        $this->assertCount(13, $rows);
+        $this->assertSame('Book 37', $rows[0]['title']);
+        $this->assertSame('Book 49', $rows[12]['title']);
+        $this->assertCount(3, $provider->calls);
+    }
+
+    #[Test]
+    public function it_refuses_a_column_control_criterion(): void
+    {
+        $provider = $this->recordingProvider($this->paginator($this->items(1), 1));
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('ColumnControl searches are not supported on an API Platform collection.');
+
+        $this->provider($provider)->fetchData($this->request(columnControl: new ColumnControl(
+            search: new ColumnControlSearch(value: 'dune', logic: ColumnControlLogic::Contains, type: 'text'),
+        )));
+    }
+
     private function provider(
         RecordingProvider $stateProvider,
         ?ApiResource $resource = null,
@@ -234,12 +346,13 @@ final class ApiPlatformCollectionProviderTest extends TestCase
     /**
      * @return list<object>
      */
-    private function items(int $count): array
+    private function items(int $count, int $from = 0): array
     {
         $items = [];
 
         for ($index = 0; $index < $count; ++$index) {
-            $items[] = (object) ['title' => "Book $index"];
+            $number  = $from + $index;
+            $items[] = (object) ['title' => "Book $number"];
         }
 
         return $items;
@@ -330,12 +443,18 @@ final class ApiPlatformCollectionProviderTest extends TestCase
         };
     }
 
-    private function request(int $start = 0, int $length = 10): DataTableRequest
+    private function request(int $start = 0, int $length = 10, ?ColumnControl $columnControl = null): DataTableRequest
     {
         return new DataTableRequest(
             draw: 1,
             columns: new Columns([
-                'title' => new RequestColumn(data: 'title', name: 'title', searchable: true, orderable: true),
+                'title' => new RequestColumn(
+                    data: 'title',
+                    name: 'title',
+                    searchable: true,
+                    orderable: true,
+                    columnControl: $columnControl,
+                ),
             ]),
             start: $start,
             length: $length,

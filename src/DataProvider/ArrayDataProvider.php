@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Query\Intent\ColumnReadReference;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Serves a page from an in-memory collection, honoring the request through the same
@@ -28,7 +29,9 @@ use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
  *
  * ColumnControl searches and configured {@see Filters} are
  * not implemented in memory: a request carrying either raises instead of silently returning
- * unfiltered rows with HTTP 200.
+ * unfiltered rows with HTTP 200. A ColumnControl criterion comes from the query string, so it
+ * raises a 400; a configured filter is a table-configuration mismatch, so it raises
+ * \LogicException.
  */
 final class ArrayDataProvider implements DataProviderInterface, StreamingDataProviderInterface
 {
@@ -36,7 +39,8 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
      * @param iterable<object|array> $items
      * @param list<ColumnInterface>  $columns configured, permission-filtered columns -- the list
      *                                        {@see \Pentiminax\UX\DataTables\Model\AbstractDataTable::getResolvedColumns()}
-     *                                        returns. Left empty, nothing is orderable or searchable.
+     *                                        returns. Left empty, nothing is orderable, and a
+     *                                        request carrying a search term raises.
      * @param Filters|null           $filters the table's configured filters, so a request carrying a
      *                                        value for one of them is rejected. Left null, filter values
      *                                        are ignored like the Doctrine provider ignores them.
@@ -54,8 +58,21 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
     {
         $intent = $this->intentFactory->create($request, $this->columns);
 
-        if ([] !== $intent->columnControls || $this->hasActiveFilters($request)) {
-            throw new \LogicException('ArrayDataProvider does not support ColumnControl searches or configured Filters. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.');
+        // A ColumnControl criterion reaches this from the query string, so an unsupported one is a
+        // bad request, not a broken server: raising \LogicException here answered crafted input
+        // with HTTP 500.
+        if ([] !== $intent->columnControls) {
+            throw new BadRequestHttpException('ColumnControl searches are not supported by ArrayDataProvider. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.');
+        }
+
+        if ($this->hasActiveFilters($request)) {
+            throw new \LogicException('ArrayDataProvider does not support configured Filters. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.');
+        }
+
+        // Without columns nothing is searchable, so a term would silently match every row and
+        // report recordsFiltered == recordsTotal. Say so instead of answering unfiltered.
+        if ([] === $this->columns && '' !== trim($request->search?->value ?? '')) {
+            throw new \LogicException('ArrayDataProvider was built without columns, so it cannot search. Pass $this->getResolvedColumns() as its third argument.');
         }
 
         $all = [];
