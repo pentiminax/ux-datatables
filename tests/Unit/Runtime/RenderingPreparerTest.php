@@ -264,6 +264,39 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
+    public function it_carries_the_hub_protocol_version_into_a_manual_mercure_config(): void
+    {
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
+        $hubUrlResolver->method('resolveProtocolVersion')->willReturn(MercureConfig::PROTOCOL_VERSION_1_0);
+
+        $preparer = new RenderingPreparer(mercureHubUrlResolver: $hubUrlResolver);
+        $table    = new DataTable('Test');
+        $table->mercure(topics: ['/api/books/{id}']);
+
+        $preparer->prepare($table, null);
+
+        $this->assertSame(MercureConfig::PROTOCOL_VERSION_1_0, $table->getMercureConfig()?->protocolVersion);
+    }
+
+    #[Test]
+    public function it_carries_the_hub_protocol_version_into_attribute_mercure_topics(): void
+    {
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
+        $hubUrlResolver->method('resolveProtocolVersion')->willReturn(MercureConfig::PROTOCOL_VERSION_1_0);
+
+        $preparer = new RenderingPreparer(mercureHubUrlResolver: $hubUrlResolver);
+        $table    = (new DataTable('Test'))->ajax('/api/books');
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: [
+            'topics' => ['/api/books/{id}'],
+        ]));
+
+        $this->assertSame(MercureConfig::PROTOCOL_VERSION_1_0, $table->getMercureConfig()?->protocolVersion);
+    }
+
+    #[Test]
     public function it_resolves_mercure_config_without_mutating_the_table(): void
     {
         $mercureConfig = (new MercureConfig(topics: ['/products/{id}']))

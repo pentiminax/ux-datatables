@@ -378,6 +378,29 @@ by name would fail at container compile time.
 | `datatables.detail.row_service` | `datatables.ajax.detail_row_service` |
 | `datatables.rehydration.source_row_resolver` | `datatables.ajax.source_row_resolver` |
 
+### Mercure subscriptions follow the hub's protocol version
+
+The browser now selects topics with the query parameter the configured hub expects, read from
+`HubInterface::getProtocolVersion()` (`symfony/mercure` 0.8+):
+
+| Hub | Subscription parameters |
+| --- | --- |
+| 0.x | `topic=` with URI Template selectors — unchanged |
+| 1.0 | `match=` (exact) and `match_urlpattern=` (URL Pattern, `/books/{id}` becomes `/books/:p0`) |
+
+Nothing changes for a 0.x hub, down to the serialized payload: `protocolVersion` is only added to the
+frontend `mercure` object when it is not `0.x`. A hub whose protocol version cannot be read (an older
+`symfony/mercure` without the getter) keeps the legacy `topic=` parameters.
+
+Before this release a Mercure 1.0 hub could not deliver anything: it ignores `topic=`, so the SSE
+connection opened and stayed silent. If you run a 1.0 hub, this release is what makes live updates
+work — and if you run a 1.0 hub with `protocol_version_compatibility 8` while migrating other
+clients, both spellings are accepted and nothing needs doing.
+
+Two things to check on the hub side when moving to 1.0: `jwt.claims` is required by RFC 9068 (a 1.0
+hub refuses to compile without it), and the subscriber cookie becomes `__Secure-mercure_access_token`,
+so private topics need `withCredentials: true` on the table **and** an HTTPS hub URL.
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`

@@ -15,10 +15,59 @@ declared on `#[AsDataTable(...)]`, or auto-resolved from
 
 When `mercure` is configured on a table:
 
-1. Backend options include a `mercure` object (`hubUrl`, `topics`, optional `withCredentials`, optional `debounceMs`).
-2. The Stimulus controller opens an `EventSource` to the hub with `?topic=...`.
+1. Backend options include a `mercure` object (`hubUrl`, `topics`, optional `protocolVersion`, optional `withCredentials`, optional `debounceMs`).
+2. The Stimulus controller opens an `EventSource` to the hub, selecting each topic with the query parameter the hub's protocol version expects (`topic=` for 0.x, `match=`/`match_urlpattern=` for 1.0).
 3. On each message, the controller emits a `datatables:mercure:message` event and triggers `table.ajax.reload(null, false)`.
 4. The SSE connection is closed automatically on controller `disconnect()`.
+
+## Mercure Protocol Version
+
+Mercure 1.0 renamed the subscription parameters. A 0.x hub takes `topic=` with
+[URI Template](https://www.rfc-editor.org/rfc/rfc6570) selectors; a 1.0 hub takes `match=` for an
+exact topic and `match_urlpattern=` for a [URL Pattern](https://urlpattern.spec.whatwg.org) (`:id`
+instead of `{id}`). Neither hub understands the other's spelling, so the bundle asks the configured
+hub which protocol it speaks (`HubInterface::getProtocolVersion()`, available with
+`symfony/mercure` 0.8+) and builds the subscription accordingly.
+
+**Nothing to configure in the bundle.** The dialect follows your hub:
+
+```yaml
+# config/packages/mercure.yaml — symfony/mercure-bundle 0.5+
+mercure:
+    hubs:
+        default:
+            url: '%env(MERCURE_URL)%'
+            public_url: '%env(MERCURE_PUBLIC_URL)%'
+            protocol_version: '1.0'
+            jwt:
+                secret: '%env(MERCURE_JWT_SECRET)%'
+                claims:                       # required by RFC 9068 on a 1.0 hub
+                    iss: 'https://example.com'
+                    sub: 'mercure-hub'
+```
+
+Topics keep their existing syntax. On a 1.0 hub a topic containing a `{name}` placeholder is sent as
+the equivalent URL Pattern (`/api/books/{id}` becomes `match_urlpattern=/api/books/:p0`; the group
+name is generated because RFC 6570 variable names are not all valid URL Pattern group names); a topic
+without a placeholder is sent as `match=<topic>`. A URL Pattern group also matches the literal
+placeholder, so both publishers that publish the template (`/api/books/{id}` — API Platform's
+behavior, and this bundle's own publish path) and publishers that publish concrete topics
+(`/api/books/42`) are received.
+
+A topic using a URI Template operator (`{?page}`, `{+path}`, …) has no URL Pattern equivalent, and
+is sent as an exact `match=` on its literal value rather than as an invalid pattern the hub would
+reject with a `400`.
+
+Where the protocol version does not reach the bundle — an older `symfony/mercure` without
+`HubInterface::getProtocolVersion()` — the legacy `topic=` parameters are used, which is what those
+installations have always sent.
+
+Migrating a hub to 1.0 is a breaking change for every client, and the hub will not enable
+compatibility by itself: see the [Mercure upgrade guide](https://github.com/dunglas/mercure/blob/main/docs/UPGRADE.md).
+Running the hub with `protocol_version_compatibility 8` keeps 0.x clients (including this bundle
+before it resolved the protocol version) working while you roll clients out. On a 1.0 hub the
+subscriber cookie is renamed `__Secure-mercure_access_token`, so private topics need
+`withCredentials: true` **and** an HTTPS hub URL.
 
 ## Minimal Setup
 
@@ -71,10 +120,10 @@ The same form accepts one topic or several topics:
 )]
 ```
 
-Mercure supports multiple subscriptions by repeating the `topic` query
-parameter. For most tables, one topic is enough. Use several topics when a
-single DataTable must refresh after changes published on different resources or
-channels.
+Mercure subscriptions repeat one matcher query parameter per topic. For most tables, one topic is
+enough. Use several topics when a single DataTable must refresh after changes published on different
+resources or channels. The parameter name depends on the hub's protocol version — see
+[Mercure Protocol Version](#mercure-protocol-version).
 
 ## Advanced Setup
 
