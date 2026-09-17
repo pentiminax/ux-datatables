@@ -26,11 +26,17 @@ When auto-resolution is enabled (`mercure: true`, no explicit topics): the bundl
 
 ## What it does client-side
 
-The Stimulus controller listens to the configured topics (repeating the `topic` query param per topic) and, on each SSE message, dispatches `datatables:mercure:message` and calls `table.ajax.reload(null, false)` (debounced). The connection closes on controller `disconnect()`.
+The Stimulus controller listens to the configured topics and, on each SSE message, dispatches `datatables:mercure:message` and calls `table.ajax.reload(null, false)` (debounced). The connection closes on controller `disconnect()`.
+
+The subscription dialect follows the hub's protocol version, read server-side from `HubInterface::getProtocolVersion()` (symfony/mercure 0.8+) and serialized as `protocolVersion` only when it is not `0.x`:
+
+- 0.x hub — one `topic=` query parameter per topic, with URI Template selectors.
+- 1.0 hub — `match_urlpattern=` with `/books/{id}` rewritten to `/books/:id` for a templated topic, `match=<topic>` for a plain one, and `match=` on the literal value for a topic using an RFC 6570 operator (`{?page}`), which has no URL Pattern equivalent.
+- No reported version (older symfony/mercure) — legacy `topic=` parameters.
 
 - Only reloads server-side tables — a table configured with static `data` will not auto-refresh from SSE.
 - No Mercure config means no SSE subscription (dynamic import skipped).
-- `withCredentials` forwards cookies/auth on the SSE request; not mapped automatically from API Platform's `private: true`.
+- `withCredentials` forwards cookies/auth on the SSE request; not mapped automatically from API Platform's `private: true`. On a 1.0 hub the cookie is `__Secure-mercure_access_token`, so private topics also need an HTTPS hub URL.
 
 ## Publishing updates
 

@@ -235,7 +235,9 @@ final class RenderingPreparer
     {
         $manualConfig = $table->getMercureConfig();
         if (null !== $manualConfig) {
-            return $manualConfig->withHubUrl($this->resolveHubUrlOrThrow());
+            return $manualConfig
+                ->withHubUrl($this->resolveHubUrlOrThrow())
+                ->withProtocolVersion($this->resolveProtocolVersion());
         }
 
         if (null === $asDataTable || false === $asDataTable->mercure) {
@@ -278,7 +280,9 @@ final class RenderingPreparer
             topics: $topics,
             withCredentials: true === ($asDataTable->mercure['withCredentials'] ?? false),
             debounceMs: $debounceMs,
-        ))->withHubUrl($this->resolveHubUrlOrThrow());
+        ))
+            ->withHubUrl($this->resolveHubUrlOrThrow())
+            ->withProtocolVersion($this->resolveProtocolVersion());
     }
 
     private function resolveHubUrlOrThrow(): string
@@ -290,6 +294,11 @@ final class RenderingPreparer
         }
 
         return $hubUrl;
+    }
+
+    private function resolveProtocolVersion(): string
+    {
+        return $this->mercureHubUrlResolver?->resolveProtocolVersion() ?? MercureConfig::PROTOCOL_VERSION_0_X;
     }
 
     private function configureEditModal(DataTable $table, ?AsDataTable $asDataTable): void
