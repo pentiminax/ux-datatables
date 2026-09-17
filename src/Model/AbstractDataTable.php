@@ -1,0 +1,567 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Model;
+
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
+use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
+use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\ActionsPosition;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
+use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
+use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
+use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+
+/**
+ * Base class for every table the bundle renders: a class declaring its columns, actions, filters,
+ * extensions, and options, from which the runtime builds rendering payloads and Ajax responses.
+ *
+ * setDataTableInfrastructure() must run before any accessor. Symfony's autoconfiguration calls it
+ * on every subclass (see PentiminaxDataTablesBundle::loadExtension()); an instance built by hand falls back
+ * to {@see DataTableInfrastructure::createDefault()}, which has no profiler, no Twig, and no
+ * bundle-wide `data_tables` defaults. Calling it once the table has initialized throws
+ * \LogicException, so it can never swap the infrastructure a table was already configured with.
+ *
+ * Every accessor -- as opposed to the configure*() hooks themselves -- triggers initialize()
+ * implicitly, and initialization is idempotent: the first accessor runs the configure*() methods
+ * and later calls reuse their result. Instances are
+ * container-shared and survive across requests under a worker runtime, so the `kernel.reset` tag
+ * calls resetDataTableState() between requests to clear that per-request state. Treat the
+ * configure*() methods as pure functions of the class regardless: they must not read the request,
+ * the security token, the session, or the locale. See the purity contract in
+ * docs/src/content/docs/reference/abstract-datatable.mdx ("Configuration Methods Must Be Pure").
+ *
+ * Request-dependent behavior belongs at the request-scoped boundaries instead: setPermission() on
+ * columns and actions, customizeQueryBuilder() and getRequest() for the query, and setData() --
+ * the sanctioned way to inject rows a controller has already resolved -- for inline data, which
+ * runs them through the same row-processing pipeline a provider would use.
+ */
+abstract class AbstractDataTable
+{
+    protected DataTable $table;
+
+    /**
+     * @var ColumnInterface[]
+     */
+    private array $columns;
+
+    private Filters $filters;
+
+    private ?RowMapperInterface $defaultRowMapper = null;
+
+    private ?AsDataTable $asDataTable = null;
+
+    private ?DataTableInfrastructure $infrastructure = null;
+
+    private ?DataTableRuntime $runtime = null;
+
+    private bool $initialized = false;
+
+    private bool $renderingPrepared = false;
+
+    final public function setDataTableInfrastructure(DataTableInfrastructure $infrastructure): void
+    {
+        if ($this->initialized || null !== $this->runtime) {
+            throw new \LogicException('DataTable infrastructure must be injected before the table is initialized.');
+        }
+
+        $this->infrastructure = $infrastructure;
+    }
+
+    final public function resetDataTableState(): void
+    {
+        unset($this->table, $this->columns, $this->filters);
+
+        $this->defaultRowMapper  = null;
+        $this->asDataTable       = null;
+        $this->runtime           = null;
+        $this->initialized       = false;
+        $this->renderingPrepared = false;
+    }
+
+    private function initialize(): void
+    {
+        if ($this->initialized) {
+            return;
+        }
+
+        $this->asDataTable = $this->resolveAsDataTable();
+
+        $this->table = $this->configureDataTable(
+            $this->infrastructure()->createDataTable($this->getClassName())
+        );
+
+        $this->table->setDataTableClass(static::class);
+
+        $this->columns = iterator_to_array($this->configureColumns());
+
+        $columnResolver = $this->infrastructure()->columnResolver;
+
+        $actions = $this->configureActions(new Actions());
+
+        $columnResolver->configureActionEntityClass($actions, $this->asDataTable);
+
+        // Permission filtering is request-scoped and happens at the serialization
+        // and query boundaries. Applying it here would lock this container-shared
+        // instance to the first user who initialized it.
+        $this->configureActionColumn($actions);
+
+        $this->table->columns($this->columns);
+
+        $this->filters = $this->configureFilters(new Filters());
+        $this->table->setFilters($this->filters);
+
+        $this->initialized = true;
+    }
+
+    public function getRequest(): ?DataTableRequest
+    {
+        return $this->runtime()->getRequest();
+    }
+
+    protected function getHttpRequest(): ?Request
+    {
+        return $this->runtime()->getHttpRequest();
+    }
+
+    public function handleRequest(Request $request): static
+    {
+        $this->runtime()->handleRequest($request);
+
+        return $this;
+    }
+
+    public function isRequestHandled(): bool
+    {
+        return $this->runtime()->isRequestHandled();
+    }
+
+    public function getResponse(): JsonResponse
+    {
+        $start    = hrtime(true);
+        $response = $this->runtime()->getResponse();
+
+        $this->collectAjaxQueryForProfiler($response, $start);
+
+        return $response;
+    }
+
+    public function prepareForRendering(): void
+    {
+        $this->initialize();
+
+        if ($this->renderingPrepared) {
+            return;
+        }
+
+        $renderingPreparer = $this->infrastructure()->renderingPreparer;
+
+        $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable);
+        $this->prepareExplicitInlineData();
+        $this->hydrateClientSideData();
+        $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable);
+
+        $this->renderingPrepared = true;
+    }
+
+    public function getDataTable(): DataTable
+    {
+        $this->prepareForRendering();
+
+        return $this->table;
+    }
+
+    public function getConfiguredDataTable(): DataTable
+    {
+        $this->initialize();
+
+        return $this->table;
+    }
+
+    /**
+     * @throws \LogicException if Mercure is enabled but the hub URL cannot be resolved
+     */
+    public function resolveMercureConfigWithoutHydration(): ?MercureConfig
+    {
+        $this->initialize();
+
+        // A client-side table embeds its rows at render time, and
+        // configureMercure() suppresses attribute/auto-resolved live updates once
+        // inline data is present. Manual ->mercure() config is always serialized,
+        // so only short-circuit when there is no manual config to preserve.
+        // Reproduce that suppression here WITHOUT performing the data fetch.
+        if (null === $this->table->getMercureConfig() && $this->shouldHydrateClientSideData()) {
+            return null;
+        }
+
+        return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->asDataTable);
+    }
+
+    final public function getEntityClass(): ?string
+    {
+        $this->initialize();
+
+        return $this->asDataTable?->entityClass;
+    }
+
+    /**
+     * @return iterable<ColumnInterface>
+     */
+    public function configureColumns(): iterable
+    {
+        if (isset($this->table)) {
+            $columns = $this->table->getColumns();
+            if ([] !== $columns) {
+                return $columns;
+            }
+        }
+
+        // The fluent `->apiPlatform()` opt-in counts here too, now that configureDataTable() has run.
+        $apiPlatform = isset($this->table) && true === $this->table->getOption('apiPlatform');
+
+        return $this->infrastructure()->columnResolver->resolveColumns(
+            $this->asDataTable ?? $this->resolveAsDataTable(),
+            $apiPlatform,
+        );
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table;
+    }
+
+    final public function getDataProvider(): ?DataProviderInterface
+    {
+        return $this->runtime()->getDataProvider();
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions;
+    }
+
+    /**
+     * Declare user-facing filters rendered above the table.
+     *
+     * Override to add TextFilter, ChoiceFilter, TernaryFilter, DateRangeFilter
+     * or a generic CheckboxFilter with a query() closure.
+     */
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters;
+    }
+
+    public function fetchData(DataTableRequest $request): DataTableResult
+    {
+        return $this->runtime()->fetchData($request);
+    }
+
+    private function hydrateClientSideData(): void
+    {
+        if (!$this->shouldHydrateClientSideData()) {
+            return;
+        }
+
+        $this->fetchData($this->createClientSideDataRequest());
+    }
+
+    private function prepareExplicitInlineData(): void
+    {
+        $data = $this->table->getOption('data');
+        if (null === $data || $this->table->areTemplateColumnsRendered()) {
+            return;
+        }
+
+        $this->mapInlineRows($data);
+    }
+
+    private function shouldHydrateClientSideData(): bool
+    {
+        return !$this->table->isServerSide()
+            && null === $this->table->getOption('data')
+            && null === $this->table->getOption('ajax')
+            && true !== $this->table->getOption('apiPlatform')
+            && true !== $this->asDataTable?->apiPlatform;
+    }
+
+    private function createClientSideDataRequest(): DataTableRequest
+    {
+        $columns = [];
+        foreach ($this->columns as $column) {
+            $columns[$column->getName()] = new RequestColumn(
+                data: $column->getData() ?? $column->getName(),
+                name: $column->getName(),
+                searchable: $column->isSearchable(),
+                orderable: $column->isOrderable(),
+            );
+        }
+
+        return new DataTableRequest(
+            draw: null,
+            columns: new RequestColumns($columns),
+            start: 0,
+            length: 0,
+        );
+    }
+
+    final protected function configureQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    {
+        $qb = $this->customizeQueryBuilder($qb, $request);
+
+        return $this->infrastructure()->queryFilterPipeline->apply(
+            qb: $qb,
+            request: $request,
+            columns: $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns),
+            filters: $this->filters ?? null,
+            registry: $this->createSearchStrategyRegistry(),
+            predicateBuilder: $this->createSearchPredicateBuilder(),
+        );
+    }
+
+    protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+    {
+        return $qb;
+    }
+
+    /**
+     * Create and configure the search strategy registry.
+     *
+     * Override this method to register custom search strategies.
+     */
+    protected function createSearchStrategyRegistry(): SearchStrategyRegistry
+    {
+        return new DefaultSearchStrategyRegistry();
+    }
+
+    /**
+     * Create the search predicate builder used by global search.
+     *
+     * Override this method to customize how global search builds a condition for a column,
+     * e.g. to add type handling DefaultSearchPredicateBuilder does not cover.
+     */
+    protected function createSearchPredicateBuilder(): SearchPredicateBuilderInterface
+    {
+        return new DefaultSearchPredicateBuilder();
+    }
+
+    public function getColumnByName(string $name): ?ColumnInterface
+    {
+        $this->initialize();
+
+        return $this->table->getColumnByName($name);
+    }
+
+    protected function mapRow(mixed $row): array
+    {
+        return $this->getDefaultRowMapper()->map($row);
+    }
+
+    protected function createDataProvider(): ?DataProviderInterface
+    {
+        return null;
+    }
+
+    /**
+     * Transform a complete, already-paginated page of source entities.
+     *
+     * Override to batch-enrich the page (load metrics, project to DTOs) without an N+1.
+     * Return null (the default) to disable projection. When projecting, the returned list
+     * must preserve the count and order of $items: columns and TemplateColumn Twig (`row`) then
+     * read the projected item, while actions still receive the source entity.
+     *
+     * A server-side export has no page: it streams every filtered row, so the projector is called
+     * once per batch of rows rather than once over the whole result set, and the batch size is not
+     * the DataTables page length. Project each item from itself -- map it, or batch-load data keyed
+     * by it. A projector whose output depends on which other items share the call (a rank, a
+     * running total, a share of the batch's maximum) produces different values in an export than on
+     * a page, and its values already shift with the page length on screen. Buffering every row to
+     * project them together is what streaming exists to avoid; when a larger batch really is
+     * needed, build the provider in {@see self::createDataProvider()} with a bigger
+     * `exportChunkSize`.
+     *
+     * @param list<mixed> $items
+     *
+     * @return list<mixed>|null
+     */
+    protected function projectPage(array $items): ?array
+    {
+        return null;
+    }
+
+    /**
+     * The configured columns after static permission filtering -- the exact list the Doctrine
+     * path queries with.
+     *
+     * Pass it to an {@see \Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider} built in
+     * {@see self::createDataProvider()} so in-memory ordering and search honor the table's
+     * column configuration, permissions included.
+     *
+     * @return list<ColumnInterface>
+     */
+    final protected function getResolvedColumns(): array
+    {
+        $this->initialize();
+
+        return $this->infrastructure()->columnResolver->filterStaticPermissions($this->columns, static::class);
+    }
+
+    final protected function createRowMapper(): RowMapperInterface
+    {
+        $this->initialize();
+
+        return $this->infrastructure()->runtimeFactory->createRowMapper(
+            baseMapper: $this->mapRow(...),
+            columns: $this->columns,
+            dataTableClass: static::class,
+            highlight: $this->table->getHighlightConfig(),
+        );
+    }
+
+    public function setData(array $data): void
+    {
+        $this->initialize();
+
+        $this->mapInlineRows($data);
+    }
+
+    /**
+     * @param iterable<mixed> $data
+     */
+    private function mapInlineRows(iterable $data): void
+    {
+        $rowMapper = $this->createRowMapper();
+        $rows      = [];
+
+        foreach ($data as $item) {
+            $rows[] = $rowMapper->map($item);
+        }
+
+        $this->table->data($rows);
+        $this->table->markTemplateColumnsRendered();
+    }
+
+    private function getDefaultRowMapper(): DefaultRowMapper
+    {
+        $this->initialize();
+
+        if (null === $this->defaultRowMapper) {
+            $this->defaultRowMapper = new DefaultRowMapper($this->columns);
+        }
+
+        return $this->defaultRowMapper;
+    }
+
+    private function getClassName(): string
+    {
+        $class = static::class;
+        $pos   = strrpos($class, '\\');
+
+        return false === $pos ? $class : substr($class, $pos + 1);
+    }
+
+    private function resolveAsDataTable(): ?AsDataTable
+    {
+        return $this->infrastructure()->asDataTableResolver->resolve(static::class);
+    }
+
+    private function runtime(): DataTableRuntime
+    {
+        $this->initialize();
+
+        return $this->runtime ??= $this->infrastructure()->runtimeFactory->createRuntime(
+            table: $this->table,
+            columns: $this->columns,
+            asDataTable: $this->asDataTable,
+            baseMapper: $this->mapRow(...),
+            manualDataProviderFactory: $this->createDataProvider(...),
+            configureQueryBuilder: $this->configureQueryBuilder(...),
+            pageProjector: $this->projectPage(...),
+            configureBaseQueryBuilder: $this->customizeQueryBuilder(...),
+        );
+    }
+
+    private function infrastructure(): DataTableInfrastructure
+    {
+        return $this->infrastructure ??= DataTableInfrastructure::createDefault();
+    }
+
+    /**
+     * Records this Ajax response with the Web Profiler, regardless of which route or
+     * controller called getResponse() -- the bundle's own AjaxDataController, or a custom
+     * ajax() endpoint that calls handleRequest()/getResponse() directly. A no-op when no
+     * profiler is wired (e.g. a table built outside the bundle's DI container).
+     */
+    private function collectAjaxQueryForProfiler(JsonResponse $response, float $start): void
+    {
+        $profiler = $this->infrastructure()->profiler;
+
+        if (null === $profiler) {
+            return;
+        }
+
+        $payload = json_decode((string) $response->getContent(), true);
+        $payload = \is_array($payload) ? $payload : [];
+
+        // Mirrors DataTableRuntime::getResponse()'s own guard: it only resolves a data
+        // provider once a request has actually been handled, short-circuiting to the empty
+        // response otherwise. Resolving unconditionally here would call getDataProvider()
+        // even on that empty-response path -- for an attributed table with no manual
+        // provider and no EntityManager, resolution throws, so getResponse() would behave
+        // differently depending on whether a profiler happens to be wired.
+        $request  = $this->getRequest();
+        $provider = null !== $request ? $this->getDataProvider() : null;
+
+        $profiler->collectAjaxQuery(
+            class: static::class,
+            token: $this->getHttpRequest()?->query->getString('table') ?: null,
+            request: $request,
+            recordsTotal: (int) ($payload['recordsTotal'] ?? 0),
+            recordsFiltered: (int) ($payload['recordsFiltered'] ?? 0),
+            durationMs: (hrtime(true) - $start) / 1_000_000,
+            providerClass: null !== $provider ? $provider::class : null,
+            entityClass: $this->getEntityClass(),
+            rowCount: \is_array($payload['data'] ?? null) ? \count($payload['data']) : 0,
+            payloadBytes: \strlen((string) $response->getContent()),
+            httpStatus: $response->getStatusCode(),
+        );
+    }
+
+    private function configureActionColumn(Actions $actions): void
+    {
+        if ($actions->isEmpty()) {
+            return;
+        }
+
+        $groups = $actions->partitionByPosition();
+        $single = 1 === \count($groups);
+
+        foreach ($groups as $position => $group) {
+            $isBefore = ActionsPosition::BeforeColumns->value === $position;
+
+            $name = $single || !$isBefore ? 'actions' : 'actions_before';
+
+            $actionColumn = ActionColumn::fromActions($name, $group->getColumnLabel(), $group);
+
+            if ($isBefore) {
+                array_unshift($this->columns, $actionColumn);
+
+                continue;
+            }
+
+            $this->columns[] = $actionColumn;
+        }
+    }
+}

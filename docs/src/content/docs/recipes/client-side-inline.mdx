@@ -1,0 +1,77 @@
+---
+title: 'Recipe: Client-side Inline Data'
+description: Build a small DataTable with rows embedded in the page
+order: 10
+navTitle: Client-side Inline Data
+---
+
+## What / When
+
+Use inline `data()` when the full dataset is small and already available in the controller.
+DataTables handles search, sort, and paging in the browser.
+
+## Minimal Example
+
+```php
+namespace App\DataTables;
+
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+final class ProductsDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('name', 'Name');
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->data([
+                ['id' => 1, 'name' => 'Keyboard'],
+                ['id' => 2, 'name' => 'Mouse'],
+            ])
+            ->pageLength(10);
+    }
+}
+```
+
+```php
+namespace App\Controller;
+
+use App\DataTables\ProductsDataTable;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+final class ProductController extends AbstractController
+{
+    #[Route('/products', name: 'products')]
+    public function index(ProductsDataTable $table): Response
+    {
+        return $this->render('product/index.html.twig', [
+            'table' => $table,
+        ]);
+    }
+}
+```
+
+```twig
+{{ render_datatable(table) }}
+```
+
+## Pitfalls
+
+<Aside type="caution">
+  Do not use inline data for large Doctrine collections. Switch to
+  [Doctrine server-side](../doctrine-server-side/) once paging must hit the database.
+</Aside>
+
+## Related
+
+- [Client-side Processing](/ux-datatables/guide/client-side-processing/)
+- [Quick Start](/ux-datatables/getting-started/quick-start/)

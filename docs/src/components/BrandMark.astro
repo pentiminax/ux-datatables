@@ -1,0 +1,26 @@
+---
+/*
+ * The mark is the thesis in miniature: a frozen header row, a grid of cells, and
+ * one cell marked. It reads at 16px because it is four rectangles, not a scene.
+ */
+interface Props {
+  size?: number
+}
+
+const { size = 18 } = Astro.props
+---
+
+<svg
+  class="brand-mark"
+  width={size}
+  height={size}
+  viewBox="0 0 16 16"
+  fill="none"
+  aria-hidden="true"
+  focusable="false"
+>
+  <rect x="0.75" y="1.75" width="14.5" height="12.5" rx="2.25" class="brand-mark-frame"></rect>
+  <path d="M1 5.5h14" class="brand-mark-freeze"></path>
+  <path d="M6 5.5v8.5M11 5.5v8.5M1 10h14" class="brand-mark-rule"></path>
+  <rect x="6" y="5.5" width="5" height="4.5" class="brand-mark-cell"></rect>
+</svg>
