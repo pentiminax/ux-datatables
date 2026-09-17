@@ -6,7 +6,11 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Attribute;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
+use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
@@ -14,10 +18,13 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithData;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithEditModalAttribute;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithFluentApiPlatform;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualAjax;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualMercure;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualOverride;
@@ -26,6 +33,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureAn
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureTopicsAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithoutAttribute;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithSerializationGroups;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithServerSide;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -263,5 +271,101 @@ final class AsDataTableTest extends TestCase
             'hubUrl' => '/.well-known/mercure',
             'topics' => ['manual/topic'],
         ], $table->getDataTable()->getOptions()['mercure']);
+    }
+
+    #[Test]
+    public function it_rejects_an_entity_class_that_does_not_exist(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The entity class "App\Entity\Missing" declared on #[AsDataTable] does not exist.');
+
+        new AsDataTable(entityClass: 'App\Entity\Missing');
+    }
+
+    #[Test]
+    public function it_applies_the_edit_modal_overrides_of_the_attribute(): void
+    {
+        $table = new TestDataTableWithEditModalAttribute();
+
+        $table->prepareForRendering();
+
+        $this->assertSame('bs5', $table->getDataTable()->getEditModalAdapter());
+        $this->assertSame('datatables/attribute_edit_modal.html.twig', $table->getDataTable()->getEditModalTemplate());
+    }
+
+    #[Test]
+    public function it_keeps_the_fluent_edit_modal_overrides_over_the_attribute(): void
+    {
+        $table = new FluentEditModalOverrideDataTable();
+
+        $table->prepareForRendering();
+
+        $this->assertSame('dt', $table->getDataTable()->getEditModalAdapter());
+        $this->assertSame('fluent.html.twig', $table->getDataTable()->getEditModalTemplate());
+    }
+
+    #[Test]
+    public function it_counts_the_fluent_api_platform_option_as_a_column_auto_detection_opt_in(): void
+    {
+        $expected = [TextColumn::new('name', 'Name')];
+
+        $detector = $this->createMock(ColumnAutoDetector::class);
+        $detector->method('supports')->with(\stdClass::class)->willReturn(true);
+        $detector->expects($this->once())
+            ->method('detectColumns')
+            ->with(\stdClass::class, [])
+            ->willReturn($expected);
+
+        $table = new TestDataTableWithFluentApiPlatform();
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            columnResolver: new ColumnResolver(columnAutoDetector: $detector),
+        ));
+
+        $this->assertSame($expected, array_values($table->getConfiguredDataTable()->getColumns()));
+    }
+
+    #[Test]
+    public function it_forwards_the_attribute_serialization_groups_to_the_column_detector(): void
+    {
+        $expected = [TextColumn::new('name', 'Name')];
+
+        $detector = $this->createMock(ColumnAutoDetector::class);
+        $detector->method('supports')->with(\stdClass::class)->willReturn(true);
+        $detector->expects($this->once())
+            ->method('detectColumns')
+            ->with(\stdClass::class, ['product:list'])
+            ->willReturn($expected);
+
+        $table = new TestDataTableWithSerializationGroups();
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            columnResolver: new ColumnResolver(columnAutoDetector: $detector),
+        ));
+
+        $this->assertSame($expected, array_values($table->getConfiguredDataTable()->getColumns()));
+    }
+}
+
+#[AsDataTable(
+    entityClass: \stdClass::class,
+    editModalTemplate: 'attribute.html.twig',
+    editModalAdapter: 'bs5',
+)]
+final class FluentEditModalOverrideDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->editModalTemplate('fluent.html.twig')
+            ->editModalAdapter('dt');
+    }
+
+    public function configureColumns(): iterable
+    {
+        return [];
+    }
+
+    protected function createDataProvider(): ?DataProviderInterface
+    {
+        return new ArrayDataProvider([], $this->createRowMapper());
     }
 }

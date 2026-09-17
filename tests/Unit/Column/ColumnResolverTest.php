@@ -85,6 +85,26 @@ final class ColumnResolverTest extends TestCase
         $this->assertSame($expected, $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: true)));
     }
 
+    #[Test]
+    public function auto_detect_accepts_the_fluent_api_platform_opt_in(): void
+    {
+        $expected = [TextColumn::new('name', 'Name')];
+
+        $detector = $this->createMock(ColumnAutoDetector::class);
+        $detector->method('supports')->with(\stdClass::class)->willReturn(true);
+        $detector->expects($this->once())
+            ->method('detectColumns')
+            ->with(\stdClass::class, [])
+            ->willReturn($expected);
+
+        $resolver = new ColumnResolver(columnAutoDetector: $detector);
+
+        $this->assertSame(
+            $expected,
+            $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class), [], true)
+        );
+    }
+
     /**
      * @param string[] $explicitGroups
      * @param string[] $expectedGroups
@@ -132,7 +152,7 @@ final class ColumnResolverTest extends TestCase
     }
 
     #[Test]
-    #[TestWith(['App\\Entity\\Product'])]
+    #[TestWith(['stdClass'])]
     #[TestWith([null])]
     public function configure_action_entity_class_only_applies_with_an_attribute(?string $entityClass): void
     {
