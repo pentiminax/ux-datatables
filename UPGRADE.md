@@ -431,11 +431,12 @@ arrived.
 - `'@=iri(object)'` is recognised explicitly and resolves to the item topic. Every other `@=`
   expression topic is dropped with a logged warning instead of silently subscribing to the item
   route path.
-- The item topic is read off a non-collection operation, preferring one whose route template carries
-  a variable, so a resource declaring a collection-shaped template first cannot degrade the topic.
-- Without a routing context (a CLI command, a kernel without the router) topics stay relative, and
-  the bundle's own `/datatables/.../{id}` fallback topic is made absolute the same way when a
-  context exists.
+- The item topic is read off the item GET operation; failing that, a non-collection operation whose
+  route template carries a variable is preferred over one that does not. Neither a collection-shaped
+  template nor a custom mutation route declared first can degrade the topic.
+- Without a router at all, topics stay relative. With a router, the context is the one the
+  application configured — the current request's, or `router.request_context` in a console command
+  or worker — which is the same context API Platform generates IRIs from.
 
 Two constructors gained an optional argument, both appended last:
 

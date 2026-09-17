@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\ApiPlatform;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\CollectionOperationInterface;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\HttpOperation;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicUrlResolver;
@@ -75,13 +76,16 @@ class ApiResourceMercureMetadataResolver
     /**
      * The route path of the item operation API Platform publishes an IRI for.
      *
-     * A template carrying a variable wins over one that does not, so a resource declaring its own
-     * operations cannot degrade the auto-resolved topic to a collection-shaped path by putting one
-     * first. The first template without a variable is kept as a last resort.
+     * The item IRI `@=iri(object)` expands to is the item GET operation's route, so a GET whose
+     * template carries a variable wins even when another operation — a custom mutation route, say —
+     * was declared before it and has a variable of its own. Failing a variable-bearing GET, any
+     * variable-bearing non-collection operation is preferred over one without, and the first such
+     * template is kept as a last resort.
      */
     private function resolveItemPath(ApiResource $resource, string $resourceRoutePrefix): ?string
     {
-        $fallback = null;
+        $templated = null;
+        $fallback  = null;
 
         foreach ($resource->getOperations() ?? [] as $operation) {
             if (!$operation instanceof HttpOperation || $operation instanceof CollectionOperationInterface) {
@@ -100,14 +104,20 @@ class ApiResourceMercureMetadataResolver
                 continue;
             }
 
-            if (preg_match('/\{[^}]+}/', $path)) {
+            if (!preg_match('/\{[^}]+}/', $path)) {
+                $fallback ??= $path;
+
+                continue;
+            }
+
+            if ($operation instanceof Get) {
                 return $path;
             }
 
-            $fallback ??= $path;
+            $templated ??= $path;
         }
 
-        return $fallback;
+        return $templated ?? $fallback;
     }
 
     /**
