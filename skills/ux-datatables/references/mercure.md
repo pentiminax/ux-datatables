@@ -24,15 +24,28 @@ When auto-resolution is enabled (`mercure: true`, no explicit topics): the bundl
 
 `topics` accepts one or many topics — use several when a table must refresh after changes on more than one resource/channel.
 
+**With API Platform, the topics line up only because both sides derive the same URL.** API Platform publishes to the item IRI computed at `UrlGeneratorInterface::ABS_URL` — that is what `mercure: true`, an omitted `topics` key, and `'topics' => ['@=iri(object)']` all resolve to (`PublishMercureUpdatesListener::publishUpdate()`). The bundle, for its part, subscribes to the *relative* item route path read from the resource metadata (`/api/books/{id}`), and the hub resolves a relative topic against its own URL. The two overlap only when the hub and the API share a host — the usual `/.well-known/mercure` on the same domain. With the hub on another host or subdomain nothing ever matches and the table silently stops refreshing; declare the topic explicitly in the absolute form API Platform publishes:
+
+```php
+#[AsDataTable(
+    entityClass: Book::class,
+    mercure: ['topics' => ['https://api.example.com/api/books/{id}']],
+)]
+```
+
+Three more API Platform specifics: `@=` expression topics are skipped by the resolver (only plain string topics are reused verbatim, so `@=iri(object.getOwner())` silently falls back to the item route path), `private: true` is not mapped to `withCredentials` — set it yourself, and the subscriber cookie comes from symfony/mercure-bundle (`Authorization`, the `mercure()` Twig function), not from this bundle — and `@=` needs `symfony/expression-language` installed on the app side or API Platform throws when it publishes.
+
 ## What it does client-side
 
 The Stimulus controller listens to the configured topics and, on each SSE message, dispatches `datatables:mercure:message` and calls `table.ajax.reload(null, false)` (debounced). The connection closes on controller `disconnect()`.
 
-The subscription dialect follows the hub's protocol version, read server-side from `HubInterface::getProtocolVersion()` (symfony/mercure 0.8+) and serialized as `protocolVersion` only when it is not `0.x`:
+The subscription dialect follows the hub's protocol version, read server-side from `HubInterface::getProtocolVersion()` (symfony/mercure 0.8+) and serialized as `protocolVersion` only when it is not `0.x`. Nothing to configure in the bundle — the dialect follows the hub. A 1.0 hub that is sent `topic=` creates no subscription at all: the connection opens and nothing ever arrives, so check the protocol version before the topics when live updates stop after a hub upgrade.
 
 - 0.x hub — one `topic=` query parameter per topic, with URI Template selectors.
-- 1.0 hub — `match_urlpattern=` with `/books/{id}` rewritten to `/books/:p0` for a templated topic (the group name is generated: RFC 6570 variable names are not all valid URL Pattern group names — `:book.id` is not a group, `:1` throws — and a repeated variable would collide), `match=<topic>` for a plain one, and `match=` on the literal value for a topic using an RFC 6570 operator (`{?page}`), which has no URL Pattern equivalent.
+- 1.0 hub — `match_urlpattern=` with `/books/{id}` rewritten to `/books/:p0` for a templated topic (the group name is generated: RFC 6570 variable names are not all valid URL Pattern group names — `:book.id` is not a group, `:1` throws — and a repeated variable would collide), `match=<topic>` for a plain one, and `match=` on the literal value for a topic using an RFC 6570 operator (`{?page}`), which has no URL Pattern equivalent. A group also matches the literal placeholder, so API Platform's `/api/books/{id}` publications keep matching.
 - No reported version (older symfony/mercure) — legacy `topic=` parameters.
+
+Publishing is protocol-agnostic: Mercure 1.0 kept the `topic=` form fields, so the publish path needs no change. Hub-side, a 1.0 hub needs `protocol_version: '1.0'` plus `jwt.claims` (RFC 9068 requires `iss`/`sub`/`client_id`), and `protocol_version_compatibility 8` keeps 0.x clients working while you migrate.
 
 - Only reloads server-side tables — a table configured with static `data` will not auto-refresh from SSE.
 - No Mercure config means no SSE subscription (dynamic import skipped).
