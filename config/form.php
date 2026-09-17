@@ -36,6 +36,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, tagged_locator('datatables.data_table'))
         ->arg(1, param('datatables.edit_modal.template'))
         ->arg(2, param('datatables.edit_modal.body_template'))
+        ->arg(3, service('datatables.attribute.resolver'))
         ->private();
 
     $services->set('datatables.form.edit_form_service', EditFormService::class)

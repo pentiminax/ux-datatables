@@ -42,7 +42,7 @@ public function configureDataTable(DataTable $table): DataTable
 }
 ```
 
-When `apiPlatform(true)` is called in `configureDataTable()` but no explicit `ajax()` URL is set, the bundle will still attempt to resolve the collection URL automatically from API Platform metadata (provided `#[AsDataTable]` is present).
+When `apiPlatform(true)` is called in `configureDataTable()` but no explicit `ajax()` URL is set, the bundle will still attempt to resolve the collection URL automatically from API Platform metadata (provided `#[AsDataTable]` is present). The two opt-ins are equivalent: `apiPlatform(true)` also enables column auto-detection, exactly like `apiPlatform: true` on the attribute.
 
 ## Ajax auto-wiring (attribute opt-in only)
 

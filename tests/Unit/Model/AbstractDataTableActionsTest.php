@@ -170,7 +170,7 @@ final class AbstractDataTableActionsTest extends TestCase
     }
 }
 
-#[AsDataTable(entityClass: 'App\\Entity\\AttributeBook')]
+#[AsDataTable(entityClass: \stdClass::class)]
 final class ExplicitActionEntityClassTestTable extends AbstractDataTable
 {
     public function configureColumns(): iterable

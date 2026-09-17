@@ -930,6 +930,149 @@ final class RenderingPreparerTest extends TestCase
         ];
     }
 
+    #[Test]
+    public function it_resolves_auto_topics_when_the_attribute_mercure_array_has_none(): void
+    {
+        $mercureConfig = (new MercureConfig(topics: ['https://example.com/api/books/{id}']))
+            ->withHubUrl('https://example.com/.well-known/mercure');
+
+        $mercureResolver = $this->createMock(MercureConfigResolver::class);
+        $mercureResolver->expects($this->once())
+            ->method('resolveMercureConfig')
+            ->with(\stdClass::class)
+            ->willReturn($mercureConfig);
+
+        $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
+        $table    = (new DataTable('Test'))->ajax('/api/books');
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: [
+            'debounceMs' => 250,
+        ]));
+
+        $this->assertSame([
+            'hubUrl'     => 'https://example.com/.well-known/mercure',
+            'topics'     => ['https://example.com/api/books/{id}'],
+            'debounceMs' => 250,
+        ], $table->getOptions()['mercure']);
+    }
+
+    #[Test]
+    public function it_applies_an_explicit_with_credentials_over_the_auto_resolved_one(): void
+    {
+        $mercureConfig = (new MercureConfig(topics: ['/api/books/{id}'], withCredentials: true))
+            ->withHubUrl('/.well-known/mercure');
+
+        $mercureResolver = $this->createMock(MercureConfigResolver::class);
+        $mercureResolver->method('resolveMercureConfig')->willReturn($mercureConfig);
+
+        $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
+        $table    = (new DataTable('Test'))->ajax('/api/books');
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: [
+            'withCredentials' => false,
+        ]));
+
+        $this->assertSame([
+            'hubUrl' => '/.well-known/mercure',
+            'topics' => ['/api/books/{id}'],
+        ], $table->getOptions()['mercure']);
+    }
+
+    /**
+     * @param array<string, mixed> $mercure
+     */
+    #[Test]
+    #[DataProvider('provideTopiclessMercureOptions')]
+    public function it_skips_mercure_without_topics_when_the_auto_resolver_finds_none(array $mercure): void
+    {
+        $mercureResolver = $this->createMock(MercureConfigResolver::class);
+        $mercureResolver->method('resolveMercureConfig')->willReturn(null);
+
+        $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
+        $table    = (new DataTable('Test'))->ajax('/api/books');
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: $mercure));
+
+        $this->assertArrayNotHasKey('mercure', $table->getOptions());
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function provideTopiclessMercureOptions(): iterable
+    {
+        yield 'empty array' => [[]];
+
+        yield 'subscription options only' => [['debounceMs' => 250, 'withCredentials' => true]];
+    }
+
+    #[Test]
+    public function it_names_the_attribute_and_the_class_for_an_unknown_mercure_option(): void
+    {
+        $preparer = new RenderingPreparer();
+        $table    = (new DataTable('Test'))->ajax('/api/books');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown mercure option(s) "topic" declared on #[AsDataTable] for "stdClass". Supported options are "topics", "withCredentials" and "debounceMs".');
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: [
+            'topic' => 'https://example.com/books',
+        ]));
+    }
+
+    /**
+     * @param array<string, mixed> $mercure
+     */
+    #[Test]
+    #[DataProvider('provideInvalidMercureOptions')]
+    public function it_rejects_an_invalid_mercure_option(string $expectedMessage, array $mercure): void
+    {
+        $preparer = new RenderingPreparer();
+        $table    = (new DataTable('Test'))->ajax('/api/books');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($expectedMessage);
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: $mercure));
+    }
+
+    /**
+     * @return iterable<string, array{string, array<string, mixed>}>
+     */
+    public static function provideInvalidMercureOptions(): iterable
+    {
+        yield 'topics is neither a string nor an array' => [
+            'The mercure "topics" option declared on #[AsDataTable] for "stdClass" must be a string or an array of strings.',
+            ['topics' => 42],
+        ];
+
+        yield 'withCredentials is not a boolean' => [
+            'The mercure "withCredentials" option declared on #[AsDataTable] for "stdClass" must be a boolean.',
+            ['topics' => ['/api/books/{id}'], 'withCredentials' => 'yes'],
+        ];
+
+        yield 'debounceMs is not an integer' => [
+            'The mercure "debounceMs" option declared on #[AsDataTable] for "stdClass" must be an integer or null.',
+            ['topics' => ['/api/books/{id}'], 'debounceMs' => '250'],
+        ];
+    }
+
+    #[Test]
+    public function it_ignores_an_empty_edit_modal_override(): void
+    {
+        $preparer = new RenderingPreparer();
+        $table    = new DataTable('Test');
+
+        $preparer->prepare($table, new AsDataTable(
+            entityClass: \stdClass::class,
+            editModalTemplate: '',
+            editModalAdapter: '   ',
+        ));
+
+        $this->assertNull($table->getEditModalTemplate());
+        $this->assertNull($table->getEditModalAdapter());
+    }
+
     /**
      * @return \Closure(DataTable): DataTable
      */

@@ -179,7 +179,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
     public function injected_auto_data_provider_factory_enables_auto_provider_resolution(): void
     {
         $runtime = $this->createRuntime(
-            asDataTable: new AsDataTable(entityClass: 'App\Entity\Movie'),
+            asDataTable: new AsDataTable(entityClass: \stdClass::class),
             autoDataProviderFactory: new AutoDataProviderFactory($this->createStub(EntityManagerInterface::class)),
         );
 
@@ -193,7 +193,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
 
         $runtime = $this->createRuntime(
             manualDataProviderFactory: static fn (): DataProviderInterface => $manualProvider,
-            asDataTable: new AsDataTable(entityClass: 'App\Entity\Movie'),
+            asDataTable: new AsDataTable(entityClass: \stdClass::class),
             autoDataProviderFactory: new AutoDataProviderFactory($this->createStub(EntityManagerInterface::class)),
         );
 

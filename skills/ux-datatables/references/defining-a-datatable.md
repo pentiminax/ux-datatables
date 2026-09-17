@@ -15,16 +15,18 @@ final class UserDataTable extends AbstractDataTable { /* ... */ }
 
 ```php
 #[AsDataTable(
-    entityClass: User::class,        // required — enables Doctrine auto-wiring & column auto-detection
-    serializationGroups: [],         // filter properties during auto-detection
-    mercure: false,                  // bool | array{topics, withCredentials, debounceMs}
+    entityClass: User::class,        // required, must exist — a typo throws when the attribute is read
+    serializationGroups: [],         // filter properties during auto-detection (needs the API Platform opt-in)
+    mercure: false,                  // bool | array{topics?, withCredentials, debounceMs}
     apiPlatform: false,              // opt-in API Platform integration
-    editModalTemplate: '',           // custom Twig template for the edit modal
-    editModalAdapter: '',            // custom modal adapter
+    editModalTemplate: null,         // custom Twig template for the edit modal
+    editModalAdapter: null,          // custom modal adapter (dt, bs, bs4, bs5, or a registered name)
 )]
 ```
 
-`entityClass` is mandatory. Without it the Doctrine data provider cannot be auto-wired for server-side mode.
+`entityClass` is mandatory. Without it the Doctrine data provider cannot be auto-wired for server-side mode. The attribute is not inherited: a subclass of an annotated abstract base resolves to no attribute at all.
+
+An array `mercure` value only declares topics when it has a `topics` key; without one, topics are auto-resolved and the other options are applied on top.
 
 ## The `configure*()` hooks
 

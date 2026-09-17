@@ -26,16 +26,18 @@ final class ColumnResolver
     /**
      * Resolve columns using the fallback chain: attributes → auto-detect.
      *
+     * @param bool $apiPlatform Whether the table opted in through the fluent `->apiPlatform()`
+     *
      * @return AbstractColumn[]
      */
-    public function resolveColumns(?AsDataTable $asDataTable): array
+    public function resolveColumns(?AsDataTable $asDataTable, bool $apiPlatform = false): array
     {
         $columns = $this->columnsFromAttributes($asDataTable);
         if ([] !== $columns) {
             return $columns;
         }
 
-        return $this->autoDetectColumns($asDataTable);
+        return $this->autoDetectColumns($asDataTable, [], $apiPlatform);
     }
 
     /**
@@ -58,13 +60,14 @@ final class ColumnResolver
      * Auto-detect columns from API Platform metadata.
      *
      * Returns an empty array when auto-detection is not available (API Platform not installed,
-     * no #[AsDataTable] attribute, or entity is not an ApiResource).
+     * no #[AsDataTable] attribute, no API Platform opt-in, or entity is not an ApiResource).
      *
-     * @param string[] $groups Serialization groups to filter properties (defaults to AsDataTable::$serializationGroups)
+     * @param string[] $groups      Serialization groups to filter properties (defaults to AsDataTable::$serializationGroups)
+     * @param bool     $apiPlatform Whether the table opted in through the fluent `->apiPlatform()`
      *
      * @return AbstractColumn[]
      */
-    public function autoDetectColumns(?AsDataTable $asDataTable, array $groups = []): array
+    public function autoDetectColumns(?AsDataTable $asDataTable, array $groups = [], bool $apiPlatform = false): array
     {
         if (null === $this->columnAutoDetector) {
             return [];
@@ -74,7 +77,7 @@ final class ColumnResolver
             return [];
         }
 
-        if (!$asDataTable->apiPlatform) {
+        if (!$asDataTable->apiPlatform && !$apiPlatform) {
             return [];
         }
 

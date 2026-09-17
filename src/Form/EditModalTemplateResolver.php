@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Form;
 
-use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Attribute\AsDataTableResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Psr\Container\ContainerInterface;
@@ -15,6 +15,7 @@ class EditModalTemplateResolver
         private readonly ContainerInterface $dataTables,
         private readonly string $defaultTemplate,
         private readonly string $defaultBodyTemplate,
+        private readonly AsDataTableResolver $asDataTableResolver = new AsDataTableResolver(),
     ) {
     }
 
@@ -31,10 +32,10 @@ class EditModalTemplateResolver
                 }
             }
 
-            $attribute = $this->resolveAttribute($dataTableClass);
+            $template = $this->asDataTableResolver->resolve($dataTableClass)?->editModalTemplate;
 
-            if (null !== $attribute && '' !== trim($attribute->editModalTemplate)) {
-                return $attribute->editModalTemplate;
+            if (null !== $template && '' !== trim($template)) {
+                return $template;
             }
         }
 
@@ -62,25 +63,5 @@ class EditModalTemplateResolver
         }
 
         return array_values($dataTable->getConfiguredDataTable()->getColumns());
-    }
-
-    /**
-     * @var array<string, AsDataTable|null>
-     */
-    private static array $attributeCache = [];
-
-    private function resolveAttribute(string $dataTableClass): ?AsDataTable
-    {
-        if (\array_key_exists($dataTableClass, self::$attributeCache)) {
-            return self::$attributeCache[$dataTableClass];
-        }
-
-        try {
-            $attributes = (new \ReflectionClass($dataTableClass))->getAttributes(AsDataTable::class);
-        } catch (\ReflectionException) {
-            return self::$attributeCache[$dataTableClass] = null;
-        }
-
-        return self::$attributeCache[$dataTableClass] = [] === $attributes ? null : $attributes[0]->newInstance();
     }
 }

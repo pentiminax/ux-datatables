@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
+use Pentiminax\UX\DataTables\Attribute\AsDataTableResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\PropertyNameHumanizer;
@@ -250,6 +251,12 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(AttributeColumnReader::class, 'datatables.column.attribute_column_reader')
         ->private();
 
+    $services->set('datatables.attribute.resolver', AsDataTableResolver::class)
+        ->private();
+
+    $services->alias(AsDataTableResolver::class, 'datatables.attribute.resolver')
+        ->private();
+
     $services->set('datatables.column.resolver', ColumnResolver::class)
         ->arg(0, service('datatables.column.attribute_column_reader'))
         ->arg(1, service(ColumnAutoDetector::class)->nullOnInvalid())
@@ -314,6 +321,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(5, param('datatables.table_attributes'))
         ->arg(6, param('datatables.extensions'))
         ->arg(7, service('datatables.profiler')->nullOnInvalid())
+        ->arg(8, service('datatables.attribute.resolver'))
         ->private();
 
     $services->alias(DataTableInfrastructure::class, 'datatables.infrastructure')

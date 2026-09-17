@@ -16,10 +16,10 @@ Target: class
 #[AsDataTable(
     entityClass: User::class,
     mercure: [
-        'topics' => [
-            'https://example.com/users',
-        ],
+        'debounceMs' => 250,
     ],
+    editModalTemplate: 'datatables/user_edit_modal.html.twig',
+    editModalAdapter: 'bs5',
 )]
 ```
 
@@ -28,18 +28,23 @@ Arguments:
 <Table
   headers={['Argument', 'Type', 'Default', 'Description']}
   rows={[
-    ['`entityClass`', '`string`', 'required', 'Doctrine entity class linked to the table'],
+    [
+      '`entityClass`',
+      '`class-string`',
+      'required',
+      'Doctrine entity class linked to the table. Validated when the attribute is read: a class that does not exist, or a non-class such as an interface, throws an `InvalidArgumentException`.',
+    ],
     [
       '`serializationGroups`',
       '`string[]`',
       '`[]`',
-      'API Platform serialization groups used during column auto-detection (requires `apiPlatform: true`)',
+      'API Platform serialization groups used during column auto-detection (requires the API Platform opt-in)',
     ],
     [
       '`mercure`',
       '`bool|array`',
       '`false`',
-      'Enable automatic Mercure config resolution (`true`) or declare explicit Mercure options (`topics`, `withCredentials`, `debounceMs`)',
+      'Enable automatic Mercure config resolution (`true`) or declare Mercure options (`topics`, `withCredentials`, `debounceMs`)',
     ],
     [
       '`apiPlatform`',
@@ -49,15 +54,15 @@ Arguments:
     ],
     [
       '`editModalTemplate`',
-      '`string`',
-      "`''`",
+      '`?string`',
+      '`null`',
       'Optional Twig template path for the inline edit modal',
     ],
     [
       '`editModalAdapter`',
-      '`string`',
-      "`''`",
-      'Optional modal adapter override (`bootstrap`, `custom`, …)',
+      '`?string`',
+      '`null`',
+      'Optional modal adapter override (`dt`, `bs`, `bs4`, `bs5`, or a name registered with `modalAdapters.register()`)',
     ],
   ]}
 />
@@ -65,10 +70,41 @@ Arguments:
 Use this attribute to:
 
 - auto-configure the Doctrine data provider used internally by `AbstractDataTable`
-- opt-in to API Platform-driven column auto-detection (`apiPlatform: true` required)
-- opt-in to automatic API collection URL resolution for Ajax wiring (`apiPlatform: true` required)
+- opt-in to API Platform-driven column auto-detection (`apiPlatform: true`, or `->apiPlatform()` on the table)
+- opt-in to automatic API collection URL resolution for Ajax wiring
 - auto-attach a Mercure config when Mercure is enabled for the table
 - declare explicit Mercure topics with `mercure: ['topics' => [...]]`
+
+### Mercure options
+
+An array `mercure` value only declares topics when it carries a `topics` key. Without it, topics are
+resolved automatically and the declared options are applied on top:
+
+```php
+// Auto topics, tuned subscription
+#[AsDataTable(User::class, mercure: ['debounceMs' => 250, 'withCredentials' => true])]
+```
+
+```php
+// Explicit topics
+#[AsDataTable(User::class, mercure: ['topics' => ['https://example.com/users']])]
+```
+
+`withCredentials` overrides the value resolved from API Platform metadata (`#[ApiResource(mercure:
+['private' => true])]`). Unknown keys and wrongly typed values throw an `InvalidArgumentException`
+naming the attribute and the entity class. Fluent Mercure configuration set with
+`$table->mercure()` still wins over the attribute.
+
+### Inheritance
+
+The attribute is not inherited: `#[AsDataTable]` on an abstract base class gives its subclasses no
+attribute at all. Annotate every concrete table class.
+
+### `serializationGroups`
+
+`serializationGroups` is only read during API Platform column auto-detection, so it is ignored
+unless the API Platform opt-in is set — through the attribute's `apiPlatform: true` or
+`$table->apiPlatform()`.
 
 ## `#[Column]`
 
