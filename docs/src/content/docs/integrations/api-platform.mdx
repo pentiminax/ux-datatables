@@ -91,45 +91,63 @@ Notes:
   | `select` with `multiple()` | `?name[0]=value&name[1]=value` |
   | `dateRange` | `?name[after]=YYYY-MM-DD&name[before]=YYYY-MM-DD` |
 
-## Template rendering security
+## Reading the collection server-side
 
-`TemplateColumn`, detail actions and `UrlColumn` need the entity, not the JSON row, so the browser
-posts the rows it received back to `POST /datatables/ajax/templates` to have them rendered. Those
-rows are client input: their identifiers prove nothing about who may read them.
+`TemplateColumn`, detail actions and `UrlColumn` render from the entity, not from the JSON row the
+browser received. A table declaring one of them therefore stops querying the API from the browser:
+it becomes an ordinary server-side table pointed at `ux_datatables_ajax_data`, and the bundle reads
+the collection itself.
 
-The route therefore rehydrates each row through the resource's API Platform `Get` operation. A row
-carrying an `@id` is matched through the router to the item operation serving that IRI, as the IRI
-converter does; a row carrying only an `id` generates an IRI through the resource's first `Get`
-before it is loaded. This lets API Platform transform custom identifiers such as UUID or value
-objects before invoking the provider. Both forms apply exactly what a `GET /resource/{id}` would:
-the operation's state provider, its Doctrine item
-extensions (`QueryItemExtensionInterface`, tenant scoping, filtered query builders) and its
-`security` expression. Sibling item operations for other audiences are neither consulted nor
-enforced.
+Each draw makes a single call to API Platform's main state provider, on the same collection
+operation the browser would have queried. Pagination, ordering, global search and filter values are
+translated server-side into `page`, `itemsPerPage`, `order[...]`, `q` and the resource's filter
+parameters. One draw is one HTTP request and one collection query: no second round-trip, and no
+per-row item lookup.
 
-A row API Platform does not serve — unknown, filtered out by an extension, or denied by `security`
-— is returned to the browser exactly as posted, with no template rendered and no action or URL
-resolved. Nothing is ever rendered against client-supplied data.
+The Hydra adapter stands down for these tables — rows are mapped by the `RowMapper`, so they already
+arrive keyed by column name.
+
+### What authorizes the rows
+
+<Table
+  headers={['Layer', 'Applies?']}
+  rows={[
+    ['`security` on the collection operation', 'Yes, on every draw'],
+    ['`security` on a `#[QueryParameter]`', 'Yes'],
+    ['Doctrine collection extensions (pagination, filters, tenant scoping)', 'Yes'],
+    ['`access_control` rules matching the API path', 'No'],
+    ['`Permission::DT_ACCESS_TABLE` on the table', 'Yes'],
+  ]}
+/>
+
+The collection is read through the state provider, as a service call — the same way a Doctrine table
+reads its repository. No HTTP request is made, so the Symfony firewall never sees the API path and
+its `access_control` rules are not evaluated. Put the authorization on the operation, not only on
+the URL:
 
 ```php
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 
 #[ApiResource(operations: [
-    new GetCollection(),
-    // Required for template columns: the item operation is the authorization boundary.
-    new Get(security: 'is_granted("VIEW", object)'),
+    // The collection operation is the authorization boundary for server-side rendering.
+    new GetCollection(security: 'is_granted("ROLE_ADMIN")'),
 ])]
 final class User
 {
 }
 ```
 
-<Aside type="caution" title="A resource with no `Get` operation renders nothing">
-  Without a `Get` operation — or without API Platform at all — no row can be resolved, so every row
-  comes back unrendered. The route also rejects a request carrying more rows than
-  `data_tables.max_page_length` (1000 by default) with a 400 response.
+<Aside type="caution" title="Secure the bundle's Ajax routes too">
+  The table token in the rendered HTML says which table is requested, not who is requesting it.
+  Protect `/datatables/ajax/*` with your own `access_control` rule — see
+  [Securing Ajax Routes](/getting-started/security/).
+</Aside>
+
+<Aside type="note" title="Column values are read from the entity">
+  Rows are built from the entity's properties, as for a Doctrine table, so custom normalizers and
+  property-level `security` do not apply to cell values. Declare columns only on properties every
+  reader of the table may see.
 </Aside>
 
 ## Global search

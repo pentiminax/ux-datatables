@@ -8,14 +8,18 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\FilterInterface;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
@@ -180,8 +184,8 @@ final class RenderingPreparerTest extends TestCase
      * @param list<\Pentiminax\UX\DataTables\Contracts\ColumnInterface> $columns
      */
     #[Test]
-    #[DataProvider('provideColumnsForTemplateRendering')]
-    public function it_configures_api_platform_template_rendering_only_for_template_columns(array $columns, bool $expectsTemplateRendering): void
+    #[DataProvider('provideColumnsForServerSideReading')]
+    public function it_reads_the_collection_server_side_only_for_entity_dependent_columns(array $columns, bool $expectsServerSide): void
     {
         $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $urlResolver->method('resolveCollectionUrl')
@@ -192,10 +196,10 @@ final class RenderingPreparerTest extends TestCase
 
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $urlGenerator
-            ->expects($expectsTemplateRendering ? $this->once() : $this->never())
+            ->expects($expectsServerSide ? $this->once() : $this->never())
             ->method('generate')
-            ->with('ux_datatables_ajax_templates')
-            ->willReturn('/datatables/ajax/templates');
+            ->with('ux_datatables_ajax_data')
+            ->willReturn('/datatables/ajax/data');
 
         $preparer = new RenderingPreparer(
             urlResolver: $urlResolver,
@@ -208,15 +212,25 @@ final class RenderingPreparerTest extends TestCase
 
         $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
 
-        $expected = $expectsTemplateRendering ? [
-            'url'   => '/datatables/ajax/templates',
-            'table' => $registry->getToken(self::TABLE_CLASS),
-        ] : null;
+        $this->assertTrue($table->getOption('apiPlatform'));
 
-        $this->assertSame($expected, $table->getOption('apiPlatformTemplateRendering'));
+        if (!$expectsServerSide) {
+            $this->assertNull($table->getOption('apiPlatformServerSide'));
+            $this->assertSame(['type' => 'GET', 'url' => '/api/users'], $table->getOption('ajax'));
+
+            return;
+        }
+
+        $this->assertTrue($table->getOption('apiPlatformServerSide'));
+        $this->assertTrue($table->isServerSide());
+        $this->assertSame([
+            'type' => 'GET',
+            'url'  => '/datatables/ajax/data',
+            'data' => ['table' => $registry->getToken(self::TABLE_CLASS)],
+        ], $table->getOption('ajax'));
     }
 
-    public static function provideColumnsForTemplateRendering(): iterable
+    public static function provideColumnsForServerSideReading(): iterable
     {
         yield 'with a template column' => [
             [
@@ -226,7 +240,22 @@ final class RenderingPreparerTest extends TestCase
             true,
         ];
 
-        yield 'without a template column' => [[TextColumn::new('email', 'Email')], false];
+        yield 'with an action column' => [
+            [
+                TextColumn::new('email', 'Email'),
+                ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::delete())),
+            ],
+            true,
+        ];
+
+        yield 'with a resolved url column' => [
+            [UrlColumn::new('profile', 'Profile')->linkToRoute('app_user_show', ['id' => 'id'])],
+            true,
+        ];
+
+        yield 'with a url column carrying no url' => [[UrlColumn::new('profile', 'Profile')], false];
+
+        yield 'without an entity dependent column' => [[TextColumn::new('email', 'Email')], false];
     }
 
     #[Test]

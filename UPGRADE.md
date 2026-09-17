@@ -202,34 +202,44 @@ returns `false` from `isSearchNormalized()`.
   values whose name is not configured are ignored, as the Doctrine provider ignores them. Implement
   `DataProviderInterface` yourself for a table that needs either in memory.
 
-### Template rendering is authorized by API Platform
+### API Platform tables with template columns are read server-side
 
-`/datatables/ajax/templates` used to rehydrate the rows posted by the browser with an unscoped
-`findBy()` on their identifiers, so any authenticated user could obtain the rendered
-`TemplateColumn` output, action URLs and link targets of every entity of the class. The route now
-rehydrates each row through the resource's API Platform `Get` operation, which applies the same
-state provider, Doctrine item extensions and `security` expression as `GET /resource/{id}`.
-Rows carrying only `id` first generate an IRI for that operation, so API Platform applies its URI
-variable transformers before calling the state provider.
+A table that combines API Platform with a `TemplateColumn`, an action column or a `UrlColumn` used
+to fetch the collection from the browser and then post the rows back to
+`POST /datatables/ajax/templates` to have them rendered, one item provider call per row. It is now
+an ordinary server-side table: the bundle reads the collection itself, through API Platform's main
+state provider, once per draw. Tables without such a column keep querying the API directly from the
+browser, unchanged.
 
 | Behavior | Before | After |
 | --- | --- | --- |
-| Row rehydration | Unscoped Doctrine `findBy()` on the posted identifiers | API Platform `Get` item provider, including its `security` expression |
-| Row API Platform does not serve | Templates rendered against the client-supplied array | Returned exactly as posted, unrendered |
-| Number of posted rows | Unbounded | Capped at `data_tables.max_page_length`, beyond which the route returns 400 |
+| Requests per draw | One collection request, then one `/datatables/ajax/templates` POST | One request to `ux_datatables_ajax_data` |
+| Row loading | One API Platform `Get` item provider call per row | One collection provider call per page |
+| Column values | Normalized JSON from the API response | Read from the entity, as for a Doctrine table |
+| Exports | Doctrine query builder | The API Platform collection operation, with its provider, filters and `security` |
+| Authorization | `security` on the `Get` item operation | `security` on the collection operation |
 
-A resource without a `Get` operation, or an application without API Platform, resolves no row at
-all: every row comes back unrendered instead of being loaded unscoped. Declare a `Get` operation on
-the resource to keep template columns, detail actions and URL columns rendering.
+Consequences to check before upgrading:
+
+- Move the authorization of these tables onto the collection operation. The `Get` operation is no
+  longer consulted, and `access_control` rules matching the API path are not evaluated — the rows
+  are read through a service call, not an HTTP request. Protect `/datatables/ajax/*` with your own
+  `access_control` rule, as for any server-side table.
+- Custom normalizers and property-level `security` no longer shape cell values. Declare columns only
+  on properties every reader of the table may see.
+- `recordsTotal` still equals `recordsFiltered`, as before.
+- `DT_RowId` is now emitted by the server-side `RowIdStage` instead of the TypeScript adapter. The
+  output is identical.
 
 | Removed | Replacement |
 | --- | --- |
-| `Ajax\RowIdentifierExtractor` | none, the item resolver reads `@id`/`id` itself |
-
-| Changed | New signature |
-| --- | --- |
-| `Ajax\SourceRowResolver::__construct()` | `?ApiPlatform\ApiPlatformItemResolver $itemResolver = null` replaces `RowIdentifierExtractor` and `ManagerRegistry` |
-| `Controller\AjaxTemplateRenderController::__construct()` | an `int $maxRows` is appended after `$sourceRowResolver` |
+| Route `ux_datatables_ajax_templates` (`/datatables/ajax/templates`) | none, the rows are rendered during the data request |
+| `Controller\AjaxTemplateRenderController` | none |
+| `Ajax\SourceRowResolver` | none |
+| `Ajax\RowIdentifierExtractor` | none |
+| `ApiPlatform\ApiPlatformItemResolver` | `DataProvider\ApiPlatformCollectionProvider`, which reads the collection |
+| `Model\DataTable::apiPlatformTemplateRendering()` | `Model\DataTable::apiPlatformServerSide()`, set by the bundle |
+| Services `datatables.ajax.source_row_resolver`, `datatables.controller.ajax_templates` | none |
 
 ### `entity` Twig variable removed from `TemplateColumn` templates
 

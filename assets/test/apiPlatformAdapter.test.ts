@@ -1,4 +1,8 @@
-import {ApiPlatformAdapter, resolveColumnDataKey} from '../src/functions/apiPlatformAdapter';
+import {
+    ApiPlatformAdapter,
+    isApiPlatformAdapterEnabled,
+    resolveColumnDataKey,
+} from '../src/functions/apiPlatformAdapter';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 
 describe('resolveColumnDataKey', () => {
@@ -238,69 +242,14 @@ describe('ApiPlatformAdapter', () => {
             expect(response.data).toEqual([{id: 1, avatar: null}, {id: 2}]);
         });
 
-        it('fetches API Platform data then renders template columns through the backend', async () => {
-            const fetchMock = vi.fn()
-                .mockResolvedValueOnce(new Response(JSON.stringify({
-                    'hydra:member': [{id: 1, avatar: 'https://example.test/avatar.png'}],
-                    'hydra:totalItems': 1,
-                })))
-                .mockResolvedValueOnce(new Response(JSON.stringify({
-                    data: [{id: 1, avatar: '<img src="https://example.test/avatar.png" alt="">'}],
-                })));
-
-            vi.stubGlobal('fetch', fetchMock);
-
-            const payload: Record<string, any> = {
-                apiPlatformTemplateRendering: {
-                    table: 'signed-token',
-                    url: '/datatables/ajax/templates',
-                },
-                columns: [
-                    {name: 'avatar', data: 'avatar', field: 'avatar'},
-                    {name: 'email', data: 'email', field: 'email'},
-                ],
-                serverSide: false,
-                ajax: {
-                    type: 'GET',
-                    url: '/api/users',
-                },
-            };
-
-            new ApiPlatformAdapter(payload.columns).configure(payload);
-
-            const response = await new Promise((resolve) => {
-                payload.ajax({
-                    draw: 6,
-                    start: 0,
-                    length: 25,
-                    order: [{column: 1, dir: 'asc'}],
-                    columns: [
-                        {name: 'avatar', search: {value: ''}},
-                        {name: 'email', search: {value: 'user@example.com'}},
-                    ],
-                }, resolve);
-            });
-
-            expect(response).toEqual({
-                draw: 6,
-                recordsTotal: 1,
-                recordsFiltered: 1,
-                data: [{id: 1, avatar: '<img src="https://example.test/avatar.png" alt="">'}],
-            });
-            expect(fetchMock).toHaveBeenCalledTimes(2);
-            expect(fetchMock.mock.calls[0][0]).toContain('/api/users?');
-            expect(fetchMock.mock.calls[0][0]).toContain('itemsPerPage=25');
-            expect(fetchMock.mock.calls[0][0]).toContain('order%5Bemail%5D=asc');
-            expect(fetchMock.mock.calls[0][0]).toContain('email=user%40example.com');
-            expect(fetchMock.mock.calls[1][0]).toBe('/datatables/ajax/templates');
-            expect(fetchMock.mock.calls[1][1]).toMatchObject({
-                body: JSON.stringify({
-                    table: 'signed-token',
-                    rows: [{id: 1, avatar: 'https://example.test/avatar.png'}],
-                }),
-                credentials: 'same-origin',
-                method: 'POST',
-            });
+        it('stands down when the collection is read server-side', () => {
+            expect(isApiPlatformAdapterEnabled({apiPlatform: true})).toBe(true);
+            expect(
+                isApiPlatformAdapterEnabled({apiPlatform: true, apiPlatformServerSide: true}),
+            ).toBe(false);
+            expect(isApiPlatformAdapterEnabled({apiPlatformServerSide: true})).toBe(false);
+            expect(isApiPlatformAdapterEnabled({})).toBe(false);
         });
+
     });
 });

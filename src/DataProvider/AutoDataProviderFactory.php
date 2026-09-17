@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\DataProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
@@ -15,12 +16,14 @@ final class AutoDataProviderFactory
 {
     public function __construct(
         private ?EntityManagerInterface $em = null,
+        private ?ApiPlatformCollectionProviderFactory $apiPlatformProviderFactory = null,
     ) {
     }
 
     /**
      * @param callable(QueryBuilder, DataTableRequest):QueryBuilder      $configureQueryBuilder
      * @param callable(QueryBuilder, DataTableRequest):QueryBuilder|null $configureBaseQueryBuilder
+     * @param list<ColumnInterface>                                      $columns
      */
     public function create(
         ?AsDataTable $asDataTable,
@@ -29,9 +32,22 @@ final class AutoDataProviderFactory
         ?RowMapperInterface $exportRowMapper = null,
         ?\Closure $pageProjector = null,
         ?callable $configureBaseQueryBuilder = null,
+        bool $apiPlatform = false,
+        array $columns = [],
+        ?string $dataTableClass = null,
     ): ?DataProviderInterface {
         if (null === $asDataTable) {
             return null;
+        }
+
+        if ($apiPlatform && null !== $this->apiPlatformProviderFactory) {
+            return $this->apiPlatformProviderFactory->create(
+                entityClass: $asDataTable->entityClass,
+                columns: $columns,
+                rowMapper: $rowMapper,
+                exportRowMapper: $exportRowMapper,
+                dataTableClass: $dataTableClass,
+            );
         }
 
         if (null === $this->em) {
