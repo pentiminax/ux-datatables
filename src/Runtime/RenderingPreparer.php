@@ -268,41 +268,81 @@ final class RenderingPreparer
             return null;
         }
 
-        $explicitConfig = $this->createExplicitMercureConfig($asDataTable);
-        if (null !== $explicitConfig) {
-            return $explicitConfig;
+        if (\is_array($asDataTable->mercure)) {
+            return $this->createExplicitMercureConfig($asDataTable->mercure, $asDataTable->entityClass);
         }
 
         return $this->mercureResolver?->resolveMercureConfig($asDataTable->entityClass);
     }
 
-    private function createExplicitMercureConfig(AsDataTable $asDataTable): ?MercureConfig
+    /**
+     * Build the config declared on the attribute.
+     *
+     * Without a `topics` key the array only carries subscription options, so topics come from the
+     * auto-resolver and the declared options are applied on top of it.
+     *
+     * @param array<string, mixed> $mercure
+     */
+    private function createExplicitMercureConfig(array $mercure, string $entityClass): ?MercureConfig
     {
-        if (!\is_array($asDataTable->mercure)) {
-            return null;
+        $this->assertKnownMercureOptions($mercure, $entityClass);
+
+        $debounceMs = $mercure['debounceMs'] ?? null;
+        if (null !== $debounceMs && !\is_int($debounceMs)) {
+            throw new \InvalidArgumentException(\sprintf('The mercure "debounceMs" option declared on #[AsDataTable] for "%s" must be an integer or null.', $entityClass));
         }
 
-        $topics = $asDataTable->mercure['topics'] ?? [];
+        $withCredentials = $mercure['withCredentials'] ?? null;
+        if (null !== $withCredentials && !\is_bool($withCredentials)) {
+            throw new \InvalidArgumentException(\sprintf('The mercure "withCredentials" option declared on #[AsDataTable] for "%s" must be a boolean.', $entityClass));
+        }
+
+        if (!\array_key_exists('topics', $mercure)) {
+            $resolved = $this->mercureResolver?->resolveMercureConfig($entityClass);
+
+            if (null === $resolved) {
+                return null;
+            }
+
+            return new MercureConfig(
+                topics: $resolved->topics,
+                withCredentials: $withCredentials ?? $resolved->withCredentials,
+                debounceMs: $debounceMs,
+                hubUrl: $resolved->hubUrl,
+                protocolVersion: $resolved->protocolVersion,
+            );
+        }
+
+        $topics = $mercure['topics'];
         if (\is_string($topics)) {
             $topics = [$topics];
         }
 
         if (!\is_array($topics)) {
-            throw new \InvalidArgumentException('AsDataTable mercure topics must be a string or an array of strings.');
-        }
-
-        $debounceMs = $asDataTable->mercure['debounceMs'] ?? null;
-        if (null !== $debounceMs && !\is_int($debounceMs)) {
-            throw new \InvalidArgumentException('AsDataTable mercure debounceMs must be an integer or null.');
+            throw new \InvalidArgumentException(\sprintf('The mercure "topics" option declared on #[AsDataTable] for "%s" must be a string or an array of strings.', $entityClass));
         }
 
         return (new MercureConfig(
             topics: $topics,
-            withCredentials: true === ($asDataTable->mercure['withCredentials'] ?? false),
+            withCredentials: $withCredentials ?? false,
             debounceMs: $debounceMs,
         ))
             ->withHubUrl($this->resolveHubUrlOrThrow())
             ->withProtocolVersion($this->resolveProtocolVersion());
+    }
+
+    /**
+     * @param array<string, mixed> $mercure
+     */
+    private function assertKnownMercureOptions(array $mercure, string $entityClass): void
+    {
+        $unknown = array_diff(array_keys($mercure), ['topics', 'withCredentials', 'debounceMs']);
+
+        if ([] === $unknown) {
+            return;
+        }
+
+        throw new \InvalidArgumentException(\sprintf('Unknown mercure option(s) "%s" declared on #[AsDataTable] for "%s". Supported options are "topics", "withCredentials" and "debounceMs".', implode('", "', $unknown), $entityClass));
     }
 
     private function resolveHubUrlOrThrow(): string
@@ -327,13 +367,18 @@ final class RenderingPreparer
             return;
         }
 
-        if (null === $table->getEditModalAdapter() && '' !== trim($asDataTable->editModalAdapter)) {
+        if (null === $table->getEditModalAdapter() && $this->hasOverride($asDataTable->editModalAdapter)) {
             $table->editModalAdapter($asDataTable->editModalAdapter);
         }
 
-        if (null === $table->getEditModalTemplate() && '' !== trim($asDataTable->editModalTemplate)) {
+        if (null === $table->getEditModalTemplate() && $this->hasOverride($asDataTable->editModalTemplate)) {
             $table->editModalTemplate($asDataTable->editModalTemplate);
         }
+    }
+
+    private function hasOverride(?string $value): bool
+    {
+        return null !== $value && '' !== trim($value);
     }
 
     private function translateColumnTitles(DataTable $table): void

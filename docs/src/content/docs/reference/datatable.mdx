@@ -56,7 +56,7 @@ new DataTable(
       'Sync selected DataTables state keys to the page URL query string',
     ],
     ['`serverSide(bool $serverSide = true)`', 'Enable server-side processing mode'],
-    ['`apiPlatform(bool $enabled = true)`', 'Enable API Platform adapter behavior'],
+    ['`apiPlatform(bool $enabled = true)`', 'Opt-in to API Platform integration: column auto-detection and collection URL resolution'],
     [
       '`mercure(array $topics = [], bool $withCredentials = false, ?int $debounceMs = null)`',
       'Enable Mercure live updates with one or many topics',
@@ -109,7 +109,7 @@ new DataTable(
   headers={['Method', 'Description']}
   rows={[
     ['`editModalTemplate(string $template)`', 'Twig template used for the inline edit modal'],
-    ['`editModalAdapter(string $adapter)`', 'Modal adapter name (`bootstrap`, `custom`, …)'],
+    ['`editModalAdapter(string $adapter)`', 'Modal adapter name (`dt`, `bs`, `bs4`, `bs5`, or a name registered with `modalAdapters.register()`)'],
   ]}
 />
 

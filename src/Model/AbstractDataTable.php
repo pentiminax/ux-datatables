@@ -51,11 +51,6 @@ use Symfony\Component\HttpFoundation\Request;
  */
 abstract class AbstractDataTable
 {
-    /**
-     * @var array<class-string, AsDataTable|null>
-     */
-    private static array $attributeCache = [];
-
     protected DataTable $table;
 
     /**
@@ -234,7 +229,13 @@ abstract class AbstractDataTable
             }
         }
 
-        return $this->infrastructure()->columnResolver->resolveColumns($this->asDataTable ?? $this->resolveAsDataTable());
+        // The fluent `->apiPlatform()` opt-in counts here too, now that configureDataTable() has run.
+        $apiPlatform = isset($this->table) && true === $this->table->getOption('apiPlatform');
+
+        return $this->infrastructure()->columnResolver->resolveColumns(
+            $this->asDataTable ?? $this->resolveAsDataTable(),
+            $apiPlatform,
+        );
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -473,15 +474,7 @@ abstract class AbstractDataTable
 
     private function resolveAsDataTable(): ?AsDataTable
     {
-        $class = static::class;
-
-        if (\array_key_exists($class, self::$attributeCache)) {
-            return self::$attributeCache[$class];
-        }
-
-        $attributes = (new \ReflectionClass($class))->getAttributes(AsDataTable::class);
-
-        return self::$attributeCache[$class] = [] === $attributes ? null : $attributes[0]->newInstance();
+        return $this->infrastructure()->asDataTableResolver->resolve(static::class);
     }
 
     private function runtime(): DataTableRuntime

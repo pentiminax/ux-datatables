@@ -486,17 +486,17 @@ whose resource is private starts sending credentials, and a resource that does n
 (or sets `private: false`) serializes the exact payload it did before.
 
 An explicit `withCredentials` still wins, on both `#[AsDataTable(..., mercure: [...])]` and
-`->mercure()`: those paths never reach auto-resolution. Both also take over topic resolution, so
-opting out means declaring the topics too — `mercure: ['withCredentials' => false]` without
-`topics` throws *Mercure topics cannot be empty.*, and `->mercure(withCredentials: false)` alone
-subscribes to the bundle's internal fallback topic instead of the API Platform one:
+`->mercure()`. On the attribute, an array without a `topics` key auto-resolves the topics and only
+overrides the subscription options — the previous release required spelling the topics out, and
+threw *Mercure topics cannot be empty.* without them:
 
 ```php
-#[AsDataTable(Book::class, mercure: [
-    'topics'          => ['https://example.com/api/books/{id}'],
-    'withCredentials' => false,
-])]
+#[AsDataTable(Book::class, mercure: ['withCredentials' => false])]
 ```
+
+`->mercure(withCredentials: false)` is manual configuration: it never reaches auto-resolution, so it
+subscribes to the bundle's internal fallback topic instead of the API Platform one unless the topics
+are passed with it.
 
 The table then stops refreshing on private updates, which is what that setting asks for.
 
@@ -506,6 +506,49 @@ symfony/mercure-bundle's job, and its grant must cover the concrete published to
 1.0 `match_type` defaults to `exact`, so a 0.x grant holding `/api/books/{id}` does not cover
 `/api/books/42`. On a 1.0 hub the cookie is `__Secure-mercure_access_token`, so the hub URL must be
 HTTPS.
+
+### `#[AsDataTable]` attribute finalized ahead of 1.0
+
+Nothing to do for a table that already declares its attribute with a well-formed entity class and an
+explicit `topics` list. The changes below all turn a later, less legible failure into an immediate
+one, or make two switches behave the same.
+
+| Behavior | Before | After |
+| --- | --- | --- |
+| `editModalTemplate` / `editModalAdapter` default | `''` (the "unset" sentinel) | `null` |
+| `entityClass` typo, or an interface | Failed later, inside Doctrine metadata or API Platform | `InvalidArgumentException` where the attribute is read |
+| `mercure` array without `topics` | `InvalidArgumentException: Mercure topics cannot be empty.` | Topics come from the auto-resolver, the declared options are applied on top |
+| Unknown or wrongly typed `mercure` option | The same empty-topics exception | `InvalidArgumentException` naming the option, the attribute and the entity class |
+| `$table->apiPlatform()` | Enabled the Ajax wiring and the frontend adapter, but not column auto-detection | Equivalent to `apiPlatform: true` on the attribute |
+
+The two `editModal*` arguments stay backward compatible in practice: an empty string still means
+"no override", so existing values keep working and only the declared default changes.
+
+```php
+// before: auto topics could not be combined with a custom debounce
+#[AsDataTable(Book::class, mercure: ['debounceMs' => 250])] // Mercure topics cannot be empty.
+
+// after
+#[AsDataTable(Book::class, mercure: ['debounceMs' => 250])] // auto topics + 250 ms debounce
+```
+
+`serializationGroups` is documented as requiring the API Platform opt-in, and the attribute is
+documented as not inherited: `#[AsDataTable]` on an abstract base class gives its subclasses no
+attribute at all, so every concrete table class needs its own.
+
+One collaborator was added, and two signatures grew a trailing argument. The bundle wires all three,
+so only hand-instantiated code is affected:
+
+| Changed | Appended argument |
+| --- | --- |
+| `Runtime\DataTableInfrastructure::__construct()` | `AsDataTableResolver` |
+| `Runtime\DataTableInfrastructure::createDefault()` | `?AsDataTableResolver` |
+| `Form\EditModalTemplateResolver::__construct()` | `AsDataTableResolver` |
+| `Column\ColumnResolver::resolveColumns()` / `::autoDetectColumns()` | `bool $apiPlatform = false`, the table's fluent opt-in |
+
+`Attribute\AsDataTableResolver` is the new single reflection entry point for the attribute
+(`datatables.attribute.resolver`); `AbstractDataTable` and `EditModalTemplateResolver` both resolve
+through it instead of keeping a private static cache each.
 
 ## v0.84 → v0.85
 
