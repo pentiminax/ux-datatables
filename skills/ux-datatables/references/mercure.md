@@ -24,6 +24,17 @@ When auto-resolution is enabled (`mercure: true`, no explicit topics): the bundl
 
 `topics` accepts one or many topics — use several when a table must refresh after changes on more than one resource/channel.
 
+**With API Platform, the topics line up only because both sides derive the same URL.** API Platform publishes to the item IRI computed at `UrlGeneratorInterface::ABS_URL` — that is what `mercure: true`, an omitted `topics` key, and `'topics' => ['@=iri(object)']` all resolve to (`PublishMercureUpdatesListener::publishUpdate()`). The bundle, for its part, subscribes to the *relative* item route path read from the resource metadata (`/api/books/{id}`), and the hub resolves a relative topic against its own URL. The two overlap only when the hub and the API share a host — the usual `/.well-known/mercure` on the same domain. With the hub on another host or subdomain nothing ever matches and the table silently stops refreshing; declare the topic explicitly in the absolute form API Platform publishes:
+
+```php
+#[AsDataTable(
+    entityClass: Book::class,
+    mercure: ['topics' => ['https://api.example.com/api/books/{id}']],
+)]
+```
+
+Three more API Platform specifics: `@=` expression topics are skipped by the resolver (only plain string topics are reused verbatim, so `@=iri(object.getOwner())` silently falls back to the item route path), `private: true` is not mapped to `withCredentials` — set it yourself, and the subscriber cookie comes from symfony/mercure-bundle (`Authorization`, the `mercure()` Twig function), not from this bundle — and `@=` needs `symfony/expression-language` installed on the app side or API Platform throws when it publishes.
+
 ## What it does client-side
 
 The Stimulus controller listens to the configured topics and, on each SSE message, dispatches `datatables:mercure:message` and calls `table.ajax.reload(null, false)` (debounced). The connection closes on controller `disconnect()`.
