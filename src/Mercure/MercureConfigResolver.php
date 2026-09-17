@@ -27,10 +27,7 @@ class MercureConfigResolver
             $topics = [$this->buildFallbackTopic($entityClass)];
         }
 
-        // API Platform publishes a `private` update only to a subscriber whose token grants one of
-        // the update's topics, so a resource marked private has to open its EventSource with
-        // credentials. An explicit `withCredentials` never reaches this resolver: the manual
-        // `->mercure()` and `#[AsDataTable(mercure: [...])]` paths are resolved before it.
+        // Auto-resolution only: an explicit `withCredentials` is resolved before this resolver.
         $withCredentials = $this->apiResourceMercureMetadataResolver?->resolvePrivate($entityClass) ?? false;
 
         return new MercureConfig(

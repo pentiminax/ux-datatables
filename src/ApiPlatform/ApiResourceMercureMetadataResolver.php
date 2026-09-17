@@ -61,12 +61,7 @@ class ApiResourceMercureMetadataResolver
     }
 
     /**
-     * Whether API Platform marks this resource private, resolved in the same resource-then-operation
-     * order as the topics: a resource-level `private` wins, otherwise the first operation that
-     * declares it does.
-     *
-     * A hub only delivers a private update to a subscriber whose token grants one of the update's
-     * topics (Mercure spec, "Subscribers"), so the EventSource has to send credentials.
+     * Whether API Platform marks this resource private, resource level first then operations.
      */
     public function resolvePrivate(string $entityClass): bool
     {
