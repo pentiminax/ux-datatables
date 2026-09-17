@@ -86,7 +86,7 @@ describe('createMercureSubscription', () => {
     const url = new URL(instances[0].url)
 
     expect(url.searchParams.getAll('topic')).toEqual([])
-    expect(url.searchParams.getAll('match_urlpattern')).toEqual(['/api/books/:id'])
+    expect(url.searchParams.getAll('match_urlpattern')).toEqual(['/api/books/:p0'])
     expect(url.searchParams.getAll('match')).toEqual(['/api/authors/42'])
   })
 
@@ -102,7 +102,7 @@ describe('createMercureSubscription', () => {
       vi.fn()
     )
 
-    expect(new URL(instances[0].url).searchParams.getAll('match_urlpattern')).toEqual(['/api/books/:id'])
+    expect(new URL(instances[0].url).searchParams.getAll('match_urlpattern')).toEqual(['/api/books/:p0'])
   })
 
   it('falls back to an exact matcher for templates a URL Pattern cannot express', () => {
@@ -156,20 +156,43 @@ describe('createMercureSubscription', () => {
 })
 
 describe('toUrlPattern', () => {
-  it('rewrites named placeholders into URL Pattern groups', () => {
-    expect(toUrlPattern('/api/books/{id}')).toBe('/api/books/:id')
-    expect(toUrlPattern('/api/books/{book_id}/authors/{authorId}')).toBe('/api/books/:book_id/authors/:authorId')
+  it('rewrites simple variable expressions into URL Pattern groups', () => {
+    expect(toUrlPattern('/api/books/{id}')).toBe('/api/books/:p0')
+    expect(toUrlPattern('/api/books/{book_id}/authors/{authorId}')).toBe('/api/books/:p0/authors/:p1')
+  })
+
+  it('handles variable names a URL Pattern group name cannot express', () => {
+    // RFC 6570: varname = varchar *( ["."] varchar ), varchar = ALPHA / DIGIT / "_" / pct-encoded,
+    // so dotted and digit-leading names are valid — `:book.id` is not a group name and `:1` throws.
+    expect(toUrlPattern('/api/books/{book.id}')).toBe('/api/books/:p0')
+    expect(toUrlPattern('/api/books/{1}')).toBe('/api/books/:p0')
+    expect(toUrlPattern('/api/books/{a.b.c}')).toBe('/api/books/:p0')
+  })
+
+  it('gives a repeated variable its own group name', () => {
+    // URL Patterns reject a duplicate group name, so the second `{id}` cannot reuse `p0`.
+    expect(toUrlPattern('/api/books/{id}/authors/{id}')).toBe('/api/books/:p0/authors/:p1')
+  })
+
+  it('accepts a variable list and the level-4 modifiers', () => {
+    expect(toUrlPattern('/api/books/{id,authorId}')).toBe('/api/books/:p0')
+    expect(toUrlPattern('/api/books/{id:3}')).toBe('/api/books/:p0')
+    expect(toUrlPattern('/api/books/{ids*}')).toBe('/api/books/:p0')
   })
 
   it('returns null when the topic is not a template', () => {
     expect(toUrlPattern('/api/books/42')).toBeNull()
     expect(toUrlPattern('https://example.com/books')).toBeNull()
+    expect(toUrlPattern('/api/books/%7Bid%7D')).toBeNull()
   })
 
-  it('returns null when a placeholder uses an RFC 6570 operator', () => {
+  it('returns null when an expression uses an RFC 6570 operator', () => {
     expect(toUrlPattern('/api/books{?page}')).toBeNull()
     expect(toUrlPattern('/api/books/{+path}')).toBeNull()
+    expect(toUrlPattern('/api/books/{/segments}')).toBeNull()
     expect(toUrlPattern('/api/books/{id}{?page}')).toBeNull()
+    expect(toUrlPattern('/api/books/{id,}')).toBeNull()
+    expect(toUrlPattern('/api/books/{}')).toBeNull()
   })
 })
 

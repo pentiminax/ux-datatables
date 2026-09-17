@@ -386,7 +386,7 @@ The browser now selects topics with the query parameter the configured hub expec
 | Hub | Subscription parameters |
 | --- | --- |
 | 0.x | `topic=` with URI Template selectors — unchanged |
-| 1.0 | `match=` (exact) and `match_urlpattern=` (URL Pattern, `/books/{id}` becomes `/books/:id`) |
+| 1.0 | `match=` (exact) and `match_urlpattern=` (URL Pattern, `/books/{id}` becomes `/books/:p0`) |
 
 Nothing changes for a 0.x hub, down to the serialized payload: `protocolVersion` is only added to the
 frontend `mercure` object when it is not `0.x`. A hub whose protocol version cannot be read (an older

@@ -31,7 +31,7 @@ The Stimulus controller listens to the configured topics and, on each SSE messag
 The subscription dialect follows the hub's protocol version, read server-side from `HubInterface::getProtocolVersion()` (symfony/mercure 0.8+) and serialized as `protocolVersion` only when it is not `0.x`:
 
 - 0.x hub — one `topic=` query parameter per topic, with URI Template selectors.
-- 1.0 hub — `match_urlpattern=` with `/books/{id}` rewritten to `/books/:id` for a templated topic, `match=<topic>` for a plain one, and `match=` on the literal value for a topic using an RFC 6570 operator (`{?page}`), which has no URL Pattern equivalent.
+- 1.0 hub — `match_urlpattern=` with `/books/{id}` rewritten to `/books/:p0` for a templated topic (the group name is generated: RFC 6570 variable names are not all valid URL Pattern group names — `:book.id` is not a group, `:1` throws — and a repeated variable would collide), `match=<topic>` for a plain one, and `match=` on the literal value for a topic using an RFC 6570 operator (`{?page}`), which has no URL Pattern equivalent.
 - No reported version (older symfony/mercure) — legacy `topic=` parameters.
 
 - Only reloads server-side tables — a table configured with static `data` will not auto-refresh from SSE.
