@@ -81,9 +81,12 @@ final class BookDataTable extends AbstractDataTable
 When auto-resolution is enabled:
 
 - the bundle reads the default Symfony Mercure hub URL
-- explicit API Platform `mercure.topics` are reused when available
-- otherwise the bundle falls back to an item IRI template (for example `/api/books/{id}`)
-- if no API Platform item metadata is available, it falls back to `/datatables/books/{id}`
+- explicit API Platform `mercure.topics` are reused verbatim when available
+- `@=iri(object)` is resolved to the item IRI; any other `@=` expression topic is dropped with a logged warning
+- otherwise the bundle builds the item IRI template **absolutely**, from the same routing request context (scheme, host, port, base path) as `UrlGeneratorInterface::ABS_URL` — for example `https://api.example.com/api/books/{id}`
+- if no API Platform item metadata is available, it falls back to `/datatables/books/{id}`, absolute as well when a routing context exists
+
+The absolute form is what makes the subscription match what API Platform publishes: a relative topic is resolved by the hub against its own URL, so it only ever matched while the hub shared the API's host. An operation whose route template carries a variable is preferred over one that does not, so a resource declaring its own operations cannot degrade the topic to a collection path. Without a routing context (a CLI command, a kernel without the router) the topic stays relative. Declaring the topic explicitly in the absolute form API Platform publishes remains the escape hatch for a topic of your own.
 
 ## Attribute Topics
 

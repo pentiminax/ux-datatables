@@ -11,6 +11,7 @@ class MercureConfigResolver
     public function __construct(
         private readonly MercureHubUrlResolver $hubUrlResolver,
         private readonly ?ApiResourceMercureMetadataResolver $apiResourceMercureMetadataResolver = null,
+        private readonly ?MercureTopicUrlResolver $topicUrlResolver = null,
     ) {
     }
 
@@ -24,7 +25,7 @@ class MercureConfigResolver
         $topics = $this->apiResourceMercureMetadataResolver?->resolveTopics($entityClass) ?? [];
 
         if ([] === $topics) {
-            $topics = [$this->buildFallbackTopic($entityClass)];
+            $topics = [$this->absoluteTopic($this->buildFallbackTopic($entityClass))];
         }
 
         return new MercureConfig(
@@ -32,6 +33,16 @@ class MercureConfigResolver
             hubUrl: $hubUrl,
             protocolVersion: $this->hubUrlResolver->resolveProtocolVersion(),
         );
+    }
+
+    /**
+     * The fallback topic is the one the bundle itself publishes mutations to, so it has to be
+     * absolute as well: the hub would otherwise resolve the relative subscription pattern against
+     * its own URL and never match the topic that was published.
+     */
+    private function absoluteTopic(string $path): string
+    {
+        return $this->topicUrlResolver?->absoluteUrl($path) ?? $path;
     }
 
     private function buildFallbackTopic(string $entityClass): string

@@ -4,17 +4,43 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\ApiPlatform;
 
+use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\CollectionOperationInterface;
 use ApiPlatform\Metadata\HttpOperation;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicUrlResolver;
+use Psr\Log\LoggerInterface;
 
+/**
+ * Resolves the Mercure topics API Platform itself publishes for a resource.
+ *
+ * API Platform publishes the item IRI at UrlGeneratorInterface::ABS_URL, so the auto-resolved item
+ * topic is that same absolute IRI template — built through MercureTopicUrlResolver, which shares the
+ * routing context with the generator. A relative topic would be resolved by the hub against its own
+ * URL and only match while the hub shares the application's origin.
+ *
+ * Declared plain topics are reused verbatim, which keeps a topic declared in the absolute form API
+ * Platform publishes working as the explicit escape hatch. `@=iri(object)` is the one expression the
+ * bundle resolves on its own; every other expression topic is dropped with a warning that names it,
+ * instead of being silently replaced by the item route path.
+ */
 class ApiResourceMercureMetadataResolver
 {
+    /**
+     * The only API Platform expression this bundle resolves without the object graph.
+     */
+    private const ITEM_IRI_EXPRESSION = '@=iri(object)';
+
     public function __construct(
         private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataFactory,
+        private readonly ?MercureTopicUrlResolver $topicUrlResolver = null,
+        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 
+    /**
+     * @return string[]
+     */
     public function resolveTopics(string $entityClass): array
     {
         try {
@@ -24,36 +50,22 @@ class ApiResourceMercureMetadataResolver
         }
 
         foreach ($collection as $resource) {
-            $resourceTopics = $this->normalizeTopics($resource->getMercure());
+            $itemPath = $this->resolveItemPath($resource, $resource->getRoutePrefix() ?? '/api');
+
+            $resourceTopics = $this->resolveDeclaredTopics($resource->getMercure(), $entityClass, $itemPath);
             if ([] !== $resourceTopics) {
                 return $resourceTopics;
             }
 
-            $resourceRoutePrefix = $resource->getRoutePrefix() ?? '/api';
-
             foreach ($resource->getOperations() ?? [] as $operation) {
-                $operationTopics = $this->normalizeTopics($operation->getMercure());
+                $operationTopics = $this->resolveDeclaredTopics($operation->getMercure(), $entityClass, $itemPath);
                 if ([] !== $operationTopics) {
                     return $operationTopics;
                 }
+            }
 
-                if (!$operation instanceof HttpOperation || $operation instanceof CollectionOperationInterface) {
-                    continue;
-                }
-
-                $uriTemplate = $operation->getUriTemplate();
-                if (null === $uriTemplate || '' === $uriTemplate) {
-                    continue;
-                }
-
-                $routePrefix = $operation->getRoutePrefix() ?? $resourceRoutePrefix;
-                $path        = $this->normalizePath($this->buildPath($routePrefix, $uriTemplate));
-
-                if ('' === $path) {
-                    continue;
-                }
-
-                return [$path];
+            if (null !== $itemPath) {
+                return [$this->absoluteUrl($itemPath)];
             }
         }
 
@@ -61,16 +73,88 @@ class ApiResourceMercureMetadataResolver
     }
 
     /**
+     * The route path of the item operation API Platform publishes an IRI for.
+     *
+     * A template carrying a variable wins over one that does not, so a resource declaring its own
+     * operations cannot degrade the auto-resolved topic to a collection-shaped path by putting one
+     * first. The first template without a variable is kept as a last resort.
+     */
+    private function resolveItemPath(ApiResource $resource, string $resourceRoutePrefix): ?string
+    {
+        $fallback = null;
+
+        foreach ($resource->getOperations() ?? [] as $operation) {
+            if (!$operation instanceof HttpOperation || $operation instanceof CollectionOperationInterface) {
+                continue;
+            }
+
+            $uriTemplate = $operation->getUriTemplate();
+            if (null === $uriTemplate || '' === $uriTemplate) {
+                continue;
+            }
+
+            $routePrefix = $operation->getRoutePrefix() ?? $resourceRoutePrefix;
+            $path        = $this->normalizePath($this->buildPath($routePrefix, $uriTemplate));
+
+            if ('' === $path) {
+                continue;
+            }
+
+            if (preg_match('/\{[^}]+}/', $path)) {
+                return $path;
+            }
+
+            $fallback ??= $path;
+        }
+
+        return $fallback;
+    }
+
+    /**
      * @return string[]
      */
-    private function normalizeTopics(mixed $mercure): array
+    private function resolveDeclaredTopics(mixed $mercure, string $entityClass, ?string $itemPath): array
+    {
+        $resolvedTopics = [];
+
+        foreach ($this->extractTopics($mercure) as $topic) {
+            if (!\is_string($topic) || '' === $topic) {
+                continue;
+            }
+
+            if (!str_starts_with($topic, '@=')) {
+                $resolvedTopics[] = $topic;
+
+                continue;
+            }
+
+            if (self::ITEM_IRI_EXPRESSION === trim($topic)) {
+                if (null !== $itemPath) {
+                    $resolvedTopics[] = $this->absoluteUrl($itemPath);
+                } else {
+                    $this->logger?->warning(\sprintf('Cannot resolve "%s" for "%s": no item operation was found.', $topic, $entityClass));
+                }
+
+                continue;
+            }
+
+            $this->logger?->warning(\sprintf('Dropped the Mercure expression topic "%s" of "%s": only "@=iri(object)" can be resolved without the object graph.', $topic, $entityClass));
+        }
+
+        return array_values(array_unique($resolvedTopics));
+    }
+
+    /**
+     * @return list<mixed>
+     */
+    private function extractTopics(mixed $mercure): array
     {
         if (null === $mercure || false === $mercure || true === $mercure) {
             return [];
         }
 
         if (\is_string($mercure)) {
-            return $this->filterTopics([$mercure]);
+            return [$mercure];
         }
 
         if (!\is_array($mercure)) {
@@ -80,38 +164,19 @@ class ApiResourceMercureMetadataResolver
         $topics = $mercure['topics'] ?? [];
 
         if (\is_string($topics)) {
-            return $this->filterTopics([$topics]);
+            return [$topics];
         }
 
         if (!\is_array($topics)) {
             return [];
         }
 
-        return $this->filterTopics($topics);
+        return array_values($topics);
     }
 
-    /**
-     * @param list<mixed> $topics
-     *
-     * @return string[]
-     */
-    private function filterTopics(array $topics): array
+    private function absoluteUrl(string $path): string
     {
-        $resolvedTopics = [];
-
-        foreach ($topics as $topic) {
-            if (!\is_string($topic)) {
-                continue;
-            }
-
-            if (str_starts_with($topic, '@=')) {
-                continue;
-            }
-
-            $resolvedTopics[] = $topic;
-        }
-
-        return array_values(array_unique($resolvedTopics));
+        return $this->topicUrlResolver?->absoluteUrl($path) ?? $path;
     }
 
     private function buildPath(?string $routePrefix, string $uriTemplate): string

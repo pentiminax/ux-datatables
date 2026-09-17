@@ -20,11 +20,11 @@ public function configureDataTable(DataTable $table): DataTable
 #[AsDataTable(User::class, mercure: ['topics' => ['/users'], 'debounceMs' => 300])]
 ```
 
-When auto-resolution is enabled (`mercure: true`, no explicit topics): the bundle reads the default Symfony Mercure hub URL, reuses explicit API Platform `mercure.topics` when available, otherwise falls back to an item IRI template (`/api/books/{id}`), and falls back to `/datatables/books/{id}` if no API Platform item metadata exists.
+When auto-resolution is enabled (`mercure: true`, no explicit topics): the bundle reads the default Symfony Mercure hub URL, reuses explicit API Platform `mercure.topics` when available, otherwise builds the item IRI template **absolutely** from the routing request context (`https://api.example.com/api/books/{id}`), and falls back to `/datatables/books/{id}` if no API Platform item metadata exists. Without a routing context (CLI, tests) the path stays relative.
 
 `topics` accepts one or many topics — use several when a table must refresh after changes on more than one resource/channel.
 
-**With API Platform, the topics line up only because both sides derive the same URL.** API Platform publishes to the item IRI computed at `UrlGeneratorInterface::ABS_URL` — that is what `mercure: true`, an omitted `topics` key, and `'topics' => ['@=iri(object)']` all resolve to (`PublishMercureUpdatesListener::publishUpdate()`). The bundle, for its part, subscribes to the *relative* item route path read from the resource metadata (`/api/books/{id}`), and the hub resolves a relative topic against its own URL. The two overlap only when the hub and the API share a host — the usual `/.well-known/mercure` on the same domain. With the hub on another host or subdomain nothing ever matches and the table silently stops refreshing; declare the topic explicitly in the absolute form API Platform publishes:
+**The auto-resolved topic is the IRI API Platform publishes.** API Platform publishes the item IRI computed at `UrlGeneratorInterface::ABS_URL` — that is what `mercure: true`, an omitted `topics` key, and `['topics' => ['@=iri(object)']]` all resolve to (`PublishMercureUpdatesListener::publishUpdate()`). The bundle subscribes to that same absolute URL: `Mercure\MercureTopicUrlResolver` reads the routing request context (the one the URL generator uses) and builds scheme, host, port and base path exactly like the generator, so the subscription matches even when the hub lives on another host or subdomain. Before, the bundle subscribed to the *relative* item route path, which the hub resolved against **its own** URL — it only ever worked while the hub shared the API's host. Declaring the topic explicitly in the absolute form API Platform publishes remains the escape hatch for a topic of your own:
 
 ```php
 #[AsDataTable(
@@ -33,7 +33,7 @@ When auto-resolution is enabled (`mercure: true`, no explicit topics): the bundl
 )]
 ```
 
-Three more API Platform specifics: `@=` expression topics are skipped by the resolver (only plain string topics are reused verbatim, so `@=iri(object.getOwner())` silently falls back to the item route path), `private: true` is not mapped to `withCredentials` — set it yourself, and the subscriber cookie comes from symfony/mercure-bundle (`Authorization`, the `mercure()` Twig function), not from this bundle — and `@=` needs `symfony/expression-language` installed on the app side or API Platform throws when it publishes.
+Three more API Platform specifics: `@=iri(object)` is resolved explicitly to the item topic, any other `@=` expression topic is dropped with a logged warning (never silently, so `@=iri(object.getOwner())` cannot masquerade as the item topic), `private: true` is not mapped to `withCredentials` — set it yourself, and the subscriber cookie comes from symfony/mercure-bundle (`Authorization`, the `mercure()` Twig function), not from this bundle — and `@=` needs `symfony/expression-language` installed on the app side or API Platform throws when it publishes.
 
 ## What it does client-side
 
