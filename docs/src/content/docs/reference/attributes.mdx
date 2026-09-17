@@ -32,7 +32,7 @@ Arguments:
       '`entityClass`',
       '`class-string`',
       'required',
-      'Doctrine entity class linked to the table. Validated when the attribute is read: an unknown class throws an `InvalidArgumentException`.',
+      'Doctrine entity class linked to the table. Validated when the attribute is read: a class that does not exist, or a non-class such as an interface, throws an `InvalidArgumentException`.',
     ],
     [
       '`serializationGroups`',

@@ -24,9 +24,10 @@ final class AsDataTable
         public readonly ?string $editModalAdapter = null,
     ) {
         // The attribute is instantiated once per class, so a typo fails here at rendering time
-        // rather than later, inside Doctrine metadata or API Platform.
-        if (!class_exists($entityClass) && !interface_exists($entityClass)) {
-            throw new \InvalidArgumentException(\sprintf('The entity class "%s" declared on #[AsDataTable] does not exist.', $entityClass));
+        // rather than later, inside Doctrine metadata or API Platform. The class must be
+        // concrete: every consumer reads it as a mapped entity, not as an interface.
+        if (!class_exists($entityClass)) {
+            throw new \InvalidArgumentException(\sprintf('The entity class "%s" declared on #[AsDataTable] must be an existing class.', $entityClass));
         }
     }
 }

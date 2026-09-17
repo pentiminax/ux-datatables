@@ -516,7 +516,7 @@ one, or make two switches behave the same.
 | Behavior | Before | After |
 | --- | --- | --- |
 | `editModalTemplate` / `editModalAdapter` default | `''` (the "unset" sentinel) | `null` |
-| `entityClass` typo | Failed later, inside Doctrine metadata or API Platform | `InvalidArgumentException` where the attribute is read |
+| `entityClass` typo, or an interface | Failed later, inside Doctrine metadata or API Platform | `InvalidArgumentException` where the attribute is read |
 | `mercure` array without `topics` | `InvalidArgumentException: Mercure topics cannot be empty.` | Topics come from the auto-resolver, the declared options are applied on top |
 | Unknown or wrongly typed `mercure` option | The same empty-topics exception | `InvalidArgumentException` naming the option, the attribute and the entity class |
 | `$table->apiPlatform()` | Enabled the Ajax wiring and the frontend adapter, but not column auto-detection | Equivalent to `apiPlatform: true` on the attribute |

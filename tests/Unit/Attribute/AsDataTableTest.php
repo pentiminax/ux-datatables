@@ -277,9 +277,18 @@ final class AsDataTableTest extends TestCase
     public function it_rejects_an_entity_class_that_does_not_exist(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The entity class "App\Entity\Missing" declared on #[AsDataTable] does not exist.');
+        $this->expectExceptionMessage('The entity class "App\Entity\Missing" declared on #[AsDataTable] must be an existing class.');
 
         new AsDataTable(entityClass: 'App\Entity\Missing');
+    }
+
+    #[Test]
+    public function it_rejects_an_interface_as_the_entity_class(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The entity class "Countable" declared on #[AsDataTable] must be an existing class.');
+
+        new AsDataTable(entityClass: \Countable::class);
     }
 
     #[Test]
