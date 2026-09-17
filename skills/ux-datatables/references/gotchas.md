@@ -31,7 +31,7 @@ Computed or template columns have no DB counterpart. Set `->setOrderable(false)-
 `Action` exposes only `linkToUrl(string|callable)`. Build the route URL inside the callable, or use a `UrlColumn` (which does have `linkToRoute()`).
 
 ## API Platform / Mercure are opt-in
-Neither activates implicitly. Set `apiPlatform: true` / call `apiPlatform()`, and `mercure: true` / call `mercure()`. Define API Platform filters on the resource so searchable/orderable columns map to enabled filters.
+Neither activates implicitly. Set `apiPlatform: true` / call `apiPlatform()`, and `mercure: true` / call `mercure()`. The attribute flag and the fluent call are equivalent — both enable the Ajax wiring and column auto-detection. Define API Platform filters on the resource so searchable/orderable columns map to enabled filters.
 
 ## `setPermission()` removes, never hides client-side
 Static `setPermission()` on actions/columns is evaluated server-side before serialization; ungranted items are dropped and the attribute or expression is never sent to the browser. Don't rely on it for purely visual toggling — use `displayIf()` (actions) or `setVisible()` (columns) for that.

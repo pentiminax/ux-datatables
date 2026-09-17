@@ -92,23 +92,20 @@ The bundle reads the flag from the resource metadata and from every operation, s
 them declares `private`. A resource that does not set `private`, or sets `private: false`,
 serializes exactly the payload it did before, with no `withCredentials` key.
 
-An explicit `withCredentials` always wins, because both explicit paths are resolved before the
-auto-resolver runs — but an explicit path also takes over topic resolution, so declare the topics
-with it:
+An explicit `withCredentials` always wins, because both explicit paths are resolved first. On the
+attribute, an array without a `topics` key keeps auto topic resolution and only overrides the
+subscription options, so the topics stay the ones API Platform publishes:
 
 ```php
-#[AsDataTable(Book::class, mercure: [
-    'topics'          => ['https://example.com/api/books/{id}'],
-    'withCredentials' => false,
-])]
+#[AsDataTable(Book::class, mercure: ['withCredentials' => false])]
 final class BookDataTable extends AbstractDataTable
 {
 }
 ```
 
-`['withCredentials' => false]` on its own throws *Mercure topics cannot be empty.*, and
-`->mercure(withCredentials: false)` on its own subscribes to the bundle's internal
-`/datatables/.../{id}` fallback topic, which API Platform never publishes to.
+`->mercure(withCredentials: false)` on the table is a manual configuration and never consults the
+auto-resolver, so on its own it subscribes to the bundle's internal `/datatables/.../{id}` fallback
+topic, which API Platform never publishes to. Pass the topics explicitly with that call.
 
 ### What The Application Still Has To Do
 
