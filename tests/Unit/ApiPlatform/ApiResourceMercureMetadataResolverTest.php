@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\ApiPlatform;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\HttpOperation;
 use ApiPlatform\Metadata\Operations;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
@@ -68,12 +69,32 @@ final class ApiResourceMercureMetadataResolverTest extends TestCase
             ['/api/books/{id}'],
         ];
 
-        yield 'a variable-bearing operation is still used when the resource has no item GET' => [
+        yield 'a resource without an item GET has no item topic, as API Platform has no item IRI' => [
             (new ApiResource())->withOperations(new Operations([
                 new GetCollection(uriTemplate: '/books{._format}', routePrefix: '/api'),
                 new Post(uriTemplate: '/books/{id}/publish{._format}', routePrefix: '/api'),
             ])),
-            ['/api/books/{id}/publish'],
+            [],
+        ];
+
+        yield 'a custom GET HttpOperation is an item operation too' => [
+            (new ApiResource())->withOperations(new Operations([
+                new HttpOperation(method: 'GET', uriTemplate: '/books/{id}/preview{._format}', routePrefix: '/api'),
+                new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
+            ])),
+            ['/api/books/{id}/preview'],
+        ];
+
+        yield 'a declared topic on a later operation beats the item path' => [
+            (new ApiResource())->withOperations(new Operations([
+                new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
+                new Post(
+                    uriTemplate: '/books{._format}',
+                    routePrefix: '/api',
+                    mercure: ['topics' => ['https://example.com/custom']],
+                ),
+            ])),
+            ['https://example.com/custom'],
         ];
     }
 
@@ -177,15 +198,18 @@ final class ApiResourceMercureMetadataResolverTest extends TestCase
     }
 
     #[Test]
-    public function it_prefers_an_operation_with_a_variable_over_a_collection_shaped_one(): void
+    public function it_takes_the_first_item_get_even_when_its_template_carries_no_variable(): void
     {
         $resource = (new ApiResource())->withOperations(new Operations([
             new Get(uriTemplate: '/books{._format}', routePrefix: '/api'),
             new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
         ]));
 
+        // Not the prettier topic, but the one API Platform publishes to: getOperation() stops at
+        // the first non-collection GET, so preferring the variable-bearing template here would
+        // subscribe to a topic nothing ever publishes.
         $this->assertSame(
-            ['https://api.example.com/api/books/{id}'],
+            ['https://api.example.com/api/books'],
             $this->resolver($resource, absolute: true)->resolveTopics(self::ENTITY_CLASS),
         );
     }

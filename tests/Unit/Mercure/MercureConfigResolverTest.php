@@ -75,7 +75,7 @@ final class MercureConfigResolverTest extends TestCase
     }
 
     #[Test]
-    public function it_builds_the_fallback_topic_absolutely(): void
+    public function it_keeps_the_internal_fallback_topic_relative_whatever_the_routing_context(): void
     {
         $metadataResolver = $this->createStub(ApiResourceMercureMetadataResolver::class);
         $metadataResolver
@@ -85,29 +85,12 @@ final class MercureConfigResolverTest extends TestCase
         $resolver = new MercureConfigResolver(
             $this->hubUrlResolver('http://localhost/.well-known/mercure'),
             $metadataResolver,
-            $this->topicUrlResolver(),
         );
-        $config = $resolver->resolveMercureConfig('App\\Entity\\BookCategory');
 
-        $this->assertSame(['https://api.example.com/datatables/book-categories/{id}'], $config?->topics);
-    }
-
-    #[Test]
-    public function it_keeps_the_fallback_topic_relative_without_a_routing_context(): void
-    {
-        $metadataResolver = $this->createStub(ApiResourceMercureMetadataResolver::class);
-        $metadataResolver
-            ->method('resolveTopics')
-            ->willReturn([]);
-
-        $resolver = new MercureConfigResolver(
-            $this->hubUrlResolver('http://localhost/.well-known/mercure'),
-            $metadataResolver,
-            new MercureTopicUrlResolver(),
+        $this->assertSame(
+            ['/datatables/book-categories/{id}'],
+            $resolver->resolveMercureConfig('App\\Entity\\BookCategory')?->topics,
         );
-        $config = $resolver->resolveMercureConfig('App\\Entity\\BookCategory');
-
-        $this->assertSame(['/datatables/book-categories/{id}'], $config?->topics);
     }
 
     #[Test]

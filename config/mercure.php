@@ -31,7 +31,6 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.mercure.config_resolver', MercureConfigResolver::class)
         ->arg(0, service('datatables.mercure.hub_url_resolver'))
         ->arg(1, service('datatables.api_platform.mercure_metadata_resolver')->nullOnInvalid())
-        ->arg(2, service('datatables.mercure.topic_url_resolver'))
         ->private();
 
     $services->alias(MercureConfigResolver::class, 'datatables.mercure.config_resolver')

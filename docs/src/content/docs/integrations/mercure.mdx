@@ -82,11 +82,17 @@ When auto-resolution is enabled:
 
 - the bundle reads the default Symfony Mercure hub URL
 - explicit API Platform `mercure.topics` are reused verbatim when available
-- `@=iri(object)` is resolved to the item IRI; any other `@=` expression topic is dropped with a logged warning
+- `@=iri(object)` is resolved to the item IRI; any other `@=` expression topic is dropped with a logged warning naming it, and resolution then continues to the item IRI
 - otherwise the bundle builds the item IRI template **absolutely**, from the same routing request context (scheme, host, port, base path) as `UrlGeneratorInterface::ABS_URL` — for example `https://api.example.com/api/books/{id}`
-- if no API Platform item metadata is available, it falls back to `/datatables/books/{id}`, absolute as well when a routing context exists
+- if no API Platform item metadata is available, it falls back to the bundle's own `/datatables/books/{id}`, which stays **relative**
 
-The absolute form is what makes the subscription match what API Platform publishes: a relative topic is resolved by the hub against its own URL, so it only ever matched while the hub shared the API's host. The topic is read off the item GET operation; failing that, an operation whose route template carries a variable is preferred over one that does not, so neither a collection-shaped template nor a custom mutation route declared before the item operation can degrade the topic. Without a router (no `RouterInterface` service) the topic stays relative. With a router, the context is the one the application configured — the current request's, or `router.request_context` in a console command or worker — which is the same context API Platform generates IRIs from. The bundle's own `/datatables/.../{id}` fallback topic is made absolute the same way, so its publish path keeps matching the subscription. Declaring the topic explicitly in the absolute form API Platform publishes remains the escape hatch for a topic of your own.
+The absolute form is what makes the subscription match what API Platform publishes, and the reason differs per protocol. A **1.0** hub matches URL Patterns with its own URL as the base, so a relative topic became `https://<hub-host>/api/books/{id}` and only covered the published IRI while the hub and the API shared a host. A **0.x** hub compares the `topic=` selector exactly and then as an anchored URI Template, with no base resolution at all, so a relative selector never matched the absolute IRI on any host. An absolute topic is matched as-is on both.
+
+The topic is read off the operation API Platform itself generates the item IRI from — the first non-collection operation whose HTTP method is `GET`, `HEAD` or `OPTIONS`, in declaration order, which is what `ResourceMetadataCollection::getOperation()` returns. A custom `HttpOperation(method: 'GET')` counts; a resource with no such operation gets no item topic, because API Platform has no item IRI for it either.
+
+Without a router the topic stays relative. With a router — which a full-stack application always has — the context is the one the application configured: the current request's, or `router.request_context` in a console command or Messenger consumer, where it defaults to `http://localhost`. Set `router.request_context.host` and `.scheme` if anything outside an HTTP request publishes, the same requirement API Platform's own IRIs have there.
+
+The bundle's own `/datatables/.../{id}` fallback topic deliberately stays relative: nothing but the bundle publishes to it, and it publishes through the same resolver, so a context-free topic keeps subscribe and publish matching wherever each runs. Declaring the topic explicitly in the absolute form API Platform publishes remains the escape hatch for a topic of your own.
 
 ## Attribute Topics
 
