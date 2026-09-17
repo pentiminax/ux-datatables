@@ -34,6 +34,10 @@ class MercureConfigResolver
         );
     }
 
+    /**
+     * Deliberately relative: only the bundle publishes here, through this same resolver, so a
+     * context-free topic keeps subscribe and publish matching across a request, a command, a worker.
+     */
     private function buildFallbackTopic(string $entityClass): string
     {
         return MercureTopicFactory::fallbackTopic($this->extractShortName($entityClass));

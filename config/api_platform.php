@@ -39,6 +39,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.api_platform.mercure_metadata_resolver', ApiResourceMercureMetadataResolver::class)
         ->arg(0, service('api_platform.metadata.resource.metadata_collection_factory'))
+        ->arg(1, service('datatables.mercure.topic_url_resolver')->nullOnInvalid())
+        ->arg(2, service('logger')->nullOnInvalid())
         ->private();
 
     $services->alias(ApiResourceMercureMetadataResolver::class, 'datatables.api_platform.mercure_metadata_resolver')
