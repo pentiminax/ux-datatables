@@ -205,9 +205,7 @@ final class ApiResourceMercureMetadataResolverTest extends TestCase
             new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
         ]));
 
-        // Not the prettier topic, but the one API Platform publishes to: getOperation() stops at
-        // the first non-collection GET, so preferring the variable-bearing template here would
-        // subscribe to a topic nothing ever publishes.
+        // Not the prettier topic, but the one API Platform publishes to.
         $this->assertSame(
             ['https://api.example.com/api/books'],
             $this->resolver($resource, absolute: true)->resolveTopics(self::ENTITY_CLASS),

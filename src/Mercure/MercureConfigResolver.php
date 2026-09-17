@@ -35,10 +35,8 @@ class MercureConfigResolver
     }
 
     /**
-     * Deliberately relative, unlike the API Platform item topic. Nobody but the bundle publishes to
-     * this topic, and it publishes through this same resolver, so keeping it context-free makes the
-     * two sides agree wherever they run — a web request, a console command, a Messenger consumer.
-     * An absolute form would pin both to one routing context and silently stop matching across two.
+     * Deliberately relative: only the bundle publishes here, through this same resolver, so a
+     * context-free topic keeps subscribe and publish matching across a request, a command, a worker.
      */
     private function buildFallbackTopic(string $entityClass): string
     {
