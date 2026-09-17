@@ -20,6 +20,7 @@ use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Reads rows through the API Platform collection operation the table is bound to.
@@ -63,7 +64,7 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
         if ($data instanceof PaginatorInterface) {
             $total = max(0, (int) $data->getTotalItems());
 
-            return new DataTableResult($total, $total, $this->mapRows($data, $this->rowMapper));
+            return new DataTableResult($total, $total, $this->mapRows($this->page($data, $parameters, $request), $this->rowMapper));
         }
 
         $items = $this->toList($data);
@@ -108,6 +109,37 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
     }
 
     /**
+     * The rows the request asked for, out of the page the collection operation served.
+     *
+     * An offset is a page number here, so a `start` that is not a multiple of `length` -- what
+     * Scroller sends -- lands on the page *containing* the first requested row rather than on the
+     * row itself. The requested window then spans at most two consecutive pages: the remainder is
+     * read from the next one and the concatenation is sliced back to the window.
+     *
+     * @param array<string, string|array<int|string, string>> $parameters
+     *
+     * @return iterable<mixed>
+     */
+    private function page(PaginatorInterface $paginator, array $parameters, DataTableRequest $request): iterable
+    {
+        $limit  = $request->length;
+        $offset = $limit > 0 ? $request->start % $limit : 0;
+
+        if (0 === $offset) {
+            return $paginator;
+        }
+
+        $items = $this->toList($paginator);
+        $page  = (int) ($parameters['page'] ?? 1);
+
+        if ($page < $paginator->getLastPage()) {
+            $items = [...$items, ...$this->toList($this->provide(['page' => (string) ($page + 1)] + $parameters))];
+        }
+
+        return \array_slice($items, $offset, $limit);
+    }
+
+    /**
      * A full paginator knows its last page. A partial one only knows the page size it actually
      * applied, so a full page is the signal to ask for the next one. Anything else -- a plain array
      * or an operation with pagination disabled -- returned the whole collection at once.
@@ -134,6 +166,14 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
             $request,
             array_values($this->columnResolver->filterStaticPermissions($this->columns, $this->dataTableClass)),
         );
+
+        // A ColumnControl criterion has no API Platform query parameter to carry it, and the
+        // browser-side adapter cannot express one either. Refusing the request is the only honest
+        // answer: translating nothing would return the whole collection with HTTP 200 and a
+        // filtered count equal to the total.
+        if ([] !== $intent->columnControls) {
+            throw new BadRequestHttpException('ColumnControl searches are not supported on an API Platform collection. Configure an API Platform filter and a DataTables filter instead.');
+        }
 
         return $this->queryParameterFactory->create($intent, $request);
     }
