@@ -112,8 +112,6 @@ final class ApiResourceMercureMetadataResolverTest extends TestCase
             new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
         ]));
 
-        // A hub sharing the API's host resolved the relative topic against its own URL, so the
-        // absolute topic is byte-identical with what the subscription always covered.
         $this->assertSame(
             'https://api.example.com/api/books/{id}',
             $this->resolver($resource, absolute: true)->resolveTopics(self::ENTITY_CLASS)[0],

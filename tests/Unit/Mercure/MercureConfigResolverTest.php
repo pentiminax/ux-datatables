@@ -89,9 +89,6 @@ final class MercureConfigResolverTest extends TestCase
         );
         $config = $resolver->resolveMercureConfig('App\\Entity\\BookCategory');
 
-        // The fallback topic is the one the bundle itself publishes mutations to, so it has to be
-        // absolute as well: the hub would otherwise resolve the relative subscription pattern
-        // against its own URL and never match the relative topic that was published.
         $this->assertSame(['https://api.example.com/datatables/book-categories/{id}'], $config?->topics);
     }
 

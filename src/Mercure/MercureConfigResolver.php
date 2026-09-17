@@ -35,11 +35,6 @@ class MercureConfigResolver
         );
     }
 
-    /**
-     * The fallback topic is the one the bundle itself publishes mutations to, so it has to be
-     * absolute as well: the hub would otherwise resolve the relative subscription pattern against
-     * its own URL and never match the topic that was published.
-     */
     private function absoluteTopic(string $path): string
     {
         return $this->topicUrlResolver?->absoluteUrl($path) ?? $path;

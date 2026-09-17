@@ -32,8 +32,6 @@ final class MercureTopicUrlResolverTest extends TestCase
 
         $this->assertSame($expectedOrigin.'/api/books/{id}', $resolver->absoluteUrl('/api/books/{id}'));
 
-        // API Platform publishes the item IRI through this exact generator, with the same request
-        // context, so a byte-identical absolute URL here is what makes the subscription match.
         $routes = new RouteCollection();
         $routes->add('api_books_get', new Route('/api/books/{id}'));
 
