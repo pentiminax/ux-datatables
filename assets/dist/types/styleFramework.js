@@ -1,0 +1,10 @@
+export const STYLE_FRAMEWORKS = [
+    { key: 'bs5', cssPattern: 'dataTables.bootstrap5' },
+    { key: 'bs4', cssPattern: 'dataTables.bootstrap4' },
+    { key: 'bs', cssPattern: 'dataTables.bootstrap' },
+    { key: 'dt', cssPattern: 'dataTables.dataTables' },
+];
+export function isStyleFramework(value) {
+    return typeof value === 'string' && STYLE_FRAMEWORKS.some(({ key }) => key === value);
+}
+//# sourceMappingURL=styleFramework.js.map

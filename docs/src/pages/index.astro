@@ -1,0 +1,224 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Icon from '../components/Icon.astro'
+import { getDocsNavSections, withBase } from '../nav'
+
+const groups = await getDocsNavSections()
+
+const modes = [
+  {
+    name: 'Client-side',
+    href: withBase('guide/client-side-processing/'),
+    description:
+      'The rows travel with the page. DataTables.net paginates, searches, and sorts in the browser — the right shape for a few hundred rows you already have.',
+  },
+  {
+    name: 'Doctrine server-side',
+    href: withBase('guide/server-side-processing/'),
+    description:
+      'One Ajax endpoint, one query builder. Pagination, search, and ordering are pushed down to Doctrine, so the table stays fast at a million rows.',
+  },
+  {
+    name: 'Live updates',
+    href: withBase('recipes/mercure-live-update/'),
+    description:
+      'Publish a mutation over Mercure and the open tables redraw themselves. No polling, no second data path to keep in sync.',
+  },
+]
+
+const orders = [
+  { reference: '#1048', customer: 'Ada Lovelace', total: 128.0, status: 'Paid' },
+  { reference: '#1049', customer: 'Grace Hopper', total: 64.5, status: 'Review' },
+  { reference: '#1050', customer: 'Alan Turing', total: 312.2, status: 'Shipped' },
+  { reference: '#1051', customer: 'Katherine Johnson', total: 89.9, status: 'Paid' },
+]
+
+const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'EUR' })
+
+const tableClass = `#[AsDataTable(name: 'orders')]
+class OrderTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('reference');
+        yield TextColumn::new('customer.name')->title('Customer');
+        yield MoneyColumn::new('total')->currency('EUR');
+        yield ChoiceColumn::new('status')->choices(Status::class);
+    }
+}`
+---
+
+<Layout
+  title="UX DataTables — DataTables.net grids for Symfony"
+  description="A Symfony bundle that renders DataTables.net grids from a PHP class: typed columns, Doctrine server-side processing, filters, and Ajax actions."
+  wide
+>
+  <section class="hero">
+    <div class="hero-copy">
+      <h1>Declare the table. Ship the grid.</h1>
+      <p class="hero-lede">
+        UX DataTables wires <a href="https://datatables.net">DataTables.net</a> into Symfony. Columns,
+        filters, and row actions are declared in a PHP class; the bundle ships the Stimulus
+        controller, the Ajax endpoints, and the Twig function that renders them.
+      </p>
+
+      <div class="hero-actions">
+        <a class="button" href={withBase('getting-started/quick-start/')}>
+          Build your first table
+          <Icon name="arrow-right" size={16} />
+        </a>
+        <button class="button button-secondary" type="button" data-search-trigger>
+          <Icon name="search" size={16} />
+          Search the docs
+        </button>
+      </div>
+
+      <pre class="hero-install"><code>composer require pentiminax/ux-datatables</code></pre>
+    </div>
+
+    <figure class="mock">
+      <table class="mock-table" data-mock-table>
+        <caption class="visually-hidden">
+          A sample orders table. Column headers sort the rows.
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Reference</th>
+            <th scope="col">Customer</th>
+            <th scope="col" class="mock-numeric">Total</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            orders.map((order) => (
+              <tr>
+                <th scope="row">{order.reference}</th>
+                <td>{order.customer}</td>
+                <td class="mock-numeric" data-value={order.total}>
+                  {money.format(order.total)}
+                </td>
+                <td>
+                  <span class:list={['mock-status', `mock-status-${order.status.toLowerCase()}`]}>
+                    {order.status}
+                  </span>
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+      <figcaption>Four columns, four types. The header is the only control you need.</figcaption>
+    </figure>
+  </section>
+
+  <section class="home-section" aria-labelledby="modes-heading">
+    <h2 id="modes-heading">Where the rows come from</h2>
+    <div class="mode-cards">
+      {
+        modes.map((mode) => (
+          <a class="mode-card" href={mode.href}>
+            <h3>{mode.name}</h3>
+            <p>{mode.description}</p>
+            <span class="mode-card-cue">
+              Read the guide
+              <Icon name="arrow-right" size={15} />
+            </span>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="home-section" aria-labelledby="column-heading">
+    <div class="split">
+      <div class="split-copy">
+        <h2 id="column-heading">The column is the unit</h2>
+        <p>
+          A column knows its own type, so it knows how to render, sort, and search itself. Money
+          formats with its currency, a choice renders its enum label, a date follows its format —
+          and the same declaration drives the Doctrine query behind server-side processing.
+        </p>
+        <p>
+          Thirteen column types ship with the bundle, from <a href={withBase('columns/text-column/')}
+            >Text</a
+          > to <a href={withBase('columns/action-column/')}>Action</a>. The <a
+            href={withBase('columns/overview/')}>columns overview</a
+          > compares them side by side.
+        </p>
+      </div>
+      <pre><code>{tableClass}</code></pre>
+    </div>
+  </section>
+
+  <section class="home-section" aria-labelledby="docs-heading">
+    <h2 id="docs-heading">Find your way in</h2>
+    <div class="home-sections">
+      {
+        groups.map((group) => (
+          <div class="home-section-card">
+            <a class="home-section-title" href={withBase(`${group.section.id}/`)}>
+              {group.section.title}
+              <Icon name="arrow-right" size={16} />
+            </a>
+            <p>{group.section.description}</p>
+            <ul>
+              {group.items.slice(0, 4).map((item) => (
+                <li>
+                  <a href={withBase(`${item.slug}/`)}>{item.navTitle}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <script>
+    /**
+     * The sample table sorts for real, and the controls are injected here rather
+     * than authored in the markup: without JavaScript the reader still gets a
+     * plain, legible table instead of four buttons that do nothing.
+     */
+    const table = document.querySelector<HTMLTableElement>('[data-mock-table]')
+    const body = table?.tBodies[0]
+    const headers = [...(table?.tHead?.rows[0].cells ?? [])]
+    const collator = new Intl.Collator('en', { numeric: true })
+
+    const sortKey = (row: HTMLTableRowElement, column: number) => {
+      const cell = row.cells[column]
+
+      return cell.dataset.value ?? cell.textContent ?? ''
+    }
+
+    headers.forEach((header, column) => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.textContent = header.textContent
+      header.textContent = ''
+      header.append(button)
+      header.setAttribute('aria-sort', 'none')
+
+      button.addEventListener('click', () => {
+        if (!body) return
+
+        const ascending = header.getAttribute('aria-sort') !== 'ascending'
+        headers.forEach((other) => other.setAttribute('aria-sort', 'none'))
+        header.setAttribute('aria-sort', ascending ? 'ascending' : 'descending')
+
+        const rows = [...body.rows].sort(
+          (a, b) => collator.compare(sortKey(a, column), sortKey(b, column)) * (ascending ? 1 : -1)
+        )
+
+        body.classList.remove('is-sorting')
+        void body.offsetWidth
+        rows.forEach((row, index) => {
+          row.style.setProperty('--row-index', String(index))
+          body.append(row)
+        })
+        body.classList.add('is-sorting')
+      })
+    })
+  </script>
+</Layout>

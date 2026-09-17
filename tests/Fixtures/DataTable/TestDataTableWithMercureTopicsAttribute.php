@@ -1,0 +1,44 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Tests\Fixtures\DataTable;
+
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+
+#[AsDataTable(entityClass: \stdClass::class, mercure: [
+    'topics' => [
+        'https://example.com/books',
+    ],
+])]
+class TestDataTableWithMercureTopicsAttribute extends AbstractDataTable
+{
+    public function __construct(
+        private readonly ?MercureConfigResolver $mercureConfigResolver = null,
+        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
+    ) {
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            renderingPreparer: new RenderingPreparer(
+                mercureResolver: $this->mercureConfigResolver,
+                mercureHubUrlResolver: $this->mercureHubUrlResolver,
+            )
+        ));
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->ajax('/api/books');
+    }
+}

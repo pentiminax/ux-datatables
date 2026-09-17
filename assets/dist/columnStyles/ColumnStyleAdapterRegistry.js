@@ -1,0 +1,22 @@
+import { BootstrapColumnStyleAdapter } from './BootstrapColumnStyleAdapter.js';
+import { TailwindColumnStyleAdapter } from './TailwindColumnStyleAdapter.js';
+import { TailwindThemeColumnStyleAdapter } from './TailwindThemeColumnStyleAdapter.js';
+export class ColumnStyleAdapterRegistry {
+    constructor() {
+        this.factories = new Map();
+    }
+    register(key, factory) {
+        this.factories.set(key, factory);
+        return this;
+    }
+    get(key) {
+        return this.factories.get(key) ?? null;
+    }
+}
+export const columnStyleAdapters = new ColumnStyleAdapterRegistry()
+    .register('bs', () => new BootstrapColumnStyleAdapter())
+    .register('bs4', () => new BootstrapColumnStyleAdapter())
+    .register('bs5', () => new BootstrapColumnStyleAdapter())
+    .register('dt', () => new TailwindColumnStyleAdapter())
+    .register('tailwind', () => new TailwindThemeColumnStyleAdapter());
+//# sourceMappingURL=ColumnStyleAdapterRegistry.js.map
