@@ -58,6 +58,55 @@ final class MercureConfigResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_subscribes_with_credentials_for_a_private_resource(): void
+    {
+        $metadataResolver = $this->createStub(ApiResourceMercureMetadataResolver::class);
+        $metadataResolver
+            ->method('resolveTopics')
+            ->willReturn(['/api/books/{id}']);
+        $metadataResolver
+            ->method('resolvePrivate')
+            ->willReturn(true);
+
+        $resolver = new MercureConfigResolver(
+            $this->hubUrlResolver('https://example.com/.well-known/mercure'),
+            $metadataResolver,
+        );
+        $config = $resolver->resolveMercureConfig('App\\Entity\\Book');
+
+        $this->assertTrue($config?->withCredentials);
+        $this->assertSame([
+            'hubUrl'          => 'https://example.com/.well-known/mercure',
+            'topics'          => ['/api/books/{id}'],
+            'withCredentials' => true,
+        ], $config?->jsonSerialize());
+    }
+
+    #[Test]
+    public function it_serializes_the_unchanged_payload_for_a_resource_without_private_metadata(): void
+    {
+        $metadataResolver = $this->createStub(ApiResourceMercureMetadataResolver::class);
+        $metadataResolver
+            ->method('resolveTopics')
+            ->willReturn(['/api/books/{id}']);
+        $metadataResolver
+            ->method('resolvePrivate')
+            ->willReturn(false);
+
+        $resolver = new MercureConfigResolver(
+            $this->hubUrlResolver('https://example.com/.well-known/mercure'),
+            $metadataResolver,
+        );
+        $config = $resolver->resolveMercureConfig('App\\Entity\\Book');
+
+        $this->assertFalse($config?->withCredentials);
+        $this->assertSame([
+            'hubUrl' => 'https://example.com/.well-known/mercure',
+            'topics' => ['/api/books/{id}'],
+        ], $config?->jsonSerialize());
+    }
+
+    #[Test]
     public function it_carries_the_hub_protocol_version(): void
     {
         $metadataResolver = $this->createStub(ApiResourceMercureMetadataResolver::class);

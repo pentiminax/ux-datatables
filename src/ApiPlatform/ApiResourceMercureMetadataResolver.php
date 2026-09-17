@@ -61,6 +61,37 @@ class ApiResourceMercureMetadataResolver
     }
 
     /**
+     * Whether API Platform marks this resource private, resolved in the same resource-then-operation
+     * order as the topics: a resource-level `private` wins, otherwise the first operation that
+     * declares it does.
+     *
+     * A hub only delivers a private update to a subscriber whose token grants one of the update's
+     * topics (Mercure spec, "Subscribers"), so the EventSource has to send credentials.
+     */
+    public function resolvePrivate(string $entityClass): bool
+    {
+        try {
+            $collection = $this->resourceMetadataFactory->create($entityClass);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        foreach ($collection as $resource) {
+            if (true === $this->normalizePrivate($resource->getMercure())) {
+                return true;
+            }
+
+            foreach ($resource->getOperations() ?? [] as $operation) {
+                if (true === $this->normalizePrivate($operation->getMercure())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @return string[]
      */
     private function normalizeTopics(mixed $mercure): array
@@ -88,6 +119,15 @@ class ApiResourceMercureMetadataResolver
         }
 
         return $this->filterTopics($topics);
+    }
+
+    private function normalizePrivate(mixed $mercure): bool
+    {
+        if (!\is_array($mercure)) {
+            return false;
+        }
+
+        return true === ($mercure['private'] ?? false);
     }
 
     /**
