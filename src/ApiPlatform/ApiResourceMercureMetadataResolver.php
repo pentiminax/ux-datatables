@@ -60,15 +60,10 @@ class ApiResourceMercureMetadataResolver
     }
 
     /**
-     * Mirrors the operation API Platform itself generates the item IRI from, so the subscription
-     * cannot name a topic the publisher never uses: `IriConverter::getIriFromResource()` asks for
-     * `ResourceMetadataCollection::getOperation(null, false, true)`, which takes the first
-     * non-collection operation whose HTTP method is GET, HEAD or OPTIONS, in declaration order.
-     *
-     * The rule is the method, not the operation class and not the shape of the template: a custom
-     * `HttpOperation(method: 'GET')` counts, a variable-less template still wins if it comes first,
-     * and a resource without such an operation has no item IRI at all — API Platform throws
-     * OperationNotFoundException rather than publishing one, so null is the honest answer.
+     * The operation API Platform builds the item IRI from, so the subscription cannot name a topic
+     * the publisher never uses: `ResourceMetadataCollection::getOperation(null, false, true)` takes
+     * the first non-collection GET/HEAD/OPTIONS in declaration order — the method decides, not the
+     * operation class nor the template shape. No such operation means no item IRI, so no topic.
      */
     private function resolveItemPath(ApiResource $resource, string $resourceRoutePrefix): ?string
     {
