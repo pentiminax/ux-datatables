@@ -42,9 +42,11 @@ final class AsDataTableResolverTest extends TestCase
     }
 
     #[Test]
-    public function it_returns_null_for_an_unknown_class(): void
+    public function it_throws_for_an_unknown_class(): void
     {
-        $this->assertNull((new AsDataTableResolver())->resolve('App\\DataTables\\DoesNotExist'));
+        $this->expectException(\ReflectionException::class);
+
+        (new AsDataTableResolver())->resolve('App\\DataTables\\DoesNotExist');
     }
 
     #[Test]
