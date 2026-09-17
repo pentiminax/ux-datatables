@@ -32,4 +32,4 @@ public function configureDataTable(DataTable $table): DataTable
 
 Define filters/sorting on the API Platform resource side (`#[ApiFilter(...)]`) so the columns you mark `searchable`/`orderable` map to enabled filters. See `docs/src/content/docs/integrations/api-platform.mdx`.
 
-For real-time refresh (Mercure), see `references/mercure.md` — API Platform's `mercure` metadata feeds Mercure topic auto-resolution when both are enabled.
+For real-time refresh (Mercure), see `references/mercure.md` — API Platform's `mercure` metadata feeds Mercure topic auto-resolution when both are enabled. API Platform still publishes to the literal `/api/books/{id}` topic, which a Mercure 1.0 subscription receives unchanged (a URL Pattern group matches the literal placeholder).

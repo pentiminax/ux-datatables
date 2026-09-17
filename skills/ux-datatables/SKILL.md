@@ -87,7 +87,7 @@ Scaffold from an entity: `php bin/console make:datatable`.
 - `references/security.md` — Ajax route protection, `Permission::DT_*` attributes, the row permission matrix, `DataTable::setPermission()`, per-row resolvers, CSRF.
 - `references/filters.md` — declarative filter bar (`configureFilters()`): Text, Select, Ternary, DateRange, generic Filter (server-side Doctrine).
 - `references/api-platform.md` — API Platform integration (opt-in).
-- `references/mercure.md` — Mercure real-time refresh: config, auto-resolution, publishing on mutations (opt-in).
+- `references/mercure.md` — Mercure real-time refresh: config, auto-resolution, hub protocol dialect (`topic=` vs `match=`/`match_urlpattern=`), publishing on mutations (opt-in).
 - `references/gotchas.md` — common mistakes and fixes.
 
 ## Common mistakes (see gotchas.md)

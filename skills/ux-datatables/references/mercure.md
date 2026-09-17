@@ -28,11 +28,13 @@ When auto-resolution is enabled (`mercure: true`, no explicit topics): the bundl
 
 The Stimulus controller listens to the configured topics and, on each SSE message, dispatches `datatables:mercure:message` and calls `table.ajax.reload(null, false)` (debounced). The connection closes on controller `disconnect()`.
 
-The subscription dialect follows the hub's protocol version, read server-side from `HubInterface::getProtocolVersion()` (symfony/mercure 0.8+) and serialized as `protocolVersion` only when it is not `0.x`:
+The subscription dialect follows the hub's protocol version, read server-side from `HubInterface::getProtocolVersion()` (symfony/mercure 0.8+) and serialized as `protocolVersion` only when it is not `0.x`. Nothing to configure in the bundle — the dialect follows the hub. A 1.0 hub that is sent `topic=` creates no subscription at all: the connection opens and nothing ever arrives, so check the protocol version before the topics when live updates stop after a hub upgrade.
 
 - 0.x hub — one `topic=` query parameter per topic, with URI Template selectors.
-- 1.0 hub — `match_urlpattern=` with `/books/{id}` rewritten to `/books/:p0` for a templated topic (the group name is generated: RFC 6570 variable names are not all valid URL Pattern group names — `:book.id` is not a group, `:1` throws — and a repeated variable would collide), `match=<topic>` for a plain one, and `match=` on the literal value for a topic using an RFC 6570 operator (`{?page}`), which has no URL Pattern equivalent.
+- 1.0 hub — `match_urlpattern=` with `/books/{id}` rewritten to `/books/:p0` for a templated topic (the group name is generated: RFC 6570 variable names are not all valid URL Pattern group names — `:book.id` is not a group, `:1` throws — and a repeated variable would collide), `match=<topic>` for a plain one, and `match=` on the literal value for a topic using an RFC 6570 operator (`{?page}`), which has no URL Pattern equivalent. A group also matches the literal placeholder, so API Platform's `/api/books/{id}` publications keep matching.
 - No reported version (older symfony/mercure) — legacy `topic=` parameters.
+
+Publishing is protocol-agnostic: Mercure 1.0 kept the `topic=` form fields, so the publish path needs no change. Hub-side, a 1.0 hub needs `protocol_version: '1.0'` plus `jwt.claims` (RFC 9068 requires `iss`/`sub`/`client_id`), and `protocol_version_compatibility 8` keeps 0.x clients working while you migrate.
 
 - Only reloads server-side tables — a table configured with static `data` will not auto-refresh from SSE.
 - No Mercure config means no SSE subscription (dynamic import skipped).
