@@ -243,6 +243,54 @@ final class ApiPlatformCollectionProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_fills_the_window_when_the_operation_caps_the_page_size(): void
+    {
+        // The operation serves 20 rows whatever itemsPerPage asks for -- a cap, or API Platform's
+        // default of ignoring the client's page size. The page number the request carries was
+        // computed from the requested length, so it points at the wrong rows: both it and the
+        // offset are recomputed from the size the paginator reports.
+        $provider = new RecordingProvider([
+            $this->paginator($this->items(20, 40), 640, lastPage: 32),
+            $this->paginator($this->items(20, 120), 640, lastPage: 32),
+            $this->paginator($this->items(20, 140), 640, lastPage: 32),
+            $this->paginator($this->items(20, 160), 640, lastPage: 32),
+            $this->paginator($this->items(20, 180), 640, lastPage: 32),
+        ]);
+
+        $result = $this->provider($provider)->fetchData($this->request(start: 137, length: 50));
+        $rows   = iterator_to_array($result->data, false);
+
+        $this->assertCount(50, $rows);
+        $this->assertSame('Book 137', $rows[0]['title']);
+        $this->assertSame('Book 186', $rows[49]['title']);
+
+        // Page 3 is what the requested length pointed at; rows 137..186 live on pages 7 to 10 of
+        // the 20-row pages the operation actually serves.
+        $this->assertSame(
+            ['3', '7', '8', '9', '10'],
+            array_map(static fn (array $call): string => $call[2]['request']->query->get('page'), $provider->calls),
+        );
+    }
+
+    #[Test]
+    public function it_stops_filling_the_window_at_the_last_page(): void
+    {
+        $provider = new RecordingProvider([
+            $this->paginator($this->items(20), 50, lastPage: 3),
+            $this->paginator($this->items(20, 20), 50, lastPage: 3),
+            $this->paginator($this->items(10, 40), 50, lastPage: 3),
+        ]);
+
+        $result = $this->provider($provider)->fetchData($this->request(start: 37, length: 50));
+        $rows   = iterator_to_array($result->data, false);
+
+        $this->assertCount(13, $rows);
+        $this->assertSame('Book 37', $rows[0]['title']);
+        $this->assertSame('Book 49', $rows[12]['title']);
+        $this->assertCount(3, $provider->calls);
+    }
+
+    #[Test]
     public function it_refuses_a_column_control_criterion(): void
     {
         $provider = $this->recordingProvider($this->paginator($this->items(1), 1));

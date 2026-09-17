@@ -49,25 +49,33 @@ final class DataTableRuntime
 
         // A refused "show all" falls back to the configured bound: DataTables renders that one
         // page and offers no other, so a smaller page truncates rather than strands rows.
-        $maxLength = $dataTableRequest->length > 0 ? $this->maxRequestedLength() : $this->maxPageLength;
+        $maxLength = \in_array($dataTableRequest->length, $this->declaredPageSizes(), true)
+            ? $dataTableRequest->length
+            : $this->maxPageLength;
 
         $this->request = $dataTableRequest->withBoundedLength($maxLength, $this->allowsShowAll());
     }
 
     /**
-     * The cap a requested page size is narrowed to.
+     * The page sizes the table itself offers, through pageLength() and lengthMenu().
      *
-     * A page size the table itself declares is a developer decision, not crafted input, so it
-     * raises the bound instead of being silently truncated: capping it below the length the
-     * client paginates with would leave the rows between the two sizes unreachable.
+     * A declared size is a developer decision, not crafted input, and the client paginates with
+     * it, so it escapes the bound: capping it below the length the client paginates with would
+     * leave the rows between the two sizes unreachable. Only those exact sizes escape it -- a
+     * table declaring 2000 must not turn an arbitrary length=1500 into a served page.
+     *
+     * @return list<int>
      */
-    private function maxRequestedLength(): int
+    private function declaredPageSizes(): array
     {
         $declared = [$this->table->getOption('pageLength'), ...$this->lengthMenuValues()];
 
-        return max($this->maxPageLength, ...array_map(
-            static fn (mixed $value): int => \is_int($value) && $value > 0 ? $value : 0,
-            $declared,
+        return array_values(array_filter(
+            array_map(
+                static fn (mixed $value): int => is_numeric($value) ? (int) $value : 0,
+                $declared,
+            ),
+            static fn (int $value): bool => $value > 0,
         ));
     }
 
