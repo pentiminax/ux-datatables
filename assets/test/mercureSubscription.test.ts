@@ -102,7 +102,9 @@ describe('createMercureSubscription', () => {
       vi.fn()
     )
 
-    expect(new URL(instances[0].url).searchParams.getAll('match_urlpattern')).toEqual(['/api/books/:p0'])
+    const url = new URL(instances[0].url)
+
+    expect(url.searchParams.getAll('match_urlpattern')).toEqual(['/api/books/:p0'])
   })
 
   it('falls back to an exact matcher for templates a URL Pattern cannot express', () => {
@@ -120,7 +122,10 @@ describe('createMercureSubscription', () => {
     const url = new URL(instances[0].url)
 
     expect(url.searchParams.getAll('match_urlpattern')).toEqual([])
-    expect(url.searchParams.getAll('match')).toEqual(['/api/books{?page}', '/api/books/{id}{?page}'])
+    expect(url.searchParams.getAll('match')).toEqual([
+      '/api/books{?page}',
+      '/api/books/{id}{?page}',
+    ])
   })
 
   it('forwards credentials and the debounce delay to the subscription', () => {
@@ -158,12 +163,14 @@ describe('createMercureSubscription', () => {
 describe('toUrlPattern', () => {
   it('rewrites simple variable expressions into URL Pattern groups', () => {
     expect(toUrlPattern('/api/books/{id}')).toBe('/api/books/:p0')
-    expect(toUrlPattern('/api/books/{book_id}/authors/{authorId}')).toBe('/api/books/:p0/authors/:p1')
+    expect(toUrlPattern('/api/books/{book_id}/authors/{authorId}')).toBe(
+      '/api/books/:p0/authors/:p1'
+    )
   })
 
   it('handles variable names a URL Pattern group name cannot express', () => {
     // RFC 6570: varname = varchar *( ["."] varchar ), varchar = ALPHA / DIGIT / "_" / pct-encoded,
-    // so dotted and digit-leading names are valid — `:book.id` is not a group name and `:1` throws.
+    // so dotted and digit-leading names are valid - `:book.id` is not a group name, `:1` throws.
     expect(toUrlPattern('/api/books/{book.id}')).toBe('/api/books/:p0')
     expect(toUrlPattern('/api/books/{1}')).toBe('/api/books/:p0')
     expect(toUrlPattern('/api/books/{a.b.c}')).toBe('/api/books/:p0')

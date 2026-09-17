@@ -10,7 +10,7 @@ export interface MercureConfig {
 const LEGACY_PROTOCOL_VERSION = '0.x'
 
 /**
- * Topic matcher query parameters. `topic` is the 0.x spelling, dropped in 1.0 in favour of
+ * Topic matcher query parameters. `topic` is the 0.x spelling, dropped in 1.0 in favor of
  * `match` (exact) and `match_urlpattern` (WHATWG URL Pattern).
  */
 const LEGACY_TOPIC_PARAMETER = 'topic'
