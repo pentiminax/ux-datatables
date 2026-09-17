@@ -257,6 +257,11 @@ Ajax pagination parameters come from the browser, so the bundle does not trust t
 `start` is clamped to `0` instead of reaching the database as a negative offset, and `length` is
 capped at the `data_tables.max_page_length` parameter (1000 by default).
 
+The page sizes the table itself declares are the exception: `pageLength()` and the entries of
+`lengthMenu()` are served even above the bound, because the client paginates with them and a
+smaller page would leave rows unreachable. Only those exact sizes escape it, so `max_page_length`
+still bounds every other length a request carries.
+
 DataTables' "show all" (`length=-1`) is honored only when the table declares `-1` in its
 `lengthMenu()`. Without that declaration a crafted `length=-1` or `length=999999` is served with
 `max_page_length` rows rather than hydrating the whole dataset, which is what protects the process
