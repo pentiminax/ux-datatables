@@ -1,0 +1,32 @@
+---
+title: Fixed Columns Extension
+description: Keep left and right columns pinned while horizontal scrolling
+order: 70
+navTitle: Fixed Columns
+---
+
+## When To Use
+
+Use Fixed Columns for wide tables where IDs or actions must stay visible while scrolling.
+
+## Minimal Example
+
+```php
+$dataTable->fixedColumns();
+```
+
+## Advanced Example
+
+```php
+$dataTable->fixedColumns(start: 2, end: 1);
+```
+
+## Frequent Pitfalls
+
+- Enabling Fixed Columns without horizontal scroll context.
+- Pinning too many columns, which reduces useful viewport width.
+
+## Cross Links
+
+- [/ux-datatables/extensions/responsive/](/ux-datatables/extensions/responsive/)
+- [/ux-datatables/extensions/col-reorder/](/ux-datatables/extensions/col-reorder/)

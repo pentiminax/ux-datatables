@@ -1,0 +1,98 @@
+---
+name: ux-datatables
+description: Use when building, configuring, or debugging DataTables with the pentiminax/ux-datatables Symfony bundle — defining DataTable classes, columns, client-side vs server-side mode, extensions, row actions, permissions and voters, or API Platform / Mercure integration.
+---
+
+# UX DataTables
+
+## Overview
+
+`pentiminax/ux-datatables` integrates [DataTables.net](https://datatables.net) into Symfony. You declare a class extending `AbstractDataTable`, annotate it with `#[AsDataTable(Entity::class)]`, define columns, and render with the Twig `render_datatable()` function. A Stimulus controller (`@pentiminax/ux-datatables/datatable`) lazy-loads DataTables and its extensions.
+
+## PHP example shape
+
+Put bundle configuration in a concrete `AbstractDataTable` subclass. Show `configureDataTable()`
+for table-wide options, `configureColumns()` for columns, and `configureActions()` for row actions.
+Do not emit standalone `$dataTable->...` or column fragments without the hook that owns them unless
+the user explicitly asks for a minimal diff.
+
+## Decision tree: client-side vs server-side
+
+```
+Dataset < ~5k rows AND can load all upfront?
+├── yes → CLIENT-SIDE: define columns, optionally setData()/data(). Browser paginates/filters/sorts.
+└── no  → SERVER-SIDE: configureDataTable(fn) → $table->serverSide()->processing()
+          DB handles paging/filter/sort. Doctrine provider auto-wired from #[AsDataTable(Entity::class)].
+          MUST import bundle routes (see references/server-side.md).
+```
+
+## Minimal example
+
+```php
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\{DateColumn, NumberColumn, TextColumn};
+use Pentiminax\UX\DataTables\Model\{AbstractDataTable, Action, Actions, DataTable};
+
+#[AsDataTable(User::class)]
+final class UserDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        return [
+            NumberColumn::new('id', 'ID'),
+            TextColumn::new('email', 'Email'),
+            DateColumn::new('createdAt', 'Created')->setFormat('d/m/Y'),
+        ];
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->serverSide()->processing()->pageLength(25);
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(Action::edit())->add(Action::delete()->askConfirmation('Delete?'));
+    }
+}
+```
+
+Controller + Twig:
+```php
+public function index(UserDataTable $table, Request $request): Response
+{
+    $table->handleRequest($request);
+    if ($table->isRequestHandled()) {
+        return $table->getResponse();
+    }
+    return $this->render('user/index.html.twig', ['table' => $table]);
+}
+```
+```twig
+{{ render_datatable(table) }}
+```
+
+Scaffold from an entity: `php bin/console make:datatable`.
+
+## References (read on demand)
+
+- `references/defining-a-datatable.md` — `AbstractDataTable`, `#[AsDataTable]`, the `configure*()` hooks, data providers, `customizeQueryBuilder()`, page projection (`projectPage()`).
+- `references/columns.md` — all 11 column types + shared `AbstractColumn` methods.
+- `references/server-side.md` — server-side wiring, route import, Stimulus events, custom Ajax, computed columns (`setOrderExpression()`).
+- `references/extensions.md` — Buttons, Select, Responsive, RowGroup, Scroller, KeyTable, ColReorder, FixedColumns, FixedHeader.
+- `references/column-control.md` — ColumnControl placement, per-column overrides, search lists, enums, Ajax option providers, and custom content.
+- `references/exporters.md` — replacing the CSV/XLSX writer for server-side export (`ExporterInterface`, `AbstractExporter`).
+- `references/actions.md` — row actions, permissions, conditional display.
+- `references/security.md` — Ajax route protection, `Permission::DT_*` attributes, the row permission matrix, `DataTable::setPermission()`, per-row resolvers, CSRF.
+- `references/filters.md` — declarative filter bar (`configureFilters()`): Text, Select, Ternary, DateRange, generic Filter (server-side Doctrine).
+- `references/api-platform.md` — API Platform integration (opt-in).
+- `references/mercure.md` — Mercure real-time refresh: config, auto-resolution, hub protocol dialect (`topic=` vs `match=`/`match_urlpattern=`), publishing on mutations (opt-in).
+- `references/gotchas.md` — common mistakes and fixes.
+
+## Common mistakes (see gotchas.md)
+
+1. Server-side actions do nothing → bundle routes not imported.
+2. Server-side with no Doctrine data → missing `entityClass` in `#[AsDataTable]`.
+3. API Platform / Mercure behavior absent → must opt in explicitly (`apiPlatform: true`, `mercure()`).
+4. Every mutation returns `403` → no voter for `Permission::DT_EDIT_ROW` / `DT_DELETE_ROW` / `DT_VIEW_ROW_DETAILS` (see `references/security.md`). Conversely, imported Ajax routes with no `access_control` rule are open to everyone.

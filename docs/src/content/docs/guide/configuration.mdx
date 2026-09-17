@@ -1,0 +1,293 @@
+---
+title: Configuration
+description: Configure DataTables defaults and bundle options
+order: 20
+---
+
+Configure bundle-wide defaults in `config/packages/data_tables.yaml`.
+
+## Full Configuration Reference
+
+```yaml
+data_tables:
+  max_page_length: 1000
+  options:
+    language: en-GB
+    layout:
+      topStart: pageLength
+      topEnd: search
+      bottomStart: info
+      bottomEnd: paging
+    lengthMenu: [10, 25, 50]
+    pageLength: 10
+    paging:
+      boundaryNumbers: true
+      buttons: 7
+      firstLast: true
+      numbers: true
+      previousNext: true
+  table_attributes:
+    class: 'table'
+  extensions:
+    buttons: [csv, excel, pdf, print]
+    select:
+      style: single
+```
+
+## max_page_length
+
+Upper bound applied to the `length` parameter of every server-side Ajax request, so a crafted
+`length=999999` cannot make a table hydrate its whole dataset.
+
+```yaml
+data_tables:
+  max_page_length: 1000
+```
+
+DataTables sends `length=-1` for its "show all" entry. That is honored only when the table offers
+it, that is when `lengthMenu()` declares `-1`; otherwise the request is served with
+`max_page_length` rows. A negative `start` is clamped to `0`.
+
+```php
+// Show all is honored: this table offers it.
+$table->lengthMenu([10, 25, -1]);
+
+// Show all is capped to max_page_length: this table never offers it.
+$table->lengthMenu([10, 25]);
+```
+
+A page size the table declares itself raises the bound instead of being capped by it, because the
+client paginates with that size: `pageLength()` and the entries of `lengthMenu()` are honored even
+above `max_page_length`. The bound still applies to any other `length` a request carries, and a
+refused "show all" still falls back to `max_page_length`.
+
+```php
+// Served in full: the table asked for these page sizes.
+$table->pageLength(2000)->lengthMenu([500, 2000]);
+```
+
+Exports are not affected: they read every filtered row by design.
+
+## Options
+
+### language
+
+Sets the default language locale for DataTables UI elements. The bundle translates locale codes into the correct CDN URL for DataTables language files.
+
+```yaml
+data_tables:
+  options:
+    language: fr-FR # French
+    # language: de-DE  # German
+    # language: es-ES  # Spanish
+```
+
+**Supported locales**: Any locale supported by [DataTables i18n](https://datatables.net/plug-ins/i18n/).
+
+### layout
+
+Controls the positioning of DataTables UI features. Each position accepts a feature name, an array of features, `null` to hide, or a DataTables feature object.
+
+```yaml
+data_tables:
+  options:
+    layout:
+      topStart: pageLength
+      topEnd: search
+      bottomStart: info
+      bottomEnd: paging
+```
+
+Multi-features per position:
+
+```yaml
+data_tables:
+  options:
+    layout:
+      topEnd: [search, buttons]
+      bottomStart: null
+```
+
+Available positions:
+
+<Table
+  headers={['Position', 'Description']}
+  rows={[
+    ['`topStart`', 'Top-left area'],
+    ['`topEnd`', 'Top-right area'],
+    ['`bottomStart`', 'Bottom-left area'],
+    ['`bottomEnd`', 'Bottom-right area'],
+    ['`top`', 'Full top row'],
+    ['`bottom`', 'Full bottom row'],
+    ['`top2Start`, `top2End`, ...', 'Additional numbered rows'],
+  ]}
+/>
+
+Available features:
+
+<Table
+  headers={['Feature', 'Description']}
+  rows={[
+    ['`pageLength`', 'Page length selector'],
+    ['`search`', 'Global search input'],
+    ['`info`', 'Table info summary'],
+    ['`paging`', 'Pagination controls'],
+    ['`buttons`', 'Buttons extension slot'],
+    ['`searchBuilder`', 'Search builder UI'],
+    ['`searchPanes`', 'Search panes UI'],
+  ]}
+/>
+
+### lengthMenu
+
+Defines the available page length options shown in the dropdown:
+
+```yaml
+data_tables:
+  options:
+    lengthMenu: [10, 25, 50, 100]
+```
+
+You can also provide custom labels:
+
+```php
+// In PHP
+$table->lengthMenu([
+    [10, 25, 50, -1],
+    [10, 25, 50, 'All']
+]);
+```
+
+Declaring `-1` also tells the bundle that an unbounded Ajax page is intentional for this table.
+See [`max_page_length`](#max_page_length).
+
+### pageLength
+
+Sets the initial number of rows displayed:
+
+```yaml
+data_tables:
+  options:
+    pageLength: 25
+```
+
+### paging
+
+Sets the default **paging layout feature** for every table (button count, first/last, …), not the
+top-level DataTables boolean. At render time the bundle injects these keys into unmarked `layout`
+paging slots (`bottomEnd: paging` by default). An explicit `{ paging: { … } }` object in `layout`
+wins and is not overwritten.
+
+Only the keys you declare need to be listed; the others keep their defaults.
+
+```yaml
+data_tables:
+  options:
+    paging:
+      buttons: 5
+      firstLast: false
+```
+
+<Table
+  headers={['Key', 'Default', 'Description']}
+  rows={[
+    ['`boundaryNumbers`', '`true`', 'Always show the first and last page numbers'],
+    ['`buttons`', '`7`', 'Number of page number buttons'],
+    ['`firstLast`', '`true`', 'Show the first and last buttons'],
+    ['`numbers`', '`true`', 'Show the page number buttons'],
+    ['`previousNext`', '`true`', 'Show the previous and next buttons'],
+  ]}
+/>
+
+Override it per table with `$table->paging(...)`, or disable pagination entirely with
+`$table->withoutPaging()`.
+
+## Table Attributes
+
+Default HTML attributes for the generated `<table>` element:
+
+```yaml
+data_tables:
+  table_attributes:
+    class: 'table table-striped table-hover'
+    id: 'my-default-table'
+```
+
+These can be overridden per-table in Twig:
+
+```twig
+{{ render_datatable(table, {'class': 'custom-class'}) }}
+```
+
+## Extensions
+
+Configure default extensions enabled for all tables:
+
+```yaml
+data_tables:
+  extensions:
+    buttons: [csv, excel, pdf, print, copy, colvis]
+    select:
+      style: single # or 'multi'
+```
+
+### Buttons Extension
+
+```yaml
+extensions:
+  buttons:
+    - csv
+    - excel
+    - pdf
+    - print
+    - copy
+    - colvis # Column visibility toggle
+```
+
+### Select Extension
+
+```yaml
+extensions:
+  select:
+    style: single # Single row selection
+    # style: multi  # Multiple row selection
+```
+
+## Per-Table Override
+
+Bundle defaults apply to every table declared as an `AbstractDataTable` class, and can be
+overridden for individual tables:
+
+```php
+use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->pageLength(50)          // Override default 10
+        ->language(Language::DE); // Override default en-GB
+}
+```
+
+## Environment-Specific Configuration
+
+Use Symfony's configuration system for different environments:
+
+```yaml
+# config/packages/data_tables.yaml (default)
+data_tables:
+  options:
+    pageLength: 10
+
+# config/packages/dev/datatables.yaml
+data_tables:
+  options:
+    pageLength: 5  # Smaller for development
+```
+
+<Aside type="tip">
+  All configuration options map directly to [DataTables
+  options](https://datatables.net/reference/option/). Check the official documentation for advanced
+  use cases.
+</Aside>

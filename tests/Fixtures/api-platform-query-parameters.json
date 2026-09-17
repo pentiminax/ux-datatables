@@ -1,0 +1,138 @@
+{
+    "_comment": "Shared cases for the DataTables -> API Platform query translation. Replayed by tests/Unit/ApiPlatform/ApiPlatformQueryParameterSharedCasesTest.php and assets/test/apiPlatformQueryParameterParity.test.ts so the PHP and TypeScript implementations cannot drift apart.",
+    "columns": [
+        {"name": "email", "data": "email", "field": "user.email"},
+        {"name": "createdAt", "data": "createdAt", "field": "user.createdAt"}
+    ],
+    "cases": [
+        {
+            "name": "offset and length become a page number",
+            "params": {"start": 20, "length": 10},
+            "expected": {"page": "3", "itemsPerPage": "10"}
+        },
+        {
+            "name": "the global search is trimmed into q",
+            "params": {"start": 0, "length": 10, "search": {"value": "  alice  "}},
+            "expected": {"page": "1", "itemsPerPage": "10", "q": "alice"}
+        },
+        {
+            "name": "a blank global search is omitted",
+            "params": {"start": 0, "length": 10, "search": {"value": "   "}},
+            "expected": {"page": "1", "itemsPerPage": "10"}
+        },
+        {
+            "name": "every ordered column is kept in priority order",
+            "params": {
+                "start": 0,
+                "length": 10,
+                "columns": [{"name": "email"}, {"name": "createdAt"}],
+                "order": [{"column": 1, "dir": "desc"}, {"column": 0, "dir": "desc"}]
+            },
+            "expected": {
+                "page": "1",
+                "itemsPerPage": "10",
+                "order[user.createdAt]": "desc",
+                "order[user.email]": "desc"
+            }
+        },
+        {
+            "name": "an unknown direction falls back to ascending",
+            "params": {
+                "start": 0,
+                "length": 10,
+                "columns": [{"name": "email"}, {"name": "createdAt"}],
+                "order": [{"column": 0, "dir": "sideways"}]
+            },
+            "expected": {"page": "1", "itemsPerPage": "10", "order[user.email]": "asc"}
+        },
+        {
+            "name": "the ordered column is resolved by name, not by index",
+            "params": {
+                "start": 0,
+                "length": 10,
+                "columns": [{"name": "selection"}, {"name": "email"}, {"name": "createdAt"}],
+                "order": [{"column": 2, "dir": "asc"}]
+            },
+            "expected": {"page": "1", "itemsPerPage": "10", "order[user.createdAt]": "asc"}
+        },
+        {
+            "name": "an order on an unknown column is ignored",
+            "params": {
+                "start": 0,
+                "length": 10,
+                "columns": [{"name": "email"}, {"name": "createdAt"}],
+                "order": [{"column": 9, "dir": "asc"}]
+            },
+            "expected": {"page": "1", "itemsPerPage": "10"}
+        },
+        {
+            "name": "a column search maps onto the column field",
+            "params": {
+                "start": 0,
+                "length": 10,
+                "columns": [
+                    {"name": "email", "search": {"value": "user@example.com"}},
+                    {"name": "createdAt"}
+                ]
+            },
+            "expected": {"page": "1", "itemsPerPage": "10", "user.email": "user@example.com"}
+        },
+        {
+            "name": "a scalar filter is flattened and a blank one dropped",
+            "params": {"start": 0, "length": 10, "filters": {"status": "active", "blank": "  "}},
+            "expected": {"page": "1", "itemsPerPage": "10", "status": "active"}
+        },
+        {
+            "name": "a list filter is indexed without gaps",
+            "params": {"start": 0, "length": 10, "filters": {"roles": ["ROLE_A", "", "ROLE_B"]}},
+            "expected": {
+                "page": "1",
+                "itemsPerPage": "10",
+                "roles[0]": "ROLE_A",
+                "roles[1]": "ROLE_B"
+            }
+        },
+        {
+            "name": "a range filter maps onto after and before",
+            "params": {
+                "start": 0,
+                "length": 10,
+                "filters": {"createdAt": {"from": "2026-01-01", "to": "2026-01-31"}}
+            },
+            "expected": {
+                "page": "1",
+                "itemsPerPage": "10",
+                "createdAt[after]": "2026-01-01",
+                "createdAt[before]": "2026-01-31"
+            }
+        },
+        {
+            "name": "a filter shape that cannot be expressed is dropped",
+            "params": {"start": 0, "length": 10, "filters": {"weird": {"nested": {"deep": "1"}}}},
+            "expected": {"page": "1", "itemsPerPage": "10"}
+        },
+        {
+            "name": "a filter never overwrites a protocol parameter",
+            "params": {
+                "start": 20,
+                "length": 10,
+                "search": {"value": "alice"},
+                "filters": {"page": "99", "itemsPerPage": "5000", "q": "injected"}
+            },
+            "expected": {"page": "3", "itemsPerPage": "10", "q": "alice"}
+        },
+        {
+            "name": "a filter never overwrites a column search",
+            "params": {
+                "start": 0,
+                "length": 10,
+                "columns": [
+                    {"name": "email", "search": {"value": "from-column"}},
+                    {"name": "createdAt"}
+                ],
+                "filters": {"user.email": "from-filter"}
+            },
+            "expected": {"page": "1", "itemsPerPage": "10", "user.email": "from-column"}
+        }
+    ]
+}

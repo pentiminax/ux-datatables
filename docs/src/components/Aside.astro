@@ -1,0 +1,35 @@
+---
+import Icon from './Icon.astro'
+import type { IconName } from './Icon.astro'
+
+type Tone = 'note' | 'tip' | 'warning' | 'danger'
+
+interface Props {
+  /** `caution` is an authoring alias kept for existing pages; it renders as `warning`. */
+  type?: Tone | 'caution'
+  title?: string
+}
+
+const { type = 'note', title } = Astro.props
+const tone: Tone = type === 'caution' ? 'warning' : type
+
+const defaults: Record<Tone, { title: string; icon: IconName }> = {
+  note: { title: 'Note', icon: 'note' },
+  tip: { title: 'Tip', icon: 'tip' },
+  warning: { title: 'Watch out', icon: 'warning' },
+  danger: { title: 'Security', icon: 'danger' },
+}
+
+// Titles name options and functions, so they carry Markdown code spans.
+const segments = (title ?? defaults[tone].title).split('`')
+---
+
+<aside class:list={['aside', `aside-${tone}`]}>
+  <p class="aside-title">
+    <Icon name={defaults[tone].icon} size={18} />
+    {segments.map((segment, i) => (i % 2 === 1 ? <code>{segment}</code> : segment))}
+  </p>
+  <div class="aside-body">
+    <slot />
+  </div>
+</aside>
