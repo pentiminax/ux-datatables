@@ -17,29 +17,46 @@ const LEGACY_TOPIC_PARAMETER = 'topic'
 const EXACT_MATCH_PARAMETER = 'match'
 const URL_PATTERN_MATCH_PARAMETER = 'match_urlpattern'
 
-/** A `{placeholder}` with a simple name, the only URI Template shape a URL Pattern can express. */
-const NAMED_PLACEHOLDER = /\{([^{}]*)\}/g
-const PLACEHOLDER_NAME = /^[A-Za-z_][A-Za-z0-9_-]*$/
+/** A `{placeholder}` in a topic, i.e. one RFC 6570 expression. */
+const PLACEHOLDER = /\{([^{}]*)\}/g
 
 /**
- * Rewrites a URI Template topic into the equivalent URL Pattern (`/books/{id}` -> `/books/:id`),
- * or returns null when the topic is not a plain named-variable template.
+ * One RFC 6570 variable specifier: a variable name (dot-separated varchars, `ALPHA / DIGIT / "_" /
+ * pct-encoded`) with the optional level-4 modifier (`:3` prefix length or `*` explode).
+ */
+const VARIABLE_SPEC =
+    /^(?:[A-Za-z0-9_]|%[0-9A-Fa-f]{2})(?:(?:[A-Za-z0-9_]|%[0-9A-Fa-f]{2})|\.(?:[A-Za-z0-9_]|%[0-9A-Fa-f]{2}))*(?::[1-9][0-9]{0,3}|\*)?$/
+
+/**
+ * Whether an expression is a comma-separated list of variable specifiers, which is the only URI
+ * Template shape that expands inside a single path segment. Anything with an operator (`{?q}`,
+ * `{+path}`, `{/segments}`) changes the shape of the URL and has no URL Pattern equivalent.
+ */
+function isSimpleVariableList(expression: string): boolean {
+    return expression.split(',').every((specifier) => VARIABLE_SPEC.test(specifier))
+}
+
+/**
+ * Rewrites a URI Template topic into the equivalent URL Pattern (`/books/{id}` -> `/books/:p0`),
+ * or returns null when the topic is not a template of simple variable expressions.
  *
- * URL Patterns have no equivalent for the RFC 6570 operators (`{?q}`, `{+var}`, `{/path}`...), and
- * rewriting only part of a topic would leave a pattern the hub rejects with a 400. Those topics are
- * reported as "not a pattern" so the caller can fall back to an exact match.
+ * Group names are generated rather than derived from the variable names. RFC 6570 variable names are
+ * not all valid URL Pattern group names — `{book.id}` parses as something else entirely, `{1}`
+ * throws — and a repeated variable would re-use a group name, which URL Patterns reject. Nothing
+ * reads the group names back, so a fresh one per expression is both correct and safe.
  */
 export function toUrlPattern(topic: string): string | null {
+    let index = 0
     let supported = true
 
-    const pattern = topic.replace(NAMED_PLACEHOLDER, (placeholder: string, name: string) => {
-        if (!PLACEHOLDER_NAME.test(name)) {
+    const pattern = topic.replace(PLACEHOLDER, (placeholder: string, expression: string) => {
+        if (!isSimpleVariableList(expression)) {
             supported = false
 
             return placeholder
         }
 
-        return `:${name}`
+        return `:p${index++}`
     })
 
     return supported && pattern !== topic ? pattern : null

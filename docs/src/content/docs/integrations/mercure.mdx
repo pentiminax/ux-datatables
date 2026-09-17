@@ -47,7 +47,8 @@ mercure:
 ```
 
 Topics keep their existing syntax. On a 1.0 hub a topic containing a `{name}` placeholder is sent as
-the equivalent URL Pattern (`/api/books/{id}` becomes `match_urlpattern=/api/books/:id`); a topic
+the equivalent URL Pattern (`/api/books/{id}` becomes `match_urlpattern=/api/books/:p0`; the group
+name is generated because RFC 6570 variable names are not all valid URL Pattern group names); a topic
 without a placeholder is sent as `match=<topic>`. A URL Pattern group also matches the literal
 placeholder, so both publishers that publish the template (`/api/books/{id}` — API Platform's
 behaviour, and this bundle's own publish path) and publishers that publish concrete topics

@@ -2,16 +2,20 @@ const LEGACY_PROTOCOL_VERSION = '0.x';
 const LEGACY_TOPIC_PARAMETER = 'topic';
 const EXACT_MATCH_PARAMETER = 'match';
 const URL_PATTERN_MATCH_PARAMETER = 'match_urlpattern';
-const NAMED_PLACEHOLDER = /\{([^{}]*)\}/g;
-const PLACEHOLDER_NAME = /^[A-Za-z_][A-Za-z0-9_-]*$/;
+const PLACEHOLDER = /\{([^{}]*)\}/g;
+const VARIABLE_SPEC = /^(?:[A-Za-z0-9_]|%[0-9A-Fa-f]{2})(?:(?:[A-Za-z0-9_]|%[0-9A-Fa-f]{2})|\.(?:[A-Za-z0-9_]|%[0-9A-Fa-f]{2}))*(?::[1-9][0-9]{0,3}|\*)?$/;
+function isSimpleVariableList(expression) {
+    return expression.split(',').every((specifier) => VARIABLE_SPEC.test(specifier));
+}
 export function toUrlPattern(topic) {
+    let index = 0;
     let supported = true;
-    const pattern = topic.replace(NAMED_PLACEHOLDER, (placeholder, name) => {
-        if (!PLACEHOLDER_NAME.test(name)) {
+    const pattern = topic.replace(PLACEHOLDER, (placeholder, expression) => {
+        if (!isSimpleVariableList(expression)) {
             supported = false;
             return placeholder;
         }
-        return `:${name}`;
+        return `:p${index++}`;
     });
     return supported && pattern !== topic ? pattern : null;
 }
