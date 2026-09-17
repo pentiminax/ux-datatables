@@ -411,6 +411,39 @@ Two things to check on the hub side when moving to 1.0: `jwt.claims` is required
 hub refuses to compile without it), and the subscriber cookie becomes `__Secure-mercure_access_token`,
 so private topics need `withCredentials: true` on the table **and** an HTTPS hub URL.
 
+### Mercure auto-resolved topics are absolute
+
+An auto-resolved topic now carries the absolute URL API Platform publishes, built from the routing
+request context (scheme, host, port, front-controller base path) exactly like the URL generator the
+publisher uses:
+
+| Situation | Topic before | Topic now |
+| --- | --- | --- |
+| Hub sharing the API's host | `/api/books/{id}` | `https://api.example.com/api/books/{id}` |
+| Hub on another host | `/api/books/{id}` — never matched | `https://api.example.com/api/books/{id}` |
+
+Both forms cover the same publication on a hub sharing the API's host; on another host the relative
+topic was resolved against the hub's own URL and matched nothing, so live updates silently never
+arrived.
+
+- A plain topic declared in `mercure: ['topics' => [...]]` is still reused verbatim. Declaring the
+  absolute form stays the escape hatch for a topic of your own.
+- `'@=iri(object)'` is recognised explicitly and resolves to the item topic. Every other `@=`
+  expression topic is dropped with a logged warning instead of silently subscribing to the item
+  route path.
+- The item topic is read off a non-collection operation, preferring one whose route template carries
+  a variable, so a resource declaring a collection-shaped template first cannot degrade the topic.
+- Without a routing context (a CLI command, a kernel without the router) topics stay relative, and
+  the bundle's own `/datatables/.../{id}` fallback topic is made absolute the same way when a
+  context exists.
+
+Two constructors gained an optional argument, both appended last:
+
+| Changed | Appended argument |
+| --- | --- |
+| `ApiPlatform\ApiResourceMercureMetadataResolver::__construct()` | `?Mercure\MercureTopicUrlResolver`, then `?Psr\Log\LoggerInterface` |
+| `Mercure\MercureConfigResolver::__construct()` | `?Mercure\MercureTopicUrlResolver` |
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`
