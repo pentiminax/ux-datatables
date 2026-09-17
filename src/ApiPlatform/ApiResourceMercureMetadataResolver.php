@@ -6,7 +6,6 @@ namespace Pentiminax\UX\DataTables\ApiPlatform;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\CollectionOperationInterface;
-use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\HttpOperation;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicUrlResolver;
@@ -61,16 +60,24 @@ class ApiResourceMercureMetadataResolver
     }
 
     /**
-     * `@=iri(object)` expands through the item GET operation, which therefore beats any other
-     * variable-bearing operation a resource may declare before it.
+     * Mirrors the operation API Platform itself generates the item IRI from, so the subscription
+     * cannot name a topic the publisher never uses: `IriConverter::getIriFromResource()` asks for
+     * `ResourceMetadataCollection::getOperation(null, false, true)`, which takes the first
+     * non-collection operation whose HTTP method is GET, HEAD or OPTIONS, in declaration order.
+     *
+     * The rule is the method, not the operation class and not the shape of the template: a custom
+     * `HttpOperation(method: 'GET')` counts, a variable-less template still wins if it comes first,
+     * and a resource without such an operation has no item IRI at all — API Platform throws
+     * OperationNotFoundException rather than publishing one, so null is the honest answer.
      */
     private function resolveItemPath(ApiResource $resource, string $resourceRoutePrefix): ?string
     {
-        $templated = null;
-        $fallback  = null;
-
         foreach ($resource->getOperations() ?? [] as $operation) {
             if (!$operation instanceof HttpOperation || $operation instanceof CollectionOperationInterface) {
+                continue;
+            }
+
+            if (!\in_array($operation->getMethod(), ['GET', 'HEAD', 'OPTIONS'], true)) {
                 continue;
             }
 
@@ -86,20 +93,10 @@ class ApiResourceMercureMetadataResolver
                 continue;
             }
 
-            if (!preg_match('/\{[^}]+}/', $path)) {
-                $fallback ??= $path;
-
-                continue;
-            }
-
-            if ($operation instanceof Get) {
-                return $path;
-            }
-
-            $templated ??= $path;
+            return $path;
         }
 
-        return $templated ?? $fallback;
+        return null;
     }
 
     /**
