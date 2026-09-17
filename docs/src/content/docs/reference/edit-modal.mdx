@@ -35,7 +35,7 @@ public function configureActions(Actions $actions): Actions
 }
 ```
 
-The Stimulus controller detects the CSS framework on page load. When no Bootstrap stylesheet is found, it falls back to `dt` and uses the built-in `DialogModalAdapter` with the default `@DataTables/modal/datatables/` Twig template.
+The Stimulus controller detects the CSS framework on page load. When no Bootstrap stylesheet is found, it falls back to `dt` and uses the built-in `DialogModalAdapter` with the default `@PentiminaxDataTables/modal/datatables/` Twig template.
 
 ## Bootstrap Projects
 
@@ -45,8 +45,8 @@ When Bootstrap 5 CSS is detected, the `BootstrapModalAdapter` is used automatica
 # config/packages/data_tables.yaml
 data_tables:
   edit_modal:
-    template: '@DataTables/modal/bs5/edit_modal.html.twig'
-    body_template: '@DataTables/modal/bs5/_form_body.html.twig'
+    template: '@PentiminaxDataTables/modal/bs5/edit_modal.html.twig'
+    body_template: '@PentiminaxDataTables/modal/bs5/_form_body.html.twig'
 ```
 
 ## Tailwind / Custom CSS
@@ -91,8 +91,8 @@ Override the edit modal Twig template globally or per table.
 # config/packages/data_tables.yaml
 data_tables:
   edit_modal:
-    template: '@DataTables/modal/datatables/edit_modal.html.twig'
-    body_template: '@DataTables/modal/datatables/_form_body.html.twig'
+    template: '@PentiminaxDataTables/modal/datatables/edit_modal.html.twig'
+    body_template: '@PentiminaxDataTables/modal/datatables/_form_body.html.twig'
     default_title: 'Edit'
 ```
 

@@ -30,7 +30,7 @@ use Symfony\Component\HttpFoundation\Request;
  * extensions, and options, from which the runtime builds rendering payloads and Ajax responses.
  *
  * setDataTableInfrastructure() must run before any accessor. Symfony's autoconfiguration calls it
- * on every subclass (see DataTablesBundle::loadExtension()); an instance built by hand falls back
+ * on every subclass (see PentiminaxDataTablesBundle::loadExtension()); an instance built by hand falls back
  * to {@see DataTableInfrastructure::createDefault()}, which has no profiler, no Twig, and no
  * bundle-wide `data_tables` defaults. Calling it once the table has initialized throws
  * \LogicException, so it can never swap the infrastructure a table was already configured with.

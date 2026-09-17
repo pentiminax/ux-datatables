@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
-use Pentiminax\UX\DataTables\DataTablesBundle;
+use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\MercureBundle\MercureBundle;
@@ -25,7 +25,7 @@ class ProfilerPanelAppKernel extends Kernel
 
     public function registerBundles(): iterable
     {
-        return [new FrameworkBundle(), new TwigBundle(), new StimulusBundle(), new DataTablesBundle(), new MercureBundle(), new WebProfilerBundle()];
+        return [new FrameworkBundle(), new TwigBundle(), new StimulusBundle(), new PentiminaxDataTablesBundle(), new MercureBundle(), new WebProfilerBundle()];
     }
 
     public function getCacheDir(): string
