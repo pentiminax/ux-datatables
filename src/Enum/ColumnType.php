@@ -1,0 +1,31 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Enum;
+
+enum ColumnType: string
+{
+    case DATE         = 'date';
+    case NUM          = 'num';
+    case NUM_FMT      = 'num-fmt';
+    case HTML_NUM     = 'html-num';
+    case HTML_NUM_FMT = 'html-num-fmt';
+    case HTML_UTF8    = 'html-utf8';
+    case HTML         = 'html';
+    case STRING_UTF8  = 'string-utf8';
+    case STRING       = 'string';
+
+    public function isNumber(): bool
+    {
+        return match ($this) {
+            self::NUM, self::NUM_FMT, self::HTML_NUM, self::HTML_NUM_FMT => true,
+            default                                                      => false,
+        };
+    }
+
+    public function isDate(): bool
+    {
+        return self::DATE === $this;
+    }
+}

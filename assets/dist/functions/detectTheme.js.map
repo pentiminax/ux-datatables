@@ -1,0 +1,1 @@
+{"version":3,"file":"detectTheme.js","sourceRoot":"","sources":["../../src/functions/detectTheme.ts"],"names":[],"mappings":"AAUA,MAAM,UAAU,WAAW;IACvB,MAAM,KAAK,GAAG,gBAAgB,CAAC,QAAQ,CAAC,eAAe,CAAC,CAAC,gBAAgB,CAAC,eAAe,CAAC,CAAC,IAAI,EAAE,CAAA;IAEjG,OAAO,KAAK,KAAK,UAAU,CAAC,CAAC,CAAC,UAAU,CAAC,CAAC,CAAC,IAAI,CAAA;AACnD,CAAC"}

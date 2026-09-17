@@ -1,0 +1,305 @@
+{
+  "schemaVersion": 2,
+  "name": "UX DataTables Documentation",
+  "description": "The documentation site for a Symfony bundle that renders DataTables.net grids from a PHP class.",
+  "colors": {
+    "indigo-accent": "#4a46c4",
+    "indigo-accent-hover": "#3c39a3",
+    "indigo-surface": "#eff0fb",
+    "indigo-border": "#c2c2ef",
+    "amber-focus": "#f4d35e",
+    "amber-warm": "#a17c11",
+    "symfony-crimson": "#c62734",
+    "teal-tip": "#0a6350",
+    "slate-page": "#f7f9fc",
+    "slate-surface": "#ffffff",
+    "slate-rule": "#e3e9f2",
+    "slate-text": "#1a2233",
+    "slate-muted": "#5a6880",
+    "slate-subtle": "#7b8aa5",
+    "slate-code": "#0b1020"
+  },
+  "typography": {
+    "display": {
+      "fontFamily": "'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif",
+      "fontSize": "clamp(2.4rem, 1.7rem + 3.4vw, 4rem)",
+      "fontWeight": 700,
+      "lineHeight": 1.08,
+      "letterSpacing": "-0.022em"
+    },
+    "headline": {
+      "fontFamily": "'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif",
+      "fontSize": "clamp(1.5rem, 1.34rem + 0.8vw, 1.9rem)",
+      "fontWeight": 700,
+      "lineHeight": 1.3,
+      "letterSpacing": "-0.012em"
+    },
+    "title": {
+      "fontFamily": "'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif",
+      "fontSize": "clamp(1.25rem, 1.19rem + 0.3vw, 1.4rem)",
+      "fontWeight": 700,
+      "lineHeight": 1.3
+    },
+    "body": {
+      "fontFamily": "'Source Sans 3', ui-sans-serif, system-ui, sans-serif",
+      "fontSize": "1.0625rem",
+      "fontWeight": 400,
+      "lineHeight": 1.72
+    },
+    "label": {
+      "fontFamily": "'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif",
+      "fontSize": "0.6875rem",
+      "fontWeight": 700,
+      "lineHeight": 1.3,
+      "letterSpacing": "0.06em"
+    },
+    "code": {
+      "fontFamily": "'JetBrains Mono', ui-monospace, 'SF Mono', monospace",
+      "fontSize": "0.875rem",
+      "fontWeight": 400,
+      "lineHeight": 1.5
+    }
+  },
+  "rounded": {
+    "sm": "0.375rem",
+    "md": "0.625rem",
+    "lg": "1rem",
+    "full": "999px"
+  },
+  "spacing": {
+    "1": "0.25rem",
+    "2": "0.5rem",
+    "3": "0.75rem",
+    "4": "1rem",
+    "5": "1.25rem",
+    "6": "1.5rem",
+    "8": "2rem",
+    "10": "2.5rem",
+    "12": "3rem",
+    "16": "4rem",
+    "20": "5rem",
+    "24": "6rem"
+  },
+  "components": {
+    "button-primary": {
+      "backgroundColor": "{colors.indigo-accent}",
+      "textColor": "#ffffff",
+      "rounded": "{rounded.md}",
+      "padding": "0 1.25rem",
+      "height": "2.75rem",
+      "typography": "{typography.body}"
+    },
+    "button-primary-hover": {
+      "backgroundColor": "{colors.indigo-accent-hover}",
+      "textColor": "#ffffff"
+    },
+    "button-secondary": {
+      "backgroundColor": "{colors.slate-surface}",
+      "textColor": "{colors.slate-text}",
+      "rounded": "{rounded.md}",
+      "padding": "0 1.25rem",
+      "height": "2.75rem"
+    },
+    "nav-item": {
+      "backgroundColor": "transparent",
+      "textColor": "{colors.slate-muted}",
+      "rounded": "{rounded.sm}",
+      "padding": "0.5rem 0.75rem",
+      "typography": "{typography.body}"
+    },
+    "nav-item-current": {
+      "backgroundColor": "{colors.indigo-surface}",
+      "textColor": "{colors.indigo-accent}"
+    },
+    "search-result-selected": {
+      "backgroundColor": "{colors.indigo-surface}",
+      "textColor": "{colors.slate-text}",
+      "rounded": "{rounded.md}",
+      "padding": "0.75rem"
+    },
+    "aside-note": {
+      "backgroundColor": "{colors.indigo-surface}",
+      "textColor": "{colors.slate-text}",
+      "rounded": "{rounded.md}",
+      "padding": "1rem 1.25rem"
+    }
+  },
+  "extensions": {
+    "colorMeta": {
+      "ramps": {
+        "indigo": {
+          "50": "#eff0fb",
+          "100": "#dfdff7",
+          "200": "#c2c2ef",
+          "300": "#9e9ee5",
+          "400": "#7c7cdc",
+          "500": "#5b5bd6",
+          "600": "#4a46c4",
+          "700": "#3c39a3",
+          "800": "#2e2c7c",
+          "900": "#23225e",
+          "950": "#1a1944"
+        },
+        "amber": {
+          "50": "#fdf9e9",
+          "100": "#fbf1c9",
+          "300": "#f8e39b",
+          "500": "#f4d35e",
+          "600": "#d9b02f",
+          "700": "#a17c11",
+          "800": "#6f550a"
+        },
+        "crimson": {
+          "500": "#e23845",
+          "600": "#c62734"
+        },
+        "teal": {
+          "500": "#109e7a",
+          "700": "#0a6350"
+        },
+        "slate": {
+          "0": "#ffffff",
+          "25": "#f7f9fc",
+          "50": "#eff3f9",
+          "100": "#e3e9f2",
+          "200": "#cbd4e3",
+          "300": "#a6b2c8",
+          "400": "#7b8aa5",
+          "500": "#5a6880",
+          "600": "#414d63",
+          "700": "#2b3549",
+          "800": "#1a2233",
+          "850": "#141b2a",
+          "900": "#0f1524",
+          "950": "#0b1020"
+        }
+      },
+      "roles": {
+        "accent": "indigo — every interactive commitment; the only saturated color at rest",
+        "focus": "amber — the focus halo only, never a surface, border, or text color",
+        "citation": "crimson — used where Symfony itself is meant, and for danger asides",
+        "guide": "teal — tip asides only",
+        "neutral": "slate — page field, surfaces, rules, and the three-step text ramp"
+      },
+      "themes": {
+        "light": {
+          "bg": "#f7f9fc",
+          "surface": "#ffffff",
+          "surfaceRaised": "#ffffff",
+          "border": "#e3e9f2",
+          "rule": "#e3e9f2",
+          "rowHover": "#eff0fb",
+          "headerFreeze": "#eff3f9",
+          "text": "#1a2233",
+          "textMuted": "#5a6880",
+          "textSubtle": "#7b8aa5",
+          "codeBg": "#0b1020"
+        },
+        "dark": {
+          "bg": "#0b1020",
+          "surface": "#141b2a",
+          "surfaceRaised": "#1a2233",
+          "border": "#232d42",
+          "rule": "#1c2437",
+          "rowHover": "#1b1e3a",
+          "headerFreeze": "#0f1524",
+          "text": "#e3e9f2",
+          "textMuted": "#a6b2c8",
+          "textSubtle": "#7b8aa5",
+          "codeBg": "#0b1020"
+        }
+      }
+    },
+    "shadows": {
+      "1": "0 1px 2px rgb(15 21 36 / 0.06), 0 1px 3px rgb(15 21 36 / 0.05)",
+      "2": "0 2px 4px rgb(15 21 36 / 0.05), 0 8px 18px -6px rgb(15 21 36 / 0.12)",
+      "3": "0 4px 8px rgb(15 21 36 / 0.06), 0 22px 48px -12px rgb(15 21 36 / 0.22)",
+      "usage": "Shadow is reserved for elements out of the document flow: 1 = the demonstrative sample table, 2 = the mobile drawer, 3 = the search dialog. Structure is drawn with 1px rules."
+    },
+    "motion": {
+      "easing": {
+        "out": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "inOut": "cubic-bezier(0.65, 0, 0.35, 1)"
+      },
+      "duration": {
+        "fast": "120ms",
+        "base": "220ms",
+        "slow": "520ms"
+      },
+      "signature": "row-settle: after a sort, sample-table rows re-enter with a 45ms-per-row stagger. Every animation is gated behind prefers-reduced-motion: no-preference.",
+      "focusRing": "2px solid var(--focus) at 2px offset, over an amber halo: color-mix(in srgb, var(--amber-500) 55%, transparent)"
+    },
+    "breakpoints": {
+      "600": "The sample table drops its least important column.",
+      "1000": "The sidebar becomes a <dialog> drawer, opened from a sticky bar showing Section / Page.",
+      "1180": "The table of contents collapses into a <details> panel under the header.",
+      "layout": {
+        "max": "82rem",
+        "prose": "46rem",
+        "sidebar": "16rem",
+        "toc": "14rem",
+        "header": "4rem"
+      }
+    },
+    "components": {
+      "ds-button": {
+        "description": "Primary and secondary action. Primary is the only filled accent surface on a page.",
+        "html": "<a class=\"ds-button\" href=\"#\">Get started</a>\n<a class=\"ds-button ds-button-secondary\" href=\"#\">Browse the reference</a>",
+        "css": ".ds-button {\n  align-items: center;\n  background: #4a46c4;\n  border: 1px solid transparent;\n  border-radius: 0.625rem;\n  color: #ffffff;\n  display: inline-flex;\n  font-family: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;\n  font-weight: 600;\n  gap: 0.5rem;\n  min-height: 2.75rem;\n  padding-inline: 1.25rem;\n  text-decoration: none;\n  transition: background 120ms cubic-bezier(0.16, 1, 0.3, 1);\n}\n.ds-button:hover { background: #3c39a3; }\n.ds-button:active { transform: translateY(1px); }\n.ds-button-secondary {\n  background: #ffffff;\n  border-color: #cbd4e3;\n  color: #1a2233;\n}\n.ds-button-secondary:hover { background: #eff3f9; border-color: #c2c2ef; }"
+      },
+      "ds-nav-item": {
+        "description": "A sidebar row. The current page is marked like a selected table row: indigo wash plus a solid inset marker at the start of the line.",
+        "html": "<nav class=\"ds-nav\">\n  <p class=\"ds-nav-heading\">Columns</p>\n  <a class=\"ds-nav-item\" href=\"#\">Overview</a>\n  <a class=\"ds-nav-item\" href=\"#\" aria-current=\"page\">Money column</a>\n  <a class=\"ds-nav-item\" href=\"#\">Date column</a>\n</nav>",
+        "css": ".ds-nav { display: flex; flex-direction: column; gap: 0.125rem; width: 16rem; }\n.ds-nav-heading {\n  color: #7b8aa5;\n  font-family: 'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif;\n  font-size: 0.6875rem;\n  font-weight: 700;\n  letter-spacing: 0.06em;\n  margin: 0 0 0.5rem;\n  text-transform: uppercase;\n}\n.ds-nav-item {\n  border-radius: 0.375rem;\n  color: #5a6880;\n  font-family: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;\n  font-size: 0.9375rem;\n  padding: 0.5rem 0.75rem;\n  text-decoration: none;\n}\n.ds-nav-item:hover { background: #eff3f9; color: #1a2233; }\n.ds-nav-item[aria-current='page'] {\n  background: #eff0fb;\n  box-shadow: inset 2px 0 0 #4a46c4;\n  color: #4a46c4;\n  font-weight: 600;\n}"
+      },
+      "ds-search-result": {
+        "description": "One option row of the search dialog: title, uppercase section badge, two-line clamped excerpt. Selection reuses the current-row wash.",
+        "html": "<ul class=\"ds-search-results\" role=\"listbox\">\n  <li><a class=\"ds-search-result\" role=\"option\" aria-selected=\"true\" href=\"#\">\n    <span class=\"ds-search-result-title\">Money column <span class=\"ds-search-result-section\">Columns</span></span>\n    <span class=\"ds-search-result-excerpt\">Render an amount with its currency, formatted for the request locale.</span>\n  </a></li>\n</ul>",
+        "css": ".ds-search-results { list-style: none; margin: 0; padding: 0.5rem; }\n.ds-search-result {\n  border-radius: 0.625rem;\n  color: #1a2233;\n  display: flex;\n  flex-direction: column;\n  gap: 0.25rem;\n  padding: 0.75rem;\n  text-decoration: none;\n}\n.ds-search-result[aria-selected='true'] { background: #eff0fb; }\n.ds-search-result-title {\n  font-family: 'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif;\n  font-weight: 700;\n}\n.ds-search-result-section {\n  background: #ffffff;\n  border: 1px solid #e3e9f2;\n  border-radius: 999px;\n  color: #5a6880;\n  font-size: 0.6875rem;\n  letter-spacing: 0.06em;\n  padding: 0.1rem 0.5rem;\n  text-transform: uppercase;\n}\n.ds-search-result-excerpt {\n  -webkit-box-orient: vertical;\n  -webkit-line-clamp: 2;\n  color: #5a6880;\n  display: -webkit-box;\n  font-family: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;\n  font-size: 0.9375rem;\n  overflow: hidden;\n}"
+      },
+      "ds-aside": {
+        "description": "Callout in four tones — note (indigo), tip (teal), warning (amber), danger (crimson). The title is an uppercase micro-label.",
+        "html": "<div class=\"ds-aside\">\n  <p class=\"ds-aside-title\">Note</p>\n  <p>Server-side tables fetch rows through the bundle's Ajax route.</p>\n</div>\n<div class=\"ds-aside ds-aside-warning\">\n  <p class=\"ds-aside-title\">Warning</p>\n  <p>A table token is not authentication. Protect the route with Symfony Security.</p>\n</div>",
+        "css": ".ds-aside {\n  background: #eff0fb;\n  border: 1px solid #c2c2ef;\n  border-radius: 0.625rem;\n  color: #1a2233;\n  font-family: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;\n  padding: 1rem 1.25rem;\n}\n.ds-aside p { margin: 0.25rem 0; }\n.ds-aside-title {\n  color: #3c39a3;\n  font-family: 'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif;\n  font-size: 0.6875rem;\n  font-weight: 700;\n  letter-spacing: 0.06em;\n  text-transform: uppercase;\n}\n.ds-aside-warning { background: #fdf9e9; border-color: #d9b02f; }\n.ds-aside-warning .ds-aside-title { color: #6f550a; }"
+      },
+      "ds-table": {
+        "description": "The vocabulary the whole site borrows: uppercase header labels on the frozen-header tone, a structural underline, hover-only zebra.",
+        "html": "<table class=\"ds-table\">\n  <thead><tr><th scope=\"col\">Reference</th><th scope=\"col\">Customer</th><th scope=\"col\">Total</th></tr></thead>\n  <tbody>\n    <tr><td>INV-1043</td><td>Aurore Marchand</td><td>1 240,00 €</td></tr>\n    <tr><td>INV-1044</td><td>Le Comptoir</td><td>318,50 €</td></tr>\n  </tbody>\n</table>",
+        "css": ".ds-table {\n  border-collapse: collapse;\n  font-family: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;\n  width: 100%;\n}\n.ds-table th {\n  background: #eff3f9;\n  border-bottom: 1px solid #cbd4e3;\n  color: #5a6880;\n  font-family: 'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif;\n  font-size: 0.6875rem;\n  letter-spacing: 0.06em;\n  padding: 0.75rem 1rem;\n  text-align: left;\n  text-transform: uppercase;\n}\n.ds-table td {\n  border-bottom: 1px solid #e3e9f2;\n  color: #1a2233;\n  padding: 0.75rem 1rem;\n}\n.ds-table tbody tr:hover { background: #eff0fb; }"
+      },
+      "ds-doc-heading": {
+        "description": "A prose section opening: a 1px rule, generous air, and a hover-revealed anchor rendered from CSS rather than a text node.",
+        "html": "<h2 class=\"ds-doc-heading\" id=\"filters\">Filters <a class=\"ds-heading-anchor\" href=\"#filters\" aria-label=\"Link to this section\"></a></h2>",
+        "css": ".ds-doc-heading {\n  border-top: 1px solid #e3e9f2;\n  color: #1a2233;\n  font-family: 'Familjen Grotesk', ui-sans-serif, system-ui, sans-serif;\n  font-size: clamp(1.5rem, 1.34rem + 0.8vw, 1.9rem);\n  margin: 4rem 0 1rem;\n  padding-top: 2rem;\n}\n.ds-heading-anchor {\n  color: #7b8aa5;\n  margin-left: 0.5rem;\n  opacity: 0;\n  text-decoration: none;\n  transition: opacity 120ms cubic-bezier(0.16, 1, 0.3, 1);\n}\n.ds-heading-anchor::after { content: '#'; }\n.ds-doc-heading:hover .ds-heading-anchor,\n.ds-heading-anchor:focus-visible { opacity: 1; }\n@media (hover: none) { .ds-heading-anchor { opacity: 1; } }"
+      }
+    },
+    "narrative": {
+      "northStar": "The Well-Composed Table — the site borrows the vocabulary of the thing it documents: a strict grid, a frozen header, an active row, a sort direction, so the reader is already inside a DataTable while reading about one.",
+      "namedRules": {
+        "The One Accent Rule": "Indigo is the only saturated color on a page at rest. Amber may not paint a surface, a border, or text — it exists as the focus halo. Crimson appears only where Symfony is the subject.",
+        "The Two-Theme Rule": "Dark is declared twice: once as @media (prefers-color-scheme: dark) :root:not([data-theme='light']) for visitors before the theme script runs or with JavaScript off, once as :root[data-theme='dark'] so the toggle wins in both directions. A color defined in only one of the two is a bug.",
+        "The Primitive Containment Rule": "Ramps are referenced only inside tokens.css. Every other file reads semantic tokens, so a theme change is a one-file change.",
+        "The Single H1 Rule": "The h1 and the one-line summary come from frontmatter and are rendered once by the layout. No page body writes its own title; the build test asserts exactly one h1 per page.",
+        "The Column-Header Rule": "Uppercase, wide-tracked micro-type is how the site says 'this labels a group' — sidebar sections, aside kinds, table headers. It is never used for a sentence.",
+        "The Rule-Over-Shadow Rule": "Structure is drawn with 1px solid var(--rule). A shadow is only allowed on something that has actually left the flow — dialog, drawer, or the one demonstrative table."
+      },
+      "dos": [
+        "Draw structure with 1px solid var(--rule) and tone changes, the way the site's own three-column shell is drawn.",
+        "Read semantic tokens (--accent, --text-muted, --rule) in every file except tokens.css.",
+        "Declare a new themed color in all three places: light :root, the prefers-color-scheme: dark block, and :root[data-theme='dark'].",
+        "Ship behavior that degrades: content, navigation, theme, and tables must work with JavaScript disabled, and enhancement controls are injected by script rather than authored dead in the markup.",
+        "Keep the accent for interaction and position; a decorative use of indigo weakens every functional one.",
+        "Gate motion behind prefers-reduced-motion: no-preference."
+      ],
+      "donts": [
+        "Add a shadow to something that has not left the document flow.",
+        "Use a grid of same-size icon-and-heading cards as page structure; sections are entered through lists of their real pages.",
+        "Paint with amber. It is the focus halo and warning tone, nothing else.",
+        "Use crimson except where Symfony itself is the subject, or for a danger aside.",
+        "Hardcode the site's base path in a link; withBase() owns it, and authored MDX links stay root-relative.",
+        "Write an h1 in page content — the layout renders the frontmatter title once.",
+        "Introduce permanent zebra striping or a second accent hue to add 'variety' to a dense page; density is carried by rules and spacing."
+      ]
+    }
+  }
+}

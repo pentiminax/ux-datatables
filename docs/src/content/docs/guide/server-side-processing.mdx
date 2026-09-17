@@ -1,0 +1,346 @@
+---
+title: Server-Side Processing
+description: Handle pagination, search, and ordering in your Symfony backend
+order: 70
+---
+
+Move filtering, ordering, and paging to the backend for large datasets.
+
+## Minimal Setup
+
+When a reusable `AbstractDataTable` enables server-side processing and does not define its own
+Ajax source, UX DataTables wires the bundle Ajax endpoint automatically:
+
+```php
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+protected function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->serverSide()
+        ->processing();
+}
+```
+
+The rendered table will call the built-in `ux_datatables_ajax_data` route. The request includes an
+opaque table token, not the PHP class name, and the bundle resolves the matching tagged
+`AbstractDataTable` service before calling `handleRequest()` internally.
+
+Make sure the bundle routes are imported once in your app:
+
+```php
+// config/routes/ux_datatables.php
+use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
+
+return static function (RoutingConfigurator $routes): void {
+    $routes->import('@DataTablesBundle/config/routes.php');
+};
+```
+
+<Aside type="danger" title="Protect these routes">
+  The table token in the request identifies **which** table is requested, not **who** is requesting
+  it — it is not a user-authentication mechanism. If a table sits behind a firewall, you must also
+  cover the `^/datatables/ajax` routes with a matching `access_control` rule, or the data can be
+  fetched by anyone holding the token. See [Securing Ajax Routes](../../getting-started/security/).
+</Aside>
+
+Use an explicit `ajax()` URL when the endpoint is not an `AbstractDataTable` service, when you want a
+custom route, or when you are using a plain `DataTable` instance:
+
+```php
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+$dataTable = new DataTable('products');
+$dataTable
+    ->ajax('/api/products')
+    ->serverSide()
+    ->processing();
+```
+
+## How Request Handling Works
+
+`ajax()` defaults to a `GET` request. DataTables sends server-side parameters such as `draw`,
+`start`, `length`, `search`, and `order` to that URL, and `DataTableRequest::fromRequest()` reads
+them from the query string.
+
+Pass a different `type` to use another HTTP method — `DataTableRequest::fromRequest()` reads from
+whichever bag DataTables' own client-side `ajax()` helper puts that method's parameters in, so no
+other configuration is needed:
+
+```php
+$dataTable->ajax('/api/products', type: 'POST');
+```
+
+`POST`, `PUT`, and `PATCH` send parameters as the request body. `DELETE` is the one exception:
+DataTables moves `DELETE`'s parameters onto the URL by default, since some servers reject a
+request body on `DELETE` — so a `DELETE` table still reads from the query string, the same as
+`GET`. (This only changes if the app explicitly sets `ajax.deleteBody = false` through raw
+JavaScript configuration, which the bundle's `ajax()` option has no PHP-level equivalent for.)
+
+Symfony's routing must allow the configured method on that route (add it to `methods:` if the
+route currently only allows `GET`) — the bundle only handles which request bag it reads from, not
+which methods the route accepts.
+
+With automatic Ajax wiring, the page controller only renders the table. Manual request handling is
+still useful when your table posts back to the same route or when you configured a custom Ajax URL.
+In that case, do not rely on `$request->isXmlHttpRequest()` to detect a DataTables request. The
+supported flow is:
+
+1. Call `handleRequest($request)`
+2. Check `isRequestHandled()`
+3. Return `getResponse()` only when the request actually contains a DataTables payload
+
+What matters here is the DataTables payload, not whether the browser transport happens to be
+implemented as XHR or `fetch`.
+
+## Request Parameters Sent By DataTables
+
+<Table
+  headers={['Parameter', 'Purpose']}
+  rows={[
+    ['`draw`', 'Request sequence number'],
+    ['`start`', 'Offset'],
+    ['`length`', 'Page size'],
+    ['`search[value]`', 'Global search term'],
+    ['`order[n][column]`', 'Sorted column index'],
+    ['`order[n][dir]`', 'Sort direction'],
+    ['`columns[n][name]`', 'Column name'],
+    ['`columns[n][search][value]`', 'Per-column filter'],
+  ]}
+/>
+
+## Parse Request With DataTableRequest
+
+```php
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+
+$requestDto = DataTableRequest::fromRequest($request);
+```
+
+Use this DTO when you need direct access to paging, ordering, or search values. If you are using
+`AbstractDataTable` in a controller, the usual entry point is still `handleRequest()` followed by
+`isRequestHandled()`.
+
+## Typical Controller With Automatic Ajax
+
+```php
+use App\DataTables\ProductsDataTable;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+#[Route('/products', name: 'app_products')]
+public function index(ProductsDataTable $table): Response
+{
+    return $this->render('product/index.html.twig', [
+        'table' => $table
+    ]);
+}
+```
+
+## Manual Same-Route Handling
+
+```php
+use App\DataTables\ProductsDataTable;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+#[Route('/products', name: 'app_products')]
+public function index(ProductsDataTable $table, Request $request): Response
+{
+    // Needed only when the table Ajax URL points to this route.
+    $table->handleRequest($request);
+
+    if ($table->isRequestHandled()) {
+        return $table->getResponse();
+    }
+
+    return $this->render('product/index.html.twig', [
+        'table' => $table
+    ]);
+}
+```
+
+## Forwarding Page Query Parameters
+
+With automatic Ajax, the browser sends its request to the bundle endpoint rather than to the page URL, so query parameters present on the page (`?q=...&pending=...`) never reach your server-side query. `forwardQueryParameters()` captures the named parameters **at render time** and forwards them on every Ajax call, letting you read them in `customizeQueryBuilder()` — no dedicated relay controller required.
+
+```php
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->serverSide()
+        ->forwardQueryParameters(['q', 'pending']);
+}
+
+protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+{
+    $httpRequest = $this->getHttpRequest();
+
+    if (null !== $pending = $httpRequest?->query->get('pending')) {
+        $qb->andWhere('e.pending = :pending')->setParameter('pending', $pending);
+    }
+
+    return $qb;
+}
+```
+
+The forwarded values are a snapshot taken when the page renders and are sent unchanged on every paging/search/sort reload. Only parameters actually present in the request are forwarded. This works with automatic Ajax and with manual `ajax()` / `ajaxRequestData()`; it is not applied in API Platform mode.
+
+## Searching UUID And ULID Columns
+
+Columns mapped to a native identifier type — `guid`, `uuid`, `ulid`, `uuid_binary`, and
+`uuid_binary_ordered_time` — are searched by **exact identifier only**. Global search, per-column
+search, and text filters compare them with `=`, never with `LIKE`. Column Control `empty` /
+`notEmpty` only test `IS NULL` / `IS NOT NULL`; they do not compare the identifier to `''`.
+
+PostgreSQL and SQL Server reject `LIKE` on those columns, which previously made any search request
+fail with an error such as:
+
+```
+SQLSTATE[42883]: Undefined function: operator does not exist: uuid ~~ unknown
+```
+
+What this means for a search term:
+
+- A complete identifier (`018f2c3e-1234-7abc-9def-0123456789ab`, `01ARZ3NDEKTSV4RRFFQ69G5FAV`)
+  matches the row. Surrounding whitespace is trimmed.
+- A fragment (`018f2c3e`) matches nothing on that column; the condition is skipped instead of
+  raising an error. Other searchable columns still apply.
+- Hyphens are required in UUIDs: `018f2c3e12347abc9def0123456789ab` is not recognized.
+
+<Aside type="caution">
+On MySQL and SQLite, where UUIDs are usually stored as text, partial search on these columns is not
+supported. Add a searchable text column (a slug, a reference number, or a `string` copy of the
+identifier) when users need partial matching.
+</Aside>
+
+## Sorting Computed Columns
+
+Server-side ordering resolves a column to `<alias>.<field>` and runs `ORDER BY` on it. A column
+whose value is **computed** (an aggregate, a count, a derived expression) has no matching entity
+field, so Doctrine throws:
+
+```
+[Semantical Error] line 0, col … near 'invoiceCount':
+Error: Class App\Entity\Customer has no field or association named invoiceCount
+```
+
+To sort such a column in the database, expose the value as a `SELECT` alias and tell the column to
+order by it:
+
+1. In `customizeQueryBuilder()`, add the aggregate with `addSelect(... AS HIDDEN <alias>)`. The
+   `HIDDEN` keyword keeps the scalar out of the hydrated result, so entity hydration (and any page
+   projector) is unaffected — the alias exists only for `ORDER BY`.
+2. On the column, call `setOrderExpression('<alias>')` so `OrderFilter` uses the alias verbatim
+   instead of `<alias>.<field>`.
+
+```php
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Doctrine\ORM\QueryBuilder;
+
+public function configureColumns(): iterable
+{
+    yield NumberColumn::new('invoiceCount', 'Invoices')
+        ->setOrderExpression('invoiceCount') // matches the HIDDEN alias below
+        ->setSearchable(false)               // no mapped field to search; hide the box
+        ->disableGlobalSearch();
+}
+
+protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+{
+    return $qb->addSelect(
+        '(SELECT COUNT(inv.id) FROM App\Entity\Invoice inv WHERE inv.customer = e.id) AS HIDDEN invoiceCount'
+    );
+}
+```
+
+Prefer a **correlated scalar subquery** (as above) over a `leftJoin` + `groupBy`: joining a
+to-many relation inflates the counts (cartesian product) and changes pagination. A scalar subquery
+keeps one row per root entity, so `LIMIT`/`OFFSET` paginate correctly.
+
+<Aside type="note">
+`setOrderExpression()` only affects ordering. Search resolves the column's field independently —
+see [Searching computed and virtual columns](#searching-computed-and-virtual-columns) below for
+pointing it somewhere valid, or disable it with `setSearchable(false)` and
+`disableGlobalSearch()`.
+</Aside>
+
+The count query the provider builds for `recordsFiltered` resets the `SELECT` and `ORDER BY` parts,
+so the `HIDDEN` alias and `ORDER BY` are dropped there automatically — no extra handling needed.
+
+## Searching Computed And Virtual Columns
+
+Search has the same resolution problem as ordering: it builds its predicate on
+`<alias>.<field>`. A column whose value is assembled in `mapRow()` (a concatenation, a value read
+through a relation, the first item of a collection) has no such field.
+
+The bundle skips those columns instead of letting Doctrine reject the whole query, so the table
+keeps working — but the column's search box returns nothing until you point it at real data.
+Three options, in increasing order of control:
+
+```php
+use App\Entity\ContractTerminationRequest;
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+public function configureColumns(): iterable
+{
+    // 1. Search a related field instead. The relation is LEFT JOINed automatically.
+    yield TextColumn::new('donorProviderName', 'Donor')
+        ->setSearchField('donorProvider.name');
+
+    // 2. Declare the join yourself when you need the alias, or a WITH condition.
+    yield TextColumn::new('recipientProviderName', 'Recipient')
+        ->addSearchJoin('e.recipientProvider', 'rp')
+        ->setSearchField('rp.name');
+
+    // 3. Build the predicate yourself for anything a field path cannot express.
+    yield TextColumn::new('dossierId', 'Dossier')
+        ->setOrderable(false)
+        ->setSearchPredicate(function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
+            $qb->setParameter($paramName, '%'.mb_strtolower($value).'%');
+
+            return \sprintf(
+                'EXISTS (SELECT 1 FROM %s r WHERE r.contractTermination = %s AND LOWER(r.dossierId) LIKE :%s)',
+                ContractTerminationRequest::class,
+                $alias,
+                $paramName,
+            );
+        });
+
+    // 4. Or opt out of search entirely.
+    yield TextColumn::new('label', 'Label')
+        ->setSearchable(false)
+        ->disableGlobalSearch();
+}
+```
+
+A predicate must bind its own parameters and **return** the condition rather than call
+`andWhere()`: global search combines the returned conditions with `OR`, a per-column search with
+`AND`. Returning `null` skips the column for that term.
+
+All three settings affect search only — the rendered value, the row mapping, the form mapping and
+the client payload keep using the column's own field. See
+[Sorting & Searching](/ux-datatables/columns/overview/#sorting--searching) for the full column
+reference.
+
+## Best Practices
+
+- Use `isRequestHandled()` instead of `$request->isXmlHttpRequest()`.
+- Let `AbstractDataTable` auto-wire Ajax when the default bundle route is enough.
+- Always whitelist sortable/searchable fields in your query layer.
+- Keep backend response time predictable (indexes, query limits).
+- Prefer `AbstractDataTable` for reusable query behavior.
+- Keep your server-side endpoint aligned with the URL configured in `ajax()`.
+- Ensure your table resolves a provider in server-side mode, either through `createDataProvider()` or `#[AsDataTable(...)]`; otherwise `getResponse()` falls back to an empty payload.
+
+## Cross Links
+
+- [/ux-datatables/guide/client-side-processing/](/ux-datatables/guide/client-side-processing/)
+- [/ux-datatables/reference/datatable-request/](/ux-datatables/reference/datatable-request/)
+- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)

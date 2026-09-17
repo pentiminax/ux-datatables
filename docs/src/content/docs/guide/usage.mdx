@@ -1,0 +1,236 @@
+---
+title: Usage
+description: Learn how to build and render DataTables in your Symfony application
+order: 10
+---
+
+This guide covers the main ways to create and render DataTables in your Symfony application.
+
+## Declaring a Table
+
+Every table is a class extending `AbstractDataTable`. Declare the columns in
+`configureColumns()` and the DataTables options in `configureDataTable()`:
+
+```php
+namespace App\DataTables;
+
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+final class UsersDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('firstName', 'First name');
+        yield TextColumn::new('lastName', 'Last name');
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->data([
+            ['firstName' => 'John', 'lastName' => 'Doe'],
+            ['firstName' => 'Jane', 'lastName' => 'Smith'],
+        ]);
+    }
+}
+```
+
+Table classes are autoconfigured services. Inject one into a controller and pass it to the
+template:
+
+```php
+namespace App\Controller;
+
+use App\DataTables\UsersDataTable;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+class HomeController extends AbstractController
+{
+    #[Route('/', name: 'app_homepage')]
+    public function index(UsersDataTable $table): Response
+    {
+        return $this->render('home/index.html.twig', [
+            'table' => $table,
+        ]);
+    }
+}
+```
+
+When the rows only become available in the controller, keep `configureDataTable()` for the options
+and call [`setData()`](/ux-datatables/reference/abstract-datatable/) on the injected table instead.
+
+All options and data are passed as-is to DataTables. Refer to the [DataTables documentation](https://datatables.net/manual/) for available client-side options.
+
+## Rendering in Twig
+
+Use the `render_datatable()` function to render your table:
+
+```twig
+{{ render_datatable(table) }}
+```
+
+### Adding HTML Attributes
+
+Pass HTML attributes as a second argument:
+
+```twig
+{{ render_datatable(table, {'class': 'my-table table-striped'}) }}
+
+{{ render_datatable(table, {
+    'class': 'table table-bordered',
+    'data-custom': 'value'
+}) }}
+```
+
+The table `id` attribute always comes from the short name of the table class, for example `id="UsersDataTable"`. Do not pass a separate `id` through `render_datatable()`.
+
+## Extending the Default Behavior
+
+Create a custom Stimulus controller to extend DataTables functionality:
+
+```javascript
+// assets/controllers/mytable_controller.js
+import { Controller } from '@hotwired/stimulus'
+
+export default class extends Controller {
+  connect() {
+    this.element.addEventListener('datatables:pre-connect', this._onPreConnect)
+    this.element.addEventListener('datatables:connect', this._onConnect)
+    this.element.addEventListener('datatables:reconnect', this._onConnect)
+  }
+
+  disconnect() {
+    this.element.removeEventListener('datatables:pre-connect', this._onPreConnect)
+    this.element.removeEventListener('datatables:connect', this._onConnect)
+    this.element.removeEventListener('datatables:reconnect', this._onConnect)
+  }
+
+  _onPreConnect(event) {
+    // The table is not yet created
+    // Access the config that will be passed to DataTable constructor
+    console.log(event.detail.config)
+
+    // Define a custom render callback
+    event.detail.config.columns[0].render = function (data, type, row, meta) {
+      return '<a href="' + data + '">Download</a>'
+    }
+  }
+
+  _onConnect(event) {
+    // The table was just created
+    console.log(event.detail.table)
+
+    // Listen to DataTables events
+    event.detail.table.on('init', (e) => {
+      console.log('Table initialized')
+    })
+
+    event.detail.table.on('draw', (e) => {
+      console.log('Table redrawn')
+    })
+  }
+}
+```
+
+Then attach your controller in Twig:
+
+```twig
+{{ render_datatable(table, {'data-controller': 'mytable'}) }}
+```
+
+## Available Events
+
+<Table
+  headers={['Event', 'Description', 'Detail Properties']}
+  rows={[
+    ['datatables:pre-connect', 'Fired before table initialization', 'config: Configuration object'],
+    ['datatables:pre-init', 'Fired after extension plugins have loaded, just before the table is constructed', 'config: Configuration object, DataTable: the loaded DataTable class'],
+    ['datatables:connect', 'Fired after table is created', 'table: DataTable instance'],
+    ['datatables:reconnect', 'Fired when a controller connects to a table that is already built, after DataTables restructures the DOM', 'table: DataTable instance'],
+  ]}
+/>
+
+`pre-connect` fires before extension plugins (like ColumnControl) have loaded, so `DataTable.ext`
+and extension-specific registries such as `DataTable.ColumnControl.content` aren't populated yet.
+Use `pre-init` instead when you need one of those to exist — for example, registering a custom
+ColumnControl content type. See
+[Custom Content Types](/ux-datatables/extensions/column-control/#custom-content-types).
+
+### Surviving the Reconnect Cycle
+
+DataTables restructures the DOM right after the table is built: it moves the `<table>` into its own
+wrapper, and extensions such as Responsive or ColumnControl add more markup. Stimulus sees the
+element leave and re-enter the document, so **every** controller declared on that table — yours
+included — is disconnected and connected again once, shortly after the initial connect.
+
+`datatables:connect` marks the table being built and therefore fires only once. The reconnect
+dispatches `datatables:reconnect` instead, with the same `table` instance in its detail. Anything
+your controller sets up in a `connect` handler and tears down in `disconnect()` must be redone on
+`reconnect`, otherwise it silently stops working a moment after page load:
+
+```javascript
+connect() {
+  this.element.addEventListener('datatables:connect', this._onTable)
+  this.element.addEventListener('datatables:reconnect', this._onTable)
+}
+
+disconnect() {
+  this.element.removeEventListener('datatables:connect', this._onTable)
+  this.element.removeEventListener('datatables:reconnect', this._onTable)
+}
+
+_onTable = (event) => {
+  this._bind(event.detail.table)
+}
+```
+
+Bind row-level listeners by delegation rather than on nodes you look up once. DataTables replaces
+the `<tbody>` rows on every draw, so a handler attached to a cached `tbody`, `tr` or cell stops
+firing after the next redraw:
+
+```javascript
+// Fires for every row, including rows drawn later
+event.detail.table.on('click', 'tbody tr', (e, dt, type, indexes) => {
+  console.log(dt.row(e.currentTarget).data())
+})
+```
+
+## Working with Multiple Tables
+
+You can have multiple tables on the same page:
+
+```php
+use App\DataTables\OrdersDataTable;
+use App\DataTables\UsersDataTable;
+
+public function index(UsersDataTable $usersTable, OrdersDataTable $ordersTable): Response
+{
+    return $this->render('dashboard/index.html.twig', [
+        'usersTable' => $usersTable,
+        'ordersTable' => $ordersTable,
+    ]);
+}
+```
+
+```twig
+<h2>Users</h2>
+{{ render_datatable(usersTable) }}
+
+<h2>Orders</h2>
+{{ render_datatable(ordersTable) }}
+```
+
+<Aside type="caution">
+  Each table must have a unique ID. The ID is the short name of the table class, so two tables
+  rendered on the same page must not share a class name.
+</Aside>
+
+## Best Practices
+
+1. **Use meaningful table IDs** - They're used for state saving and DOM identification
+2. **Define columns explicitly** - Even when loading data via Ajax, define your column structure
+3. **Configure server-side processing for large datasets** - Client-side processing works well up to ~10,000 rows
+4. **Use AbstractDataTable for reusable tables** - Encapsulate table logic in dedicated classes
