@@ -411,6 +411,66 @@ Two things to check on the hub side when moving to 1.0: `jwt.claims` is required
 hub refuses to compile without it), and the subscriber cookie becomes `__Secure-mercure_access_token`,
 so private topics need `withCredentials: true` on the table **and** an HTTPS hub URL.
 
+### Mercure auto-resolved topics are absolute
+
+An auto-resolved topic now carries the absolute URL API Platform publishes, built from the routing
+request context (scheme, host, port, front-controller base path) exactly like the URL generator the
+publisher uses:
+
+| Hub protocol | Topic before | Matched the published IRI? | Topic now |
+| --- | --- | --- | --- |
+| 1.0, hub sharing the API's host | `/api/books/{id}` | yes | `https://api.example.com/api/books/{id}` |
+| 1.0, hub on another host | `/api/books/{id}` | no | `https://api.example.com/api/books/{id}` |
+| 0.x, any host | `/api/books/{id}` | no | `https://api.example.com/api/books/{id}` |
+
+The two protocols failed for different reasons, and 0.x failed everywhere:
+
+- A **1.0** hub matches URL Patterns *with its own URL as the base URL*, so a relative pattern
+  became `https://<hub-host>/api/books/{id}` and only ever covered the published IRI while the hub
+  and the API shared a host. An absolute pattern is matched as-is, so no base applies and no host
+  has to line up. (A 1.0 hub with no public URL or `resource_identifier` configured falls back to
+  an internal `http://mercure.invalid` base, under which a relative pattern could never match an
+  absolute topic on any host.)
+- A **0.x** hub compares the `topic=` selector to the published topic exactly, then as an anchored
+  URI Template — no base resolution anywhere. A relative selector could therefore never match the
+  absolute IRI API Platform publishes, on *any* host. If you run a 0.x hub, auto-resolved API
+  Platform topics never delivered anything before this release.
+
+What else changed in the same pass:
+
+- A plain topic declared in `mercure: ['topics' => [...]]` is still reused verbatim. Declaring the
+  absolute form stays the escape hatch for a topic of your own.
+- `'@=iri(object)'` is recognised explicitly and resolves to the item topic. Every other `@=`
+  expression topic is dropped with a logged warning naming it. The resolver still falls back to the
+  item path afterwards, so a resource whose only topic is `@=iri(object.getOwner())` still
+  subscribes to the item topic — the warning is what tells you the declared topic was not honored.
+- The item topic is read off the operation API Platform itself builds the item IRI from: the first
+  non-collection operation whose HTTP method is GET, HEAD or OPTIONS, in declaration order. A
+  custom `HttpOperation(method: 'GET')` counts; a resource with no such operation has no item topic
+  at all, because API Platform has no item IRI for it either and throws rather than publishing one.
+- A topic declared on a *later* operation now wins over the item path. Before, the first
+  non-collection operation returned its route path immediately and a declared topic behind it was
+  never reached, so a resource declaring `Get('/books/{id}')` then
+  `Put(mercure: ['topics' => [...]])` serialized `/api/books/{id}`; it now serializes the declared
+  topic. Declared topics are documented as authoritative, so this aligns the code with the docs —
+  but it does change the serialized `mercure.topics` payload for that shape.
+- **Only the API Platform item topic became absolute.** The bundle's own
+  `/datatables/{plural}/{id}` fallback topic stays relative on purpose: nothing but the bundle
+  publishes to it, and it publishes through the same resolver, so a context-free topic keeps the
+  two sides matching wherever they run.
+- Without a router at all, the item topic stays relative. With a router — which a full-stack
+  application always has — the context is whatever the application configured. In a console
+  command or a Messenger consumer that is `router.request_context`, defaulting to
+  `http://localhost`, so **set `router.request_context.host` and `.scheme` if anything outside an
+  HTTP request publishes**, exactly as you already must for API Platform's own IRIs to come out
+  right there.
+
+One constructor gained optional arguments, appended last:
+
+| Changed | Appended argument |
+| --- | --- |
+| `ApiPlatform\ApiResourceMercureMetadataResolver::__construct()` | `?Mercure\MercureTopicUrlResolver`, then `?Psr\Log\LoggerInterface` |
+
 ### Private API Platform resources subscribe with credentials
 
 API Platform marks an update private from resource metadata

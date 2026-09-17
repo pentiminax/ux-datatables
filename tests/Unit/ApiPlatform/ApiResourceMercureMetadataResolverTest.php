@@ -7,14 +7,20 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\ApiPlatform;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\HttpOperation;
 use ApiPlatform\Metadata\Operations;
+use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use ApiPlatform\Metadata\Resource\ResourceMetadataCollection;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicUrlResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\RouterInterface;
 
 /**
  * @internal
@@ -53,6 +59,42 @@ final class ApiResourceMercureMetadataResolverTest extends TestCase
                 new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
             ])),
             ['/api/books/{id}'],
+        ];
+
+        yield 'a custom variable-bearing operation before the item GET does not win' => [
+            (new ApiResource())->withOperations(new Operations([
+                new Post(uriTemplate: '/books/{id}/publish{._format}', routePrefix: '/api'),
+                new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
+            ])),
+            ['/api/books/{id}'],
+        ];
+
+        yield 'a resource without an item GET has no item topic, as API Platform has no item IRI' => [
+            (new ApiResource())->withOperations(new Operations([
+                new GetCollection(uriTemplate: '/books{._format}', routePrefix: '/api'),
+                new Post(uriTemplate: '/books/{id}/publish{._format}', routePrefix: '/api'),
+            ])),
+            [],
+        ];
+
+        yield 'a custom GET HttpOperation is an item operation too' => [
+            (new ApiResource())->withOperations(new Operations([
+                new HttpOperation(method: 'GET', uriTemplate: '/books/{id}/preview{._format}', routePrefix: '/api'),
+                new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
+            ])),
+            ['/api/books/{id}/preview'],
+        ];
+
+        yield 'a declared topic on a later operation beats the item path' => [
+            (new ApiResource())->withOperations(new Operations([
+                new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
+                new Post(
+                    uriTemplate: '/books{._format}',
+                    routePrefix: '/api',
+                    mercure: ['topics' => ['https://example.com/custom']],
+                ),
+            ])),
+            ['https://example.com/custom'],
         ];
     }
 
@@ -153,7 +195,119 @@ final class ApiResourceMercureMetadataResolverTest extends TestCase
         $this->assertFalse($resolver->resolvePrivate(self::ENTITY_CLASS));
     }
 
-    private function resolver(ApiResource $resource): ApiResourceMercureMetadataResolver
+    #[Test]
+    public function it_builds_the_item_topic_absolutely_on_a_same_host_hub(): void
+    {
+        $resource = (new ApiResource())->withOperations(new Operations([
+            new GetCollection(uriTemplate: '/books{._format}', routePrefix: '/api'),
+            new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
+        ]));
+
+        $this->assertSame(
+            'https://api.example.com/api/books/{id}',
+            $this->resolver($resource, absolute: true)->resolveTopics(self::ENTITY_CLASS)[0],
+        );
+    }
+
+    #[Test]
+    public function it_resolves_the_iri_object_idiom_to_the_absolute_item_topic(): void
+    {
+        $resource = (new ApiResource(mercure: ['topics' => ['@=iri(object)']]))
+            ->withOperations(new Operations([
+                new GetCollection(uriTemplate: '/books{._format}', routePrefix: '/api'),
+                new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
+            ]));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->never())->method('warning');
+
+        $this->assertSame(
+            ['https://api.example.com/api/books/{id}'],
+            $this->resolver($resource, absolute: true, logger: $logger)->resolveTopics(self::ENTITY_CLASS),
+        );
+    }
+
+    #[Test]
+    public function it_resolves_the_iri_object_idiom_next_to_a_plain_topic(): void
+    {
+        $resource = (new ApiResource())->withOperations(new Operations([
+            new Get(
+                uriTemplate: '/books/{id}{._format}',
+                routePrefix: '/api',
+                mercure: ['topics' => ['https://example.com/books', '@=iri(object)']],
+            ),
+        ]));
+
+        $this->assertSame(
+            ['https://example.com/books', 'https://api.example.com/api/books/{id}'],
+            $this->resolver($resource, absolute: true)->resolveTopics(self::ENTITY_CLASS),
+        );
+    }
+
+    #[Test]
+    public function it_logs_a_warning_when_an_expression_topic_is_dropped(): void
+    {
+        $resource = (new ApiResource())->withOperations(new Operations([
+            new Get(
+                uriTemplate: '/books/{id}{._format}',
+                routePrefix: '/api',
+                mercure: ['topics' => ['@=object.getMercureTopic()']],
+            ),
+        ]));
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger
+            ->expects($this->once())
+            ->method('warning')
+            ->with($this->stringContains('@=object.getMercureTopic()'));
+
+        $this->assertSame(
+            ['https://api.example.com/api/books/{id}'],
+            $this->resolver($resource, absolute: true, logger: $logger)->resolveTopics(self::ENTITY_CLASS),
+        );
+    }
+
+    #[Test]
+    public function it_takes_the_first_item_get_even_when_its_template_carries_no_variable(): void
+    {
+        $resource = (new ApiResource())->withOperations(new Operations([
+            new Get(uriTemplate: '/books{._format}', routePrefix: '/api'),
+            new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
+        ]));
+
+        // Not the prettier topic, but the one API Platform publishes to.
+        $this->assertSame(
+            ['https://api.example.com/api/books'],
+            $this->resolver($resource, absolute: true)->resolveTopics(self::ENTITY_CLASS),
+        );
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_collection_shaped_operation_when_no_template_carries_a_variable(): void
+    {
+        $resource = (new ApiResource())->withOperations(new Operations([
+            new Get(uriTemplate: '/books{._format}', routePrefix: '/api'),
+        ]));
+
+        $this->assertSame(
+            ['https://api.example.com/api/books'],
+            $this->resolver($resource, absolute: true)->resolveTopics(self::ENTITY_CLASS),
+        );
+    }
+
+    private function resolver(
+        ApiResource $resource,
+        bool $absolute = false,
+        ?LoggerInterface $logger = null,
+    ): ApiResourceMercureMetadataResolver {
+        return new ApiResourceMercureMetadataResolver(
+            $this->factoryReturning($resource),
+            $absolute ? $this->absoluteTopicUrlResolver() : null,
+            $logger,
+        );
+    }
+
+    private function factoryReturning(ApiResource $resource): ResourceMetadataCollectionFactoryInterface
     {
         $factory = $this->createStub(ResourceMetadataCollectionFactoryInterface::class);
         $factory
@@ -161,6 +315,16 @@ final class ApiResourceMercureMetadataResolverTest extends TestCase
             ->with(self::ENTITY_CLASS)
             ->willReturn(new ResourceMetadataCollection(self::ENTITY_CLASS, [$resource]));
 
-        return new ApiResourceMercureMetadataResolver($factory);
+        return $factory;
+    }
+
+    private function absoluteTopicUrlResolver(): MercureTopicUrlResolver
+    {
+        $router = $this->createStub(RouterInterface::class);
+        $router
+            ->method('getContext')
+            ->willReturn(new RequestContext(host: 'api.example.com', scheme: 'https'));
+
+        return new MercureTopicUrlResolver($router);
     }
 }

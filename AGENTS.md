@@ -171,8 +171,9 @@ snake_case PHPUnit method names.
 - Return or throw early instead of nesting control flow.
 - Handle exceptions explicitly; never add silent catches.
 - Start exception messages with a capital letter and end them with a period.
-- Add comments only for non-obvious constraints or decisions. Do not use comments as section
-  separators.
+- Prefer clear, self-explanatory code over long explanatory comments: make the behavior obvious
+  through names and structure, and keep a comment only for a non-obvious constraint or decision.
+  Do not use comments as section separators.
 - Keep properties before methods, then order methods public, protected, and private.
 - Use PHPDoc for useful generic, iterable, array-shape, or behavioral information; avoid repeating
   native type declarations.
@@ -185,6 +186,8 @@ Biome (`assets/biome.json`) is the frontend formatting and linting source of tru
 - Use 4-space indentation, single quotes, no semicolons, ES5 trailing commas, and a 100-character
   line width.
 - Use `camelCase` for variables and functions and `UpperCamelCase` for classes and types.
+- Prefer clear, self-explanatory code over long explanatory comments, as in the PHP standards: keep
+  a comment only for a non-obvious constraint or decision.
 - Keep optional DataTables.net extensions lazy-loaded.
 - Preserve the adapter boundaries for modal and column-style implementations.
 - Add or update Vitest coverage for behavior changes.
