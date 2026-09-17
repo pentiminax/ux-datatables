@@ -238,6 +238,64 @@ final class DataTableRuntimeTest extends TestCase
         $this->assertSame($expected, $runtime->getRequest()?->length);
     }
 
+    #[Test]
+    #[DataProvider('declaredPageLengths')]
+    public function it_keeps_a_page_length_the_table_declares(DataTable $table, int $length, int $expected): void
+    {
+        $runtime = new DataTableRuntime(
+            table: $table,
+            dataProviderFactory: static fn (): ?DataProviderInterface => null,
+            maxPageLength: 100,
+        );
+
+        $runtime->handleRequest(new Request(query: ['draw' => 1, 'length' => $length]));
+
+        $this->assertSame($expected, $runtime->getRequest()?->length);
+    }
+
+    /**
+     * A declared page size is a developer decision, and the client paginates with it: capping it
+     * below that size left the rows between the two lengths on no page at all.
+     *
+     * @return iterable<string, array{0: DataTable, 1: int, 2: int}>
+     */
+    public static function declaredPageLengths(): iterable
+    {
+        yield 'pageLength above the bound is served' => [
+            (new DataTable('movies'))->pageLength(2000),
+            2000,
+            2000,
+        ];
+
+        yield 'a length menu entry above the bound is served' => [
+            (new DataTable('movies'))->lengthMenu([500, 2000]),
+            2000,
+            2000,
+        ];
+
+        yield 'an undeclared length is still capped to the bound' => [
+            (new DataTable('movies'))->pageLength(2000),
+            999999,
+            100,
+        ];
+
+        // Only the declared sizes escape the bound: a table offering 2000 must not turn any
+        // crafted length below it into a served page.
+        yield 'a crafted length below a declared size is still capped' => [
+            (new DataTable('movies'))->pageLength(2000),
+            1500,
+            100,
+        ];
+
+        // A refused "show all" is not a page size the client paginates with, so it still falls
+        // back to the configured bound.
+        yield 'show all is still capped to the configured bound' => [
+            (new DataTable('movies'))->pageLength(2000),
+            -1,
+            100,
+        ];
+    }
+
     /**
      * @return iterable<string, array{0: int, 1: int}>
      */
