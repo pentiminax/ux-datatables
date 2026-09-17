@@ -8,7 +8,9 @@ namespace Pentiminax\UX\DataTables\Attribute;
  * The single reflection entry point for #[AsDataTable].
  *
  * The attribute is not inherited: a class carrying it gives its subclasses nothing, which is why
- * resolution only ever reads the concrete class it is handed.
+ * resolution only ever reads the concrete class it is handed. Callers hand it a class-string of a
+ * registered table, so a class that cannot be reflected is a programming error and is left to
+ * throw rather than reported as "no attribute".
  */
 final class AsDataTableResolver
 {
@@ -26,11 +28,7 @@ final class AsDataTableResolver
             return self::$cache[$dataTableClass];
         }
 
-        try {
-            $attributes = (new \ReflectionClass($dataTableClass))->getAttributes(AsDataTable::class);
-        } catch (\ReflectionException) {
-            return self::$cache[$dataTableClass] = null;
-        }
+        $attributes = (new \ReflectionClass($dataTableClass))->getAttributes(AsDataTable::class);
 
         return self::$cache[$dataTableClass] = [] === $attributes ? null : $attributes[0]->newInstance();
     }
