@@ -109,12 +109,13 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
     }
 
     /**
-     * The rows the request asked for, out of the page the collection operation served.
+     * The rows the request asked for, out of the pages the collection operation serves.
      *
-     * An offset is a page number here, so a `start` that is not a multiple of `length` -- what
-     * Scroller sends -- lands on the page *containing* the first requested row rather than on the
-     * row itself. The requested window then spans at most two consecutive pages: the remainder is
-     * read from the next one and the concatenation is sliced back to the window.
+     * An offset is a page number here, and the page size is the operation's decision, not the
+     * request's: an operation capping itemsPerPage -- or ignoring it, which is API Platform's
+     * default -- answers a page shorter than the one asked for. Both the page number and the
+     * offset are therefore recomputed from the size the paginator reports, and pages are read
+     * until the window is filled or the collection ends.
      *
      * @param array<string, string|array<int|string, string>> $parameters
      *
@@ -122,18 +123,29 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
      */
     private function page(PaginatorInterface $paginator, array $parameters, DataTableRequest $request): iterable
     {
-        $limit  = $request->length;
-        $offset = $limit > 0 ? $request->start % $limit : 0;
+        $limit = $request->length;
+        $size  = (int) $paginator->getItemsPerPage();
 
-        if (0 === $offset) {
+        if ($limit <= 0 || $size <= 0) {
             return $paginator;
         }
 
-        $items = $this->toList($paginator);
-        $page  = (int) ($parameters['page'] ?? 1);
+        $page      = intdiv($request->start, $size) + 1;
+        $offset    = $request->start % $size;
+        $requested = (int) ($parameters['page'] ?? 1);
 
-        if ($page < $paginator->getLastPage()) {
-            $items = [...$items, ...$this->toList($this->provide(['page' => (string) ($page + 1)] + $parameters))];
+        // The page already in hand covers the window exactly: no slicing, no second call.
+        if (0 === $offset && $size === $limit && $page === $requested) {
+            return $paginator;
+        }
+
+        $items  = $page === $requested ? $this->toList($paginator) : [];
+        $read   = $page === $requested ? $page : $page - 1;
+        $wanted = $offset + $limit;
+
+        while (\count($items) < $wanted && $read < $paginator->getLastPage()) {
+            ++$read;
+            $items = [...$items, ...$this->toList($this->provide(['page' => (string) $read] + $parameters))];
         }
 
         return \array_slice($items, $offset, $limit);
