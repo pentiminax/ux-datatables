@@ -7,9 +7,12 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\DataProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
+use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsApiPlatformProviderFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -20,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AutoDataProviderFactory::class)]
 final class AutoDataProviderFactoryTest extends TestCase
 {
+    use BuildsApiPlatformProviderFactory;
+
     #[Test]
     public function it_auto_configures_a_doctrine_provider_when_attribute_and_entity_manager_are_available(): void
     {
@@ -46,14 +51,46 @@ final class AutoDataProviderFactoryTest extends TestCase
         $this->create(asDataTable: new AsDataTable(entityClass: \stdClass::class));
     }
 
+    #[Test]
+    public function it_auto_configures_an_api_platform_provider_when_the_integration_is_requested(): void
+    {
+        $provider = $this->create(
+            asDataTable: new AsDataTable(entityClass: \stdClass::class, apiPlatform: true),
+            apiPlatformProviderFactory: $this->buildApiPlatformProviderFactory(),
+            apiPlatform: true,
+        );
+
+        $this->assertInstanceOf(ApiPlatformCollectionProvider::class, $provider);
+    }
+
+    /**
+     * The RenderingPreparer leaves a table whose entity exposes no collection operation on its
+     * Doctrine wiring, so the provider must fall back the same way instead of raising later.
+     */
+    #[Test]
+    public function it_falls_back_to_doctrine_when_the_entity_exposes_no_collection_operation(): void
+    {
+        $provider = $this->create(
+            asDataTable: new AsDataTable(entityClass: \stdClass::class, apiPlatform: true),
+            em: $this->createMock(EntityManagerInterface::class),
+            apiPlatformProviderFactory: $this->buildApiPlatformProviderFactory(withCollectionOperation: false),
+            apiPlatform: true,
+        );
+
+        $this->assertInstanceOf(DoctrineDataProvider::class, $provider);
+    }
+
     private function create(
         ?AsDataTable $asDataTable = null,
         ?EntityManagerInterface $em = null,
+        ?ApiPlatformCollectionProviderFactory $apiPlatformProviderFactory = null,
+        bool $apiPlatform = false,
     ): ?DataProviderInterface {
-        return (new AutoDataProviderFactory($em))->create(
+        return (new AutoDataProviderFactory($em, $apiPlatformProviderFactory))->create(
             asDataTable: $asDataTable,
             rowMapper: new DefaultRowMapper([]),
             configureQueryBuilder: static fn ($qb, $request) => $qb,
+            apiPlatform: $apiPlatform,
         );
     }
 }

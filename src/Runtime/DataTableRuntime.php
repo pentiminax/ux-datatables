@@ -45,39 +45,80 @@ final class DataTableRuntime
     public function handleRequest(Request $request): void
     {
         $this->httpRequest = $request;
-        $this->request     = DataTableRequest::fromRequest($request)
-            ->withBoundedLength($this->maxPageLength, $this->allowsShowAll());
+        $dataTableRequest  = DataTableRequest::fromRequest($request);
+
+        // A refused "show all" falls back to the configured bound: DataTables renders that one
+        // page and offers no other, so a smaller page truncates rather than strands rows.
+        $maxLength = \in_array($dataTableRequest->length, $this->declaredPageSizes(), true)
+            ? $dataTableRequest->length
+            : $this->maxPageLength;
+
+        $this->request = $dataTableRequest->withBoundedLength($maxLength, $this->allowsShowAll());
+    }
+
+    /**
+     * The page sizes the table itself offers, through pageLength() and lengthMenu().
+     *
+     * A declared size is a developer decision, not crafted input, and the client paginates with
+     * it, so it escapes the bound: capping it below the length the client paginates with would
+     * leave the rows between the two sizes unreachable. Only those exact sizes escape it -- a
+     * table declaring 2000 must not turn an arbitrary length=1500 into a served page.
+     *
+     * @return list<int>
+     */
+    private function declaredPageSizes(): array
+    {
+        $declared = [$this->table->getOption('pageLength'), ...$this->lengthMenuValues()];
+
+        return array_values(array_filter(
+            array_map(
+                static fn (mixed $value): int => is_numeric($value) ? (int) $value : 0,
+                $declared,
+            ),
+            static fn (int $value): bool => $value > 0,
+        ));
     }
 
     /**
      * Whether the table offers DataTables' "show all" entry, the only case where an
      * unbounded page size is what the developer asked for.
-     *
-     * lengthMenu() accepts `[10, 25, -1]`, the two-dimensional
-     * `[[10, 25, -1], ['10', '25', 'All']]` form, and associative entries such as
-     * `['label' => 'All', 'value' => -1]`.
      */
     private function allowsShowAll(): bool
     {
-        $menu = $this->table->getOption('lengthMenu');
-
-        if (!\is_array($menu)) {
-            return false;
-        }
-
-        $entries = isset($menu[0]) && \is_array($menu[0]) && array_is_list($menu[0])
-            ? $menu[0]
-            : $menu;
-
-        foreach ($entries as $entry) {
-            $value = \is_array($entry) ? ($entry['value'] ?? null) : $entry;
-
+        foreach ($this->lengthMenuValues() as $value) {
             if (-1 === $value) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    /**
+     * The page sizes declared through lengthMenu(), which accepts `[10, 25, -1]`, the
+     * two-dimensional `[[10, 25, -1], ['10', '25', 'All']]` form, and associative entries such
+     * as `['label' => 'All', 'value' => -1]`.
+     *
+     * @return list<mixed>
+     */
+    private function lengthMenuValues(): array
+    {
+        $menu = $this->table->getOption('lengthMenu');
+
+        if (!\is_array($menu)) {
+            return [];
+        }
+
+        $entries = isset($menu[0]) && \is_array($menu[0]) && array_is_list($menu[0])
+            ? $menu[0]
+            : $menu;
+
+        $values = [];
+        foreach ($entries as $entry) {
+            $values[] = \is_array($entry) ? ($entry['value'] ?? null) : $entry;
+        }
+
+        return $values;
     }
 
     public function isRequestHandled(): bool
