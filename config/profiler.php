@@ -9,7 +9,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 /**
- * Only imported when kernel.debug is true (see DataTablesBundle::loadExtension()) -- these
+ * Only imported when kernel.debug is true (see PentiminaxDataTablesBundle::loadExtension()) -- these
  * services eagerly record rendered tables and AJAX queries on every request via direct calls
  * from application code, not just when Symfony's own profiler pulls a collect(), so they
  * cannot be left registered unconditionally without a real (if small) per-request cost in
@@ -28,7 +28,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('datatables.profiler'))
         ->tag('data_collector', [
             'id'       => 'datatables',
-            'template' => '@DataTables/Collector/data_collector.html.twig',
+            'template' => '@PentiminaxDataTables/Collector/data_collector.html.twig',
         ])
         ->private();
 };

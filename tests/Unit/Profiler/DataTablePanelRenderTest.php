@@ -71,7 +71,7 @@ final class DataTablePanelRenderTest extends TestCase
 
         /** @var Environment $twig */
         $twig  = $container->get('test.twig');
-        $panel = $twig->load('@DataTables/Collector/data_collector.html.twig')
+        $panel = $twig->load('@PentiminaxDataTables/Collector/data_collector.html.twig')
             ->renderBlock('panel', ['collector' => $collector]);
 
         $this->assertStringContainsString('Extensions', $panel);
@@ -122,7 +122,7 @@ final class DataTablePanelRenderTest extends TestCase
 
         /** @var Environment $twig */
         $twig  = $container->get('test.twig');
-        $panel = $twig->load('@DataTables/Collector/data_collector.html.twig')
+        $panel = $twig->load('@PentiminaxDataTables/Collector/data_collector.html.twig')
             ->renderBlock('panel', ['collector' => $collector]);
 
         $this->assertStringContainsString('equal: <code>0</code>', $panel);
@@ -170,7 +170,7 @@ final class DataTablePanelRenderTest extends TestCase
 
         /** @var Environment $twig */
         $twig  = $container->get('test.twig');
-        $panel = $twig->load('@DataTables/Collector/data_collector.html.twig')
+        $panel = $twig->load('@PentiminaxDataTables/Collector/data_collector.html.twig')
             ->renderBlock('panel', ['collector' => $collector]);
 
         $this->assertStringContainsString('list: Sales, (invalid array value)', $panel);

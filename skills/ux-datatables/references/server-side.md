@@ -22,7 +22,7 @@ The rendered table calls the built-in `ux_datatables_ajax_data` route (it sends 
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 
 return static function (RoutingConfigurator $routes): void {
-    $routes->import('@DataTablesBundle/config/routes.php');
+    $routes->import('@PentiminaxDataTablesBundle/config/routes.php');
 };
 ```
 

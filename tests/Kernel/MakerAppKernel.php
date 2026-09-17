@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
-use Pentiminax\UX\DataTables\DataTablesBundle;
+use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\MakerBundle\MakerBundle;
 use Symfony\Bundle\MercureBundle\MercureBundle;
@@ -18,7 +18,7 @@ final class MakerAppKernel extends Kernel
 {
     public function registerBundles(): iterable
     {
-        return [new FrameworkBundle(), new TwigBundle(), new StimulusBundle(), new MakerBundle(), new DataTablesBundle(), new MercureBundle()];
+        return [new FrameworkBundle(), new TwigBundle(), new StimulusBundle(), new MakerBundle(), new PentiminaxDataTablesBundle(), new MercureBundle()];
     }
 
     public function registerContainerConfiguration(LoaderInterface $loader): void
