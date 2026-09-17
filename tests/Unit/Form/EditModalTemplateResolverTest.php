@@ -49,7 +49,7 @@ final class EditModalTemplateResolverTest extends TestCase
         ];
 
         yield 'bundle default without any override' => [
-            '@DataTables/modal/datatables/edit_modal.html.twig',
+            '@PentiminaxDataTables/modal/datatables/edit_modal.html.twig',
             DefaultEditModalDataTable::class,
             static fn (): DefaultEditModalDataTable => new DefaultEditModalDataTable(),
         ];
@@ -62,7 +62,7 @@ final class EditModalTemplateResolverTest extends TestCase
 
         $template = $resolver->resolveChromeTemplate(AttributeEditModalDataTable::class);
 
-        $this->assertSame('@DataTables/modal/datatables/edit_modal.html.twig', $template);
+        $this->assertSame('@PentiminaxDataTables/modal/datatables/edit_modal.html.twig', $template);
     }
 
     #[Test]
@@ -72,7 +72,7 @@ final class EditModalTemplateResolverTest extends TestCase
 
         $template = $resolver->resolveBodyTemplate();
 
-        $this->assertSame('@DataTables/modal/datatables/_form_body.html.twig', $template);
+        $this->assertSame('@PentiminaxDataTables/modal/datatables/_form_body.html.twig', $template);
     }
 
     #[Test]
@@ -105,8 +105,8 @@ final class EditModalTemplateResolverTest extends TestCase
     {
         return new EditModalTemplateResolver(
             new ServiceLocator($factories),
-            '@DataTables/modal/datatables/edit_modal.html.twig',
-            '@DataTables/modal/datatables/_form_body.html.twig',
+            '@PentiminaxDataTables/modal/datatables/edit_modal.html.twig',
+            '@PentiminaxDataTables/modal/datatables/_form_body.html.twig',
         );
     }
 }

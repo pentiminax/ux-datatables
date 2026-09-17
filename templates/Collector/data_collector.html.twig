@@ -5,7 +5,7 @@
         {% set totalDuration = collector.queries|reduce((carry, query) => carry + query.durationMs, 0) %}
 
         {% set icon %}
-            {{ source('@DataTables/Collector/icon.svg') }}
+            {{ source('@PentiminaxDataTables/Collector/icon.svg') }}
             <span class="sf-toolbar-value">{{ collector.tableCount }}</span>
         {% endset %}
 
@@ -32,7 +32,7 @@
 
 {% block menu %}
     <span class="label {{ collector.tableCount == 0 and collector.queryCount == 0 ? 'disabled' }}">
-        <span class="icon">{{ source('@DataTables/Collector/icon.svg') }}</span>
+        <span class="icon">{{ source('@PentiminaxDataTables/Collector/icon.svg') }}</span>
         <strong>UX DataTables</strong>
     </span>
 {% endblock %}

@@ -18,8 +18,10 @@ use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 use Symfony\Component\Mercure\HubInterface;
 
-class DataTablesBundle extends AbstractBundle
+class PentiminaxDataTablesBundle extends AbstractBundle
 {
+    protected string $extensionAlias = 'data_tables';
+
     public function build(ContainerBuilder $container): void
     {
         parent::build($container);
@@ -84,9 +86,9 @@ class DataTablesBundle extends AbstractBundle
                     ->addDefaultsIfNotSet()
                     ->children()
                         ->scalarNode('template')
-                            ->defaultValue('@DataTables/modal/datatables/edit_modal.html.twig')->end()
+                            ->defaultValue('@PentiminaxDataTables/modal/datatables/edit_modal.html.twig')->end()
                         ->scalarNode('body_template')
-                            ->defaultValue('@DataTables/modal/datatables/_form_body.html.twig')->end()
+                            ->defaultValue('@PentiminaxDataTables/modal/datatables/_form_body.html.twig')->end()
                         ->scalarNode('default_title')->defaultValue('Edit')->end()
                     ->end()
                 ->end()

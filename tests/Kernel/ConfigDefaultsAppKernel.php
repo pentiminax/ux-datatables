@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
-use Pentiminax\UX\DataTables\DataTablesBundle;
+use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\ConfigDefaultsDataTable;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\MercureBundle\MercureBundle;
@@ -18,7 +18,7 @@ final class ConfigDefaultsAppKernel extends Kernel
 {
     public function registerBundles(): iterable
     {
-        return [new FrameworkBundle(), new TwigBundle(), new StimulusBundle(), new DataTablesBundle(), new MercureBundle()];
+        return [new FrameworkBundle(), new TwigBundle(), new StimulusBundle(), new PentiminaxDataTablesBundle(), new MercureBundle()];
     }
 
     public function registerContainerConfiguration(LoaderInterface $loader): void

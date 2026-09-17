@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Mutation;
 
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
-use Pentiminax\UX\DataTables\DataTablesBundle;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -23,7 +23,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 /**
  * @internal
  */
-#[CoversClass(DataTablesBundle::class)]
+#[CoversClass(PentiminaxDataTablesBundle::class)]
 final class MutationServiceWiringTest extends TestCase
 {
     use BootsTwigKernel;

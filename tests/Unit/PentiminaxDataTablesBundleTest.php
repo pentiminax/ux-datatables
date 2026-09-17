@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit;
 
-use Pentiminax\UX\DataTables\DataTablesBundle;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
 use Pentiminax\UX\DataTables\Export\CsvExporter;
 use Pentiminax\UX\DataTables\Export\ExporterRegistry;
 use Pentiminax\UX\DataTables\Export\XlsxExporter;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
+use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\SecurityVoter;
@@ -24,8 +24,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /**
  * @internal
  */
-#[CoversClass(DataTablesBundle::class)]
-final class DataTablesBundleTest extends TestCase
+#[CoversClass(PentiminaxDataTablesBundle::class)]
+final class PentiminaxDataTablesBundleTest extends TestCase
 {
     use BootsTwigKernel;
 
@@ -34,8 +34,16 @@ final class DataTablesBundleTest extends TestCase
     {
         $infrastructure = $this->kernel->getContainer()->get('test.datatables.infrastructure');
 
-        self::assertArrayHasKey('DataTablesBundle', $this->kernel->getBundles());
+        self::assertArrayHasKey('PentiminaxDataTablesBundle', $this->kernel->getBundles());
         self::assertInstanceOf(DataTableInfrastructure::class, $infrastructure);
+    }
+
+    #[Test]
+    public function it_keeps_the_existing_configuration_alias(): void
+    {
+        $bundle = new PentiminaxDataTablesBundle();
+
+        self::assertSame('data_tables', $bundle->getContainerExtension()?->getAlias());
     }
 
     #[Test]
