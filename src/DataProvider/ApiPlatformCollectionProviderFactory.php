@@ -30,6 +30,9 @@ final class ApiPlatformCollectionProviderFactory
     }
 
     /**
+     * Null when the entity exposes no collection operation, so a table that declares the
+     * integration for an entity API Platform does not serve keeps the provider it had.
+     *
      * @param list<ColumnInterface> $columns
      */
     public function create(
@@ -38,7 +41,11 @@ final class ApiPlatformCollectionProviderFactory
         RowMapperInterface $rowMapper,
         ?RowMapperInterface $exportRowMapper = null,
         ?string $dataTableClass = null,
-    ): ApiPlatformCollectionProvider {
+    ): ?ApiPlatformCollectionProvider {
+        if (null === $this->collectionResolver->resolveCollection($entityClass)) {
+            return null;
+        }
+
         return new ApiPlatformCollectionProvider(
             stateProvider: $this->stateProvider,
             collectionResolver: $this->collectionResolver,

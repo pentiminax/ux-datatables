@@ -16,6 +16,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
@@ -32,6 +33,7 @@ use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsApiPlatformProviderFactory;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -48,6 +50,7 @@ use Twig\Environment;
 #[CoversClass(DataTableRuntimeFactory::class)]
 final class DataTableRuntimeFactoryTest extends TestCase
 {
+    use BuildsApiPlatformProviderFactory;
     use BuildsEntityManager;
 
     #[Test]
@@ -247,6 +250,40 @@ final class DataTableRuntimeFactoryTest extends TestCase
         )), false);
 
         $this->assertSame([['name' => 'Alpha']], $rows);
+    }
+
+    /**
+     * The `apiPlatform` option is set by the RenderingPreparer, which an Ajax request never runs:
+     * reading it alone sent every attribute-declared table to Doctrine, bypassing the collection
+     * operation's security, state provider and query extensions.
+     */
+    #[Test]
+    public function the_attribute_alone_selects_the_api_platform_provider(): void
+    {
+        $runtime = $this->createRuntime(
+            asDataTable: new AsDataTable(entityClass: \stdClass::class, apiPlatform: true),
+            autoDataProviderFactory: new AutoDataProviderFactory(
+                $this->createStub(EntityManagerInterface::class),
+                $this->buildApiPlatformProviderFactory(),
+            ),
+        );
+
+        $this->assertNull((new DataTable('movies'))->getOption('apiPlatform'));
+        $this->assertInstanceOf(ApiPlatformCollectionProvider::class, $runtime->getDataProvider());
+    }
+
+    #[Test]
+    public function it_keeps_the_doctrine_provider_without_the_api_platform_opt_in(): void
+    {
+        $runtime = $this->createRuntime(
+            asDataTable: new AsDataTable(entityClass: \stdClass::class),
+            autoDataProviderFactory: new AutoDataProviderFactory(
+                $this->createStub(EntityManagerInterface::class),
+                $this->buildApiPlatformProviderFactory(),
+            ),
+        );
+
+        $this->assertNotInstanceOf(ApiPlatformCollectionProvider::class, $runtime->getDataProvider());
     }
 
     private function createRuntime(
