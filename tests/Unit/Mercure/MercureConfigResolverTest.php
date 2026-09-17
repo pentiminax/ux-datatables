@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Mercure;
 
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -56,12 +57,29 @@ final class MercureConfigResolverTest extends TestCase
         $this->assertSame(['/datatables/book-categories/{id}'], $config?->topics);
     }
 
-    private function hubUrlResolver(?string $hubUrl): MercureHubUrlResolver
+    #[Test]
+    public function it_carries_the_hub_protocol_version(): void
+    {
+        $metadataResolver = $this->createStub(ApiResourceMercureMetadataResolver::class);
+        $metadataResolver
+            ->method('resolveTopics')
+            ->willReturn(['/api/books/{id}']);
+
+        $resolver = new MercureConfigResolver($this->hubUrlResolver('http://localhost/.well-known/mercure', '1.0'), $metadataResolver);
+        $config   = $resolver->resolveMercureConfig('App\Entity\Book');
+
+        $this->assertSame(MercureConfig::PROTOCOL_VERSION_1_0, $config?->protocolVersion);
+    }
+
+    private function hubUrlResolver(?string $hubUrl, string $protocolVersion = MercureConfig::PROTOCOL_VERSION_0_X): MercureHubUrlResolver
     {
         $hubResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubResolver
             ->method('resolveHubUrl')
             ->willReturn($hubUrl);
+        $hubResolver
+            ->method('resolveProtocolVersion')
+            ->willReturn($protocolVersion);
 
         return $hubResolver;
     }

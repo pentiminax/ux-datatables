@@ -30,6 +30,7 @@ class MercureConfigResolver
         return new MercureConfig(
             topics: $topics,
             hubUrl: $hubUrl,
+            protocolVersion: $this->hubUrlResolver->resolveProtocolVersion(),
         );
     }
 
