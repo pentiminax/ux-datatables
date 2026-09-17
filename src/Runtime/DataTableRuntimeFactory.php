@@ -106,6 +106,9 @@ final class DataTableRuntimeFactory
                 exportRowMapper: $exportRowMapper,
                 pageProjector: $pageProjector,
                 configureBaseQueryBuilder: $configureBaseQueryBuilder,
+                apiPlatform: true === $table->getOption('apiPlatform'),
+                columns: array_values($columns),
+                dataTableClass: $table->getDataTableClass(),
             ),
             maxPageLength: $this->maxPageLength,
             columns: $columns,
@@ -123,6 +126,9 @@ final class DataTableRuntimeFactory
         ?RowMapperInterface $exportRowMapper = null,
         ?\Closure $pageProjector = null,
         ?callable $configureBaseQueryBuilder = null,
+        bool $apiPlatform = false,
+        array $columns = [],
+        ?string $dataTableClass = null,
     ): ?DataProviderInterface {
         return $manualDataProviderFactory() ?? $this->getAutoDataProviderFactory()->create(
             asDataTable: $asDataTable,
@@ -131,6 +137,9 @@ final class DataTableRuntimeFactory
             exportRowMapper: $exportRowMapper,
             pageProjector: $pageProjector,
             configureBaseQueryBuilder: $configureBaseQueryBuilder,
+            apiPlatform: $apiPlatform,
+            columns: $columns,
+            dataTableClass: $dataTableClass,
         );
     }
 

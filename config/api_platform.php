@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformItemResolver;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformQueryParameterFactory;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiPlatformPropertyTypeMapper;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
+use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProviderFactory;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
@@ -43,11 +44,21 @@ return static function (ContainerConfigurator $container): void {
     $services->alias(ApiResourceMercureMetadataResolver::class, 'datatables.api_platform.mercure_metadata_resolver')
         ->private();
 
-    $services->set('datatables.api_platform.item_resolver', ApiPlatformItemResolver::class)
-        ->arg(0, service('api_platform.iri_converter'))
-        ->arg(1, service('api_platform.metadata.resource.metadata_collection_factory'))
-        ->arg(2, service('api_platform.router'))
-        ->arg(3, service('api_platform.security.resource_access_checker')->nullOnInvalid())
-        ->arg(4, service('request_stack'))
+    $services->set('datatables.api_platform.query_parameter_factory', ApiPlatformQueryParameterFactory::class)
+        ->private();
+
+    $services->alias(ApiPlatformQueryParameterFactory::class, 'datatables.api_platform.query_parameter_factory')
+        ->private();
+
+    $services->set('datatables.api_platform.collection_provider_factory', ApiPlatformCollectionProviderFactory::class)
+        ->arg(0, service('api_platform.state_provider.main'))
+        ->arg(1, service('datatables.api_platform.collection_url_resolver'))
+        ->arg(2, service('datatables.api_platform.query_parameter_factory'))
+        ->arg(3, service('datatables.query.intent_factory'))
+        ->arg(4, service('datatables.column.resolver'))
+        ->arg(5, service('request_stack'))
+        ->private();
+
+    $services->alias(ApiPlatformCollectionProviderFactory::class, 'datatables.api_platform.collection_provider_factory')
         ->private();
 };

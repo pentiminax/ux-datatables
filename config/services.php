@@ -17,7 +17,6 @@ use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Controller\AjaxExportController;
-use Pentiminax\UX\DataTables\Controller\AjaxTemplateRenderController;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\Ajax\DetailRowService;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
@@ -36,7 +35,6 @@ use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
-use Pentiminax\UX\DataTables\Ajax\SourceRowResolver;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
@@ -236,18 +234,6 @@ return static function (ContainerConfigurator $container): void {
         ->tag('controller.service_arguments')
         ->public();
 
-    $services->set('datatables.ajax.source_row_resolver', SourceRowResolver::class)
-        ->arg(0, service('datatables.api_platform.item_resolver')->nullOnInvalid())
-        ->private();
-
-    $services->set('datatables.controller.ajax_templates', AjaxTemplateRenderController::class)
-        ->arg(0, service('datatables.ajax.registry'))
-        ->arg(1, service('datatables.runtime.factory'))
-        ->arg(2, service('datatables.ajax.source_row_resolver'))
-        ->arg(3, param('datatables.max_page_length'))
-        ->tag('controller.service_arguments')
-        ->public();
-
     $services->set('datatables.route_loader', RouteLoader::class)
         ->tag('routing.route_loader')
         ->public();
@@ -303,6 +289,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.data_provider.auto_factory', AutoDataProviderFactory::class)
         ->arg(0, service('doctrine.orm.entity_manager')->nullOnInvalid())
+        ->arg(1, service('datatables.api_platform.collection_provider_factory')->nullOnInvalid())
         ->private();
 
     $services->set('datatables.runtime.factory', DataTableRuntimeFactory::class)

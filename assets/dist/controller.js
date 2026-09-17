@@ -9,7 +9,7 @@ import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js';
 import { relativeDateColumnRenderer } from './columnRenderers/relativeDateColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
-import { ApiPlatformAdapter, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
+import { ApiPlatformAdapter, isApiPlatformAdapterEnabled, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js';
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
 import { deleteEntity } from './functions/deleteEntity.js';
@@ -460,7 +460,7 @@ class default_1 extends Controller {
         return '/datatables/ajax/edit';
     }
     isApiPlatformEnabled(payload) {
-        return true === payload?.apiPlatform;
+        return isApiPlatformAdapterEnabled(payload);
     }
     isMercureEnabled(payload) {
         return !!payload?.mercure?.hubUrl && this.getMercureTopics(payload).length > 0;

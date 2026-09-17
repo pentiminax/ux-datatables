@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\ApiPlatform;
 
 use ApiPlatform\Metadata\CollectionOperationInterface;
+use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 
 class ApiResourceCollectionUrlResolver
@@ -15,6 +16,23 @@ class ApiResourceCollectionUrlResolver
     }
 
     public function resolveCollectionUrl(string $entityClass): ?string
+    {
+        return $this->resolveCollection($entityClass)?->url;
+    }
+
+    public function resolveCollectionOperation(string $entityClass): ?Operation
+    {
+        return $this->resolveCollection($entityClass)?->operation;
+    }
+
+    /**
+     * The path and the operation come from one walk of the resource metadata. Server-side rendering
+     * reads rows through this operation while the browser may query the same path, so both must
+     * describe the same choice: a table whose browser requests and whose server requests target
+     * different collection operations would show rows filtered, scoped or secured differently from
+     * the ones it counts.
+     */
+    public function resolveCollection(string $entityClass): ?ResolvedCollectionOperation
     {
         try {
             $collection = $this->resourceMetadataFactory->create($entityClass);
@@ -49,7 +67,7 @@ class ApiResourceCollectionUrlResolver
                     continue;
                 }
 
-                return $path;
+                return new ResolvedCollectionOperation($path, $operation);
             }
         }
 
