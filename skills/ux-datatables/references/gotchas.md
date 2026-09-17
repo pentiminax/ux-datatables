@@ -5,7 +5,7 @@ Server-side tables, edit/delete actions, and boolean toggles call built-in bundl
 ```php
 // config/routes/ux_datatables.php
 return static function (RoutingConfigurator $routes): void {
-    $routes->import('@DataTablesBundle/config/routes.php');
+    $routes->import('@PentiminaxDataTablesBundle/config/routes.php');
 };
 ```
 
