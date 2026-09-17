@@ -126,6 +126,76 @@ final class ApiResourceMercureMetadataResolverTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('providePrivateMetadata')]
+    public function it_resolves_private_from_resource_then_operation(ApiResource $resource, bool $expected): void
+    {
+        $this->assertSame($expected, $this->resolver($resource)->resolvePrivate(self::ENTITY_CLASS));
+    }
+
+    /**
+     * @return iterable<string, array{0: ApiResource, 1: bool}>
+     */
+    public static function providePrivateMetadata(): iterable
+    {
+        yield 'resource level private' => [
+            (new ApiResource(mercure: ['private' => true]))
+                ->withOperations(new Operations([
+                    new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
+                ])),
+            true,
+        ];
+
+        yield 'operation level private' => [
+            (new ApiResource())->withOperations(new Operations([
+                new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api', mercure: ['private' => true]),
+            ])),
+            true,
+        ];
+
+        yield 'operation level private wins over a non-private resource' => [
+            (new ApiResource(mercure: ['private' => false]))->withOperations(new Operations([
+                new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api', mercure: ['private' => true]),
+            ])),
+            true,
+        ];
+
+        yield 'resource level private is not overridden by operation topics' => [
+            (new ApiResource(mercure: ['private' => true]))->withOperations(new Operations([
+                new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api', mercure: ['topics' => ['/api/books/{id}']]),
+            ])),
+            true,
+        ];
+
+        yield 'private explicitly false' => [
+            new ApiResource(mercure: ['private' => false]),
+            false,
+        ];
+
+        yield 'private as a string is not a flag' => [
+            new ApiResource(mercure: ['private' => 'yes']),
+            false,
+        ];
+
+        yield 'no mercure metadata' => [
+            new ApiResource(),
+            false,
+        ];
+    }
+
+    #[Test]
+    public function it_reports_a_non_private_resource_when_the_metadata_factory_throws(): void
+    {
+        $factory = $this->createStub(ResourceMetadataCollectionFactoryInterface::class);
+        $factory
+            ->method('create')
+            ->willThrowException(new \RuntimeException('boom'));
+
+        $resolver = new ApiResourceMercureMetadataResolver($factory);
+
+        $this->assertFalse($resolver->resolvePrivate(self::ENTITY_CLASS));
+    }
+
+    #[Test]
     public function it_builds_the_item_topic_absolutely_on_a_same_host_hub(): void
     {
         $resource = (new ApiResource())->withOperations(new Operations([

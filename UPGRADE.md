@@ -471,6 +471,42 @@ One constructor gained optional arguments, appended last:
 | --- | --- |
 | `ApiPlatform\ApiResourceMercureMetadataResolver::__construct()` | `?Mercure\MercureTopicUrlResolver`, then `?Psr\Log\LoggerInterface` |
 
+### Private API Platform resources subscribe with credentials
+
+API Platform marks an update private from resource metadata
+(`#[ApiResource(mercure: ['private' => true])]`), and a hub delivers such an update only to a
+subscriber whose token grants one of the update's topics. The bundle did not read the flag, so the
+browser opened the `EventSource` anonymously: the connection stayed up and the table silently
+stopped refreshing.
+
+`ApiPlatform\ApiResourceMercureMetadataResolver::resolvePrivate()` now reads the flag from the
+resource metadata and from every operation, and `Mercure\MercureConfigResolver` serializes
+`withCredentials: true` as soon as one of them declares `private`. Nothing to configure: a table
+whose resource is private starts sending credentials, and a resource that does not set `private`
+(or sets `private: false`) serializes the exact payload it did before.
+
+An explicit `withCredentials` still wins, on both `#[AsDataTable(..., mercure: [...])]` and
+`->mercure()`: those paths never reach auto-resolution. Both also take over topic resolution, so
+opting out means declaring the topics too — `mercure: ['withCredentials' => false]` without
+`topics` throws *Mercure topics cannot be empty.*, and `->mercure(withCredentials: false)` alone
+subscribes to the bundle's internal fallback topic instead of the API Platform one:
+
+```php
+#[AsDataTable(Book::class, mercure: [
+    'topics'          => ['https://example.com/api/books/{id}'],
+    'withCredentials' => false,
+])]
+```
+
+The table then stops refreshing on private updates, which is what that setting asks for.
+
+The two application-side prerequisites are unchanged and are now documented in
+`docs/src/content/docs/integrations/mercure.mdx` (*Private Topics*): the subscriber cookie is
+symfony/mercure-bundle's job, and its grant must cover the concrete published topic — under Mercure
+1.0 `match_type` defaults to `exact`, so a 0.x grant holding `/api/books/{id}` does not cover
+`/api/books/42`. On a 1.0 hub the cookie is `__Secure-mercure_access_token`, so the hub URL must be
+HTTPS.
+
 ## v0.84 → v0.85
 
 ### Permission configuration uses `setPermission()`

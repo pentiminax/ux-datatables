@@ -27,8 +27,12 @@ class MercureConfigResolver
             $topics = [$this->buildFallbackTopic($entityClass)];
         }
 
+        // Auto-resolution only: an explicit `withCredentials` is resolved before this resolver.
+        $withCredentials = $this->apiResourceMercureMetadataResolver?->resolvePrivate($entityClass) ?? false;
+
         return new MercureConfig(
             topics: $topics,
+            withCredentials: $withCredentials,
             hubUrl: $hubUrl,
             protocolVersion: $this->hubUrlResolver->resolveProtocolVersion(),
         );
