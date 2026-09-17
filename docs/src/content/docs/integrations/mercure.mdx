@@ -87,12 +87,28 @@ update, never against the subscription's matchers, which only select what the cl
 anonymous `EventSource` therefore never receives it: the connection opens and the table silently
 stops refreshing.
 
-The bundle reads the flag with the same resource-then-operation precedence it uses for topics, so
-auto-resolution (`#[AsDataTable(Book::class, mercure: true)]`) serializes `withCredentials: true`
-for a private resource. An explicit `withCredentials` always wins: `['withCredentials' => false]` on
-the attribute, or `->mercure(withCredentials: false)` on the table, is never overridden. A resource
-that does not set `private`, or sets `private: false`, serializes exactly the payload it did before,
-with no `withCredentials` key.
+The bundle reads the flag from the resource metadata and from every operation, so auto-resolution
+(`#[AsDataTable(Book::class, mercure: true)]`) serializes `withCredentials: true` as soon as one of
+them declares `private`. A resource that does not set `private`, or sets `private: false`,
+serializes exactly the payload it did before, with no `withCredentials` key.
+
+An explicit `withCredentials` always wins, because both explicit paths are resolved before the
+auto-resolver runs — but an explicit path also takes over topic resolution, so declare the topics
+with it:
+
+```php
+#[AsDataTable(Book::class, mercure: [
+    'topics'          => ['https://example.com/api/books/{id}'],
+    'withCredentials' => false,
+])]
+final class BookDataTable extends AbstractDataTable
+{
+}
+```
+
+`['withCredentials' => false]` on its own throws *Mercure topics cannot be empty.*, and
+`->mercure(withCredentials: false)` on its own subscribes to the bundle's internal
+`/datatables/.../{id}` fallback topic, which API Platform never publishes to.
 
 ### What The Application Still Has To Do
 
@@ -102,6 +118,10 @@ subscriber cookie comes from its `Authorization` service or from the `mercure()`
 - On a Mercure **1.0** hub the cookie is `__Secure-mercure_access_token`, so the hub URL must be
   **HTTPS**. The token is an [RFC 9068](https://www.rfc-editor.org/rfc/rfc9068) access token
   carrying `authorization_details`.
+- **A cross-origin hub has to allow credentials.** `withCredentials: true` makes the browser
+  require `Access-Control-Allow-Credentials: true` and a concrete `Access-Control-Allow-Origin` on
+  the hub response — the wildcard `*` is rejected for a credentialed request, so the hub's allowed
+  origins must name the application origin.
 - **The grant has to cover the concrete published topic.** Under 1.0 each `topics` entry is an
   object (`{ "match": ..., "match_type"?: ... }`), bare strings are rejected, and `match_type`
   defaults to `exact`. A grant ported from 0.x and holding `https://example.com/api/books/{id}` is
@@ -121,9 +141,18 @@ $token = $factory->create(
         actions: [Grant::ACTION_SUBSCRIBE],
         topics: ['urlpattern' => ['https://example.com/api/books/:id']],
     )],
-    additionalClaims: ['iss' => 'https://example.com', 'sub' => 'user-42'],
+    additionalClaims: [
+        'iss'       => 'https://example.com',
+        'aud'       => 'https://example.com/.well-known/mercure',
+        'sub'       => 'user-42',
+        'client_id' => 'book-table',
+    ],
 );
 ```
+
+`iss`, `aud`, `sub` and `client_id` are all mandatory: `create()` builds an RFC 9068 access token
+under `ProtocolVersion::V1` and throws `InvalidArgumentException` (*The "aud" additional claim is
+required by RFC 9068 access tokens.*) when one of them is missing.
 
 See the [Mercure authorization concepts](https://github.com/dunglas/mercure/blob/main/docs/concepts/authorization.md)
 and the [Mercure upgrade guide](https://github.com/dunglas/mercure/blob/main/docs/UPGRADE.md).

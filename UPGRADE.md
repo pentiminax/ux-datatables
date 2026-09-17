@@ -419,16 +419,26 @@ subscriber whose token grants one of the update's topics. The bundle did not rea
 browser opened the `EventSource` anonymously: the connection stayed up and the table silently
 stopped refreshing.
 
-`ApiPlatform\ApiResourceMercureMetadataResolver::resolvePrivate()` now reads the flag with the same
-resource-then-operation precedence as the topics, and `Mercure\MercureConfigResolver` serializes
-`withCredentials: true` for a resource that declares it. Nothing to configure: a table whose
-resource is private starts sending credentials, and a resource that does not set `private` (or sets
-`private: false`) serializes the exact payload it did before.
+`ApiPlatform\ApiResourceMercureMetadataResolver::resolvePrivate()` now reads the flag from the
+resource metadata and from every operation, and `Mercure\MercureConfigResolver` serializes
+`withCredentials: true` as soon as one of them declares `private`. Nothing to configure: a table
+whose resource is private starts sending credentials, and a resource that does not set `private`
+(or sets `private: false`) serializes the exact payload it did before.
 
-An explicit `withCredentials` still wins, on both
-`#[AsDataTable(..., mercure: ['withCredentials' => false])]` and `->mercure(withCredentials: false)`:
-those paths never reach auto-resolution. The table then stops refreshing on private updates, which
-is what that setting asks for.
+An explicit `withCredentials` still wins, on both `#[AsDataTable(..., mercure: [...])]` and
+`->mercure()`: those paths never reach auto-resolution. Both also take over topic resolution, so
+opting out means declaring the topics too — `mercure: ['withCredentials' => false]` without
+`topics` throws *Mercure topics cannot be empty.*, and `->mercure(withCredentials: false)` alone
+subscribes to the bundle's internal fallback topic instead of the API Platform one:
+
+```php
+#[AsDataTable(Book::class, mercure: [
+    'topics'          => ['https://example.com/api/books/{id}'],
+    'withCredentials' => false,
+])]
+```
+
+The table then stops refreshing on private updates, which is what that setting asks for.
 
 The two application-side prerequisites are unchanged and are now documented in
 `docs/src/content/docs/integrations/mercure.mdx` (*Private Topics*): the subscriber cookie is

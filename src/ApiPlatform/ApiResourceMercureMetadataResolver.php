@@ -61,13 +61,22 @@ class ApiResourceMercureMetadataResolver
     }
 
     /**
-     * Whether API Platform marks this resource private, resource level first then operations.
+     * Whether API Platform marks this resource private, at the resource level or on any operation.
+     *
+     * Any declaration wins: the bundle cannot know which operation published a given update, so it
+     * over-approximates towards sending credentials rather than towards a silent subscription.
      */
     public function resolvePrivate(string $entityClass): bool
     {
         try {
             $collection = $this->resourceMetadataFactory->create($entityClass);
         } catch (\Throwable) {
+            // Mirrors resolveTopics(): the factory chain throws on a class it cannot resolve
+            // (ResourceClassNotFoundException) and on a handful of resource misconfigurations,
+            // and every entity-backed table reaches this method through MercureConfigResolver.
+            // Such a table falls back to the bundle's internal topic and is not private, so the
+            // failure must not take the render down with it. The exception classes span
+            // api-platform/core 3 and 4, where several moved namespace, hence \Throwable.
             return false;
         }
 
