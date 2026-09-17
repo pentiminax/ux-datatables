@@ -60,6 +60,36 @@ class ApiResourceMercureMetadataResolver
     }
 
     /**
+     * True as soon as the resource or any operation declares it: the bundle cannot know which
+     * operation published an update, so it over-approximates towards sending credentials.
+     */
+    public function resolvePrivate(string $entityClass): bool
+    {
+        try {
+            $collection = $this->resourceMetadataFactory->create($entityClass);
+        } catch (\Throwable) {
+            // A class the factory cannot resolve is simply not private, and every entity-backed
+            // table reaches this through MercureConfigResolver. \Throwable because the concrete
+            // exception moved namespace between api-platform/core 3 and 4.
+            return false;
+        }
+
+        foreach ($collection as $resource) {
+            if (true === $this->normalizePrivate($resource->getMercure())) {
+                return true;
+            }
+
+            foreach ($resource->getOperations() ?? [] as $operation) {
+                if (true === $this->normalizePrivate($operation->getMercure())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * The operation API Platform builds the item IRI from, so the subscription cannot name a topic
      * the publisher never uses: `ResourceMetadataCollection::getOperation(null, false, true)` takes
      * the first non-collection GET/HEAD/OPTIONS in declaration order — the method decides, not the
@@ -156,6 +186,15 @@ class ApiResourceMercureMetadataResolver
         }
 
         return array_values($topics);
+    }
+
+    private function normalizePrivate(mixed $mercure): bool
+    {
+        if (!\is_array($mercure)) {
+            return false;
+        }
+
+        return true === ($mercure['private'] ?? false);
     }
 
     private function absoluteUrl(string $path): string

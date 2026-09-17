@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
@@ -375,6 +376,58 @@ final class RenderingPreparerTest extends TestCase
             'topics'          => ['https://example.com/books'],
             'withCredentials' => true,
             'debounceMs'      => 250,
+        ], $table->getOptions()['mercure']);
+    }
+
+    #[Test]
+    public function it_subscribes_with_credentials_for_a_private_api_platform_resource(): void
+    {
+        $metadataResolver = $this->createStub(ApiResourceMercureMetadataResolver::class);
+        $metadataResolver->method('resolveTopics')->willReturn(['https://example.com/api/books/{id}']);
+        $metadataResolver->method('resolvePrivate')->willReturn(true);
+
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://example.com/.well-known/mercure');
+
+        $preparer = new RenderingPreparer(
+            mercureResolver: new MercureConfigResolver($hubUrlResolver, $metadataResolver),
+            mercureHubUrlResolver: $hubUrlResolver,
+        );
+        $table = (new DataTable('Test'))->ajax('/api/books');
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: true));
+
+        $this->assertSame([
+            'hubUrl'          => 'https://example.com/.well-known/mercure',
+            'topics'          => ['https://example.com/api/books/{id}'],
+            'withCredentials' => true,
+        ], $table->getOptions()['mercure']);
+    }
+
+    #[Test]
+    public function it_keeps_an_explicit_with_credentials_false_over_the_private_metadata(): void
+    {
+        $metadataResolver = $this->createMock(ApiResourceMercureMetadataResolver::class);
+        $metadataResolver->expects($this->never())->method('resolveTopics');
+        $metadataResolver->expects($this->never())->method('resolvePrivate');
+
+        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://example.com/.well-known/mercure');
+
+        $preparer = new RenderingPreparer(
+            mercureResolver: new MercureConfigResolver($hubUrlResolver, $metadataResolver),
+            mercureHubUrlResolver: $hubUrlResolver,
+        );
+        $table = (new DataTable('Test'))->ajax('/api/books');
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, mercure: [
+            'topics'          => ['https://example.com/api/books/{id}'],
+            'withCredentials' => false,
+        ]));
+
+        $this->assertSame([
+            'hubUrl' => 'https://example.com/.well-known/mercure',
+            'topics' => ['https://example.com/api/books/{id}'],
         ], $table->getOptions()['mercure']);
     }
 

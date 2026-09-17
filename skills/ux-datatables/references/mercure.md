@@ -33,7 +33,7 @@ When auto-resolution is enabled (`mercure: true`, no explicit topics): the bundl
 )]
 ```
 
-Three more API Platform specifics: `@=iri(object)` is resolved explicitly to the item topic, any other `@=` expression topic is dropped with a logged warning naming it — resolution then continues to the item topic, so `@=iri(object.getOwner())` still ends up subscribing to the item IRI and the warning is what tells you the declared topic was not honored — `private: true` is not mapped to `withCredentials` — set it yourself, and the subscriber cookie comes from symfony/mercure-bundle (`Authorization`, the `mercure()` Twig function), not from this bundle — and `@=` needs `symfony/expression-language` installed on the app side or API Platform throws when it publishes.
+Three more API Platform specifics: `@=iri(object)` is resolved explicitly to the item topic, any other `@=` expression topic is dropped with a logged warning naming it — resolution then continues to the item topic, so `@=iri(object.getOwner())` still ends up subscribing to the item IRI and the warning is what tells you the declared topic was not honored — `private: true` is mapped to `withCredentials` automatically (see Private topics below), and the subscriber cookie comes from symfony/mercure-bundle (`Authorization`, the `mercure()` Twig function), not from this bundle — and `@=` needs `symfony/expression-language` installed on the app side or API Platform throws when it publishes.
 
 ## What it does client-side
 
@@ -49,7 +49,15 @@ Publishing is protocol-agnostic: Mercure 1.0 kept the `topic=` form fields, so t
 
 - Only reloads server-side tables — a table configured with static `data` will not auto-refresh from SSE.
 - No Mercure config means no SSE subscription (dynamic import skipped).
-- `withCredentials` forwards cookies/auth on the SSE request; not mapped automatically from API Platform's `private: true`. On a 1.0 hub the cookie is `__Secure-mercure_access_token`, so private topics also need an HTTPS hub URL.
+- `withCredentials` forwards cookies/auth on the SSE request; auto-resolution turns it on for a resource marked `private` (see Private topics). On a 1.0 hub the cookie is `__Secure-mercure_access_token`, so private topics also need an HTTPS hub URL.
+
+## Private topics
+
+API Platform marks an update private with `#[ApiResource(mercure: ['private' => true])]`, and `PublishMercureUpdatesListener::buildUpdate()` passes that straight to `Symfony\Component\Mercure\Update`. A hub only delivers a private update to a subscriber whose token grants `subscribe` on one of the *update's* topics — authorization is evaluated against the update, never against the subscription's matchers — so an anonymous `EventSource` opens the connection and nothing ever arrives.
+
+The bundle therefore reads `private` from the resource metadata and from every operation — any declaration wins, since the bundle cannot know which operation published a given update — and auto-resolution serializes `withCredentials: true`. It still sets no cookie and mints no token: that is symfony/mercure-bundle's job (`Authorization`, the `mercure()` Twig function). An explicit `withCredentials` on the attribute or on `->mercure()` keeps winning, and a resource without `private` (or with `private: false`) serializes the same payload as before. Opting out means declaring the topics too: an explicit path never falls back to the metadata, so `mercure: ['withCredentials' => false]` without `topics` throws "Mercure topics cannot be empty." and `->mercure(withCredentials: false)` alone subscribes to the internal fallback topic.
+
+The usual reason this still fails is the grant, not the bundle. On a Mercure 1.0 hub the cookie is `__Secure-mercure_access_token` (so an HTTPS hub URL is mandatory) and a `topics` entry is an object whose `match_type` defaults to `exact`; bare strings are rejected. A 0.x grant holding `https://example.com/api/books/{id}` is an exact match on that literal string, so it does not cover the published `https://example.com/api/books/42` and the hub answers `403 insufficient_scope`. Use a `urlpattern` grant: `new Grant(actions: [Grant::ACTION_SUBSCRIBE], topics: ['urlpattern' => ['https://example.com/api/books/:id']])` from `Symfony\Component\Mercure\Jwt` (0.8), minted by a factory configured for the dialect — `new LcobucciFactory($secret, protocolVersion: ProtocolVersion::V1)`. Under `V1` the token is an RFC 9068 access token, so `create()` throws unless `additionalClaims` carries all four of `iss`, `aud`, `sub` and `client_id`. A cross-origin hub also has to answer a credentialed request with `Access-Control-Allow-Credentials: true` and a concrete `Access-Control-Allow-Origin` — the wildcard is rejected. See the Mercure authorization concepts and upgrade guide.
 
 ## Publishing updates
 
