@@ -63,6 +63,39 @@ final class MercureConfigTest extends TestCase
     }
 
     #[Test]
+    public function it_serializes_the_protocol_version_only_for_a_non_legacy_hub(): void
+    {
+        $legacy = (new MercureConfig(
+            topics: ['/api/books/{id}'],
+            protocolVersion: MercureConfig::PROTOCOL_VERSION_0_X,
+        ))->withHubUrl('/.well-known/mercure');
+
+        $this->assertSame([
+            'hubUrl' => '/.well-known/mercure',
+            'topics' => ['/api/books/{id}'],
+        ], $legacy->jsonSerialize());
+
+        $current = (new MercureConfig(
+            topics: ['/api/books/{id}'],
+            protocolVersion: MercureConfig::PROTOCOL_VERSION_1_0,
+        ))->withHubUrl('/.well-known/mercure');
+
+        $this->assertSame([
+            'hubUrl'          => '/.well-known/mercure',
+            'topics'          => ['/api/books/{id}'],
+            'protocolVersion' => '1.0',
+        ], $current->jsonSerialize());
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_legacy_protocol_when_none_is_reported(): void
+    {
+        $config = new MercureConfig(topics: ['/api/books/{id}'], protocolVersion: '');
+
+        $this->assertSame(MercureConfig::PROTOCOL_VERSION_0_X, $config->protocolVersion);
+    }
+
+    #[Test]
     public function it_normalizes_topics(): void
     {
         $config = new MercureConfig(
@@ -90,12 +123,33 @@ final class MercureConfigTest extends TestCase
             topics: ['datatables/MyTable'],
             withCredentials: true,
             debounceMs: 250,
+            protocolVersion: MercureConfig::PROTOCOL_VERSION_1_0,
         );
 
         $resolved = $base->withHubUrl('/.well-known/mercure');
 
         $this->assertNull($base->hubUrl);
         $this->assertSame('/.well-known/mercure', $resolved->hubUrl);
+        $this->assertSame($base->topics, $resolved->topics);
+        $this->assertSame($base->withCredentials, $resolved->withCredentials);
+        $this->assertSame($base->debounceMs, $resolved->debounceMs);
+        $this->assertSame(MercureConfig::PROTOCOL_VERSION_1_0, $resolved->protocolVersion);
+    }
+
+    #[Test]
+    public function with_protocol_version_returns_clone_preserving_other_fields(): void
+    {
+        $base = (new MercureConfig(
+            topics: ['datatables/MyTable'],
+            withCredentials: true,
+            debounceMs: 250,
+        ))->withHubUrl('/.well-known/mercure');
+
+        $resolved = $base->withProtocolVersion(MercureConfig::PROTOCOL_VERSION_1_0);
+
+        $this->assertSame(MercureConfig::PROTOCOL_VERSION_0_X, $base->protocolVersion);
+        $this->assertSame(MercureConfig::PROTOCOL_VERSION_1_0, $resolved->protocolVersion);
+        $this->assertSame($base->hubUrl, $resolved->hubUrl);
         $this->assertSame($base->topics, $resolved->topics);
         $this->assertSame($base->withCredentials, $resolved->withCredentials);
         $this->assertSame($base->debounceMs, $resolved->debounceMs);
