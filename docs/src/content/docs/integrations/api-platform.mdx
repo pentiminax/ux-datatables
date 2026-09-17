@@ -1,0 +1,202 @@
+---
+title: API Platform Integration
+description: Use UX DataTables with API Platform collections and Hydra responses
+order: 10
+navTitle: API Platform
+---
+
+API Platform integration is **opt-in**. The mere presence of `#[AsDataTable(Entity::class)]` does not activate any API Platform behavior. You must explicitly enable it with one of the two opt-in mechanisms below.
+
+## Opt-in mechanisms
+
+### 1) Attribute opt-in: `#[AsDataTable(..., apiPlatform: true)]`
+
+Add `apiPlatform: true` to the attribute on your DataTable class. This enables:
+
+- Automatic Ajax URL resolution from API Platform collection metadata
+- Auto-detection of columns from API Platform property metadata
+
+```php
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
+#[AsDataTable(entityClass: Book::class, apiPlatform: true)]
+class BookDataTable extends AbstractDataTable
+{
+}
+```
+
+### 2) Imperative opt-in: `DataTable::apiPlatform(true)` in `configureDataTable()`
+
+Use this mode when you need to point to an explicit Ajax URL (e.g. a custom endpoint) while still using the API Platform Hydra adapter on the frontend.
+
+```php
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->ajax('/api/books')
+        ->serverSide(true)
+        ->apiPlatform(true);
+}
+```
+
+When `apiPlatform(true)` is called in `configureDataTable()` but no explicit `ajax()` URL is set, the bundle will still attempt to resolve the collection URL automatically from API Platform metadata (provided `#[AsDataTable]` is present). The two opt-ins are equivalent: `apiPlatform(true)` also enables column auto-detection, exactly like `apiPlatform: true` on the attribute.
+
+## Ajax auto-wiring (attribute opt-in only)
+
+When `#[AsDataTable(entityClass: Book::class, apiPlatform: true)]` is present and no explicit `ajax()` or `data()` option has been set, the bundle resolves the API Platform collection URL and configures Ajax automatically.
+
+<Table
+  headers={['Option', 'Value']}
+  rows={[
+    ['`ajax.url`', 'Resolved from API Platform collection metadata (e.g. `/api/books`)'],
+    ['`ajax.type`', '`GET`'],
+    ['`apiPlatform`', '`true`'],
+  ]}
+/>
+
+Auto-wiring is skipped if:
+
+- `ajax()` is already set (explicit URL takes priority)
+- `data()` is already set (client-side mode)
+- No collection URL can be resolved from API Platform metadata
+
+## Frontend adapter (both opt-ins)
+
+When `apiPlatform` is enabled, the Stimulus controller activates a Hydra adapter that converts:
+
+<Table
+  headers={['Input', 'Output']}
+  rows={[
+    [
+      'DataTables query params',
+      'API Platform params (`page`, `itemsPerPage`, `order[field]`, `q`, filters)',
+    ],
+    ['Hydra response (`hydra:member`, `hydra:totalItems`)', 'DataTables response shape'],
+  ]}
+/>
+
+Notes:
+
+- Date formatting is handled by the backend payload. The adapter does not reformat date values on the client.
+- When API Platform adapter mode is enabled, `serverSide` is enforced so sorting and filtering stay consistent with API queries.
+- Ordering and column search are matched by column name, so a column inserted by the client (the Select extension in `checkbox` mode) does not shift the fields sent to the API.
+- Filter bar values are flattened into API Platform's own query shape, so each filter needs a matching API Platform filter on the resource:
+
+  | Filter type | Query parameters |
+  | --- | --- |
+  | `text`, `select`, `ternary`, `checkbox` | `?name=value` |
+  | `select` with `multiple()` | `?name[0]=value&name[1]=value` |
+  | `dateRange` | `?name[after]=YYYY-MM-DD&name[before]=YYYY-MM-DD` |
+
+## Reading the collection server-side
+
+`TemplateColumn`, detail actions and `UrlColumn` render from the entity, not from the JSON row the
+browser received. A table declaring one of them therefore stops querying the API from the browser:
+it becomes an ordinary server-side table pointed at `ux_datatables_ajax_data`, and the bundle reads
+the collection itself.
+
+Each draw makes a single call to API Platform's main state provider, on the same collection
+operation the browser would have queried. Pagination, ordering, global search and filter values are
+translated server-side into `page`, `itemsPerPage`, `order[...]`, `q` and the resource's filter
+parameters. One draw is one HTTP request and one collection query: no second round-trip, and no
+per-row item lookup.
+
+The Hydra adapter stands down for these tables — rows are mapped by the `RowMapper`, so they already
+arrive keyed by column name.
+
+### What authorizes the rows
+
+<Table
+  headers={['Layer', 'Applies?']}
+  rows={[
+    ['`security` on the collection operation', 'Yes, on every draw'],
+    ['`security` on a `#[QueryParameter]`', 'Yes'],
+    ['Doctrine collection extensions (pagination, filters, tenant scoping)', 'Yes'],
+    ['`access_control` rules matching the API path', 'No'],
+    ['`Permission::DT_ACCESS_TABLE` on the table', 'Yes'],
+  ]}
+/>
+
+The collection is read through the state provider, as a service call — the same way a Doctrine table
+reads its repository. No HTTP request is made, so the Symfony firewall never sees the API path and
+its `access_control` rules are not evaluated. Put the authorization on the operation, not only on
+the URL:
+
+```php
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+
+#[ApiResource(operations: [
+    // The collection operation is the authorization boundary for server-side rendering.
+    new GetCollection(security: 'is_granted("ROLE_ADMIN")'),
+])]
+final class User
+{
+}
+```
+
+<Aside type="caution" title="Secure the bundle's Ajax routes too">
+  The table token in the rendered HTML says which table is requested, not who is requesting it.
+  Protect `/datatables/ajax/*` with your own `access_control` rule — see
+  [Securing Ajax Routes](/getting-started/security/).
+</Aside>
+
+<Aside type="note" title="Column values are read from the entity">
+  Rows are built from the entity's properties, as for a Doctrine table, so custom normalizers and
+  property-level `security` do not apply to cell values. Declare columns only on properties every
+  reader of the table may see.
+</Aside>
+
+## Global search
+
+The DataTables global search box is mapped to the API Platform `q` query parameter.
+
+```php
+use ApiPlatform\Doctrine\Orm\Filter\FreeTextQueryFilter;
+use ApiPlatform\Doctrine\Orm\Filter\OrFilter;
+use ApiPlatform\Doctrine\Orm\Filter\PartialSearchFilter;
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\QueryParameter;
+
+#[ApiResource(operations: [
+    new GetCollection(parameters: [
+        'q' => new QueryParameter(
+            filter: new OrFilter(new FreeTextQueryFilter(new PartialSearchFilter())),
+            properties: ['email', 'firstName', 'lastName'],
+        ),
+    ]),
+])]
+final class User
+{
+}
+```
+
+## Column auto-detection
+
+Column auto-detection from API Platform property metadata is also gated behind the opt-in. Without `apiPlatform: true`, the auto-detector is never called even if API Platform is installed.
+
+`#[AsDataTable]` supports serialization groups to filter exposed properties:
+
+```php
+#[AsDataTable(Book::class, serializationGroups: ['book:list'], apiPlatform: true)]
+```
+
+Properties carrying `#[ApiProperty(security: …)]` are never auto-detected; declare them explicitly and use `setPermission()`.
+
+## Frequent pitfalls
+
+- Using `#[AsDataTable(Entity::class)]` alone and expecting Ajax or columns to be auto-configured — add `apiPlatform: true`.
+- Enabling adapter mode without an Ajax endpoint.
+- Expecting auto Ajax wiring when `ajax()` or `data()` is already set.
+- Forgetting that non-readable resource properties are skipped in auto-detection.
+
+## Cross Links
+
+- [/ux-datatables/reference/attributes/](/ux-datatables/reference/attributes/)
+- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)
+- [/ux-datatables/guide/client-side-processing/](/ux-datatables/guide/client-side-processing/)
+- [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)

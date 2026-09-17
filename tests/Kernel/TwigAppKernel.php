@@ -1,0 +1,93 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Tests\Kernel;
+
+use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\AutoAjaxServerSideDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\ServerSideTemplateDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAccessDecisionManager;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
+use Symfony\Bundle\MercureBundle\MercureBundle;
+use Symfony\Bundle\TwigBundle\TwigBundle;
+use Symfony\Component\Config\Loader\LoaderInterface;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\HttpKernel\Kernel;
+use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\UX\StimulusBundle\StimulusBundle;
+
+class TwigAppKernel extends Kernel
+{
+    public function registerBundles(): iterable
+    {
+        return [new FrameworkBundle(), new TwigBundle(), new StimulusBundle(), new PentiminaxDataTablesBundle(), new MercureBundle()];
+    }
+
+    public function registerContainerConfiguration(LoaderInterface $loader): void
+    {
+        $loader->load(function (ContainerBuilder $container) {
+            $container->loadFromExtension('framework', [
+                'secret'               => '$ecret',
+                'test'                 => true,
+                'http_method_override' => false,
+            ]);
+
+            $container->loadFromExtension('twig', [
+                'default_path' => __DIR__.'/templates', 'strict_variables' => true,
+            ]);
+
+            $container->loadFromExtension('mercure', [
+                'hubs' => ['default' => [
+                    'url' => 'http://localhost:3000/.well-known/mercure',
+                    'jwt' => [
+                        'secret'  => 'jwt_secret',
+                        'publish' => '*',
+                    ],
+                ],
+                ],
+            ]);
+
+            $container->setAlias('test.datatables.twig_extension', 'datatables.twig_extension')->setPublic(true);
+            $container->setAlias('test.datatables.infrastructure', 'datatables.infrastructure')->setPublic(true);
+            $container->setAlias('test.datatables.export.registry', 'datatables.export.registry')->setPublic(true);
+            $container->setAlias('test.datatables.export.exporter.csv', 'datatables.export.exporter.csv')->setPublic(true);
+            $container->setAlias('test.datatables.export.exporter.xlsx', 'datatables.export.exporter.xlsx')->setPublic(true);
+            $container->setAlias('test.datatables.mutation.mutator', 'datatables.mutation.mutator')->setPublic(true);
+            $container->setAlias('test.datatables.security.mutation_token_validator', 'datatables.security.mutation_token_validator')->setPublic(true);
+            $container->setAlias('test.datatables.security.csrf_token_manager', 'datatables.security.csrf_token_manager')->setPublic(true);
+            $container->setAlias('test.datatables.security.authorization_checker', 'datatables.security.authorization_checker')->setPublic(true);
+            $container->setAlias('test.datatables.security.voter', 'datatables.security.voter')->setPublic(true);
+            $container->setAlias('test.mercure.publisher', \Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface::class)->setPublic(true);
+            $container->setAlias('test.datatables.mercure.null_publisher', 'datatables.mercure.null_publisher')->setPublic(true);
+
+            $container
+                ->register(AuthorizationCheckerInterface::class, TestAuthorizationChecker::class);
+
+            $container
+                ->register(AccessDecisionManagerInterface::class, TestAccessDecisionManager::class);
+
+            $container
+                ->register('test.datatables.server_side_template', ServerSideTemplateDataTable::class)
+                ->setAutoconfigured(true)
+                ->setPublic(true);
+
+            $container
+                ->register('test.datatables.auto_ajax_server_side', AutoAjaxServerSideDataTable::class)
+                ->setAutoconfigured(true)
+                ->setPublic(true);
+        });
+    }
+
+    public function getCacheDir(): string
+    {
+        return sys_get_temp_dir().'/ux_datatables/cache/'.$this->environment;
+    }
+
+    public function getLogDir(): string
+    {
+        return sys_get_temp_dir().'/ux_datatables/log';
+    }
+}

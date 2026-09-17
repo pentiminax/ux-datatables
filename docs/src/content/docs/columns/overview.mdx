@@ -1,0 +1,259 @@
+---
+title: Columns Overview
+description: Column system overview — factory pattern, inherited methods, types, and how to pick the right column
+order: 10
+navTitle: Overview
+---
+
+Each column in a DataTable is a PHP object that configures how a field is displayed, sorted, searched, and exported. All column classes extend `AbstractColumn`, which provides a common set of fluent methods.
+
+## Creating a Column
+
+Use the static `::new()` factory on the concrete column class:
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\DateColumn;
+
+TextColumn::new('firstName', 'First Name');
+NumberColumn::new('age', 'Age');
+DateColumn::new('createdAt', 'Created');
+```
+
+The first argument is the data key (must match your `mapRow()` output), the second is the display header.
+
+## Choosing a Column Type
+
+<Table
+  headers={['Column', 'Use when…']}
+  rows={[
+    ['[TextColumn](./text-column/)', 'Plain text or HTML values'],
+    ['[NumberColumn](./number-column/)', 'Integers and floats'],
+    ['[MoneyColumn](./money-column/)', 'Currency amounts (ISO 4217, cents storage)'],
+    ['[DateColumn](./date-column/)', 'Date/datetime strings'],
+    ['[BooleanColumn](./boolean-column/)', 'True/false toggles with optional AJAX switch'],
+    ['[ChoiceColumn](./choice-column/)', 'Finite value sets (statuses, enum variants)'],
+    ['[EmailColumn](./email-column/)', 'Email addresses as clickable mailto links'],
+    ['[ImageColumn](./image-column/)', 'Image URLs rendered as `<img>` thumbnails'],
+    ['[IconColumn](./icon-column/)', 'A Lucide icon representing a status, boolean, or enum'],
+    ['[UrlColumn](./url-column/)', 'Arbitrary links from raw URLs, routes, or callables'],
+    ['[TemplateColumn](./template-column/)', 'Custom server-side Twig rendering'],
+    ['[ActionColumn](./action-column/)', 'Row action buttons (edit, delete, detail)'],
+  ]}
+/>
+
+## Inherited Methods (AbstractColumn)
+
+All column types inherit these methods.
+
+### Display
+
+```php
+$column
+    ->setTitle('Full Name')           // Header label
+    ->setClassName('text-primary')    // CSS class on each cell
+    ->setWidth('200px')               // Column width
+    ->setResponsivePriority(1)        // Stay visible longer with Responsive
+    ->setVisible(false)               // Hide the column
+    ->setDefaultContent('N/A');       // Fallback for null values
+```
+
+### Data
+
+```php
+$column
+    ->setData('user.name')            // Nested data path for inline rows
+    ->setField('product.ref');        // Nested property path for entity rows
+```
+
+### Sorting & Searching
+
+```php
+$column
+    ->setOrderable(false)             // Disable sorting
+    ->setSearchable(false)            // Disable column search
+    ->disableGlobalSearch()           // Exclude from global search
+    ->setSearchNormalization(false);  // Bare LIKE on the raw column, no LOWER()
+```
+
+#### Search normalization
+
+Server-side text search lowercases both the column and the search term, so it behaves the same on
+PostgreSQL, on MySQL, and on binary collations. `setSearchNormalization(false)` opts a single
+column out of that and compares the raw column with a bare `LIKE` instead, which is what keeps a
+`starts` search usable on a MySQL prefix index. The bare `LIKE` follows the column's collation, so
+it is case-sensitive only where the collation is. It applies to global search, per-column search,
+and the ColumnControl `contains`, `starts`, `ends`, and `notContains` logics.
+
+```php
+TextColumn::new('reference', 'Reference')
+    ->setSearchNormalization(false);
+```
+
+`AbstractColumn` carries the flag. A class implementing `ColumnInterface` directly is normalized
+unless it also implements `NormalizedSearchColumnInterface` and returns `false` from
+`isSearchNormalized()`.
+
+#### Sorting on a custom expression
+
+By default, server-side ordering targets `<alias>.<field>`. For a **computed column** — one
+backed by a `SELECT` alias instead of a mapped entity field — that resolution fails
+(`has no field or association named …`). Use `setOrderExpression()` to provide the raw DQL
+expression or SELECT alias used verbatim in the `ORDER BY`, bypassing the default resolution:
+
+```php
+NumberColumn::new('invoiceCount', 'Invoices')
+    ->setOrderExpression('invoiceCount') // a SELECT alias added in customizeQueryBuilder()
+    ->setSearchable(false)
+    ->disableGlobalSearch();
+```
+
+See [Sorting computed columns](/ux-datatables/guide/server-side-processing/#sorting-computed-columns)
+for the matching `customizeQueryBuilder()` setup.
+
+#### Searching on a different field
+
+Server-side search targets the column's own field, which fails the same way for a **virtual
+column** — one whose value is assembled in `mapRow()` rather than mapped on the entity. Such a
+column is skipped by the search rather than breaking the query, so its search box silently
+returns nothing until you point it at real data.
+
+`setSearchField()` does that. It affects search only: the rendered value, the row mapping, the
+form mapping, the ordering and the client payload all keep using `setField()`.
+
+```php
+TextColumn::new('donorProviderName', 'Donor')
+    ->setSearchField('donorProvider.name'); // LEFT JOINs e.donorProvider automatically
+```
+
+The path uses the same dot-notation as `setField()`, so a relation path is resolved through a
+`LEFT JOIN`. Use `addSearchJoin()` when you need the alias yourself, a `WITH` condition, or the
+relation is already joined under a custom alias in `customizeQueryBuilder()`:
+
+```php
+TextColumn::new('donorProviderName', 'Donor')
+    ->addSearchJoin('e.donorProvider', 'dp')
+    ->setSearchField('dp.name');
+```
+
+Joins are applied once: declaring one whose alias is already on the query builder is a no-op, so
+the same column configuration is safe across global search, column search, and ColumnControl
+search in a single request.
+
+#### Searching with a custom predicate
+
+For what a field path cannot express — several fields at once, an `EXISTS` subquery, a database
+function — build the condition yourself with `setSearchPredicate()`:
+
+```php
+use Doctrine\ORM\QueryBuilder;
+
+TextColumn::new('donorProviderName', 'Donor')
+    ->addSearchJoin('e.donorProvider', 'dp')
+    ->setSearchPredicate(function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
+        $qb->setParameter($paramName, '%'.mb_strtolower($value).'%');
+
+        return "LOWER(dp.name) LIKE :{$paramName} OR LOWER(dp.legalName) LIKE :{$paramName}";
+    });
+```
+
+The closure receives the query builder, the root alias, the raw search term, and a parameter name
+unique to that column and search. Bind your parameters on the query builder — under `$paramName`
+or names derived from it — and **return** a DQL condition instead of calling `andWhere()`: global
+search combines the returned conditions with `OR`, a column search with `AND`. Return `null` to
+skip the column for that term.
+
+Overriding `buildSearchPredicate()` in a column subclass is the class-level equivalent. All three
+settings come from `Contracts\SearchableColumnInterface`, which `AbstractColumn` implements — so
+every bundled column type has them, and a custom class implementing `ColumnInterface` directly opts
+in by implementing that interface too.
+
+:::caution
+The predicate string is used verbatim in the DQL. Build it from your own code, never by
+concatenating the search value — bind the value as a parameter, as above.
+:::
+
+Custom predicates apply to global search, per-column search, and the ColumnControl `contains`
+logic. The ColumnControl list, comparison, and empty/not-empty logics keep their own predicate
+shapes; they honor `setSearchField()` and `addSearchJoin()` but not `setSearchPredicate()`, and
+they skip a column whose search field the root entity does not map.
+
+### Cell Type
+
+```php
+$column->setCellType('th');           // Use <th> instead of <td>
+```
+
+### Custom JS Rendering
+
+Define arbitrary DataTables `render` callbacks client-side with the `datatables:pre-connect`
+event:
+
+```javascript
+this.element.addEventListener('datatables:pre-connect', (event) => {
+  event.detail.config.columns[0].render = (data) => `<strong>${data}</strong>`
+})
+```
+
+### Export
+
+```php
+$column->setExportable(false);        // Exclude from CSV/Excel exports
+```
+
+Exportable columns automatically receive the `dt-exportable` CSS class, which the default
+export selector (`.dt-exportable:visible`) relies on. DataTables' column selector only
+accepts a plain CSS selector before `:visible`, so the marker is positive rather than a
+`:not()` exclusion.
+
+### Edit Form Control
+
+```php
+$column->hideWhenUpdating();          // Exclude from inline edit modal
+```
+
+### Custom Options
+
+Pass arbitrary options to the frontend renderer:
+
+```php
+$column->setCustomOption('myKey', 'myValue');
+```
+
+## ColumnType Enum
+
+The `ColumnType` enum controls DataTables.net's internal sort and search algorithm for a column:
+
+<Table
+  headers={['Type', 'Description']}
+  rows={[
+    ['`STRING`', 'Plain text (default for TextColumn)'],
+    ['`STRING_UTF8`', 'UTF-8 aware text sorting'],
+    ['`NUM`', 'Numeric values'],
+    ['`NUM_FMT`', 'Formatted numbers ($1,000)'],
+    ['`DATE`', 'Date values'],
+    ['`HTML`', 'HTML content — sorts/filters on plain text extracted from markup'],
+    ['`HTML_NUM`', 'Numeric values extracted from HTML'],
+    ['`HTML_NUM_FMT`', 'Formatted numeric values extracted from HTML'],
+    ['`HTML_UTF8`', 'HTML with UTF-8 aware text sorting'],
+  ]}
+/>
+
+## Translating Column Titles
+
+Pass a Symfony translator key as the title and it will be resolved automatically when using `AbstractDataTable`:
+
+```php
+yield TextColumn::new('name', 'datatable.columns.name');
+yield TextColumn::new('email', 'datatable.columns.email');
+```
+
+## Serialization
+
+`jsonSerialize()` returns the DataTables.net configuration array for a column:
+
+```php
+$config = $column->jsonSerialize();
+// ['data' => 'name', 'title' => 'Full Name', 'orderable' => true, ...]
+```

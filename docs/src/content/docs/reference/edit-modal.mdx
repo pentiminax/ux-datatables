@@ -1,0 +1,242 @@
+---
+title: Edit Modal
+description: Inline edit modal configuration, template overrides, form mapping, and customization
+order: 60
+---
+
+`Action::edit()` opens a configured edit modal containing an auto-generated Symfony Form. The bundle ships with a framework-agnostic `<dialog>` template and a native `DialogModalAdapter` by default — no Bootstrap or extra JavaScript setup required. Both the Twig template and the JavaScript adapter can be overridden.
+
+## Requirements
+
+- `symfony/form` must be installed (`composer require symfony/form`)
+- `symfony/twig-bundle` must be installed to render the modal templates
+- Bootstrap is only required when you use the Bootstrap modal adapter (detected automatically when Bootstrap CSS is loaded)
+
+## How It Works
+
+1. User clicks the Edit button on a row
+2. The Stimulus controller fetches a pre-filled form from `POST /datatables/ajax/edit-form/view`
+3. The modal adapter matching the detected CSS framework opens the returned modal HTML (`dt` by default, `bs5` when Bootstrap is detected)
+4. On submit, a `POST /datatables/ajax/edit-form` validates and persists the changes
+5. If the form is invalid, only the modal body is re-rendered and replaced in place
+6. On success, the modal closes and the table reloads automatically (with Mercure broadcast if enabled)
+
+## Zero Configuration
+
+With `symfony/form` installed, `Action::edit()` works out of the box in Tailwind or custom CSS projects:
+
+```php
+public function configureActions(Actions $actions): Actions
+{
+    return $actions->add(
+        Action::edit('Edit')
+            ->setIcon('fa-solid fa-pen')
+    );
+}
+```
+
+The Stimulus controller detects the CSS framework on page load. When no Bootstrap stylesheet is found, it falls back to `dt` and uses the built-in `DialogModalAdapter` with the default `@PentiminaxDataTables/modal/datatables/` Twig template.
+
+## Bootstrap Projects
+
+When Bootstrap 5 CSS is detected, the `BootstrapModalAdapter` is used automatically. Override the Twig template globally to match:
+
+```yaml
+# config/packages/data_tables.yaml
+data_tables:
+  edit_modal:
+    template: '@PentiminaxDataTables/modal/bs5/edit_modal.html.twig'
+    body_template: '@PentiminaxDataTables/modal/bs5/_form_body.html.twig'
+```
+
+## Tailwind / Custom CSS
+
+Override only the Twig template with your own classes. The built-in `DialogModalAdapter` handles the rest — no custom JavaScript adapter needed:
+
+```php
+#[AsDataTable(
+    entityClass: Product::class,
+    editModalTemplate: 'datatables/product_edit_modal.html.twig',
+)]
+final class ProductsDataTable extends AbstractDataTable
+{
+}
+```
+
+```twig
+{# templates/datatables/product_edit_modal.html.twig #}
+<dialog class="fixed inset-0 z-50 bg-black/50" data-ux-datatables-modal>
+    <div class="bg-white rounded-xl shadow-xl max-w-lg mx-auto mt-20">
+        <div class="px-6 py-4 border-b">
+            <h2 class="text-lg font-semibold">{{ title|trans }}</h2>
+        </div>
+        <div class="px-6 py-4" data-ux-datatables-modal-body>
+            {{ include(body_template, { form: form, entity: entity }) }}
+        </div>
+        <div class="px-6 py-4 border-t flex justify-end gap-2">
+            <button type="button" data-ux-datatables-cancel class="btn-secondary">Cancel</button>
+            <button type="button" data-ux-datatables-submit class="btn-primary">Save</button>
+        </div>
+    </div>
+</dialog>
+```
+
+## Modal Template Overrides
+
+Override the edit modal Twig template globally or per table.
+
+### Global Configuration
+
+```yaml
+# config/packages/data_tables.yaml
+data_tables:
+  edit_modal:
+    template: '@PentiminaxDataTables/modal/datatables/edit_modal.html.twig'
+    body_template: '@PentiminaxDataTables/modal/datatables/_form_body.html.twig'
+    default_title: 'Edit'
+```
+
+### Per-Table via `configureDataTable()`
+
+```php
+protected function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->editModalTemplate('datatables/product_edit_modal.html.twig');
+}
+```
+
+### Required DOM Hooks
+
+Custom modal templates must preserve these attributes:
+
+<Table
+  headers={['Attribute / ID', 'Element', 'Purpose']}
+  rows={[
+    ['`data-ux-datatables-modal`', 'Modal root (`<dialog>` for `dt`, `<div class="modal">` for Bootstrap)', 'Used by the adapter to open/close the modal'],
+    ['`data-ux-datatables-modal-body`', 'Body container', 'Replaced in-place after validation errors'],
+    ['`data-ux-datatables-submit`', 'Submit button', 'Wired to the form submit handler'],
+    ['`data-ux-datatables-cancel`', 'Cancel button(s)', 'Closes the modal and triggers `onCancel`'],
+    ['`id="ux-datatables-edit-form"`', '`<form>` element', 'Required for form serialization'],
+  ]}
+/>
+
+## Column-to-Form Mapping
+
+The form builder maps each column to a Symfony Form type:
+
+<Table
+  headers={['Column Pattern', 'Form Type']}
+  rows={[
+    ['`BooleanColumn` (`renderAsSwitch`)', '`CheckboxType`'],
+    ['`ChoiceColumn` (has `choices`)', '`ChoiceType`'],
+    ['`DateColumn` (has `dateFormat`)', '`DateType` (single_text widget)'],
+    ['`NumberColumn` (`num`, `num-fmt`, …)', '`NumberType`'],
+    ['`TextColumn` (`string`, `string-utf8`)', '`TextType`'],
+    ['`html` type', '`TextareaType`'],
+    ['`ActionColumn`, `TemplateColumn`, `UrlColumn`', 'Skipped automatically'],
+  ]}
+/>
+
+## Primary Key Fields
+
+Columns matching the entity's Doctrine identifier are rendered as **disabled** fields in the form. They are visible for reference but cannot be modified.
+
+## Excluding Columns from the Form
+
+Use `hideWhenUpdating()` on any column to exclude it from the edit modal entirely:
+
+```php
+public function configureColumns(): iterable
+{
+    yield NumberColumn::new('id', 'ID');
+    yield TextColumn::new('name', 'Name');
+    yield DateColumn::new('createdAt', 'Created')
+        ->hideWhenUpdating();  // Excluded from the edit form
+}
+```
+
+## Ajax Endpoints
+
+- `POST /datatables/ajax/edit-form/view` — returns the rendered modal HTML
+- `POST /datatables/ajax/edit-form` — validates and persists the form data, returns only the modal body HTML when invalid
+
+These endpoints are only available when `symfony/form` is installed.
+
+## Full Example
+
+```php
+use App\Entity\Product;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
+
+#[AsDataTable(Product::class)]
+final class ProductsDataTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('name', 'Name');
+        yield NumberColumn::new('price', 'Price');
+        yield BooleanColumn::new('active', 'Active');
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions->add(
+            Action::edit('Edit')
+                ->setIcon('bi bi-pencil')
+        );
+    }
+}
+```
+
+## Custom Modal Adapter
+
+For advanced modal behavior (animations, third-party libraries), implement the `ModalAdapter` interface and register it via `modalAdapters`:
+
+```ts
+import type { ModalAdapter, ModalHandlers } from '@pentiminax/ux-datatables'
+
+export class MyModalAdapter implements ModalAdapter {
+    async show(html: string, handlers: ModalHandlers): Promise<void> { /* ... */ }
+    replaceBody(html: string): void { /* ... */ }
+    async hide(): Promise<void> { /* ... */ }
+    isOpen(): boolean { /* ... */ }
+}
+```
+
+Register it once in your app entrypoint:
+
+```ts
+import { modalAdapters } from '@pentiminax/ux-datatables'
+
+modalAdapters.register('my-adapter', () => new MyModalAdapter())
+```
+
+Activate it per-table:
+
+```php
+protected function configureDataTable(DataTable $table): DataTable
+{
+    return $table->editModalAdapter('my-adapter');
+}
+```
+
+The built-in adapters are:
+
+| Key | Adapter | When used |
+|-----|---------|-----------|
+| `dt` | `DialogModalAdapter` | Default fallback (Tailwind, custom CSS) |
+| `bs` / `bs4` / `bs5` | `BootstrapModalAdapter` | Bootstrap CSS detected |
+
+## Cross Links
+
+- [/ux-datatables/columns/action-column/](/ux-datatables/columns/action-column/)
+- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)
+- [/ux-datatables/columns/overview/](/ux-datatables/columns/overview/)
