@@ -24,6 +24,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * @internal
@@ -115,12 +116,13 @@ final class ArrayDataProviderTest extends TestCase
     {
         $mapper = new CountingRowMapper();
 
-        // Two-argument construction: no columns means nothing is searchable or orderable,
-        // but the request must still page correctly instead of raising.
+        // Two-argument construction: no columns means nothing is orderable, but the request must
+        // still page correctly instead of raising. An active search does raise -- see
+        // it_throws_when_a_search_reaches_a_provider_built_without_columns().
         $result = (new ArrayDataProvider(self::people(), $mapper))->fetchData(self::request(
             start: 1,
             length: 2,
-            search: new Search('ali', false),
+            search: new Search('', false),
             order: [new Order(0, 'desc', 'name')],
         ));
 
@@ -337,8 +339,12 @@ final class ArrayDataProviderTest extends TestCase
         $this->assertSame(0, $result->recordsFiltered);
     }
 
+    /**
+     * The criterion arrives in the query string, so the answer is a 400: raising \LogicException
+     * turned crafted input into a 500.
+     */
     #[Test]
-    public function it_throws_when_the_request_carries_column_control_searches(): void
+    public function it_rejects_a_request_that_carries_column_control_searches(): void
     {
         $request = self::request(
             start: 0,
@@ -354,8 +360,8 @@ final class ArrayDataProviderTest extends TestCase
             ],
         );
 
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('ArrayDataProvider does not support ColumnControl searches or configured Filters.');
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('ColumnControl searches are not supported by ArrayDataProvider.');
 
         (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData($request);
     }
@@ -366,9 +372,24 @@ final class ArrayDataProviderTest extends TestCase
         $request = self::request(start: 0, length: 10, filters: ['status' => 'active']);
 
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('ArrayDataProvider does not support ColumnControl searches or configured Filters.');
+        $this->expectExceptionMessage('ArrayDataProvider does not support configured Filters.');
 
         (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns(), self::filters()))->fetchData($request);
+    }
+
+    /**
+     * Built without columns nothing is searchable, and the term would match every row while
+     * reporting recordsFiltered == recordsTotal.
+     */
+    #[Test]
+    public function it_throws_when_a_search_reaches_a_provider_built_without_columns(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('ArrayDataProvider was built without columns, so it cannot search.');
+
+        (new ArrayDataProvider(self::people(), new CountingRowMapper()))->fetchData(
+            self::request(start: 0, length: 10, search: new Search(value: 'Alice', regex: false)),
+        );
     }
 
     #[Test]
