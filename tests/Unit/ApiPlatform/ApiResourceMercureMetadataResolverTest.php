@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Operations;
+use ApiPlatform\Metadata\Post;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use ApiPlatform\Metadata\Resource\ResourceMetadataCollection;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
@@ -57,6 +58,22 @@ final class ApiResourceMercureMetadataResolverTest extends TestCase
                 new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
             ])),
             ['/api/books/{id}'],
+        ];
+
+        yield 'a custom variable-bearing operation before the item GET does not win' => [
+            (new ApiResource())->withOperations(new Operations([
+                new Post(uriTemplate: '/books/{id}/publish{._format}', routePrefix: '/api'),
+                new Get(uriTemplate: '/books/{id}{._format}', routePrefix: '/api'),
+            ])),
+            ['/api/books/{id}'],
+        ];
+
+        yield 'a variable-bearing operation is still used when the resource has no item GET' => [
+            (new ApiResource())->withOperations(new Operations([
+                new GetCollection(uriTemplate: '/books{._format}', routePrefix: '/api'),
+                new Post(uriTemplate: '/books/{id}/publish{._format}', routePrefix: '/api'),
+            ])),
+            ['/api/books/{id}/publish'],
         ];
     }
 

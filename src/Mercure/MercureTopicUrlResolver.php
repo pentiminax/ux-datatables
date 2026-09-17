@@ -17,8 +17,11 @@ use Symfony\Component\Routing\RouterInterface;
  * relative topic, which the hub resolves against its own URL and which therefore only ever works
  * while the hub shares the application's origin.
  *
- * Without a routing context — no request, no router — the path is returned unchanged. That keeps
- * the previous relative behavior instead of inventing an origin such as `http://localhost`.
+ * Without a router at all the path is returned unchanged, keeping the previous relative behavior.
+ * With a router, the context is the one the application configured for it — the current request's
+ * during an HTTP request, the `router.request_context` parameters otherwise (which is the very
+ * context API Platform's IRI generation falls back to in a console command or a worker) — so the
+ * topic and the published IRI cannot drift.
  */
 final class MercureTopicUrlResolver
 {

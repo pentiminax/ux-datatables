@@ -20,7 +20,7 @@ public function configureDataTable(DataTable $table): DataTable
 #[AsDataTable(User::class, mercure: ['topics' => ['/users'], 'debounceMs' => 300])]
 ```
 
-When auto-resolution is enabled (`mercure: true`, no explicit topics): the bundle reads the default Symfony Mercure hub URL, reuses explicit API Platform `mercure.topics` when available, otherwise builds the item IRI template **absolutely** from the routing request context (`https://api.example.com/api/books/{id}`), and falls back to `/datatables/books/{id}` if no API Platform item metadata exists. Without a routing context (CLI, tests) the path stays relative.
+When auto-resolution is enabled (`mercure: true`, no explicit topics): the bundle reads the default Symfony Mercure hub URL, reuses explicit API Platform `mercure.topics` when available, otherwise builds the item IRI template **absolutely** from the routing request context (`https://api.example.com/api/books/{id}`), and falls back to `/datatables/books/{id}` if no API Platform item metadata exists. Without a router (no `RouterInterface` service) the path stays relative; with one, it is the very context API Platform generates its IRIs from.
 
 `topics` accepts one or many topics — use several when a table must refresh after changes on more than one resource/channel.
 
