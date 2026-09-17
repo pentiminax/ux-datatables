@@ -13,23 +13,10 @@ use Pentiminax\UX\DataTables\Mercure\MercureTopicUrlResolver;
 use Psr\Log\LoggerInterface;
 
 /**
- * Resolves the Mercure topics API Platform itself publishes for a resource.
- *
- * API Platform publishes the item IRI at UrlGeneratorInterface::ABS_URL, so the auto-resolved item
- * topic is that same absolute IRI template — built through MercureTopicUrlResolver, which shares the
- * routing context with the generator. A relative topic would be resolved by the hub against its own
- * URL and only match while the hub shares the application's origin.
- *
- * Declared plain topics are reused verbatim, which keeps a topic declared in the absolute form API
- * Platform publishes working as the explicit escape hatch. `@=iri(object)` is the one expression the
- * bundle resolves on its own; every other expression topic is dropped with a warning that names it,
- * instead of being silently replaced by the item route path.
+ * Resolves the Mercure topics API Platform publishes for a resource.
  */
 class ApiResourceMercureMetadataResolver
 {
-    /**
-     * The only API Platform expression this bundle resolves without the object graph.
-     */
     private const ITEM_IRI_EXPRESSION = '@=iri(object)';
 
     public function __construct(
@@ -74,13 +61,8 @@ class ApiResourceMercureMetadataResolver
     }
 
     /**
-     * The route path of the item operation API Platform publishes an IRI for.
-     *
-     * The item IRI `@=iri(object)` expands to is the item GET operation's route, so a GET whose
-     * template carries a variable wins even when another operation — a custom mutation route, say —
-     * was declared before it and has a variable of its own. Failing a variable-bearing GET, any
-     * variable-bearing non-collection operation is preferred over one without, and the first such
-     * template is kept as a last resort.
+     * `@=iri(object)` expands through the item GET operation, which therefore beats any other
+     * variable-bearing operation a resource may declare before it.
      */
     private function resolveItemPath(ApiResource $resource, string $resourceRoutePrefix): ?string
     {
