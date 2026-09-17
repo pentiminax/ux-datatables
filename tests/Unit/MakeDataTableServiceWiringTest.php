@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit;
 
-use Pentiminax\UX\DataTables\DataTablesBundle;
 use Pentiminax\UX\DataTables\Maker\MakeDataTable;
+use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
 use Pentiminax\UX\DataTables\Tests\Kernel\MakerAppKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * @internal
  */
-#[CoversClass(DataTablesBundle::class)]
+#[CoversClass(PentiminaxDataTablesBundle::class)]
 #[CoversClass(MakeDataTable::class)]
 final class MakeDataTableServiceWiringTest extends TestCase
 {

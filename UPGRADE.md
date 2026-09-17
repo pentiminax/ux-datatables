@@ -5,6 +5,32 @@ current version and the target, oldest first.
 
 ## v0.90 → v1.0
 
+### The bundle class is renamed
+
+The bundle class now follows Symfony's vendor-prefixed naming convention. Update its registration
+in `config/bundles.php`:
+
+```php
+// before
+Pentiminax\UX\DataTables\DataTablesBundle::class => ['all' => true],
+
+// after
+Pentiminax\UX\DataTables\PentiminaxDataTablesBundle::class => ['all' => true],
+```
+
+The old class is removed. Keeping it would register the bundle as `DataTablesBundle`, which is the
+same logical name used by `omines/datatables-bundle` and prevents both packages from being enabled
+in one application.
+
+Update bundle resource references and Twig namespace references:
+
+| Before | After |
+| --- | --- |
+| `@DataTablesBundle/config/routes.php` | `@PentiminaxDataTablesBundle/config/routes.php` |
+| `@DataTables/...` | `@PentiminaxDataTables/...` |
+
+The YAML configuration root stays `data_tables`; no configuration key changes are required.
+
 ### `AbstractDataTable::configureExtensions()` and the empty constructor removed
 
 Declare extensions from `configureDataTable()` with the fluent helpers on `DataTable`. Use
