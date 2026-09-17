@@ -56,6 +56,16 @@ $table->lengthMenu([10, 25, -1]);
 $table->lengthMenu([10, 25]);
 ```
 
+A page size the table declares itself raises the bound instead of being capped by it, because the
+client paginates with that size: `pageLength()` and the entries of `lengthMenu()` are honored even
+above `max_page_length`. The bound still applies to any other `length` a request carries, and a
+refused "show all" still falls back to `max_page_length`.
+
+```php
+// Served in full: the table asked for these page sizes.
+$table->pageLength(2000)->lengthMenu([500, 2000]);
+```
+
 Exports are not affected: they read every filtered row by design.
 
 ## Options
