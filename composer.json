@@ -22,7 +22,8 @@
     "symfony/stimulus-bundle": "^2.0 || ^3.0",
     "symfony/property-access": "^7.0 || ^8.0",
     "symfony/security-bundle": "^7.0 || ^8.0",
-    "symfony/security-csrf": "^7.0 || ^8.0"
+    "symfony/security-csrf": "^7.0 || ^8.0",
+    "symfony/deprecation-contracts": "^2.5 || ^3.0"
   },
   "require-dev": {
     "api-platform/core": "^3.0 || ^4.0",

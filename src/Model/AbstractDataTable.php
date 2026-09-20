@@ -235,6 +235,7 @@ abstract class AbstractDataTable
         return $this->infrastructure()->columnResolver->resolveColumns(
             $this->asDataTable ?? $this->resolveAsDataTable(),
             $apiPlatform,
+            static::class,
         );
     }
 
