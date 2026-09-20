@@ -1,0 +1,149 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
+
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ChoiceColumn;
+use Pentiminax\UX\DataTables\Column\DateColumn;
+use Pentiminax\UX\DataTables\Column\EmailColumn;
+use Pentiminax\UX\DataTables\Column\IconColumn;
+use Pentiminax\UX\DataTables\Column\ImageColumn;
+use Pentiminax\UX\DataTables\Column\MoneyColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TemplateColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Column\UrlColumn;
+use Pentiminax\UX\DataTables\Enum\ColumnType;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * @internal
+ */
+#[CoversClass(ColumnType::class)]
+#[CoversClass(AbstractColumn::class)]
+final class ColumnTypesTest extends TestCase
+{
+    /**
+     * Every column shares the AbstractColumn::new(string $name, string $title = '') factory,
+     * so the title fallback is asserted once here instead of in each column test.
+     *
+     * @param class-string<AbstractColumn> $columnClass
+     */
+    #[Test]
+    #[DataProvider('provideColumnClasses')]
+    public function it_falls_back_to_name_as_title(string $columnClass): void
+    {
+        $this->assertSame('username', $columnClass::new('username')->jsonSerialize()['title']);
+        $this->assertSame('Username', $columnClass::new('username', 'Username')->jsonSerialize()['title']);
+    }
+
+    /**
+     * @return iterable<string, array{class-string<AbstractColumn>}>
+     */
+    public static function provideColumnClasses(): iterable
+    {
+        yield 'text' => [TextColumn::class];
+        yield 'number' => [NumberColumn::class];
+        yield 'boolean' => [BooleanColumn::class];
+        yield 'date' => [DateColumn::class];
+        yield 'choice' => [ChoiceColumn::class];
+        yield 'email' => [EmailColumn::class];
+        yield 'url' => [UrlColumn::class];
+        yield 'image' => [ImageColumn::class];
+        yield 'icon' => [IconColumn::class];
+        yield 'money' => [MoneyColumn::class];
+        yield 'template' => [TemplateColumn::class];
+    }
+
+    #[Test]
+    public function it_adds_not_exportable_css_class(): void
+    {
+        $data = TextColumn::new('username')
+            ->setClassName('text-bold')
+            ->setTitle('Username')
+            ->setExportable(false)
+            ->jsonSerialize();
+
+        $this->assertSame('text-bold', $data['className']);
+    }
+
+    #[Test]
+    public function it_exposes_default_content_without_a_render_option(): void
+    {
+        $data = TextColumn::new('username')
+            ->setTitle('Username')
+            ->setDefaultContent('N/A')
+            ->jsonSerialize();
+
+        $this->assertArrayNotHasKey('render', $data);
+        $this->assertSame('N/A', $data['defaultContent']);
+    }
+
+    #[Test]
+    #[DataProvider('provideColumns')]
+    public function it_matches_column_types_to_enum(AbstractColumn $column, ColumnType $expectedType): void
+    {
+        $column->setTitle('Column Title');
+
+        $data = $column->jsonSerialize();
+
+        $this->assertSame($expectedType->value, $data['type']);
+    }
+
+    #[Test]
+    #[TestWith([ColumnType::NUM])]
+    #[TestWith([ColumnType::NUM_FMT])]
+    #[TestWith([ColumnType::HTML_NUM])]
+    #[TestWith([ColumnType::HTML_NUM_FMT])]
+    public function it_identifies_number_types(ColumnType $type): void
+    {
+        $this->assertTrue($type->isNumber());
+        $this->assertFalse($type->isDate());
+    }
+
+    #[Test]
+    public function it_identifies_date_type(): void
+    {
+        $this->assertTrue(ColumnType::DATE->isDate());
+        $this->assertFalse(ColumnType::DATE->isNumber());
+    }
+
+    #[Test]
+    #[TestWith([ColumnType::HTML])]
+    #[TestWith([ColumnType::HTML_UTF8])]
+    #[TestWith([ColumnType::STRING])]
+    #[TestWith([ColumnType::STRING_UTF8])]
+    public function it_returns_false_for_non_numeric_non_date_types(ColumnType $type): void
+    {
+        $this->assertFalse($type->isNumber());
+        $this->assertFalse($type->isDate());
+    }
+
+    /**
+     * @return iterable<string, array{0: AbstractColumn, 1: ColumnType}>
+     */
+    public static function provideColumns(): iterable
+    {
+        yield 'text' => [TextColumn::new('col_text'), ColumnType::STRING];
+        yield 'text-utf8' => [TextColumn::new('col_utf8')->utf8(), ColumnType::STRING_UTF8];
+        yield 'boolean' => [BooleanColumn::new('col_bool'), ColumnType::NUM];
+        yield 'date' => [DateColumn::new('col_date'), ColumnType::DATE];
+        yield 'number' => [NumberColumn::new('col_number'), ColumnType::NUM];
+        yield 'number-formatted' => [NumberColumn::new('col_num_fmt')->formatted(), ColumnType::NUM_FMT];
+        yield 'html-number' => [NumberColumn::new('col_html_num')->html(), ColumnType::HTML_NUM];
+        yield 'html-number-formatted' => [NumberColumn::new('col_html_num_fmt')->html()->formatted(), ColumnType::HTML_NUM_FMT];
+        yield 'html' => [TextColumn::new('col_html')->html(), ColumnType::HTML];
+        yield 'html-utf8' => [TextColumn::new('col_html_utf8')->html()->utf8(), ColumnType::HTML_UTF8];
+        yield 'template' => [TemplateColumn::new('col_template')->setTemplate('datatable/columns/cell.html.twig'), ColumnType::HTML];
+        yield 'url' => [UrlColumn::new('col_url'), ColumnType::HTML];
+        yield 'choice' => [ChoiceColumn::new('col_choice'), ColumnType::HTML];
+        yield 'email' => [EmailColumn::new('col_email'), ColumnType::HTML];
+    }
+}

@@ -1,0 +1,46 @@
+---
+title: ColReorder Extension
+description: Allow users to reorder columns interactively
+order: 80
+navTitle: ColReorder
+---
+
+## When To Use
+
+Use ColReorder when users need personalized table views and ad-hoc exploration.
+
+## Minimal Example
+
+```php
+$dataTable->colReorder();
+```
+
+## Advanced Example
+
+```php
+$dataTable->colReorder(enable: false, columns: ':not(:first-child)');
+```
+
+`enable: false` loads ColReorder but leaves it initially disabled — pair with the DataTables API
+(`dt.colReorder.enable()` / `.disable()`, e.g. from a `Button::custom()` toggle) to lock and unlock
+reordering at runtime. `columns` restricts which columns can be dragged, either as a DataTables
+column-selector string (`':not(:first-child)'`) or a plain list of column indexes (`[1, 2, 3]`);
+the default `''` allows every column.
+
+```php
+$dataTable->colReorder(headerRows: [0], order: [2, 0, 1]);
+```
+
+`headerRows` restricts reordering to specific header row indexes in a multi-row header; omit it (or
+pass `null`) to allow every row. `order` sets the initial column order on load — a list of the
+original column indexes in their new positions; omit it to keep document order.
+
+## Frequent Pitfalls
+
+- Not validating interactions with fixed columns and saved states.
+- Assuming reordered columns automatically change backend field mappings.
+
+## Cross Links
+
+- [/ux-datatables/extensions/fixed-columns/](/ux-datatables/extensions/fixed-columns/)
+- [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)
