@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Runtime;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTableResolver;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Filter\AttributeFilterReader;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
@@ -23,6 +24,7 @@ final class DataTableInfrastructure
         public readonly array $extensions = [],
         public readonly ?DataTableProfiler $profiler = null,
         public readonly AsDataTableResolver $asDataTableResolver = new AsDataTableResolver(),
+        public readonly AttributeFilterReader $attributeFilterReader = new AttributeFilterReader(),
     ) {
     }
 
@@ -37,6 +39,7 @@ final class DataTableInfrastructure
         array $extensions = [],
         ?DataTableProfiler $profiler = null,
         ?AsDataTableResolver $asDataTableResolver = null,
+        ?AttributeFilterReader $attributeFilterReader = null,
     ): self {
         $queryFilterPipeline ??= new QueryFilterPipeline($queryIntentFactory ?? new DefaultDataTableQueryIntentFactory());
 
@@ -49,7 +52,8 @@ final class DataTableInfrastructure
             attributes: $attributes,
             extensions: $extensions,
             profiler: $profiler,
-            asDataTableResolver: $asDataTableResolver ?? new AsDataTableResolver(),
+            asDataTableResolver: $asDataTableResolver     ?? new AsDataTableResolver(),
+            attributeFilterReader: $attributeFilterReader ?? new AttributeFilterReader(),
         );
     }
 
