@@ -28,16 +28,24 @@ final class MemberAttributeReaderTest extends TestCase
         $this->assertSame([], $this->reader->readProperties(UnannotatedFixture::class, Marker::class));
     }
 
-    /**
-     * Members visible from the child come first, then the ones only the parent can see. Column
-     * order is driven by `position` anyway, so what matters here is that nothing is dropped.
-     */
     #[Test]
     public function it_reads_private_properties_declared_by_a_parent(): void
     {
         $targets = $this->reader->readProperties(ChildFixture::class, Marker::class);
 
-        $this->assertSame(['own', 'parentProtected', 'parentPrivate'], array_map(static fn ($target) => $target->name, $targets));
+        $this->assertSame(['own', 'parentPrivate', 'parentProtected'], array_map(static fn ($target) => $target->name, $targets));
+    }
+
+    /**
+     * A parent mixing private and non-private members must keep its own source order, because
+     * columns that tie on `position` are ordered by declaration.
+     */
+    #[Test]
+    public function it_keeps_a_parent_own_declaration_order(): void
+    {
+        $targets = $this->reader->readProperties(MixedVisibilityChildFixture::class, Marker::class);
+
+        $this->assertSame(['child', 'parentFirst', 'parentSecond', 'parentThird'], array_map(static fn ($target) => $target->name, $targets));
     }
 
     #[Test]
@@ -134,4 +142,22 @@ final class SubclassedAttributeFixture
 {
     #[ExtendedMarker]
     public string $value = '';
+}
+
+abstract class MixedVisibilityParentFixture
+{
+    #[Marker]
+    private string $parentFirst = '';
+
+    #[Marker]
+    protected string $parentSecond = '';
+
+    #[Marker]
+    private string $parentThird = '';
+}
+
+final class MixedVisibilityChildFixture extends MixedVisibilityParentFixture
+{
+    #[Marker]
+    public string $child = '';
 }
