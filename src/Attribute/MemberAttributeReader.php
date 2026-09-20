@@ -42,6 +42,13 @@ final class MemberAttributeReader
     }
 
     /**
+     * Each class contributes only what it declares itself.
+     *
+     * `getProperties()` on the child already reports the parent's public and protected members, so
+     * taking them there and the private ones one level up would split a parent's own declarations
+     * into two groups and reorder them. Columns that tie on `position` fall back to declaration
+     * order, which would then be the wrong one.
+     *
      * @param class-string $class
      *
      * @return list<\ReflectionProperty>
@@ -49,13 +56,21 @@ final class MemberAttributeReader
     private function properties(string $class): array
     {
         $properties = [];
+        $seen       = [];
 
         for ($current = new \ReflectionClass($class); false !== $current; $current = $current->getParentClass()) {
             foreach ($current->getProperties() as $property) {
-                $properties[$property->getName()] ??= $property;
+                $name = $property->getName();
+
+                if ($property->getDeclaringClass()->getName() !== $current->getName() || isset($seen[$name])) {
+                    continue;
+                }
+
+                $seen[$name]  = true;
+                $properties[] = $property;
             }
         }
 
-        return array_values($properties);
+        return $properties;
     }
 }
