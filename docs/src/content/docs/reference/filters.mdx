@@ -178,8 +178,9 @@ Arguments:
 />
 
 A ternary filter guessed from a `bool` compares the column value, so "true" and "false" each match
-the rows they name. Declaring `TernaryFilter` explicitly keeps its usual `IS NULL` / `IS NOT NULL`
-default, which is what a nullable date wants.
+the rows they name. Naming `TernaryFilter` yourself asks for what that class does, so it keeps its
+usual `IS NULL` / `IS NOT NULL` default — on a `bool` as much as on a nullable date. A `ChoiceFilter`
+is filled from the enum either way, since an explicit `options` entry still wins.
 
 `CheckboxFilter` is never guessed and cannot be declared: it has no default condition, so it only
 works with the `query()` closure that no attribute can carry. Declaring it raises when the container
