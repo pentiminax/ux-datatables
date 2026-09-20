@@ -227,6 +227,9 @@ a column, a duplicated column name or a class-level column without a name fails 
 the first request that happens to open that table. The error names the table and the class that
 carries the faulty declaration.
 
+Validation follows the same precedence as resolution: when the table class declares its own
+columns, the data class declarations are never read, so they are not validated either.
+
 Both classes are registered as container resources, so editing either one rebuilds the container in
 `dev`.
 
