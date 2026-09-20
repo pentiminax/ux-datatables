@@ -1,0 +1,46 @@
+---
+import { getDocsNavSections, withBase } from '../nav'
+
+interface Props {
+  currentSlug?: string
+  label?: string
+  id?: string
+}
+
+const { currentSlug, label = 'Documentation navigation', id } = Astro.props
+const groups = await getDocsNavSections()
+---
+
+<nav class="docs-nav" aria-label={label} id={id}>
+  {
+    groups.map((group) => {
+      // `recipes` and `extensions` are authored hub pages living at the section
+      // URL: the heading already links to them, so they must not repeat below it.
+      const items = group.items.filter((item) => item.slug !== group.section.id)
+
+      return (
+      <div class="docs-nav-group">
+        <a
+          class="docs-nav-heading"
+          href={withBase(`${group.section.id}/`)}
+          aria-current={group.section.id === currentSlug ? 'page' : undefined}
+        >
+          {group.section.title}
+        </a>
+        <ul>
+          {items.map((item) => (
+            <li>
+              <a
+                href={withBase(`${item.slug}/`)}
+                aria-current={item.slug === currentSlug ? 'page' : undefined}
+              >
+                {item.navTitle}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+      )
+    })
+  }
+</nav>

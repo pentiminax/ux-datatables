@@ -1,0 +1,155 @@
+---
+title: Securing Ajax Routes
+description: Protect the bundle's Ajax endpoints with your application's access control
+order: 50
+---
+
+UX DataTables registers a small set of Ajax routes automatically. Server-side tables,
+server-side exports, the inline edit modal, row deletion and detail rendering all go through
+these endpoints:
+
+<Table
+  headers={['Route name', 'Path', 'Method(s)', 'Used by']}
+  rows={[
+    ['ux_datatables_ajax_data', '/datatables/ajax/data', 'GET', 'Server-side data loading'],
+    ['ux_datatables_ajax_delete', '/datatables/ajax/delete', 'DELETE', 'Row delete action'],
+    ['ux_datatables_ajax_edit', '/datatables/ajax/edit', 'POST, PATCH', 'Inline cell edit'],
+    ['ux_datatables_ajax_edit_form', '/datatables/ajax/edit-form/view', 'POST', 'Edit modal form'],
+    ['ux_datatables_ajax_edit_form_submit', '/datatables/ajax/edit-form', 'POST', 'Edit modal submit'],
+    ['ux_datatables_ajax_detail', '/datatables/ajax/detail', 'POST', 'Row detail rendering'],
+    ['ux_datatables_ajax_export', '/datatables/ajax/export', 'POST', 'Server-side CSV/XLSX export'],
+  ]}
+/>
+
+Every one of these routes relies entirely on the `access_control` rule below.
+
+A table that combines API Platform with a `TemplateColumn`, an action column or a `UrlColumn` reads
+its rows through `ux_datatables_ajax_data` rather than querying the API from the browser. The
+collection operation's `security` expression still runs on every draw, but the rows are read through
+the API Platform state provider, not through an HTTP request: `access_control` rules matching the
+API path are **not** evaluated for them. Secure such a table exactly as you would a Doctrine table —
+with the rule below, plus `security` on the collection operation. See
+[Reading the collection server-side](/integrations/api-platform/#reading-the-collection-server-side).
+
+## Why this matters
+
+<Aside type="danger" title="Read this before going to production">
+  The table token embedded in the rendered HTML authenticates **which** table is requested, not
+  **who** is requesting it. It is **not** a user-authentication or per-user authorization mechanism.
+  You must protect the Ajax routes with the same access control that protects the pages rendering
+  your tables.
+</Aside>
+
+Each rendered table carries a signed token (an HMAC of the DataTable class name, derived from your
+application's `kernel.secret`). The bundle uses this token to resolve the correct `AbstractDataTable`
+service on the server. The token is stable, it is visible in the page source, and it does **not**
+encode anything about the current user.
+
+This means that if a table is displayed on a page behind an admin firewall, but the global
+`/datatables/ajax/*` routes are **not** covered by an equivalent access control rule, the underlying
+data (and the edit/delete actions) can be reached by anyone who obtains the token — including a user
+who is not allowed to view the page that renders the table.
+
+The bundle cannot know how your application authenticates and authorizes users, so it deliberately
+does not enforce anything at the route level. **Securing these routes is the responsibility of the
+host application.**
+
+## Protect the routes with `access_control`
+
+The simplest and most robust approach is to add an `access_control` rule that scopes the shared
+`^/datatables/ajax` path prefix to match the access requirements of the pages that render your
+tables. Add it to `config/packages/security.yaml`:
+
+```yaml
+# config/packages/security.yaml
+security:
+    # ...
+
+    access_control:
+        # Restrict every UX DataTables Ajax endpoint to authenticated admins.
+        # Match this to whatever the pages rendering your tables require.
+        - { path: ^/datatables/ajax, roles: ROLE_ADMIN }
+
+        # ... your other rules
+```
+
+<Aside type="caution">
+  `access_control` rules are evaluated top to bottom and the **first** match wins. Place the
+  `^/datatables/ajax` rule so that it is not shadowed by an earlier, more permissive rule such as
+  `{ path: ^/, roles: PUBLIC_ACCESS }`.
+</Aside>
+
+If different tables live behind different access levels, use more specific rules or place the
+tables (and their Ajax traffic) behind the same firewall so the same authorization applies to both
+the page and the data endpoint.
+
+<Aside type="tip">
+  A good rule of thumb: if a page requires a role to be viewed, the data that feeds its table
+  requires the same role to be fetched. Keep the two in sync.
+</Aside>
+
+## Verifying your configuration
+
+After adding the rule, confirm it is active:
+
+```bash
+# List the registered UX DataTables routes
+php bin/console debug:router | grep ux_datatables
+
+# Check which access_control rule matches the Ajax prefix
+php bin/console debug:firewall
+```
+
+Then, as an unauthenticated (or under-privileged) user, request
+`/datatables/ajax/data` directly and confirm the firewall responds with a redirect to login or a
+`403`/`401` instead of returning table data.
+
+## Session-backed mutations
+
+Delete actions and inline boolean toggles also require an active session so the bundle can create
+and validate a CSRF token. When rendering happens without a session (for example behind a stateless
+firewall), the table payload exposes `mutationsEnabled: false`; delete buttons and boolean switches
+are rendered disabled instead of sending requests that can only fail with `403`.
+
+Use these mutation controls only on session-backed pages. A stateless application should provide
+its own authenticated mutation endpoints and controls rather than relying on the bundle's
+session-backed delete and toggle endpoints.
+
+## Authorizing tables, actions, and rows
+
+`access_control` protects the *route* — it decides who may call `/datatables/ajax/*` at all. It does
+not know anything about the specific table, action, or row a request targets. The bundle closes that
+gap by calling Symfony authorization before rendering a table, executing an action, reading private
+row details, or mutating anything.
+
+That second layer has its own guide: [Authorization and Voters](/guide/security/) covers the
+`Permission::DT_*` attributes, the row permission matrix, and how to write the voters your tables
+need.
+
+<Aside type="caution">
+  With a firewall active, Symfony denies any attribute no voter grants. If your tables use the edit
+  modal, delete, or collapsible detail rows, they need voters for
+  `Permission::DT_EDIT_ROW`, `Permission::DT_DELETE_ROW`, and `Permission::DT_VIEW_ROW_DETAILS`
+  — otherwise those endpoints answer `403` for everyone.
+</Aside>
+
+## HTML Escaping Checklist
+
+Twig auto-escaping stays enabled for bundle templates. Treat HTML cell content as a security boundary:
+
+- Prefer typed columns (`TextColumn`, `MoneyColumn`, …) that render escaped scalars.
+- Use `TemplateColumn` only with templates you control. Escape untrusted entity fields inside the
+  Twig template (`{{ value }}`, never `{{ value|raw }}` unless the value is already sanitized).
+- Do not put user-controlled HTML into `defaultContent` or action labels without escaping.
+- Custom JS `render` callbacks must escape when inserting into the DOM.
+
+## Production Checklist
+
+1. `access_control` covers `^/datatables/ajax` with the same roles as the pages that render tables.
+2. Session-backed pages for delete / boolean toggle / edit modal (CSRF).
+3. [Voters](/guide/security/) for `Permission::DT_EDIT_ROW`, `Permission::DT_DELETE_ROW`, and
+   `Permission::DT_VIEW_ROW_DETAILS` where those row features are enabled.
+4. Template/HTML columns reviewed for escaping (see above).
+5. `security` on the collection operation of every API Platform table that renders template, action
+   or URL columns — the API path's own `access_control` rule does not cover it.
+6. Unauthenticated probe of `/datatables/ajax/data` returns `401`/`403`, not table JSON.

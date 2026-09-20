@@ -1,0 +1,201 @@
+---
+title: DataTable
+description: Reference for the DataTable fluent configuration API
+order: 20
+---
+
+`DataTable` is the fluent API used to configure table options, columns, extensions, and loading mode.
+
+## Constructor
+
+```php
+new DataTable(
+    id: 'users',
+    options: [],
+    attributes: [],
+    extensions: [],
+)
+```
+
+## Core Methods
+
+### Columns
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`add(ColumnInterface $column)`', 'Add a single column'],
+    ['`columns(array $columns)`', 'Replace the column list with the given array'],
+    ['`getColumns(): ColumnInterface[]`', 'Return configured column objects keyed by name'],
+    ['`getColumnDefinitions(): array`', 'Return the serialized DataTables column definitions'],
+    ['`getColumnByName(string $name): ?ColumnInterface`', 'Find a column by its name'],
+  ]}
+/>
+
+### Client-side Processing And Data Sources
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    [
+      "`ajax(string $url, ?string $dataSrc = null, string $type = 'GET')`",
+      'Configure Ajax endpoint and request mode',
+    ],
+    [
+      "`ajaxRequestData(string $url, array $data, string $type = 'GET')`",
+      'Configure Ajax endpoint with extra request data sent on every call',
+    ],
+    ['`mergeAjaxData(array $data)`', 'Merge additional key/value pairs into Ajax request data'],
+    ['`data(array $data)`', 'Provide inline client-side data'],
+    [
+      '`forwardQueryParameters(array $parameters)`',
+      'Capture the named page query parameters at render time and forward them on every Ajax call',
+    ],
+    [
+      "`urlState(array $keys = [], string $prefix = '')`",
+      'Sync selected DataTables state keys to the page URL query string',
+    ],
+    ['`serverSide(bool $serverSide = true)`', 'Enable server-side processing mode'],
+    ['`apiPlatform(bool $enabled = true)`', 'Opt-in to API Platform integration: column auto-detection and collection URL resolution'],
+    [
+      '`mercure(array $topics = [], bool $withCredentials = false, ?int $debounceMs = null)`',
+      'Enable Mercure live updates with one or many topics',
+    ],
+  ]}
+/>
+
+### Feature Control
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`autoWidth(bool $autoWidth)`', 'Toggle automatic width calculation'],
+    ['`deferRender(bool $deferRender)`', 'Delay rendering of non-visible rows'],
+    ['`info(bool $info)`', 'Show/hide table info summary'],
+    ['`lengthChange(bool $lengthChange)`', 'Enable/disable page-size selector'],
+    [
+      '`ordering(bool $handler = true, bool $indicators = true)`',
+      'Configure column ordering behavior',
+    ],
+    ['`withoutOrdering()`', 'Disable ordering'],
+    ['`paging(...)`', 'Configure pagination behavior'],
+    ['`withoutPaging()`', 'Disable pagination'],
+    ['`processing(bool $processing = true)`', 'Toggle processing indicator'],
+    ['`searching(bool $searching = true)`', 'Toggle global search'],
+    ['`stateSave(bool $stateSave = true)`', 'Persist table state in browser'],
+    ['`setPermission(string|Expression $attribute)`', 'Restrict table rendering and bundle Ajax access with a Symfony security attribute or expression'],
+  ]}
+/>
+
+### Layout And Paging
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    [
+      '`layout(array $layout)`',
+      'Position DataTables UI blocks',
+    ],
+    ['`caption(string $caption)`', 'Set the table caption text'],
+    ['`displayStart(int $displayStart)`', 'Set initial row offset'],
+    ['`lengthMenu(array $lengthMenu)`', 'Configure available page sizes'],
+    ['`pageLength(int $pageLength)`', 'Set default page size'],
+  ]}
+/>
+
+### Edit Modal
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`editModalTemplate(string $template)`', 'Twig template used for the inline edit modal'],
+    ['`editModalAdapter(string $adapter)`', 'Modal adapter name (`dt`, `bs`, `bs4`, `bs5`, or a name registered with `modalAdapters.register()`)'],
+  ]}
+/>
+
+### Scrolling
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`scrollX(bool $scrollX)`', 'Enable horizontal scrolling'],
+    ['`scrollY(string $scrollY)`', 'Set vertical scroll height'],
+  ]}
+/>
+
+### Internationalization
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`language(Language $language)`', 'Set UI language'],
+    ['`search(string $search)`', 'Set initial search value'],
+    ['`withSearchOption(SearchOption $searchOption)`', 'Set full search option object'],
+  ]}
+/>
+
+### Styling
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`styleFramework(StyleFramework $framework)`', 'Declare the CSS framework, skipping frontend autodetection'],
+  ]}
+/>
+
+### Extensions
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['`addExtension(ExtensionInterface $extension)`', 'Add one extension'],
+    ['`extensions(array $extensions)`', 'Set multiple extensions'],
+    ['`getExtensions(): array`', 'Return configured extensions'],
+    ['`setExtensions(DataTableExtensions $extensions)`', 'Replace extension collection'],
+    [
+      '`responsive(bool $auto = true, ?array $breakpoints = null, int|string $detailsTarget = 0, string|false $detailsType = \'inline\', string $orthogonal = \'display\')`',
+      'Add the Responsive extension',
+    ],
+    [
+      '`columnControl(int|string|null $target = null, ?array $content = null)`',
+      'Add Column Control; a target replaces the defaults with that single control group',
+    ],
+    [
+      '`select(SelectStyle $style = SelectStyle::SINGLE, ..., bool $withCheckbox = false, bool $headerCheckbox = false)`',
+      'Add the Select extension, checkbox column included',
+    ],
+    ['`keyTable(bool $blurable = true, ...)`', 'Add the KeyTable extension'],
+    ['`scroller(float $boundaryScale = 0.5, ...)`', 'Add the Scroller extension; pair it with `scrollY()`'],
+    ['`colReorder(bool $enable = true, ...)`', 'Add the ColReorder extension'],
+    ['`fixedColumns(int $start = 1, int $end = 0)`', 'Add the FixedColumns extension'],
+    ['`fixedHeader(bool $header = true, bool $footer = false, ...)`', 'Add the FixedHeader extension'],
+    [
+      '`rowGroup(int|string|array $dataSrc, ...)`',
+      'Add the RowGroup extension; the grouping data source is required',
+    ],
+  ]}
+/>
+
+## Example
+
+```php
+use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+$table = (new DataTable('users'))
+    ->serverSide(true)
+    ->processing(true)
+    ->language(Language::EN)
+    ->layout([
+        'topStart'    => Feature::PAGE_LENGTH,
+        'topEnd'      => Feature::SEARCH,
+        'bottomStart' => Feature::INFO,
+        'bottomEnd'   => Feature::PAGING,
+    ]);
+```
+
+## Cross Links
+
+- [/ux-datatables/guide/options/](/ux-datatables/guide/options/)
+- [/ux-datatables/reference/enums/](/ux-datatables/reference/enums/)
