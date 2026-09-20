@@ -252,6 +252,7 @@ return static function (ContainerConfigurator $container): void {
         ->private();
 
     $services->set('datatables.attribute.resolver', AsDataTableResolver::class)
+        ->tag('kernel.reset', ['method' => 'reset'])
         ->private();
 
     $services->alias(AsDataTableResolver::class, 'datatables.attribute.resolver')

@@ -80,7 +80,32 @@ final class AttributeColumnReader
             return $positionA !== $positionB ? $positionA <=> $positionB : $a->declarationOrder <=> $b->declarationOrder;
         });
 
-        return array_map($this->buildColumn(...), $targets);
+        $columns = array_map($this->buildColumn(...), $targets);
+
+        $this->assertUniqueNames($columns);
+
+        return $columns;
+    }
+
+    /**
+     * Repeatable declarations make two columns able to claim the same key, and the second one would
+     * quietly replace the first once the payload is keyed by name.
+     *
+     * @param AbstractColumn[] $columns
+     */
+    private function assertUniqueNames(array $columns): void
+    {
+        $seen = [];
+
+        foreach ($columns as $column) {
+            $name = $column->getName();
+
+            if (isset($seen[$name])) {
+                throw new \InvalidArgumentException(\sprintf('Two columns are declared under the name "%s".', $name));
+            }
+
+            $seen[$name] = true;
+        }
     }
 
     /**
@@ -103,6 +128,10 @@ final class AttributeColumnReader
         unset($options['title']);
 
         $columnClass = $attribute->type ?? $this->propertyTypeMapper->mapType($target->type);
+
+        if (!is_a($columnClass, AbstractColumn::class, true)) {
+            throw new \InvalidArgumentException(\sprintf('The type "%s" declared for column "%s" must be a class extending "%s".', $columnClass, $name, AbstractColumn::class));
+        }
 
         /** @var AbstractColumn $column */
         $column = $columnClass::new($name, $title);
