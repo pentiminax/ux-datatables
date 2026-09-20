@@ -119,7 +119,7 @@ final class AttributeFilterReader
         /** @var AbstractFilter $filter */
         $filter = $filterClass::new($name);
 
-        $this->applyGuessedChoices($filter, $target->type);
+        $this->configureGuessedFilter($filter, $target->type);
 
         $this->optionApplier->apply($filter, $attribute->options);
 
@@ -144,19 +144,27 @@ final class AttributeFilterReader
     }
 
     /**
-     * A choice filter on an enum already knows its own options, and leaving them out would render an
-     * empty select. An explicit "options" entry still wins, since it is applied afterwards.
+     * What the member declares already answers part of what the filter needs, and leaving it out
+     * produces a filter that runs without filtering anything right. An explicit option still wins,
+     * since the applier runs afterwards.
+     *
+     * A ternary filter defaults to IS NULL / IS NOT NULL, which on a boolean field matches every row
+     * for "true" and none for "false". A choice filter left without options renders an empty select.
      */
-    private function applyGuessedChoices(AbstractFilter $filter, ?\ReflectionNamedType $type): void
+    private function configureGuessedFilter(AbstractFilter $filter, ?\ReflectionNamedType $type): void
     {
-        if (!$filter instanceof ChoiceFilter || null === $type || $type->isBuiltin()) {
+        if (null === $type) {
             return;
         }
 
-        $typeName = $type->getName();
+        if ($filter instanceof TernaryFilter && 'bool' === $type->getName()) {
+            $filter->values(true, false);
 
-        if (is_a($typeName, \BackedEnum::class, true)) {
-            $filter->options($typeName);
+            return;
+        }
+
+        if ($filter instanceof ChoiceFilter && !$type->isBuiltin() && is_a($type->getName(), \BackedEnum::class, true)) {
+            $filter->options($type->getName());
         }
     }
 }

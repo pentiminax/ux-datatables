@@ -227,8 +227,10 @@ a column, a duplicated column name or a class-level column without a name fails 
 the first request that happens to open that table. The error names the table and the class that
 carries the faulty declaration.
 
-Validation follows the same precedence as resolution: when the table class declares its own
-columns, the data class declarations are never read, so they are not validated either.
+Validation follows the same precedence as resolution: when the table class declares its own columns,
+or the table overrides `configureColumns()`, the data class declarations are never read, so they are
+not validated either. A table overriding `configureColumns()` only to return an empty list in some
+branch therefore gets the error on the first request instead.
 
 Both classes are registered as container resources, so editing either one rebuilds the container in
 `dev`.
@@ -241,13 +243,16 @@ Its signature matches `#[DataTableColumn]` character for character, and its opti
 the same three-step convention. Whoever knows one knows the other.
 
 ```php
+use App\Enum\Status;
+use Pentiminax\UX\DataTables\Attribute\DataTableFilter;
+
 #[DataTableFilter(options: ['label' => 'Status', 'multiple' => true])]
 private Status $status;
 ```
 
-The filter class is guessed from the declared type: `bool` gives a `TernaryFilter`, a `BackedEnum` a
-`ChoiceFilter` with its options already filled, a `DateTimeInterface` a `DateRangeFilter`, and
-anything else a `TextFilter`.
+The filter class is guessed from the declared type: `bool` gives a `TernaryFilter` comparing the
+column value, a `BackedEnum` a `ChoiceFilter` with its options already filled, a `DateTimeInterface`
+a `DateRangeFilter`, and anything else a `TextFilter`.
 
 Filters resolve down their own chain, `configureFilters()` first, then the table class, then the
 data class. The full reference, including the guessed types and the `values` alias, lives on the
