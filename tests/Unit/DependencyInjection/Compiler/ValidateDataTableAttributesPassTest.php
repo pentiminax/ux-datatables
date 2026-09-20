@@ -90,6 +90,20 @@ final class ValidateDataTableAttributesPassTest extends TestCase
     }
 
     /**
+     * The table class wins the resolution chain, so nothing ever reads the data class declarations.
+     * Failing the build over them would reject an application that runs.
+     */
+    #[Test]
+    public function it_leaves_the_data_class_alone_when_the_table_class_declares_columns(): void
+    {
+        $container = $this->process(ShadowingTableFixture::class);
+
+        $tracked = array_map(static fn (object $resource) => (string) $resource, $container->getResources());
+
+        $this->assertContains((new \ReflectionClass(DuplicateNameDataFixture::class))->getFileName(), $tracked);
+    }
+
+    /**
      * @param class-string $dataTableClass
      */
     private function process(string $dataTableClass): ContainerBuilder
@@ -149,5 +163,11 @@ final class UnnamedClassColumnTableFixture extends AbstractDataTable
 }
 
 final class BareTableFixture extends AbstractDataTable
+{
+}
+
+#[AsDataTable(dataClass: DuplicateNameDataFixture::class)]
+#[DataTableColumn(name: 'actions', options: ['orderable' => false])]
+final class ShadowingTableFixture extends AbstractDataTable
 {
 }
