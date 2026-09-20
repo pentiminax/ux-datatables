@@ -24,14 +24,23 @@ final class ColumnResolver
     }
 
     /**
-     * Resolve columns using the fallback chain: attributes → auto-detect.
+     * Resolve columns down a single chain, the first level that declares anything winning.
      *
-     * @param bool $apiPlatform Whether the table opted in through the fluent `->apiPlatform()`
+     * The fluent API sits above this: `AbstractDataTable` only asks when `configureColumns()` left
+     * the table empty.
+     *
+     * @param bool    $apiPlatform    Whether the table opted in through the fluent `->apiPlatform()`
+     * @param ?string $dataTableClass Table class, read for the columns no member of the entity backs
      *
      * @return AbstractColumn[]
      */
-    public function resolveColumns(?AsDataTable $asDataTable, bool $apiPlatform = false): array
+    public function resolveColumns(?AsDataTable $asDataTable, bool $apiPlatform = false, ?string $dataTableClass = null): array
     {
+        $columns = $this->columnsFromClassAttributes($dataTableClass);
+        if ([] !== $columns) {
+            return $columns;
+        }
+
         $columns = $this->columnsFromAttributes($asDataTable);
         if ([] !== $columns) {
             return $columns;
@@ -41,19 +50,38 @@ final class ColumnResolver
     }
 
     /**
-     * Build columns from #[Column] attributes on the entity class.
+     * Build columns from the column attributes carried by the entity class.
      *
      * @return AbstractColumn[]
      */
     public function columnsFromAttributes(?AsDataTable $asDataTable): array
     {
-        $reader = $this->attributeColumnReader ?? new AttributeColumnReader();
-
         if (null === $asDataTable) {
             return [];
         }
 
-        return $reader->readColumns($asDataTable->entityClass);
+        return $this->reader()->readColumns($asDataTable->entityClass);
+    }
+
+    /**
+     * Build columns from the column attributes carried by the table class itself.
+     *
+     * @param ?class-string $dataTableClass
+     *
+     * @return AbstractColumn[]
+     */
+    public function columnsFromClassAttributes(?string $dataTableClass): array
+    {
+        if (null === $dataTableClass) {
+            return [];
+        }
+
+        return $this->reader()->readClassColumns($dataTableClass);
+    }
+
+    private function reader(): AttributeColumnReader
+    {
+        return $this->attributeColumnReader ?? new AttributeColumnReader();
     }
 
     /**
