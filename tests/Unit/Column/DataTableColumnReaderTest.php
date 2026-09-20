@@ -106,6 +106,24 @@ final class DataTableColumnReaderTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_two_columns_claiming_the_same_name(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Two columns are declared under the name "label"');
+
+        $this->reader->readColumns(DuplicateNameFixture::class);
+    }
+
+    #[Test]
+    public function it_rejects_a_type_that_is_not_a_column(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must be a class extending');
+
+        $this->reader->readColumns(InvalidTypeFixture::class);
+    }
+
+    #[Test]
     public function it_orders_members_and_positions_the_same_way_as_before(): void
     {
         $columns = $this->reader->readColumns(OrderedFixture::class);
@@ -179,4 +197,19 @@ final class OrderedFixture
 
     #[DataTableColumn(position: 1)]
     public string $second = '';
+}
+
+final class DuplicateNameFixture
+{
+    #[DataTableColumn(name: 'label')]
+    public string $first = '';
+
+    #[DataTableColumn(name: 'label')]
+    public string $second = '';
+}
+
+final class InvalidTypeFixture
+{
+    #[DataTableColumn(\stdClass::class)]
+    public string $name = '';
 }

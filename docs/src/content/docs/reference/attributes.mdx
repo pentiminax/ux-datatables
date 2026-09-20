@@ -29,7 +29,7 @@ Arguments:
   headers={['Argument', 'Type', 'Default', 'Description']}
   rows={[
     [
-      '`entityClass`',
+      '`dataClass`',
       '`class-string`',
       'required',
       'Doctrine entity class linked to the table. Validated when the attribute is read: a class that does not exist, or a non-class such as an interface, throws an `InvalidArgumentException`.',
@@ -99,6 +99,30 @@ naming the attribute and the entity class. Fluent Mercure configuration set with
 
 The attribute is not inherited: `#[AsDataTable]` on an abstract base class gives its subclasses no
 attribute at all. Annotate every concrete table class.
+
+### `dataClass`
+
+`dataClass` names the class the table reads its shape from. It is usually a Doctrine entity, but any
+class works when you provide the rows yourself:
+
+```php
+#[AsDataTable(dataClass: UserSummary::class)]
+final class UserDataTable extends AbstractDataTable
+{
+    public function createDataProvider(): DataProviderInterface
+    {
+        return new ArrayDataProvider($this->summaries);
+    }
+}
+```
+
+Features that do need Doctrine say so when they run. Automatic query building rejects a class
+Doctrine does not map, naming the class rather than failing inside the query builder.
+
+:::caution[`entityClass` is deprecated since 1.1]
+Pass `dataClass` instead. The `entityClass` argument still works for the whole 1.x line and is
+removed in 2.0; the `$entityClass` property keeps returning the same value. Passing both raises.
+:::
 
 ### `serializationGroups`
 
@@ -193,8 +217,18 @@ Columns are resolved down a single chain, and the first level that declares anyt
 
 1. `configureColumns()`
 2. `#[DataTableColumn]` on the table class
-3. `#[DataTableColumn]` on the entity
+3. `#[DataTableColumn]` on the data class
 4. API Platform auto-detection
+
+### Validation
+
+Column declarations are read while the container compiles, so an unknown option, a type that is not
+a column, a duplicated column name or a class-level column without a name fails the build instead of
+the first request that happens to open that table. The error names the table and the class that
+carries the faulty declaration.
+
+Both classes are registered as container resources, so editing either one rebuilds the container in
+`dev`.
 
 ## `#[Column]`
 

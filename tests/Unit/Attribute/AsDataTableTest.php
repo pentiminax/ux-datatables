@@ -277,18 +277,74 @@ final class AsDataTableTest extends TestCase
     public function it_rejects_an_entity_class_that_does_not_exist(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The entity class "App\Entity\Missing" declared on #[AsDataTable] must be an existing class.');
+        $this->expectExceptionMessage('The data class "App\Entity\Missing" declared on #[AsDataTable] must be an existing class.');
 
-        new AsDataTable(entityClass: 'App\Entity\Missing');
+        new AsDataTable(dataClass: 'App\Entity\Missing');
     }
 
     #[Test]
     public function it_rejects_an_interface_as_the_entity_class(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('The entity class "Countable" declared on #[AsDataTable] must be an existing class.');
+        $this->expectExceptionMessage('The data class "Countable" declared on #[AsDataTable] must be an existing class.');
 
-        new AsDataTable(entityClass: \Countable::class);
+        new AsDataTable(dataClass: \Countable::class);
+    }
+
+    #[Test]
+    public function it_accepts_a_class_that_doctrine_does_not_map(): void
+    {
+        $attribute = new AsDataTable(dataClass: PlainDataTransferObject::class);
+
+        $this->assertSame(PlainDataTransferObject::class, $attribute->dataClass);
+    }
+
+    #[Test]
+    public function it_exposes_the_same_class_under_both_names(): void
+    {
+        $attribute = new AsDataTable(dataClass: PlainDataTransferObject::class);
+
+        $this->assertSame($attribute->dataClass, $attribute->entityClass);
+    }
+
+    #[Test]
+    public function it_still_accepts_the_deprecated_entity_class_argument(): void
+    {
+        $deprecations = [];
+
+        set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
+            $deprecations[] = $message;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            $attribute = new AsDataTable(entityClass: PlainDataTransferObject::class);
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertSame(PlainDataTransferObject::class, $attribute->dataClass);
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('"entityClass" argument', $deprecations[0]);
+    }
+
+    #[Test]
+    public function it_rejects_both_arguments_at_once(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('not both');
+
+        new AsDataTable(dataClass: PlainDataTransferObject::class, entityClass: PlainDataTransferObject::class);
+    }
+
+    #[Test]
+    public function it_rejects_a_declaration_naming_no_class(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must name the class holding the data');
+
+        new AsDataTable();
     }
 
     #[Test]
@@ -377,4 +433,9 @@ final class FluentEditModalOverrideDataTable extends AbstractDataTable
     {
         return new ArrayDataProvider([], $this->createRowMapper());
     }
+}
+
+final class PlainDataTransferObject
+{
+    public string $name = '';
 }
