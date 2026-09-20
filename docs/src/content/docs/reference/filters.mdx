@@ -130,6 +130,120 @@ CheckboxFilter::new('vip')->query(
 );
 ```
 
+## Declaring filters with an attribute
+
+`#[DataTableFilter]` declares the same filters without writing `configureFilters()`. It goes on a
+property, a getter, or the table class, and its signature matches
+[`#[DataTableColumn]`](/ux-datatables/reference/attributes/#datatablecolumn) exactly.
+
+```php
+use App\Enum\Status;
+use Pentiminax\UX\DataTables\Attribute\DataTableFilter;
+
+class User
+{
+    #[DataTableFilter(options: ['label' => 'Name'])]
+    private string $name;
+
+    #[DataTableFilter]
+    private Status $status;
+
+    #[DataTableFilter(options: ['label' => 'Created'])]
+    private \DateTimeImmutable $createdAt;
+}
+```
+
+Arguments:
+
+<Table
+  headers={['Argument', 'Meaning']}
+  rows={[
+    ['`type`', 'Filter class to build. Guessed from the declared type when omitted.'],
+    ['`options`', 'Applied through the filter class own fluent API.'],
+    ['`name`', 'Filter key. Defaults to the member name, required on a class-level declaration.'],
+    ['`position`', 'Explicit ordering. Ties fall back to declaration order.'],
+  ]}
+/>
+
+### Guessed types
+
+<Table
+  headers={['Declared type', 'Filter']}
+  rows={[
+    ['`bool`', '`TernaryFilter`'],
+    ['A `BackedEnum`', '`ChoiceFilter`, with its options filled from the enum cases'],
+    ['A `DateTimeInterface`', '`DateRangeFilter`'],
+    ['Anything else, or no type', '`TextFilter`'],
+  ]}
+/>
+
+A ternary filter guessed from a `bool` compares the column value, so "true" and "false" each match
+the rows they name. Naming `TernaryFilter` yourself asks for what that class does, so it keeps its
+usual `IS NULL` / `IS NOT NULL` default — on a `bool` as much as on a nullable date. A `ChoiceFilter`
+is filled from the enum either way, since an explicit `options` entry still wins.
+
+`CheckboxFilter` is never guessed and cannot be declared: it has no default condition, so it only
+works with the `query()` closure that no attribute can carry. Declaring it raises when the container
+compiles.
+
+### Options
+
+Option keys resolve against the filter that carries them: the applier tries `setOption()`, then
+`option()`, then a short alias table. Every fluent method of a filter class is therefore reachable,
+including on a filter you wrote yourself. An option no method answers raises an exception naming the
+option and the filter class.
+
+```php
+use App\Entity\Author;
+use App\Enum\Role;
+use Pentiminax\UX\DataTables\Attribute\DataTableFilter;
+use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
+
+#[DataTableFilter(options: [
+    'label' => 'Author',
+    'field' => 'author.name',
+    'placeholder' => 'Search an author',
+])]
+private Author $author;
+
+#[DataTableFilter(ChoiceFilter::class, ['options' => Role::class, 'multiple' => true])]
+private array $roles;
+```
+
+One key does not follow either convention:
+
+<Table
+  headers={['Option', 'Effect']}
+  rows={[
+    ['`values`', 'Calls `values($trueValue, $falseValue)` on a ternary filter, in that order.'],
+  ]}
+/>
+
+`query()` stays out of reach, since PHP rejects a closure as a constant attribute argument. A filter
+that needs one belongs in `configureFilters()`.
+
+### Resolution order
+
+Filters follow the same chain as columns, and the first level that declares anything wins:
+
+1. `configureFilters()`
+2. `#[DataTableFilter]` on the table class
+3. `#[DataTableFilter]` on the data class
+
+A table that declares one filter in `configureFilters()` therefore gets exactly that one, not a
+merge. Move every filter into the attribute, or keep them all in `configureFilters()`.
+
+### Validation
+
+Filter declarations are read while the container compiles, so an unknown option, a type that is not
+a filter, and a duplicated filter name fail the build rather than the first request that opens the
+table.
+
+Validation follows the resolution order: a table that overrides `configureFilters()`, or that
+declares filters on its own class, reads no filter attribute from the data class, so those
+declarations are not validated either. A table overriding `configureFilters()` only to return an
+empty collection in some branch therefore gets the error on the first request instead.
+
 ## How it works
 
 1. `configureFilters()` builds a `Filters` collection, serialized into the
