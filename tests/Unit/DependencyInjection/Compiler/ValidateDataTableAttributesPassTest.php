@@ -7,9 +7,11 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\DependencyInjection\Compiler;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
 use Pentiminax\UX\DataTables\Attribute\DataTableFilter;
+use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\DataTableRegistryPass;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\ValidateDataTableAttributesPass;
 use Pentiminax\UX\DataTables\Filter\CheckboxFilter;
+use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Filters;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -255,7 +257,7 @@ final class OwnFiltersTableFixture extends AbstractDataTable
 {
     public function configureFilters(Filters $filters): Filters
     {
-        return $filters;
+        return $filters->add(TextFilter::new('manual'));
     }
 }
 
@@ -264,6 +266,6 @@ final class OwnColumnsTableFixture extends AbstractDataTable
 {
     public function configureColumns(): iterable
     {
-        return [];
+        return [TextColumn::new('manual')];
     }
 }
