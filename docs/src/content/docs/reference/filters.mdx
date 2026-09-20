@@ -130,6 +130,108 @@ CheckboxFilter::new('vip')->query(
 );
 ```
 
+## Declaring filters with an attribute
+
+`#[DataTableFilter]` declares the same filters without writing `configureFilters()`. It goes on a
+property, a getter, or the table class, and its signature matches
+[`#[DataTableColumn]`](/ux-datatables/reference/attributes/#datatablecolumn) exactly.
+
+```php
+use Pentiminax\UX\DataTables\Attribute\DataTableFilter;
+
+class User
+{
+    #[DataTableFilter(options: ['label' => 'Name'])]
+    private string $name;
+
+    #[DataTableFilter]
+    private Status $status;
+
+    #[DataTableFilter(options: ['label' => 'Created'])]
+    private \DateTimeImmutable $createdAt;
+}
+```
+
+Arguments:
+
+<Table
+  headers={['Argument', 'Meaning']}
+  rows={[
+    ['`type`', 'Filter class to build. Guessed from the declared type when omitted.'],
+    ['`options`', 'Applied through the filter class own fluent API.'],
+    ['`name`', 'Filter key. Defaults to the member name, required on a class-level declaration.'],
+    ['`position`', 'Explicit ordering. Ties fall back to declaration order.'],
+  ]}
+/>
+
+### Guessed types
+
+<Table
+  headers={['Declared type', 'Filter']}
+  rows={[
+    ['`bool`', '`TernaryFilter`'],
+    ['A `BackedEnum`', '`ChoiceFilter`, with its options filled from the enum cases'],
+    ['A `DateTimeInterface`', '`DateRangeFilter`'],
+    ['Anything else, or no type', '`TextFilter`'],
+  ]}
+/>
+
+A ternary filter guessed from a `bool` still defaults to `IS NULL` / `IS NOT NULL`, which is what
+`TernaryFilter` does everywhere. Add `'values' => [true, false]` to compare against the column value
+instead.
+
+`CheckboxFilter` is never guessed and cannot be declared: it has no default condition, so it only
+works with the `query()` closure that no attribute can carry. Declaring it raises when the container
+compiles.
+
+### Options
+
+Option keys resolve against the filter that carries them: the applier tries `setOption()`, then
+`option()`, then a short alias table. Every fluent method of a filter class is therefore reachable,
+including on a filter you wrote yourself. An option no method answers raises an exception naming the
+option and the filter class.
+
+```php
+#[DataTableFilter(options: [
+    'label' => 'Author',
+    'field' => 'author.name',
+    'placeholder' => 'Search an author',
+])]
+private Author $author;
+
+#[DataTableFilter(ChoiceFilter::class, ['options' => Role::class, 'multiple' => true])]
+private array $roles;
+```
+
+One key does not follow either convention:
+
+<Table
+  headers={['Option', 'Effect']}
+  rows={[
+    ['`values`', 'Calls `values($trueValue, $falseValue)` on a ternary filter, in that order.'],
+  ]}
+/>
+
+`query()` stays out of reach, since PHP rejects a closure as a constant attribute argument. A filter
+that needs one belongs in `configureFilters()`.
+
+### Resolution order
+
+Filters follow the same chain as columns, and the first level that declares anything wins:
+
+1. `configureFilters()`
+2. `#[DataTableFilter]` on the table class
+3. `#[DataTableFilter]` on the data class
+
+A table that declares one filter in `configureFilters()` therefore gets exactly that one, not a
+merge. Move every filter into the attribute, or keep them all in `configureFilters()`.
+
+### Validation
+
+Filter declarations are read while the container compiles, so an unknown option, a type that is not
+a filter, and a duplicated filter name fail the build rather than the first request that opens the
+table.
+
 ## How it works
 
 1. `configureFilters()` builds a `Filters` collection, serialized into the

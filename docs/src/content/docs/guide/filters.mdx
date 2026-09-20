@@ -32,11 +32,33 @@ public function configureFilters(Filters $filters): Filters
 }
 ```
 
+Or declare them on the class holding the data, with no `configureFilters()` at all:
+
+```php
+use Pentiminax\UX\DataTables\Attribute\DataTableFilter;
+
+class User
+{
+    #[DataTableFilter(options: ['label' => 'Email'])]
+    private string $email;
+
+    #[DataTableFilter(options: ['label' => 'Status'])]
+    private Status $status;
+}
+```
+
+The filter class is guessed from the declared type, and a `BackedEnum` brings its own options along.
+
 ## Pitfalls
 
 <Aside type="caution">
   Enable `serverSide()` first. Filters send criteria over Ajax and apply Doctrine conditions in the
   query pipeline.
+</Aside>
+
+<Aside type="caution">
+  `configureFilters()` wins over `#[DataTableFilter]` wholesale rather than merging with it. One
+  filter declared in PHP means the attributes are not read at all.
 </Aside>
 
 ## Related
