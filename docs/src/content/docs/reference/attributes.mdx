@@ -162,7 +162,9 @@ Four keys do not follow either naming convention and are handled by the alias ta
 ### On a method
 
 A getter names the column after the value it exposes, so `getFullName()` declares a `fullName`
-column and the type is read from the return type.
+column and the type is read from the return type. The method must be public and callable without
+arguments, otherwise nothing could read the column's value; any other signature is rejected when the
+attribute is read.
 
 ```php
 #[DataTableColumn]

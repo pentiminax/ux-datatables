@@ -114,9 +114,14 @@ final class MemberAttributeReader
         $targets = [];
 
         foreach ($this->methods($class) as $method) {
-            $type = $method->getReturnType();
+            $type       = $method->getReturnType();
+            $attributes = $method->getAttributes($attributeClass, \ReflectionAttribute::IS_INSTANCEOF);
 
-            foreach ($method->getAttributes($attributeClass, \ReflectionAttribute::IS_INSTANCEOF) as $attribute) {
+            if ([] !== $attributes) {
+                $this->assertReadable($method, $attributeClass);
+            }
+
+            foreach ($attributes as $attribute) {
                 $targets[] = new AttributeTarget(
                     attribute: $attribute->newInstance(),
                     name: $this->propertyName($method->getName()),
@@ -127,6 +132,25 @@ final class MemberAttributeReader
         }
 
         return $targets;
+    }
+
+    /**
+     * A declaration nothing can call is a programming error, and a silent one: the column would be
+     * built and then have no value to show.
+     *
+     * @param class-string $attributeClass
+     */
+    private function assertReadable(\ReflectionMethod $method, string $attributeClass): void
+    {
+        $name = $method->getDeclaringClass()->getName().'::'.$method->getName().'()';
+
+        if (!$method->isPublic()) {
+            throw new \InvalidArgumentException(\sprintf('The "%s" attribute on "%s" needs a public method, so its value can be read.', $attributeClass, $name));
+        }
+
+        if ($method->getNumberOfRequiredParameters() > 0) {
+            throw new \InvalidArgumentException(\sprintf('The "%s" attribute on "%s" needs a method callable without arguments.', $attributeClass, $name));
+        }
     }
 
     private function propertyName(string $method): string

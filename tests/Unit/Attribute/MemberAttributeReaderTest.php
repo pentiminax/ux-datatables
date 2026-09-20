@@ -92,6 +92,38 @@ final class MemberAttributeReaderTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_a_declaration_on_a_non_public_method(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('needs a public method');
+
+        $this->reader->readMethods(NonPublicMethodFixture::class, Marker::class);
+    }
+
+    #[Test]
+    public function it_rejects_a_declaration_on_a_method_requiring_arguments(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('callable without arguments');
+
+        $this->reader->readMethods(RequiredArgumentMethodFixture::class, Marker::class);
+    }
+
+    #[Test]
+    public function it_accepts_a_method_whose_arguments_are_all_optional(): void
+    {
+        $targets = $this->reader->readMethods(OptionalArgumentMethodFixture::class, Marker::class);
+
+        $this->assertSame(['label'], array_map(static fn ($target) => $target->name, $targets));
+    }
+
+    #[Test]
+    public function it_ignores_the_signature_of_methods_carrying_no_attribute(): void
+    {
+        $this->assertSame([], $this->reader->readMethods(UnannotatedMethodFixture::class, Marker::class));
+    }
+
+    #[Test]
     public function it_numbers_properties_and_methods_in_one_sequence(): void
     {
         $targets = $this->reader->readMembers(MixedMemberFixture::class, Marker::class);
@@ -240,4 +272,39 @@ final class MixedVisibilityChildFixture extends MixedVisibilityParentFixture
 {
     #[Marker]
     public string $child = '';
+}
+
+final class NonPublicMethodFixture
+{
+    #[Marker]
+    private function getSecret(): string
+    {
+        return '';
+    }
+}
+
+final class RequiredArgumentMethodFixture
+{
+    #[Marker]
+    public function getFormatted(string $format): string
+    {
+        return $format;
+    }
+}
+
+final class OptionalArgumentMethodFixture
+{
+    #[Marker]
+    public function getLabel(string $locale = 'en'): string
+    {
+        return $locale;
+    }
+}
+
+final class UnannotatedMethodFixture
+{
+    private function getSecret(string $required): string
+    {
+        return $required;
+    }
 }
