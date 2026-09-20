@@ -6,8 +6,10 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\DependencyInjection\Compiler;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
+use Pentiminax\UX\DataTables\Attribute\DataTableFilter;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\DataTableRegistryPass;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\ValidateDataTableAttributesPass;
+use Pentiminax\UX\DataTables\Filter\CheckboxFilter;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -103,6 +105,32 @@ final class ValidateDataTableAttributesPassTest extends TestCase
         $this->assertContains((new \ReflectionClass(DuplicateNameDataFixture::class))->getFileName(), $tracked);
     }
 
+    #[Test]
+    public function it_rejects_an_option_no_filter_answers(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Option "wobble" is not supported by');
+
+        $this->process(UnknownFilterOptionTableFixture::class);
+    }
+
+    #[Test]
+    public function it_rejects_a_filter_that_needs_a_closure(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('has no default condition');
+
+        $this->process(CheckboxFilterTableFixture::class);
+    }
+
+    #[Test]
+    public function it_leaves_the_data_class_filters_alone_when_the_table_class_declares_some(): void
+    {
+        $this->process(ShadowingFilterTableFixture::class);
+
+        $this->expectNotToPerformAssertions();
+    }
+
     /**
      * @param class-string $dataTableClass
      */
@@ -169,5 +197,33 @@ final class BareTableFixture extends AbstractDataTable
 #[AsDataTable(dataClass: DuplicateNameDataFixture::class)]
 #[DataTableColumn(name: 'actions', options: ['orderable' => false])]
 final class ShadowingTableFixture extends AbstractDataTable
+{
+}
+
+final class UnknownFilterOptionDataFixture
+{
+    #[DataTableFilter(options: ['wobble' => true])]
+    public string $name = '';
+}
+
+final class CheckboxFilterDataFixture
+{
+    #[DataTableFilter(type: CheckboxFilter::class)]
+    public bool $flagged = true;
+}
+
+#[AsDataTable(dataClass: UnknownFilterOptionDataFixture::class)]
+final class UnknownFilterOptionTableFixture extends AbstractDataTable
+{
+}
+
+#[AsDataTable(dataClass: CheckboxFilterDataFixture::class)]
+final class CheckboxFilterTableFixture extends AbstractDataTable
+{
+}
+
+#[AsDataTable(dataClass: CheckboxFilterDataFixture::class)]
+#[DataTableFilter(name: 'archived')]
+final class ShadowingFilterTableFixture extends AbstractDataTable
 {
 }

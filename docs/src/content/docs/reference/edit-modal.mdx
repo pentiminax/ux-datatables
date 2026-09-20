@@ -55,7 +55,7 @@ Override only the Twig template with your own classes. The built-in `DialogModal
 
 ```php
 #[AsDataTable(
-    entityClass: Product::class,
+    dataClass: Product::class,
     editModalTemplate: 'datatables/product_edit_modal.html.twig',
 )]
 final class ProductsDataTable extends AbstractDataTable

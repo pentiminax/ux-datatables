@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\DependencyInjection\Compiler;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTableResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
+use Pentiminax\UX\DataTables\Filter\AttributeFilterReader;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
@@ -24,6 +25,7 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
     {
         $resolver = new AsDataTableResolver();
         $reader   = new AttributeColumnReader();
+        $filters  = new AttributeFilterReader();
 
         foreach (array_keys($container->findTaggedServiceIds(DataTableRegistryPass::TAG)) as $id) {
             $class = ltrim($container->getDefinition($id)->getClass() ?? $id, '\\');
@@ -38,20 +40,25 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
             $asDataTable = $this->guard($class, $class, static fn () => $resolver->resolve($class));
 
             $classColumns = $this->guard($class, $class, static fn () => $reader->readClassColumns($class));
+            $classFilters = $this->guard($class, $class, static fn () => $filters->readClassFilters($class));
 
             if (null === $asDataTable) {
                 continue;
             }
 
-            $container->addObjectResource($asDataTable->dataClass);
+            $dataClass = $asDataTable->dataClass;
 
-            // The table class wins the resolution chain, so the data class declarations are never
-            // read. Validating them anyway would fail the build over code nothing runs.
-            if ([] !== $classColumns) {
-                continue;
+            $container->addObjectResource($dataClass);
+
+            // The table class wins each resolution chain, so the data class declarations it shadows
+            // are never read. Validating them anyway would fail the build over code nothing runs.
+            if ([] === $classColumns) {
+                $this->guard($class, $dataClass, static fn () => $reader->readColumns($dataClass));
             }
 
-            $this->guard($class, $asDataTable->dataClass, static fn () => $reader->readColumns($asDataTable->dataClass));
+            if ([] === $classFilters) {
+                $this->guard($class, $dataClass, static fn () => $filters->readFilters($dataClass));
+            }
         }
     }
 
