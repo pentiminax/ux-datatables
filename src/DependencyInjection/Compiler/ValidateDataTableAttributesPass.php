@@ -37,13 +37,19 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
 
             $asDataTable = $this->guard($class, $class, static fn () => $resolver->resolve($class));
 
-            $this->guard($class, $class, static fn () => $reader->readClassColumns($class));
+            $classColumns = $this->guard($class, $class, static fn () => $reader->readClassColumns($class));
 
             if (null === $asDataTable) {
                 continue;
             }
 
             $container->addObjectResource($asDataTable->dataClass);
+
+            // The table class wins the resolution chain, so the data class declarations are never
+            // read. Validating them anyway would fail the build over code nothing runs.
+            if ([] !== $classColumns) {
+                continue;
+            }
 
             $this->guard($class, $asDataTable->dataClass, static fn () => $reader->readColumns($asDataTable->dataClass));
         }
