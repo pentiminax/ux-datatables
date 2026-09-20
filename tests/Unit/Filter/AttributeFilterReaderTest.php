@@ -120,6 +120,28 @@ final class AttributeFilterReaderTest extends TestCase
         $this->assertFilterProduces($filter, 'true', ['e.verifiedAt IS NOT NULL'], [], 'datetime');
     }
 
+    /**
+     * Naming the class is how someone asks for what that class does, even on a bool.
+     */
+    #[Test]
+    public function it_leaves_an_explicit_ternary_filter_on_a_bool_alone(): void
+    {
+        $filter = $this->reader->readFilters(ExplicitBoolTernaryFixture::class)[0];
+
+        $this->assertFilterProduces($filter, 'false', ['e.confirmed IS  NULL'], [], 'boolean');
+    }
+
+    #[Test]
+    public function it_still_fills_an_explicitly_declared_choice_filter_from_its_enum(): void
+    {
+        $filter = $this->reader->readFilters(ExplicitChoiceOnEnumFixture::class)[0];
+
+        $this->assertSame(
+            ['active' => 'Active', 'inactive' => 'Inactive'],
+            $filter->jsonSerialize()['options'],
+        );
+    }
+
     #[Test]
     public function it_rejects_a_values_option_missing_a_state(): void
     {
@@ -341,4 +363,16 @@ final class NullableDateTernaryFixture
 {
     #[DataTableFilter(type: TernaryFilter::class)]
     public ?\DateTimeImmutable $verifiedAt = null;
+}
+
+final class ExplicitBoolTernaryFixture
+{
+    #[DataTableFilter(type: TernaryFilter::class)]
+    public ?bool $confirmed = null;
+}
+
+final class ExplicitChoiceOnEnumFixture
+{
+    #[DataTableFilter(type: ChoiceFilter::class)]
+    public FilterStatus $status = FilterStatus::Active;
 }
