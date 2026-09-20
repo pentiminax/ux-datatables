@@ -1,0 +1,161 @@
+# Extensions
+
+DataTables extensions live in `src/Model/Extensions/`. Configure them fluently in
+`configureDataTable()` with their dedicated helper, or use `$table->addExtension(...)` for a custom
+extension.
+
+ColumnControl has its own configuration model, request payload, and search-list providers. Read
+`references/column-control.md` for that extension rather than treating it as a simple toggle.
+
+```php
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table
+        ->responsive()
+        ->buttons([ButtonType::CSV, ButtonType::EXCEL]);
+}
+```
+
+## Buttons — export / copy / column visibility
+
+```php
+use Pentiminax\UX\DataTables\Enum\ButtonType;
+use Pentiminax\UX\DataTables\Model\Extensions\{ButtonsExtension, Button};
+
+new ButtonsExtension([
+    ButtonType::COPY, ButtonType::CSV, ButtonType::EXCEL,
+    ButtonType::PDF, ButtonType::PRINT, ButtonType::COLUMN_VISIBILITY,
+]);
+```
+
+`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`), `COLUMN_CONTROL_SEARCH_CLEAR` (value `'ccSearchClear'`), `COLLECTION` (value `'collection'`), `CUSTOM`. The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton(bool $serverSide = false)`, `withExcelButton(bool $serverSide = false)`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`, `withCcSearchClearButton()`, `withCollectionButton(array $buttons)`, `withCustomButton(string $action)`.
+
+Fine-grained config via `Button`:
+```php
+new ButtonsExtension([
+    Button::csv()->text('Export CSV')->className('btn btn-success')
+        ->exportOptions(['columns' => ':visible'])->option('charset', 'utf-8'),
+]);
+```
+
+To position buttons, place `Feature::BUTTONS` in `layout()` (see options).
+
+`Button::ccSearchClear()` clears the global search plus every ColumnControl per-column search in
+one click, using ColumnControl's own native Buttons entry (no JS needed). Requires
+`ColumnControlExtension` on the table.
+
+`Button::collection(array $buttons)` groups other buttons in a dropdown (the same mechanism
+`colVis()` builds on). `buttons` accepts `Button` objects, raw arrays, or extend-name strings, mixed
+freely — nested buttons serialize correctly at any depth since `Button` is `JsonSerializable`.
+
+```php
+Button::collection([Button::csv(), Button::excel(), 'colvis'])->text('Export');
+```
+
+### Server-side export (CSV & XLSX)
+
+`Button::csv()` / `Button::excel()` are the DataTables client exports (loaded rows only). On a
+`serverSide()` table, pass `serverSide: true` to stream every filtered row from PHP via OpenSpout.
+Columns follow `setExportable()` / `#[Column(exportable: false)]`. Set the download name with
+`filename('users')`; the extension comes from the format.
+
+```php
+Button::csv(serverSide: true)->text('Export CSV')->filename('users');
+Button::excel(serverSide: true)->text('Export XLSX')->filename('users');
+```
+
+Requires `openspout/openspout`. Each server-side button carries an `exportKey` (default: its
+format); two buttons cannot share one, `ButtonsExtension` throws on a duplicate. Values starting
+with `=`, `@`, tab, CR — and `+`/`-` on non-numeric values — are apostrophe-prefixed to defuse
+spreadsheet formula injection. XLSX is not streamed row by row: OpenSpout zips the workbook from a
+temporary folder on close.
+
+To replace the CSV/XLSX writer (delimiter, locale, extra columns) rather than just configuring the
+button, see `references/exporters.md`.
+
+### Custom button with app-defined behavior
+
+`Button::custom(string $action)` — no JS closures can cross the PHP→JSON boundary, so `$action` is a
+name, not a callback. Register the real function once in JS before any table connects:
+
+```php
+Button::custom('restoreOrder')->text('Restore order');
+```
+
+```javascript
+import { buttonActions } from '@pentiminax/ux-datatables'
+buttonActions.register('restoreOrder', (e, dt) => dt.colReorder.reset())
+```
+
+Signature matches native DataTables Buttons `action`: `(e, dt, node, config)`. An unregistered name
+renders but no-ops with a console error, not a crash.
+
+## Select — row/cell selection
+
+```php
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
+use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+
+(new SelectExtension(style: SelectStyle::MULTI))   // SINGLE | MULTI
+    ->withCheckbox(true)
+    ->headerCheckbox(true);
+```
+Constructor also exposes `blurable`, `className`, `info`, `items`, `keys`, `selector`, `toggleable`.
+
+## FixedColumns — freeze columns
+
+```php
+new FixedColumnsExtension(start: 1, end: 0);  // freeze N leftmost / rightmost
+```
+
+## FixedHeader — pin the header while scrolling
+
+```php
+new FixedHeaderExtension(header: true, footer: false, headerOffset: 0, footerOffset: 0);
+```
+
+Not intended to be combined with `ScrollerExtension` or the core `scrollY` / `scrollX` scrolling feature.
+
+## ColReorder — drag to reorder columns
+
+```php
+new ColReorderExtension(enable: true, columns: '', headerRows: null, order: null);  // all defaults
+```
+
+`enable: false` loads ColReorder locked; toggle at runtime with the JS API
+(`dt.colReorder.enable()`/`.disable()`, e.g. via `Button::custom()`). `columns` restricts which
+columns can be dragged: a DataTables column-selector string or a plain `list<int>` of column
+indexes. `headerRows` restricts reordering
+to specific header row indexes (multi-row headers); `order` sets the initial column order (original
+indexes in their new positions). Both default to `null` (every row / document order) and are
+omitted from the payload unless set.
+
+## Responsive — collapse columns on small screens
+
+```php
+new ResponsiveExtension(auto: true, detailsTarget: 0, detailsType: 'inline', orthogonal: 'display');
+```
+
+All params optional — `$table->responsive()` uses every default. `detailsType` also accepts
+`'column'`, `'colvis'`, or `false` to disable the hidden-column details control. Pass `breakpoints`
+(list of `['name' => string, 'width' => int]`) to override DataTables' built-in list; omit to keep it.
+
+## KeyTable — keyboard cell navigation
+
+```php
+new KeyTableExtension(blurable: true, className: 'focus', clipboard: true, columns: '', keys: null);
+```
+
+All params optional. `columns` is a column-selector string restricting which columns can be
+focused. `focus` (`[row, column]`) and `keys` (key codes to listen for) default to `null`, omitted
+from the payload unless set.
+
+## Scroller — virtual scrolling for large tables
+
+```php
+new ScrollerExtension(boundaryScale: 0.5, displayBuffer: 9, rowHeight: 'auto', serverWait: 200);
+```
+
+All params optional and match DataTables' own defaults.
+
+See `docs/src/content/docs/extensions/combining-extensions.mdx` for compatible combinations.

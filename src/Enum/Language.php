@@ -1,0 +1,108 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Enum;
+
+enum Language: string
+{
+    private const string DATATABLES_VERSION = '3.0.1';
+
+    case AF      = 'af';
+    case AM      = 'am';
+    case AR      = 'ar';
+    case AZ_AZ   = 'az-AZ';
+    case BE      = 'be';
+    case BG      = 'bg';
+    case BN      = 'bn';
+    case BS_BA   = 'bs-BA';
+    case CA      = 'ca';
+    case CO      = 'co';
+    case CS      = 'cs';
+    case CY      = 'cy';
+    case DA      = 'da';
+    case DE      = 'de-DE';
+    case EL      = 'el';
+    case EN      = 'en-GB';
+    case EO      = 'eo';
+    case ES      = 'es-ES';
+    case ES_AR   = 'es-AR';
+    case ES_CL   = 'es-CL';
+    case ES_CO   = 'es-CO';
+    case ES_MX   = 'es-MX';
+    case ET      = 'et';
+    case EU      = 'eu';
+    case FA      = 'fa';
+    case FI      = 'fi';
+    case FIL     = 'fil';
+    case FR      = 'fr-FR';
+    case GA      = 'ga';
+    case GANDA   = 'Ganda';
+    case GL      = 'gl';
+    case GU      = 'gu';
+    case HE      = 'he';
+    case HI      = 'hi';
+    case HR      = 'hr';
+    case HU      = 'hu';
+    case HY      = 'hy';
+    case ID      = 'id';
+    case ID_ALT  = 'id-ALT';
+    case IS      = 'is';
+    case IT_IT   = 'it-IT';
+    case JA      = 'ja';
+    case JV      = 'jv';
+    case KA      = 'ka';
+    case KK      = 'kk';
+    case KM      = 'km';
+    case KN      = 'kn';
+    case KO      = 'ko';
+    case KU      = 'ku';
+    case KY      = 'ky';
+    case LO      = 'lo';
+    case LT      = 'lt';
+    case LV      = 'lv';
+    case MK      = 'mk';
+    case MN      = 'mn';
+    case MR      = 'mr';
+    case MS      = 'ms';
+    case NE      = 'ne';
+    case NL_NL   = 'nl-NL';
+    case NO_NB   = 'no-NB';
+    case NO_NO   = 'no-NO';
+    case PA      = 'pa';
+    case PL      = 'pl';
+    case PS      = 'ps';
+    case PT_BR   = 'pt-BR';
+    case PT_PT   = 'pt-PT';
+    case RM      = 'rm';
+    case RO      = 'ro';
+    case RU      = 'ru';
+    case SI      = 'si';
+    case SK      = 'sk';
+    case SL      = 'sl';
+    case SND     = 'snd';
+    case SQ      = 'sq';
+    case SR      = 'sr';
+    case SR_SP   = 'sr-SP';
+    case SV_SE   = 'sv-SE';
+    case SW      = 'sw';
+    case TA      = 'ta';
+    case TE      = 'te';
+    case TG      = 'tg';
+    case TH      = 'th';
+    case TK      = 'tk';
+    case TR      = 'tr';
+    case UG      = 'ug';
+    case UK      = 'uk';
+    case UR      = 'ur';
+    case UZ      = 'uz';
+    case UZ_CR   = 'uz-CR';
+    case VI      = 'vi';
+    case ZH      = 'zh';
+    case ZH_HANT = 'zh-HANT';
+
+    public function getUrl(): string
+    {
+        return \sprintf('https://cdn.datatables.net/plug-ins/%s/i18n/%s.json', self::DATATABLES_VERSION, $this->value);
+    }
+}

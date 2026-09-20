@@ -1,0 +1,223 @@
+---
+import '../styles/global.css'
+import Icon from '../components/Icon.astro'
+import SearchDialog from '../components/SearchDialog.astro'
+import BrandMark from '../components/BrandMark.astro'
+import { sections, withBase } from '../nav'
+
+interface Props {
+  title: string
+  description: string
+  /** Full-bleed pages (home, 404) opt out of the documentation grid. */
+  wide?: boolean
+}
+
+const { title, description, wide = false } = Astro.props
+const canonical = new URL(Astro.url.pathname, Astro.site)
+const repoUrl = 'https://github.com/pentiminax/ux-datatables'
+const sectionEntries = [
+  { id: 'getting-started', href: withBase('getting-started/') },
+  { id: 'recipes', href: withBase('recipes/') },
+  { id: 'guide', href: withBase('guide/') },
+  { id: 'reference', href: withBase('reference/') },
+].map((entry) => ({ ...entry, title: sections.find((section) => section.id === entry.id)!.title }))
+const currentSection = Astro.url.pathname.replace(import.meta.env.BASE_URL, '').split('/')[0]
+---
+
+<!doctype html>
+<html lang="en" data-base-url={import.meta.env.BASE_URL}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f7f9fc" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)" />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href={withBase('favicon.svg')} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="UX DataTables" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@600;700&family=JetBrains+Mono:wght@500&family=Source+Sans+3:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>{title}</title>
+    <script is:inline>
+      // Runs before first paint so the page never flashes the wrong theme.
+      try {
+        const stored = localStorage.getItem('theme')
+        if (stored === 'dark' || stored === 'light') document.documentElement.dataset.theme = stored
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <!--
+      THESIS: The document is a well-composed table. This site borrows the
+      vocabulary of the thing it documents — a strict grid, a frozen header, an
+      active row, a sort direction — so the reader is already inside a DataTable
+      while reading about one. The one idea it owns: the shortest path from a
+      question to a working table class.
+      OWN-WORLD: indigo #5B5BD6 as the single accent, amber #F4D35E reserved for
+      the focused cell, Symfony crimson only where Symfony itself is meant, on
+      navy-slate neutrals. Familjen Grotesk headings, Source Sans 3 prose,
+      JetBrains Mono code. 1px rules between columns instead of cards, a sort
+      caret on the active nav row, hover-only zebra — density without noise.
+      STORY: the reader arrives on a question, sees which row of the site they
+      are on (breadcrumb, section, ToC), gets a copyable answer, and is handed
+      the next page.
+      FIRST VIEWPORT: sticky header with the four sections and search; below it
+      sidebar / prose / ToC separated by rules. On a doc page the title, its
+      one-line summary, and the first code block are all above the fold. The
+      primary action is Search.
+      FORM: documentation shell, first on the ordered list for a Read surface.
+      No seed key — this replaces a Tailwind-utility surface with a token system
+      ported from the sibling ux-driver bundle, so the family reads as one.
+      FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+    -->
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="site-header-inner">
+        <a class="brand" href={withBase()} aria-label="UX DataTables home">
+          <BrandMark />
+          <span>UX DataTables</span>
+        </a>
+
+        <nav class="top-nav" aria-label="Sections">
+          {
+            sectionEntries.map((entry) => (
+              <a href={entry.href} aria-current={entry.id === currentSection ? 'true' : undefined}>
+                {entry.title}
+              </a>
+            ))
+          }
+        </nav>
+
+        <div class="header-actions">
+          <button class="search-trigger" type="button" data-search-trigger>
+            <Icon name="search" size={16} />
+            <span class="search-trigger-label">Search</span>
+            <kbd>⌘K</kbd>
+          </button>
+
+          <button
+            class="icon-button theme-toggle"
+            type="button"
+            data-theme-toggle
+            aria-pressed="false"
+            aria-label="Switch to dark theme"
+          >
+            <Icon name="sun" size={18} class="theme-icon-light" />
+            <Icon name="moon" size={18} class="theme-icon-dark" />
+          </button>
+
+          <a class="icon-button" href={repoUrl} aria-label="UX DataTables on GitHub">
+            <Icon name="github" size={18} />
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <SearchDialog />
+
+    <main id="main" class:list={['site-main', wide && 'site-main-wide']}>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <p>
+          <BrandMark size={16} />
+          UX DataTables — DataTables.net grids for Symfony, declared in PHP.
+        </p>
+        <nav aria-label="Footer">
+          <a href={withBase('getting-started/installation/')}>Installation</a>
+          <a href="https://packagist.org/packages/pentiminax/ux-datatables">Packagist</a>
+          <a href={repoUrl}>GitHub</a>
+          <a href={`${repoUrl}/blob/main/LICENSE`}>License</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      const root = document.documentElement
+      const toggle = document.querySelector<HTMLButtonElement>('[data-theme-toggle]')
+
+      const syncToggle = () => {
+        const dark =
+          root.dataset.theme === 'dark' ||
+          (!root.dataset.theme && matchMedia('(prefers-color-scheme: dark)').matches)
+        toggle?.setAttribute('aria-pressed', String(dark))
+        toggle?.setAttribute('aria-label', dark ? 'Switch to light theme' : 'Switch to dark theme')
+      }
+
+      syncToggle()
+
+      toggle?.addEventListener('click', () => {
+        const dark = toggle.getAttribute('aria-pressed') === 'true'
+        root.dataset.theme = dark ? 'light' : 'dark'
+        try {
+          localStorage.setItem('theme', root.dataset.theme)
+        } catch {}
+        syncToggle()
+      })
+
+      matchMedia('(prefers-color-scheme: dark)').addEventListener('change', syncToggle)
+
+      const copyIcon =
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 5.5A1.5 1.5 0 0 0 13.5 4H6a2 2 0 0 0-2 2v7.5A1.5 1.5 0 0 0 5.5 15"/></svg>'
+      const checkIcon =
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>'
+
+      document.querySelectorAll('pre').forEach((pre) => {
+        const frame = document.createElement('div')
+        frame.className = 'code-block'
+        const language = pre.dataset.language
+        if (language && language !== 'plaintext') frame.dataset.language = language
+
+        pre.replaceWith(frame)
+        frame.append(pre)
+
+        const button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'copy-code'
+        button.innerHTML = copyIcon
+        button.setAttribute('aria-label', 'Copy code')
+
+        const feedback = document.createElement('span')
+        feedback.className = 'visually-hidden'
+        feedback.setAttribute('aria-live', 'polite')
+
+        let reset: number | undefined
+        button.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(pre.querySelector('code')?.textContent ?? pre.textContent ?? '')
+          } catch {
+            feedback.textContent = 'Copy failed — copy the block manually.'
+            return
+          }
+          button.innerHTML = checkIcon
+          button.classList.add('is-copied')
+          feedback.textContent = 'Copied to clipboard'
+          clearTimeout(reset)
+          reset = window.setTimeout(() => {
+            button.innerHTML = copyIcon
+            button.classList.remove('is-copied')
+            feedback.textContent = ''
+          }, 1600)
+        })
+
+        frame.append(button, feedback)
+      })
+    </script>
+  </body>
+</html>
