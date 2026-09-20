@@ -132,6 +132,23 @@ final class AttributeColumnReaderTest extends TestCase
         $this->assertSame(['active' => 'success', 'inactive' => 'danger'], $customOptions['renderAsBadges']);
         $this->assertSame('secondary', $customOptions['defaultBadgeVariant']);
     }
+
+    #[Test]
+    public function it_reads_columns_declared_by_a_parent_class(): void
+    {
+        $columns = $this->reader->readColumns(InheritedColumnsFixture::class);
+
+        $this->assertSame(['id', 'label', 'reference'], array_map(static fn ($column) => $column->getName(), $columns));
+    }
+
+    #[Test]
+    public function it_lets_a_child_redeclaration_win_over_its_parent(): void
+    {
+        $columns = $this->reader->readColumns(RedeclaringChildFixture::class);
+
+        $this->assertCount(1, $columns);
+        $this->assertSame('Child', $columns[0]->jsonSerialize()['title']);
+    }
 }
 
 final class ReaderEntityFixture
@@ -232,4 +249,31 @@ final class NoAttributeFixture
 {
     public string $name = '';
     public int $age     = 0;
+}
+
+abstract class MappedSuperclassFixture
+{
+    #[Column(position: 0)]
+    private int $id = 0;
+
+    #[Column(position: 1)]
+    protected string $label = '';
+}
+
+final class InheritedColumnsFixture extends MappedSuperclassFixture
+{
+    #[Column(position: 2)]
+    public string $reference = '';
+}
+
+abstract class RedeclaringParentFixture
+{
+    #[Column(title: 'Parent')]
+    protected string $label = '';
+}
+
+final class RedeclaringChildFixture extends RedeclaringParentFixture
+{
+    #[Column(title: 'Child')]
+    protected string $label = '';
 }
