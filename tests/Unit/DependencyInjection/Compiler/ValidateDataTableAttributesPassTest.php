@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\DependencyInjection\Compiler\DataTableRegistryPass;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\ValidateDataTableAttributesPass;
 use Pentiminax\UX\DataTables\Filter\CheckboxFilter;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\Filters;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -132,6 +133,27 @@ final class ValidateDataTableAttributesPassTest extends TestCase
     }
 
     /**
+     * A table that builds its own filters reads no filter attribute, so the faulty declaration on
+     * its data class is dead code. Failing the build over it would break a cache:clear for something
+     * no request can reach.
+     */
+    #[Test]
+    public function it_skips_the_filter_attributes_a_configure_filters_override_shadows(): void
+    {
+        $this->process(OwnFiltersTableFixture::class);
+
+        $this->expectNotToPerformAssertions();
+    }
+
+    #[Test]
+    public function it_skips_the_column_attributes_a_configure_columns_override_shadows(): void
+    {
+        $this->process(OwnColumnsTableFixture::class);
+
+        $this->expectNotToPerformAssertions();
+    }
+
+    /**
      * @param class-string $dataTableClass
      */
     private function process(string $dataTableClass): ContainerBuilder
@@ -226,4 +248,22 @@ final class CheckboxFilterTableFixture extends AbstractDataTable
 #[DataTableFilter(name: 'archived')]
 final class ShadowingFilterTableFixture extends AbstractDataTable
 {
+}
+
+#[AsDataTable(dataClass: CheckboxFilterDataFixture::class)]
+final class OwnFiltersTableFixture extends AbstractDataTable
+{
+    public function configureFilters(Filters $filters): Filters
+    {
+        return $filters;
+    }
+}
+
+#[AsDataTable(dataClass: DuplicateNameDataFixture::class)]
+final class OwnColumnsTableFixture extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        return [];
+    }
 }

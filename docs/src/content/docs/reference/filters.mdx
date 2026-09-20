@@ -137,6 +137,7 @@ property, a getter, or the table class, and its signature matches
 [`#[DataTableColumn]`](/ux-datatables/reference/attributes/#datatablecolumn) exactly.
 
 ```php
+use App\Enum\Status;
 use Pentiminax\UX\DataTables\Attribute\DataTableFilter;
 
 class User
@@ -176,9 +177,9 @@ Arguments:
   ]}
 />
 
-A ternary filter guessed from a `bool` still defaults to `IS NULL` / `IS NOT NULL`, which is what
-`TernaryFilter` does everywhere. Add `'values' => [true, false]` to compare against the column value
-instead.
+A ternary filter guessed from a `bool` compares the column value, so "true" and "false" each match
+the rows they name. Declaring `TernaryFilter` explicitly keeps its usual `IS NULL` / `IS NOT NULL`
+default, which is what a nullable date wants.
 
 `CheckboxFilter` is never guessed and cannot be declared: it has no default condition, so it only
 works with the `query()` closure that no attribute can carry. Declaring it raises when the container
@@ -192,6 +193,11 @@ including on a filter you wrote yourself. An option no method answers raises an 
 option and the filter class.
 
 ```php
+use App\Entity\Author;
+use App\Enum\Role;
+use Pentiminax\UX\DataTables\Attribute\DataTableFilter;
+use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
+
 #[DataTableFilter(options: [
     'label' => 'Author',
     'field' => 'author.name',
@@ -231,6 +237,11 @@ merge. Move every filter into the attribute, or keep them all in `configureFilte
 Filter declarations are read while the container compiles, so an unknown option, a type that is not
 a filter, and a duplicated filter name fail the build rather than the first request that opens the
 table.
+
+Validation follows the resolution order: a table that overrides `configureFilters()`, or that
+declares filters on its own class, reads no filter attribute from the data class, so those
+declarations are not validated either. A table overriding `configureFilters()` only to return an
+empty collection in some branch therefore gets the error on the first request instead.
 
 ## How it works
 

@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\DateRangeFilter;
 use Pentiminax\UX\DataTables\Filter\TernaryFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsFilterQueryBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -22,6 +23,8 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(AttributeFilterReader::class)]
 final class AttributeFilterReaderTest extends TestCase
 {
+    use BuildsFilterQueryBuilder;
+
     private AttributeFilterReader $reader;
 
     protected function setUp(): void
@@ -89,6 +92,32 @@ final class AttributeFilterReaderTest extends TestCase
 
         $this->assertInstanceOf(TernaryFilter::class, $filter);
         $this->assertSame('Published', $filter->jsonSerialize()['trueLabel']);
+    }
+
+    /**
+     * The ternary default is IS NULL / IS NOT NULL, which on a boolean field matches every row for
+     * "true" and none for "false". A filter guessed from a bool compares the value instead.
+     */
+    #[Test]
+    public function it_compares_the_value_of_a_filter_guessed_from_a_bool(): void
+    {
+        $filter = $this->reader->readFilters(FilterDataFixture::class)[1];
+
+        $this->assertFilterProduces(
+            $filter,
+            'false',
+            ['e.active = :filter_active_false'],
+            ['filter_active_false' => false],
+            'boolean',
+        );
+    }
+
+    #[Test]
+    public function it_leaves_an_explicitly_declared_ternary_filter_on_its_null_checks(): void
+    {
+        $filter = $this->reader->readFilters(NullableDateTernaryFixture::class)[0];
+
+        $this->assertFilterProduces($filter, 'true', ['e.verifiedAt IS NOT NULL'], [], 'datetime');
     }
 
     #[Test]
@@ -306,4 +335,10 @@ final class InheritingFilterFixture extends FilterSuperclassFixture
 {
     #[DataTableFilter]
     public string $own = '';
+}
+
+final class NullableDateTernaryFixture
+{
+    #[DataTableFilter(type: TernaryFilter::class)]
+    public ?\DateTimeImmutable $verifiedAt = null;
 }
