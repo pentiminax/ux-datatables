@@ -1,0 +1,115 @@
+export interface ColumnRenderer {
+    matches(column: Record<string, any>): boolean
+
+    configure(column: Record<string, any>): void
+}
+
+export interface BooleanCustomOptions {
+    renderAsSwitch?: boolean
+    defaultState?: boolean
+    toggleMethod?: string
+    toggleIdField?: string
+    toggleField?: string
+}
+
+export interface ChoiceCustomOptions {
+    choices?: Record<string, string>
+    renderAsBadges?: Record<string, string> | boolean
+    defaultBadgeVariant?: string
+}
+
+export interface MoneyCustomOptions {
+    isMoney?: boolean
+    currency?: string
+    storedAsCents?: boolean
+    decimals?: number
+    locale?: string
+    showCurrencySign?: boolean
+}
+
+export interface DateCustomOptions {
+    relative?: boolean
+    dateFormat?: string
+    locale?: string
+}
+
+export interface EmailCustomOptions {
+    isEmail?: boolean
+    obfuscate?: boolean
+    mask?: boolean
+    displayValue?: string
+    renderAsText?: boolean
+}
+
+export interface UrlCustomOptions {
+    isUrl?: boolean
+    target?: string
+    displayValue?: string
+    showExternalIcon?: boolean
+    defaultProtocol?: string
+    allowedProtocols?: string[]
+    renderEmptyAsAnchor?: boolean
+    hasUrlResolver?: boolean
+}
+
+export interface IconCustomOptions {
+    isIcon?: boolean
+    icon?: string
+    color?: string
+    size?: string
+    tooltips?: Record<string, string>
+    boolean?: boolean
+    trueIcon?: string
+    falseIcon?: string
+    trueColor?: string
+    falseColor?: string
+}
+
+export interface ImageCustomOptions {
+    isImage?: boolean
+    imageWidth?: number
+    imageHeight?: number
+    alt?: string
+    lazy?: boolean
+    rounded?: boolean
+    placeholder?: string
+    clickable?: boolean
+}
+
+export interface ActionConfig {
+    type: string
+    name: string
+    label: string
+    className: string
+    icon?: string
+    lucideIcon?: string
+    confirm?: string
+    displayCondition?: { field: string; value: unknown }
+    entityClass?: string
+    htmlAttributes?: Record<string, string | number | boolean | null>
+    idField: string
+    url?: string
+    collapsible?: boolean
+    ajaxMethod?: string
+    disabledWhenDenied?: boolean
+    denied?: boolean
+}
+
+export interface ActionRowConfig {
+    id?: string | number
+    url?: string
+    token?: string
+}
+
+export interface ActionRowData {
+    __ux_datatables_actions?: Record<string, ActionRowConfig>
+    __ux_datatables_denied_actions?: string[]
+}
+
+export interface UrlRowData {
+    __ux_datatables_urls?: Record<string, string>
+}
+
+export interface BooleanSwitchRowData {
+    __ux_datatables_boolean_switches?: Record<string, string | number | null | undefined>
+}

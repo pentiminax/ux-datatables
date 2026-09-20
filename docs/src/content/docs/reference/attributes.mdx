@@ -1,0 +1,228 @@
+---
+title: Attributes
+description: Reference for AsDataTable and DataTableColumn PHP attributes
+order: 50
+---
+
+## `#[AsDataTable]`
+
+Target: class
+
+```php
+#[AsDataTable(User::class, serializationGroups: ['user:list'], mercure: true, apiPlatform: true)]
+```
+
+```php
+#[AsDataTable(
+    entityClass: User::class,
+    mercure: [
+        'debounceMs' => 250,
+    ],
+    editModalTemplate: 'datatables/user_edit_modal.html.twig',
+    editModalAdapter: 'bs5',
+)]
+```
+
+Arguments:
+
+<Table
+  headers={['Argument', 'Type', 'Default', 'Description']}
+  rows={[
+    [
+      '`entityClass`',
+      '`class-string`',
+      'required',
+      'Doctrine entity class linked to the table. Validated when the attribute is read: a class that does not exist, or a non-class such as an interface, throws an `InvalidArgumentException`.',
+    ],
+    [
+      '`serializationGroups`',
+      '`string[]`',
+      '`[]`',
+      'API Platform serialization groups used during column auto-detection (requires the API Platform opt-in)',
+    ],
+    [
+      '`mercure`',
+      '`bool|array`',
+      '`false`',
+      'Enable automatic Mercure config resolution (`true`) or declare Mercure options (`topics`, `withCredentials`, `debounceMs`)',
+    ],
+    [
+      '`apiPlatform`',
+      '`bool`',
+      '`false`',
+      'Opt-in to API Platform integration: auto Ajax URL wiring and column auto-detection from API Platform metadata',
+    ],
+    [
+      '`editModalTemplate`',
+      '`?string`',
+      '`null`',
+      'Optional Twig template path for the inline edit modal',
+    ],
+    [
+      '`editModalAdapter`',
+      '`?string`',
+      '`null`',
+      'Optional modal adapter override (`dt`, `bs`, `bs4`, `bs5`, or a name registered with `modalAdapters.register()`)',
+    ],
+  ]}
+/>
+
+Use this attribute to:
+
+- auto-configure the Doctrine data provider used internally by `AbstractDataTable`
+- opt-in to API Platform-driven column auto-detection (`apiPlatform: true`, or `->apiPlatform()` on the table)
+- opt-in to automatic API collection URL resolution for Ajax wiring
+- auto-attach a Mercure config when Mercure is enabled for the table
+- declare explicit Mercure topics with `mercure: ['topics' => [...]]`
+
+### Mercure options
+
+An array `mercure` value only declares topics when it carries a `topics` key. Without it, topics are
+resolved automatically and the declared options are applied on top:
+
+```php
+// Auto topics, tuned subscription
+#[AsDataTable(User::class, mercure: ['debounceMs' => 250, 'withCredentials' => true])]
+```
+
+```php
+// Explicit topics
+#[AsDataTable(User::class, mercure: ['topics' => ['https://example.com/users']])]
+```
+
+`withCredentials` overrides the value resolved from API Platform metadata (`#[ApiResource(mercure:
+['private' => true])]`). Unknown keys and wrongly typed values throw an `InvalidArgumentException`
+naming the attribute and the entity class. Fluent Mercure configuration set with
+`$table->mercure()` still wins over the attribute.
+
+### Inheritance
+
+The attribute is not inherited: `#[AsDataTable]` on an abstract base class gives its subclasses no
+attribute at all. Annotate every concrete table class.
+
+### `serializationGroups`
+
+`serializationGroups` is only read during API Platform column auto-detection, so it is ignored
+unless the API Platform opt-in is set — through the attribute's `apiPlatform: true` or
+`$table->apiPlatform()`.
+
+## `#[DataTableColumn]`
+
+Target: property, method, or class. Repeatable.
+
+```php
+#[DataTableColumn(options: ['title' => 'Email', 'orderable' => false])]
+private string $email;
+```
+
+Arguments:
+
+<Table
+  headers={['Argument', 'Meaning']}
+  rows={[
+    ['`type`', 'Column class to build. Guessed from the declared type when omitted.'],
+    ['`options`', 'Applied through the column class own fluent API.'],
+    ['`name`', 'Column key. Defaults to the member name, required on a class-level declaration.'],
+    ['`position`', 'Explicit ordering. Ties fall back to declaration order.'],
+  ]}
+/>
+
+### Options
+
+An option key is resolved against the column that ends up carrying it: the applier tries
+`setOption()`, then `option()`, then a short alias table. Every setter of your column class is
+therefore reachable, including on a column type you wrote yourself.
+
+```php
+#[DataTableColumn(DateColumn::class, ['format' => 'd/m/Y', 'responsivePriority' => 1])]
+private \DateTimeImmutable $createdAt;
+
+#[DataTableColumn(options: [
+    'field' => 'provider.name',
+    'searchJoins' => ['e.provider' => 'p'],
+    'searchField' => 'p.name',
+])]
+private Provider $provider;
+```
+
+An option no method answers raises an exception naming the option and the column class.
+
+Four keys do not follow either naming convention and are handled by the alias table:
+
+<Table
+  headers={['Option', 'Effect']}
+  rows={[
+    ['`globalSearchable: false`', 'Calls `disableGlobalSearch()`.'],
+    ['`searchJoins`', 'A `join => alias` map, added one by one. Join conditions stay with the fluent API.'],
+    ['`customOptions`', 'A map, set one by one.'],
+    ['`searchNormalized`', 'Calls `setSearchNormalization()`.'],
+  ]}
+/>
+
+### On a method
+
+A getter names the column after the value it exposes, so `getFullName()` declares a `fullName`
+column and the type is read from the return type. The method must be public and callable without
+arguments, otherwise nothing could read the column's value; any other signature is rejected when the
+attribute is read.
+
+```php
+#[DataTableColumn]
+public function getFullName(): string
+{
+    return $this->firstName.' '.$this->lastName;
+}
+```
+
+### On a table class
+
+For a column no member of your entity backs, declare it on the table class itself. `name` is
+required there, since no member supplies one.
+
+```php
+#[AsDataTable(entityClass: User::class)]
+#[DataTableColumn(name: 'actions', options: ['orderable' => false])]
+final class UserDataTable extends AbstractDataTable
+{
+}
+```
+
+### Resolution order
+
+Columns are resolved down a single chain, and the first level that declares anything wins:
+
+1. `configureColumns()`
+2. `#[DataTableColumn]` on the table class
+3. `#[DataTableColumn]` on the entity
+4. API Platform auto-detection
+
+## `#[Column]`
+
+:::caution[Deprecated since 1.1]
+Use [`#[DataTableColumn]`](#datatablecolumn) instead. `#[Column]` is removed in 2.0.
+:::
+
+Its named parameters each became an option, so migration is mechanical:
+
+```php
+// Before
+#[Column(title: 'Email', orderable: false, width: '120px')]
+private string $email;
+
+// After
+#[DataTableColumn(options: ['title' => 'Email', 'orderable' => false, 'width' => '120px'])]
+private string $email;
+```
+
+`type`, `name` and `position` keep their place as named arguments. Everything else moves into
+`options`, and the eight column settings the old signature had no parameter for — `data`,
+`orderExpression`, `searchField`, `columnControl`, `permission`, `searchNormalized`, `searchJoins`,
+`customOptions` — become reachable in the process.
+
+The attribute also collides with `Doctrine\ORM\Mapping\Column` on the very class it has to be
+placed on, which the new name resolves.
+
+## Cross Links
+
+- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)
+- [/ux-datatables/columns/overview/](/ux-datatables/columns/overview/)

@@ -1,0 +1,309 @@
+---
+title: Styling
+description: Use Bootstrap or the default DataTables theme
+order: 40
+---
+
+The bundle supports 4 DataTables CSS frameworks out of the box. The Stimulus controller **automatically detects** which stylesheet you have loaded and picks the matching JavaScript integration — no PHP configuration required.
+
+## How It Works
+
+On page load, the controller scans the loaded stylesheets and matches the CSS file's URL against known patterns. The first match wins, so more specific patterns (e.g. `bootstrap5`) are checked before less specific ones (e.g. `bootstrap`). If nothing matches, the bundle falls back to the DataTables default theme.
+
+## Switching Frameworks
+
+### With AssetMapper
+
+Edit `assets/controllers.json` to enable the CSS file for your target framework and disable the others:
+
+<Tabs>
+  <TabItem label="Default (DataTables)">
+    ```json
+    {
+      "controllers": {
+        "@pentiminax/ux-datatables": {
+          "datatable": {
+            "enabled": true,
+            "autoimport": {
+              "datatables.net-dt/css/dataTables.dataTables.min.css": true,
+              "datatables.net-bs5/css/dataTables.bootstrap5.min.css": false
+            }
+          }
+        }
+      }
+    }
+    ```
+  </TabItem>
+  <TabItem label="Bootstrap 5">
+    ```json
+    {
+      "controllers": {
+        "@pentiminax/ux-datatables": {
+          "datatable": {
+            "enabled": true,
+            "autoimport": {
+              "datatables.net-dt/css/dataTables.dataTables.min.css": false,
+              "datatables.net-bs5/css/dataTables.bootstrap5.min.css": true
+            }
+          }
+        }
+      }
+    }
+    ```
+  </TabItem>
+  <TabItem label="Bootstrap 4 / 3">
+    ```json
+    {
+      "controllers": {
+        "@pentiminax/ux-datatables": {
+          "datatable": {
+            "enabled": true,
+            "autoimport": {
+              "datatables.net-dt/css/dataTables.dataTables.min.css": false,
+              "datatables.net-bs4/css/dataTables.bootstrap4.min.css": true
+            }
+          }
+        }
+      }
+    }
+    ```
+
+    Then install the packages (see [Framework Setup](#framework-setup) below).
+  </TabItem>
+</Tabs>
+
+<Aside type="note">
+  Only one CSS entry should be `true` at a time. The bundle detects the active framework from the loaded stylesheet.
+</Aside>
+
+### With Webpack Encore
+
+Import the CSS directly in your entry file:
+
+```javascript
+// assets/app.js — enable exactly one:
+import 'datatables.net-dt/css/dataTables.dataTables.min.css'
+// import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css'
+```
+
+## Supported Frameworks
+
+<Table
+  headers={['Framework', 'Key', 'CSS file', 'NPM package']}
+  rows={[
+    ['DataTables (default)', '`dt`', '`dataTables.dataTables`', '`datatables.net-dt`'],
+    ['Bootstrap 5', '`bs5`', '`dataTables.bootstrap5`', '`datatables.net-bs5`'],
+    ['Bootstrap 4', '`bs4`', '`dataTables.bootstrap4`', '`datatables.net-bs4`'],
+    ['Bootstrap 3', '`bs`', '`dataTables.bootstrap`', '`datatables.net-bs`'],
+  ]}
+/>
+
+## Framework Setup
+
+The bundle ships with the `dt` and `bs5` packages pre-registered in the importmap. For any other framework, you need to install the required packages first.
+
+### DataTables Default
+
+No extra setup. Works out of the box.
+
+### Bootstrap 5
+
+Included by default. Make sure Bootstrap 5 CSS is also loaded in your application.
+
+### Bootstrap 4
+
+```bash
+php bin/console importmap:require datatables.net-bs4
+```
+
+### Bootstrap 3
+
+```bash
+php bin/console importmap:require datatables.net-bs
+```
+
+## Installing Extension Packages
+
+Each extension (Select, Responsive, Buttons, etc.) also has framework-specific packages. If you use extensions, install the matching variants alongside the core package.
+
+For example, with **Bootstrap 4**:
+
+```bash
+php bin/console importmap:require datatables.net-bs4
+php bin/console importmap:require datatables.net-select-bs4
+php bin/console importmap:require datatables.net-responsive-bs4
+php bin/console importmap:require datatables.net-buttons-bs4
+# Add other extensions you use…
+```
+
+The naming pattern is always `datatables.net-{extension}-{key}`.
+
+<Aside type="tip">
+  You only need to install the extensions you actually use. The bundle never loads a package
+  for a framework that isn't detected in the page stylesheets.
+</Aside>
+
+## Customising the Table Element
+
+Override the default CSS classes applied to the `<table>` element globally in `config/packages/data_tables.yaml`:
+
+```yaml
+data_tables:
+  table_attributes:
+    class: 'table table-striped table-hover'
+```
+
+Or per table in Twig:
+
+```twig
+{{ render_datatable(table, {'class': 'table table-bordered table-sm'}) }}
+```
+
+## Tailwind Theme
+
+The bundle ships an optional Tailwind theme, inspired by [Filament](https://filamentphp.com): a card-shaped
+table with ring outlines, an amber accent, drawn pagination chevrons and a matching dark mode.
+
+It is plain CSS built on custom properties — **no Tailwind build step is required**, so it behaves
+identically under AssetMapper, Webpack Encore and Vite. It layers on top of the default `dt`
+stylesheet, which must stay enabled.
+
+### Enabling It
+
+<Tabs>
+  <TabItem label="AssetMapper">
+    ```json
+    {
+      "controllers": {
+        "@pentiminax/ux-datatables": {
+          "datatable": {
+            "enabled": true,
+            "autoimport": {
+              "@pentiminax/ux-datatables/dist/styles/datatables-base-style.css": true,
+              "@pentiminax/ux-datatables/dist/styles/datatables-tailwind-theme.css": true,
+              "datatables.net-dt/css/dataTables.dataTables.min.css": true
+            }
+          }
+        }
+      }
+    }
+    ```
+  </TabItem>
+  <TabItem label="Webpack Encore / Vite">
+    ```javascript
+    // assets/app.js
+    import 'datatables.net-dt/css/dataTables.dataTables.min.css'
+    import '@pentiminax/ux-datatables/dist/styles/datatables-base-style.css'
+    import '@pentiminax/ux-datatables/dist/styles/datatables-tailwind-theme.css'
+    ```
+  </TabItem>
+</Tabs>
+
+No PHP configuration is needed. The theme declares `--dt-tw-theme: tailwind` on `:root`, and the
+Stimulus controller reads that custom property to select the matching column style adapter — so
+`ChoiceColumn` badges and `BooleanColumn` switches follow the theme instead of emitting Tailwind
+utilities.
+
+The controller also moves the search label into the input's placeholder, so the toolbar keeps the
+export buttons on the left and the search field on the right of a single row. The label element
+stays in the DOM, visually hidden, as the input's accessible name. Set DataTables'
+`language.searchPlaceholder` yourself and the theme leaves your value alone.
+
+Actions rendered by `Action::delete()`, `::edit()` and `::detail()` keep their Bootstrap class
+names, which the theme restyles as soft-tinted chips. An action with a custom `className` is left
+untouched.
+
+### Rebranding
+
+Reassign the accent tokens after the theme import. Values are space-separated RGB channels, which
+is what lets the theme derive tints and rings from a single hue:
+
+```css
+/* The theme's default amber, swapped for indigo. */
+:root {
+  --dt-tw-primary-400: 129 140 248;
+  --dt-tw-primary-500: 99 102 241;
+  --dt-tw-primary-600: 79 70 229;
+  --dt-tw-primary-700: 67 56 202;
+  --dt-tw-on-primary: 255 255 255;
+}
+```
+
+The same pattern applies to `--dt-tw-gray-*`, the semantic `--dt-tw-success` / `--dt-tw-warning` /
+`--dt-tw-danger` / `--dt-tw-info` tokens, and the `--dt-tw-radius-*` scale.
+
+### Dark Mode
+
+The theme follows `prefers-color-scheme`, and honours an explicit choice from `.dark`,
+`[data-theme="dark"]` or `[data-bs-theme="dark"]` on `<html>` — so it works with Tailwind's class
+strategy and with Bootstrap's colour modes without extra configuration.
+
+<Aside type="note">
+  The theme styles the DataTables core layout, the filter popover, badges and switches. Optional
+  extensions (Buttons, Select, ColumnControl, …) keep their `-dt` stylesheets; their controls
+  inherit the palette but are not individually restyled.
+</Aside>
+
+## Column Chrome (Badges & Switches)
+
+`ChoiceColumn` badges and `BooleanColumn` switches do not hard-code a single CSS framework. The Stimulus controller resolves a **column style adapter** from the same detected DataTables stylesheet used for the core library:
+
+| Detected framework | Registry key | Adapter | Badge / switch styling |
+|--------------------|--------------|---------|------------------------|
+| `bs`, `bs4`, `bs5` | `bs`, `bs4`, `bs5` | Bootstrap | `badge text-bg-*`, `form-check form-switch` |
+| `dt` and other non-Bootstrap keys | `dt` | Tailwind | Utility classes (`bg-green-100`, peer toggle, …) |
+| Any framework, with the Tailwind theme loaded | `tailwind` | Tailwind theme | Semantic classes (`dt-badge dt-badge--success`, `dt-switch`) |
+
+The `tailwind` key is the detected theme rather than a stylesheet framework, and it wins over the framework key when the theme is loaded. DataTables.net ships no badge or switch styles of its own, so `dt` is the non-Bootstrap default rather than a DataTables chrome entry: on plain `dt`, with neither Tailwind compiled nor the [Tailwind theme](#tailwind-theme) enabled, badges and switches render unstyled.
+
+PHP APIs stay framework-agnostic: pass semantic variants such as `success` or `danger` to `renderAsBadges()`. The adapter maps them to the appropriate classes at render time.
+
+### Tailwind apps
+
+1. Keep the DataTables default CSS enabled (`datatables.net-dt`) — there is no official DataTables Tailwind package yet.
+2. Ensure Tailwind scans the compiled Stimulus bundle (or safelist the utilities) so badge/switch classes are not purged. With Tailwind v4 you can add something like:
+
+```css
+@source "../../vendor/pentiminax/ux-datatables/assets/dist/**/*.js";
+```
+
+3. Semantic variants map as follows:
+
+| Variant | Tailwind utilities |
+|---------|--------------------|
+| `success` | `bg-green-100 text-green-800` |
+| `warning` | `bg-yellow-100 text-yellow-800` |
+| `danger` | `bg-red-100 text-red-800` |
+| `info` | `bg-sky-100 text-sky-800` |
+| `primary` | `bg-blue-100 text-blue-800` |
+| `secondary` | `bg-gray-100 text-gray-800` |
+| `light` | `bg-gray-50 text-gray-700` |
+| `dark` | `bg-gray-800 text-gray-100` |
+
+The adapter registry is extensible: `columnStyleAdapters.register('dt', () => new MyAdapter())` replaces the adapter for any key in the table above, the `tailwind` theme key included. The edit modal uses a separate adapter system and is not covered by this column chrome layer.
+
+## Troubleshooting
+
+### "No DataTables stylesheet detected"
+
+If you see this warning in the browser console, it means no recognised DataTables CSS file was found in the page's loaded stylesheets. The bundle falls back to the `dt` theme.
+
+Common causes:
+
+- The CSS entry in `controllers.json` is set to `false` for all entries
+- The CSS file failed to load (check the Network tab for 404s)
+- The stylesheet is loaded after Stimulus initialises (ensure CSS loads in `<head>`)
+
+### Styles look wrong after switching frameworks
+
+1. Make sure only **one** CSS entry is enabled in `controllers.json`
+2. Clear the Symfony cache: `php bin/console cache:clear`
+3. For AssetMapper, reimport assets: `php bin/console asset-map:compile`
+
+### Extension styling doesn't match the framework
+
+Each extension must use its framework-specific package. If the extension JS and CSS packages don't match your active framework, you'll see styling inconsistencies. Re-run `importmap:require` for the correct `-{key}` variants.
+
+<Aside type="note">
+  DataTables.net has not published official Tailwind CSS packages. Use the default `dt` theme for the table chrome, then either add the [Tailwind theme](#tailwind-theme) for a finished look with no build step, or rely on the [column style adapters](#column-chrome-badges--switches) if your app already compiles Tailwind.
+</Aside>

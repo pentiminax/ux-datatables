@@ -1,0 +1,86 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Column;
+
+use Pentiminax\UX\DataTables\Enum\ColumnType;
+
+class BooleanColumn extends AbstractColumn
+{
+    public const string OPTION_RENDER_AS_SWITCH = 'renderAsSwitch';
+    public const string OPTION_DEFAULT_STATE    = 'defaultState';
+    public const string OPTION_TOGGLE_METHOD    = 'toggleMethod';
+    public const string OPTION_TOGGLE_ID_FIELD  = 'toggleIdField';
+    public const string OPTION_ENTITY_CLASS     = 'entityClass';
+    public const string OPTION_TOGGLE_FIELD     = 'toggleField';
+
+    public static function new(string $name, string $title = ''): static
+    {
+        return static::createWithType($name, $title, ColumnType::NUM);
+    }
+
+    /**
+     * Enable interactive switch rendering for boolean values.
+     *
+     * The Stimulus controller renders a Bootstrap 5 form switch or a Tailwind
+     * toggle according to the detected DataTables style framework.
+     */
+    public function renderAsSwitch(bool $defaultState = false): static
+    {
+        $this->setCustomOption(self::OPTION_RENDER_AS_SWITCH, true);
+        $this->setCustomOption(self::OPTION_DEFAULT_STATE, $defaultState);
+
+        return $this;
+    }
+
+    public function setToggleAjax(string $idField = 'id', string $method = 'PATCH'): static
+    {
+        $this->setCustomOption(self::OPTION_TOGGLE_ID_FIELD, $idField);
+        $this->setCustomOption(self::OPTION_TOGGLE_METHOD, strtoupper($method));
+
+        return $this;
+    }
+
+    public function setEntityClass(string $entityClass): static
+    {
+        $this->setCustomOption(self::OPTION_ENTITY_CLASS, ltrim($entityClass, '\\'));
+
+        return $this;
+    }
+
+    public function getEntityClass(): ?string
+    {
+        return $this->getCustomOption(self::OPTION_ENTITY_CLASS);
+    }
+
+    public function isRenderedAsSwitch(): bool
+    {
+        return $this->getCustomOption(self::OPTION_RENDER_AS_SWITCH) ?? false;
+    }
+
+    public function getDefaultState(): bool
+    {
+        return $this->getCustomOption(self::OPTION_DEFAULT_STATE) ?? false;
+    }
+
+    public function getToggleField(): ?string
+    {
+        return $this->getCustomOption(self::OPTION_TOGGLE_FIELD);
+    }
+
+    public function jsonSerialize(): array
+    {
+        $options = parent::jsonSerialize();
+
+        if (isset($options['customOptions']) && \is_array($options['customOptions'])) {
+            unset($options['customOptions'][self::OPTION_ENTITY_CLASS]);
+
+            if ([] === $options['customOptions']) {
+                unset($options['customOptions']);
+            }
+        }
+
+        return $options;
+    }
+}
