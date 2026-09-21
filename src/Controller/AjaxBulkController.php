@@ -44,25 +44,29 @@ final class AjaxBulkController
         $dataTable = $this->registry->resolveAction($payload->dataTable);
         $action    = $dataTable->findBulkAction($payload->action);
 
-        if (null === $action || false === $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
-            $dataTable->dataTableClass,
-            $action,
-            null,
-            false,
-        ))) {
+        $context = new ActionPermissionContext(
+            dataTableClass: $dataTable->dataTableClass,
+            action: $action,
+            currentSource: null,
+            hasRowContext: false,
+        );
+
+        if (null === $action || false === $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, $context)) {
             throw new MutationNotAllowedException();
         }
 
+        $selection = new BulkSelection(
+            ids: $this->identifiers($payload->ids),
+            allMatching: $payload->allMatching,
+            deselectedIds: $this->identifiers($payload->deselectedIds),
+            query: $payload->query,
+        );
+
         $result = $this->runner->run(
-            $dataTable,
-            $action,
-            new BulkSelection(
-                ids: $this->identifiers($payload->ids),
-                allMatching: $payload->allMatching,
-                deselectedIds: $this->identifiers($payload->deselectedIds),
-                query: $payload->query,
-            ),
-            $request,
+            table: $dataTable,
+            action: $action,
+            selection: $selection,
+            request: $request,
         );
 
         return new JsonResponse(array_filter([
