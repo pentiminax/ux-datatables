@@ -34,6 +34,8 @@ export class BulkActionBar {
                 ? payload.csrfToken
                 : undefined;
         this.mutationsEnabled = payload.mutationsEnabled === true;
+        this.modalAdapterKey =
+            typeof payload.editModal?.adapter === 'string' ? payload.editModal.adapter : null;
         this.wrapper = document.createElement('div');
         this.wrapper.className = 'dt-bulk';
         this.trigger = document.createElement('button');
@@ -146,6 +148,7 @@ export class BulkActionBar {
                 confirmLabel: action.confirmButton ?? this.labels.confirm ?? 'Confirm',
                 cancelLabel: this.labels.cancel ?? 'Cancel',
                 framework: this.framework,
+                adapterKey: this.modalAdapterKey,
             });
             if (!confirmed) {
                 return;

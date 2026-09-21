@@ -141,7 +141,9 @@ final class BulkActionRunner
             return array_values(array_unique($selection->ids, \SORT_REGULAR));
         }
 
-        if (true === $table->table->getConfiguredDataTable()->getBulkActions()?->isSelectCurrentPageOnly()) {
+        $bulkActions = $table->table->getConfiguredDataTable()->getBulkActions();
+
+        if (true === $bulkActions?->isSelectCurrentPageOnly()) {
             throw InvalidBulkSelectionException::selectAllForbidden();
         }
 
@@ -155,7 +157,9 @@ final class BulkActionRunner
             throw InvalidBulkSelectionException::selectAllUnsupported();
         }
 
-        $ids        = $provider->collectIdentifiers($dataTableRequest->withoutPagination());
+        // The provider answers in the field the client selection speaks in, the one written as
+        // DT_RowId: collecting primary keys instead would hand the lookup another namespace.
+        $ids        = $provider->collectIdentifiers($dataTableRequest->withoutPagination(), $bulkActions?->getIdField());
         $deselected = array_map($this->normalizeId(...), $selection->deselectedIds);
 
         return array_values(array_filter(

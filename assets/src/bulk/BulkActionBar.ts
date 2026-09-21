@@ -84,6 +84,7 @@ export class BulkActionBar {
     private readonly dataTable: string
     private readonly csrfToken?: string
     private readonly mutationsEnabled: boolean
+    private readonly modalAdapterKey: string | null
     private popover: Popover | null = null
     private store: SelectionStore | null = null
     private api: any = null
@@ -106,6 +107,8 @@ export class BulkActionBar {
                 ? payload.csrfToken
                 : undefined
         this.mutationsEnabled = payload.mutationsEnabled === true
+        this.modalAdapterKey =
+            typeof payload.editModal?.adapter === 'string' ? payload.editModal.adapter : null
 
         this.wrapper = document.createElement('div')
         this.wrapper.className = 'dt-bulk'
@@ -285,6 +288,7 @@ export class BulkActionBar {
                 confirmLabel: action.confirmButton ?? this.labels.confirm ?? 'Confirm',
                 cancelLabel: this.labels.cancel ?? 'Cancel',
                 framework: this.framework,
+                adapterKey: this.modalAdapterKey,
             })
 
             if (!confirmed) {
