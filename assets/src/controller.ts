@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus'
+import { BulkActionBar, hasBulkActions } from './bulk/BulkActionBar.js'
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
@@ -17,6 +18,8 @@ import {
     resolveColumnDataKey,
 } from './functions/apiPlatformAdapter.js'
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js'
+import { registerBulkActionsFeature } from './functions/bulkActionsFeature.js'
+import { applyBulkActionsLayout } from './functions/bulkActionsLayout.js'
 import { normalizeDisabledColumnControls } from './functions/columnControl.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
@@ -31,7 +34,11 @@ import { isHighlightEnabled, type UpdateHighlighter } from './functions/highligh
 import { isDataTableClone } from './functions/isDataTableClone.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
 import { applyLocalLanguage } from './functions/localLanguage.js'
-import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js'
+import {
+    hasLucideIcons,
+    hasLucideIconsInActions,
+    loadLucideIcons,
+} from './functions/lucideIcons.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
 import { submitEditForm } from './functions/submitEditForm.js'
@@ -160,6 +167,7 @@ export default class extends Controller {
 
         const DataTable = await loadDataTableLibrary(framework)
         registerFilterFeature(DataTable)
+        registerBulkActionsFeature(DataTable)
 
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true
@@ -186,7 +194,10 @@ export default class extends Controller {
 
         this.configureColumns(payload)
 
-        if (hasLucideIcons(payload.columns)) {
+        if (
+            hasLucideIcons(payload.columns) ||
+            hasLucideIconsInActions(payload.bulkActions?.actions)
+        ) {
             await loadLucideIcons()
         }
 
@@ -199,6 +210,13 @@ export default class extends Controller {
             const filterBar = new FilterBar(payload, framework)
             filterBar.attachToPayload(payload)
             applyFilterLayout(payload, filterBar)
+        }
+
+        if (hasBulkActions(payload)) {
+            const bulkBar = new BulkActionBar(payload, framework, (name, detail) =>
+                this.dispatchEvent(name, detail)
+            )
+            applyBulkActionsLayout(payload, bulkBar, payload.bulkActions?.position)
         }
 
         await applyLocalLanguage(payload)
@@ -706,7 +724,11 @@ type DataTableWithAjax = {
     }
     on: (event: string, callback: (...args: any[]) => void) => DataTableWithAjax
     off: (event: string, callback?: (...args: any[]) => void) => DataTableWithAjax
-    rows: () => { indexes: () => { toArray: () => number[] } }
+    rows: (selector?: any) => {
+        indexes: () => { toArray: () => number[] }
+        ids: () => { toArray: () => unknown[] }
+        deselect: () => void
+    }
     cell: (rowIdx: number, colIdx: number) => { node: () => HTMLElement | null }
     table?: () => { container: () => HTMLElement | null }
     search: (input: string) => DataTableWithAjax

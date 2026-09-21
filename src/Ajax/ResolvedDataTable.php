@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Exception\DuplicateActionNameException;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\BulkAction;
 
 /**
  * A DataTable derived from a signed action token, together with the entity it
@@ -69,5 +70,16 @@ final readonly class ResolvedDataTable
         }
 
         return $matches[0] ?? null;
+    }
+
+    /**
+     * The bulk action the table declares under this name, if any.
+     *
+     * Unlike {@see self::findAction()}, bulk actions are addressed by name: they are all custom,
+     * so their type carries no information.
+     */
+    public function findBulkAction(string $name): ?BulkAction
+    {
+        return $this->table->getConfiguredDataTable()->getBulkActions()?->get($name);
     }
 }

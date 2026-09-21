@@ -41,4 +41,24 @@ final class EntityLocator
 
         return new MutationContext($entity, $manager);
     }
+
+    /**
+     * The manager owning the class, without locating any entity.
+     *
+     * @throws EntityNotFoundException when Doctrine is absent or manages no such class
+     */
+    public function manager(string $entityClass): ObjectManager
+    {
+        if (null === $this->doctrine || '' === $entityClass) {
+            throw new EntityNotFoundException();
+        }
+
+        $manager = $this->doctrine->getManagerForClass($entityClass);
+
+        if (!$manager instanceof ObjectManager) {
+            throw new EntityNotFoundException();
+        }
+
+        return $manager;
+    }
 }

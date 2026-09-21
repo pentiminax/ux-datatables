@@ -15,8 +15,10 @@ use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Filter\AbstractFilter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
@@ -131,6 +133,14 @@ abstract class AbstractDataTable
         }
 
         $this->table->setFilters($this->filters);
+
+        $bulkActions = $this->configureBulkActions(new BulkActions());
+
+        if (!$bulkActions->isEmpty()) {
+            $this->enableSelectionForBulkActions();
+        }
+
+        $this->table->setBulkActions($bulkActions);
 
         $this->initialized = true;
     }
@@ -258,6 +268,17 @@ abstract class AbstractDataTable
     }
 
     public function configureActions(Actions $actions): Actions
+    {
+        return $actions;
+    }
+
+    /**
+     * Declare the actions offered over the rows the user selected.
+     *
+     * Declaring one enables the Select extension with checkboxes and a multi-row style, and makes
+     * every row carry a stable identifier the browser can key its selection on.
+     */
+    public function configureBulkActions(BulkActions $actions): BulkActions
     {
         return $actions;
     }
@@ -457,6 +478,8 @@ abstract class AbstractDataTable
             columns: $this->columns,
             dataTableClass: static::class,
             highlight: $this->table->getHighlightConfig(),
+            rowIdField: $this->table->hasBulkActions() ? $this->table->getBulkActions()?->getIdField() : null,
+            entityClass: $this->asDataTable?->entityClass,
         );
     }
 
@@ -567,6 +590,29 @@ abstract class AbstractDataTable
             payloadBytes: \strlen((string) $response->getContent()),
             httpStatus: $response->getStatusCode(),
         );
+    }
+
+    /**
+     * Bulk actions need checkboxes and multi-row selection, so a table that declares them gets the
+     * Select extension configured for that. A table that already declares Select keeps its own
+     * configuration, except that single-row selection is refused outright: it can never produce a
+     * batch.
+     */
+    private function enableSelectionForBulkActions(): void
+    {
+        $select = $this->table->getExtensionsCollection()->getSelectExtension();
+
+        if (null === $select) {
+            $this->table->addExtension(
+                (new SelectExtension(style: SelectStyle::MULTI))->withCheckbox()->headerCheckbox()
+            );
+
+            return;
+        }
+
+        if (SelectStyle::MULTI !== $select->getStyle()) {
+            throw new \LogicException(\sprintf('Table "%s" declares bulk actions, which need SelectStyle::MULTI, but its Select extension uses SelectStyle::%s.', static::class, $select->getStyle()->name));
+        }
     }
 
     private function configureActionColumn(Actions $actions): void

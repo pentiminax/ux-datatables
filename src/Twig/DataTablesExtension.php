@@ -8,10 +8,10 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -45,7 +45,7 @@ class DataTablesExtension extends AbstractExtension
         $dataTableClass = $table::class;
         $table->getConfiguredDataTable();
 
-        if (false === $this->permissionChecker?->isGranted(Permission::DT_ACCESS_TABLE, $table)) {
+        if (false === $this->permissionChecker?->canAccessTable($table)) {
             throw new AccessDeniedException('Access to this DataTable is denied.');
         }
 
@@ -67,6 +67,8 @@ class DataTablesExtension extends AbstractExtension
             static fn (ColumnInterface $column): array => $column->jsonSerialize(),
             $columns,
         ));
+
+        $this->filterBulkActions($options, $dataTable->getBulkActions(), $dataTableClass);
 
         $view = array_merge($options, $dataTable->getExtensions(), [
             'dataTable' => $this->ajaxRegistry?->getActionToken($dataTableClass),
@@ -113,6 +115,31 @@ class DataTablesExtension extends AbstractExtension
         ]);
 
         return \sprintf('<table id="%s" %s></table>', $dataTable->getId(), $stimulusAttributes);
+    }
+
+    /**
+     * Drop bulk actions the user may not run, without touching the container-shared collection.
+     *
+     * @param array<string, mixed> $options
+     */
+    private function filterBulkActions(array &$options, ?BulkActions $bulkActions, string $dataTableClass): void
+    {
+        if (null === $bulkActions || !isset($options['bulkActions'])) {
+            return;
+        }
+
+        $allowed = (clone $bulkActions)->filterStaticPermissions(
+            $this->permissionChecker ?? new AuthorizationChecker(),
+            $dataTableClass,
+        );
+
+        if ($allowed->isEmpty()) {
+            unset($options['bulkActions']);
+
+            return;
+        }
+
+        $options['bulkActions']['actions'] = $allowed->jsonSerialize();
     }
 
     private function getMutationToken(): ?string

@@ -21,6 +21,8 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Model\BulkAction;
+use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\Button;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
@@ -573,6 +575,46 @@ final class RenderingPreparerTest extends TestCase
         yield 'nested in a collection' => [
             static fn (): Button => Button::collection([Button::excel(serverSide: true)]),
         ];
+    }
+
+    #[Test]
+    public function it_injects_the_bulk_endpoint_and_the_translated_bar_labels(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')
+            ->with(RenderingPreparer::AJAX_BULK_ROUTE)
+            ->willReturn('/datatables/ajax/bulk');
+
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnCallback(static fn (string $id): string => 'tr:'.$id);
+
+        $preparer = new RenderingPreparer(translator: $translator, urlGenerator: $urlGenerator);
+        $table    = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->setBulkActions((new BulkActions())->add(BulkAction::new('approve')));
+
+        $preparer->prepare($table, null);
+
+        $bulk = $table->getOptions()['bulkActions'];
+
+        $this->assertSame('/datatables/ajax/bulk', $bulk['url']);
+        $this->assertSame('tr:bulk.bar.trigger', $bulk['labels']['trigger']);
+        $this->assertSame('tr:bulk.bar.selected', $bulk['labels']['selected']);
+        $this->assertSame('tr:bulk.bar.skipped', $bulk['labels']['skipped']);
+    }
+
+    #[Test]
+    public function it_generates_no_bulk_endpoint_without_bulk_actions(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->expects($this->never())->method('generate');
+
+        $preparer = new RenderingPreparer(urlGenerator: $urlGenerator);
+        $table    = (new DataTable('Test'))->setDataTableClass(self::TABLE_CLASS);
+
+        $preparer->prepare($table, null);
+
+        $this->assertArrayNotHasKey('bulkActions', $table->getOptions());
     }
 
     #[Test]

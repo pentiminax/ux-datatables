@@ -40,12 +40,7 @@ export function createActionColumnRenderer(mutationsEnabled = true) {
                             `class="${escapedClassName}"`,
                             `data-action-type="${escapedType}"`,
                             `data-id="${escapedId}"`,
-                            ...serializeHtmlAttributes(action.htmlAttributes, new Set([
-                                'type',
-                                'class',
-                                'data-action-type',
-                                'data-id',
-                            ])),
+                            ...serializeHtmlAttributes(action.htmlAttributes, new Set(['type', 'class', 'data-action-type', 'data-id'])),
                         ];
                         return `<button ${attrs.join(' ')}>${iconMarkup}${escapedLabel}</button>`;
                     }

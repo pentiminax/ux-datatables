@@ -1,4 +1,5 @@
 import type { StyleFramework } from '../types/styleFramework.js'
+import { createPopover, type Popover } from './popover.js'
 
 export type FilterType = 'text' | 'select' | 'ternary' | 'dateRange' | 'checkbox'
 
@@ -85,7 +86,7 @@ export class FilterBar {
     private readonly badge: HTMLSpanElement
     private applied: Record<string, FilterValue> = {}
     private reload: () => void = () => {}
-    private documentClickHandler: ((event: MouseEvent) => void) | null = null
+    private popoverController: Popover | null = null
 
     constructor(
         payload: Record<string, any>,
@@ -208,7 +209,12 @@ export class FilterBar {
         this.popover.appendChild(body)
         this.popover.appendChild(this.buildFooter())
 
-        this.toggle.addEventListener('click', () => this.togglePopover())
+        this.popoverController = createPopover({
+            wrapper: this.wrapper,
+            panel: this.popover,
+            toggle: this.toggle,
+        })
+        this.toggle.addEventListener('click', () => this.popoverController?.toggle())
 
         return this.wrapper
     }
@@ -249,7 +255,7 @@ export class FilterBar {
     private applyFilters(): void {
         this.applied = this.snapshot()
         this.updateBadge()
-        this.closePopover()
+        this.popoverController?.close()
         this.reload()
     }
 
@@ -266,36 +272,6 @@ export class FilterBar {
         const count = Object.keys(this.applied).length
         this.badge.textContent = String(count)
         this.toggle.classList.toggle('dt-filters-toggle--active', count > 0)
-    }
-
-    private togglePopover(): void {
-        if (this.popover.hidden) {
-            this.openPopover()
-        } else {
-            this.closePopover()
-        }
-    }
-
-    private openPopover(): void {
-        this.popover.hidden = false
-        this.toggle.setAttribute('aria-expanded', 'true')
-
-        this.documentClickHandler = (event: MouseEvent) => {
-            if (!this.wrapper.contains(event.target as Node)) {
-                this.closePopover()
-            }
-        }
-        document.addEventListener('mousedown', this.documentClickHandler)
-    }
-
-    private closePopover(): void {
-        this.popover.hidden = true
-        this.toggle.setAttribute('aria-expanded', 'false')
-
-        if (this.documentClickHandler) {
-            document.removeEventListener('mousedown', this.documentClickHandler)
-            this.documentClickHandler = null
-        }
     }
 
     private buildControl(definition: FilterDefinition): {
@@ -413,7 +389,9 @@ export class FilterBar {
 
     private buildDateRange(definition: FilterDefinition, wrapper: HTMLElement): FilterControl {
         const group = document.createElement('div')
-        group.className = isBootstrap(this.framework) ? 'dt-filter-range d-flex gap-1' : 'dt-filter-range'
+        group.className = isBootstrap(this.framework)
+            ? 'dt-filter-range d-flex gap-1'
+            : 'dt-filter-range'
 
         const from = document.createElement('input')
         from.type = 'date'

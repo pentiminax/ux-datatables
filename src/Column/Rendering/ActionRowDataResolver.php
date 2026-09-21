@@ -10,9 +10,7 @@ use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\DuplicateActionNameException;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
-use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
-use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\PropertyAccess\Exception\ExceptionInterface as PropertyAccessExceptionInterface;
 use Symfony\Component\PropertyAccess\PropertyAccess;
@@ -70,12 +68,7 @@ final class ActionRowDataResolver
 
                 $seenNames[$name] = true;
 
-                if (null !== $action->getPermission() && !$this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
-                    $dataTableClass ?? '',
-                    $action,
-                    $sourceRow,
-                    true,
-                ))) {
+                if (null !== $action->getPermission() && !$this->permissionChecker->canExecuteActionOnRow($dataTableClass, $action, $sourceRow)) {
                     $deniedActions[] = $name;
 
                     continue;

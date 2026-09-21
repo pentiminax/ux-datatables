@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Ajax;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
-use Pentiminax\UX\DataTables\Security\Permission;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
@@ -93,7 +92,7 @@ final class AjaxDataTableRegistry
                 throw new \LogicException(\sprintf('Service "%s" must be an instance of "%s".', $serviceId, AbstractDataTable::class));
             }
 
-            if (false === $this->permissionChecker?->isGranted(Permission::DT_ACCESS_TABLE, $table)) {
+            if (false === $this->permissionChecker?->canAccessTable($table)) {
                 throw new AccessDeniedException('Access to this DataTable is denied.');
             }
 

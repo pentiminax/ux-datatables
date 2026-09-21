@@ -1,9 +1,9 @@
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
     ApiPlatformAdapter,
     isApiPlatformAdapterEnabled,
     resolveColumnDataKey,
-} from '../src/functions/apiPlatformAdapter';
-import {afterEach, describe, expect, it, vi} from 'vitest';
+} from '../src/functions/apiPlatformAdapter'
 
 describe('resolveColumnDataKey', () => {
     it('keeps the data key of a template column so the server-rendered cell is read', () => {
@@ -12,202 +12,207 @@ describe('resolveColumnDataKey', () => {
                 name: 'margin',
                 data: 'margin',
                 field: 'marginRate',
-                customOptions: {templatePath: 'datatable/columns/margin.html.twig'},
+                customOptions: { templatePath: 'datatable/columns/margin.html.twig' },
             })
-        ).toBe('margin');
-    });
+        ).toBe('margin')
+    })
 
     it('overrides the data key with the field of a nested relation column', () => {
         expect(
-            resolveColumnDataKey({name: 'company', data: 'company', field: 'company.name'})
-        ).toBe('company.name');
-    });
+            resolveColumnDataKey({ name: 'company', data: 'company', field: 'company.name' })
+        ).toBe('company.name')
+    })
 
     it('falls back to the data key when no field is configured', () => {
-        expect(resolveColumnDataKey({name: 'email', data: 'email'})).toBe('email');
-    });
+        expect(resolveColumnDataKey({ name: 'email', data: 'email' })).toBe('email')
+    })
 
     it('falls back to the name of a template column whose data key is filtered out of the payload', () => {
         expect(
             resolveColumnDataKey({
                 name: 'margin',
                 field: 'marginRate',
-                customOptions: {templatePath: 'datatable/columns/margin.html.twig'},
+                customOptions: { templatePath: 'datatable/columns/margin.html.twig' },
             })
-        ).toBe('margin');
-    });
-});
+        ).toBe('margin')
+    })
+})
 
 describe('ApiPlatformAdapter', () => {
     afterEach(() => {
-        vi.unstubAllGlobals();
-    });
+        vi.unstubAllGlobals()
+    })
 
     describe('buildRequestParams', () => {
         it('uses field with dot-notation over name for nested relations', () => {
             const adapter = new ApiPlatformAdapter([
-                {name: 'id'},
-                {name: 'author', field: 'author.firstName'},
-            ]);
+                { name: 'id' },
+                { name: 'author', field: 'author.firstName' },
+            ])
 
             const converted = adapter.buildRequestParams({
                 draw: 1,
                 start: 0,
                 length: 10,
-                order: [{column: 1, dir: 'asc'}],
+                order: [{ column: 1, dir: 'asc' }],
                 columns: [
-                    {name: 'id', search: {value: ''}},
-                    {name: 'author', search: {value: 'John'}},
+                    { name: 'id', search: { value: '' } },
+                    { name: 'author', search: { value: 'John' } },
                 ],
-            });
+            })
 
             expect(converted).toEqual({
                 page: '1',
                 itemsPerPage: '10',
                 'order[author.firstName]': 'asc',
                 'author.firstName': 'John',
-            });
-        });
+            })
+        })
 
         it('converts DataTables parameters to API Platform parameters using field mapping', () => {
             const adapter = new ApiPlatformAdapter([
-                {name: 'id'},
-                {name: 'publishedAt', field: 'createdAt'},
-            ]);
+                { name: 'id' },
+                { name: 'publishedAt', field: 'createdAt' },
+            ])
 
             const converted = adapter.buildRequestParams({
                 draw: 3,
                 start: 20,
                 length: 10,
-                order: [{column: 1, dir: 'asc'}],
+                order: [{ column: 1, dir: 'asc' }],
                 columns: [
-                    {name: 'id', search: {value: ''}},
-                    {name: 'publishedAt', search: {value: '31/01/2025'}},
+                    { name: 'id', search: { value: '' } },
+                    { name: 'publishedAt', search: { value: '31/01/2025' } },
                 ],
-            });
+            })
 
             expect(converted).toEqual({
                 page: '3',
                 itemsPerPage: '10',
                 'order[createdAt]': 'asc',
                 createdAt: '31/01/2025',
-            });
-        });
-    });
+            })
+        })
+    })
 
     describe('buildResponse', () => {
         it('converts API Platform collection responses to DataTables format without value transformation', () => {
-            const adapter = new ApiPlatformAdapter([]);
+            const adapter = new ApiPlatformAdapter([])
 
             const converted = adapter.buildResponse(
                 {
-                    'hydra:member': [{id: 1, createdAt: '2025-01-31'}],
+                    'hydra:member': [{ id: 1, createdAt: '2025-01-31' }],
                     'hydra:totalItems': 42,
                 },
                 5
-            );
+            )
 
             expect(converted).toEqual({
                 draw: 5,
                 recordsTotal: 42,
                 recordsFiltered: 42,
-                data: [{id: 1, createdAt: '2025-01-31'}],
-            });
-        });
+                data: [{ id: 1, createdAt: '2025-01-31' }],
+            })
+        })
 
         it('adds the row id the update highlight needs when it is enabled', () => {
             const payload: Record<string, any> = {
                 columns: [],
-                highlight: {durationMs: 1200},
-                ajax: {url: '/api/books'},
-            };
-            const adapter = new ApiPlatformAdapter(payload.columns);
-            adapter.configure(payload);
+                highlight: { durationMs: 1200 },
+                ajax: { url: '/api/books' },
+            }
+            const adapter = new ApiPlatformAdapter(payload.columns)
+            adapter.configure(payload)
 
             const converted = adapter.buildResponse(
-                {'hydra:member': [{id: 7, title: 'Dune'}, {title: 'No id'}], 'hydra:totalItems': 2},
+                {
+                    'hydra:member': [{ id: 7, title: 'Dune' }, { title: 'No id' }],
+                    'hydra:totalItems': 2,
+                },
                 1
-            );
+            )
 
             expect(converted.data).toEqual([
-                {id: 7, title: 'Dune', DT_RowId: '7'},
-                {title: 'No id'},
-            ]);
-        });
+                { id: 7, title: 'Dune', DT_RowId: '7' },
+                { title: 'No id' },
+            ])
+        })
 
         it('reads the row id from the configured id field', () => {
             const payload: Record<string, any> = {
                 columns: [],
-                highlight: {durationMs: 1200, idField: 'uuid'},
-                ajax: {url: '/api/books'},
-            };
-            const adapter = new ApiPlatformAdapter(payload.columns);
-            adapter.configure(payload);
+                highlight: { durationMs: 1200, idField: 'uuid' },
+                ajax: { url: '/api/books' },
+            }
+            const adapter = new ApiPlatformAdapter(payload.columns)
+            adapter.configure(payload)
 
             const converted = adapter.buildResponse(
-                {'hydra:member': [{uuid: 'a-b-c', title: 'Dune'}], 'hydra:totalItems': 1},
+                { 'hydra:member': [{ uuid: 'a-b-c', title: 'Dune' }], 'hydra:totalItems': 1 },
                 1
-            );
+            )
 
-            expect(converted.data).toEqual([{uuid: 'a-b-c', title: 'Dune', DT_RowId: 'a-b-c'}]);
-        });
-    });
+            expect(converted.data).toEqual([{ uuid: 'a-b-c', title: 'Dune', DT_RowId: 'a-b-c' }])
+        })
+    })
 
     describe('configure', () => {
         it('wires ajax data/dataFilter hooks for API Platform mode', () => {
             const payload: Record<string, any> = {
-                columns: [
-                    {name: 'id'},
-                    {name: 'publishedAt', field: 'createdAt'},
-                ],
+                columns: [{ name: 'id' }, { name: 'publishedAt', field: 'createdAt' }],
                 serverSide: false,
                 ajax: {
                     type: 'GET',
                     url: '/api/books',
                 },
-            };
+            }
 
-            new ApiPlatformAdapter(payload.columns).configure(payload);
+            new ApiPlatformAdapter(payload.columns).configure(payload)
 
-            expect(typeof payload.ajax.data).toBe('function');
-            expect(typeof payload.ajax.dataFilter).toBe('function');
-            expect(payload.serverSide).toBe(true);
+            expect(typeof payload.ajax.data).toBe('function')
+            expect(typeof payload.ajax.dataFilter).toBe('function')
+            expect(payload.serverSide).toBe(true)
 
             const query = payload.ajax.data({
                 draw: 4,
                 start: 10,
                 length: 10,
-                order: [{column: 1, dir: 'desc'}],
+                order: [{ column: 1, dir: 'desc' }],
                 columns: [
-                    {name: 'id', search: {value: ''}},
-                    {name: 'publishedAt', search: {value: '31/01/2025'}},
+                    { name: 'id', search: { value: '' } },
+                    { name: 'publishedAt', search: { value: '31/01/2025' } },
                 ],
-            });
+            })
 
             expect(query).toEqual({
                 page: '2',
                 itemsPerPage: '10',
                 'order[createdAt]': 'desc',
                 createdAt: '31/01/2025',
-            });
+            })
 
-            const response = JSON.parse(payload.ajax.dataFilter(JSON.stringify({
-                'hydra:member': [{id: 1, createdAt: '2025-01-31'}],
-                'hydra:totalItems': 1,
-            }), 'json'));
+            const response = JSON.parse(
+                payload.ajax.dataFilter(
+                    JSON.stringify({
+                        'hydra:member': [{ id: 1, createdAt: '2025-01-31' }],
+                        'hydra:totalItems': 1,
+                    }),
+                    'json'
+                )
+            )
 
             expect(response).toEqual({
                 draw: 4,
                 recordsTotal: 1,
                 recordsFiltered: 1,
-                data: [{id: 1, createdAt: '2025-01-31'}],
-            });
-        });
+                data: [{ id: 1, createdAt: '2025-01-31' }],
+            })
+        })
 
         it('adds an empty defaultContent fallback for missing or nullable API fields', () => {
             const payload: Record<string, any> = {
                 columns: [
-                    {name: 'avatar', data: 'avatar', field: 'avatar'},
+                    { name: 'avatar', data: 'avatar', field: 'avatar' },
                     {
                         name: 'lastLoginAt',
                         data: 'lastLoginAt',
@@ -220,36 +225,40 @@ describe('ApiPlatformAdapter', () => {
                     type: 'GET',
                     url: '/api/users',
                 },
-            };
+            }
 
-            new ApiPlatformAdapter(payload.columns).configure(payload);
+            new ApiPlatformAdapter(payload.columns).configure(payload)
 
             expect(payload.columns).toEqual([
-                {name: 'avatar', data: 'avatar', field: 'avatar', defaultContent: ''},
+                { name: 'avatar', data: 'avatar', field: 'avatar', defaultContent: '' },
                 {
                     name: 'lastLoginAt',
                     data: 'lastLoginAt',
                     field: 'lastLoginAt',
                     defaultContent: 'Never',
                 },
-            ]);
+            ])
 
-            const response = JSON.parse(payload.ajax.dataFilter(JSON.stringify({
-                'hydra:member': [{id: 1, avatar: null}, {id: 2}],
-                'hydra:totalItems': 2,
-            }), 'json'));
+            const response = JSON.parse(
+                payload.ajax.dataFilter(
+                    JSON.stringify({
+                        'hydra:member': [{ id: 1, avatar: null }, { id: 2 }],
+                        'hydra:totalItems': 2,
+                    }),
+                    'json'
+                )
+            )
 
-            expect(response.data).toEqual([{id: 1, avatar: null}, {id: 2}]);
-        });
+            expect(response.data).toEqual([{ id: 1, avatar: null }, { id: 2 }])
+        })
 
         it('stands down when the collection is read server-side', () => {
-            expect(isApiPlatformAdapterEnabled({apiPlatform: true})).toBe(true);
+            expect(isApiPlatformAdapterEnabled({ apiPlatform: true })).toBe(true)
             expect(
-                isApiPlatformAdapterEnabled({apiPlatform: true, apiPlatformServerSide: true}),
-            ).toBe(false);
-            expect(isApiPlatformAdapterEnabled({apiPlatformServerSide: true})).toBe(false);
-            expect(isApiPlatformAdapterEnabled({})).toBe(false);
-        });
-
-    });
-});
+                isApiPlatformAdapterEnabled({ apiPlatform: true, apiPlatformServerSide: true })
+            ).toBe(false)
+            expect(isApiPlatformAdapterEnabled({ apiPlatformServerSide: true })).toBe(false)
+            expect(isApiPlatformAdapterEnabled({})).toBe(false)
+        })
+    })
+})

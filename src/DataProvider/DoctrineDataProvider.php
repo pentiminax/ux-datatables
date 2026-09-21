@@ -7,13 +7,14 @@ namespace Pentiminax\UX\DataTables\DataProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
-class DoctrineDataProvider implements DataProviderInterface, StreamingDataProviderInterface
+class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectingDataProviderInterface, StreamingDataProviderInterface
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
@@ -135,25 +136,9 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
      */
     public function iterateRows(DataTableRequest $request): iterable
     {
-        $alias = 'e';
-        $qb    = $this->em
-            ->createQueryBuilder()
-            ->select($alias)
-            ->from($this->entityClass, $alias);
+        [$qb, $alias, $identifier] = $this->buildIdentifierScopedQuery($request);
 
-        if ($this->configureQueryBuilder) {
-            $qb = ($this->configureQueryBuilder)($qb, $request);
-        }
-
-        $identifier = $this->em->getClassMetadata($this->entityClass)->getSingleIdentifierFieldName();
-
-        $qb->addOrderBy("$alias.$identifier", 'ASC');
-
-        $ids = $this->collectExportIdentifiers($qb, $alias, $identifier);
-
-        // A LIMIT/OFFSET set by customizeQueryBuilder() caps the export itself; applied here it
-        // counts root entities, where the query's own LIMIT would have counted joined SQL rows.
-        $ids = \array_slice($ids, $qb->getFirstResult() ?? 0, $qb->getMaxResults());
+        $ids = $this->scopedIdentifiers($qb, $alias, $identifier);
 
         foreach (array_chunk($ids, max(1, $this->exportChunkSize)) as $chunk) {
             $pageQb = (clone $qb)
@@ -171,6 +156,88 @@ class DoctrineDataProvider implements DataProviderInterface, StreamingDataProvid
             yield from $this->mapChunk($items);
             $this->releaseChunk($items);
         }
+    }
+
+    /**
+     * Every identifier the request covers, ignoring its own pagination.
+     *
+     * Same scoping as {@see self::iterateRows()} — customizeQueryBuilder(), the interactive
+     * search, ordering and filters — so a bulk action over "all matching rows" acts on exactly
+     * what the user was looking at.
+     *
+     * The selection speaks in whichever field feeds `DT_RowId`, which
+     * {@see \Pentiminax\UX\DataTables\Model\BulkActions::setIdField()} may point away from the
+     * primary key. Collecting the primary key instead would hand the repository lookup values from
+     * another namespace.
+     *
+     * @return list<int|string>
+     */
+    public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
+    {
+        [$qb, $alias, $identifier] = $this->buildIdentifierScopedQuery($request, $field);
+
+        return $this->normalizeIdentifiers($this->scopedIdentifiers($qb, $alias, $identifier));
+    }
+
+    /**
+     * @param list<mixed> $ids
+     *
+     * @return list<int|string>
+     */
+    private function normalizeIdentifiers(array $ids): array
+    {
+        $identifiers = [];
+
+        foreach ($ids as $id) {
+            if (\is_int($id) || \is_string($id)) {
+                $identifiers[] = $id;
+
+                continue;
+            }
+
+            if ($id instanceof \Stringable && '' !== (string) $id) {
+                $identifiers[] = (string) $id;
+            }
+        }
+
+        return $identifiers;
+    }
+
+    /**
+     * @return array{0: QueryBuilder, 1: string, 2: string}
+     */
+    private function buildIdentifierScopedQuery(DataTableRequest $request, ?string $field = null): array
+    {
+        $alias = 'e';
+        $qb    = $this->em
+            ->createQueryBuilder()
+            ->select($alias)
+            ->from($this->entityClass, $alias);
+
+        if ($this->configureQueryBuilder) {
+            $qb = ($this->configureQueryBuilder)($qb, $request);
+        }
+
+        $metadata   = $this->em->getClassMetadata($this->entityClass);
+        $identifier = null !== $field && $metadata->hasField($field)
+            ? $field
+            : $metadata->getSingleIdentifierFieldName();
+
+        $qb->addOrderBy("$alias.$identifier", 'ASC');
+
+        return [$qb, $alias, $identifier];
+    }
+
+    /**
+     * @return list<mixed>
+     */
+    private function scopedIdentifiers(QueryBuilder $qb, string $alias, string $identifier): array
+    {
+        $ids = $this->collectExportIdentifiers($qb, $alias, $identifier);
+
+        // A LIMIT/OFFSET set by customizeQueryBuilder() caps the result itself; applied here it
+        // counts root entities, where the query's own LIMIT would have counted joined SQL rows.
+        return \array_slice($ids, $qb->getFirstResult() ?? 0, $qb->getMaxResults());
     }
 
     /**

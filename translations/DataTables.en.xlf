@@ -18,6 +18,42 @@
                 <source>filter.bar.all</source>
                 <target>All</target>
             </trans-unit>
+            <trans-unit id="bulk.bar.trigger">
+                <source>bulk.bar.trigger</source>
+                <target>Bulk actions</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.selected">
+                <source>bulk.bar.selected</source>
+                <target>{count} records selected</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.selectAllMatching">
+                <source>bulk.bar.selectAllMatching</source>
+                <target>Select all {count}</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.allMatchingSelected">
+                <source>bulk.bar.allMatchingSelected</source>
+                <target>All {count} records selected</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.clear">
+                <source>bulk.bar.clear</source>
+                <target>Deselect all</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.confirm">
+                <source>bulk.bar.confirm</source>
+                <target>Confirm</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.cancel">
+                <source>bulk.bar.cancel</source>
+                <target>Cancel</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.processed">
+                <source>bulk.bar.processed</source>
+                <target>{count} rows processed</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.skipped">
+                <source>bulk.bar.skipped</source>
+                <target>{count} rows skipped</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

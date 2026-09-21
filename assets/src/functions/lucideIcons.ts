@@ -54,17 +54,21 @@ export function hasLucideIcons(columns: unknown): boolean {
             return true
         }
 
-        if (!Array.isArray(column.actions)) {
-            return false
-        }
-
-        return column.actions.some(
-            (action: unknown): boolean =>
-                isRecord(action) &&
-                typeof action.lucideIcon === 'string' &&
-                action.lucideIcon.trim().length > 0
-        )
+        return hasLucideIconsInActions(column.actions)
     })
+}
+
+export function hasLucideIconsInActions(actions: unknown): boolean {
+    if (!Array.isArray(actions)) {
+        return false
+    }
+
+    return actions.some(
+        (action: unknown): boolean =>
+            isRecord(action) &&
+            typeof action.lucideIcon === 'string' &&
+            action.lucideIcon.trim().length > 0
+    )
 }
 
 function pascalToKebab(name: string): string {

@@ -433,7 +433,7 @@ return static function (RoutingConfigurator $routes): void {
 
 ### Delete Endpoint
 
-`DELETE /datatables/ajax/delete` — payload: `entity`, `id`, `topics` (optional Mercure topics).
+`DELETE /datatables/ajax/delete` — payload: `dataTable` (the table token), `id`. The CSRF token travels in the `X-CSRF-Token` header.
 
 ### Edit Form Endpoints
 

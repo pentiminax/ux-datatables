@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
@@ -20,6 +22,7 @@ use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -79,6 +82,31 @@ final class DataTableRuntimeFactoryTest extends TestCase
             'active'                           => true,
             '__ux_datatables_boolean_switches' => ['active' => 42],
         ], $mapper->map(new DataTableRuntimeFactoryBooleanSwitchFixture(42)));
+    }
+
+    #[Test]
+    public function create_row_mapper_uses_the_single_doctrine_identifier_for_bulk_rows(): void
+    {
+        $metadata = $this->createStub(ClassMetadata::class);
+        $metadata->method('getIdentifier')->willReturn(['uuid']);
+
+        $em = $this->createStub(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->with(DataTableRuntimeFactoryUuidFixture::class)->willReturn($metadata);
+
+        $registry = $this->createStub(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->with(DataTableRuntimeFactoryUuidFixture::class)->willReturn($em);
+
+        $mapper = (new DataTableRuntimeFactory(doctrine: $registry))->createRowMapper(
+            baseMapper: static fn (): array => [],
+            columns: [],
+            rowIdField: 'id',
+            entityClass: DataTableRuntimeFactoryUuidFixture::class,
+        );
+
+        $this->assertSame(
+            [HighlightConfig::ROW_ID_KEY => 'order-42'],
+            $mapper->map(new DataTableRuntimeFactoryUuidFixture('order-42')),
+        );
     }
 
     #[Test]
@@ -312,5 +340,18 @@ final class DataTableRuntimeFactoryBooleanSwitchFixture
     public function getId(): int
     {
         return $this->id;
+    }
+}
+
+final class DataTableRuntimeFactoryUuidFixture
+{
+    public function __construct(
+        private readonly string $uuid,
+    ) {
+    }
+
+    public function getUuid(): string
+    {
+        return $this->uuid;
     }
 }

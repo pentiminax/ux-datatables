@@ -24,7 +24,10 @@ interface SharedFixture {
 
 const fixture: SharedFixture = JSON.parse(
     // Vitest runs from assets/, so the PHP fixture sits one directory up.
-    readFileSync(resolve(process.cwd(), '../tests/Fixtures/api-platform-query-parameters.json'), 'utf8')
+    readFileSync(
+        resolve(process.cwd(), '../tests/Fixtures/api-platform-query-parameters.json'),
+        'utf8'
+    )
 )
 
 describe('DataTables to API Platform query translation', () => {

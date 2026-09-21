@@ -1,995 +1,995 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import {
-  actionColumnRenderer,
-  createActionColumnRenderer,
+    actionColumnRenderer,
+    createActionColumnRenderer,
 } from '../src/columnRenderers/actionColumnRenderer'
 import { loadLucideIcons } from '../src/columnRenderers/iconColumnRenderer'
 
 describe('actionColumnRenderer', () => {
-  beforeAll(async () => {
-    await loadLucideIcons()
-  })
-
-  it('matches columns with actions array', () => {
-    expect(actionColumnRenderer.matches({ actions: [] })).toBe(true)
-    expect(actionColumnRenderer.matches({ actions: [{ type: 'DELETE' }] })).toBe(true)
-  })
-
-  it('does not match columns without actions array', () => {
-    expect(actionColumnRenderer.matches({})).toBe(false)
-    expect(actionColumnRenderer.matches({ action: 'DELETE' })).toBe(false)
-    expect(actionColumnRenderer.matches({ actions: 'not-array' })).toBe(false)
-  })
-
-  describe('configure', () => {
-    it('renders a delete button for display type', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            entityClass: 'App\\Entity\\User',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 42 })
-      expect(html).toContain('data-action-type="DELETE"')
-      expect(html).not.toContain('data-entity=')
-      expect(html).toContain('data-id="42"')
-      expect(html).toContain('Delete')
-      expect(html).toContain('btn btn-danger')
-      expect(html).toContain('type="button"')
+    beforeAll(async () => {
+        await loadLucideIcons()
     })
 
-    it('sets type="button" on non-DETAIL action buttons to avoid implicit form submission', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'EDIT',
-            label: 'Edit',
-            className: 'btn btn-primary',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 1 })
-      expect(html).toMatch(/<button type="button"/)
-      expect(html).not.toContain('href=')
+    it('matches columns with actions array', () => {
+        expect(actionColumnRenderer.matches({ actions: [] })).toBe(true)
+        expect(actionColumnRenderer.matches({ actions: [{ type: 'DELETE' }] })).toBe(true)
     })
 
-    it('renders an edit action with a static url as a link with its html attributes', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'EDIT',
-            name: 'EDIT',
-            label: 'Edit',
-            className: 'btn btn-primary',
-            entityClass: 'App\\Entity\\Book',
-            idField: 'id',
-            url: '/books/42/edit',
-            htmlAttributes: {
-              target: '_blank',
-              rel: 'noopener noreferrer',
-              'aria-label': 'Edit book',
-            },
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 42 })
-      expect(html).toContain('<a ')
-      expect(html).toContain('href="/books/42/edit"')
-      expect(html).toContain('data-action-type="EDIT"')
-      expect(html).toContain('target="_blank"')
-      expect(html).toContain('rel="noopener noreferrer"')
-      expect(html).toContain('aria-label="Edit book"')
-      expect(html).not.toContain('data-entity=')
-      expect(html).not.toContain('data-id=')
+    it('does not match columns without actions array', () => {
+        expect(actionColumnRenderer.matches({})).toBe(false)
+        expect(actionColumnRenderer.matches({ action: 'DELETE' })).toBe(false)
+        expect(actionColumnRenderer.matches({ actions: 'not-array' })).toBe(false)
     })
 
-    it('renders an edit action with a per-row resolved url as a link', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'EDIT',
-            name: 'EDIT',
-            label: 'Edit',
-            className: 'btn btn-primary',
-            entityClass: 'App\\Entity\\Book',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', {
-        id: 42,
-        __ux_datatables_actions: {
-          EDIT: {
-            url: '/books/42/edit',
-          },
-        },
-      })
-
-      expect(html).toContain('<a ')
-      expect(html).toContain('href="/books/42/edit"')
-      expect(html).not.toContain('data-entity=')
-      expect(html).not.toContain('data-id=')
-    })
-
-    it('hides an edit action when its resolved url is unsafe', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'EDIT',
-            name: 'EDIT',
-            label: 'Edit',
-            className: 'btn btn-primary',
-            entityClass: 'App\\Entity\\Book',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', {
-        id: 42,
-        __ux_datatables_actions: {
-          EDIT: {
-            url: 'javascript:alert(1)',
-          },
-        },
-      })
-
-      expect(html).toBe('')
-    })
-
-    it('disables delete buttons when mutations are unavailable', () => {
-      const renderer = createActionColumnRenderer(false)
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            name: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            entityClass: 'App\\Entity\\User',
-            idField: 'id',
-          },
-        ],
-      }
-
-      renderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 42 })
-      expect(html).toContain('disabled')
-      expect(html).toContain('aria-disabled="true"')
-    })
-
-    it('returns empty string for non-display types', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      expect(column.render(null, 'sort', {})).toBe('')
-      expect(column.render(null, 'filter', {})).toBe('')
-      expect(column.render(null, 'type', {})).toBe('')
-    })
-
-    it('filters actions based on displayCondition', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            entityClass: 'App\\Entity\\User',
-            idField: 'id',
-            displayCondition: { field: 'isDeletable', value: true },
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const htmlVisible = column.render(null, 'display', { id: 1, isDeletable: true })
-      expect(htmlVisible).toContain('Delete')
-
-      const htmlHidden = column.render(null, 'display', { id: 2, isDeletable: false })
-      expect(htmlHidden).toBe('')
-    })
-
-    it('renders confirm attribute when set', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            idField: 'id',
-            confirm: 'Are you sure?',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 1 })
-      expect(html).toContain('data-confirm="Are you sure?"')
-    })
-
-    it('renders detail action as a link with static url', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DETAIL',
-            label: 'View',
-            className: 'btn btn-primary',
-            idField: 'id',
-            url: '/books/42',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 42 })
-      expect(html).toContain('<a ')
-      expect(html).toContain('href="/books/42"')
-      expect(html).toContain('data-action-type="DETAIL"')
-      expect(html).toContain('View')
-    })
-
-    it('renders a collapsible detail action as a button with an id', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DETAIL',
-            label: 'Details',
-            className: 'btn btn-link',
-            idField: 'id',
-            entityClass: 'App\\Entity\\Book',
-            collapsible: true,
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 42 })
-      expect(html).toContain('<button ')
-      expect(html).toContain('type="button"')
-      expect(html).toContain('data-action-type="DETAIL"')
-      expect(html).not.toContain('data-entity=')
-      expect(html).toContain('data-id="42"')
-      expect(html).not.toContain('href=')
-    })
-
-    it('uses a default control icon for a collapsible detail action without an icon', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DETAIL',
-            label: '',
-            className: 'btn',
-            idField: 'id',
-            collapsible: true,
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 1 })
-      expect(html).toContain('dtr-control-icon')
-    })
-
-    it('renders custom html attributes for detail actions', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DETAIL',
-            label: 'View',
-            className: 'btn btn-primary',
-            idField: 'id',
-            url: '/books/42',
-            htmlAttributes: {
-              target: '_blank',
-              rel: 'noopener noreferrer',
-              disabled: true,
-              hidden: false,
-            },
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 42 })
-      expect(html).toContain('target="_blank"')
-      expect(html).toContain('rel="noopener noreferrer"')
-      expect(html).toContain(' disabled')
-      expect(html).not.toContain(' hidden')
-    })
-
-    it('renders detail action from row-resolved metadata', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DETAIL',
-            name: 'DETAIL',
-            label: 'View',
-            className: 'btn btn-primary',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', {
-        id: 42,
-        __ux_datatables_actions: {
-          DETAIL: {
-            url: '/books/42',
-          },
-        },
-      })
-
-      expect(html).toContain('href="/books/42"')
-    })
-
-    it('renders a custom action as a link from per-row resolved url', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'CUSTOM',
-            name: 'download',
-            label: 'Download',
-            className: '',
-            idField: 'id',
-          },
-          {
-            type: 'CUSTOM',
-            name: 'view',
-            label: 'View',
-            className: '',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', {
-        id: 42,
-        __ux_datatables_actions: {
-          download: { url: '/invoices/42/download' },
-          view: { url: '/invoices/42' },
-        },
-      })
-
-      expect(html).toContain('<a ')
-      expect(html).toContain('href="/invoices/42/download"')
-      expect(html).toContain('Download')
-      expect(html).toContain('href="/invoices/42"')
-      expect(html).toContain('View')
-      expect(html).toContain('data-action-type="CUSTOM"')
-    })
-
-    it('renders button id from row-resolved action metadata when row id is missing', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'EDIT',
-            name: 'EDIT',
-            label: 'Edit',
-            className: 'btn btn-warning',
-            entityClass: 'App\\Entity\\User',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', {
-        __ux_datatables_actions: {
-          EDIT: {
-            id: 42,
-          },
-        },
-      })
-
-      expect(html).toContain('data-action-type="EDIT"')
-      expect(html).toContain('data-id="42"')
-    })
-
-    it('prefers row id over row-resolved action metadata', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'EDIT',
-            label: 'Edit',
-            className: 'btn btn-warning',
-            entityClass: 'App\\Entity\\User',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', {
-        id: 7,
-        __ux_datatables_actions: {
-          EDIT: {
-            id: 42,
-          },
-        },
-      })
-
-      expect(html).toContain('data-id="7"')
-      expect(html).not.toContain('data-id="42"')
-    })
-
-    it('hides a denied built-in action before falling back to the row id', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            name: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', {
-        id: 42,
-        __ux_datatables_denied_actions: ['DELETE'],
-      })
-
-      expect(html).toBe('')
-    })
-
-    it('renders a per-row denied action as a disabled button when it opts in', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            name: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            idField: 'id',
-            disabledWhenDenied: true,
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', {
-        id: 42,
-        __ux_datatables_denied_actions: ['DELETE'],
-      })
-
-      expect(html).toContain('<button ')
-      expect(html).toContain('disabled')
-      expect(html).toContain('aria-disabled="true"')
-      expect(html).toContain('class="btn btn-danger disabled"')
-      expect(html).not.toContain('data-id=')
-    })
-
-    it('renders a statically denied action as an inert button without url or token', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'EDIT',
-            name: 'EDIT',
-            label: 'Edit',
-            className: 'btn btn-warning',
-            idField: 'id',
-            url: '/users/42/edit',
-            disabledWhenDenied: true,
-            denied: true,
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', {
-        id: 42,
-        __ux_datatables_actions: {
-          EDIT: {
-            url: '/users/42/edit',
-            token: 'secret-token',
-          },
-        },
-      })
-
-      expect(html).not.toContain('<a ')
-      expect(html).not.toContain('href')
-      expect(html).not.toContain('secret-token')
-      expect(html).not.toContain('/users/42/edit')
-      expect(html).toContain('aria-disabled="true"')
-    })
-
-    it('escapes button id resolved from action metadata', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'EDIT',
-            name: 'EDIT',
-            label: 'Edit',
-            className: 'btn btn-warning',
-            entityClass: 'App\\Entity\\User',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', {
-        __ux_datatables_actions: {
-          EDIT: {
-            id: 'abc"<script>',
-          },
-        },
-      })
-
-      expect(html).toContain('data-id="abc&quot;&lt;script&gt;"')
-    })
-
-    it('hides detail action when url is missing', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DETAIL',
-            label: 'View',
-            className: 'btn btn-primary',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      expect(column.render(null, 'display', { id: 42 })).toBe('')
-    })
-
-    it('hides detail action when the resolved url is unsafe', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DETAIL',
-            name: 'DETAIL',
-            label: 'View',
-            className: 'btn btn-primary',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', {
-        id: 42,
-        __ux_datatables_actions: {
-          DETAIL: {
-            url: 'javascript:alert(1)',
-          },
-        },
-      })
-
-      expect(html).toBe('')
-    })
-
-    it('renders icon when set', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            idField: 'id',
-            icon: 'bi bi-trash',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 1 })
-      expect(html).toContain('<i class="bi bi-trash"></i>')
-    })
-
-    it('renders a decorative Lucide icon at the current font size', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'EDIT',
-            label: 'Edit',
-            className: 'btn btn-warning',
-            idField: 'id',
-            lucideIcon: 'pencil',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 1 })
-      expect(html).toContain('<svg')
-      expect(html).toContain('width="1em"')
-      expect(html).toContain('height="1em"')
-      expect(html).toContain('aria-hidden="true"')
-      expect(html).toContain('stroke="currentColor"')
-      expect(html).toContain('Edit')
-      expect(html).not.toContain('<i ')
-    })
-
-    it('keeps the label when the Lucide icon is unknown', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            idField: 'id',
-            lucideIcon: 'this-icon-does-not-exist-xyz',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 1 })
-      expect(html).toContain('Delete')
-      expect(html).not.toContain('<svg')
-    })
-
-    it('uses the default control icon when a collapsible Lucide icon is unknown', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DETAIL',
-            label: 'Details',
-            className: 'btn',
-            idField: 'id',
-            collapsible: true,
-            lucideIcon: 'this-icon-does-not-exist-xyz',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 1 })
-      expect(html).toContain('dtr-control-icon')
-      expect(html).toContain('Details')
-    })
-
-    it('uses a Lucide icon instead of the default collapsible control icon', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DETAIL',
-            label: 'Details',
-            className: 'btn',
-            idField: 'id',
-            collapsible: true,
-            lucideIcon: 'chevron-right',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 1 })
-      expect(html).toContain('<svg')
-      expect(html).not.toContain('dtr-control-icon')
-    })
-
-    it('renders custom html attributes for button actions and ignores reserved ones', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            entityClass: 'App\\Entity\\User',
-            idField: 'id',
-            htmlAttributes: {
-              target: '_blank',
-              class: 'ignored-class',
-              'data-id': '999',
-              'aria-label': 'Delete row',
-            },
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 42 })
-      expect(html).toContain('target="_blank"')
-      expect(html).toContain('aria-label="Delete row"')
-      expect(html).toContain('class="btn btn-danger"')
-      expect(html).toContain('data-id="42"')
-      expect(html).not.toContain('ignored-class')
-      expect(html).not.toContain('data-id="999"')
-    })
-
-    it('escapes HTML in rendered output', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            label: '<script>alert("xss")</script>',
-            className: 'btn',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 1 })
-      expect(html).not.toContain('<script>')
-      expect(html).toContain('&lt;script&gt;')
-    })
-
-    it('escapes HTML in custom html attributes and ignores invalid attribute names', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DETAIL',
-            label: 'View',
-            className: 'btn btn-primary',
-            idField: 'id',
-            url: '/books/42',
-            htmlAttributes: {
-              title: '"quoted"',
-              'onclick bad': 'alert(1)',
-            },
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 42 })
-      expect(html).toContain('title="&quot;quoted&quot;"')
-      expect(html).not.toContain('onclick bad')
-    })
-
-    it('uses custom idField', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            entityClass: 'App\\Entity\\User',
-            idField: 'uuid',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { uuid: 'abc-123', id: 99 })
-      expect(html).toContain('data-id="abc-123"')
-    })
-
-    it('renders multiple actions', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            idField: 'id',
-          },
-          {
-            type: 'DELETE',
-            label: 'Force Delete',
-            className: 'btn btn-warning',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 1 })
-      expect(html).toContain('Delete')
-      expect(html).toContain('Force Delete')
-    })
-
-    describe('ajax actions', () => {
-      const ajaxColumn = (overrides: Record<string, any> = {}): Record<string, any> => ({
-        actions: [
-          {
-            type: 'CUSTOM',
-            name: 'publish',
-            label: 'Publish',
-            className: 'btn btn-primary',
-            idField: 'id',
-            ajaxMethod: 'POST',
-            ...overrides,
-          },
-        ],
-      })
-
-      it('renders a button carrying the ajax method, url and token', () => {
-        const column = ajaxColumn()
-
-        actionColumnRenderer.configure(column)
-
-        const html = column.render(null, 'display', {
-          id: 42,
-          __ux_datatables_actions: {
-            publish: { url: '/books/42/publish', token: 'token-value' },
-          },
+    describe('configure', () => {
+        it('renders a delete button for display type', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        entityClass: 'App\\Entity\\User',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 42 })
+            expect(html).toContain('data-action-type="DELETE"')
+            expect(html).not.toContain('data-entity=')
+            expect(html).toContain('data-id="42"')
+            expect(html).toContain('Delete')
+            expect(html).toContain('btn btn-danger')
+            expect(html).toContain('type="button"')
         })
 
-        expect(html).toMatch(/^<button type="button"/)
-        expect(html).toContain('data-action-type="CUSTOM"')
-        expect(html).toContain('data-ajax-method="POST"')
-        expect(html).toContain('data-ajax-url="/books/42/publish"')
-        expect(html).toContain('data-ajax-token="token-value"')
-        expect(html).not.toContain('href=')
-      })
+        it('sets type="button" on non-DETAIL action buttons to avoid implicit form submission', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'EDIT',
+                        label: 'Edit',
+                        className: 'btn btn-primary',
+                        idField: 'id',
+                    },
+                ],
+            }
 
-      it('keeps the confirmation attribute', () => {
-        const column = ajaxColumn({ confirm: 'Publish this book?' })
+            actionColumnRenderer.configure(column)
 
-        actionColumnRenderer.configure(column)
-
-        const html = column.render(null, 'display', {
-          id: 42,
-          __ux_datatables_actions: {
-            publish: { url: '/books/42/publish', token: 'token-value' },
-          },
+            const html = column.render(null, 'display', { id: 1 })
+            expect(html).toMatch(/<button type="button"/)
+            expect(html).not.toContain('href=')
         })
 
-        expect(html).toContain('data-confirm="Publish this book?"')
-      })
+        it('renders an edit action with a static url as a link with its html attributes', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'EDIT',
+                        name: 'EDIT',
+                        label: 'Edit',
+                        className: 'btn btn-primary',
+                        entityClass: 'App\\Entity\\Book',
+                        idField: 'id',
+                        url: '/books/42/edit',
+                        htmlAttributes: {
+                            target: '_blank',
+                            rel: 'noopener noreferrer',
+                            'aria-label': 'Edit book',
+                        },
+                    },
+                ],
+            }
 
-      it('escapes the resolved url and token', () => {
-        const column = ajaxColumn()
+            actionColumnRenderer.configure(column)
 
-        actionColumnRenderer.configure(column)
-
-        const html = column.render(null, 'display', {
-          id: 42,
-          __ux_datatables_actions: {
-            publish: { url: '/books/42/publish?a="b"', token: '"><script>' },
-          },
+            const html = column.render(null, 'display', { id: 42 })
+            expect(html).toContain('<a ')
+            expect(html).toContain('href="/books/42/edit"')
+            expect(html).toContain('data-action-type="EDIT"')
+            expect(html).toContain('target="_blank"')
+            expect(html).toContain('rel="noopener noreferrer"')
+            expect(html).toContain('aria-label="Edit book"')
+            expect(html).not.toContain('data-entity=')
+            expect(html).not.toContain('data-id=')
         })
 
-        expect(html).toContain('data-ajax-url="/books/42/publish?a=&quot;b&quot;"')
-        expect(html).toContain('data-ajax-token="&quot;&gt;&lt;script&gt;"')
-        expect(html).not.toContain('<script>')
-      })
+        it('renders an edit action with a per-row resolved url as a link', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'EDIT',
+                        name: 'EDIT',
+                        label: 'Edit',
+                        className: 'btn btn-primary',
+                        entityClass: 'App\\Entity\\Book',
+                        idField: 'id',
+                    },
+                ],
+            }
 
-      it('renders nothing without a row token', () => {
-        const column = ajaxColumn()
+            actionColumnRenderer.configure(column)
 
-        actionColumnRenderer.configure(column)
+            const html = column.render(null, 'display', {
+                id: 42,
+                __ux_datatables_actions: {
+                    EDIT: {
+                        url: '/books/42/edit',
+                    },
+                },
+            })
 
-        const html = column.render(null, 'display', {
-          id: 42,
-          __ux_datatables_actions: { publish: { url: '/books/42/publish' } },
+            expect(html).toContain('<a ')
+            expect(html).toContain('href="/books/42/edit"')
+            expect(html).not.toContain('data-entity=')
+            expect(html).not.toContain('data-id=')
         })
 
-        expect(html).toBe('')
-      })
+        it('hides an edit action when its resolved url is unsafe', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'EDIT',
+                        name: 'EDIT',
+                        label: 'Edit',
+                        className: 'btn btn-primary',
+                        entityClass: 'App\\Entity\\Book',
+                        idField: 'id',
+                    },
+                ],
+            }
 
-      it('renders nothing without a resolved url', () => {
-        const column = ajaxColumn()
+            actionColumnRenderer.configure(column)
 
-        actionColumnRenderer.configure(column)
+            const html = column.render(null, 'display', {
+                id: 42,
+                __ux_datatables_actions: {
+                    EDIT: {
+                        url: 'javascript:alert(1)',
+                    },
+                },
+            })
 
-        const html = column.render(null, 'display', {
-          id: 42,
-          __ux_datatables_actions: { publish: { token: 'token-value' } },
+            expect(html).toBe('')
         })
 
-        expect(html).toBe('')
-      })
+        it('disables delete buttons when mutations are unavailable', () => {
+            const renderer = createActionColumnRenderer(false)
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        name: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        entityClass: 'App\\Entity\\User',
+                        idField: 'id',
+                    },
+                ],
+            }
 
-      it('refuses cross-origin ajax urls', () => {
-        const column = ajaxColumn()
+            renderer.configure(column)
 
-        actionColumnRenderer.configure(column)
-
-        const html = column.render(null, 'display', {
-          id: 42,
-          __ux_datatables_actions: {
-            publish: { url: 'https://evil.example.com/publish', token: 'token-value' },
-          },
+            const html = column.render(null, 'display', { id: 42 })
+            expect(html).toContain('disabled')
+            expect(html).toContain('aria-disabled="true"')
         })
 
-        expect(html).toBe('')
-      })
+        it('returns empty string for non-display types', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        idField: 'id',
+                    },
+                ],
+            }
 
-      it('refuses unsupported ajax methods', () => {
-        const column = ajaxColumn({ ajaxMethod: 'PUT' })
+            actionColumnRenderer.configure(column)
 
-        actionColumnRenderer.configure(column)
-
-        const html = column.render(null, 'display', {
-          id: 42,
-          __ux_datatables_actions: {
-            publish: { url: '/books/42/publish', token: 'token-value' },
-          },
+            expect(column.render(null, 'sort', {})).toBe('')
+            expect(column.render(null, 'filter', {})).toBe('')
+            expect(column.render(null, 'type', {})).toBe('')
         })
 
-        expect(html).toBe('')
-      })
+        it('filters actions based on displayCondition', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        entityClass: 'App\\Entity\\User',
+                        idField: 'id',
+                        displayCondition: { field: 'isDeletable', value: true },
+                    },
+                ],
+            }
 
-      it('accepts a lowercase ajax method', () => {
-        const column = ajaxColumn({ ajaxMethod: 'delete' })
+            actionColumnRenderer.configure(column)
 
-        actionColumnRenderer.configure(column)
+            const htmlVisible = column.render(null, 'display', { id: 1, isDeletable: true })
+            expect(htmlVisible).toContain('Delete')
 
-        const html = column.render(null, 'display', {
-          id: 42,
-          __ux_datatables_actions: {
-            publish: { url: '/books/42/publish', token: 'token-value' },
-          },
+            const htmlHidden = column.render(null, 'display', { id: 2, isDeletable: false })
+            expect(htmlHidden).toBe('')
         })
 
-        expect(html).toContain('data-ajax-method="DELETE"')
-      })
+        it('renders confirm attribute when set', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        idField: 'id',
+                        confirm: 'Are you sure?',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 1 })
+            expect(html).toContain('data-confirm="Are you sure?"')
+        })
+
+        it('renders detail action as a link with static url', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DETAIL',
+                        label: 'View',
+                        className: 'btn btn-primary',
+                        idField: 'id',
+                        url: '/books/42',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 42 })
+            expect(html).toContain('<a ')
+            expect(html).toContain('href="/books/42"')
+            expect(html).toContain('data-action-type="DETAIL"')
+            expect(html).toContain('View')
+        })
+
+        it('renders a collapsible detail action as a button with an id', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DETAIL',
+                        label: 'Details',
+                        className: 'btn btn-link',
+                        idField: 'id',
+                        entityClass: 'App\\Entity\\Book',
+                        collapsible: true,
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 42 })
+            expect(html).toContain('<button ')
+            expect(html).toContain('type="button"')
+            expect(html).toContain('data-action-type="DETAIL"')
+            expect(html).not.toContain('data-entity=')
+            expect(html).toContain('data-id="42"')
+            expect(html).not.toContain('href=')
+        })
+
+        it('uses a default control icon for a collapsible detail action without an icon', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DETAIL',
+                        label: '',
+                        className: 'btn',
+                        idField: 'id',
+                        collapsible: true,
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 1 })
+            expect(html).toContain('dtr-control-icon')
+        })
+
+        it('renders custom html attributes for detail actions', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DETAIL',
+                        label: 'View',
+                        className: 'btn btn-primary',
+                        idField: 'id',
+                        url: '/books/42',
+                        htmlAttributes: {
+                            target: '_blank',
+                            rel: 'noopener noreferrer',
+                            disabled: true,
+                            hidden: false,
+                        },
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 42 })
+            expect(html).toContain('target="_blank"')
+            expect(html).toContain('rel="noopener noreferrer"')
+            expect(html).toContain(' disabled')
+            expect(html).not.toContain(' hidden')
+        })
+
+        it('renders detail action from row-resolved metadata', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DETAIL',
+                        name: 'DETAIL',
+                        label: 'View',
+                        className: 'btn btn-primary',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', {
+                id: 42,
+                __ux_datatables_actions: {
+                    DETAIL: {
+                        url: '/books/42',
+                    },
+                },
+            })
+
+            expect(html).toContain('href="/books/42"')
+        })
+
+        it('renders a custom action as a link from per-row resolved url', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'CUSTOM',
+                        name: 'download',
+                        label: 'Download',
+                        className: '',
+                        idField: 'id',
+                    },
+                    {
+                        type: 'CUSTOM',
+                        name: 'view',
+                        label: 'View',
+                        className: '',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', {
+                id: 42,
+                __ux_datatables_actions: {
+                    download: { url: '/invoices/42/download' },
+                    view: { url: '/invoices/42' },
+                },
+            })
+
+            expect(html).toContain('<a ')
+            expect(html).toContain('href="/invoices/42/download"')
+            expect(html).toContain('Download')
+            expect(html).toContain('href="/invoices/42"')
+            expect(html).toContain('View')
+            expect(html).toContain('data-action-type="CUSTOM"')
+        })
+
+        it('renders button id from row-resolved action metadata when row id is missing', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'EDIT',
+                        name: 'EDIT',
+                        label: 'Edit',
+                        className: 'btn btn-warning',
+                        entityClass: 'App\\Entity\\User',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', {
+                __ux_datatables_actions: {
+                    EDIT: {
+                        id: 42,
+                    },
+                },
+            })
+
+            expect(html).toContain('data-action-type="EDIT"')
+            expect(html).toContain('data-id="42"')
+        })
+
+        it('prefers row id over row-resolved action metadata', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'EDIT',
+                        label: 'Edit',
+                        className: 'btn btn-warning',
+                        entityClass: 'App\\Entity\\User',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', {
+                id: 7,
+                __ux_datatables_actions: {
+                    EDIT: {
+                        id: 42,
+                    },
+                },
+            })
+
+            expect(html).toContain('data-id="7"')
+            expect(html).not.toContain('data-id="42"')
+        })
+
+        it('hides a denied built-in action before falling back to the row id', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        name: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', {
+                id: 42,
+                __ux_datatables_denied_actions: ['DELETE'],
+            })
+
+            expect(html).toBe('')
+        })
+
+        it('renders a per-row denied action as a disabled button when it opts in', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        name: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        idField: 'id',
+                        disabledWhenDenied: true,
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', {
+                id: 42,
+                __ux_datatables_denied_actions: ['DELETE'],
+            })
+
+            expect(html).toContain('<button ')
+            expect(html).toContain('disabled')
+            expect(html).toContain('aria-disabled="true"')
+            expect(html).toContain('class="btn btn-danger disabled"')
+            expect(html).not.toContain('data-id=')
+        })
+
+        it('renders a statically denied action as an inert button without url or token', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'EDIT',
+                        name: 'EDIT',
+                        label: 'Edit',
+                        className: 'btn btn-warning',
+                        idField: 'id',
+                        url: '/users/42/edit',
+                        disabledWhenDenied: true,
+                        denied: true,
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', {
+                id: 42,
+                __ux_datatables_actions: {
+                    EDIT: {
+                        url: '/users/42/edit',
+                        token: 'secret-token',
+                    },
+                },
+            })
+
+            expect(html).not.toContain('<a ')
+            expect(html).not.toContain('href')
+            expect(html).not.toContain('secret-token')
+            expect(html).not.toContain('/users/42/edit')
+            expect(html).toContain('aria-disabled="true"')
+        })
+
+        it('escapes button id resolved from action metadata', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'EDIT',
+                        name: 'EDIT',
+                        label: 'Edit',
+                        className: 'btn btn-warning',
+                        entityClass: 'App\\Entity\\User',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', {
+                __ux_datatables_actions: {
+                    EDIT: {
+                        id: 'abc"<script>',
+                    },
+                },
+            })
+
+            expect(html).toContain('data-id="abc&quot;&lt;script&gt;"')
+        })
+
+        it('hides detail action when url is missing', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DETAIL',
+                        label: 'View',
+                        className: 'btn btn-primary',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            expect(column.render(null, 'display', { id: 42 })).toBe('')
+        })
+
+        it('hides detail action when the resolved url is unsafe', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DETAIL',
+                        name: 'DETAIL',
+                        label: 'View',
+                        className: 'btn btn-primary',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', {
+                id: 42,
+                __ux_datatables_actions: {
+                    DETAIL: {
+                        url: 'javascript:alert(1)',
+                    },
+                },
+            })
+
+            expect(html).toBe('')
+        })
+
+        it('renders icon when set', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        idField: 'id',
+                        icon: 'bi bi-trash',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 1 })
+            expect(html).toContain('<i class="bi bi-trash"></i>')
+        })
+
+        it('renders a decorative Lucide icon at the current font size', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'EDIT',
+                        label: 'Edit',
+                        className: 'btn btn-warning',
+                        idField: 'id',
+                        lucideIcon: 'pencil',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 1 })
+            expect(html).toContain('<svg')
+            expect(html).toContain('width="1em"')
+            expect(html).toContain('height="1em"')
+            expect(html).toContain('aria-hidden="true"')
+            expect(html).toContain('stroke="currentColor"')
+            expect(html).toContain('Edit')
+            expect(html).not.toContain('<i ')
+        })
+
+        it('keeps the label when the Lucide icon is unknown', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        idField: 'id',
+                        lucideIcon: 'this-icon-does-not-exist-xyz',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 1 })
+            expect(html).toContain('Delete')
+            expect(html).not.toContain('<svg')
+        })
+
+        it('uses the default control icon when a collapsible Lucide icon is unknown', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DETAIL',
+                        label: 'Details',
+                        className: 'btn',
+                        idField: 'id',
+                        collapsible: true,
+                        lucideIcon: 'this-icon-does-not-exist-xyz',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 1 })
+            expect(html).toContain('dtr-control-icon')
+            expect(html).toContain('Details')
+        })
+
+        it('uses a Lucide icon instead of the default collapsible control icon', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DETAIL',
+                        label: 'Details',
+                        className: 'btn',
+                        idField: 'id',
+                        collapsible: true,
+                        lucideIcon: 'chevron-right',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 1 })
+            expect(html).toContain('<svg')
+            expect(html).not.toContain('dtr-control-icon')
+        })
+
+        it('renders custom html attributes for button actions and ignores reserved ones', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        entityClass: 'App\\Entity\\User',
+                        idField: 'id',
+                        htmlAttributes: {
+                            target: '_blank',
+                            class: 'ignored-class',
+                            'data-id': '999',
+                            'aria-label': 'Delete row',
+                        },
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 42 })
+            expect(html).toContain('target="_blank"')
+            expect(html).toContain('aria-label="Delete row"')
+            expect(html).toContain('class="btn btn-danger"')
+            expect(html).toContain('data-id="42"')
+            expect(html).not.toContain('ignored-class')
+            expect(html).not.toContain('data-id="999"')
+        })
+
+        it('escapes HTML in rendered output', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        label: '<script>alert("xss")</script>',
+                        className: 'btn',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 1 })
+            expect(html).not.toContain('<script>')
+            expect(html).toContain('&lt;script&gt;')
+        })
+
+        it('escapes HTML in custom html attributes and ignores invalid attribute names', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DETAIL',
+                        label: 'View',
+                        className: 'btn btn-primary',
+                        idField: 'id',
+                        url: '/books/42',
+                        htmlAttributes: {
+                            title: '"quoted"',
+                            'onclick bad': 'alert(1)',
+                        },
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 42 })
+            expect(html).toContain('title="&quot;quoted&quot;"')
+            expect(html).not.toContain('onclick bad')
+        })
+
+        it('uses custom idField', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        entityClass: 'App\\Entity\\User',
+                        idField: 'uuid',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { uuid: 'abc-123', id: 99 })
+            expect(html).toContain('data-id="abc-123"')
+        })
+
+        it('renders multiple actions', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        idField: 'id',
+                    },
+                    {
+                        type: 'DELETE',
+                        label: 'Force Delete',
+                        className: 'btn btn-warning',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 1 })
+            expect(html).toContain('Delete')
+            expect(html).toContain('Force Delete')
+        })
+
+        describe('ajax actions', () => {
+            const ajaxColumn = (overrides: Record<string, any> = {}): Record<string, any> => ({
+                actions: [
+                    {
+                        type: 'CUSTOM',
+                        name: 'publish',
+                        label: 'Publish',
+                        className: 'btn btn-primary',
+                        idField: 'id',
+                        ajaxMethod: 'POST',
+                        ...overrides,
+                    },
+                ],
+            })
+
+            it('renders a button carrying the ajax method, url and token', () => {
+                const column = ajaxColumn()
+
+                actionColumnRenderer.configure(column)
+
+                const html = column.render(null, 'display', {
+                    id: 42,
+                    __ux_datatables_actions: {
+                        publish: { url: '/books/42/publish', token: 'token-value' },
+                    },
+                })
+
+                expect(html).toMatch(/^<button type="button"/)
+                expect(html).toContain('data-action-type="CUSTOM"')
+                expect(html).toContain('data-ajax-method="POST"')
+                expect(html).toContain('data-ajax-url="/books/42/publish"')
+                expect(html).toContain('data-ajax-token="token-value"')
+                expect(html).not.toContain('href=')
+            })
+
+            it('keeps the confirmation attribute', () => {
+                const column = ajaxColumn({ confirm: 'Publish this book?' })
+
+                actionColumnRenderer.configure(column)
+
+                const html = column.render(null, 'display', {
+                    id: 42,
+                    __ux_datatables_actions: {
+                        publish: { url: '/books/42/publish', token: 'token-value' },
+                    },
+                })
+
+                expect(html).toContain('data-confirm="Publish this book?"')
+            })
+
+            it('escapes the resolved url and token', () => {
+                const column = ajaxColumn()
+
+                actionColumnRenderer.configure(column)
+
+                const html = column.render(null, 'display', {
+                    id: 42,
+                    __ux_datatables_actions: {
+                        publish: { url: '/books/42/publish?a="b"', token: '"><script>' },
+                    },
+                })
+
+                expect(html).toContain('data-ajax-url="/books/42/publish?a=&quot;b&quot;"')
+                expect(html).toContain('data-ajax-token="&quot;&gt;&lt;script&gt;"')
+                expect(html).not.toContain('<script>')
+            })
+
+            it('renders nothing without a row token', () => {
+                const column = ajaxColumn()
+
+                actionColumnRenderer.configure(column)
+
+                const html = column.render(null, 'display', {
+                    id: 42,
+                    __ux_datatables_actions: { publish: { url: '/books/42/publish' } },
+                })
+
+                expect(html).toBe('')
+            })
+
+            it('renders nothing without a resolved url', () => {
+                const column = ajaxColumn()
+
+                actionColumnRenderer.configure(column)
+
+                const html = column.render(null, 'display', {
+                    id: 42,
+                    __ux_datatables_actions: { publish: { token: 'token-value' } },
+                })
+
+                expect(html).toBe('')
+            })
+
+            it('refuses cross-origin ajax urls', () => {
+                const column = ajaxColumn()
+
+                actionColumnRenderer.configure(column)
+
+                const html = column.render(null, 'display', {
+                    id: 42,
+                    __ux_datatables_actions: {
+                        publish: { url: 'https://evil.example.com/publish', token: 'token-value' },
+                    },
+                })
+
+                expect(html).toBe('')
+            })
+
+            it('refuses unsupported ajax methods', () => {
+                const column = ajaxColumn({ ajaxMethod: 'PUT' })
+
+                actionColumnRenderer.configure(column)
+
+                const html = column.render(null, 'display', {
+                    id: 42,
+                    __ux_datatables_actions: {
+                        publish: { url: '/books/42/publish', token: 'token-value' },
+                    },
+                })
+
+                expect(html).toBe('')
+            })
+
+            it('accepts a lowercase ajax method', () => {
+                const column = ajaxColumn({ ajaxMethod: 'delete' })
+
+                actionColumnRenderer.configure(column)
+
+                const html = column.render(null, 'display', {
+                    id: 42,
+                    __ux_datatables_actions: {
+                        publish: { url: '/books/42/publish', token: 'token-value' },
+                    },
+                })
+
+                expect(html).toContain('data-ajax-method="DELETE"')
+            })
+        })
+
+        it('shows all actions when no displayCondition set', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 1 })
+            expect(html).toContain('Delete')
+        })
     })
-
-    it('shows all actions when no displayCondition set', () => {
-      const column: Record<string, any> = {
-        actions: [
-          {
-            type: 'DELETE',
-            label: 'Delete',
-            className: 'btn btn-danger',
-            idField: 'id',
-          },
-        ],
-      }
-
-      actionColumnRenderer.configure(column)
-
-      const html = column.render(null, 'display', { id: 1 })
-      expect(html).toContain('Delete')
-    })
-  })
 })

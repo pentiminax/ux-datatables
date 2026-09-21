@@ -8,9 +8,7 @@ use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
-use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
-use Pentiminax\UX\DataTables\Security\Permission;
 use Twig\Environment;
 
 final readonly class DetailRowService
@@ -37,7 +35,7 @@ final readonly class DetailRowService
             return AjaxActionResult::forbidden();
         }
 
-        if (!$this->isActionGranted($dataTable, $action, null, false)) {
+        if (!$this->permissionChecker->canExecuteAction($dataTable->dataTableClass, $action)) {
             return AjaxActionResult::forbidden();
         }
 
@@ -62,17 +60,7 @@ final readonly class DetailRowService
      */
     private function isGranted(ResolvedDataTable $dataTable, Action $action, object $entity): bool
     {
-        return $this->permissionChecker->isGranted(Permission::DT_VIEW_ROW_DETAILS, $entity)
-            && $this->isActionGranted($dataTable, $action, $entity, true);
-    }
-
-    private function isActionGranted(ResolvedDataTable $dataTable, Action $action, mixed $source, bool $hasRowContext): bool
-    {
-        return $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
-            $dataTable->dataTableClass,
-            $action,
-            $source,
-            $hasRowContext,
-        ));
+        return $this->permissionChecker->canViewRowDetails($entity)
+            && $this->permissionChecker->canExecuteActionOnRow($dataTable->dataTableClass, $action, $entity);
     }
 }
