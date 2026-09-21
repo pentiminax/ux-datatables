@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model;
 
-use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 
@@ -128,14 +127,7 @@ final class BulkActions implements \JsonSerializable
                 continue;
             }
 
-            $context = new ActionPermissionContext(
-                dataTableClass: $dataTableClass ?? '',
-                action: $action,
-                currentSource: null,
-                hasRowContext: false,
-            );
-
-            if (!$checker->isGranted(Permission::DT_EXECUTE_ACTION, $context)) {
+            if (!$checker->canExecuteAction($dataTableClass, $action)) {
                 unset($this->actions[$key]);
             }
         }

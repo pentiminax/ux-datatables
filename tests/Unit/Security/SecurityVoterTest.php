@@ -65,7 +65,7 @@ final class SecurityVoterTest extends TestCase
     public function static_action_permission_delegates_with_null_subject(): void
     {
         $action  = Action::edit()->setPermission('EDIT_REPORTS');
-        $context = new ActionPermissionContext(VoterPermissionDataTable::class, $action, ['id' => 10], false);
+        $context = ActionPermissionContext::forRow(VoterPermissionDataTable::class, $action, ['id' => 10]);
         $token   = $this->createToken();
 
         $decisionManager = $this->createMock(AccessDecisionManagerInterface::class);
@@ -99,7 +99,7 @@ final class SecurityVoterTest extends TestCase
             VoterInterface::ACCESS_DENIED,
             (new SecurityVoter($decisionManager))->vote(
                 $token,
-                new ActionPermissionContext(VoterPermissionDataTable::class, $action, $source, true),
+                ActionPermissionContext::forRow(VoterPermissionDataTable::class, $action, $source),
                 [Permission::DT_EXECUTE_ACTION]
             )
         );
@@ -119,7 +119,7 @@ final class SecurityVoterTest extends TestCase
             VoterInterface::ACCESS_GRANTED,
             (new SecurityVoter($decisionManager))->vote(
                 $this->createToken(),
-                new ActionPermissionContext(VoterPermissionDataTable::class, $action, null, false),
+                ActionPermissionContext::forTable(VoterPermissionDataTable::class, $action),
                 [Permission::DT_EXECUTE_ACTION]
             )
         );
