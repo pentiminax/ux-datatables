@@ -11,9 +11,7 @@ use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Exception\InvalidBulkSelectionException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Model\BulkAction;
-use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
-use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -131,14 +129,7 @@ final class BulkActionRunner
 
     private function isGranted(BulkAction $action, object $entity, string $dataTableClass): bool
     {
-        $context = new ActionPermissionContext(
-            dataTableClass: $dataTableClass,
-            action: $action,
-            currentSource: $entity,
-            hasRowContext: true,
-        );
-
-        return $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, $context);
+        return $this->permissionChecker->canExecuteActionOnRow($dataTableClass, $action, $entity);
     }
 
     /**

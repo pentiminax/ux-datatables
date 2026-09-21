@@ -12,7 +12,6 @@ use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Model\Action;
-use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
@@ -42,12 +41,7 @@ final class EntityMutator
             throw new MutationNotAllowedException();
         }
 
-        if (!$this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
-            $dataTableClass,
-            $action,
-            $context->entity,
-            true,
-        ))) {
+        if (!$this->permissionChecker->canExecuteActionOnRow($dataTableClass, $action, $context->entity)) {
             throw new MutationNotAllowedException();
         }
 
