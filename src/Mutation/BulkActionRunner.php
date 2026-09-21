@@ -80,7 +80,12 @@ final class BulkActionRunner
         // chunk's changes unflushed. Flushing once more persists them; it is a no-op otherwise.
         $this->flusher->flush($manager);
 
-        $this->publish($entityClass, $table->dataTableClass, $action, $context->processedCount());
+        $this->publish(
+            entityClass: $entityClass,
+            dataTableClass: $table->dataTableClass,
+            action: $action,
+            processed: $context->processedCount()
+        );
 
         return new BulkActionResult(
             processed: $context->processedCount(),
