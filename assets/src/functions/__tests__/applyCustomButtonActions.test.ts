@@ -21,7 +21,7 @@ describe('applyCustomButtonActions', () => {
 
         applyCustomButtonActions(payload)
 
-        const button = (payload.layout.topStart.buttons[0] as unknown as Record<string, unknown>)
+        const button = payload.layout.topStart.buttons[0] as unknown as Record<string, unknown>
         expect(button.action).toBe(action)
         expect(button.text).toBe('Restore order')
     })
@@ -39,22 +39,17 @@ describe('applyCustomButtonActions', () => {
 
         applyCustomButtonActions(payload)
 
-        const button = (payload.layout.topStart.buttons[0] as unknown as Record<string, unknown>)
+        const button = payload.layout.topStart.buttons[0] as unknown as Record<string, unknown>
         expect(typeof button.action).toBe('function')
         expect(() => (button.action as () => void)()).not.toThrow()
-        expect(errorSpy).toHaveBeenCalledWith(
-            'No button action registered for "neverRegistered"'
-        )
+        expect(errorSpy).toHaveBeenCalledWith('No button action registered for "neverRegistered"')
     })
 
     it('leaves predefined and bare-string buttons untouched', () => {
         const payload = {
             layout: {
                 topStart: {
-                    buttons: [
-                        'colvis',
-                        { extend: 'csv', text: 'Export CSV' },
-                    ],
+                    buttons: ['colvis', { extend: 'csv', text: 'Export CSV' }],
                 },
                 topEnd: 'search',
             },
@@ -89,7 +84,7 @@ describe('applyCustomButtonActions', () => {
 
         applyCustomButtonActions(payload)
 
-        const colvis = (payload.layout.topStart.buttons[0] as unknown as Record<string, unknown>)
+        const colvis = payload.layout.topStart.buttons[0] as unknown as Record<string, unknown>
         const postfix = colvis.postfixButtons as Record<string, unknown>[]
         expect(postfix[0].extend).toBe('colvisRestore')
         expect(postfix[0].action).toBeUndefined()
@@ -109,7 +104,7 @@ describe('applyCustomButtonActions', () => {
 
         applyCustomButtonActions(payload)
 
-        const group = (payload.layout.topStart[1] as unknown as Record<string, unknown>)
+        const group = payload.layout.topStart[1] as unknown as Record<string, unknown>
         const buttons = group.buttons as Record<string, unknown>[]
         expect(buttons[0].action).toBe(action)
     })

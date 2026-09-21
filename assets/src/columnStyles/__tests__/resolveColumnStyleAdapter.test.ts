@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { BootstrapColumnStyleAdapter } from '../BootstrapColumnStyleAdapter.js'
 import { columnStyleAdapters } from '../ColumnStyleAdapterRegistry.js'
-import { TailwindThemeColumnStyleAdapter } from '../TailwindThemeColumnStyleAdapter.js'
 import { resolveColumnStyleAdapter } from '../resolveColumnStyleAdapter.js'
 import { TailwindColumnStyleAdapter } from '../TailwindColumnStyleAdapter.js'
+import { TailwindThemeColumnStyleAdapter } from '../TailwindThemeColumnStyleAdapter.js'
 
 describe('resolveColumnStyleAdapter', () => {
     it.each(['bs', 'bs4', 'bs5'] as const)(
@@ -13,12 +13,9 @@ describe('resolveColumnStyleAdapter', () => {
         }
     )
 
-    it.each(['dt'] as const)(
-        'resolves the Tailwind adapter for the %s framework',
-        (framework) => {
-            expect(resolveColumnStyleAdapter(framework)).toBeInstanceOf(TailwindColumnStyleAdapter)
-        }
-    )
+    it.each(['dt'] as const)('resolves the Tailwind adapter for the %s framework', (framework) => {
+        expect(resolveColumnStyleAdapter(framework)).toBeInstanceOf(TailwindColumnStyleAdapter)
+    })
 
     it.each(['bs5', 'dt'] as const)(
         'resolves the theme adapter over the %s framework default',

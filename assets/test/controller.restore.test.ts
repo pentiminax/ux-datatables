@@ -154,7 +154,8 @@ describe('datatable controller history restore', () => {
         // Bootstrap 5 shape: the layout row's own class carries no dt- marker, but the cell inside
         // it does, which is what identifies the subtree as generated.
         staleRow.className = 'row mt-2 justify-content-between'
-        staleRow.innerHTML = '<div class="dt-layout-start col-md-auto"><div class="dt-search"></div></div>'
+        staleRow.innerHTML =
+            '<div class="dt-layout-start col-md-auto"><div class="dt-search"></div></div>'
         container.appendChild(staleRow)
 
         const table = mountRestoredTable(container)

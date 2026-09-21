@@ -114,6 +114,7 @@ class DataTable
                 'selectCurrentPageOnly' => $this->bulkActions->isSelectCurrentPageOnly(),
                 'url'                   => $this->bulkActionsUrl,
                 'labels'                => $this->preparedBulkActionLabels ?? [],
+                'position'              => $this->bulkActions->getPosition(),
             ];
 
             $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;

@@ -31,9 +31,9 @@ vi.mock('../src/functions/toggleBooleanValue.js', () => ({
     toggleBooleanValue: vi.fn(async () => new Response(null, { status: 200 })),
 }))
 
+import DatatableController from '../src/controller.js'
 import { deleteEntity } from '../src/functions/deleteEntity.js'
 import { toggleBooleanValue } from '../src/functions/toggleBooleanValue.js'
-import DatatableController from '../src/controller.js'
 
 type MockInstance = {
     destroy: ReturnType<typeof vi.fn>

@@ -21,7 +21,7 @@ final class BulkActions implements \JsonSerializable
 
     private string $idField = 'id';
 
-    private string $position = 'topStart';
+    private string $position = 'topEnd';
 
     public function add(BulkAction $action): self
     {
@@ -80,7 +80,7 @@ final class BulkActions implements \JsonSerializable
     }
 
     /**
-     * DataTables layout position hosting the bulk action bar (e.g. `topStart`, `topEnd`).
+     * DataTables layout position hosting the bulk action trigger (e.g. `topEnd`, `topStart`).
      */
     public function position(string $position): self
     {

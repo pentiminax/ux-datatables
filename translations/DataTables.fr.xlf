@@ -18,21 +18,25 @@
                 <source>filter.bar.all</source>
                 <target>Tous</target>
             </trans-unit>
+            <trans-unit id="bulk.bar.trigger">
+                <source>bulk.bar.trigger</source>
+                <target>Actions groupées</target>
+            </trans-unit>
             <trans-unit id="bulk.bar.selected">
                 <source>bulk.bar.selected</source>
-                <target>{count} lignes sélectionnées</target>
+                <target>{count} enregistrements sélectionnés</target>
             </trans-unit>
             <trans-unit id="bulk.bar.selectAllMatching">
                 <source>bulk.bar.selectAllMatching</source>
-                <target>Sélectionner les {total} lignes correspondantes</target>
+                <target>Tout sélectionner ({count})</target>
             </trans-unit>
             <trans-unit id="bulk.bar.allMatchingSelected">
                 <source>bulk.bar.allMatchingSelected</source>
-                <target>Les {total} lignes correspondantes sont sélectionnées</target>
+                <target>{count} enregistrements sélectionnés au total</target>
             </trans-unit>
             <trans-unit id="bulk.bar.clear">
                 <source>bulk.bar.clear</source>
-                <target>Effacer la sélection</target>
+                <target>Tout désélectionner</target>
             </trans-unit>
             <trans-unit id="bulk.bar.confirm">
                 <source>bulk.bar.confirm</source>

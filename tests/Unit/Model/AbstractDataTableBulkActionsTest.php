@@ -72,7 +72,8 @@ final class AbstractDataTableBulkActionsTest extends TestCase
         $this->assertSame(HighlightConfig::ROW_ID_KEY, $options['rowId']);
         $this->assertSame(['approve'], array_column($options['bulkActions']['actions'], 'name'));
         $this->assertFalse($options['bulkActions']['selectCurrentPageOnly']);
-        $this->assertContains(Feature::BULK_ACTIONS->value, $this->flatten($options['layout']));
+        $this->assertSame('topEnd', $options['bulkActions']['position']);
+        $this->assertContains(Feature::BULK_ACTIONS->value, $this->flatten((array) $options['layout']['topEnd']));
     }
 
     #[Test]
@@ -96,7 +97,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $layout
+     * @param array<mixed> $layout
      *
      * @return list<string>
      */
