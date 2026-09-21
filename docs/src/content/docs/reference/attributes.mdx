@@ -198,6 +198,10 @@ public function getFullName(): string
 }
 ```
 
+A getter names no persisted field, so server-side search and ordering skip such a column rather than
+sending Doctrine a name it would reject. Point the column at the columns the value is built from with
+`searchField`, `searchJoins` or `searchPredicate` to search it.
+
 ### On a table class
 
 For a column no member of your entity backs, declare it on the table class itself. `name` is
@@ -252,7 +256,8 @@ private Status $status;
 
 The filter class is guessed from the declared type: `bool` gives a `TernaryFilter` comparing the
 column value, a `BackedEnum` a `ChoiceFilter` with its options already filled, a `DateTimeInterface`
-a `DateRangeFilter`, and anything else a `TextFilter`.
+a `DateRangeFilter`, and anything else a `TextFilter`. An `int` or a `float` is rejected instead of
+guessed, since no filter class queries a number.
 
 Filters resolve down their own chain, `configureFilters()` first, then the table class, then the
 data class. The full reference, including the guessed types and the `values` alias, lives on the
