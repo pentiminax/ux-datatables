@@ -12,7 +12,6 @@ use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -46,7 +45,7 @@ class DataTablesExtension extends AbstractExtension
         $dataTableClass = $table::class;
         $table->getConfiguredDataTable();
 
-        if (false === $this->permissionChecker?->isGranted(Permission::DT_ACCESS_TABLE, $table)) {
+        if (false === $this->permissionChecker?->canAccessTable($table)) {
             throw new AccessDeniedException('Access to this DataTable is denied.');
         }
 
