@@ -15,7 +15,11 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 interface IdentifierCollectingDataProviderInterface
 {
     /**
+     * @param string|null $field the field holding the identifiers the client selection speaks in,
+     *                           or null to answer with the entity's own identifier; a field the
+     *                           entity does not declare falls back to that identifier too
+     *
      * @return list<int|string>
      */
-    public function collectIdentifiers(DataTableRequest $request): array;
+    public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array;
 }

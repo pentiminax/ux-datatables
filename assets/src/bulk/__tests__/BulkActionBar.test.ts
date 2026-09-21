@@ -1,7 +1,12 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadLucideIcons } from '../../functions/lucideIcons.js'
 import { BulkActionBar, hasBulkActions } from '../BulkActionBar.js'
+import { confirmBulkAction } from '../confirmModal.js'
 import { FakeApi } from './fakeApi.js'
+
+vi.mock('../confirmModal.js', () => ({
+    confirmBulkAction: vi.fn(async () => true),
+}))
 
 function payload(overrides: Record<string, any> = {}): Record<string, any> {
     const { bulkActions, ...rest } = overrides
@@ -274,6 +279,25 @@ describe('BulkActionBar', () => {
         const readOnly = build({ mutationsEnabled: false })
         expect(item(readOnly).disabled).toBe(true)
         expect(trigger(readOnly).disabled).toBe(true)
+    })
+
+    it('confirms through the modal adapter the table was configured with', async () => {
+        const h = build({
+            editModal: { adapter: 'bs5' },
+            bulkActions: {
+                actions: [{ name: 'approve', label: 'Approve', confirm: 'Approve {count} rows?' }],
+            },
+        })
+        h.api.emitSelection('select', [0])
+
+        item(h).click()
+
+        await vi.waitFor(() => expect(confirmBulkAction).toHaveBeenCalled())
+
+        expect(vi.mocked(confirmBulkAction).mock.calls[0][0]).toMatchObject({
+            message: 'Approve 1 rows?',
+            adapterKey: 'bs5',
+        })
     })
 
     it('does nothing without a selection', async () => {

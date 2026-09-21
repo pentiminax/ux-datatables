@@ -323,9 +323,12 @@ final class BulkActionRunnerTest extends TestCase
                 return new DataTableResult([], 0, 0);
             }
 
-            public function collectIdentifiers(DataTableRequest $request): array
+            public ?string $seenField = null;
+
+            public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
             {
-                $this->seen = $request;
+                $this->seen      = $request;
+                $this->seenField = $field;
 
                 return [1];
             }
@@ -348,6 +351,62 @@ final class BulkActionRunnerTest extends TestCase
         // withoutPagination(): the batch covers the filtered set, not the page the user was on.
         $this->assertSame(0, $provider->seen->start);
         $this->assertSame(0, $provider->seen->length);
+    }
+
+    #[Test]
+    public function it_collects_the_identifiers_of_the_field_the_selection_speaks_in(): void
+    {
+        $provider = new class implements DataProviderInterface, IdentifierCollectingDataProviderInterface {
+            public ?string $seenField = null;
+
+            public function fetchData(DataTableRequest $request): DataTableResult
+            {
+                return new DataTableResult([], 0, 0);
+            }
+
+            public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
+            {
+                $this->seenField = $field;
+
+                return [];
+            }
+        };
+
+        $action = BulkAction::new('touch')->handler(static fn () => null);
+
+        try {
+            $this->runner()->run(
+                $this->resolved($action, provider: $provider, idField: 'name'),
+                $action,
+                new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+                $this->postRequest(),
+            );
+        } catch (InvalidBulkSelectionException) {
+            // The empty answer aborts the run; only the field the provider was asked for matters here.
+        }
+
+        $this->assertSame('name', $provider->seenField);
+    }
+
+    #[Test]
+    public function it_selects_every_matching_row_through_a_configured_id_field(): void
+    {
+        $seen   = [];
+        $action = BulkAction::new('touch')->handler(function (BulkRecords $records) use (&$seen): void {
+            foreach ($records as $customer) {
+                $seen[] = $customer->name;
+            }
+        });
+
+        $result = $this->runner()->run(
+            $this->resolved($action, withProvider: true, idField: 'name'),
+            $action,
+            new BulkSelection(allMatching: true, deselectedIds: ['Beta'], query: $this->dataTablesQuery()),
+            $this->postRequest(),
+        );
+
+        $this->assertSame(['Alpha', 'Gamma', 'Delta'], $seen);
+        $this->assertSame(3, $result->processed);
     }
 
     #[Test]
@@ -425,6 +484,7 @@ final class BulkActionRunnerTest extends TestCase
         bool $withProvider = false,
         bool $currentPageOnly = false,
         ?DataProviderInterface $provider = null,
+        ?string $idField = null,
     ): ResolvedDataTable {
         $table = new ConfigurableDataTable(
             columnsConfig: [TextColumn::new('id'), TextColumn::new('name')],
@@ -441,9 +501,13 @@ final class BulkActionRunnerTest extends TestCase
                     }
                 },
             ) : null),
-            bulkActions: static fn (BulkActions $actions): BulkActions => $actions
-                ->selectCurrentPageOnly($currentPageOnly)
-                ->add($action),
+            bulkActions: static function (BulkActions $actions) use ($action, $currentPageOnly, $idField): BulkActions {
+                $actions
+                    ->selectCurrentPageOnly($currentPageOnly)
+                    ->add($action);
+
+                return null === $idField ? $actions : $actions->setIdField($idField);
+            },
         );
 
         return new ResolvedDataTable($table, CountCustomer::class, AbstractDataTable::class);

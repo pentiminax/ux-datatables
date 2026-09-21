@@ -8,7 +8,7 @@ use Pentiminax\UX\DataTables\Contracts\ExecutableActionInterface;
 
 final readonly class ActionPermissionContext
 {
-    private function __construct(
+    public function __construct(
         public string $dataTableClass,
         public ExecutableActionInterface $action,
         public mixed $currentSource,
