@@ -12,9 +12,7 @@ use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Model\Action;
-use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
-use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 final class EntityMutator
@@ -38,16 +36,11 @@ final class EntityMutator
     {
         $context = $this->locator->locate($entityClass, $id);
 
-        if (!$this->permissionChecker->isGranted(Permission::DT_DELETE_ROW, $context->entity)) {
+        if (!$this->permissionChecker->canDeleteRow($context->entity)) {
             throw new MutationNotAllowedException();
         }
 
-        if (!$this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
-            $dataTableClass,
-            $action,
-            $context->entity,
-            true,
-        ))) {
+        if (!$this->permissionChecker->canExecuteActionOnRow($dataTableClass, $action, $context->entity)) {
             throw new MutationNotAllowedException();
         }
 
@@ -73,7 +66,7 @@ final class EntityMutator
     {
         $context = $this->locator->locate($entityClass, $id);
 
-        if (!$this->permissionChecker->isGranted(Permission::DT_EDIT_ROW, $context->entity)) {
+        if (!$this->permissionChecker->canEditRow($context->entity)) {
             throw new MutationNotAllowedException();
         }
 

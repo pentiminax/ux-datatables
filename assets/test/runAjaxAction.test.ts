@@ -2,159 +2,159 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { runAjaxAction } from '../src/functions/runAjaxAction'
 
 describe('runAjaxAction', () => {
-  let button: HTMLButtonElement
-  let dispatch: ReturnType<typeof vi.fn>
-  let navigate: ReturnType<typeof vi.fn>
-  let reload: ReturnType<typeof vi.fn>
+    let button: HTMLButtonElement
+    let dispatch: ReturnType<typeof vi.fn>
+    let navigate: ReturnType<typeof vi.fn>
+    let reload: ReturnType<typeof vi.fn>
 
-  beforeEach(() => {
-    button = document.createElement('button')
-    dispatch = vi.fn()
-    navigate = vi.fn()
-    reload = vi.fn()
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  const run = (): Promise<void> =>
-    runAjaxAction({
-      button,
-      method: 'POST',
-      url: '/books/42/publish',
-      token: 'token-value',
-      dispatch,
-      navigate,
-      reload,
+    beforeEach(() => {
+        button = document.createElement('button')
+        dispatch = vi.fn()
+        navigate = vi.fn()
+        reload = vi.fn()
     })
 
-  it('posts the csrf token as _token with json and ajax headers', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
-
-    await run()
-
-    expect(fetchMock).toHaveBeenCalledOnce()
-    expect(fetchMock).toHaveBeenCalledWith('/books/42/publish', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
-      body: JSON.stringify({ _token: 'token-value' }),
+    afterEach(() => {
+        vi.restoreAllMocks()
     })
-  })
 
-  const redirectingResponse = (target: string): Response => {
-    const response = new Response(null, { status: 200 })
-    Object.defineProperty(response, 'redirected', { value: true })
-    Object.defineProperty(response, 'url', { value: target })
+    const run = (): Promise<void> =>
+        runAjaxAction({
+            button,
+            method: 'POST',
+            url: '/books/42/publish',
+            token: 'token-value',
+            dispatch,
+            navigate,
+            reload,
+        })
 
-    return response
-  }
+    it('posts the csrf token as _token with json and ajax headers', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
+        vi.stubGlobal('fetch', fetchMock)
 
-  it('dispatches action:success and reloads the table', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 200 })))
+        await run()
 
-    await run()
+        expect(fetchMock).toHaveBeenCalledOnce()
+        expect(fetchMock).toHaveBeenCalledWith('/books/42/publish', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ _token: 'token-value' }),
+        })
+    })
 
-    expect(dispatch).toHaveBeenCalledWith(
-      'action:success',
-      expect.objectContaining({ url: '/books/42/publish', method: 'POST' })
-    )
-    expect(reload).toHaveBeenCalledOnce()
-    expect(navigate).not.toHaveBeenCalled()
-  })
+    const redirectingResponse = (target: string): Response => {
+        const response = new Response(null, { status: 200 })
+        Object.defineProperty(response, 'redirected', { value: true })
+        Object.defineProperty(response, 'url', { value: target })
 
-  it('follows a redirect instead of reloading', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(redirectingResponse(`${window.location.origin}/books`))
-    )
+        return response
+    }
 
-    await run()
+    it('dispatches action:success and reloads the table', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 200 })))
 
-    expect(navigate).toHaveBeenCalledWith(`${window.location.origin}/books`)
-    expect(reload).not.toHaveBeenCalled()
-  })
+        await run()
 
-  it('refuses to follow a cross-origin redirect', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(redirectingResponse('https://evil.example.com/books'))
-    )
+        expect(dispatch).toHaveBeenCalledWith(
+            'action:success',
+            expect.objectContaining({ url: '/books/42/publish', method: 'POST' })
+        )
+        expect(reload).toHaveBeenCalledOnce()
+        expect(navigate).not.toHaveBeenCalled()
+    })
 
-    await run()
+    it('follows a redirect instead of reloading', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue(redirectingResponse(`${window.location.origin}/books`))
+        )
 
-    expect(navigate).not.toHaveBeenCalled()
-    expect(reload).toHaveBeenCalledOnce()
-  })
+        await run()
 
-  it('keeps the button locked after a successful request', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 200 })))
+        expect(navigate).toHaveBeenCalledWith(`${window.location.origin}/books`)
+        expect(reload).not.toHaveBeenCalled()
+    })
 
-    await run()
+    it('refuses to follow a cross-origin redirect', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue(redirectingResponse('https://evil.example.com/books'))
+        )
 
-    expect(button.disabled).toBe(true)
-    expect(button.getAttribute('aria-busy')).toBe('true')
-  })
+        await run()
 
-  it('dispatches action:error and re-enables the button on a failed response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 403 })))
+        expect(navigate).not.toHaveBeenCalled()
+        expect(reload).toHaveBeenCalledOnce()
+    })
 
-    await run()
+    it('keeps the button locked after a successful request', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 200 })))
 
-    expect(dispatch).toHaveBeenCalledWith(
-      'action:error',
-      expect.objectContaining({ url: '/books/42/publish', method: 'POST' })
-    )
-    expect(reload).not.toHaveBeenCalled()
-    expect(navigate).not.toHaveBeenCalled()
-    expect(button.disabled).toBe(false)
-    expect(button.hasAttribute('aria-busy')).toBe(false)
-  })
+        await run()
 
-  it('dispatches action:error when the request throws', async () => {
-    const error = new Error('offline')
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(error))
+        expect(button.disabled).toBe(true)
+        expect(button.getAttribute('aria-busy')).toBe('true')
+    })
 
-    await run()
+    it('dispatches action:error and re-enables the button on a failed response', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 403 })))
 
-    expect(dispatch).toHaveBeenCalledWith('action:error', expect.objectContaining({ error }))
-    expect(button.disabled).toBe(false)
-  })
+        await run()
 
-  it('locks the button while the request is pending', async () => {
-    let resolveFetch: ((response: Response) => void) | undefined
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation(
-        () =>
-          new Promise<Response>((resolve) => {
-            resolveFetch = resolve
-          })
-      )
-    )
+        expect(dispatch).toHaveBeenCalledWith(
+            'action:error',
+            expect.objectContaining({ url: '/books/42/publish', method: 'POST' })
+        )
+        expect(reload).not.toHaveBeenCalled()
+        expect(navigate).not.toHaveBeenCalled()
+        expect(button.disabled).toBe(false)
+        expect(button.hasAttribute('aria-busy')).toBe(false)
+    })
 
-    const pending = run()
+    it('dispatches action:error when the request throws', async () => {
+        const error = new Error('offline')
+        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(error))
 
-    expect(button.disabled).toBe(true)
-    expect(button.getAttribute('aria-busy')).toBe('true')
+        await run()
 
-    resolveFetch?.(new Response(null, { status: 200 }))
-    await pending
-  })
+        expect(dispatch).toHaveBeenCalledWith('action:error', expect.objectContaining({ error }))
+        expect(button.disabled).toBe(false)
+    })
 
-  it('ignores a concurrent call while the button is busy', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
+    it('locks the button while the request is pending', async () => {
+        let resolveFetch: ((response: Response) => void) | undefined
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockImplementation(
+                () =>
+                    new Promise<Response>((resolve) => {
+                        resolveFetch = resolve
+                    })
+            )
+        )
 
-    button.setAttribute('aria-busy', 'true')
+        const pending = run()
 
-    await run()
+        expect(button.disabled).toBe(true)
+        expect(button.getAttribute('aria-busy')).toBe('true')
 
-    expect(fetchMock).not.toHaveBeenCalled()
-    expect(dispatch).not.toHaveBeenCalled()
-  })
+        resolveFetch?.(new Response(null, { status: 200 }))
+        await pending
+    })
+
+    it('ignores a concurrent call while the button is busy', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
+        vi.stubGlobal('fetch', fetchMock)
+
+        button.setAttribute('aria-busy', 'true')
+
+        await run()
+
+        expect(fetchMock).not.toHaveBeenCalled()
+        expect(dispatch).not.toHaveBeenCalled()
+    })
 })

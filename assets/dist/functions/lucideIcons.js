@@ -32,13 +32,16 @@ export function hasLucideIcons(columns) {
         if (isRecord(column.customOptions) && column.customOptions.isIcon === true) {
             return true;
         }
-        if (!Array.isArray(column.actions)) {
-            return false;
-        }
-        return column.actions.some((action) => isRecord(action) &&
-            typeof action.lucideIcon === 'string' &&
-            action.lucideIcon.trim().length > 0);
+        return hasLucideIconsInActions(column.actions);
     });
+}
+export function hasLucideIconsInActions(actions) {
+    if (!Array.isArray(actions)) {
+        return false;
+    }
+    return actions.some((action) => isRecord(action) &&
+        typeof action.lucideIcon === 'string' &&
+        action.lucideIcon.trim().length > 0);
 }
 function pascalToKebab(name) {
     return name

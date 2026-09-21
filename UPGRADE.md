@@ -3,6 +3,71 @@
 Each section covers one version bump. When you skip versions, apply every section between your
 current version and the target, oldest first.
 
+## v1.0 → v1.1
+
+### Bulk actions (additive)
+
+Tables can declare bulk actions, which the bundle runs over the rows the user selected:
+
+```php
+use Pentiminax\UX\DataTables\Model\BulkAction;
+use Pentiminax\UX\DataTables\Model\BulkActions;
+use Pentiminax\UX\DataTables\Mutation\BulkActionContext;
+use Pentiminax\UX\DataTables\Mutation\BulkRecords;
+
+public function configureBulkActions(BulkActions $actions): BulkActions
+{
+    return $actions->add(
+        BulkAction::new('approve', 'Approve')
+            ->askConfirmation('Approve {count} orders?')
+            ->setPermission('ORDER_APPROVE', static fn (Order $order): Order => $order)
+            ->handler(function (BulkRecords $records, BulkActionContext $context): void {
+                foreach ($records as $order) {
+                    $this->approver->approve($order);
+                }
+            })
+    );
+}
+```
+
+Nothing changes for a table that declares none. A table that declares one gains a checkbox
+selection, a **Bulk actions** button above the table, and a `POST /datatables/ajax/bulk` route — protect it with your own
+`security.firewalls` configuration like every other bundle Ajax route. See
+[Bulk Actions](https://pentiminax.github.io/ux-datatables/features/bulk-actions/).
+
+Two details are worth checking in an existing application:
+
+- **A voter type-hinting `Action` may now receive a `BulkAction`.**
+  `ActionPermissionContext::$action` is typed `ExecutableActionInterface`, which both `Action` and
+  `BulkAction` implement. A voter that assumed `Action` should narrow explicitly:
+
+  ```php
+  // before
+  protected function supports(string $attribute, mixed $subject): bool
+  {
+      return $subject instanceof ActionPermissionContext;
+  }
+
+  // after
+  protected function supports(string $attribute, mixed $subject): bool
+  {
+      return $subject instanceof ActionPermissionContext && $subject->action instanceof Action;
+  }
+  ```
+
+  This only matters once a table declares a bulk action.
+
+- **Rows of a table with bulk actions always carry a `DT_RowId`.** It was previously written only
+  for `highlightUpdates()`. The selection needs a key that survives the redraw server-side paging
+  forces. The bundle detects a single Doctrine identifier automatically; configure another field
+  with `BulkActions::setIdField()` when no Doctrine metadata is available.
+
+A custom data provider can opt into "select every matching row" by implementing
+`IdentifierCollectingDataProviderInterface`; `DoctrineDataProvider` already does. Its
+`collectIdentifiers()` receives the field the selection speaks in — the one written as `DT_RowId` —
+so it must answer with values from that field, not from the primary key. Without the interface, a
+select-all is rejected with `400` while an explicit selection keeps working.
+
 ## v0.90 → v1.0
 
 ### The bundle class is renamed

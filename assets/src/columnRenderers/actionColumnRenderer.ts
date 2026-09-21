@@ -56,12 +56,7 @@ export function createActionColumnRenderer(mutationsEnabled = true): ColumnRende
                                 `data-id="${escapedId}"`,
                                 ...serializeHtmlAttributes(
                                     action.htmlAttributes,
-                                    new Set([
-                                        'type',
-                                        'class',
-                                        'data-action-type',
-                                        'data-id',
-                                    ])
+                                    new Set(['type', 'class', 'data-action-type', 'data-id'])
                                 ),
                             ]
 

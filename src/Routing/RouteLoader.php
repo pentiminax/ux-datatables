@@ -50,6 +50,12 @@ final class RouteLoader implements RouteLoaderInterface
             methods: ['POST'],
         ));
 
+        $routes->add('ux_datatables_ajax_bulk', new Route(
+            path: '/datatables/ajax/bulk',
+            defaults: ['_controller' => 'datatables.controller.ajax_bulk'],
+            methods: ['POST'],
+        ));
+
         $routes->add('ux_datatables_ajax_export', new Route(
             path: '/datatables/ajax/export',
             defaults: ['_controller' => 'datatables.controller.ajax_export'],

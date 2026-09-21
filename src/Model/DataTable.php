@@ -40,6 +40,13 @@ class DataTable
 
     private ?Filters $filters = null;
 
+    private ?BulkActions $bulkActions = null;
+
+    /** @var array<string, string>|null */
+    private ?array $preparedBulkActionLabels = null;
+
+    private ?string $bulkActionsUrl = null;
+
     /** @var array<string, string>|null */
     private ?array $preparedFilterLabels = null;
 
@@ -98,6 +105,18 @@ class DataTable
 
         if (null !== $this->highlightConfig) {
             $options['highlight'] = $this->highlightConfig->jsonSerialize();
+            $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
+        }
+
+        if ($this->hasBulkActions()) {
+            $options['bulkActions'] = [
+                'actions'               => $this->bulkActions->jsonSerialize(),
+                'selectCurrentPageOnly' => $this->bulkActions->isSelectCurrentPageOnly(),
+                'url'                   => $this->bulkActionsUrl,
+                'labels'                => $this->preparedBulkActionLabels ?? [],
+                'position'              => $this->bulkActions->getPosition(),
+            ];
+
             $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
         }
 
@@ -679,6 +698,55 @@ class DataTable
         return $this->filters;
     }
 
+    /**
+     * Declare the bulk actions and place their bar in the layout.
+     *
+     * @internal set by {@see AbstractDataTable::configureBulkActions()}
+     */
+    public function setBulkActions(BulkActions $bulkActions): static
+    {
+        $this->bulkActions              = $bulkActions;
+        $this->preparedBulkActionLabels = null;
+
+        if ($bulkActions->isEmpty()) {
+            return $this;
+        }
+
+        return $this->placeFeature(Feature::BULK_ACTIONS, $bulkActions->getPosition());
+    }
+
+    public function getBulkActions(): ?BulkActions
+    {
+        return $this->bulkActions;
+    }
+
+    public function hasBulkActions(): bool
+    {
+        return null !== $this->bulkActions && !$this->bulkActions->isEmpty();
+    }
+
+    /**
+     * @param array<string, string> $labels
+     *
+     * @internal set by the RenderingPreparer once the translator has run
+     */
+    public function setPreparedBulkActionLabels(array $labels): static
+    {
+        $this->preparedBulkActionLabels = $labels;
+
+        return $this;
+    }
+
+    /**
+     * @internal set by the RenderingPreparer
+     */
+    public function setBulkActionsUrl(string $url): static
+    {
+        $this->bulkActionsUrl = $url;
+
+        return $this;
+    }
+
     public function language(Language $language): static
     {
         $this->options->setLanguage($language);
@@ -743,10 +811,26 @@ class DataTable
             return $this->layout($layout);
         }
 
+        return $this->placeFeature(Feature::BUTTONS, $position);
+    }
+
+    /**
+     * Add a feature marker to a layout slot without dropping what the slot already declares.
+     */
+    private function placeFeature(Feature $feature, string $position): static
+    {
+        $layout = $this->options->get('layout');
+        $layout = \is_array($layout) ? $layout : [];
+        $slot   = $layout[$position] ?? null;
+
+        if ($feature === $slot || (\is_array($slot) && \in_array($feature, $slot, true))) {
+            return $this->layout($layout);
+        }
+
         $layout[$position] = match (true) {
-            null === $slot                           => Feature::BUTTONS,
-            \is_array($slot) && array_is_list($slot) => [...$slot, Feature::BUTTONS],
-            default                                  => [$slot, Feature::BUTTONS],
+            null === $slot                           => $feature,
+            \is_array($slot) && array_is_list($slot) => [...$slot, $feature],
+            default                                  => [$slot, $feature],
         };
 
         return $this->layout($layout);

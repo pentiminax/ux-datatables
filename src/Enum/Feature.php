@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Enum;
 
 enum Feature: string
 {
+    case BULK_ACTIONS   = 'bulkActions';
     case BUTTONS        = 'buttons';
     case FILTERS        = 'filters';
     case INFO           = 'info';

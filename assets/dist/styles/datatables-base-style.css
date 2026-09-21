@@ -27,6 +27,15 @@
     --dt-filters-select-padding-end: 0.65rem;
     --dt-filters-chevron: none;
     --dt-filters-button-shadow: none;
+
+    /* The bulk bar borrows the filter palette so a theme that restyles one restyles both;
+       reassign these alone to break them apart. */
+    --dt-bulk-surface: var(--dt-filters-surface-muted);
+    --dt-bulk-border: var(--dt-filters-border);
+    --dt-bulk-text: var(--dt-filters-text);
+    --dt-bulk-text-muted: var(--dt-filters-text-muted);
+    --dt-bulk-accent: var(--dt-filters-accent);
+    --dt-bulk-radius: var(--dt-filters-radius-control);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -298,4 +307,119 @@ table.dataTable td.dt-cell-updated {
         animation: none;
         background-color: var(--dt-highlight-color);
     }
+}
+
+.dt-bulk {
+    position: relative;
+    display: inline-flex;
+}
+
+.dt-bulk-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.dt-bulk-trigger:disabled {
+    color: var(--dt-bulk-text-muted);
+    cursor: not-allowed;
+}
+
+.dt-bulk-trigger__icon {
+    width: 1em;
+    height: 1em;
+}
+
+.dt-bulk-menu {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    z-index: 20;
+    min-width: 12rem;
+    display: flex;
+    flex-direction: column;
+    padding: 0.25rem;
+    border: 1px solid var(--dt-bulk-border);
+    border-radius: var(--dt-bulk-radius);
+    background: var(--dt-filters-surface);
+    box-shadow: var(--dt-filters-shadow);
+}
+
+.dt-bulk-menu[hidden] {
+    display: none;
+}
+
+.dt-bulk-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 0;
+    border-radius: calc(var(--dt-bulk-radius) - 2px);
+    background: transparent;
+    color: var(--dt-bulk-text);
+    text-align: start;
+    cursor: pointer;
+}
+
+.dt-bulk-menu__item:hover:not(:disabled),
+.dt-bulk-menu__item:focus-visible {
+    background: var(--dt-bulk-surface);
+}
+
+.dt-bulk-menu__item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* A full-width band rather than a card: it sits between the toolbar and the table header, so side
+   borders and rounded corners would cut across the container edges. */
+.dt-bulk-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.375rem 0.75rem;
+    border: 0;
+    border-bottom: 1px solid var(--dt-bulk-border);
+    background: var(--dt-bulk-surface);
+    color: var(--dt-bulk-text);
+}
+
+/* Kept in the flow so a selection does not resize the table; only the band's content disappears. */
+.dt-bulk-summary--empty {
+    visibility: hidden;
+}
+
+.dt-bulk-summary__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.dt-bulk-summary__link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--dt-bulk-accent);
+    cursor: pointer;
+}
+
+.dt-bulk-summary__link[hidden] {
+    display: none;
+}
+
+.dt-bulk-summary__link:hover {
+    text-decoration: underline;
+}
+
+.dt-bulk [aria-busy='true'] {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.dt-bulk-confirm__message {
+    margin: 0;
 }

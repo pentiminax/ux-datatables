@@ -367,6 +367,30 @@ final class DoctrineDataProviderIterateRowsTest extends TestCase
         $this->assertSame([['id' => 2]], $exported);
     }
 
+    #[Test]
+    public function it_normalizes_stringable_identifiers_for_bulk_selection(): void
+    {
+        $identifier = new class implements \Stringable {
+            public function __toString(): string
+            {
+                return '018f95f0-6f27-7a86-a2a9-4f2678f6e590';
+            }
+        };
+
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountCustomer::class,
+            rowMapper: $this->identityMapper(),
+        );
+        $normalize = new \ReflectionMethod($provider, 'normalizeIdentifiers');
+        $normalize->setAccessible(true);
+
+        $this->assertSame(
+            ['018f95f0-6f27-7a86-a2a9-4f2678f6e590'],
+            $normalize->invoke($provider, [$identifier]),
+        );
+    }
+
     private function seedTags(): void
     {
         $alpha = $this->em->find(CountCustomer::class, 1);

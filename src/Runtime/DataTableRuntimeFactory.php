@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Runtime;
 
+use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
@@ -34,6 +35,7 @@ final class DataTableRuntimeFactory
         private readonly ?AuthorizationChecker $permissionChecker = null,
         private readonly int $maxPageLength = 1000,
         private readonly ?SearchListOptionsResolver $searchListOptionsResolver = null,
+        private readonly ?ManagerRegistry $doctrine = null,
     ) {
     }
 
@@ -46,6 +48,8 @@ final class DataTableRuntimeFactory
         array $columns,
         ?string $dataTableClass = null,
         ?HighlightConfig $highlight = null,
+        ?string $rowIdField = null,
+        ?string $entityClass = null,
     ): RowMapperInterface {
         $pipeline = (new RowProcessingPipeline(
             $baseMapper,
@@ -60,8 +64,12 @@ final class DataTableRuntimeFactory
             ->add(new IconColumnResolutionStage())
             ->add(new BooleanSwitchMetadataStage());
 
-        if (null !== $highlight) {
-            $pipeline->add(new RowIdStage($highlight->idField));
+        // Highlighting needs a row id to tell a changed row from a moved one; a selection needs
+        // one to survive the redraw that server-side paging forces. Either reason is enough.
+        $idField = $highlight?->idField ?? $this->resolveRowIdField($rowIdField, $entityClass);
+
+        if (null !== $idField) {
+            $pipeline->add(new RowIdStage($idField));
         }
 
         return $pipeline;
@@ -85,6 +93,8 @@ final class DataTableRuntimeFactory
             columns: $columns,
             dataTableClass: $table->getDataTableClass(),
             highlight: $table->getHighlightConfig(),
+            rowIdField: $table->hasBulkActions() ? $table->getBulkActions()?->getIdField() : null,
+            entityClass: $asDataTable?->entityClass,
         );
 
         // An export writes only the exportable columns, so its mapper is built from them alone:
@@ -144,6 +154,25 @@ final class DataTableRuntimeFactory
             columns: $columns,
             dataTableClass: $dataTableClass,
         );
+    }
+
+    /**
+     * @param class-string|null $entityClass
+     */
+    private function resolveRowIdField(?string $configuredField, ?string $entityClass): ?string
+    {
+        if (null === $configuredField || 'id' !== $configuredField || null === $entityClass) {
+            return $configuredField;
+        }
+
+        $manager = $this->doctrine?->getManagerForClass($entityClass);
+        if (null === $manager) {
+            return $configuredField;
+        }
+
+        $identifiers = $manager->getClassMetadata($entityClass)->getIdentifier();
+
+        return 1 === \count($identifiers) ? $identifiers[0] : $configuredField;
     }
 
     private function columnResolver(): ColumnResolver

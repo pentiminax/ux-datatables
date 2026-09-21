@@ -9,7 +9,9 @@ export type DataTableTheme = 'tailwind' | null
  * into the application bundle, which erases the file name from `href`.
  */
 export function detectTheme(): DataTableTheme {
-    const value = getComputedStyle(document.documentElement).getPropertyValue('--dt-tw-theme').trim()
+    const value = getComputedStyle(document.documentElement)
+        .getPropertyValue('--dt-tw-theme')
+        .trim()
 
     return value === 'tailwind' ? 'tailwind' : null
 }
