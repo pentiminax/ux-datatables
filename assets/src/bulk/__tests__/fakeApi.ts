@@ -14,11 +14,12 @@ export class FakeApi {
 
     constructor(
         private rowsOnPage: FakeRow[],
-        private recordsDisplay = rowsOnPage.length
+        private recordsDisplay = rowsOnPage.length,
+        private serverSide = true
     ) {}
 
     page = {
-        info: () => ({ recordsDisplay: this.recordsDisplay }),
+        info: () => ({ recordsDisplay: this.recordsDisplay, serverSide: this.serverSide }),
     }
 
     ajax = {

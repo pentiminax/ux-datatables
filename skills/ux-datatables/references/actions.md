@@ -138,7 +138,8 @@ public function configureBulkActions(BulkActions $actions): BulkActions
 }
 ```
 
-- Declaring one auto-enables `SelectExtension` in `MULTI` style with checkboxes, and forces a `DT_RowId` on every row. A configured `SelectStyle::SINGLE` throws.
+- Declaring one auto-enables `SelectExtension` in `MULTI` style with checkboxes, and forces a `DT_RowId` on every row. A single Doctrine identifier is detected automatically; use `BulkActions::setIdField()` for another source. A configured `SelectStyle::SINGLE` throws.
+- Every bulk action must declare a `handler()`; executing an action without one throws a configuration error.
 - `BulkRecords` is lazy and single-pass: `count()` is the **selected** count, `$ctx->processedCount()` / `$ctx->skippedCount()` are the real ones, read after iterating.
 - Per-row permission denials are skipped and counted; they do not abort the run.
 - `allMatching` (select every row matching the current filters) needs a provider implementing `IdentifierCollectingDataProviderInterface` — `DoctrineDataProvider` does. Otherwise the endpoint answers `400`.

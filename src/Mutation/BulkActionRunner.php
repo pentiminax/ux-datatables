@@ -51,7 +51,11 @@ final class BulkActionRunner
         }
 
         $manager    = $this->locator->manager($entityClass);
-        $identifier = $this->identifierField($manager, $entityClass);
+        $identifier = $this->identifierField(
+            $manager,
+            $entityClass,
+            $table->table->getConfiguredDataTable()->getBulkActions()?->getIdField(),
+        );
 
         $context = new BulkActionContext(
             entityClass: $entityClass,
@@ -66,11 +70,10 @@ final class BulkActionRunner
             \count($ids),
         );
 
-        $handler = $action->getHandler();
+        $handler = $action->getHandler()
+            ?? throw new \LogicException(\sprintf('Bulk action "%s" must declare a handler.', $action->getName()));
 
-        if (null !== $handler) {
-            $handler($records, $context);
-        }
+        $handler($records, $context);
 
         // A handler may stop mid-chunk (BulkRecords::first(), an early break), leaving that
         // chunk's changes unflushed. Flushing once more persists them; it is a no-op otherwise.
@@ -192,11 +195,15 @@ final class BulkActionRunner
         return (string) $id;
     }
 
-    private function identifierField(ObjectManager $manager, string $entityClass): string
+    private function identifierField(ObjectManager $manager, string $entityClass, ?string $configuredField): string
     {
         $identifiers = $manager->getClassMetadata($entityClass)->getIdentifier();
 
-        return $identifiers[0] ?? 'id';
+        if (null !== $configuredField && 'id' !== $configuredField) {
+            return $configuredField;
+        }
+
+        return 1 === \count($identifiers) ? $identifiers[0] : ($configuredField ?? 'id');
     }
 
     private function publish(string $entityClass, string $dataTableClass, BulkAction $action, int $processed): void

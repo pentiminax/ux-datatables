@@ -1,4 +1,5 @@
 import { runBulkAction } from '../functions/runBulkAction.js';
+import { renderLucideIcon } from '../functions/lucideIcons.js';
 import { confirmBulkAction } from './confirmModal.js';
 import { SelectionStore } from './selectionStore.js';
 const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
@@ -27,6 +28,8 @@ export class BulkActionBar {
                 ? payload.csrfToken
                 : undefined;
         this.mutationsEnabled = payload.mutationsEnabled === true;
+        this.modalAdapterKey =
+            typeof payload.editModal?.adapter === 'string' ? payload.editModal.adapter : null;
         this.wrapper = document.createElement('div');
         this.wrapper.className = 'dt-bulk-bar';
         this.wrapper.hidden = true;
@@ -68,7 +71,7 @@ export class BulkActionBar {
         }
     }
     createActionButton(action) {
-        const button = this.createButton(action.label, action.className ?? 'dt-bulk-bar__action', action.icon);
+        const button = this.createButton(action.label, action.className ?? 'dt-bulk-bar__action', action.icon, action.lucideIcon);
         button.dataset.bulkAction = action.name;
         if (action.denied === true || !this.mutationsEnabled || !this.config.url) {
             button.disabled = true;
@@ -91,6 +94,7 @@ export class BulkActionBar {
                 confirmLabel: action.confirmButton ?? this.labels.confirm ?? 'Confirm',
                 cancelLabel: this.labels.cancel ?? 'Cancel',
                 framework: this.framework,
+                adapterKey: this.modalAdapterKey,
             });
             if (!confirmed) {
                 return;
@@ -147,13 +151,20 @@ export class BulkActionBar {
     reload() {
         this.api?.ajax?.reload?.(null, false);
     }
-    createButton(label, className, icon) {
+    createButton(label, className, icon, lucideIcon) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = this.buttonClass(className);
-        if (icon) {
+        const lucideMarkup = lucideIcon
+            ? renderLucideIcon(lucideIcon, { 'aria-hidden': 'true' })
+            : null;
+        if (lucideMarkup) {
+            button.insertAdjacentHTML('beforeend', lucideMarkup);
+        }
+        else if (icon) {
             const iconElement = document.createElement('i');
             iconElement.className = icon;
+            iconElement.setAttribute('aria-hidden', 'true');
             button.appendChild(iconElement);
         }
         button.appendChild(document.createTextNode(label));

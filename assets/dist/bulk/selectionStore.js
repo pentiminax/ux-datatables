@@ -20,9 +20,19 @@ export class SelectionStore {
         this.api.off('draw.dtBulk');
     }
     selectAllMatching() {
+        if (!this.isServerSide()) {
+            this.ids.clear();
+            for (const id of this.filteredIds()) {
+                this.ids.add(id);
+            }
+            this.allMatching = false;
+            this.deselectedIds.clear();
+            this.restore();
+            return;
+        }
         this.allMatching = true;
         this.deselectedIds.clear();
-        this.emit();
+        this.restore();
     }
     clear() {
         this.ids.clear();
@@ -97,15 +107,25 @@ export class SelectionStore {
             .filter((id) => id !== '' && id !== 'undefined');
     }
     pageIds() {
+        return this.rowIdsFor({ page: 'current' });
+    }
+    filteredIds() {
+        return this.rowIdsFor({ search: 'applied' });
+    }
+    rowIdsFor(selector) {
         return this.api
-            .rows({ page: 'current' })
+            .rows(selector)
             .ids()
             .toArray()
-            .map((id) => String(id));
+            .map((id) => String(id))
+            .filter((id) => id !== '' && id !== 'undefined');
     }
     totalCount() {
         const info = this.api.page?.info?.();
         return typeof info?.recordsDisplay === 'number' ? info.recordsDisplay : this.ids.size;
+    }
+    isServerSide() {
+        return this.api.page?.info?.()?.serverSide === true;
     }
     emit() {
         this.listener(this.snapshot());

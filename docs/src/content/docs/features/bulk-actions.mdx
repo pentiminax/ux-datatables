@@ -99,7 +99,7 @@ never materializes as 50,000 objects. It is `Countable` and `IteratorAggregate`,
     ['``setPermission($attribute, $subjectResolver = null)``', 'Static permission, or a per-row one when a resolver is given'],
     ['``chunk($size)``', 'Rows loaded and flushed per batch (default `250`)'],
     ['``deselectRecordsAfterCompletion($deselect = true)``', 'Clear the selection once the run succeeds (default `true`)'],
-    ['``handler($handler)``', 'The closure that receives `BulkRecords` and `BulkActionContext`'],
+    ['``handler($handler)``', 'Required closure receiving `BulkRecords` and `BulkActionContext`'],
   ]}
 />
 
@@ -111,7 +111,7 @@ never materializes as 50,000 objects. It is `Countable` and `IteratorAggregate`,
     ['``add($action)``', 'Add an action; a duplicate name throws'],
     ['``remove($name)``', 'Remove an action by name'],
     ['``selectCurrentPageOnly($only = true)``', 'Forbid selecting every matching row; the server rejects such a request too'],
-    ["``setIdField($field)``", 'Row key written as `DT_RowId` and sent back as the selection (default `id`)'],
+    ["``setIdField($field)``", 'Override the row identifier written as `DT_RowId`; Doctrine identifiers are detected automatically, otherwise the default is `id`'],
     ["``position($layoutPosition)``", 'DataTables layout cell for the bar (default `topStart`)'],
   ]}
 />

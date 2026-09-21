@@ -175,6 +175,23 @@ final class BulkActionRunnerTest extends TestCase
     }
 
     #[Test]
+    public function it_loads_records_by_the_configured_identifier_field(): void
+    {
+        $seen   = [];
+        $action = BulkAction::new('touch')->handler(function (BulkRecords $records) use (&$seen): void {
+            foreach ($records as $customer) {
+                $seen[] = $customer->name;
+            }
+        });
+        $table = $this->resolved($action);
+        $table->table->getConfiguredDataTable()->getBulkActions()?->setIdField('name');
+
+        $this->runner()->run($table, $action, new BulkSelection(ids: ['Beta']), new Request());
+
+        $this->assertSame(['Beta'], $seen);
+    }
+
+    #[Test]
     public function it_publishes_one_mercure_message_for_the_whole_batch(): void
     {
         $publisher = $this->createMock(MercurePublisherInterface::class);
@@ -259,6 +276,17 @@ final class BulkActionRunnerTest extends TestCase
         $this->expectExceptionMessage('No row is selected.');
 
         $this->runner()->run($this->resolved($action), $action, new BulkSelection(ids: []), new Request());
+    }
+
+    #[Test]
+    public function it_rejects_an_action_without_a_handler(): void
+    {
+        $action = BulkAction::new('touch');
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Bulk action "touch" must declare a handler.');
+
+        $this->runner()->run($this->resolved($action), $action, new BulkSelection(ids: [1]), new Request());
     }
 
     #[Test]

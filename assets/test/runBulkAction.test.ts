@@ -31,7 +31,7 @@ describe('runBulkAction', () => {
     expect(JSON.parse(init.body)).toEqual({
       dataTable: 'signed-token',
       action: 'approve',
-      ids: [1, 2, 'sku-9'],
+      ids: ['1', '2', 'sku-9'],
       allMatching: false,
       deselectedIds: [],
       query: {},
@@ -53,7 +53,7 @@ describe('runBulkAction', () => {
 
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
       allMatching: true,
-      deselectedIds: [4],
+      deselectedIds: ['4'],
       query: { search: { value: 'Beta' } },
     })
   })
@@ -62,5 +62,23 @@ describe('runBulkAction', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('nope', { status: 403 })))
 
     expect(await runBulkAction(request)).toEqual({ success: false, processed: 0, skipped: 0 })
+  })
+
+  it('keeps numeric-looking identifiers opaque', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ success: true, processed: 3, skipped: 0 })))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await runBulkAction({
+      ...request,
+      ids: ['9007199254740993', '00123', '1e3'],
+    })
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).ids).toEqual([
+      '9007199254740993',
+      '00123',
+      '1e3',
+    ])
   })
 })

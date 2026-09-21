@@ -105,7 +105,7 @@ final class BulkAction implements \JsonSerializable, ExecutableActionInterface
     }
 
     /**
-     * The closure that performs the batch.
+     * The required closure that performs the batch.
      *
      * Signature: `function (BulkRecords $records, BulkActionContext $context): void`. It is called
      * once and consumes a lazy, single-pass iterable; see {@see BulkRecords}.
@@ -239,9 +239,7 @@ final class BulkAction implements \JsonSerializable, ExecutableActionInterface
             $data['successMessage'] = $this->successMessage;
         }
 
-        if ($this->deselectRecordsAfterCompletion) {
-            $data['deselectAfterCompletion'] = true;
-        }
+        $data['deselectAfterCompletion'] = $this->deselectRecordsAfterCompletion;
 
         if ($this->denied) {
             $data['denied'] = true;

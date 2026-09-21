@@ -329,6 +329,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(4, service('datatables.security.authorization_checker'))
         ->arg(5, param('datatables.max_page_length'))
         ->arg(6, service('datatables.column_control.search_list_options_resolver'))
+        ->arg(7, service('doctrine')->nullOnInvalid())
         ->private();
 
     $services->alias(DataTableRuntimeFactory::class, 'datatables.runtime.factory')

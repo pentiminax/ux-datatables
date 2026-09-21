@@ -1,4 +1,5 @@
 import { runBulkAction } from '../functions/runBulkAction.js'
+import { renderLucideIcon } from '../functions/lucideIcons.js'
 import type { StyleFramework } from '../types/styleFramework.js'
 import { confirmBulkAction } from './confirmModal.js'
 import { type SelectionSnapshot, SelectionStore } from './selectionStore.js'
@@ -70,6 +71,7 @@ export class BulkActionBar {
     private readonly dataTable: string
     private readonly csrfToken?: string
     private readonly mutationsEnabled: boolean
+    private readonly modalAdapterKey: string | null
     private store: SelectionStore | null = null
     private api: any = null
     private running = false
@@ -90,6 +92,8 @@ export class BulkActionBar {
                 ? payload.csrfToken
                 : undefined
         this.mutationsEnabled = payload.mutationsEnabled === true
+        this.modalAdapterKey =
+            typeof payload.editModal?.adapter === 'string' ? payload.editModal.adapter : null
 
         this.wrapper = document.createElement('div')
         this.wrapper.className = 'dt-bulk-bar'
@@ -164,7 +168,8 @@ export class BulkActionBar {
         const button = this.createButton(
             action.label,
             action.className ?? 'dt-bulk-bar__action',
-            action.icon
+            action.icon,
+            action.lucideIcon
         )
         button.dataset.bulkAction = action.name
 
@@ -196,6 +201,7 @@ export class BulkActionBar {
                 confirmLabel: action.confirmButton ?? this.labels.confirm ?? 'Confirm',
                 cancelLabel: this.labels.cancel ?? 'Cancel',
                 framework: this.framework,
+                adapterKey: this.modalAdapterKey,
             })
 
             if (!confirmed) {
@@ -272,14 +278,26 @@ export class BulkActionBar {
         this.api?.ajax?.reload?.(null, false)
     }
 
-    private createButton(label: string, className: string, icon?: string): HTMLButtonElement {
+    private createButton(
+        label: string,
+        className: string,
+        icon?: string,
+        lucideIcon?: string
+    ): HTMLButtonElement {
         const button = document.createElement('button')
         button.type = 'button'
         button.className = this.buttonClass(className)
 
-        if (icon) {
+        const lucideMarkup = lucideIcon
+            ? renderLucideIcon(lucideIcon, { 'aria-hidden': 'true' })
+            : null
+
+        if (lucideMarkup) {
+            button.insertAdjacentHTML('beforeend', lucideMarkup)
+        } else if (icon) {
             const iconElement = document.createElement('i')
             iconElement.className = icon
+            iconElement.setAttribute('aria-hidden', 'true')
             button.appendChild(iconElement)
         }
 

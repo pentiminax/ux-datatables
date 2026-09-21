@@ -28,7 +28,7 @@ import { isHighlightEnabled } from './functions/highlightUpdates.js';
 import { isDataTableClone } from './functions/isDataTableClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { applyLocalLanguage } from './functions/localLanguage.js';
-import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js';
+import { hasLucideIcons, hasLucideIconsInActions, loadLucideIcons, } from './functions/lucideIcons.js';
 import { runAjaxAction } from './functions/runAjaxAction.js';
 import { applyServerExportUrls } from './functions/serverExport.js';
 import { submitEditForm } from './functions/submitEditForm.js';
@@ -118,7 +118,8 @@ class default_1 extends Controller {
             new ApiPlatformAdapter(columns).configure(payload);
         }
         this.configureColumns(payload);
-        if (hasLucideIcons(payload.columns)) {
+        if (hasLucideIcons(payload.columns) ||
+            hasLucideIconsInActions(payload.bulkActions?.actions)) {
             await loadLucideIcons();
         }
         const urlStateCfg = isUrlStateEnabled(payload);

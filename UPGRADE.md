@@ -59,7 +59,8 @@ Two details are worth checking in an existing application:
 
 - **Rows of a table with bulk actions always carry a `DT_RowId`.** It was previously written only
   for `highlightUpdates()`. The selection needs a key that survives the redraw server-side paging
-  forces. Configure which field it reads with `BulkActions::setIdField()`.
+  forces. The bundle detects a single Doctrine identifier automatically; configure another field
+  with `BulkActions::setIdField()` when no Doctrine metadata is available.
 
 A custom data provider can opt into "select every matching row" by implementing
 `IdentifierCollectingDataProviderInterface`; `DoctrineDataProvider` already does. Without it, a

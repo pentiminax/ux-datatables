@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hasLucideIcons } from '../lucideIcons.js'
+import { hasLucideIcons, hasLucideIconsInActions } from '../lucideIcons.js'
 
 describe('hasLucideIcons', () => {
     it('detects an icon column', () => {
@@ -29,5 +29,10 @@ describe('hasLucideIcons', () => {
     it('ignores malformed columns and blank Lucide icon names', () => {
         expect(hasLucideIcons([null, {}, { actions: 'invalid' }])).toBe(false)
         expect(hasLucideIcons([{ actions: [{ lucideIcon: '   ' }] }])).toBe(false)
+    })
+
+    it('detects a Lucide bulk action', () => {
+        expect(hasLucideIconsInActions([{ name: 'approve', lucideIcon: 'check' }])).toBe(true)
+        expect(hasLucideIconsInActions([{ name: 'approve', icon: 'bi bi-check' }])).toBe(false)
     })
 })
