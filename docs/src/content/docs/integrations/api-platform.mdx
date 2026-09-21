@@ -20,7 +20,7 @@ Add `apiPlatform: true` to the attribute on your DataTable class. This enables:
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 
-#[AsDataTable(entityClass: Book::class, apiPlatform: true)]
+#[AsDataTable(dataClass: Book::class, apiPlatform: true)]
 class BookDataTable extends AbstractDataTable
 {
 }
@@ -46,7 +46,7 @@ When `apiPlatform(true)` is called in `configureDataTable()` but no explicit `aj
 
 ## Ajax auto-wiring (attribute opt-in only)
 
-When `#[AsDataTable(entityClass: Book::class, apiPlatform: true)]` is present and no explicit `ajax()` or `data()` option has been set, the bundle resolves the API Platform collection URL and configures Ajax automatically.
+When `#[AsDataTable(dataClass: Book::class, apiPlatform: true)]` is present and no explicit `ajax()` or `data()` option has been set, the bundle resolves the API Platform collection URL and configures Ajax automatically.
 
 <Table
   headers={['Option', 'Value']}
