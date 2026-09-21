@@ -16,7 +16,6 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
-use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\Form\FormInterface;
@@ -134,23 +133,13 @@ final class EditFormService
             return null;
         }
 
-        return $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
-            $dataTable->dataTableClass,
-            $action,
-            null,
-            false,
-        )) ? $action : null;
+        return $this->permissionChecker->canExecuteAction($dataTable->dataTableClass, $action) ? $action : null;
     }
 
     private function isGranted(ResolvedDataTable $dataTable, Action $action, object $entity): bool
     {
         return $this->permissionChecker->isGranted(Permission::DT_EDIT_ROW, $entity)
-            && $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
-                $dataTable->dataTableClass,
-                $action,
-                $entity,
-                true,
-            ));
+            && $this->permissionChecker->canExecuteActionOnRow($dataTable->dataTableClass, $action, $entity);
     }
 
     private function createRenderRequest(
