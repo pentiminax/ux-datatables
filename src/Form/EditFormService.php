@@ -17,7 +17,6 @@ use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
-use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\Form\FormInterface;
 
 final class EditFormService
@@ -111,8 +110,10 @@ final class EditFormService
 
     private function buildForm(ResolvedDataTable $dataTable, MutationContext $context): FormInterface
     {
+        $resolvedColumns = $this->templateResolver->resolveColumns($dataTable->dataTableClass);
+
         $columns = (new ColumnResolver(permissionChecker: $this->permissionChecker))
-            ->filterStaticPermissions($this->templateResolver->resolveColumns($dataTable->dataTableClass), $dataTable->dataTableClass);
+            ->filterStaticPermissions($resolvedColumns, $dataTable->dataTableClass);
 
         $identifierFields = $context->manager
             ->getClassMetadata($dataTable->requireEntityClass())
@@ -138,7 +139,7 @@ final class EditFormService
 
     private function isGranted(ResolvedDataTable $dataTable, Action $action, object $entity): bool
     {
-        return $this->permissionChecker->isGranted(Permission::DT_EDIT_ROW, $entity)
+        return $this->permissionChecker->canEditRow($entity)
             && $this->permissionChecker->canExecuteActionOnRow($dataTable->dataTableClass, $action, $entity);
     }
 
