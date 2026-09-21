@@ -66,8 +66,8 @@ final class BulkActionRunner
         );
 
         $records = new BulkRecords(
-            fn (): \Generator => $this->walk($manager, $entityClass, $identifier, $ids, $action, $context),
-            \count($ids),
+            entities: fn (): \Generator => $this->walk($manager, $entityClass, $identifier, $ids, $action, $context),
+            selectedCount: \count($ids),
         );
 
         $handler = $action->getHandler()
@@ -125,12 +125,14 @@ final class BulkActionRunner
 
     private function isGranted(BulkAction $action, object $entity, string $dataTableClass): bool
     {
-        return $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
-            $dataTableClass,
-            $action,
-            $entity,
-            true,
-        ));
+        $context = new ActionPermissionContext(
+            dataTableClass: $dataTableClass,
+            action: $action,
+            currentSource: $entity,
+            hasRowContext: true,
+        );
+
+        return $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, $context);
     }
 
     /**
