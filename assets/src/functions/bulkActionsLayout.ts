@@ -8,7 +8,7 @@ export interface BulkActionsLayoutEntry {
 export function applyBulkActionsLayout(
     payload: Record<string, any>,
     instance: BulkActionBar,
-    position = 'topStart'
+    position = 'topEnd'
 ): void {
     applyFeatureLayout(payload, 'bulkActions', { bulkActions: { instance } }, { position })
 }

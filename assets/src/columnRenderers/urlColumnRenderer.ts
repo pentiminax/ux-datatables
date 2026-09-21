@@ -37,7 +37,8 @@ export const urlColumnRenderer: ColumnRenderer = {
             }
 
             const key = column.data ?? column.name
-            const resolvedHref = typeof key === 'string' ? row.__ux_datatables_urls?.[key] : undefined
+            const resolvedHref =
+                typeof key === 'string' ? row.__ux_datatables_urls?.[key] : undefined
 
             // A column bound to linkToRoute()/linkToUrl() only ever gets its href from the
             // resolver — the cell's `data` is a display field (e.g. a name), never a URL. When

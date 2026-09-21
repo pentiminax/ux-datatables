@@ -32,6 +32,7 @@ final class RenderingPreparer
      * @var array<string, string>
      */
     private const array BULK_LABEL_KEYS = [
+        'trigger'             => 'bulk.bar.trigger',
         'selected'            => 'bulk.bar.selected',
         'selectAllMatching'   => 'bulk.bar.selectAllMatching',
         'allMatchingSelected' => 'bulk.bar.allMatchingSelected',

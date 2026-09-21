@@ -598,6 +598,7 @@ final class RenderingPreparerTest extends TestCase
         $bulk = $table->getOptions()['bulkActions'];
 
         $this->assertSame('/datatables/ajax/bulk', $bulk['url']);
+        $this->assertSame('tr:bulk.bar.trigger', $bulk['labels']['trigger']);
         $this->assertSame('tr:bulk.bar.selected', $bulk['labels']['selected']);
         $this->assertSame('tr:bulk.bar.skipped', $bulk['labels']['skipped']);
     }

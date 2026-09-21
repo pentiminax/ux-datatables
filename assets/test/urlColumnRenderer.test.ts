@@ -2,158 +2,166 @@ import { describe, expect, it } from 'vitest'
 import { urlColumnRenderer } from '../src/columnRenderers/urlColumnRenderer'
 
 describe('urlColumnRenderer', () => {
-  it('matches URL columns', () => {
-    expect(urlColumnRenderer.matches({ customOptions: { isUrl: true } })).toBe(true)
-  })
-
-  it('matches columns with target in customOptions', () => {
-    expect(urlColumnRenderer.matches({ customOptions: { target: '_blank' } })).toBe(true)
-  })
-
-  it('matches columns with displayValue in customOptions', () => {
-    expect(urlColumnRenderer.matches({ customOptions: { displayValue: 'View' } })).toBe(true)
-  })
-
-  it('matches columns with showExternalIcon in customOptions', () => {
-    expect(urlColumnRenderer.matches({ customOptions: { showExternalIcon: true } })).toBe(true)
-  })
-
-  it('matches columns with protocol options in customOptions', () => {
-    expect(urlColumnRenderer.matches({ customOptions: { defaultProtocol: 'https' } })).toBe(true)
-    expect(urlColumnRenderer.matches({ customOptions: { allowedProtocols: ['https'] } })).toBe(true)
-  })
-
-  it('does not match plain columns', () => {
-    expect(urlColumnRenderer.matches({ data: 'name' })).toBe(false)
-  })
-
-  describe('configure', () => {
-    it('returns raw data for non-display types', () => {
-      const column: Record<string, any> = { customOptions: { target: '_blank' } }
-      urlColumnRenderer.configure(column)
-      expect(column.render('https://example.com', 'filter', {})).toBe('https://example.com')
+    it('matches URL columns', () => {
+        expect(urlColumnRenderer.matches({ customOptions: { isUrl: true } })).toBe(true)
     })
 
-    it('renders an anchor tag from raw data URL', () => {
-      const column: Record<string, any> = { customOptions: {} }
-      urlColumnRenderer.configure(column)
-      const html = column.render('https://example.com', 'display', {})
-      expect(html).toBe('<a href="https://example.com">https://example.com</a>')
+    it('matches columns with target in customOptions', () => {
+        expect(urlColumnRenderer.matches({ customOptions: { target: '_blank' } })).toBe(true)
     })
 
-    it('uses resolved row URL metadata as href', () => {
-      const column: Record<string, any> = {
-        customOptions: { isUrl: true },
-        data: 'profile',
-      }
-      urlColumnRenderer.configure(column)
-      const html = column.render('Jane', 'display', {
-        __ux_datatables_urls: { profile: '/users/7' },
-      })
-      expect(html).toBe('<a href="/users/7">Jane</a>')
+    it('matches columns with displayValue in customOptions', () => {
+        expect(urlColumnRenderer.matches({ customOptions: { displayValue: 'View' } })).toBe(true)
     })
 
-    it('renders a custom display value', () => {
-      const column: Record<string, any> = { customOptions: { displayValue: 'View Profile' } }
-      urlColumnRenderer.configure(column)
-      const html = column.render('https://example.com', 'display', {})
-      expect(html).toContain('View Profile')
+    it('matches columns with showExternalIcon in customOptions', () => {
+        expect(urlColumnRenderer.matches({ customOptions: { showExternalIcon: true } })).toBe(true)
     })
 
-    it('adds target attribute when target is set', () => {
-      const column: Record<string, any> = { customOptions: { target: '_blank' } }
-      urlColumnRenderer.configure(column)
-      const html = column.render('https://example.com', 'display', {})
-      expect(html).toContain('target="_blank"')
+    it('matches columns with protocol options in customOptions', () => {
+        expect(urlColumnRenderer.matches({ customOptions: { defaultProtocol: 'https' } })).toBe(
+            true
+        )
+        expect(urlColumnRenderer.matches({ customOptions: { allowedProtocols: ['https'] } })).toBe(
+            true
+        )
     })
 
-    it('adds rel="noopener noreferrer" for target _blank', () => {
-      const column: Record<string, any> = { customOptions: { target: '_blank' } }
-      urlColumnRenderer.configure(column)
-      const html = column.render('https://example.com', 'display', {})
-      expect(html).toContain('rel="noopener noreferrer"')
+    it('does not match plain columns', () => {
+        expect(urlColumnRenderer.matches({ data: 'name' })).toBe(false)
     })
 
-    it('does not add rel for other targets', () => {
-      const column: Record<string, any> = { customOptions: { target: '_self' } }
-      urlColumnRenderer.configure(column)
-      const html = column.render('https://example.com', 'display', {})
-      expect(html).not.toContain('rel=')
-    })
+    describe('configure', () => {
+        it('returns raw data for non-display types', () => {
+            const column: Record<string, any> = { customOptions: { target: '_blank' } }
+            urlColumnRenderer.configure(column)
+            expect(column.render('https://example.com', 'filter', {})).toBe('https://example.com')
+        })
 
-    it('appends the external icon when showExternalIcon is true', () => {
-      const column: Record<string, any> = { customOptions: { showExternalIcon: true } }
-      urlColumnRenderer.configure(column)
-      const html = column.render('https://example.com', 'display', {})
-      expect(html).toContain('<span aria-label="external link">&#x2197;</span>')
-    })
+        it('renders an anchor tag from raw data URL', () => {
+            const column: Record<string, any> = { customOptions: {} }
+            urlColumnRenderer.configure(column)
+            const html = column.render('https://example.com', 'display', {})
+            expect(html).toBe('<a href="https://example.com">https://example.com</a>')
+        })
 
-    it('prepends the default protocol when the URL has no protocol', () => {
-      const column: Record<string, any> = { customOptions: { defaultProtocol: 'https' } }
-      urlColumnRenderer.configure(column)
-      const html = column.render('example.com', 'display', {})
-      expect(html).toBe('<a href="https://example.com">example.com</a>')
-    })
+        it('uses resolved row URL metadata as href', () => {
+            const column: Record<string, any> = {
+                customOptions: { isUrl: true },
+                data: 'profile',
+            }
+            urlColumnRenderer.configure(column)
+            const html = column.render('Jane', 'display', {
+                __ux_datatables_urls: { profile: '/users/7' },
+            })
+            expect(html).toBe('<a href="/users/7">Jane</a>')
+        })
 
-    it('does not prepend the default protocol to existing protocols', () => {
-      const column: Record<string, any> = { customOptions: { defaultProtocol: 'https' } }
-      urlColumnRenderer.configure(column)
-      const html = column.render('ftp://example.com/file', 'display', {})
-      expect(html).toBe('<a href="ftp://example.com/file">ftp://example.com/file</a>')
-    })
+        it('renders a custom display value', () => {
+            const column: Record<string, any> = { customOptions: { displayValue: 'View Profile' } }
+            urlColumnRenderer.configure(column)
+            const html = column.render('https://example.com', 'display', {})
+            expect(html).toContain('View Profile')
+        })
 
-    it('renders URLs with allowed protocols as links', () => {
-      const column: Record<string, any> = { customOptions: { allowedProtocols: ['http', 'https'] } }
-      urlColumnRenderer.configure(column)
-      const html = column.render('https://example.com', 'display', {})
-      expect(html).toBe('<a href="https://example.com">https://example.com</a>')
-    })
+        it('adds target attribute when target is set', () => {
+            const column: Record<string, any> = { customOptions: { target: '_blank' } }
+            urlColumnRenderer.configure(column)
+            const html = column.render('https://example.com', 'display', {})
+            expect(html).toContain('target="_blank"')
+        })
 
-    it('renders URLs with disallowed protocols as plain text', () => {
-      const column: Record<string, any> = { customOptions: { allowedProtocols: ['http', 'https'] } }
-      urlColumnRenderer.configure(column)
-      const result = column.render('ftp://example.com/file', 'display', {})
-      expect(result).not.toContain('<a')
-      expect(result).toBe('ftp://example.com/file')
-    })
+        it('adds rel="noopener noreferrer" for target _blank', () => {
+            const column: Record<string, any> = { customOptions: { target: '_blank' } }
+            urlColumnRenderer.configure(column)
+            const html = column.render('https://example.com', 'display', {})
+            expect(html).toContain('rel="noopener noreferrer"')
+        })
 
-    it('renders relative and fragment hrefs as links when an allowlist is set', () => {
-      const column: Record<string, any> = { customOptions: { allowedProtocols: ['https'] } }
-      urlColumnRenderer.configure(column)
-      expect(column.render('/users/7', 'display', {})).toBe('<a href="/users/7">/users/7</a>')
-      expect(column.render('#section', 'display', {})).toBe('<a href="#section">#section</a>')
-    })
+        it('does not add rel for other targets', () => {
+            const column: Record<string, any> = { customOptions: { target: '_self' } }
+            urlColumnRenderer.configure(column)
+            const html = column.render('https://example.com', 'display', {})
+            expect(html).not.toContain('rel=')
+        })
 
-    it('applies the default protocol before checking allowed protocols', () => {
-      const column: Record<string, any> = {
-        customOptions: { defaultProtocol: 'https', allowedProtocols: ['https'] },
-      }
-      urlColumnRenderer.configure(column)
-      const html = column.render('example.com', 'display', {})
-      expect(html).toBe('<a href="https://example.com">example.com</a>')
-    })
+        it('appends the external icon when showExternalIcon is true', () => {
+            const column: Record<string, any> = { customOptions: { showExternalIcon: true } }
+            urlColumnRenderer.configure(column)
+            const html = column.render('https://example.com', 'display', {})
+            expect(html).toContain('<span aria-label="external link">&#x2197;</span>')
+        })
 
-    it('escapes unsafe javascript: URLs and returns plain text', () => {
-      const column: Record<string, any> = { customOptions: {} }
-      urlColumnRenderer.configure(column)
-      const result = column.render('javascript:alert(1)', 'display', {})
-      expect(result).not.toContain('<a')
-      expect(result).toBe('javascript:alert(1)')
-    })
+        it('prepends the default protocol when the URL has no protocol', () => {
+            const column: Record<string, any> = { customOptions: { defaultProtocol: 'https' } }
+            urlColumnRenderer.configure(column)
+            const html = column.render('example.com', 'display', {})
+            expect(html).toBe('<a href="https://example.com">example.com</a>')
+        })
 
-    it('escapes unsafe data: URLs and returns plain text', () => {
-      const column: Record<string, any> = { customOptions: {} }
-      urlColumnRenderer.configure(column)
-      const result = column.render('data:text/html,<h1>x</h1>', 'display', {})
-      expect(result).not.toContain('<a')
-    })
+        it('does not prepend the default protocol to existing protocols', () => {
+            const column: Record<string, any> = { customOptions: { defaultProtocol: 'https' } }
+            urlColumnRenderer.configure(column)
+            const html = column.render('ftp://example.com/file', 'display', {})
+            expect(html).toBe('<a href="ftp://example.com/file">ftp://example.com/file</a>')
+        })
 
-    it('escapes HTML in the display value', () => {
-      const column: Record<string, any> = { customOptions: { displayValue: '<b>click</b>' } }
-      urlColumnRenderer.configure(column)
-      const html = column.render('https://example.com', 'display', {})
-      expect(html).toContain('&lt;b&gt;click&lt;/b&gt;')
-      expect(html).not.toContain('<b>')
+        it('renders URLs with allowed protocols as links', () => {
+            const column: Record<string, any> = {
+                customOptions: { allowedProtocols: ['http', 'https'] },
+            }
+            urlColumnRenderer.configure(column)
+            const html = column.render('https://example.com', 'display', {})
+            expect(html).toBe('<a href="https://example.com">https://example.com</a>')
+        })
+
+        it('renders URLs with disallowed protocols as plain text', () => {
+            const column: Record<string, any> = {
+                customOptions: { allowedProtocols: ['http', 'https'] },
+            }
+            urlColumnRenderer.configure(column)
+            const result = column.render('ftp://example.com/file', 'display', {})
+            expect(result).not.toContain('<a')
+            expect(result).toBe('ftp://example.com/file')
+        })
+
+        it('renders relative and fragment hrefs as links when an allowlist is set', () => {
+            const column: Record<string, any> = { customOptions: { allowedProtocols: ['https'] } }
+            urlColumnRenderer.configure(column)
+            expect(column.render('/users/7', 'display', {})).toBe('<a href="/users/7">/users/7</a>')
+            expect(column.render('#section', 'display', {})).toBe('<a href="#section">#section</a>')
+        })
+
+        it('applies the default protocol before checking allowed protocols', () => {
+            const column: Record<string, any> = {
+                customOptions: { defaultProtocol: 'https', allowedProtocols: ['https'] },
+            }
+            urlColumnRenderer.configure(column)
+            const html = column.render('example.com', 'display', {})
+            expect(html).toBe('<a href="https://example.com">example.com</a>')
+        })
+
+        it('escapes unsafe javascript: URLs and returns plain text', () => {
+            const column: Record<string, any> = { customOptions: {} }
+            urlColumnRenderer.configure(column)
+            const result = column.render('javascript:alert(1)', 'display', {})
+            expect(result).not.toContain('<a')
+            expect(result).toBe('javascript:alert(1)')
+        })
+
+        it('escapes unsafe data: URLs and returns plain text', () => {
+            const column: Record<string, any> = { customOptions: {} }
+            urlColumnRenderer.configure(column)
+            const result = column.render('data:text/html,<h1>x</h1>', 'display', {})
+            expect(result).not.toContain('<a')
+        })
+
+        it('escapes HTML in the display value', () => {
+            const column: Record<string, any> = { customOptions: { displayValue: '<b>click</b>' } }
+            urlColumnRenderer.configure(column)
+            const html = column.render('https://example.com', 'display', {})
+            expect(html).toContain('&lt;b&gt;click&lt;/b&gt;')
+            expect(html).not.toContain('<b>')
+        })
     })
-  })
 })

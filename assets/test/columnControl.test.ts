@@ -49,10 +49,7 @@ describe('normalizeDisabledColumnControls', () => {
     })
 
     it('leaves columns without an empty ColumnControl override unchanged', () => {
-        const columns = [
-            { name: 'enabled' },
-            { name: 'custom', columnControl: ['searchList'] },
-        ]
+        const columns = [{ name: 'enabled' }, { name: 'custom', columnControl: ['searchList'] }]
         const payload = {
             columnControl: [{ target: 1, content: ['search'] }],
             columns,

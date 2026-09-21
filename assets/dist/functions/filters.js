@@ -1,3 +1,4 @@
+import { createPopover } from './popover.js';
 const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
 function isPlainRecord(value) {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -41,7 +42,7 @@ export class FilterBar {
         this.controls = [];
         this.applied = {};
         this.reload = () => { };
-        this.documentClickHandler = null;
+        this.popoverController = null;
         this.definitions = payload.filters ?? [];
         this.labels = payload.filterLabels ?? {};
         this.wrapper = document.createElement('div');
@@ -123,7 +124,12 @@ export class FilterBar {
         }
         this.popover.appendChild(body);
         this.popover.appendChild(this.buildFooter());
-        this.toggle.addEventListener('click', () => this.togglePopover());
+        this.popoverController = createPopover({
+            wrapper: this.wrapper,
+            panel: this.popover,
+            toggle: this.toggle,
+        });
+        this.toggle.addEventListener('click', () => this.popoverController?.toggle());
         return this.wrapper;
     }
     buildHeader() {
@@ -155,7 +161,7 @@ export class FilterBar {
     applyFilters() {
         this.applied = this.snapshot();
         this.updateBadge();
-        this.closePopover();
+        this.popoverController?.close();
         this.reload();
     }
     resetFilters() {
@@ -170,32 +176,6 @@ export class FilterBar {
         const count = Object.keys(this.applied).length;
         this.badge.textContent = String(count);
         this.toggle.classList.toggle('dt-filters-toggle--active', count > 0);
-    }
-    togglePopover() {
-        if (this.popover.hidden) {
-            this.openPopover();
-        }
-        else {
-            this.closePopover();
-        }
-    }
-    openPopover() {
-        this.popover.hidden = false;
-        this.toggle.setAttribute('aria-expanded', 'true');
-        this.documentClickHandler = (event) => {
-            if (!this.wrapper.contains(event.target)) {
-                this.closePopover();
-            }
-        };
-        document.addEventListener('mousedown', this.documentClickHandler);
-    }
-    closePopover() {
-        this.popover.hidden = true;
-        this.toggle.setAttribute('aria-expanded', 'false');
-        if (this.documentClickHandler) {
-            document.removeEventListener('mousedown', this.documentClickHandler);
-            this.documentClickHandler = null;
-        }
     }
     buildControl(definition) {
         const wrapper = document.createElement('div');
@@ -292,7 +272,9 @@ export class FilterBar {
     }
     buildDateRange(definition, wrapper) {
         const group = document.createElement('div');
-        group.className = isBootstrap(this.framework) ? 'dt-filter-range d-flex gap-1' : 'dt-filter-range';
+        group.className = isBootstrap(this.framework)
+            ? 'dt-filter-range d-flex gap-1'
+            : 'dt-filter-range';
         const from = document.createElement('input');
         from.type = 'date';
         from.className = inputClass(this.framework);

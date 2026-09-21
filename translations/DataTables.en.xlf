@@ -18,21 +18,25 @@
                 <source>filter.bar.all</source>
                 <target>All</target>
             </trans-unit>
+            <trans-unit id="bulk.bar.trigger">
+                <source>bulk.bar.trigger</source>
+                <target>Bulk actions</target>
+            </trans-unit>
             <trans-unit id="bulk.bar.selected">
                 <source>bulk.bar.selected</source>
-                <target>{count} rows selected</target>
+                <target>{count} records selected</target>
             </trans-unit>
             <trans-unit id="bulk.bar.selectAllMatching">
                 <source>bulk.bar.selectAllMatching</source>
-                <target>Select all {total} matching rows</target>
+                <target>Select all {count}</target>
             </trans-unit>
             <trans-unit id="bulk.bar.allMatchingSelected">
                 <source>bulk.bar.allMatchingSelected</source>
-                <target>All {total} matching rows are selected</target>
+                <target>All {count} records selected</target>
             </trans-unit>
             <trans-unit id="bulk.bar.clear">
                 <source>bulk.bar.clear</source>
-                <target>Clear selection</target>
+                <target>Deselect all</target>
             </trans-unit>
             <trans-unit id="bulk.bar.confirm">
                 <source>bulk.bar.confirm</source>

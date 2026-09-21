@@ -31,7 +31,7 @@ public function configureBulkActions(BulkActions $actions): BulkActions
 ```
 
 Nothing changes for a table that declares none. A table that declares one gains a checkbox
-selection, a contextual bar, and a `POST /datatables/ajax/bulk` route — protect it with your own
+selection, a **Bulk actions** button above the table, and a `POST /datatables/ajax/bulk` route — protect it with your own
 `security.firewalls` configuration like every other bundle Ajax route. See
 [Bulk Actions](https://pentiminax.github.io/ux-datatables/features/bulk-actions/).
 

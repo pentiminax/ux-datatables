@@ -68,21 +68,19 @@ describe('DataTables extension package resolution', () => {
                 packageKey,
             }))
         )
-    )('resolves real $name JS and CSS files for $framework', ({
-        framework,
-        cssSuffix,
-        packageKey,
-        fileBase,
-    }) => {
-        const { js, css } = specifiersFor(packageKey, fileBase, framework, cssSuffix)
+    )(
+        'resolves real $name JS and CSS files for $framework',
+        ({ framework, cssSuffix, packageKey, fileBase }) => {
+            const { js, css } = specifiersFor(packageKey, fileBase, framework, cssSuffix)
 
-        expect(import.meta.resolve(js)).toContain(`/node_modules/${js}/`)
-        expect(import.meta.resolve(css)).toContain(
-            `/node_modules/datatables.net-${packageKey}-${framework}/css/`
-        )
-        expect(existsSync(fileURLToPath(import.meta.resolve(js)))).toBe(true)
-        expect(existsSync(fileURLToPath(import.meta.resolve(css)))).toBe(true)
-    })
+            expect(import.meta.resolve(js)).toContain(`/node_modules/${js}/`)
+            expect(import.meta.resolve(css)).toContain(
+                `/node_modules/datatables.net-${packageKey}-${framework}/css/`
+            )
+            expect(existsSync(fileURLToPath(import.meta.resolve(js)))).toBe(true)
+            expect(existsSync(fileURLToPath(import.meta.resolve(css)))).toBe(true)
+        }
+    )
 
     it.each(
         registryExtensions.flatMap(({ name, packageKey, fileBase }) =>
@@ -94,25 +92,22 @@ describe('DataTables extension package resolution', () => {
                 packageKey,
             }))
         )
-    )('loads JS and CSS specifiers for $name on $framework', async ({
-        framework,
-        cssSuffix,
-        name,
-        packageKey,
-        fileBase,
-    }) => {
-        const loaded: string[] = []
-        const { js, css } = specifiersFor(packageKey, fileBase, framework, cssSuffix)
+    )(
+        'loads JS and CSS specifiers for $name on $framework',
+        async ({ framework, cssSuffix, name, packageKey, fileBase }) => {
+            const loaded: string[] = []
+            const { js, css } = specifiersFor(packageKey, fileBase, framework, cssSuffix)
 
-        mockSpecifier(js, loaded)
-        mockSpecifier(css, loaded)
+            mockSpecifier(js, loaded)
+            mockSpecifier(css, loaded)
 
-        const { ExtensionRegistry } = await import('../extensionRegistry.js')
+            const { ExtensionRegistry } = await import('../extensionRegistry.js')
 
-        await ExtensionRegistry.load(name, framework)
+            await ExtensionRegistry.load(name, framework)
 
-        expect(loaded).toEqual([js, css])
-    })
+            expect(loaded).toEqual([js, css])
+        }
+    )
 
     it('rejects unknown extension names before importing a bundle', async () => {
         const { ExtensionRegistry } = await import('../extensionRegistry.js')

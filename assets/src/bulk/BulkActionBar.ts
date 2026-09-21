@@ -1,5 +1,5 @@
+import { createPopover, type Popover } from '../functions/popover.js'
 import { runBulkAction } from '../functions/runBulkAction.js'
-import { renderLucideIcon } from '../functions/lucideIcons.js'
 import type { StyleFramework } from '../types/styleFramework.js'
 import { confirmBulkAction } from './confirmModal.js'
 import { type SelectionSnapshot, SelectionStore } from './selectionStore.js'
@@ -18,6 +18,7 @@ export interface BulkActionDefinition {
 }
 
 export interface BulkActionLabels {
+    trigger?: string
     selected?: string
     selectAllMatching?: string
     allMatchingSelected?: string
@@ -38,6 +39,11 @@ export interface BulkActionsConfig {
 
 const BOOTSTRAP_FRAMEWORKS: StyleFramework[] = ['bs', 'bs4', 'bs5']
 
+const KEBAB_ICON =
+    '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="dt-bulk-trigger__icon">' +
+    '<circle cx="10" cy="4" r="1.6" /><circle cx="10" cy="10" r="1.6" />' +
+    '<circle cx="10" cy="16" r="1.6" /></svg>'
+
 export function hasBulkActions(payload: Record<string, any>): boolean {
     const config = payload?.bulkActions
 
@@ -54,27 +60,29 @@ export function getBulkActionsConfig(payload: Record<string, any>): BulkActionsC
 }
 
 /**
- * The contextual bar that appears once rows are selected.
+ * The bulk action trigger, its dropdown, and the selection band below the toolbar row.
  *
- * It only reports what the user picked; the server re-authorizes every row before the handler
+ * The bar only reports what the user picked; the server re-authorizes every row before the handler
  * sees it, so a forged selection buys nothing.
  */
 export class BulkActionBar {
     private readonly config: BulkActionsConfig
     private readonly labels: BulkActionLabels
     private readonly wrapper: HTMLDivElement
-    private readonly counter: HTMLSpanElement
-    private readonly actionsWrapper: HTMLDivElement
+    private readonly trigger: HTMLButtonElement
+    private readonly menu: HTMLDivElement
+    private readonly summary: HTMLDivElement
+    private readonly summaryCount: HTMLSpanElement
     private readonly selectAllButton: HTMLButtonElement
     private readonly clearButton: HTMLButtonElement
-    private readonly status: HTMLSpanElement
     private readonly dataTable: string
     private readonly csrfToken?: string
     private readonly mutationsEnabled: boolean
-    private readonly modalAdapterKey: string | null
+    private popover: Popover | null = null
     private store: SelectionStore | null = null
     private api: any = null
     private running = false
+    private resultMessage: string | null = null
 
     constructor(
         payload: Record<string, any>,
@@ -92,40 +100,50 @@ export class BulkActionBar {
                 ? payload.csrfToken
                 : undefined
         this.mutationsEnabled = payload.mutationsEnabled === true
-        this.modalAdapterKey =
-            typeof payload.editModal?.adapter === 'string' ? payload.editModal.adapter : null
 
         this.wrapper = document.createElement('div')
-        this.wrapper.className = 'dt-bulk-bar'
-        this.wrapper.hidden = true
-        this.wrapper.setAttribute('role', 'toolbar')
-        this.wrapper.setAttribute('aria-label', this.labels.selected ?? 'Selected rows')
+        this.wrapper.className = 'dt-bulk'
 
-        this.counter = document.createElement('span')
-        this.counter.className = 'dt-bulk-bar__count'
+        this.trigger = document.createElement('button')
+        this.trigger.type = 'button'
+        this.trigger.className = this.buttonClass('dt-bulk-trigger')
+        this.trigger.disabled = true
+        this.trigger.setAttribute('aria-haspopup', 'menu')
+        this.trigger.setAttribute('aria-expanded', 'false')
+        this.trigger.innerHTML = KEBAB_ICON
+        this.trigger.appendChild(document.createTextNode(this.labels.trigger ?? 'Bulk actions'))
 
-        this.selectAllButton = this.createButton(
-            this.labels.selectAllMatching ?? 'Select all matching',
-            'dt-bulk-bar__select-all'
+        this.menu = document.createElement('div')
+        this.menu.className = 'dt-bulk-menu'
+        this.menu.setAttribute('role', 'menu')
+        this.menu.hidden = true
+
+        this.wrapper.append(this.trigger, this.menu)
+
+        this.summary = document.createElement('div')
+        this.summary.className = 'dt-layout-row dt-layout-full dt-bulk-summary'
+        this.setSummaryEmpty(true)
+
+        this.summaryCount = document.createElement('span')
+        this.summaryCount.className = 'dt-bulk-summary__count'
+        this.summaryCount.setAttribute('role', 'status')
+
+        this.selectAllButton = this.createLink(
+            this.labels.selectAllMatching ?? 'Select all {count}',
+            'dt-bulk-summary__select-all'
         )
         this.selectAllButton.hidden = true
 
-        this.clearButton = this.createButton(this.labels.clear ?? 'Clear', 'dt-bulk-bar__clear')
-
-        this.actionsWrapper = document.createElement('div')
-        this.actionsWrapper.className = 'dt-bulk-bar__actions'
-
-        this.status = document.createElement('span')
-        this.status.className = 'dt-bulk-bar__status'
-        this.status.setAttribute('role', 'status')
-
-        this.wrapper.append(
-            this.counter,
-            this.selectAllButton,
-            this.clearButton,
-            this.actionsWrapper,
-            this.status
+        this.clearButton = this.createLink(
+            this.labels.clear ?? 'Deselect all',
+            'dt-bulk-summary__clear'
         )
+
+        const summaryActions = document.createElement('div')
+        summaryActions.className = 'dt-bulk-summary__actions'
+        summaryActions.append(this.selectAllButton, this.clearButton)
+
+        this.summary.append(this.summaryCount, summaryActions)
     }
 
     render(api: any): HTMLElement {
@@ -133,58 +151,118 @@ export class BulkActionBar {
         this.store = new SelectionStore(api)
 
         for (const action of this.config.actions) {
-            this.actionsWrapper.appendChild(this.createActionButton(action))
+            this.menu.appendChild(this.createMenuItem(action))
         }
 
+        this.popover = createPopover({
+            wrapper: this.wrapper,
+            panel: this.menu,
+            toggle: this.trigger,
+        })
+
+        this.trigger.addEventListener('click', () => this.popover?.toggle())
         this.selectAllButton.addEventListener('click', () => this.store?.selectAllMatching())
         this.clearButton.addEventListener('click', () => this.store?.clear())
 
         this.store.attach((snapshot) => this.update(snapshot))
 
+        // The feature runs while DataTables builds the layout, so the wrapper has no parent yet.
+        queueMicrotask(() => this.mountSummary())
+
         return this.wrapper
     }
 
+    /**
+     * Put the selection band directly above the table, below every toolbar row.
+     *
+     * DataTables sorts a `full` layout row *above* the `topStart`/`topEnd` row of the same number,
+     * so the layout option cannot place the band under the toolbar; the DOM can.
+     */
+    private mountSummary(): void {
+        if (this.summary.isConnected) {
+            return
+        }
+
+        const container =
+            this.wrapper.closest('.dt-container') ??
+            (this.api?.table?.().container?.() as HTMLElement | null | undefined)
+
+        // The table row does not exist while the features render, so the mount happens on the
+        // microtask queued at render time or, failing that, on the draw that follows.
+        const tableRow = container?.querySelector('.dt-layout-table')
+
+        tableRow?.parentNode?.insertBefore(this.summary, tableRow)
+    }
+
     private update(snapshot: SelectionSnapshot): void {
-        this.wrapper.hidden = snapshot.count === 0
-        this.counter.textContent = (this.labels.selected ?? '{count} selected').replace(
-            '{count}',
-            String(snapshot.count)
-        )
+        this.mountSummary()
+        this.trigger.disabled = snapshot.count === 0 || !this.canRun()
+
+        if (snapshot.count === 0) {
+            this.popover?.close()
+        }
+
+        this.setSummaryEmpty(snapshot.count === 0 && this.resultMessage === null)
+        this.summaryCount.textContent = this.resultMessage ?? this.countLabel(snapshot)
 
         this.selectAllButton.hidden =
             this.config.selectCurrentPageOnly === true ||
             snapshot.allMatching ||
             snapshot.count === 0 ||
             snapshot.count >= snapshot.totalCount
+        this.selectAllButton.textContent = (
+            this.labels.selectAllMatching ?? 'Select all {count}'
+        ).replace('{count}', String(snapshot.totalCount))
 
-        if (snapshot.allMatching) {
-            this.status.textContent = (
-                this.labels.allMatchingSelected ?? '{count} rows selected across every page'
-            ).replace('{count}', String(snapshot.count))
-        }
+        this.clearButton.hidden = snapshot.count === 0
     }
 
-    private createActionButton(action: BulkActionDefinition): HTMLButtonElement {
-        const button = this.createButton(
+    /**
+     * Reserve the band's height while it has nothing to say.
+     *
+     * The `hidden` attribute cannot do this: Tailwind's preflight declares `display: none` on it
+     * with `!important`, so the band would leave the flow and resize the table on every selection.
+     */
+    private setSummaryEmpty(empty: boolean): void {
+        this.summary.classList.toggle('dt-bulk-summary--empty', empty)
+    }
+
+    private countLabel(snapshot: SelectionSnapshot): string {
+        const template = snapshot.allMatching
+            ? (this.labels.allMatchingSelected ?? '{count} records selected across every page')
+            : (this.labels.selected ?? '{count} records selected')
+
+        return template.replace('{count}', String(snapshot.count))
+    }
+
+    private canRun(): boolean {
+        return this.mutationsEnabled && !!this.config.url
+    }
+
+    private createMenuItem(action: BulkActionDefinition): HTMLButtonElement {
+        const item = this.createButton(
             action.label,
-            action.className ?? 'dt-bulk-bar__action',
-            action.icon,
-            action.lucideIcon
+            `dt-bulk-menu__item ${action.className ?? ''}`.trim(),
+            action.icon
         )
-        button.dataset.bulkAction = action.name
+        item.dataset.bulkAction = action.name
+        item.setAttribute('role', 'menuitem')
 
-        if (action.denied === true || !this.mutationsEnabled || !this.config.url) {
-            button.disabled = true
+        if (action.denied === true || !this.canRun()) {
+            item.disabled = true
 
-            return button
+            return item
         }
 
-        button.addEventListener('click', () => void this.execute(action, button))
+        item.addEventListener('click', () => {
+            this.popover?.close()
+            void this.execute(action)
+        })
 
-        return button
+        return item
     }
 
-    private async execute(action: BulkActionDefinition, button: HTMLButtonElement): Promise<void> {
+    private async execute(action: BulkActionDefinition): Promise<void> {
         if (this.running || !this.store || !this.config.url) {
             return
         }
@@ -201,7 +279,6 @@ export class BulkActionBar {
                 confirmLabel: action.confirmButton ?? this.labels.confirm ?? 'Confirm',
                 cancelLabel: this.labels.cancel ?? 'Cancel',
                 framework: this.framework,
-                adapterKey: this.modalAdapterKey,
             })
 
             if (!confirmed) {
@@ -210,8 +287,8 @@ export class BulkActionBar {
         }
 
         this.running = true
-        button.setAttribute('aria-busy', 'true')
-        button.disabled = true
+        this.trigger.setAttribute('aria-busy', 'true')
+        this.trigger.disabled = true
         this.dispatch('bulk:start', { action: action.name, selection: snapshot })
 
         try {
@@ -226,7 +303,7 @@ export class BulkActionBar {
                 csrfToken: this.csrfToken,
             })
 
-            this.status.textContent = this.summarize(action, result.processed, result.skipped)
+            this.resultMessage = this.summarize(action, result.processed, result.skipped)
             this.dispatch(result.success ? 'bulk:success' : 'bulk:error', {
                 action: action.name,
                 result,
@@ -236,13 +313,15 @@ export class BulkActionBar {
                 this.store.clear()
             }
 
+            this.setSummaryEmpty(false)
+            this.summaryCount.textContent = this.resultMessage
             this.reload()
         } catch (error) {
             this.dispatch('bulk:error', { action: action.name, error })
         } finally {
             this.running = false
-            button.removeAttribute('aria-busy')
-            button.disabled = false
+            this.trigger.removeAttribute('aria-busy')
+            this.trigger.disabled = this.store.snapshot().count === 0 || !this.canRun()
         }
     }
 
@@ -278,32 +357,24 @@ export class BulkActionBar {
         this.api?.ajax?.reload?.(null, false)
     }
 
-    private createButton(
-        label: string,
-        className: string,
-        icon?: string,
-        lucideIcon?: string
-    ): HTMLButtonElement {
+    private createButton(label: string, className: string, icon?: string): HTMLButtonElement {
         const button = document.createElement('button')
         button.type = 'button'
-        button.className = this.buttonClass(className)
+        button.className = className
 
-        const lucideMarkup = lucideIcon
-            ? renderLucideIcon(lucideIcon, { 'aria-hidden': 'true' })
-            : null
-
-        if (lucideMarkup) {
-            button.insertAdjacentHTML('beforeend', lucideMarkup)
-        } else if (icon) {
+        if (icon) {
             const iconElement = document.createElement('i')
             iconElement.className = icon
-            iconElement.setAttribute('aria-hidden', 'true')
             button.appendChild(iconElement)
         }
 
         button.appendChild(document.createTextNode(label))
 
         return button
+    }
+
+    private createLink(label: string, className: string): HTMLButtonElement {
+        return this.createButton(label, `dt-bulk-summary__link ${className}`)
     }
 
     private buttonClass(className: string): string {

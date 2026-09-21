@@ -93,13 +93,13 @@ describe('filter bar values', () => {
         }
 
         expect(ajaxConfig.data.consumesFilters).toBe(true)
-        expect(ajaxConfig.data({ draw: 1, start: 0, length: 10, filters: { status: 'active' } })).toEqual(
-            {
-                page: '1',
-                itemsPerPage: '10',
-                status: 'active',
-            }
-        )
+        expect(
+            ajaxConfig.data({ draw: 1, start: 0, length: 10, filters: { status: 'active' } })
+        ).toEqual({
+            page: '1',
+            itemsPerPage: '10',
+            status: 'active',
+        })
     })
 })
 

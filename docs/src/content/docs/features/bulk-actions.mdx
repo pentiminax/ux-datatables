@@ -6,8 +6,8 @@ navTitle: Bulk Actions
 ---
 
 Bulk actions let a user select rows and run a single PHP handler over all of them. Declare them in
-`configureBulkActions()`; the bundle adds the checkbox selection, the contextual bar above the
-table, and the endpoint that executes the handler.
+`configureBulkActions()`; the bundle adds the checkbox selection, the **Bulk actions** button above
+the table, and the endpoint that executes the handler.
 
 ## Declaring Bulk Actions
 
@@ -65,6 +65,15 @@ final class OrdersDataTable extends AbstractDataTable
 The table is a service, so the handler closure captures whatever the table injected. The bundle
 never calls an application URL: the handler runs inside the bundle's endpoint.
 
+## What the User Sees
+
+A **Bulk actions** button sits in the table's top-right layout cell. It is always rendered and stays
+disabled until a row is checked; clicking it opens a dropdown listing the configured actions.
+
+Below the toolbar row, a full-width band shows the current selection — `5 records selected` on the
+left, `Select all 50` and `Deselect all` on the right — and, after a run, the processed and skipped
+counts. Move the button with `BulkActions::position()`; the band follows it.
+
 Declaring a bulk action also enables the Select extension in `multi` style with a checkbox column
 and a header checkbox, unless you configured one yourself. Configuring `SelectStyle::SINGLE`
 alongside bulk actions throws — a bulk action over one row is a row action.
@@ -112,7 +121,7 @@ never materializes as 50,000 objects. It is `Countable` and `IteratorAggregate`,
     ['``remove($name)``', 'Remove an action by name'],
     ['``selectCurrentPageOnly($only = true)``', 'Forbid selecting every matching row; the server rejects such a request too'],
     ["``setIdField($field)``", 'Override the row identifier written as `DT_RowId`; Doctrine identifiers are detected automatically, otherwise the default is `id`'],
-    ["``position($layoutPosition)``", 'DataTables layout cell for the bar (default `topStart`)'],
+    ["``position($layoutPosition)``", 'DataTables layout cell hosting the button (default `topEnd`)'],
   ]}
 />
 
@@ -174,10 +183,10 @@ The response is `{"success": true, "processed": n, "skipped": m}`.
 
 ## Translations
 
-The bar's chrome is translated server-side from the `DataTables` catalog: `bulk.bar.selected`,
-`bulk.bar.selectAllMatching`, `bulk.bar.allMatchingSelected`, `bulk.bar.clear`, `bulk.bar.confirm`,
-`bulk.bar.cancel`, `bulk.bar.processed` and `bulk.bar.skipped`. The count-bearing ones accept a
-`{count}` placeholder.
+The chrome is translated server-side from the `DataTables` catalog: `bulk.bar.trigger` (the button
+label), `bulk.bar.selected`, `bulk.bar.selectAllMatching`, `bulk.bar.allMatchingSelected`,
+`bulk.bar.clear`, `bulk.bar.confirm`, `bulk.bar.cancel`, `bulk.bar.processed` and
+`bulk.bar.skipped`. The count-bearing ones accept a `{count}` placeholder.
 
 ## Related
 

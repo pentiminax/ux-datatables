@@ -66,10 +66,7 @@ describe('SelectionStore', () => {
             ids: ['00123', '9007199254740993'],
             count: 2,
         })
-        expect(api.rows({ selected: true }).ids().toArray()).toEqual([
-            '00123',
-            '9007199254740993',
-        ])
+        expect(api.rows({ selected: true }).ids().toArray()).toEqual(['00123', '9007199254740993'])
     })
 
     it('tracks the rows unchecked after a select all', () => {
