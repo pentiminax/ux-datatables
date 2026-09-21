@@ -60,6 +60,12 @@ final class AutoDataProviderFactory
             throw new \LogicException('EntityManagerInterface is required to auto-configure a DoctrineDataProvider from #[AsDataTable]. Ensure Doctrine ORM is installed and the DataTable is managed by Symfony.');
         }
 
+        // `dataClass` accepts any class, so a table fed from a DTO reaches here with nothing for
+        // Doctrine to query. Saying so beats the mapping error the query builder would raise.
+        if ($this->em->getMetadataFactory()->isTransient($asDataTable->dataClass)) {
+            throw new \LogicException(\sprintf('The class "%s" declared on #[AsDataTable] is not mapped by Doctrine, so no query can be built from it. Declare a mapped entity, or provide the rows yourself through createDataProvider().', $asDataTable->dataClass));
+        }
+
         return new DoctrineDataProvider(
             em: $this->em,
             entityClass: $asDataTable->entityClass,

@@ -75,6 +75,73 @@ final class MemberAttributeReaderTest extends TestCase
     }
 
     #[Test]
+    public function it_names_a_method_after_the_value_its_getter_exposes(): void
+    {
+        $targets = $this->reader->readMethods(MethodFixture::class, Marker::class);
+
+        $this->assertSame(['fullName', 'active', 'children', 'compute'], array_map(static fn ($target) => $target->name, $targets));
+    }
+
+    #[Test]
+    public function it_takes_a_method_type_from_its_return_type(): void
+    {
+        $targets = $this->reader->readMethods(MethodFixture::class, Marker::class);
+
+        $this->assertSame('string', $targets[0]->type?->getName());
+        $this->assertSame('bool', $targets[1]->type?->getName());
+    }
+
+    #[Test]
+    public function it_rejects_a_declaration_on_a_non_public_method(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('needs a public method');
+
+        $this->reader->readMethods(NonPublicMethodFixture::class, Marker::class);
+    }
+
+    #[Test]
+    public function it_rejects_a_declaration_on_a_method_requiring_arguments(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('callable without arguments');
+
+        $this->reader->readMethods(RequiredArgumentMethodFixture::class, Marker::class);
+    }
+
+    #[Test]
+    public function it_accepts_a_method_whose_arguments_are_all_optional(): void
+    {
+        $targets = $this->reader->readMethods(OptionalArgumentMethodFixture::class, Marker::class);
+
+        $this->assertSame(['label'], array_map(static fn ($target) => $target->name, $targets));
+    }
+
+    #[Test]
+    public function it_ignores_the_signature_of_methods_carrying_no_attribute(): void
+    {
+        $this->assertSame([], $this->reader->readMethods(UnannotatedMethodFixture::class, Marker::class));
+    }
+
+    #[Test]
+    public function it_numbers_properties_and_methods_in_one_sequence(): void
+    {
+        $targets = $this->reader->readMembers(MixedMemberFixture::class, Marker::class);
+
+        $this->assertSame(['property', 'method'], array_map(static fn ($target) => $target->name, $targets));
+        $this->assertSame([0, 1], array_map(static fn ($target) => $target->declarationOrder, $targets));
+    }
+
+    #[Test]
+    public function it_reads_repeated_declarations_on_the_class_itself(): void
+    {
+        $targets = $this->reader->readClass(ClassLevelFixture::class, Marker::class);
+
+        $this->assertSame(['first', 'second'], array_map(static fn ($target) => $target->attribute->label, $targets));
+        $this->assertSame(['', ''], array_map(static fn ($target) => $target->name, $targets));
+    }
+
+    #[Test]
     public function it_matches_subclasses_of_the_requested_attribute(): void
     {
         $targets = $this->reader->readProperties(SubclassedAttributeFixture::class, Marker::class);
@@ -84,7 +151,7 @@ final class MemberAttributeReaderTest extends TestCase
     }
 }
 
-#[\Attribute(\Attribute::TARGET_PROPERTY)]
+#[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::TARGET_METHOD | \Attribute::TARGET_CLASS | \Attribute::IS_REPEATABLE)]
 class Marker
 {
     public function __construct(public readonly string $label = '')
@@ -94,6 +161,51 @@ class Marker
 
 #[\Attribute(\Attribute::TARGET_PROPERTY)]
 final class ExtendedMarker extends Marker
+{
+}
+
+final class MethodFixture
+{
+    #[Marker]
+    public function getFullName(): string
+    {
+        return '';
+    }
+
+    #[Marker]
+    public function isActive(): bool
+    {
+        return true;
+    }
+
+    #[Marker]
+    public function hasChildren(): bool
+    {
+        return false;
+    }
+
+    #[Marker]
+    public function compute(): int
+    {
+        return 0;
+    }
+}
+
+final class MixedMemberFixture
+{
+    #[Marker]
+    public string $property = '';
+
+    #[Marker]
+    public function getMethod(): string
+    {
+        return '';
+    }
+}
+
+#[Marker(label: 'first')]
+#[Marker(label: 'second')]
+final class ClassLevelFixture
 {
 }
 
@@ -160,4 +272,39 @@ final class MixedVisibilityChildFixture extends MixedVisibilityParentFixture
 {
     #[Marker]
     public string $child = '';
+}
+
+final class NonPublicMethodFixture
+{
+    #[Marker]
+    private function getSecret(): string
+    {
+        return '';
+    }
+}
+
+final class RequiredArgumentMethodFixture
+{
+    #[Marker]
+    public function getFormatted(string $format): string
+    {
+        return $format;
+    }
+}
+
+final class OptionalArgumentMethodFixture
+{
+    #[Marker]
+    public function getLabel(string $locale = 'en'): string
+    {
+        return $locale;
+    }
+}
+
+final class UnannotatedMethodFixture
+{
+    private function getSecret(string $required): string
+    {
+        return $required;
+    }
 }

@@ -186,7 +186,7 @@ from API Platform metadata:
 
 ```php
 #[AsDataTable(
-    entityClass: Book::class,
+    dataClass: Book::class,
     mercure: [
         'topics' => [
             'https://example.com/books',
@@ -202,7 +202,7 @@ The same form accepts one topic or several topics:
 
 ```php
 #[AsDataTable(
-    entityClass: Book::class,
+    dataClass: Book::class,
     mercure: [
         'topics' => [
             'https://example.com/books',

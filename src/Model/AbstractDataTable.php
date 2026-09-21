@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns as RequestColumns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
+use Pentiminax\UX\DataTables\Filter\AbstractFilter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
@@ -122,6 +123,13 @@ abstract class AbstractDataTable
         $this->table->columns($this->columns);
 
         $this->filters = $this->configureFilters(new Filters());
+
+        if ($this->filters->isEmpty()) {
+            foreach ($this->filtersFromAttributes() as $filter) {
+                $this->filters->add($filter);
+            }
+        }
+
         $this->table->setFilters($this->filters);
 
         $this->initialized = true;
@@ -235,6 +243,7 @@ abstract class AbstractDataTable
         return $this->infrastructure()->columnResolver->resolveColumns(
             $this->asDataTable ?? $this->resolveAsDataTable(),
             $apiPlatform,
+            static::class,
         );
     }
 
@@ -262,6 +271,27 @@ abstract class AbstractDataTable
     public function configureFilters(Filters $filters): Filters
     {
         return $filters;
+    }
+
+    /**
+     * Filters declared through #[DataTableFilter], read down the same chain the columns use: the
+     * table class first, then the data class. Only reached when configureFilters() declared nothing.
+     *
+     * @return AbstractFilter[]
+     */
+    private function filtersFromAttributes(): array
+    {
+        $reader = $this->infrastructure()->attributeFilterReader;
+
+        $filters = $reader->readClassFilters(static::class);
+
+        if ([] !== $filters) {
+            return $filters;
+        }
+
+        $asDataTable = $this->asDataTable ?? $this->resolveAsDataTable();
+
+        return null === $asDataTable ? [] : $reader->readFilters($asDataTable->dataClass);
     }
 
     public function fetchData(DataTableRequest $request): DataTableResult

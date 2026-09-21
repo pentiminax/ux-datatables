@@ -57,6 +57,45 @@ final class AsDataTableResolverTest extends TestCase
         $this->assertSame($resolver->resolve(AnnotatedDataTable::class), $resolver->resolve(AnnotatedDataTable::class));
         $this->assertSame($resolver->resolve(PlainDataTable::class), $resolver->resolve(PlainDataTable::class));
     }
+
+    #[Test]
+    public function it_forgets_what_it_resolved_when_reset(): void
+    {
+        $resolver = new AsDataTableResolver();
+
+        $first = $resolver->resolve(ResolvedTableFixture::class);
+
+        $resolver->reset();
+
+        $second = $resolver->resolve(ResolvedTableFixture::class);
+
+        $this->assertNotSame($first, $second);
+        $this->assertEquals($first, $second);
+    }
+
+    #[Test]
+    public function it_reuses_what_it_already_resolved(): void
+    {
+        $resolver = new AsDataTableResolver();
+
+        $this->assertSame(
+            $resolver->resolve(ResolvedTableFixture::class),
+            $resolver->resolve(ResolvedTableFixture::class),
+        );
+    }
+
+    /**
+     * Two resolvers must not share what one of them cached, otherwise a reset on the container's
+     * instance would leave a stale attribute alive somewhere else.
+     */
+    #[Test]
+    public function it_keeps_its_cache_to_itself(): void
+    {
+        $this->assertNotSame(
+            (new AsDataTableResolver())->resolve(ResolvedTableFixture::class),
+            (new AsDataTableResolver())->resolve(ResolvedTableFixture::class),
+        );
+    }
 }
 
 #[AsDataTable(entityClass: \stdClass::class, serializationGroups: ['product:list'])]
@@ -78,4 +117,8 @@ final class PlainDataTable extends AbstractDataTable
     {
         return [];
     }
+}
+#[AsDataTable(dataClass: \stdClass::class)]
+final class ResolvedTableFixture
+{
 }

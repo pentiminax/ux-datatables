@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
@@ -33,6 +34,28 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 final class ColumnResolverTest extends TestCase
 {
     #[Test]
+    public function a_column_declared_on_the_table_class_wins_over_the_entity(): void
+    {
+        $columns = (new ColumnResolver())->resolveColumns(
+            new AsDataTable(entityClass: ResolverEntityFixture::class),
+            dataTableClass: ResolverTableFixture::class,
+        );
+
+        $this->assertSame(['declaredOnTable'], array_map(static fn (ColumnInterface $column) => $column->getName(), $columns));
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_entity_when_the_table_class_declares_nothing(): void
+    {
+        $columns = (new ColumnResolver())->resolveColumns(
+            new AsDataTable(entityClass: ResolverEntityFixture::class),
+            dataTableClass: SilentTableFixture::class,
+        );
+
+        $this->assertSame(['declaredOnEntity'], array_map(static fn (ColumnInterface $column) => $column->getName(), $columns));
+    }
+
+    #[Test]
     #[DataProvider('provideEmptyResolutions')]
     public function it_resolves_no_column_without_usable_configuration(\Closure $resolve): void
     {
@@ -46,6 +69,7 @@ final class ColumnResolverTest extends TestCase
     {
         yield 'resolveColumns without attribute' => [static fn (ColumnResolver $resolver) => $resolver->resolveColumns(null)];
         yield 'columnsFromAttributes without attribute' => [static fn (ColumnResolver $resolver) => $resolver->columnsFromAttributes(null)];
+        yield 'columnsFromClassAttributes without table class' => [static fn (ColumnResolver $resolver) => $resolver->columnsFromClassAttributes(null)];
         yield 'autoDetectColumns without detector' => [
             static fn (ColumnResolver $resolver) => $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class)),
         ];
@@ -421,4 +445,19 @@ final class ColumnResolverTest extends TestCase
 
         return new ColumnResolver(permissionChecker: new AuthorizationChecker($inner));
     }
+}
+
+final class ResolverEntityFixture
+{
+    #[DataTableColumn]
+    public string $declaredOnEntity = '';
+}
+
+#[DataTableColumn(name: 'declaredOnTable')]
+final class ResolverTableFixture
+{
+}
+
+final class SilentTableFixture
+{
 }
