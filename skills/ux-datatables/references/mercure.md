@@ -28,7 +28,7 @@ When auto-resolution is enabled (`mercure: true`, no explicit topics): the bundl
 
 ```php
 #[AsDataTable(
-    entityClass: Book::class,
+    dataClass: Book::class,
     mercure: ['topics' => ['https://api.example.com/api/books/{id}']],
 )]
 ```

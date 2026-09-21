@@ -15,16 +15,19 @@ final class UserDataTable extends AbstractDataTable { /* ... */ }
 
 ```php
 #[AsDataTable(
-    entityClass: User::class,        // required, must exist — a typo throws when the attribute is read
+    dataClass: User::class,          // class carrying the column and filter attributes
     serializationGroups: [],         // filter properties during auto-detection (needs the API Platform opt-in)
     mercure: false,                  // bool | array{topics?, withCredentials, debounceMs}
     apiPlatform: false,              // opt-in API Platform integration
     editModalTemplate: null,         // custom Twig template for the edit modal
     editModalAdapter: null,          // custom modal adapter (dt, bs, bs4, bs5, or a registered name)
+    entityClass: User::class,        // Doctrine entity the runtime queries and mutates
 )]
 ```
 
-`entityClass` is mandatory. Without it the Doctrine data provider cannot be auto-wired for server-side mode. The attribute is not inherited: a subclass of an annotated abstract base resolves to no attribute at all.
+`dataClass` is where the `#[DataTableColumn]` and `#[DataTableFilter]` declarations are read. `entityClass` is what the runtime targets: Doctrine queries, mutations, row ids, Mercure and API Platform. Each defaults to the other, so naming one class is enough; pass both only when the columns describe a DTO the entity is projected into, and add a `projectPage()` to build it. At least one is mandatory, and both must exist — a typo throws when the attribute is read. Without one the Doctrine data provider cannot be auto-wired for server-side mode. The attribute is not inherited: a subclass of an annotated abstract base resolves to no attribute at all.
+
+When the two classes differ, a column or filter ordered or searched on a field the entity does not declare fails the build.
 
 An array `mercure` value only declares topics when it has a `topics` key; without one, topics are auto-resolved and the other options are applied on top.
 
@@ -45,7 +48,7 @@ Override only what you need; each returns its argument fluently.
 
 For client-side tables (no `serverSide()`), provide rows in one of three ways:
 
-1. **Auto-hydration** — if `entityClass` is set and no `data()`/`ajax()`/`apiPlatform`, the bundle fetches & maps rows automatically at render time.
+1. **Auto-hydration** — if the attribute is set and no `data()`/`ajax()`/`apiPlatform`, the bundle fetches & maps rows automatically at render time.
 2. **Domain objects** — in the controller: `$table->setData($users);` runs the row-mapper pipeline (template columns, typed actions).
 3. **Inline arrays** — `configureDataTable`: `$table->data([['id' => 1, 'name' => 'Alice']]);`
 
@@ -53,7 +56,7 @@ For client-side tables (no `serverSide()`), provide rows in one of three ways:
 
 `src/DataProvider/`:
 
-- **`DoctrineDataProvider`** — auto-wired when `entityClass` is set and `serverSide()` is on. No manual setup.
+- **`DoctrineDataProvider`** — auto-wired when the attribute names a mapped `entityClass` and `serverSide()` is on. No manual setup.
 - **`ArrayDataProvider`** — for non-Doctrine / external data. Provide it by overriding:
 
 ```php

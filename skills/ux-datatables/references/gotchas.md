@@ -10,7 +10,7 @@ return static function (RoutingConfigurator $routes): void {
 ```
 
 ## Server-side with no data → missing `entityClass`
-The Doctrine provider is auto-wired only when `#[AsDataTable(Entity::class)]` carries the entity. No `entityClass` + `serverSide()` and no `createDataProvider()` override → empty table.
+The Doctrine provider is auto-wired only when `#[AsDataTable(Entity::class)]` carries the entity. No attribute + `serverSide()` and no `createDataProvider()` override → empty table. A DTO `dataClass` without a mapped `entityClass` raises instead.
 
 ## Don't detect Ajax with `isXmlHttpRequest()`
 Use the supported flow: `handleRequest()` → `isRequestHandled()` → `getResponse()`. The check is about the DataTables payload, not the browser transport.

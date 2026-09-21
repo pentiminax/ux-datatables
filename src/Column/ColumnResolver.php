@@ -50,7 +50,7 @@ final class ColumnResolver
     }
 
     /**
-     * Build columns from the column attributes carried by the entity class.
+     * Build columns from the column attributes carried by the data class.
      *
      * @return AbstractColumn[]
      */
@@ -60,7 +60,7 @@ final class ColumnResolver
             return [];
         }
 
-        return $this->reader()->readColumns($asDataTable->entityClass);
+        return $this->reader()->readColumns($asDataTable->dataClass);
     }
 
     /**
