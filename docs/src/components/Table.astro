@@ -1,0 +1,55 @@
+---
+import { withBase } from '../nav'
+
+interface Props {
+  headers: string[]
+  rows: string[][]
+  caption?: string
+}
+
+const { headers, rows, caption } = Astro.props
+
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+/**
+ * Cells arrive as MDX *attribute* strings, so MDX never runs its markdown parser
+ * over them and authored backticks used to reach the page literally. Render the
+ * two inline forms these tables actually use, and escape everything else.
+ */
+function inline(cell: string): string {
+  return escapeHtml(cell)
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_match, text, href) => {
+      const target = href.startsWith('/') ? withBase(href) : href
+
+      return `<a href="${target}">${text}</a>`
+    })
+}
+---
+
+<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrollable">
+  <table>
+    {caption && <caption>{caption}</caption>}
+    <thead>
+      <tr>
+        {headers.map((header) => <th scope="col" set:html={inline(header)} />)}
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((row) => (
+          <tr>
+            {row.map((cell, column) =>
+              column === 0 ? (
+                <th scope="row" set:html={inline(cell)} />
+              ) : (
+                <td set:html={inline(cell)} />
+              )
+            )}
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</div>

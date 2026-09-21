@@ -1,0 +1,47 @@
+---
+title: KeyTable Extension
+description: Keyboard navigation for DataTables cells and rows
+order: 50
+navTitle: KeyTable
+---
+
+## When To Use
+
+Use KeyTable for keyboard-first workflows, data entry, and power-user grids.
+
+## Minimal Example
+
+```php
+$dataTable->keyTable();
+```
+
+## Advanced Example
+
+```php
+$dataTable->keyTable(
+    blurable: false,
+    className: 'cell-focus',
+    clipboard: true,
+    clipboardOrthogonal: 'display',
+    columns: ':not(:first-child)',
+    editOnFocus: false,
+    focus: [0, 1],
+    keys: [37, 38, 39, 40],
+    tabIndex: 0,
+);
+```
+
+`columns` is a DataTables column-selector string restricting which columns can be focused (default
+`''` allows every column). `focus` is a `[row, column]` pair to focus on load. `keys` restricts
+which key codes KeyTable listens for; omit either to keep DataTables' defaults (no initial focus,
+every key).
+
+## Frequent Pitfalls
+
+- Not testing keyboard interactions with Select/Scroller combinations.
+- Missing focus styling in custom CSS themes.
+
+## Cross Links
+
+- [/ux-datatables/extensions/select/](/ux-datatables/extensions/select/)
+- [/ux-datatables/extensions/combining-extensions/](/ux-datatables/extensions/combining-extensions/)

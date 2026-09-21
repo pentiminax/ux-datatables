@@ -1,0 +1,44 @@
+---
+title: Combining Extensions
+description: Recommended extension combinations and integration notes
+order: 100
+navTitle: Combining Extensions
+---
+
+## Recommended Combination
+
+```php
+use Pentiminax\UX\DataTables\Enum\ButtonType;
+use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
+
+$dataTable
+    ->buttons([ButtonType::CSV, ButtonType::EXCEL])
+    ->select(SelectStyle::MULTI)
+    ->responsive()
+    ->layout([
+        'topStart' => Feature::BUTTONS,
+        'topEnd' => Feature::SEARCH,
+    ]);
+```
+
+## Test Checklist
+
+- Verify extension load order in browser.
+- Verify row selection + responsive view + export compatibility.
+- Verify behavior on mobile and desktop breakpoints.
+
+## Known Hotspots
+
+- `SelectExtension` with checkbox mode plus responsive hidden columns.
+- `FixedColumnsExtension` plus `ColReorderExtension` on narrow screens.
+- `ScrollerExtension` with custom row rendering.
+- `RowGroupExtension` is incompatible with `ScrollerExtension`; Buttons exports omit group rows.
+- `FixedHeaderExtension` is not intended to be combined with `ScrollerExtension` or the core
+  `scrollY` / `scrollX` scrolling feature, since all three manage header positioning.
+
+## Cross Links
+
+- [/ux-datatables/extensions/](/ux-datatables/extensions/)
+- [/ux-datatables/extensions/select/](/ux-datatables/extensions/select/)
+- [/ux-datatables/extensions/buttons/](/ux-datatables/extensions/buttons/)
