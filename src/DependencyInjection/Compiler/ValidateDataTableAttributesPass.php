@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\DependencyInjection\Compiler;
 
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Attribute\AsDataTableResolver;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
+use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
+use Pentiminax\UX\DataTables\Filter\AbstractFilter;
 use Pentiminax\UX\DataTables\Filter\AttributeFilterReader;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
@@ -61,14 +66,97 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
 
             // The table class wins each resolution chain, so the data class declarations it shadows
             // are never read. Validating them anyway would fail the build over code nothing runs.
-            if ($readsColumnAttributes && [] === $classColumns) {
-                $this->guard($class, $dataClass, static fn () => $reader->readColumns($dataClass));
-            }
+            $dataColumns = $readsColumnAttributes && [] === $classColumns
+                ? $this->guard($class, $dataClass, static fn () => $reader->readColumns($dataClass))
+                : [];
 
-            if ($readsFilterAttributes && [] === $classFilters) {
-                $this->guard($class, $dataClass, static fn () => $filters->readFilters($dataClass));
+            $dataFilters = $readsFilterAttributes && [] === $classFilters
+                ? $this->guard($class, $dataClass, static fn () => $filters->readFilters($dataClass))
+                : [];
+
+            $this->assertFieldsResolveOnTheEntity(
+                $class,
+                $asDataTable,
+                [] !== $classColumns ? $classColumns : $dataColumns,
+                [] !== $classFilters ? $classFilters : $dataFilters,
+            );
+        }
+    }
+
+    /**
+     * A table reading its shape from a DTO still builds its DQL against the entity, so a field the
+     * entity does not carry orders and searches nothing. The runtime skips it in silence; here it
+     * fails the build instead.
+     *
+     * Only single-segment paths are checked. A dotted path may target a join alias declared in
+     * customizeQueryBuilder() or through getSearchJoins(), which this pass cannot know about --
+     * the same tolerance {@see \Pentiminax\UX\DataTables\Query\RelationFieldResolver::supportsSearchFiltering()}
+     * applies at runtime.
+     *
+     * @param class-string          $dataTableClass
+     * @param list<ColumnInterface> $columns
+     * @param list<AbstractFilter>  $filters
+     */
+    private function assertFieldsResolveOnTheEntity(string $dataTableClass, AsDataTable $asDataTable, array $columns, array $filters): void
+    {
+        $dataClass   = $asDataTable->dataClass;
+        $entityClass = $asDataTable->entityClass;
+
+        if ($dataClass === $entityClass) {
+            return;
+        }
+
+        foreach ($columns as $column) {
+            foreach ($this->queriedColumnFields($column) as $field) {
+                $this->assertFieldExists($dataTableClass, $dataClass, $entityClass, $field, \sprintf('column "%s"', $column->getName()));
             }
         }
+
+        foreach ($filters as $filter) {
+            if ($filter->hasQueryCallback()) {
+                continue;
+            }
+
+            $this->assertFieldExists($dataTableClass, $dataClass, $entityClass, $filter->getField(), \sprintf('filter "%s"', $filter->getName()));
+        }
+    }
+
+    /**
+     * The field paths a column actually hands to the QueryBuilder, ordering and search alike.
+     *
+     * @return list<string>
+     */
+    private function queriedColumnFields(ColumnInterface $column): array
+    {
+        if ($column instanceof ActionsProvidingColumnInterface) {
+            return [];
+        }
+
+        $fields = [];
+
+        if ($column->isOrderable() && null === $column->getOrderExpression()) {
+            $fields[] = $column->getField();
+        }
+
+        if ($column->isSearchable() || $column->isGlobalSearchable()) {
+            $fields[] = ($column instanceof SearchableColumnInterface ? $column->getSearchField() : null) ?? $column->getField();
+        }
+
+        return array_values(array_unique(array_filter($fields, static fn (?string $field): bool => null !== $field && '' !== $field)));
+    }
+
+    /**
+     * @param class-string $dataTableClass
+     * @param class-string $dataClass
+     * @param class-string $entityClass
+     */
+    private function assertFieldExists(string $dataTableClass, string $dataClass, string $entityClass, string $field, string $what): void
+    {
+        if (str_contains($field, '.') || property_exists($entityClass, $field)) {
+            return;
+        }
+
+        throw new InvalidArgumentException(\sprintf('Invalid DataTables attribute on "%s", read by the table "%s": the %s is ordered or searched on the field "%s", which "%s" does not declare. Name it after the entity field, redirect the query alone through the "searchField" option or an order expression, or turn ordering and searching off on it. The "field" option redirects the displayed value too, so it reads nothing on a projected row.', $dataClass, $dataTableClass, $what, $field, $entityClass));
     }
 
     /**
