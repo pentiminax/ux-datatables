@@ -165,11 +165,16 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      * search, ordering and filters — so a bulk action over "all matching rows" acts on exactly
      * what the user was looking at.
      *
+     * The selection speaks in whichever field feeds `DT_RowId`, which
+     * {@see \Pentiminax\UX\DataTables\Model\BulkActions::setIdField()} may point away from the
+     * primary key. Collecting the primary key instead would hand the repository lookup values from
+     * another namespace.
+     *
      * @return list<int|string>
      */
-    public function collectIdentifiers(DataTableRequest $request): array
+    public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
     {
-        [$qb, $alias, $identifier] = $this->buildIdentifierScopedQuery($request);
+        [$qb, $alias, $identifier] = $this->buildIdentifierScopedQuery($request, $field);
 
         return $this->normalizeIdentifiers($this->scopedIdentifiers($qb, $alias, $identifier));
     }
@@ -201,7 +206,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     /**
      * @return array{0: QueryBuilder, 1: string, 2: string}
      */
-    private function buildIdentifierScopedQuery(DataTableRequest $request): array
+    private function buildIdentifierScopedQuery(DataTableRequest $request, ?string $field = null): array
     {
         $alias = 'e';
         $qb    = $this->em
@@ -213,7 +218,10 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             $qb = ($this->configureQueryBuilder)($qb, $request);
         }
 
-        $identifier = $this->em->getClassMetadata($this->entityClass)->getSingleIdentifierFieldName();
+        $metadata   = $this->em->getClassMetadata($this->entityClass);
+        $identifier = null !== $field && $metadata->hasField($field)
+            ? $field
+            : $metadata->getSingleIdentifierFieldName();
 
         $qb->addOrderBy("$alias.$identifier", 'ASC');
 

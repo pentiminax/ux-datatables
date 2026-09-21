@@ -133,7 +133,9 @@ displaying, and the server re-runs it without pagination to resolve the identifi
 unchecked afterwards.
 
 This requires a data provider implementing `IdentifierCollectingDataProviderInterface`;
-`DoctrineDataProvider` does. Any other provider answers `400` for a select-all, and so does a table
+`DoctrineDataProvider` does. The provider is asked for the field the selection speaks in — the one
+written as `DT_RowId`, which `setIdField()` may point away from the primary key — so a custom
+implementation must answer with values from that field. Any other provider answers `400` for a select-all, and so does a table
 declaring `selectCurrentPageOnly()`.
 
 ## Authorization
