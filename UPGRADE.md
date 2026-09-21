@@ -63,7 +63,9 @@ Two details are worth checking in an existing application:
   with `BulkActions::setIdField()` when no Doctrine metadata is available.
 
 A custom data provider can opt into "select every matching row" by implementing
-`IdentifierCollectingDataProviderInterface`; `DoctrineDataProvider` already does. Without it, a
+`IdentifierCollectingDataProviderInterface`; `DoctrineDataProvider` already does. Its
+`collectIdentifiers()` receives the field the selection speaks in — the one written as `DT_RowId` —
+so it must answer with values from that field, not from the primary key. Without the interface, a
 select-all is rejected with `400` while an explicit selection keeps working.
 
 ## v0.90 → v1.0
