@@ -320,6 +320,11 @@ table.dataTable td.dt-cell-updated {
     gap: 0.35rem;
 }
 
+.dt-bulk-trigger:disabled {
+    color: var(--dt-bulk-text-muted);
+    cursor: not-allowed;
+}
+
 .dt-bulk-trigger__icon {
     width: 1em;
     height: 1em;

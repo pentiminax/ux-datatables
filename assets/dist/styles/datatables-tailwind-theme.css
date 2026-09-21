@@ -662,14 +662,14 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
         box-shadow var(--dt-tw-transition);
 }
 
-.dt-container.dt-container :is(button, div, a).dt-button:hover:not(.disabled) {
+.dt-container.dt-container :is(button, div, a).dt-button:hover:not(.disabled, :disabled) {
     background: rgb(var(--dt-tw-neutral) / 0.12);
     box-shadow:
         inset 0 0 0 1px rgb(var(--dt-tw-neutral) / 0.4),
         var(--dt-tw-shadow-sm);
 }
 
-.dt-container.dt-container :is(button, div, a).dt-button:active:not(.disabled) {
+.dt-container.dt-container :is(button, div, a).dt-button:active:not(.disabled, :disabled) {
     background: rgb(var(--dt-tw-neutral) / 0.2);
     box-shadow: inset 0 0 0 1px rgb(var(--dt-tw-neutral) / 0.4);
 }
@@ -677,6 +677,13 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 .dt-container.dt-container :is(button, div, a).dt-button:focus-visible {
     outline: none;
     box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
+}
+
+.dt-container.dt-container :is(button, div, a).dt-button:is(.disabled, :disabled) {
+    background: rgb(var(--dt-tw-neutral) / 0.08);
+    box-shadow: var(--dt-tw-ring-control);
+    color: rgb(var(--dt-tw-text-muted));
+    cursor: not-allowed;
 }
 
 .dt-container.dt-container :is(button, div, a).dt-button:is(.buttons-csv, .buttons-excel) {
