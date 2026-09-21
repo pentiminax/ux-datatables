@@ -50,11 +50,12 @@ final class BulkActionRunner
             throw InvalidBulkSelectionException::emptySelection();
         }
 
-        $manager    = $this->locator->manager($entityClass);
+        $manager = $this->locator->manager($entityClass);
+
         $identifier = $this->identifierField(
-            $manager,
-            $entityClass,
-            $table->table->getConfiguredDataTable()->getBulkActions()?->getIdField(),
+            manager: $manager,
+            entityClass: $entityClass,
+            configuredField: $table->table->getConfiguredDataTable()->getBulkActions()?->getIdField(),
         );
 
         $context = new BulkActionContext(
