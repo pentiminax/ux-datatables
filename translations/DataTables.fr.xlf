@@ -18,6 +18,38 @@
                 <source>filter.bar.all</source>
                 <target>Tous</target>
             </trans-unit>
+            <trans-unit id="bulk.bar.selected">
+                <source>bulk.bar.selected</source>
+                <target>{count} lignes sélectionnées</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.selectAllMatching">
+                <source>bulk.bar.selectAllMatching</source>
+                <target>Sélectionner les {total} lignes correspondantes</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.allMatchingSelected">
+                <source>bulk.bar.allMatchingSelected</source>
+                <target>Les {total} lignes correspondantes sont sélectionnées</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.clear">
+                <source>bulk.bar.clear</source>
+                <target>Effacer la sélection</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.confirm">
+                <source>bulk.bar.confirm</source>
+                <target>Confirmer</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.cancel">
+                <source>bulk.bar.cancel</source>
+                <target>Annuler</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.processed">
+                <source>bulk.bar.processed</source>
+                <target>{count} lignes traitées</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.skipped">
+                <source>bulk.bar.skipped</source>
+                <target>{count} lignes ignorées</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

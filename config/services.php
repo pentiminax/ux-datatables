@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Column\Rendering\TemplateColumnRenderer;
 use Pentiminax\UX\DataTables\Column\Rendering\UrlColumnDataResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
 use Pentiminax\UX\DataTables\Controller\AjaxDataController;
+use Pentiminax\UX\DataTables\Controller\AjaxBulkController;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
@@ -32,6 +33,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Mutation\BulkActionRunner;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
@@ -164,6 +166,17 @@ return static function (ContainerConfigurator $container): void {
         ->arg(5, service('datatables.mutation.flusher'))
         ->private();
 
+    $services->set('datatables.mutation.bulk_action_runner', BulkActionRunner::class)
+        ->arg(0, service('datatables.mutation.locator'))
+        ->arg(1, service('datatables.security.authorization_checker'))
+        ->arg(2, service('datatables.mutation.flusher'))
+        ->arg(3, service(MercurePublisherInterface::class))
+        ->arg(4, service('datatables.mercure.topic_resolver'))
+        ->private();
+
+    $services->alias(BulkActionRunner::class, 'datatables.mutation.bulk_action_runner')
+        ->private();
+
     $services->set('datatables.mutation.boolean_context_resolver', BooleanMutationContextResolver::class)
         ->arg(0, service('datatables.ajax.registry'))
         ->arg(1, service('datatables.security.authorization_checker'))
@@ -185,6 +198,14 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_delete', AjaxDeleteController::class)
         ->arg(0, service('datatables.mutation.mutator'))
+        ->arg(1, service('datatables.security.mutation_token_validator'))
+        ->arg(2, service('datatables.ajax.registry'))
+        ->arg(3, service('datatables.security.authorization_checker'))
+        ->tag('controller.service_arguments')
+        ->public();
+
+    $services->set('datatables.controller.ajax_bulk', AjaxBulkController::class)
+        ->arg(0, service('datatables.mutation.bulk_action_runner'))
         ->arg(1, service('datatables.security.mutation_token_validator'))
         ->arg(2, service('datatables.ajax.registry'))
         ->arg(3, service('datatables.security.authorization_checker'))

@@ -46,6 +46,7 @@ final class DataTableRuntimeFactory
         array $columns,
         ?string $dataTableClass = null,
         ?HighlightConfig $highlight = null,
+        ?string $rowIdField = null,
     ): RowMapperInterface {
         $pipeline = (new RowProcessingPipeline(
             $baseMapper,
@@ -60,8 +61,12 @@ final class DataTableRuntimeFactory
             ->add(new IconColumnResolutionStage())
             ->add(new BooleanSwitchMetadataStage());
 
-        if (null !== $highlight) {
-            $pipeline->add(new RowIdStage($highlight->idField));
+        // Highlighting needs a row id to tell a changed row from a moved one; a selection needs
+        // one to survive the redraw that server-side paging forces. Either reason is enough.
+        $idField = $highlight?->idField ?? $rowIdField;
+
+        if (null !== $idField) {
+            $pipeline->add(new RowIdStage($idField));
         }
 
         return $pipeline;
@@ -85,6 +90,7 @@ final class DataTableRuntimeFactory
             columns: $columns,
             dataTableClass: $table->getDataTableClass(),
             highlight: $table->getHighlightConfig(),
+            rowIdField: $table->hasBulkActions() ? $table->getBulkActions()?->getIdField() : null,
         );
 
         // An export writes only the exportable columns, so its mapper is built from them alone:

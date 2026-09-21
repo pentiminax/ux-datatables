@@ -27,6 +27,15 @@
     --dt-filters-select-padding-end: 0.65rem;
     --dt-filters-chevron: none;
     --dt-filters-button-shadow: none;
+
+    /* The bulk bar borrows the filter palette so a theme that restyles one restyles both;
+       reassign these alone to break them apart. */
+    --dt-bulk-surface: var(--dt-filters-surface-muted);
+    --dt-bulk-border: var(--dt-filters-border);
+    --dt-bulk-text: var(--dt-filters-text);
+    --dt-bulk-text-muted: var(--dt-filters-text-muted);
+    --dt-bulk-accent: var(--dt-filters-accent);
+    --dt-bulk-radius: var(--dt-filters-radius-control);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -298,4 +307,48 @@ table.dataTable td.dt-cell-updated {
         animation: none;
         background-color: var(--dt-highlight-color);
     }
+}
+
+.dt-bulk-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--dt-bulk-border);
+    border-radius: var(--dt-bulk-radius);
+    background: var(--dt-bulk-surface);
+    color: var(--dt-bulk-text);
+}
+
+.dt-bulk-bar[hidden] {
+    display: none;
+}
+
+.dt-bulk-bar__count {
+    font-weight: 600;
+}
+
+.dt-bulk-bar__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.dt-bulk-bar__status {
+    color: var(--dt-bulk-text-muted);
+    font-size: 0.875em;
+}
+
+.dt-bulk-bar__select-all {
+    color: var(--dt-bulk-accent);
+}
+
+.dt-bulk-bar button[aria-busy='true'] {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.dt-bulk-confirm__message {
+    margin: 0;
 }

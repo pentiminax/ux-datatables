@@ -10,6 +10,10 @@ vi.mock('../src/functions/detectStyleFramework.js', () => ({
     detectStyleFramework: () => 'dt',
 }))
 
+vi.mock('../src/functions/bulkActionsFeature.js', () => ({
+    registerBulkActionsFeature: vi.fn(),
+}))
+
 vi.mock('../src/functions/filterFeature.js', () => ({
     registerFilterFeature: vi.fn(),
 }))

@@ -1,0 +1,187 @@
+---
+title: Bulk Actions
+description: Run one PHP handler over every row the user selected, with per-row authorization
+order: 30
+navTitle: Bulk Actions
+---
+
+Bulk actions let a user select rows and run a single PHP handler over all of them. Declare them in
+`configureBulkActions()`; the bundle adds the checkbox selection, the contextual bar above the
+table, and the endpoint that executes the handler.
+
+## Declaring Bulk Actions
+
+```php
+use App\Entity\Order;
+use App\Service\OrderApprover;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Enum\Icon;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\BulkAction;
+use Pentiminax\UX\DataTables\Model\BulkActions;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Mutation\BulkActionContext;
+use Pentiminax\UX\DataTables\Mutation\BulkRecords;
+
+#[AsDataTable(Order::class)]
+final class OrdersDataTable extends AbstractDataTable
+{
+    public function __construct(private readonly OrderApprover $approver)
+    {
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->serverSide();
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield NumberColumn::new('id', 'ID');
+        yield TextColumn::new('reference', 'Reference');
+        yield TextColumn::new('status', 'Status');
+    }
+
+    public function configureBulkActions(BulkActions $actions): BulkActions
+    {
+        return $actions->add(
+            BulkAction::new('approve', 'Approve')
+                ->icon(Icon::Check)
+                ->askConfirmation('Approve {count} orders?')
+                ->setPermission('ORDER_APPROVE', static fn (Order $order): Order => $order)
+                ->successMessage('Orders approved.')
+                ->handler(function (BulkRecords $records, BulkActionContext $context): void {
+                    foreach ($records as $order) {
+                        $this->approver->approve($order);
+                    }
+                })
+        );
+    }
+}
+```
+
+The table is a service, so the handler closure captures whatever the table injected. The bundle
+never calls an application URL: the handler runs inside the bundle's endpoint.
+
+Declaring a bulk action also enables the Select extension in `multi` style with a checkbox column
+and a header checkbox, unless you configured one yourself. Configuring `SelectStyle::SINGLE`
+alongside bulk actions throws — a bulk action over one row is a row action.
+
+## What the Handler Receives
+
+`BulkRecords` yields the selected entities lazily, chunk by chunk, so a selection of 50,000 rows
+never materializes as 50,000 objects. It is `Countable` and `IteratorAggregate`, plus `map()`,
+`filter()`, `first()`, `isEmpty()` and `toArray()`.
+
+<Aside type="caution">
+  `count()` reports the number of **selected** rows, which is known before anything is loaded. Rows
+  that no longer exist, and rows the user may not act on, are skipped during iteration. Read
+  `BulkActionContext::processedCount()` and `skippedCount()` after iterating for the real numbers.
+  `BulkRecords` can only be iterated once.
+</Aside>
+
+`BulkActionContext` carries `entityClass`, `dataTableClass`, `action`, `objectManager`,
+`selectedCount`, and the two running counters above.
+
+## `BulkAction` API
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ["``BulkAction::new($name, $label = '', $className = '')``", 'Create an action; `$name` must be unique within the table'],
+    ['``label($label)``', 'Override the button label'],
+    ['``setClassName($className)``', 'CSS classes for the button'],
+    ['``icon($icon)``', 'A Lucide `Icon` case or a raw icon class string'],
+    ['``askConfirmation($message, $buttonLabel = null)``', 'Confirm through the table modal adapter before running; `{count}` is replaced client-side'],
+    ['``successMessage($message)``', 'Message shown in the bar instead of the processed count'],
+    ['``setPermission($attribute, $subjectResolver = null)``', 'Static permission, or a per-row one when a resolver is given'],
+    ['``chunk($size)``', 'Rows loaded and flushed per batch (default `250`)'],
+    ['``deselectRecordsAfterCompletion($deselect = true)``', 'Clear the selection once the run succeeds (default `true`)'],
+    ['``handler($handler)``', 'The closure that receives `BulkRecords` and `BulkActionContext`'],
+  ]}
+/>
+
+## `BulkActions` API
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    ['``add($action)``', 'Add an action; a duplicate name throws'],
+    ['``remove($name)``', 'Remove an action by name'],
+    ['``selectCurrentPageOnly($only = true)``', 'Forbid selecting every matching row; the server rejects such a request too'],
+    ["``setIdField($field)``", 'Row key written as `DT_RowId` and sent back as the selection (default `id`)'],
+    ["``position($layoutPosition)``", 'DataTables layout cell for the bar (default `topStart`)'],
+  ]}
+/>
+
+## Selecting Every Matching Row
+
+By default the bar offers to extend the selection to every row matching the current search, filters
+and ordering — not just the current page. The browser then sends the DataTables request it was
+displaying, and the server re-runs it without pagination to resolve the identifiers, minus the rows
+unchecked afterwards.
+
+This requires a data provider implementing `IdentifierCollectingDataProviderInterface`;
+`DoctrineDataProvider` does. Any other provider answers `400` for a select-all, and so does a table
+declaring `selectCurrentPageOnly()`.
+
+## Authorization
+
+Every bulk action goes through `Permission::DT_EXECUTE_ACTION`, exactly like a row action:
+
+- a **static** permission (`setPermission('ORDER_APPROVE')`) is checked twice — once while rendering,
+  so a denied action is never drawn, and once in the endpoint before any entity is loaded;
+- a **per-row** permission (`setPermission('ORDER_APPROVE', fn (Order $o) => $o)`) is checked for
+  each loaded entity. Denied rows are excluded from the handler and counted as skipped; the run is
+  not aborted.
+
+```php
+use Pentiminax\UX\DataTables\Model\BulkAction;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
+use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+
+final class OrderBulkVoter extends Voter
+{
+    protected function supports(string $attribute, mixed $subject): bool
+    {
+        return $subject instanceof ActionPermissionContext && $subject->action instanceof BulkAction;
+    }
+}
+```
+
+<Aside type="caution">
+  The selection is client-side data: the browser sends row identifiers, and nothing else vouches for
+  them. The endpoint re-authorizes every entity it loads, but it is still an Ajax route of your
+  application — protect it with your own `security.firewalls` configuration, like every other one.
+  See [Securing Ajax Routes](/ux-datatables/getting-started/security/).
+</Aside>
+
+## Ajax Endpoints
+
+`POST /datatables/ajax/bulk` — body: `dataTable` (the signed action token), `action` (the action
+name), `ids`, `allMatching`, `deselectedIds`, `query` (the displayed DataTables request, only for a
+select-all). The CSRF token travels in the `X-CSRF-Token` header.
+
+The response is `{"success": true, "processed": n, "skipped": m}`.
+
+<Aside type="note">
+  A run is not a single transaction: each chunk is flushed on its own, so a chunk that throws leaves
+  the preceding ones committed. The client reloads the table either way, so it always shows what
+  actually happened.
+</Aside>
+
+## Translations
+
+The bar's chrome is translated server-side from the `DataTables` catalog: `bulk.bar.selected`,
+`bulk.bar.selectAllMatching`, `bulk.bar.allMatchingSelected`, `bulk.bar.clear`, `bulk.bar.confirm`,
+`bulk.bar.cancel`, `bulk.bar.processed` and `bulk.bar.skipped`. The count-bearing ones accept a
+`{count}` placeholder.
+
+## Related
+
+- [Select Extension](/ux-datatables/extensions/select/)
+- [Action Column](/ux-datatables/columns/action-column/)
+- [Authorization and Voters](/ux-datatables/guide/security/)
+- [Securing Ajax Routes](/ux-datatables/getting-started/security/)
