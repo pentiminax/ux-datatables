@@ -25,7 +25,6 @@ final class FilterTypeMapperTest extends TestCase
      */
     #[Test]
     #[TestWith(['name', TextFilter::class])]
-    #[TestWith(['count', TextFilter::class])]
     #[TestWith(['active', TernaryFilter::class])]
     #[TestWith(['status', ChoiceFilter::class])]
     #[TestWith(['createdAt', DateRangeFilter::class])]
@@ -42,6 +41,19 @@ final class FilterTypeMapperTest extends TestCase
     {
         $this->assertSame(TextFilter::class, (new FilterTypeMapper())->mapType(null));
     }
+
+    #[Test]
+    #[TestWith(['count', 'int'])]
+    #[TestWith(['ratio', 'float'])]
+    public function it_rejects_a_numeric_type_no_filter_can_query(string $property, string $typeName): void
+    {
+        $type = (new \ReflectionProperty(TypedFixture::class, $property))->getType();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage(\sprintf('The filter "%s" cannot be guessed from its "%s" type', $property, $typeName));
+
+        (new FilterTypeMapper())->mapType($type, $property);
+    }
 }
 
 enum FixtureStatus: string
@@ -54,6 +66,7 @@ final class TypedFixture
 {
     public string $name          = '';
     public int $count            = 0;
+    public float $ratio          = 0.0;
     public bool $active          = true;
     public FixtureStatus $status = FixtureStatus::Active;
     public \DateTimeImmutable $createdAt;

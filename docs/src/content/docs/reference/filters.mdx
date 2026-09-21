@@ -173,9 +173,15 @@ Arguments:
     ['`bool`', '`TernaryFilter`'],
     ['A `BackedEnum`', '`ChoiceFilter`, with its options filled from the enum cases'],
     ['A `DateTimeInterface`', '`DateRangeFilter`'],
+    ['`int` or `float`', 'Rejected: no filter class queries a number'],
     ['Anything else, or no type', '`TextFilter`'],
   ]}
 />
+
+A number is rejected rather than guessed. `TextFilter` is the only fallback and it skips numeric
+Doctrine fields, so the guess would render a control that filters nothing. Name a filter class on
+the attribute, or point the filter at a text field, and the declaration raises while the container
+compiles instead of failing silently on the first request.
 
 A ternary filter guessed from a `bool` compares the column value, so "true" and "false" each match
 the rows they name. Naming `TernaryFilter` yourself asks for what that class does, so it keeps its
