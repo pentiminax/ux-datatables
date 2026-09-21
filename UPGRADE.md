@@ -5,6 +5,43 @@ current version and the target, oldest first.
 
 ## v1.0 → v1.1
 
+### `#[AsDataTable]` separates `dataClass` from `entityClass` (additive)
+
+The attribute now carries two distinct classes. `dataClass` is where the `#[DataTableColumn]` and
+`#[DataTableFilter]` declarations are read. `entityClass` is what the runtime targets: Doctrine query
+building, inline edit, bulk actions, row identifiers, Mercure topics and API Platform metadata.
+
+Each one defaults to the other, so nothing changes for a table naming a single class —
+`#[AsDataTable(User::class)]` and `#[AsDataTable(entityClass: User::class)]` both keep every feature
+on `User`. What is new is passing the two together:
+
+```php
+#[AsDataTable(dataClass: UserRow::class, entityClass: User::class)]
+final class UserDataTable extends AbstractDataTable
+{
+    protected function projectPage(array $items): ?array
+    {
+        return array_map(UserRow::fromEntity(...), $items);
+    }
+}
+```
+
+The attribute describes the shape, it does not build it: rows are still hydrated as `User`, so
+`projectPage()` is what turns them into `UserRow`.
+
+Two consequences when the two classes differ:
+
+- Automatic query building checks `entityClass` for a Doctrine mapping, where it used to check the
+  single declared class. A DTO `dataClass` is now legitimate.
+- Ordering and searching still build DQL against `entityClass`, so a column or filter declared on the
+  DTO must name a field the entity carries. The container checks this while it compiles and names the
+  offender, instead of silently dropping the column from ordering and search. Dotted paths are left
+  alone: they may target a join alias added in `customizeQueryBuilder()`.
+
+  Name the DTO property after the entity field, or, when the two names must differ, redirect the query
+  alone with the `searchField` option or an `orderExpression`. The `field` option is not the tool here:
+  it redirects the displayed value as well, so a projected row reads nothing under it.
+
 ### Bulk actions (additive)
 
 Tables can declare bulk actions, which the bundle runs over the rows the user selected:

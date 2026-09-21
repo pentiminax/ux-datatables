@@ -31,8 +31,14 @@ Arguments:
     [
       '`dataClass`',
       '`class-string`',
-      'required',
-      'Doctrine entity class linked to the table. Validated when the attribute is read: a class that does not exist, or a non-class such as an interface, throws an `InvalidArgumentException`.',
+      '`entityClass`',
+      'Class the table reads its shape from: the one carrying the `#[DataTableColumn]` and `#[DataTableFilter]` declarations. Validated when the attribute is read: a class that does not exist, or a non-class such as an interface, throws an `InvalidArgumentException`.',
+    ],
+    [
+      '`entityClass`',
+      '`class-string`',
+      '`dataClass`',
+      'Doctrine entity the table queries and mutates. Also the class API Platform and Mercure read. Validated the same way as `dataClass`.',
     ],
     [
       '`serializationGroups`',
@@ -100,28 +106,73 @@ naming the attribute and the entity class. Fluent Mercure configuration set with
 The attribute is not inherited: `#[AsDataTable]` on an abstract base class gives its subclasses no
 attribute at all. Annotate every concrete table class.
 
-### `dataClass`
+### `dataClass` and `entityClass`
 
-`dataClass` names the class the table reads its shape from. It is usually a Doctrine entity, but any
-class works when you provide the rows yourself:
+The attribute carries two classes, and one rule tells them apart: **`dataClass` is where the PHP
+attributes are read, `entityClass` is what the runtime targets.**
+
+<Table
+  headers={['Argument', 'Read by']}
+  rows={[
+    [
+      '`dataClass`',
+      '`#[DataTableColumn]` and `#[DataTableFilter]` declarations',
+    ],
+    [
+      '`entityClass`',
+      'Doctrine query building, inline edit, bulk actions, row identifiers, Mercure topics, API Platform metadata and collection URL',
+    ],
+  ]}
+/>
+
+Each one defaults to the other, so naming a single class keeps every feature on it. The first
+positional argument is `dataClass`:
 
 ```php
-#[AsDataTable(dataClass: UserSummary::class)]
+#[AsDataTable(User::class)]
+```
+
+Pass both when the columns describe a DTO while Doctrine still queries the entity:
+
+```php
+final readonly class UserRow
+{
+    public function __construct(
+        #[DataTableColumn]
+        public int $id,
+        #[DataTableColumn(options: ['title' => 'Name'])]
+        public string $name,
+    ) {
+    }
+}
+
+#[AsDataTable(dataClass: UserRow::class, entityClass: User::class)]
 final class UserDataTable extends AbstractDataTable
 {
-    public function createDataProvider(): DataProviderInterface
+    protected function projectPage(array $items): ?array
     {
-        return new ArrayDataProvider($this->summaries);
+        return array_map(UserRow::fromEntity(...), $items);
     }
 }
 ```
 
-Features that do need Doctrine say so when they run. Automatic query building rejects a class
-Doctrine does not map, naming the class rather than failing inside the query builder.
+The attribute describes the shape, it does not build it: rows are still hydrated as `User`, so
+[`projectPage()`](/ux-datatables/reference/data-providers-row-mappers/#page-projection) is what turns
+them into `UserRow`. Actions, URLs and permission checks keep receiving the source entity.
 
-<Aside type="caution" title="`entityClass` is deprecated since 1.1">
-  Pass `dataClass` instead. The `entityClass` argument still works for the whole 1.x line and is
-  removed in 2.0; the `$entityClass` property keeps returning the same value. Passing both raises.
+A `dataClass` Doctrine does not map is fine. An `entityClass` it does not map is not: automatic
+query building rejects it, naming the class rather than failing inside the query builder.
+
+<Aside type="caution" title="Column fields still target the entity">
+  Ordering and searching build DQL against `entityClass`, so a column or filter declared on the DTO
+  must name a field the entity carries. When the two classes differ, the container checks it while it
+  compiles and names the offender. Dotted paths are left alone: they may target a join alias added in
+  `customizeQueryBuilder()`.
+
+  The simplest fix is to name the DTO property after the entity field it displays. When the two names
+  must differ, redirect the query alone with the `searchField` option or an
+  `orderExpression`, or turn ordering and searching off on the column. Do not reach for the `field`
+  option here: it redirects the displayed value as well, and reads nothing on a projected row.
 </Aside>
 
 ### `serializationGroups`

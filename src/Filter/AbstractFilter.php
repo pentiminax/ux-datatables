@@ -35,6 +35,22 @@ abstract class AbstractFilter implements FilterInterface
         return new static($name);
     }
 
+    /**
+     * Doctrine field path this filter targets, the filter name when none was set.
+     */
+    public function getField(): string
+    {
+        return $this->field ?? $this->name;
+    }
+
+    /**
+     * Whether a query() closure replaces the default Doctrine condition.
+     */
+    public function hasQueryCallback(): bool
+    {
+        return null !== $this->queryCallback;
+    }
+
     public function getName(): string
     {
         return $this->name;
@@ -133,7 +149,7 @@ abstract class AbstractFilter implements FilterInterface
 
     protected function resolvedField(): string
     {
-        return $this->field ?? $this->name;
+        return $this->getField();
     }
 
     protected function resolveExpression(QueryBuilder $qb, string $alias): ?string
