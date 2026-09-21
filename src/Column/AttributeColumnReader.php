@@ -45,13 +45,13 @@ final class AttributeColumnReader
     /**
      * Columns declared on the members of the class holding the data.
      *
-     * @param class-string $entityClass
+     * @param class-string $dataClass
      *
      * @return AbstractColumn[]
      */
-    public function readColumns(string $entityClass): array
+    public function readColumns(string $dataClass): array
     {
-        return $this->buildColumns($this->memberAttributeReader->readMembers($entityClass, DataTableColumn::class));
+        return $this->buildColumns($this->memberAttributeReader->readMembers($dataClass, DataTableColumn::class));
     }
 
     /**
