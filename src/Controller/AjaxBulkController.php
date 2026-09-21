@@ -44,6 +44,10 @@ final class AjaxBulkController
         $dataTable = $this->registry->resolveAction($payload->dataTable);
         $action    = $dataTable->findBulkAction($payload->action);
 
+        if (null === $action) {
+            throw new MutationNotAllowedException();
+        }
+
         $context = new ActionPermissionContext(
             dataTableClass: $dataTable->dataTableClass,
             action: $action,
@@ -51,7 +55,7 @@ final class AjaxBulkController
             hasRowContext: false,
         );
 
-        if (null === $action || false === $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, $context)) {
+        if (false === $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, $context)) {
             throw new MutationNotAllowedException();
         }
 
