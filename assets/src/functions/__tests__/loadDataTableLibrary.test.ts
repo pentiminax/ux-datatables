@@ -12,15 +12,16 @@ describe('loadDataTableLibrary', () => {
         }
     })
 
-    it.each(
-        frameworks
-    )('loads the datatables.net-%s package for the selected framework', async (framework) => {
-        const DataTable = class {}
+    it.each(frameworks)(
+        'loads the datatables.net-%s package for the selected framework',
+        async (framework) => {
+            const DataTable = class {}
 
-        vi.doMock(`datatables.net-${framework}`, () => ({ default: DataTable }))
+            vi.doMock(`datatables.net-${framework}`, () => ({ default: DataTable }))
 
-        const { loadDataTableLibrary } = await import('../loadDataTableLibrary.js')
+            const { loadDataTableLibrary } = await import('../loadDataTableLibrary.js')
 
-        await expect(loadDataTableLibrary(framework)).resolves.toBe(DataTable)
-    })
+            await expect(loadDataTableLibrary(framework)).resolves.toBe(DataTable)
+        }
+    )
 })

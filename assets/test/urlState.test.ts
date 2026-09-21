@@ -3,12 +3,24 @@ import {
     applyUrlStateToPayload,
     isUrlStateEnabled,
     readUrlState,
-    writeUrlState,
     type UrlStateConfig,
+    writeUrlState,
 } from '../src/functions/urlState'
 
-const baseCfg: UrlStateConfig = { search: true, order: true, page: true, pageLength: true, prefix: '' }
-const prefixedCfg: UrlStateConfig = { search: true, order: true, page: true, pageLength: true, prefix: 'users' }
+const baseCfg: UrlStateConfig = {
+    search: true,
+    order: true,
+    page: true,
+    pageLength: true,
+    prefix: '',
+}
+const prefixedCfg: UrlStateConfig = {
+    search: true,
+    order: true,
+    page: true,
+    pageLength: true,
+    prefix: 'users',
+}
 
 describe('isUrlStateEnabled', () => {
     it('returns null when urlState absent', () => {
@@ -17,7 +29,9 @@ describe('isUrlStateEnabled', () => {
 
     it('returns null when all keys false', () => {
         expect(
-            isUrlStateEnabled({ urlState: { search: false, order: false, page: false, pageLength: false } })
+            isUrlStateEnabled({
+                urlState: { search: false, order: false, page: false, pageLength: false },
+            })
         ).toBeNull()
     })
 
@@ -25,14 +39,26 @@ describe('isUrlStateEnabled', () => {
         const result = isUrlStateEnabled({
             urlState: { search: true, order: false, page: false, pageLength: false, prefix: '' },
         })
-        expect(result).toEqual({ search: true, order: false, page: false, pageLength: false, prefix: '' })
+        expect(result).toEqual({
+            search: true,
+            order: false,
+            page: false,
+            pageLength: false,
+            prefix: '',
+        })
     })
 
     it('returns config when all keys explicitly true', () => {
         const result = isUrlStateEnabled({
             urlState: { search: true, order: true, page: true, pageLength: true, prefix: 'x' },
         })
-        expect(result).toEqual({ search: true, order: true, page: true, pageLength: true, prefix: 'x' })
+        expect(result).toEqual({
+            search: true,
+            order: true,
+            page: true,
+            pageLength: true,
+            prefix: 'x',
+        })
     })
 
     it('defaults missing prefix to empty string', () => {
@@ -70,7 +96,13 @@ describe('readUrlState — no prefix', () => {
     })
 
     it('ignores keys not enabled', () => {
-        const cfg: UrlStateConfig = { search: false, order: true, page: false, pageLength: false, prefix: '' }
+        const cfg: UrlStateConfig = {
+            search: false,
+            order: true,
+            page: false,
+            pageLength: false,
+            prefix: '',
+        }
         const snap = readUrlState(
             cfg,
             '?search=foo&order%5Bname%5D=id&order%5Bdir%5D=asc&start=20&pageLength=25'
@@ -203,7 +235,13 @@ describe('writeUrlState', () => {
     })
 
     it('writes multi-column order as indexed entries', () => {
-        writeUrlState(baseCfg, makeTable('', [[0, 'asc'], [1, 'desc']]))
+        writeUrlState(
+            baseCfg,
+            makeTable('', [
+                [0, 'asc'],
+                [1, 'desc'],
+            ])
+        )
         const url = replaceStateSpy.mock.calls[0][2] as string
         expect(url).toContain('order[0][name]=id')
         expect(url).toContain('order[0][dir]=asc')
@@ -241,7 +279,13 @@ describe('writeUrlState', () => {
     })
 
     it('produces bare pathname when pageLength disabled and no other state', () => {
-        const cfg: UrlStateConfig = { search: true, order: true, page: true, pageLength: false, prefix: '' }
+        const cfg: UrlStateConfig = {
+            search: true,
+            order: true,
+            page: true,
+            pageLength: false,
+            prefix: '',
+        }
         writeUrlState(cfg, makeTable('', [], 0))
         const url = replaceStateSpy.mock.calls[0][2] as string
         expect(url).toBe('/users')

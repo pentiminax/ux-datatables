@@ -31,6 +31,18 @@ final class SelectExtension implements ExtensionInterface
         return 'select';
     }
 
+    public function getStyle(): SelectStyle
+    {
+        return $this->style;
+    }
+
+    public function style(SelectStyle $style): self
+    {
+        $this->style = $style;
+
+        return $this;
+    }
+
     public function jsonSerialize(): array
     {
         return [

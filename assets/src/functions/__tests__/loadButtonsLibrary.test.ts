@@ -37,35 +37,35 @@ describe('loadButtonsLibrary', () => {
         mockedSpecifiers.clear()
     })
 
-    it.each(frameworks)('loads the Buttons JS integration and CSS file for $framework', async ({
-        framework,
-        cssSuffix,
-    }) => {
-        const loaded: string[] = []
-        const frameworkSpecifier = `datatables.net-buttons-${framework}`
-        const cssSpecifier = `datatables.net-buttons-${framework}/css/buttons.${cssSuffix}.min.css`
-        const DataTable = {
-            Buttons: {
-                jszip: vi.fn(),
-                pdfMake: vi.fn(),
-            },
+    it.each(frameworks)(
+        'loads the Buttons JS integration and CSS file for $framework',
+        async ({ framework, cssSuffix }) => {
+            const loaded: string[] = []
+            const frameworkSpecifier = `datatables.net-buttons-${framework}`
+            const cssSpecifier = `datatables.net-buttons-${framework}/css/buttons.${cssSuffix}.min.css`
+            const DataTable = {
+                Buttons: {
+                    jszip: vi.fn(),
+                    pdfMake: vi.fn(),
+                },
+            }
+
+            for (const specifier of staticSpecifiers) {
+                mockSpecifier(specifier, loaded)
+            }
+
+            mockSpecifier(frameworkSpecifier, loaded)
+            mockSpecifier(cssSpecifier, loaded)
+
+            const { loadButtonsLibrary } = await import('../loadButtonsLibrary.js')
+
+            await loadButtonsLibrary(
+                DataTable as unknown as typeof import('datatables.net').default,
+                framework
+            )
+
+            expect(loaded).toContain(frameworkSpecifier)
+            expect(loaded).toContain(cssSpecifier)
         }
-
-        for (const specifier of staticSpecifiers) {
-            mockSpecifier(specifier, loaded)
-        }
-
-        mockSpecifier(frameworkSpecifier, loaded)
-        mockSpecifier(cssSpecifier, loaded)
-
-        const { loadButtonsLibrary } = await import('../loadButtonsLibrary.js')
-
-        await loadButtonsLibrary(
-            DataTable as unknown as typeof import('datatables.net').default,
-            framework
-        )
-
-        expect(loaded).toContain(frameworkSpecifier)
-        expect(loaded).toContain(cssSpecifier)
-    })
+    )
 })
