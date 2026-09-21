@@ -1,0 +1,1 @@
+{"version":3,"file":"bulkActionsLayout.js","sourceRoot":"","sources":["../../src/functions/bulkActionsLayout.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,kBAAkB,EAAE,MAAM,oBAAoB,CAAA;AAMvD,MAAM,UAAU,sBAAsB,CAClC,OAA4B,EAC5B,QAAuB,EACvB,QAAQ,GAAG,QAAQ;IAEnB,kBAAkB,CAAC,OAAO,EAAE,aAAa,EAAE,EAAE,WAAW,EAAE,EAAE,QAAQ,EAAE,EAAE,EAAE,EAAE,QAAQ,EAAE,CAAC,CAAA;AAC3F,CAAC"}

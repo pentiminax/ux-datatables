@@ -1,0 +1,425 @@
+:root {
+    --dt-filters-accent: #f59e0b;
+    --dt-filters-accent-contrast: #1c1917;
+    --dt-filters-danger: #ef4444;
+    --dt-filters-surface: #ffffff;
+    --dt-filters-surface-muted: #f8fafc;
+    --dt-filters-border: #e2e8f0;
+    --dt-filters-text: #1e293b;
+    --dt-filters-text-muted: #64748b;
+    --dt-filters-shadow: 0 12px 32px -8px rgb(15 23 42 / 0.25);
+    --dt-filters-radius: 12px;
+
+    /* Chrome, kept in tokens so a theme restyles the filter bar by reassigning
+       them instead of re-declaring every element rule. The defaults below are
+       the unthemed look. Keep this list in sync with the theme's bridge in
+       datatables-tailwind-theme.css. */
+    --dt-filters-radius-control: 8px;
+    --dt-filters-radius-toggle: 10px;
+    --dt-filters-input-border: 1px solid var(--dt-filters-border);
+    --dt-filters-input-shadow: none;
+    --dt-filters-input-border-focus: var(--dt-filters-accent);
+    --dt-filters-input-shadow-focus: 0 0 0 3px rgb(245 158 11 / 0.2);
+    --dt-filters-popover-border: 1px solid var(--dt-filters-border);
+    --dt-highlight-color: rgb(99 102 241 / 0.32);
+    --dt-highlight-duration: 1200ms;
+    --dt-filters-select-appearance: auto;
+    --dt-filters-select-padding-end: 0.65rem;
+    --dt-filters-chevron: none;
+    --dt-filters-button-shadow: none;
+
+    /* The bulk bar borrows the filter palette so a theme that restyles one restyles both;
+       reassign these alone to break them apart. */
+    --dt-bulk-surface: var(--dt-filters-surface-muted);
+    --dt-bulk-border: var(--dt-filters-border);
+    --dt-bulk-text: var(--dt-filters-text);
+    --dt-bulk-text-muted: var(--dt-filters-text-muted);
+    --dt-bulk-accent: var(--dt-filters-accent);
+    --dt-bulk-radius: var(--dt-filters-radius-control);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --dt-filters-surface: #1c1f26;
+        --dt-filters-surface-muted: #262a33;
+        --dt-filters-border: #343a46;
+        --dt-filters-text: #e7e9ee;
+        --dt-filters-text-muted: #9aa3b2;
+        --dt-filters-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.6);
+    }
+}
+
+[data-bs-theme='dark'],
+.dark {
+    --dt-filters-surface: #1c1f26;
+    --dt-filters-surface-muted: #262a33;
+    --dt-filters-border: #343a46;
+    --dt-filters-text: #e7e9ee;
+    --dt-filters-text-muted: #9aa3b2;
+    --dt-filters-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.6);
+}
+
+.dt-filters {
+    position: relative;
+    display: inline-flex;
+}
+
+.dt-filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--dt-filters-radius-toggle);
+    background: transparent;
+    color: var(--dt-filters-text-muted);
+    cursor: pointer;
+    transition:
+        color 0.15s ease,
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.dt-filters-toggle:hover {
+    color: var(--dt-filters-text);
+    background: var(--dt-filters-surface-muted);
+}
+
+.dt-filters-toggle[aria-expanded='true'] {
+    color: var(--dt-filters-text);
+    border-color: var(--dt-filters-border);
+    background: var(--dt-filters-surface-muted);
+}
+
+.dt-filters-toggle--active {
+    color: var(--dt-filters-accent);
+}
+
+.dt-filters-toggle svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+.dt-filters-badge {
+    position: absolute;
+    top: -0.35rem;
+    right: -0.35rem;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: var(--dt-filters-surface-muted);
+    border: 1px solid var(--dt-filters-border);
+    color: var(--dt-filters-text-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.1rem;
+    text-align: center;
+}
+
+.dt-filters-toggle--active .dt-filters-badge {
+    background: var(--dt-filters-accent);
+    border-color: var(--dt-filters-accent);
+    color: var(--dt-filters-accent-contrast);
+}
+
+.dt-filters-popover {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: 1080;
+    width: 20rem;
+    max-width: calc(100vw - 2rem);
+    border: var(--dt-filters-popover-border);
+    border-radius: var(--dt-filters-radius);
+    background: var(--dt-filters-surface);
+    box-shadow: var(--dt-filters-shadow);
+    color: var(--dt-filters-text);
+}
+
+.dt-filters-popover[hidden] {
+    display: none;
+}
+
+.dt-filters-popover__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem 0.5rem;
+}
+
+.dt-filters-popover__title {
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.dt-filters-reset {
+    border: none;
+    background: transparent;
+    padding: 0;
+    color: var(--dt-filters-danger);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.dt-filters-reset:hover {
+    text-decoration: underline;
+}
+
+.dt-filters-popover__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    min-width: 0;
+    padding: 0.75rem 1.25rem;
+}
+
+.dt-filters-popover__footer {
+    padding: 0.25rem 1.25rem 1.25rem;
+}
+
+.dt-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.dt-filter--checkbox {
+    flex-direction: row;
+    align-items: center;
+}
+
+.dt-filter-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--dt-filters-text-muted);
+}
+
+.dt-filter-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--dt-filters-text);
+    cursor: pointer;
+}
+
+.dt-filter-input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 0.45rem 0.65rem;
+    border: var(--dt-filters-input-border);
+    border-radius: var(--dt-filters-radius-control);
+    background: var(--dt-filters-surface);
+    box-shadow: var(--dt-filters-input-shadow);
+    color: var(--dt-filters-text);
+    font-size: 0.9rem;
+}
+
+.dt-filter-input:focus {
+    outline: none;
+    border-color: var(--dt-filters-input-border-focus);
+    box-shadow: var(--dt-filters-input-shadow-focus);
+}
+
+/* A theme that draws its own chevron sets --dt-filters-select-appearance to
+   none; unthemed, the browser's own arrow shows and no image is painted. */
+select.dt-filter-input {
+    appearance: var(--dt-filters-select-appearance);
+    padding-inline-end: var(--dt-filters-select-padding-end);
+    background-image: var(--dt-filters-chevron);
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.15rem;
+}
+
+/* `background-position` has no logical equivalent, so the side the chevron is
+   drawn on is the one thing `padding-inline-end` cannot carry into RTL. */
+[dir='rtl'] select.dt-filter-input {
+    background-position: left 0.5rem center;
+}
+
+.dt-filter-range {
+    display: flex;
+    gap: 0.5rem;
+    min-width: 0;
+    width: 100%;
+}
+
+.dt-filter-range > * {
+    box-sizing: border-box;
+    flex: 1 1 0;
+    min-width: 0;
+    width: 0;
+    max-width: 100%;
+}
+
+.dt-filter-checkbox {
+    width: 1rem;
+    height: 1rem;
+    accent-color: var(--dt-filters-accent);
+}
+
+.dt-filters-apply {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.55rem 1.1rem;
+    border: none;
+    border-radius: var(--dt-filters-radius-control);
+    background: var(--dt-filters-accent);
+    box-shadow: var(--dt-filters-button-shadow);
+    color: var(--dt-filters-accent-contrast);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+
+.dt-filters-apply:hover {
+    filter: brightness(1.05);
+}
+
+/* Update highlight, applied by the Stimulus controller to the cells a real-time refresh changed.
+   The duration is written inline from the PHP `highlightUpdates()` configuration. */
+table.dataTable td.dt-cell-updated {
+    animation: dt-cell-updated var(--dt-highlight-duration) ease-out;
+}
+
+@keyframes dt-cell-updated {
+    from {
+        background-color: var(--dt-highlight-color);
+    }
+
+    to {
+        background-color: transparent;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    table.dataTable td.dt-cell-updated {
+        animation: none;
+        background-color: var(--dt-highlight-color);
+    }
+}
+
+.dt-bulk {
+    position: relative;
+    display: inline-flex;
+}
+
+.dt-bulk-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.dt-bulk-trigger:disabled {
+    color: var(--dt-bulk-text-muted);
+    cursor: not-allowed;
+}
+
+.dt-bulk-trigger__icon {
+    width: 1em;
+    height: 1em;
+}
+
+.dt-bulk-menu {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    z-index: 20;
+    min-width: 12rem;
+    display: flex;
+    flex-direction: column;
+    padding: 0.25rem;
+    border: 1px solid var(--dt-bulk-border);
+    border-radius: var(--dt-bulk-radius);
+    background: var(--dt-filters-surface);
+    box-shadow: var(--dt-filters-shadow);
+}
+
+.dt-bulk-menu[hidden] {
+    display: none;
+}
+
+.dt-bulk-menu__item {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    border: 0;
+    border-radius: calc(var(--dt-bulk-radius) - 2px);
+    background: transparent;
+    color: var(--dt-bulk-text);
+    text-align: start;
+    cursor: pointer;
+}
+
+.dt-bulk-menu__item:hover:not(:disabled),
+.dt-bulk-menu__item:focus-visible {
+    background: var(--dt-bulk-surface);
+}
+
+.dt-bulk-menu__item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* A full-width band rather than a card: it sits between the toolbar and the table header, so side
+   borders and rounded corners would cut across the container edges. */
+.dt-bulk-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.375rem 0.75rem;
+    border: 0;
+    border-bottom: 1px solid var(--dt-bulk-border);
+    background: var(--dt-bulk-surface);
+    color: var(--dt-bulk-text);
+}
+
+/* Kept in the flow so a selection does not resize the table; only the band's content disappears. */
+.dt-bulk-summary--empty {
+    visibility: hidden;
+}
+
+.dt-bulk-summary__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.dt-bulk-summary__link {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--dt-bulk-accent);
+    cursor: pointer;
+}
+
+.dt-bulk-summary__link[hidden] {
+    display: none;
+}
+
+.dt-bulk-summary__link:hover {
+    text-decoration: underline;
+}
+
+.dt-bulk [aria-busy='true'] {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.dt-bulk-confirm__message {
+    margin: 0;
+}

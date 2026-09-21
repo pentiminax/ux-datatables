@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+    <file source-language="en" target-language="fr" datatype="plaintext" original="DataTables">
+        <body>
+            <trans-unit id="filter.bar.title">
+                <source>filter.bar.title</source>
+                <target>Filtres</target>
+            </trans-unit>
+            <trans-unit id="filter.bar.reset">
+                <source>filter.bar.reset</source>
+                <target>Réinitialiser</target>
+            </trans-unit>
+            <trans-unit id="filter.bar.apply">
+                <source>filter.bar.apply</source>
+                <target>Appliquer les filtres</target>
+            </trans-unit>
+            <trans-unit id="filter.bar.all">
+                <source>filter.bar.all</source>
+                <target>Tous</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.trigger">
+                <source>bulk.bar.trigger</source>
+                <target>Actions groupées</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.selected">
+                <source>bulk.bar.selected</source>
+                <target>{count} enregistrements sélectionnés</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.selectAllMatching">
+                <source>bulk.bar.selectAllMatching</source>
+                <target>Tout sélectionner ({count})</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.allMatchingSelected">
+                <source>bulk.bar.allMatchingSelected</source>
+                <target>{count} enregistrements sélectionnés au total</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.clear">
+                <source>bulk.bar.clear</source>
+                <target>Tout désélectionner</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.confirm">
+                <source>bulk.bar.confirm</source>
+                <target>Confirmer</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.cancel">
+                <source>bulk.bar.cancel</source>
+                <target>Annuler</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.processed">
+                <source>bulk.bar.processed</source>
+                <target>{count} lignes traitées</target>
+            </trans-unit>
+            <trans-unit id="bulk.bar.skipped">
+                <source>bulk.bar.skipped</source>
+                <target>{count} lignes ignorées</target>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>
