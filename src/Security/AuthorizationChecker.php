@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Security;
 
+use Pentiminax\UX\DataTables\Contracts\ExecutableActionInterface;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Symfony\Component\Security\Core\Authorization\AccessDecision;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationCredentialsNotFoundException;
@@ -44,5 +46,50 @@ final class AuthorizationChecker implements AuthorizationCheckerInterface
         } catch (AuthenticationCredentialsNotFoundException) {
             return false;
         }
+    }
+
+    /**
+     * Checks the static permission of an action, outside of any row.
+     */
+    public function canExecuteAction(?string $dataTableClass, ExecutableActionInterface $action): bool
+    {
+        return $this->isGranted(
+            attribute: Permission::DT_EXECUTE_ACTION,
+            subject: ActionPermissionContext::forTable($dataTableClass, $action)
+        );
+    }
+
+    /**
+     * Checks the permission of an action against the row it would act on.
+     */
+    public function canExecuteActionOnRow(?string $dataTableClass, ExecutableActionInterface $action, mixed $row): bool
+    {
+        return $this->isGranted(
+            attribute: Permission::DT_EXECUTE_ACTION,
+            subject: ActionPermissionContext::forRow($dataTableClass, $action, $row)
+        );
+    }
+
+    /**
+     * Checks whether the table itself may be rendered or served over Ajax.
+     */
+    public function canAccessTable(AbstractDataTable $table): bool
+    {
+        return $this->isGranted(Permission::DT_ACCESS_TABLE, $table);
+    }
+
+    public function canEditRow(object $entity): bool
+    {
+        return $this->isGranted(Permission::DT_EDIT_ROW, $entity);
+    }
+
+    public function canDeleteRow(object $entity): bool
+    {
+        return $this->isGranted(Permission::DT_DELETE_ROW, $entity);
+    }
+
+    public function canViewRowDetails(object $entity): bool
+    {
+        return $this->isGranted(Permission::DT_VIEW_ROW_DETAILS, $entity);
     }
 }

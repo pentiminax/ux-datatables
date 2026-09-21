@@ -49,6 +49,13 @@ class DataTableExtensions implements \JsonSerializable
         return $this->extensions['buttons'] ?? null;
     }
 
+    public function getSelectExtension(): ?SelectExtension
+    {
+        $select = $this->extensions['select'] ?? null;
+
+        return $select instanceof SelectExtension ? $select : null;
+    }
+
     /**
      * Buttons is injected into the DataTables `layout` configuration rather than serialized as a
      * top-level option, so it is skipped here and consumed by layout-building code instead.
