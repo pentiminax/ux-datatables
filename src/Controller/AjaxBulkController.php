@@ -69,12 +69,12 @@ final class AjaxBulkController
             request: $request,
         );
 
-        return new JsonResponse(array_filter([
+        return $this->json([
             'success'   => true,
             'processed' => $result->processed,
             'skipped'   => $result->skipped,
             'message'   => $result->message,
-        ], static fn (mixed $value): bool => null !== $value));
+        ]);
     }
 
     /**
@@ -90,5 +90,12 @@ final class AjaxBulkController
             $values,
             static fn (mixed $value): bool => \is_int($value) || (\is_string($value) && '' !== $value),
         ));
+    }
+
+    private function json(array $data): JsonResponse
+    {
+        return new JsonResponse(
+            array_filter($data, static fn (mixed $value): bool => null !== $value)
+        );
     }
 }
