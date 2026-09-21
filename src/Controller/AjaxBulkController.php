@@ -8,7 +8,6 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Mutation\BulkActionRunner;
 use Pentiminax\UX\DataTables\Mutation\BulkSelection;
-use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\Permission;
@@ -48,14 +47,7 @@ final class AjaxBulkController
             throw new MutationNotAllowedException();
         }
 
-        $context = new ActionPermissionContext(
-            dataTableClass: $dataTable->dataTableClass,
-            action: $action,
-            currentSource: null,
-            hasRowContext: false,
-        );
-
-        if (false === $this->permissionChecker->isGranted(Permission::DT_EXECUTE_ACTION, $context)) {
+        if (false === $this->permissionChecker->canExecuteAction($dataTable->dataTableClass, $action)) {
             throw new MutationNotAllowedException();
         }
 

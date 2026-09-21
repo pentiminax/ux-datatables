@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Model;
 use Pentiminax\UX\DataTables\Enum\ActionsAlignment;
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Enum\ActionType;
-use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 
@@ -192,12 +191,7 @@ final class Actions implements \JsonSerializable
                 continue;
             }
 
-            if (!$checker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
-                $dataTableClass ?? '',
-                $action,
-                null,
-                false,
-            ))) {
+            if (!$checker->canExecuteAction($dataTableClass, $action)) {
                 if ($action->isDisabledWhenDenied()) {
                     $this->actions[$key] = $action->asDenied();
 
