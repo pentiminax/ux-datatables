@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Profiler\DataTableProfiler;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
@@ -68,6 +69,8 @@ class DataTablesExtension extends AbstractExtension
             $columns,
         ));
 
+        $this->filterBulkActions($options, $dataTable->getBulkActions(), $dataTableClass);
+
         $view = array_merge($options, $dataTable->getExtensions(), [
             'dataTable' => $this->ajaxRegistry?->getActionToken($dataTableClass),
             'editModal' => [
@@ -113,6 +116,31 @@ class DataTablesExtension extends AbstractExtension
         ]);
 
         return \sprintf('<table id="%s" %s></table>', $dataTable->getId(), $stimulusAttributes);
+    }
+
+    /**
+     * Drop bulk actions the user may not run, without touching the container-shared collection.
+     *
+     * @param array<string, mixed> $options
+     */
+    private function filterBulkActions(array &$options, ?BulkActions $bulkActions, string $dataTableClass): void
+    {
+        if (null === $bulkActions || !isset($options['bulkActions'])) {
+            return;
+        }
+
+        $allowed = (clone $bulkActions)->filterStaticPermissions(
+            $this->permissionChecker ?? new AuthorizationChecker(),
+            $dataTableClass,
+        );
+
+        if ($allowed->isEmpty()) {
+            unset($options['bulkActions']);
+
+            return;
+        }
+
+        $options['bulkActions']['actions'] = $allowed->jsonSerialize();
     }
 
     private function getMutationToken(): ?string

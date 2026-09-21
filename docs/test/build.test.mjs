@@ -19,6 +19,7 @@ const docRoutes = [
   'getting-started/ai-assisted-development/',
   'features/overview/',
   'features/when-to-use-what/',
+  'features/bulk-actions/',
   'recipes/',
   'recipes/client-side-inline/',
   'recipes/doctrine-server-side/',
@@ -87,7 +88,7 @@ const sectionRoutes = [
 
 test('every route is built', async () => {
   assert.equal(existsSync(dist), true, 'run npm run build before npm run test:build')
-  assert.equal(docRoutes.length, 62)
+  assert.equal(docRoutes.length, 63)
 
   for (const route of [...docRoutes, ...sectionRoutes]) {
     assert.equal(existsSync(new URL(`${route}index.html`, dist)), true, `missing ${route}`)

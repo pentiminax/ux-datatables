@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Pentiminax\UX\DataTables\Contracts\ExecutableActionInterface;
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Enum\Icon;
 use Symfony\Component\ExpressionLanguage\Expression;
 
-final class Action implements \JsonSerializable
+final class Action implements \JsonSerializable, ExecutableActionInterface
 {
     private ActionType $type;
     private string $name;

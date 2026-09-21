@@ -110,3 +110,36 @@ public function configureActions(Actions $actions): Actions
 - `position` is a server-side layout concern only — **not** serialized into the client JSON.
 
 `Actions::alignment(ActionsAlignment)` horizontally aligns the action cell. `ActionsAlignment`: `Left`/`Center`/`Right`, applied as a `dt-{value}` CSS class (e.g. `Center` → `dt-center`). Method name is literally `alignment` — use verbatim.
+
+## Bulk actions (`src/Model/BulkAction.php`)
+
+Define them in `configureBulkActions()`. They act on the rows the user selected, not on one row.
+
+```php
+use Pentiminax\UX\DataTables\Model\{BulkAction, BulkActions};
+use Pentiminax\UX\DataTables\Mutation\{BulkActionContext, BulkRecords};
+
+public function configureBulkActions(BulkActions $actions): BulkActions
+{
+    return $actions
+        ->selectCurrentPageOnly()               // optional: forbid select-all across pages
+        ->add(
+            BulkAction::new('approve', 'Approve')
+                ->icon(Icon::Check)
+                ->askConfirmation('Approve {count} orders?')   // {count} substituted client-side
+                ->setPermission('ORDER_APPROVE', fn (Order $o) => $o)
+                ->chunk(250)                                   // rows loaded and flushed per batch
+                ->handler(function (BulkRecords $records, BulkActionContext $ctx): void {
+                    foreach ($records as $order) {
+                        $this->approver->approve($order);
+                    }
+                })
+        );
+}
+```
+
+- Declaring one auto-enables `SelectExtension` in `MULTI` style with checkboxes, and forces a `DT_RowId` on every row. A configured `SelectStyle::SINGLE` throws.
+- `BulkRecords` is lazy and single-pass: `count()` is the **selected** count, `$ctx->processedCount()` / `$ctx->skippedCount()` are the real ones, read after iterating.
+- Per-row permission denials are skipped and counted; they do not abort the run.
+- `allMatching` (select every row matching the current filters) needs a provider implementing `IdentifierCollectingDataProviderInterface` — `DoctrineDataProvider` does. Otherwise the endpoint answers `400`.
+- Endpoint: `POST /datatables/ajax/bulk`, token in the body, CSRF in the `X-CSRF-Token` header. A run is **not** one transaction: one flush per chunk.

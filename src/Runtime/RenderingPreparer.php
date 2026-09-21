@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -23,6 +24,23 @@ final class RenderingPreparer
 {
     public const AJAX_DATA_ROUTE   = 'ux_datatables_ajax_data';
     public const AJAX_EXPORT_ROUTE = 'ux_datatables_ajax_export';
+    public const AJAX_BULK_ROUTE   = 'ux_datatables_ajax_bulk';
+
+    /**
+     * Chrome strings of the bulk action bar, translated server-side like the filter bar's.
+     *
+     * @var array<string, string>
+     */
+    private const array BULK_LABEL_KEYS = [
+        'selected'            => 'bulk.bar.selected',
+        'selectAllMatching'   => 'bulk.bar.selectAllMatching',
+        'allMatchingSelected' => 'bulk.bar.allMatchingSelected',
+        'clear'               => 'bulk.bar.clear',
+        'confirm'             => 'bulk.bar.confirm',
+        'cancel'              => 'bulk.bar.cancel',
+        'processed'           => 'bulk.bar.processed',
+        'skipped'             => 'bulk.bar.skipped',
+    ];
 
     public function __construct(
         private readonly ?ApiResourceCollectionUrlResolver $urlResolver = null,
@@ -47,6 +65,7 @@ final class RenderingPreparer
         $this->configureApiPlatform($table, $asDataTable);
         $this->configureAutoAjax($table);
         $this->configureExportUrl($table);
+        $this->configureBulkActions($table);
         $this->configureForwardedQueryParameters($table);
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
@@ -203,6 +222,28 @@ final class RenderingPreparer
         }
 
         $table->exportUrl($this->urlGenerator->generate(self::AJAX_EXPORT_ROUTE, ['table' => $token]));
+    }
+
+    private function configureBulkActions(DataTable $table): void
+    {
+        if (!$table->hasBulkActions()) {
+            return;
+        }
+
+        if (null !== $this->urlGenerator) {
+            $table->setBulkActionsUrl($this->urlGenerator->generate(self::AJAX_BULK_ROUTE));
+        }
+
+        if (null === $this->translator) {
+            return;
+        }
+
+        $labels = [];
+        foreach (self::BULK_LABEL_KEYS as $name => $key) {
+            $labels[$name] = $this->translator->trans($key, domain: FilterLabels::DOMAIN);
+        }
+
+        $table->setPreparedBulkActionLabels($labels);
     }
 
     private function configureForwardedQueryParameters(DataTable $table): void

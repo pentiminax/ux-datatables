@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { BulkActionBar, hasBulkActions } from './bulk/BulkActionBar.js';
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js';
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
@@ -11,6 +12,8 @@ import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
 import { ApiPlatformAdapter, isApiPlatformAdapterEnabled, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js';
+import { registerBulkActionsFeature } from './functions/bulkActionsFeature.js';
+import { applyBulkActionsLayout } from './functions/bulkActionsLayout.js';
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
@@ -98,6 +101,7 @@ class default_1 extends Controller {
         this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
         registerFilterFeature(DataTable);
+        registerBulkActionsFeature(DataTable);
         if (DataTable.isDataTable(this.element)) {
             this.isDataTableInitialized = true;
             this.table = new DataTable.Api(this.element);
@@ -125,6 +129,10 @@ class default_1 extends Controller {
             const filterBar = new FilterBar(payload, framework);
             filterBar.attachToPayload(payload);
             applyFilterLayout(payload, filterBar);
+        }
+        if (hasBulkActions(payload)) {
+            const bulkBar = new BulkActionBar(payload, framework, (name, detail) => this.dispatchEvent(name, detail));
+            applyBulkActionsLayout(payload, bulkBar, payload.bulkActions?.position);
         }
         await applyLocalLanguage(payload);
         applyServerExportUrls(payload);
