@@ -128,12 +128,14 @@ final class BulkActions implements \JsonSerializable
                 continue;
             }
 
-            if (!$checker->isGranted(Permission::DT_EXECUTE_ACTION, new ActionPermissionContext(
-                $dataTableClass ?? '',
-                $action,
-                null,
-                false,
-            ))) {
+            $context = new ActionPermissionContext(
+                dataTableClass: $dataTableClass ?? '',
+                action: $action,
+                currentSource: null,
+                hasRowContext: false,
+            );
+
+            if (!$checker->isGranted(Permission::DT_EXECUTE_ACTION, $context)) {
                 unset($this->actions[$key]);
             }
         }
