@@ -1,3 +1,4 @@
+import { renderLucideIcon } from '../functions/lucideIcons.js';
 import { createPopover } from '../functions/popover.js';
 import { runBulkAction } from '../functions/runBulkAction.js';
 import { confirmBulkAction } from './confirmModal.js';
@@ -118,7 +119,7 @@ export class BulkActionBar {
         return this.mutationsEnabled && !!this.config.url;
     }
     createMenuItem(action) {
-        const item = this.createButton(action.label, `dt-bulk-menu__item ${action.className ?? ''}`.trim(), action.icon);
+        const item = this.createButton(action.label, `dt-bulk-menu__item ${action.className ?? ''}`.trim(), action);
         item.dataset.bulkAction = action.name;
         item.setAttribute('role', 'menuitem');
         if (action.denied === true || !this.canRun()) {
@@ -207,9 +208,19 @@ export class BulkActionBar {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = className;
-        if (icon) {
+        const lucide = icon?.lucideIcon
+            ? renderLucideIcon(icon.lucideIcon, {
+                width: '1em',
+                height: '1em',
+                'aria-hidden': 'true',
+            })
+            : null;
+        if (null !== lucide) {
+            button.insertAdjacentHTML('afterbegin', lucide);
+        }
+        else if (icon?.icon) {
             const iconElement = document.createElement('i');
-            iconElement.className = icon;
+            iconElement.className = icon.icon;
             button.appendChild(iconElement);
         }
         button.appendChild(document.createTextNode(label));

@@ -1,3 +1,4 @@
+import { renderLucideIcon } from '../functions/lucideIcons.js'
 import { createPopover, type Popover } from '../functions/popover.js'
 import { runBulkAction } from '../functions/runBulkAction.js'
 import type { StyleFramework } from '../types/styleFramework.js'
@@ -35,6 +36,11 @@ export interface BulkActionsConfig {
     url?: string | null
     labels?: BulkActionLabels
     position?: string
+}
+
+interface IconSource {
+    icon?: string
+    lucideIcon?: string
 }
 
 const BOOTSTRAP_FRAMEWORKS: StyleFramework[] = ['bs', 'bs4', 'bs5']
@@ -243,7 +249,7 @@ export class BulkActionBar {
         const item = this.createButton(
             action.label,
             `dt-bulk-menu__item ${action.className ?? ''}`.trim(),
-            action.icon
+            action
         )
         item.dataset.bulkAction = action.name
         item.setAttribute('role', 'menuitem')
@@ -357,14 +363,26 @@ export class BulkActionBar {
         this.api?.ajax?.reload?.(null, false)
     }
 
-    private createButton(label: string, className: string, icon?: string): HTMLButtonElement {
+    private createButton(label: string, className: string, icon?: IconSource): HTMLButtonElement {
         const button = document.createElement('button')
         button.type = 'button'
         button.className = className
 
-        if (icon) {
+        // The controller loads Lucide before the feature renders whenever a bulk action declares
+        // an icon from the enum; a name outside the set renders nothing rather than a broken glyph.
+        const lucide = icon?.lucideIcon
+            ? renderLucideIcon(icon.lucideIcon, {
+                  width: '1em',
+                  height: '1em',
+                  'aria-hidden': 'true',
+              })
+            : null
+
+        if (null !== lucide) {
+            button.insertAdjacentHTML('afterbegin', lucide)
+        } else if (icon?.icon) {
             const iconElement = document.createElement('i')
-            iconElement.className = icon
+            iconElement.className = icon.icon
             button.appendChild(iconElement)
         }
 

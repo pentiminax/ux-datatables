@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { loadLucideIcons } from '../../functions/lucideIcons.js'
 import { BulkActionBar, hasBulkActions } from '../BulkActionBar.js'
 import { FakeApi } from './fakeApi.js'
 
@@ -76,6 +77,10 @@ const item = (h: Harness, name = 'approve'): HTMLButtonElement =>
 const summary = (): HTMLElement => document.querySelector('.dt-bulk-summary') as HTMLElement
 
 describe('BulkActionBar', () => {
+    beforeAll(async () => {
+        await loadLucideIcons()
+    })
+
     beforeEach(() => {
         document.body.innerHTML = ''
         vi.stubGlobal(
@@ -142,6 +147,20 @@ describe('BulkActionBar', () => {
 
         expect(menu(h).hidden).toBe(true)
         expect(trigger(h).disabled).toBe(true)
+    })
+
+    it('renders the lucide icon a bulk action declares', () => {
+        const h = build({
+            bulkActions: {
+                actions: [{ name: 'delete', label: 'Delete', lucideIcon: 'trash' }],
+            },
+        })
+
+        const icon = item(h, 'delete').querySelector('svg')
+
+        expect(icon).not.toBeNull()
+        expect(icon?.getAttribute('aria-hidden')).toBe('true')
+        expect(item(h, 'delete').textContent).toBe('Delete')
     })
 
     it('mounts the selection band right above the table row', async () => {
