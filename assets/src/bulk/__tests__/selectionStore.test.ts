@@ -44,6 +44,32 @@ describe('SelectionStore', () => {
         store.selectAllMatching()
 
         expect(store.snapshot()).toMatchObject({ allMatching: true, count: 10 })
+        expect(api.rows({ selected: true }).ids().toArray()).toEqual(['1', '2'])
+    })
+
+    it('sends client-side matches as explicit identifiers', () => {
+        api = new FakeApi(
+            [
+                { id: '00123', selected: false },
+                { id: '9007199254740993', selected: false },
+            ],
+            2,
+            false
+        )
+        store = new SelectionStore(api)
+        store.attach(() => {})
+
+        store.selectAllMatching()
+
+        expect(store.snapshot()).toMatchObject({
+            allMatching: false,
+            ids: ['00123', '9007199254740993'],
+            count: 2,
+        })
+        expect(api.rows({ selected: true }).ids().toArray()).toEqual([
+            '00123',
+            '9007199254740993',
+        ])
     })
 
     it('tracks the rows unchecked after a select all', () => {

@@ -1,6 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { confirmBulkAction } from '../confirmModal.js'
 import { BulkActionBar, hasBulkActions } from '../BulkActionBar.js'
 import { FakeApi } from './fakeApi.js'
+
+vi.mock('../confirmModal.js', () => ({
+    confirmBulkAction: vi.fn().mockResolvedValue(true),
+}))
+
+vi.mock('../../functions/lucideIcons.js', () => ({
+    renderLucideIcon: vi.fn(
+        (name: string) => `<svg data-lucide="${name}" aria-hidden="true"></svg>`
+    ),
+}))
 
 function payload(overrides: Record<string, any> = {}): Record<string, any> {
     const { bulkActions, ...rest } = overrides
@@ -105,10 +116,37 @@ describe('BulkActionBar', () => {
         await vi.waitFor(() => expect(api.reloaded.length).toBe(1))
 
         const body = JSON.parse((fetch as any).mock.calls[0][1].body)
-        expect(body).toMatchObject({ action: 'approve', ids: [1, 2], allMatching: false })
+        expect(body).toMatchObject({ action: 'approve', ids: ['1', '2'], allMatching: false })
         expect(element.querySelector('.dt-bulk-bar__status')?.textContent).toContain('2 processed')
         expect(dispatch).toHaveBeenCalledWith('bulk:success', expect.anything())
         expect(element.hidden).toBe(true)
+    })
+
+    it('uses the table modal adapter for confirmations', async () => {
+        const { api, element } = build({
+            editModal: { adapter: 'custom-modal' },
+            bulkActions: {
+                actions: [{ name: 'approve', label: 'Approve', confirm: 'Continue?' }],
+            },
+        })
+        api.emitSelection('select', [0])
+
+        await actionButton(element).click()
+        await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
+
+        expect(confirmBulkAction).toHaveBeenCalledWith(
+            expect.objectContaining({ adapterKey: 'custom-modal' })
+        )
+    })
+
+    it('renders a Lucide bulk action icon', () => {
+        const { element } = build({
+            bulkActions: {
+                actions: [{ name: 'approve', label: 'Approve', lucideIcon: 'check' }],
+            },
+        })
+
+        expect(actionButton(element).querySelector('[data-lucide="check"]')).not.toBeNull()
     })
 
     it('sends the displayed request along with a select all', async () => {

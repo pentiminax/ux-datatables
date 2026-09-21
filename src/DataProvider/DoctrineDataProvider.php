@@ -171,10 +171,31 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     {
         [$qb, $alias, $identifier] = $this->buildIdentifierScopedQuery($request);
 
-        return array_values(array_filter(
-            $this->scopedIdentifiers($qb, $alias, $identifier),
-            static fn (mixed $id): bool => \is_int($id) || \is_string($id),
-        ));
+        return $this->normalizeIdentifiers($this->scopedIdentifiers($qb, $alias, $identifier));
+    }
+
+    /**
+     * @param list<mixed> $ids
+     *
+     * @return list<int|string>
+     */
+    private function normalizeIdentifiers(array $ids): array
+    {
+        $identifiers = [];
+
+        foreach ($ids as $id) {
+            if (\is_int($id) || \is_string($id)) {
+                $identifiers[] = $id;
+
+                continue;
+            }
+
+            if ($id instanceof \Stringable && '' !== (string) $id) {
+                $identifiers[] = (string) $id;
+            }
+        }
+
+        return $identifiers;
     }
 
     /**

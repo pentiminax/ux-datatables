@@ -43,10 +43,13 @@ final class BulkActionTest extends TestCase
     #[Test]
     public function it_deselects_records_after_completion_by_default(): void
     {
-        $this->assertTrue(BulkAction::new('approve')->shouldDeselectRecordsAfterCompletion());
-        $this->assertFalse(
-            BulkAction::new('approve')->deselectRecordsAfterCompletion(false)->shouldDeselectRecordsAfterCompletion()
-        );
+        $default = BulkAction::new('approve');
+        $kept    = BulkAction::new('approve')->deselectRecordsAfterCompletion(false);
+
+        $this->assertTrue($default->shouldDeselectRecordsAfterCompletion());
+        $this->assertTrue($default->jsonSerialize()['deselectAfterCompletion']);
+        $this->assertFalse($kept->shouldDeselectRecordsAfterCompletion());
+        $this->assertFalse($kept->jsonSerialize()['deselectAfterCompletion']);
     }
 
     #[Test]

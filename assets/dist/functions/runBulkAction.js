@@ -6,9 +6,9 @@ export async function runBulkAction({ url, dataTable, action, ids, allMatching =
         body: JSON.stringify({
             dataTable,
             action,
-            ids: ids.map(normalizeId),
+            ids,
             allMatching,
-            deselectedIds: deselectedIds.map(normalizeId),
+            deselectedIds,
             query,
         }),
     });
@@ -22,8 +22,5 @@ export async function runBulkAction({ url, dataTable, action, ids, allMatching =
         skipped: typeof payload.skipped === 'number' ? payload.skipped : 0,
         message: typeof payload.message === 'string' ? payload.message : undefined,
     };
-}
-function normalizeId(id) {
-    return id !== '' && !Number.isNaN(Number(id)) ? Number(id) : id;
 }
 //# sourceMappingURL=runBulkAction.js.map

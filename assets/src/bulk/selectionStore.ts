@@ -48,9 +48,23 @@ export class SelectionStore {
     }
 
     selectAllMatching(): void {
+        if (!this.isServerSide()) {
+            this.ids.clear()
+
+            for (const id of this.filteredIds()) {
+                this.ids.add(id)
+            }
+
+            this.allMatching = false
+            this.deselectedIds.clear()
+            this.restore()
+
+            return
+        }
+
         this.allMatching = true
         this.deselectedIds.clear()
-        this.emit()
+        this.restore()
     }
 
     clear(): void {
@@ -148,17 +162,30 @@ export class SelectionStore {
     }
 
     private pageIds(): string[] {
+        return this.rowIdsFor({ page: 'current' })
+    }
+
+    private filteredIds(): string[] {
+        return this.rowIdsFor({ search: 'applied' })
+    }
+
+    private rowIdsFor(selector: Record<string, string>): string[] {
         return this.api
-            .rows({ page: 'current' })
+            .rows(selector)
             .ids()
             .toArray()
             .map((id: unknown) => String(id))
+            .filter((id: string) => id !== '' && id !== 'undefined')
     }
 
     private totalCount(): number {
         const info = this.api.page?.info?.()
 
         return typeof info?.recordsDisplay === 'number' ? info.recordsDisplay : this.ids.size
+    }
+
+    private isServerSide(): boolean {
+        return this.api.page?.info?.()?.serverSide === true
     }
 
     private emit(): void {

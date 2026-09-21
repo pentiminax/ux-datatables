@@ -62,7 +62,10 @@ final class BulkActions implements \JsonSerializable
     }
 
     /**
-     * Property holding the row identifier sent back to the bulk endpoint (default: `id`).
+     * Property holding the row identifier sent back to the bulk endpoint.
+     *
+     * A single Doctrine identifier replaces the `id` default automatically when metadata is
+     * available. Set this explicitly for another source or identifier field.
      */
     public function setIdField(string $idField): self
     {

@@ -34,7 +34,11 @@ import { isHighlightEnabled, type UpdateHighlighter } from './functions/highligh
 import { isDataTableClone } from './functions/isDataTableClone.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
 import { applyLocalLanguage } from './functions/localLanguage.js'
-import { hasLucideIcons, loadLucideIcons } from './functions/lucideIcons.js'
+import {
+    hasLucideIcons,
+    hasLucideIconsInActions,
+    loadLucideIcons,
+} from './functions/lucideIcons.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
 import { submitEditForm } from './functions/submitEditForm.js'
@@ -190,7 +194,10 @@ export default class extends Controller {
 
         this.configureColumns(payload)
 
-        if (hasLucideIcons(payload.columns)) {
+        if (
+            hasLucideIcons(payload.columns) ||
+            hasLucideIconsInActions(payload.bulkActions?.actions)
+        ) {
             await loadLucideIcons()
         }
 
