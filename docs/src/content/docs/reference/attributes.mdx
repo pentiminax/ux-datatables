@@ -119,10 +119,10 @@ final class UserDataTable extends AbstractDataTable
 Features that do need Doctrine say so when they run. Automatic query building rejects a class
 Doctrine does not map, naming the class rather than failing inside the query builder.
 
-:::caution[`entityClass` is deprecated since 1.1]
-Pass `dataClass` instead. The `entityClass` argument still works for the whole 1.x line and is
-removed in 2.0; the `$entityClass` property keeps returning the same value. Passing both raises.
-:::
+<Aside type="caution" title="`entityClass` is deprecated since 1.1">
+  Pass `dataClass` instead. The `entityClass` argument still works for the whole 1.x line and is
+  removed in 2.0; the `$entityClass` property keeps returning the same value. Passing both raises.
+</Aside>
 
 ### `serializationGroups`
 
