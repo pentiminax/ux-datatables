@@ -16,9 +16,19 @@ Each one defaults to the other, so nothing changes for a table naming a single c
 on `User`. What is new is passing the two together:
 
 ```php
+use App\DataTables\Row\UserRow;
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+
 #[AsDataTable(dataClass: UserRow::class, entityClass: User::class)]
 final class UserDataTable extends AbstractDataTable
 {
+    /**
+     * @param list<User> $items
+     *
+     * @return list<UserRow>
+     */
     protected function projectPage(array $items): ?array
     {
         return array_map(UserRow::fromEntity(...), $items);
