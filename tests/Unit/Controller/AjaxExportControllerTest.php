@@ -102,7 +102,8 @@ final class AjaxExportControllerTest extends TestCase
             ));
 
             $this->fail('The export controller should refuse a table the user may not access.');
-        } catch (AccessDeniedException) {
+        } catch (AccessDeniedException $exception) {
+            $this->assertSame('Access to this DataTable is denied.', $exception->getMessage());
         }
 
         $this->assertSame([], $exporter->columns);
@@ -119,17 +120,20 @@ final class AjaxExportControllerTest extends TestCase
 
         $controller = new AjaxExportController($registry, new ExportService(new ExporterRegistry([$exporter])));
 
-        $this->expectException(NotFoundHttpException::class);
-
         try {
             $controller(new Request(
                 query: ['table' => $registry->getActionToken($table::class)],
                 request: ['draw' => 1, 'start' => 0, 'length' => 10, 'exportKey' => 'csv'],
                 server: ['REQUEST_METHOD' => 'POST'],
             ));
-        } finally {
-            $this->assertSame([], $exporter->rows);
+
+            $this->fail('The export controller should refuse an action token on its read route.');
+        } catch (NotFoundHttpException $exception) {
+            $this->assertSame('DataTable not found.', $exception->getMessage());
         }
+
+        $this->assertSame([], $exporter->columns);
+        $this->assertSame([], $exporter->rows);
     }
 
     private function createRegistry(
