@@ -169,6 +169,10 @@ query building rejects it, naming the class rather than failing inside the query
   compiles and names the offender. Dotted paths are left alone: they may target a join alias added in
   `customizeQueryBuilder()`.
 
+  A column building its own search condition through `searchPredicate` is reported in the compiler
+  log rather than failing the build: its displayed field is only read when that condition declines a
+  term.
+
   The simplest fix is to name the DTO property after the entity field it displays. When the two names
   must differ, redirect the query alone with the `searchField` option or an
   `orderExpression`, or turn ordering and searching off on the column. Do not reach for the `field`

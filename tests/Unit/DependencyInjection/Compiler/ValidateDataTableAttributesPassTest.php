@@ -185,9 +185,12 @@ final class ValidateDataTableAttributesPassTest extends TestCase
     #[Test]
     public function it_leaves_a_column_building_its_own_search_predicate_alone(): void
     {
-        $this->process(CustomPredicateProjectionTableFixture::class);
+        $container = $this->process(CustomPredicateProjectionTableFixture::class);
 
-        $this->expectNotToPerformAssertions();
+        $log = implode("\n", $container->getCompiler()->getLog());
+
+        self::assertStringContainsString('column "fullName"', $log);
+        self::assertStringContainsString('builds its own search condition', $log);
     }
 
     #[Test]
