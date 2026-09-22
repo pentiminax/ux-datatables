@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface;
 use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -306,7 +307,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
     #[Test]
     public function it_lets_a_direct_column_implementation_opt_out_through_the_contract(): void
     {
-        $column = $this->createMock(NormalizedSearchColumnInterface::class);
+        $column = $this->createStub(NormalizedSearchColumnInterface::class);
         $column->method('getField')->willReturn('name');
         $column->method('isNumber')->willReturn(false);
         $column->method('isSearchNormalized')->willReturn(false);
@@ -393,6 +394,7 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
     }
 
     #[Test]
+    #[AllowMockObjectsWithoutExpectations]
     public function it_wins_over_the_type_dispatch_even_on_a_column_the_type_dispatch_would_skip(): void
     {
         $qb = $this->queryBuilderWithFieldType('createdAt', 'datetime_immutable');

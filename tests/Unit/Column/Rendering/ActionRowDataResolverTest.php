@@ -328,7 +328,7 @@ final class ActionRowDataResolverTest extends TestCase
         $urlGenerator = null;
 
         if ($withFailingRouter) {
-            $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+            $urlGenerator = $this->createStub(UrlGeneratorInterface::class);
             $urlGenerator->method('generate')->willThrowException(new RouteNotFoundException());
         }
 
@@ -375,7 +375,7 @@ final class ActionRowDataResolverTest extends TestCase
         $csrfTokenManager = null;
 
         if ($withFailingTokenManager) {
-            $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+            $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
             $csrfTokenManager->method('getToken')->willThrowException(new SessionNotFoundException());
         }
 
