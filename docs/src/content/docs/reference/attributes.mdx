@@ -135,6 +135,12 @@ positional argument is `dataClass`:
 Pass both when the columns describe a DTO while Doctrine still queries the entity:
 
 ```php
+// src/DataTables/Row/UserRow.php
+namespace App\DataTables\Row;
+
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
+
 final readonly class UserRow
 {
     public function __construct(
@@ -144,11 +150,31 @@ final readonly class UserRow
         public string $name,
     ) {
     }
+
+    public static function fromEntity(User $user): self
+    {
+        return new self($user->getId(), $user->getName());
+    }
 }
+```
+
+```php
+// src/DataTables/UserDataTable.php
+namespace App\DataTables;
+
+use App\DataTables\Row\UserRow;
+use App\Entity\User;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 
 #[AsDataTable(dataClass: UserRow::class, entityClass: User::class)]
 final class UserDataTable extends AbstractDataTable
 {
+    /**
+     * @param list<User> $items
+     *
+     * @return list<UserRow>
+     */
     protected function projectPage(array $items): ?array
     {
         return array_map(UserRow::fromEntity(...), $items);
