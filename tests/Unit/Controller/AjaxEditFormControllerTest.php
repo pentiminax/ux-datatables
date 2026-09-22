@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
 use Pentiminax\UX\DataTables\Controller\AjaxEntityQueryDto;
+use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
@@ -142,6 +143,28 @@ final class AjaxEditFormControllerTest extends TestCase
         $this->assertSame(404, $response->getStatusCode());
         $this->assertFalse($payload['success']);
         $this->assertSame('Entity not found.', $payload['message']);
+    }
+
+    #[Test]
+    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
+    {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManagerForClass');
+
+        $controller = $this->controller($registry, ...$this->createUnusedFormCollaborators());
+
+        $this->expectException(InvalidDataTableTokenException::class);
+
+        $controller(new AjaxEntityQueryDto(dataTable: $this->readTableToken(), id: '42'));
+    }
+
+    private function readTableToken(): string
+    {
+        $token = $this->tableRegistry()->getToken(AjaxEditFormControllerDataTable::class);
+
+        $this->assertNotNull($token);
+
+        return $token;
     }
 
     private function controller(
