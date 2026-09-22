@@ -264,7 +264,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_skips_ajax_when_collection_url_is_null(): void
     {
-        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
+        $urlResolver = $this->createStub(ApiResourceCollectionUrlResolver::class);
         $urlResolver->method('resolveCollectionUrl')->willReturn(null);
 
         $preparer = new RenderingPreparer(urlResolver: $urlResolver);
@@ -298,7 +298,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_carries_the_hub_protocol_version_into_a_manual_mercure_config(): void
     {
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
         $hubUrlResolver->method('resolveProtocolVersion')->willReturn(MercureConfig::PROTOCOL_VERSION_1_0);
 
@@ -314,7 +314,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_carries_the_hub_protocol_version_into_attribute_mercure_topics(): void
     {
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
         $hubUrlResolver->method('resolveProtocolVersion')->willReturn(MercureConfig::PROTOCOL_VERSION_1_0);
 
@@ -358,7 +358,7 @@ final class RenderingPreparerTest extends TestCase
         $mercureResolver = $this->createMock(MercureConfigResolver::class);
         $mercureResolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
 
         $preparer = new RenderingPreparer(
@@ -388,7 +388,7 @@ final class RenderingPreparerTest extends TestCase
         $metadataResolver->method('resolveTopics')->willReturn(['https://example.com/api/books/{id}']);
         $metadataResolver->method('resolvePrivate')->willReturn(true);
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://example.com/.well-known/mercure');
 
         $preparer = new RenderingPreparer(
@@ -413,7 +413,7 @@ final class RenderingPreparerTest extends TestCase
         $metadataResolver->expects($this->never())->method('resolveTopics');
         $metadataResolver->expects($this->never())->method('resolvePrivate');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://example.com/.well-known/mercure');
 
         $preparer = new RenderingPreparer(
@@ -470,7 +470,7 @@ final class RenderingPreparerTest extends TestCase
         $mercureResolver = $this->createMock(MercureConfigResolver::class);
         $mercureResolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
 
         $preparer = new RenderingPreparer(
@@ -489,7 +489,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_throws_when_manual_mercure_has_no_resolvable_hub_url(): void
     {
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn(null);
 
         $preparer = new RenderingPreparer(mercureHubUrlResolver: $hubUrlResolver);
@@ -505,7 +505,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_skips_mercure_when_resolver_returns_null(): void
     {
-        $mercureResolver = $this->createMock(MercureConfigResolver::class);
+        $mercureResolver = $this->createStub(MercureConfigResolver::class);
         $mercureResolver->method('resolveMercureConfig')->willReturn(null);
 
         $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
@@ -709,7 +709,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_does_not_auto_configure_ajax_when_api_platform_is_enabled(): void
     {
-        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
+        $urlResolver = $this->createStub(ApiResourceCollectionUrlResolver::class);
         $urlResolver->method('resolveCollectionUrl')->willReturn('/api/users');
 
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
@@ -734,7 +734,7 @@ final class RenderingPreparerTest extends TestCase
     #[DataProvider('provideForwardedQueryParameters')]
     public function it_forwards_only_present_query_parameters_into_auto_ajax_data(?array $query, array $forwarded, array $expectedForwardedData): void
     {
-        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator = $this->createStub(UrlGeneratorInterface::class);
         $urlGenerator->method('generate')->willReturn('/datatables/ajax/data');
 
         $registry = $this->createAjaxRegistry(self::TABLE_SERVICE_IDS);
@@ -815,7 +815,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_translates_filter_label_and_placeholder_keys(): void
     {
-        $translator = $this->createMock(TranslatorInterface::class);
+        $translator = $this->createStub(TranslatorInterface::class);
         $translator
             ->method('trans')
             ->willReturnMap([
@@ -844,7 +844,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_leaves_humanized_filter_names_untranslated(): void
     {
-        $translator = $this->createMock(TranslatorInterface::class);
+        $translator = $this->createStub(TranslatorInterface::class);
         $translator
             ->method('trans')
             ->willReturnCallback(static function (string $id, array $parameters = [], ?string $domain = null): string {
@@ -866,7 +866,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_translates_the_labels_of_every_configured_filter(): void
     {
-        $translator = $this->createMock(TranslatorInterface::class);
+        $translator = $this->createStub(TranslatorInterface::class);
         $translator->method('trans')->willReturnArgument(0);
 
         $filter = $this->createMock(FilterInterface::class);
@@ -885,7 +885,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_translates_translatable_filter_option_labels(): void
     {
-        $translator = $this->createMock(TranslatorInterface::class);
+        $translator = $this->createStub(TranslatorInterface::class);
         $translator
             ->method('trans')
             ->willReturnMap([
@@ -919,7 +919,7 @@ final class RenderingPreparerTest extends TestCase
     #[DataProvider('provideFilterBarLabels')]
     public function it_translates_filter_bar_labels(array $labelOverrides, array $translationMap, array $expected): void
     {
-        $translator = $this->createMock(TranslatorInterface::class);
+        $translator = $this->createStub(TranslatorInterface::class);
         $translator->method('trans')->willReturnMap($translationMap);
 
         $filters = new Filters();
@@ -1004,7 +1004,7 @@ final class RenderingPreparerTest extends TestCase
         $mercureConfig = (new MercureConfig(topics: ['/api/books/{id}'], withCredentials: true))
             ->withHubUrl('/.well-known/mercure');
 
-        $mercureResolver = $this->createMock(MercureConfigResolver::class);
+        $mercureResolver = $this->createStub(MercureConfigResolver::class);
         $mercureResolver->method('resolveMercureConfig')->willReturn($mercureConfig);
 
         $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);
@@ -1027,7 +1027,7 @@ final class RenderingPreparerTest extends TestCase
     #[DataProvider('provideTopiclessMercureOptions')]
     public function it_skips_mercure_without_topics_when_the_auto_resolver_finds_none(array $mercure): void
     {
-        $mercureResolver = $this->createMock(MercureConfigResolver::class);
+        $mercureResolver = $this->createStub(MercureConfigResolver::class);
         $mercureResolver->method('resolveMercureConfig')->willReturn(null);
 
         $preparer = new RenderingPreparer(mercureResolver: $mercureResolver);

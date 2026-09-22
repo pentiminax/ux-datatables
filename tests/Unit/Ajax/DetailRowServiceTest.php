@@ -52,7 +52,7 @@ final class DetailRowServiceTest extends TestCase
     #[Test]
     public function it_returns_forbidden_without_rendering_when_view_is_not_granted(): void
     {
-        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker->method('isGranted')->willReturnCallback(
             static fn (string $attribute): bool => Permission::DT_VIEW_ROW_DETAILS !== $attribute
         );

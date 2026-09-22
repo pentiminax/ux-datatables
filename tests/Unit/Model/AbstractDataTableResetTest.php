@@ -193,7 +193,7 @@ final class AbstractDataTableResetTest extends TestCase
 
     private function tableWithAction(Action $action, bool &$granted): ConfigurableDataTable
     {
-        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker
             ->method('isGranted')
             ->willReturnCallback(static function () use (&$granted): bool {
