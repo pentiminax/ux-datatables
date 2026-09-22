@@ -17,6 +17,7 @@ final class HarnessClientSideDataTable extends AbstractDataTable
             ->data([
                 ['id' => 1, 'title' => 'Symfony 7'],
                 ['id' => 2, 'title' => 'UX in Action'],
+                ['id' => 3, 'title' => 'Escaping &quot;quoted&quot; & <tagged> titles'],
             ]);
     }
 

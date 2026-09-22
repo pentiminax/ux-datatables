@@ -22,9 +22,9 @@ final class DataTableViewTest extends DataTableTestCase
         $crawler = $client->request('GET', '/books');
 
         $this->dataTableView($crawler)
-            ->assertRowCount(2)
+            ->assertRowCount(3)
             ->assertColumns(['id', 'title'])
-            ->assertColumnValues('title', ['Symfony 7', 'UX in Action'])
+            ->assertColumnValues('title', ['Symfony 7', 'UX in Action', 'Escaping &quot;quoted&quot; & <tagged> titles'])
             ->assertOption('pageLength', 25);
     }
 
@@ -33,7 +33,22 @@ final class DataTableViewTest extends DataTableTestCase
         $client  = static::createClient();
         $crawler = $client->request('GET', '/two-tables');
 
-        $this->dataTableView($crawler, HarnessClientSideDataTable::class)->assertRowCount(2);
+        $this->dataTableView($crawler, HarnessClientSideDataTable::class)->assertRowCount(3);
+    }
+
+    /**
+     * The attribute is HTML-encoded on the way out and decoded by the HTML parser on the way in.
+     * Decoding it a second time would corrupt a value that legitimately contains an entity.
+     */
+    public function test_it_keeps_entity_like_values_untouched(): void
+    {
+        $client  = static::createClient();
+        $crawler = $client->request('GET', '/books');
+
+        $this->assertSame(
+            'Escaping &quot;quoted&quot; & <tagged> titles',
+            $this->dataTableView($crawler)->row(2)['title'],
+        );
     }
 
     public function test_it_refuses_an_ambiguous_page(): void
