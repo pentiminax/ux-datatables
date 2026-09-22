@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 
-use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
-use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
@@ -32,11 +30,11 @@ use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
@@ -69,6 +67,8 @@ enum RenderingPreparerSearchListStatus: string implements TranslatableInterface
 #[CoversClass(RenderingPreparer::class)]
 final class RenderingPreparerTest extends TestCase
 {
+    use BuildsAjaxRegistry;
+
     private const TABLE_CLASS = 'App\\DataTables\\UserDataTable';
 
     private const TABLE_SERVICE_IDS = [self::TABLE_CLASS => 'app.users_datatable'];
@@ -1132,27 +1132,5 @@ final class RenderingPreparerTest extends TestCase
         $stack->push(new Request($query));
 
         return $stack;
-    }
-
-    /**
-     * @param array<string, string> $serviceIdsByClass
-     */
-    private function createAjaxRegistry(array $serviceIdsByClass): AjaxDataTableRegistry
-    {
-        return new AjaxDataTableRegistry(
-            new class implements ContainerInterface {
-                public function get(string $id): mixed
-                {
-                    throw new \LogicException('The test registry should only generate tokens.');
-                }
-
-                public function has(string $id): bool
-                {
-                    return false;
-                }
-            },
-            new AjaxDataTableTokenManager('test-secret'),
-            $serviceIdsByClass,
-        );
     }
 }

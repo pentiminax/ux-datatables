@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Controller;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
-use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Controller\AjaxDataController;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -23,6 +22,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 #[CoversClass(AjaxDataController::class)]
 final class AjaxDataControllerTest extends TestCase
 {
+    use BuildsAjaxRegistry;
+
     #[Test]
     public function it_throws_404_when_table_field_is_missing(): void
     {
@@ -82,15 +83,26 @@ final class AjaxDataControllerTest extends TestCase
         $controller(new Request(query: ['table' => $token]));
     }
 
+    #[Test]
+    public function it_refuses_an_action_token_replayed_on_the_read_route(): void
+    {
+        $dataTable = $this->createMock(AbstractDataTable::class);
+        $dataTable->expects($this->never())->method('handleRequest');
+
+        $registry = $this->createRegistry($dataTable);
+
+        $controller = new AjaxDataController($registry);
+
+        $this->expectException(NotFoundHttpException::class);
+
+        $controller(new Request(query: ['table' => $registry->getActionToken('App\\UserDataTable'), 'draw' => 1]));
+    }
+
     private function createRegistry(?AbstractDataTable $table = null): AjaxDataTableRegistry
     {
-        $services = null === $table ? [] : ['app.user_datatable' => static fn (): AbstractDataTable => $table];
-        $map      = null === $table ? [] : ['App\\UserDataTable' => 'app.user_datatable'];
-
-        return new AjaxDataTableRegistry(
-            new ServiceLocator($services),
-            new AjaxDataTableTokenManager('test-secret'),
-            $map,
+        return $this->createAjaxRegistry(
+            null === $table ? [] : ['App\\UserDataTable' => 'app.user_datatable'],
+            null === $table ? [] : ['app.user_datatable' => $table],
         );
     }
 }

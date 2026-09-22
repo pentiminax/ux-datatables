@@ -357,6 +357,31 @@ final class AjaxDeleteControllerTest extends TestCase
         );
     }
 
+    #[Test]
+    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
+    {
+        $doctrine = $this->createMock(ManagerRegistry::class);
+        $doctrine->expects($this->never())->method('getManagerForClass');
+
+        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+
+        $controller = $this->createController($doctrine, $csrfTokenManager);
+
+        $this->expectException(InvalidDataTableTokenException::class);
+
+        $controller($this->createRequest(), new AjaxEntityQueryDto(dataTable: $this->readTableToken(), id: 12));
+    }
+
+    private function readTableToken(): string
+    {
+        $token = $this->registry()->getToken(DeletableEntityFixtureDataTable::class);
+
+        $this->assertNotNull($token);
+
+        return $token;
+    }
+
     private function dataTableToken(): string
     {
         $token = $this->registry()->getActionToken(DeletableEntityFixtureDataTable::class);
