@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\DependencyInjection\Compiler;
 
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Attribute\AsDataTableResolver;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -138,11 +139,31 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
             $fields[] = $column->getField();
         }
 
-        if ($column->isSearchable() || $column->isGlobalSearchable()) {
+        if (($column->isSearchable() || $column->isGlobalSearchable()) && !self::buildsItsOwnSearchPredicate($column)) {
             $fields[] = ($column instanceof SearchableColumnInterface ? $column->getSearchField() : null) ?? $column->getField();
         }
 
         return array_values(array_unique(array_filter($fields, static fn (?string $field): bool => null !== $field && '' !== $field)));
+    }
+
+    /**
+     * A column building its own search condition names the fields it needs itself, so the field it
+     * displays backs no predicate and must not be held to the entity.
+     *
+     * {@see \Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder} consults it before
+     * anything field-based and returns its result verbatim.
+     */
+    private static function buildsItsOwnSearchPredicate(ColumnInterface $column): bool
+    {
+        if (!$column instanceof SearchableColumnInterface) {
+            return false;
+        }
+
+        if ($column instanceof AbstractColumn && $column->hasSearchPredicate()) {
+            return true;
+        }
+
+        return AbstractColumn::class !== (new \ReflectionMethod($column, 'buildSearchPredicate'))->getDeclaringClass()->getName();
     }
 
     /**
@@ -167,6 +188,12 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
      * A table that overrides the hook only to return an empty collection in some branch loses its
      * build-time validation and gets the same error on the first request instead, which is where it
      * surfaced before the check existed.
+     *
+     * Only the hooks are read. Columns set fluently with `$table->columns()` in
+     * configureDataTable() shadow the attributes too, and no reflection sees that: the table is a
+     * service definition here, not an instance the pass can configure. Such a table is validated on
+     * declarations it never reads. Overriding configureDataTable() is what nearly every table does,
+     * so exempting it would disable these checks everywhere rather than narrow them.
      *
      * @param class-string $dataTableClass
      */
