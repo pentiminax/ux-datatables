@@ -19,7 +19,7 @@ use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Symfony\UX\StimulusBundle\StimulusBundle;
 
-final class TestHarnessAppKernel extends Kernel
+class TestHarnessAppKernel extends Kernel
 {
     use MicroKernelTrait;
 

@@ -9,6 +9,8 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * Builds and sends a DataTables Ajax request for a server-side table.
@@ -18,7 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class DataTableRequestBuilder
 {
-    private const string ROUTE = '/datatables/ajax/data';
+    private const string ROUTE = 'ux_datatables_ajax_data';
 
     private int $draw = 1;
 
@@ -48,6 +50,7 @@ final class DataTableRequestBuilder
     public function __construct(
         private readonly KernelBrowser $client,
         private readonly AjaxDataTableRegistry $registry,
+        private readonly UrlGeneratorInterface $urlGenerator,
         private readonly string $dataTableClass,
     ) {
     }
@@ -146,9 +149,22 @@ final class DataTableRequestBuilder
      */
     public function fetchRaw(): Response
     {
-        $this->client->request('GET', self::ROUTE, $this->toQueryParameters());
+        $this->client->request('GET', $this->route(), $this->toQueryParameters());
 
         return $this->client->getResponse();
+    }
+
+    /**
+     * The path the application actually serves the Ajax endpoint on, which is not necessarily
+     * /datatables/ajax/data: an application is free to import the bundle's routes under a prefix.
+     */
+    private function route(): string
+    {
+        try {
+            return $this->urlGenerator->generate(self::ROUTE);
+        } catch (RouteNotFoundException $exception) {
+            throw new \LogicException(\sprintf('Route "%s" is not registered. Import the bundle routes in the kernel under test.', self::ROUTE), previous: $exception);
+        }
     }
 
     /**

@@ -36,7 +36,7 @@ final class DataTableView
             \assert($node instanceof \DOMElement);
 
             $raw     = $node->getAttribute(DataTablesExtension::VIEW_ATTRIBUTE);
-            $decoded = json_decode(html_entity_decode($raw), true);
+            $decoded = json_decode($raw, true);
 
             if (!\is_array($decoded)) {
                 throw new \LogicException(\sprintf('A DataTable view attribute could not be decoded as JSON: %s', substr($raw, 0, 200)));
