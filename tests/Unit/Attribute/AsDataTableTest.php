@@ -50,7 +50,7 @@ final class AsDataTableTest extends TestCase
     public function it_auto_configures_and_caches_the_data_provider(): void
     {
         $table = new TestDataTableWithAttribute();
-        $em    = $this->createMock(EntityManagerInterface::class);
+        $em    = $this->createStub(EntityManagerInterface::class);
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
             runtimeFactory: new DataTableRuntimeFactory(
                 autoDataProviderFactory: new AutoDataProviderFactory($em)
@@ -222,7 +222,7 @@ final class AsDataTableTest extends TestCase
         $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
 
         $table = new TestDataTableWithMercureTopicsAttribute(
@@ -257,7 +257,7 @@ final class AsDataTableTest extends TestCase
         $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
 
         $table = new TestDataTableWithManualMercure(

@@ -117,7 +117,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $templateResolver = $this->createMock(EditModalTemplateResolver::class);
         $templateResolver->expects($this->never())->method('resolveColumns');
 
-        $authorizationChecker = $this->createMock(AuthorizationCheckerInterface::class);
+        $authorizationChecker = $this->createStub(AuthorizationCheckerInterface::class);
         $authorizationChecker->method('isGranted')->willReturnCallback(
             static fn (string $attribute, mixed $subject = null): bool => Permission::DT_EDIT_ROW !== $attribute || $subject !== $entity
         );
@@ -223,7 +223,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
                 new EntityLocator($registry),
                 new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
                 $renderer,
-                $this->createMock(EditModalTemplateResolver::class),
+                $this->createStub(EditModalTemplateResolver::class),
                 new NullMercurePublisher(),
                 new MercureTopicResolver(),
                 new MutationFlusher(),
@@ -243,7 +243,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
     private function controller(EditFormService $service, ?CsrfTokenManagerInterface $csrfTokenManager = null): AjaxEditFormSubmitController
     {
         if (null === $csrfTokenManager) {
-            $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+            $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
             $csrfTokenManager->method('isTokenValid')->willReturn(true);
         }
 
@@ -256,7 +256,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
 
     private function permissionCheckerGranting(bool $granted): AuthorizationChecker
     {
-        $authorizationChecker = $this->createMock(AuthorizationCheckerInterface::class);
+        $authorizationChecker = $this->createStub(AuthorizationCheckerInterface::class);
         $authorizationChecker->method('isGranted')->willReturn($granted);
 
         return new AuthorizationChecker($authorizationChecker);
@@ -351,7 +351,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $formBuilder = $this->createMock(FormBuilderInterface::class);
         $formBuilder->expects($this->once())
             ->method('add')
-            ->with('name', $this->isType('string'), $this->isType('array'))
+            ->with('name', $this->isString(), $this->isArray())
             ->willReturnSelf();
         $formBuilder->expects($this->once())
             ->method('getForm')
@@ -360,7 +360,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $formFactory = $this->createMock(FormFactoryInterface::class);
         $formFactory->expects($this->once())
             ->method('createBuilder')
-            ->with($this->isType('string'), $this->isType('object'))
+            ->with($this->isString(), $this->isObject())
             ->willReturn($formBuilder);
 
         $renderer         = $this->createMock(EditModalRenderer::class);
@@ -379,7 +379,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             return [$formFactory, $renderer, $templateResolver];
         }
 
-        $renderer->expects($this->once())->method('renderBody')->with($this->isType('object'))->willReturn($invalidHtml);
+        $renderer->expects($this->once())->method('renderBody')->with($this->isObject())->willReturn($invalidHtml);
         $templateResolver->expects($this->once())
             ->method('resolveChromeTemplate')
             ->with(AjaxEditFormSubmitControllerDataTable::class)

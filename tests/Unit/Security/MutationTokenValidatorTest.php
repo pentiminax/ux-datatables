@@ -48,7 +48,7 @@ final class MutationTokenValidatorTest extends TestCase
     #[Test]
     public function it_rejects_a_request_carrying_an_invalid_token(): void
     {
-        $manager = $this->createMock(CsrfTokenManagerInterface::class);
+        $manager = $this->createStub(CsrfTokenManagerInterface::class);
         $manager->method('isTokenValid')->willReturn(false);
 
         $request = new Request();
@@ -61,7 +61,7 @@ final class MutationTokenValidatorTest extends TestCase
     #[Test]
     public function it_fails_closed_when_the_token_check_hits_a_missing_session(): void
     {
-        $manager = $this->createMock(CsrfTokenManagerInterface::class);
+        $manager = $this->createStub(CsrfTokenManagerInterface::class);
         $manager->method('isTokenValid')->willThrowException(new SessionNotFoundException());
 
         $request = new Request();

@@ -121,7 +121,7 @@ final class AuthorizationCheckerTest extends TestCase
     #[Test]
     public function returns_false_when_no_credentials_are_available(): void
     {
-        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner = $this->createStub(AuthorizationCheckerInterface::class);
         $inner->method('isGranted')->willThrowException(new AuthenticationCredentialsNotFoundException());
 
         $this->assertFalse((new AuthorizationChecker($inner))->isGranted('ROLE_ADMIN'));
@@ -133,7 +133,7 @@ final class AuthorizationCheckerTest extends TestCase
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Decision manager failed.');
 
-        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner = $this->createStub(AuthorizationCheckerInterface::class);
         $inner->method('isGranted')->willThrowException(new \RuntimeException('Decision manager failed.'));
 
         (new AuthorizationChecker($inner))->isGranted('ROLE_ADMIN');

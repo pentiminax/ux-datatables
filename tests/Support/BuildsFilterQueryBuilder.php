@@ -38,17 +38,17 @@ trait BuildsFilterQueryBuilder
         $this->capturedParams     = [];
         $this->capturedParamTypes = [];
 
-        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata = $this->createStub(ClassMetadata::class);
         $metadata->method('hasAssociation')->willReturn(false);
         $metadata->method('hasField')->willReturn(true);
         $metadata->method('getFieldMapping')->willReturnCallback(
             static fn (string $field): FieldMapping => new FieldMapping($fieldType, $field, $field)
         );
 
-        $em = $this->createMock(EntityManagerInterface::class);
+        $em = $this->createStub(EntityManagerInterface::class);
         $em->method('getClassMetadata')->willReturn($metadata);
 
-        $qb = $this->createMock(QueryBuilder::class);
+        $qb = $this->createStub(QueryBuilder::class);
         $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
         $qb->method('getEntityManager')->willReturn($em);
         $qb->method('getDQLPart')->willReturn([]);

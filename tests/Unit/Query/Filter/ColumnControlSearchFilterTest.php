@@ -16,6 +16,7 @@ use Pentiminax\UX\DataTables\Query\Filter\ColumnControlSearchFilter;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsQueryFilterContext;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -82,7 +83,7 @@ final class ColumnControlSearchFilterTest extends TestCase
     public function it_delegates_search_strategy_for_supported_field(): void
     {
         $search = new ColumnControlSearch('acme', ColumnControlLogic::Contains, 'text');
-        $qb     = $this->createMock(QueryBuilder::class);
+        $qb     = $this->createStub(QueryBuilder::class);
 
         $strategy = $this->createMock(SearchStrategyInterface::class);
         $strategy->expects($this->once())
@@ -435,6 +436,7 @@ final class ColumnControlSearchFilterTest extends TestCase
     }
 
     #[Test]
+    #[AllowMockObjectsWithoutExpectations]
     public function it_reaches_the_strategy_for_a_virtual_column_carrying_a_search_field_override(): void
     {
         $qb = $this->joinRecordingQueryBuilder();
@@ -478,7 +480,7 @@ final class ColumnControlSearchFilterTest extends TestCase
      */
     private function applyList(QueryBuilder $qb, ColumnInterface $column, array $values): void
     {
-        $filter  = new ColumnControlSearchFilter(new SearchStrategyRegistry([], $this->createMock(SearchStrategyInterface::class)));
+        $filter  = new ColumnControlSearchFilter(new SearchStrategyRegistry([], $this->createStub(SearchStrategyInterface::class)));
         $context = $this->singleColumnContext($column, columnControl: new ColumnControl(list: $values));
 
         $filter->apply($qb, $context);

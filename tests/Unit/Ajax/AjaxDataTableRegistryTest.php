@@ -36,7 +36,7 @@ final class AjaxDataTableRegistryTest extends TestCase
     #[Test]
     public function it_resolves_registered_tables_by_token(): void
     {
-        $table    = $this->createMock(AbstractDataTable::class);
+        $table    = $this->createStub(AbstractDataTable::class);
         $registry = $this->createAjaxRegistry(
             [self::TABLE_CLASS => self::SERVICE_ID],
             [self::SERVICE_ID => $table],

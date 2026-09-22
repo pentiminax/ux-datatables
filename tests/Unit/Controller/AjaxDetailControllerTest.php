@@ -74,7 +74,7 @@ final class AjaxDetailControllerTest extends TestCase
 
     private function controller(ManagerRegistry $registry, bool $granted): AjaxDetailController
     {
-        $authorizationChecker = $this->createMock(AuthorizationCheckerInterface::class);
+        $authorizationChecker = $this->createStub(AuthorizationCheckerInterface::class);
         $authorizationChecker->method('isGranted')->willReturn($granted);
 
         $service = new DetailRowService(
