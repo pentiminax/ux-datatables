@@ -1,5 +1,6 @@
 // Generates src/Enum/Icon.php from the installed lucide package.
-// Re-run after bumping lucide: `node assets/scripts/generate-icon-enum.mjs`
+// Re-run after bumping lucide: `node assets/scripts/generate-icon-enum.mjs`, then `composer fix`
+// to restore the case alignment PHP-CS-Fixer expects.
 import { writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
