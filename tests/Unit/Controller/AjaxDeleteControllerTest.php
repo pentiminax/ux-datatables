@@ -18,7 +18,6 @@ use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
-use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
@@ -65,14 +64,6 @@ final class AjaxDeleteControllerTest extends TestCase
         $publisher->expects($this->once())
             ->method('publish')
             ->with(['/server/deletable-entity-fixtures/{id}'], ['type' => 'delete', 'id' => 12]);
-
-        $resolver = $this->createMock(MercureConfigResolver::class);
-        $resolver->method('resolveMercureConfig')
-            ->with(DeletableEntityFixture::class)
-            ->willReturn(new MercureConfig(
-                topics: ['/server/deletable-entity-fixtures/{id}'],
-                hubUrl: 'https://hub.example/.well-known/mercure',
-            ));
 
         $topicResolver = $this->createStub(MercureTopicResolver::class);
         $topicResolver->method('resolve')->willReturn(['/server/deletable-entity-fixtures/{id}']);
@@ -220,25 +211,34 @@ final class AjaxDeleteControllerTest extends TestCase
         $controller($this->createRequest(), new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 12));
     }
 
+    /**
+     * Built without a checker -- an application with no SecurityBundle -- the controller must
+     * still delete, even behind an action carrying an application permission: the bundle's own
+     * DT_EXECUTE_ACTION is granted when there is no firewall to vote on it.
+     */
     #[Test]
-    public function it_keeps_a_default_authorization_checker_when_constructed_without_one(): void
+    public function it_still_deletes_when_constructed_without_an_authorization_checker(): void
     {
+        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+
         $controller = new AjaxDeleteController(
             new EntityMutator(
-                new EntityLocator($this->createStub(ManagerRegistry::class)),
+                new EntityLocator($this->createDoctrine(12, new DeletableEntityFixture())),
                 $this->createStub(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
-                new AuthorizationChecker(new TestAuthorizationChecker()),
+                new AuthorizationChecker(),
                 new MercureTopicResolver(),
                 new MutationFlusher(),
             ),
-            new MutationTokenValidator($this->createStub(CsrfTokenManagerInterface::class)),
+            new MutationTokenValidator($csrfTokenManager),
             $this->registry(new StaticDeniedDeleteActionDataTable()),
         );
 
-        $property = new \ReflectionProperty($controller, 'permissionChecker');
+        $response = $controller($this->createRequest(), new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 12));
 
-        $this->assertInstanceOf(AuthorizationChecker::class, $property->getValue($controller));
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertTrue(json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR)['success']);
     }
 
     #[Test]
