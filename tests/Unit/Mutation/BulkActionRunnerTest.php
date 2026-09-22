@@ -381,8 +381,9 @@ final class BulkActionRunnerTest extends TestCase
                 new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
                 $this->postRequest(),
             );
-        } catch (InvalidBulkSelectionException) {
-            // The empty answer aborts the run; only the field the provider was asked for matters here.
+            $this->fail('An empty identifier answer must abort the run.');
+        } catch (InvalidBulkSelectionException $exception) {
+            $this->assertSame('No row is selected.', $exception->getMessage());
         }
 
         $this->assertSame('name', $provider->seenField);
