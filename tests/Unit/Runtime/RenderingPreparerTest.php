@@ -11,7 +11,6 @@ use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
-use Pentiminax\UX\DataTables\Contracts\FilterInterface;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
@@ -863,23 +862,37 @@ final class RenderingPreparerTest extends TestCase
         $this->assertSame('Last Login At', $table->getOptions()['filters'][0]['label']);
     }
 
+    /**
+     * Every other translation test configures a single filter, so none of them would notice a
+     * loop that stops after the first one. This one asserts the payload of both.
+     */
     #[Test]
     public function it_translates_the_labels_of_every_configured_filter(): void
     {
         $translator = $this->createStub(TranslatorInterface::class);
-        $translator->method('trans')->willReturnArgument(0);
+        $translator
+            ->method('trans')
+            ->willReturnMap([
+                ['user.status', [], null, null, 'Statut'],
+                ['user.last_login', [], null, null, 'Derniere connexion'],
+                ['filter.bar.title', [], FilterLabels::DOMAIN, null, 'Filtres'],
+                ['filter.bar.reset', [], FilterLabels::DOMAIN, null, 'Reinitialiser'],
+                ['filter.bar.apply', [], FilterLabels::DOMAIN, null, 'Appliquer les filtres'],
+                ['filter.bar.all', [], FilterLabels::DOMAIN, null, 'Tous'],
+            ]);
 
-        $filter = $this->createMock(FilterInterface::class);
-        $filter->method('getName')->willReturn('status');
-        $filter->method('jsonSerialize')->willReturn(['name' => 'status']);
-        $filter
-            ->expects($this->once())
-            ->method('translateLabels')
-            ->with($translator, null);
+        $filters = (new Filters())
+            ->add(TextFilter::new('status')->label('user.status'))
+            ->add(TextFilter::new('lastLoginAt')->label('user.last_login'));
 
-        $table = (new DataTable('Test'))->setFilters((new Filters())->add($filter));
+        $table = (new DataTable('Test'))->setFilters($filters);
 
         (new RenderingPreparer(translator: $translator))->prepare($table, null);
+
+        $this->assertSame(
+            ['Statut', 'Derniere connexion'],
+            array_column($table->getOptions()['filters'], 'label'),
+        );
     }
 
     #[Test]
