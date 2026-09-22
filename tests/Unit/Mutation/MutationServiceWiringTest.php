@@ -6,10 +6,8 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Mutation;
 
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
-use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
-use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
@@ -18,7 +16,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
  * @internal
@@ -45,8 +42,12 @@ final class MutationServiceWiringTest extends TestCase
         $this->assertInstanceOf(EntityMutator::class, $mutator);
 
         // Registered in config/services.php, not config/mercure.php: mutations
-        // must resolve topics even when Mercure is not installed.
-        $this->assertInstanceOf(MercureTopicResolver::class, $this->readPrivateProperty($mutator, 'topicResolver'));
+        // must resolve topics even when Mercure is not installed. Asserting the identity,
+        // not the type, is what rules out a second resolver built inline for the mutator.
+        $this->assertSame(
+            $this->container->get('datatables.mercure.topic_resolver'),
+            $this->readPrivateProperty($mutator, 'topicResolver'),
+        );
     }
 
     #[Test]
@@ -75,7 +76,12 @@ final class MutationServiceWiringTest extends TestCase
 
         // The guard must never be left without a manager, even when the application
         // has no CSRF component configured: otherwise every mutation would be rejected.
-        $this->assertInstanceOf(CsrfTokenManagerInterface::class, $this->readPrivateProperty($validator, 'csrfTokenManager'));
+        // CsrfTokenManagerPass swaps this id for the application's own manager when one
+        // exists, so the identity is the wiring under test -- the type is only its shape.
+        $this->assertSame(
+            $this->service('test.datatables.security.csrf_token_manager'),
+            $this->readPrivateProperty($validator, 'csrfTokenManager'),
+        );
     }
 
     #[Test]
@@ -90,7 +96,10 @@ final class MutationServiceWiringTest extends TestCase
         $controller = $this->service('datatables.controller.ajax_edit');
 
         $this->assertInstanceOf(AjaxEditController::class, $controller);
-        $this->assertInstanceOf(BooleanMutationContextResolver::class, $this->readPrivateProperty($controller, 'contextResolver'));
+        $this->assertSame(
+            $this->container->get('datatables.mutation.boolean_context_resolver'),
+            $this->readPrivateProperty($controller, 'contextResolver'),
+        );
     }
 
     private function readPrivateProperty(object $object, string $property): mixed
