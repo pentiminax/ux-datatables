@@ -72,7 +72,9 @@ final class DataTableResponse
      */
     public function rows(): array
     {
-        return array_values($this->payload['data'] ?? []);
+        $rows = $this->payload['data'] ?? [];
+
+        return \is_array($rows) ? array_values($rows) : [];
     }
 
     /**
