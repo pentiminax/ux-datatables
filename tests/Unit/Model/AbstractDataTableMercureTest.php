@@ -40,7 +40,7 @@ final class AbstractDataTableMercureTest extends TestCase
     #[Test]
     public function it_delegates_to_the_pure_resolver_for_a_server_side_table(): void
     {
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
         $dataTable = new AbstractDataTableMercureServerSideFixture($hubUrlResolver);

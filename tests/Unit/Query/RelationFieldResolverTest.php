@@ -12,10 +12,12 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsTypedFieldQueryBuilder;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -124,6 +126,7 @@ final class RelationFieldResolverTest extends TestCase
 
     #[Test]
     #[DataProvider('fieldTypes')]
+    #[AllowMockObjectsWithoutExpectations]
     public function it_classifies_a_scalar_field_by_doctrine_type(
         ?string $fieldType,
         bool $supportsTextSearch,
@@ -140,6 +143,7 @@ final class RelationFieldResolverTest extends TestCase
 
     #[Test]
     #[DataProvider('numeric_and_boolean_field_types')]
+    #[AllowMockObjectsWithoutExpectations]
     public function it_classifies_numeric_and_boolean_doctrine_types(
         string $fieldType,
         ?string $expectedIntegerType,
@@ -169,6 +173,7 @@ final class RelationFieldResolverTest extends TestCase
     }
 
     #[Test]
+    #[AllowMockObjectsWithoutExpectations]
     public function it_rejects_a_bare_association_field(): void
     {
         $qb = $this->queryBuilderWithAssociationField('client');
@@ -183,6 +188,7 @@ final class RelationFieldResolverTest extends TestCase
     }
 
     #[Test]
+    #[AllowMockObjectsWithoutExpectations]
     public function it_rejects_a_field_the_root_entity_maps_neither_as_scalar_nor_association(): void
     {
         $qb = $this->queryBuilderWithUnmappedField('donorProviderName');
@@ -340,12 +346,12 @@ final class RelationFieldResolverTest extends TestCase
         return $this->queryBuilderWithJoins(array_fill_keys($aliases, ''));
     }
 
-    private function queryBuilderWhoseMetadataThrows(\Throwable $failure): MockObject&QueryBuilder
+    private function queryBuilderWhoseMetadataThrows(\Throwable $failure): Stub&QueryBuilder
     {
-        $em = $this->createMock(EntityManagerInterface::class);
+        $em = $this->createStub(EntityManagerInterface::class);
         $em->method('getClassMetadata')->willThrowException($failure);
 
-        $qb = $this->createMock(QueryBuilder::class);
+        $qb = $this->createStub(QueryBuilder::class);
         $qb->method('getDQLPart')->willReturn([]);
         $qb->method('getRootEntities')->willReturn(['App\\NotAnEntity']);
         $qb->method('getEntityManager')->willReturn($em);
@@ -361,7 +367,7 @@ final class RelationFieldResolverTest extends TestCase
         $joins = [];
 
         foreach ($joinsByAlias as $alias => $expression) {
-            $join = $this->createMock(Join::class);
+            $join = $this->createStub(Join::class);
             $join->method('getAlias')->willReturn((string) $alias);
             $join->method('getJoin')->willReturn($expression);
 

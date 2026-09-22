@@ -88,7 +88,7 @@ final class EditFormServiceTest extends TestCase
     public function it_renders_the_form_for_a_resolved_entity_on_view(): void
     {
         $entity = new EditFormServiceFixture();
-        $form   = $this->createMock(FormInterface::class);
+        $form   = $this->createStub(FormInterface::class);
 
         $renderer = $this->createMock(EditModalRenderer::class);
         $renderer->expects($this->once())
@@ -226,7 +226,7 @@ final class EditFormServiceTest extends TestCase
     {
         $entity = new EditFormServiceFixture();
 
-        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker->method('isGranted')->willReturnCallback(
             static fn (string $attribute, mixed $subject = null): bool => Permission::DT_EDIT_ROW !== $attribute || $subject !== $entity
         );
@@ -261,7 +261,7 @@ final class EditFormServiceTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->expects($this->never())->method('getManagerForClass');
 
-        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker->method('isGranted')->willReturnCallback(
             static fn (string $attribute, mixed $subject = null): bool => Permission::DT_EXECUTE_ACTION !== $attribute
                 || !$subject instanceof ActionPermissionContext

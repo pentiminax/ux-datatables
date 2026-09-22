@@ -89,7 +89,7 @@ final class MutationExceptionListenerTest extends TestCase
     private function createEvent(\Throwable $throwable): ExceptionEvent
     {
         return new ExceptionEvent(
-            $this->createMock(HttpKernelInterface::class),
+            $this->createStub(HttpKernelInterface::class),
             new Request(),
             HttpKernelInterface::MAIN_REQUEST,
             $throwable,

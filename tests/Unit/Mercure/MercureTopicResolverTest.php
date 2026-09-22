@@ -165,7 +165,7 @@ final class MercureTopicResolverTest extends TestCase
 
     private function hubUrlResolver(?string $hubUrl): MercureHubUrlResolver
     {
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn($hubUrl);
 
         return $hubUrlResolver;

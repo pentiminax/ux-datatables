@@ -110,7 +110,7 @@ final class AjaxBulkControllerTest extends TestCase
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->expects($this->never())->method('isTokenValid');
 
-        $controller = $this->createController($this->createMock(ManagerRegistry::class), $csrfTokenManager);
+        $controller = $this->createController($this->createStub(ManagerRegistry::class), $csrfTokenManager);
 
         $this->expectException(InvalidCsrfTokenException::class);
         $controller(new Request(), $this->payload());
@@ -150,7 +150,7 @@ final class AjaxBulkControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->expects($this->never())->method('getManagerForClass');
 
-        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker->method('isGranted')->willReturn(false);
 
         $controller = $this->createController(
@@ -185,7 +185,7 @@ final class AjaxBulkControllerTest extends TestCase
     public function it_keeps_a_default_authorization_checker_when_constructed_without_one(): void
     {
         $controller = new AjaxBulkController(
-            $this->runner($this->createMock(ManagerRegistry::class), new AuthorizationChecker(new TestAuthorizationChecker())),
+            $this->runner($this->createStub(ManagerRegistry::class), new AuthorizationChecker(new TestAuthorizationChecker())),
             new MutationTokenValidator($this->createStub(CsrfTokenManagerInterface::class)),
             $this->registry(),
         );
@@ -200,7 +200,7 @@ final class AjaxBulkControllerTest extends TestCase
      */
     private function createDoctrine(array $entities): ManagerRegistry
     {
-        $repository = $this->createMock(EntityRepository::class);
+        $repository = $this->createStub(EntityRepository::class);
         $repository->method('findBy')->willReturnCallback(
             static fn (array $criteria): array => array_values(array_intersect_key($entities, array_flip($criteria['id'])))
         );

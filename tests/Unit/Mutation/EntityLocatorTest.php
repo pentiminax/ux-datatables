@@ -43,7 +43,7 @@ final class EntityLocatorTest extends TestCase
     #[Test]
     public function it_throws_when_no_manager_exists_for_the_class(): void
     {
-        $registry = $this->createMock(ManagerRegistry::class);
+        $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')->willReturn(null);
 
         $this->expectException(EntityNotFoundException::class);
