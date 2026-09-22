@@ -75,6 +75,10 @@ final class RouteLoaderTest extends TestCase
                 $this->container->has($id),
                 \sprintf('Route "%s" points at service "%s", which no configuration file registers.', $name, $id),
             );
+            $this->assertIsCallable(
+                $this->container->get($id),
+                \sprintf('Route "%s" points at service "%s", which does not resolve to an invokable controller.', $name, $id),
+            );
         }
     }
 }
