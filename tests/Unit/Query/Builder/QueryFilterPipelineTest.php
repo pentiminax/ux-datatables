@@ -55,7 +55,7 @@ final class QueryFilterPipelineTest extends TestCase
     #[TestWith(['', []])]
     public function it_applies_configured_filters_only_for_non_empty_values(string $value, array $expectedValues): void
     {
-        $qb     = $this->createMock(QueryBuilder::class);
+        $qb     = $this->createStub(QueryBuilder::class);
         $filter = $this->recordingFilter('status');
 
         $result = $this->pipeline()->apply(
@@ -80,7 +80,7 @@ final class QueryFilterPipelineTest extends TestCase
     #[DataProvider('columnShapes')]
     public function it_is_a_no_op_on_configured_filters_when_none_are_declared(array $columns): void
     {
-        $qb = $this->createMock(QueryBuilder::class);
+        $qb = $this->createStub(QueryBuilder::class);
 
         $result = $this->pipeline()->apply(
             qb: $qb,
@@ -97,7 +97,7 @@ final class QueryFilterPipelineTest extends TestCase
     #[Test]
     public function it_applies_without_a_predicate_builder_argument(): void
     {
-        $qb = $this->createMock(QueryBuilder::class);
+        $qb = $this->createStub(QueryBuilder::class);
 
         // predicateBuilder defaults to DefaultSearchPredicateBuilder() -- callers who only
         // ever passed a registry before this parameter was added must keep working unchanged.
@@ -130,7 +130,7 @@ final class QueryFilterPipelineTest extends TestCase
             ),
         ]);
 
-        $qb = $this->createMock(QueryBuilder::class);
+        $qb = $this->createStub(QueryBuilder::class);
         $qb->method('getDQLPart')->willReturn([]);
 
         $this->pipeline()->apply(
@@ -177,7 +177,7 @@ final class QueryFilterPipelineTest extends TestCase
             ),
         ]);
 
-        $qb = $this->createMock(QueryBuilder::class);
+        $qb = $this->createStub(QueryBuilder::class);
         $qb->method('getDQLPart')->willReturn([]);
 
         $conditions = [];

@@ -140,7 +140,7 @@ final class MutationExceptionHandlingTest extends TestCase
             $invokeController();
         } catch (MutationException $exception) {
             $event = new ExceptionEvent(
-                $this->createMock(HttpKernelInterface::class),
+                $this->createStub(HttpKernelInterface::class),
                 new Request(),
                 HttpKernelInterface::MAIN_REQUEST,
                 $exception,
@@ -161,7 +161,7 @@ final class MutationExceptionHandlingTest extends TestCase
     {
         return new EntityMutator(
             new EntityLocator($this->registryReturning($entity)),
-            $this->createMock(PropertyAccessorInterface::class),
+            $this->createStub(PropertyAccessorInterface::class),
             new NullMercurePublisher(),
             new AuthorizationChecker(new TestAuthorizationChecker()),
             new MercureTopicResolver(),
@@ -171,10 +171,10 @@ final class MutationExceptionHandlingTest extends TestCase
 
     private function registryReturning(?object $entity): ManagerRegistry
     {
-        $repository = $this->createMock(EntityRepository::class);
+        $repository = $this->createStub(EntityRepository::class);
         $repository->method('find')->willReturn($entity);
 
-        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata = $this->createStub(ClassMetadata::class);
         $metadata->method('hasField')->willReturnCallback(static fn (string $name): bool => 'enabled' === $name);
         $metadata->method('getTypeOfField')->willReturnCallback(static fn (string $name): ?string => 'enabled' === $name ? 'boolean' : null);
 
@@ -190,7 +190,7 @@ final class MutationExceptionHandlingTest extends TestCase
 
     private function validCsrfTokenManager(): CsrfTokenManagerInterface
     {
-        $manager = $this->createMock(CsrfTokenManagerInterface::class);
+        $manager = $this->createStub(CsrfTokenManagerInterface::class);
         $manager->method('isTokenValid')->willReturn(true);
 
         return $manager;

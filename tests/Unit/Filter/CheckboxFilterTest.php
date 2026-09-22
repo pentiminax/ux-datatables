@@ -31,7 +31,7 @@ final class CheckboxFilterTest extends TestCase
     #[Test]
     public function it_runs_the_query_closure(): void
     {
-        $qb = $this->createMock(QueryBuilder::class);
+        $qb = $this->createStub(QueryBuilder::class);
 
         $called = false;
         $filter = CheckboxFilter::new('vip')->query(function (QueryBuilder $builder, mixed $value, string $alias) use ($qb, &$called): void {
@@ -49,7 +49,7 @@ final class CheckboxFilterTest extends TestCase
     #[Test]
     public function it_throws_without_a_query_closure(): void
     {
-        $qb = $this->createMock(QueryBuilder::class);
+        $qb = $this->createStub(QueryBuilder::class);
 
         $this->expectException(\LogicException::class);
 

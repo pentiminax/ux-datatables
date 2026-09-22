@@ -91,10 +91,10 @@ final class DataTableRuntimeFactoryTest extends TestCase
         $metadata->method('getIdentifier')->willReturn(['uuid']);
 
         $em = $this->createStub(EntityManagerInterface::class);
-        $em->method('getClassMetadata')->with(DataTableRuntimeFactoryUuidFixture::class)->willReturn($metadata);
+        $em->method('getClassMetadata')->willReturn($metadata);
 
         $registry = $this->createStub(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->with(DataTableRuntimeFactoryUuidFixture::class)->willReturn($em);
+        $registry->method('getManagerForClass')->willReturn($em);
 
         $mapper = (new DataTableRuntimeFactory(doctrine: $registry))->createRowMapper(
             baseMapper: static fn (): array => [],
@@ -220,7 +220,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
     #[Test]
     public function create_runtime_prioritizes_the_manual_provider_over_auto_configuration(): void
     {
-        $manualProvider = $this->createMock(DataProviderInterface::class);
+        $manualProvider = $this->createStub(DataProviderInterface::class);
 
         $runtime = $this->createRuntime(
             manualDataProviderFactory: static fn (): DataProviderInterface => $manualProvider,

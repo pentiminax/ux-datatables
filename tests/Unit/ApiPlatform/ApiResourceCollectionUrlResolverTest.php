@@ -127,7 +127,6 @@ final class ApiResourceCollectionUrlResolverTest extends TestCase
         $factory = $this->createStub(ResourceMetadataCollectionFactoryInterface::class);
         $factory
             ->method('create')
-            ->with(self::ENTITY_CLASS)
             ->willReturn(new ResourceMetadataCollection(self::ENTITY_CLASS, [$resource]));
 
         return new ApiResourceCollectionUrlResolver($factory);

@@ -100,7 +100,7 @@ final class AjaxEditControllerTest extends TestCase
     {
         $accessor = $this->readOnlyAccessor();
 
-        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(false);
 
         $controller = $this->controller(null, 799, $accessor, expectFlush: false, csrfTokenManager: $csrfTokenManager);
@@ -172,7 +172,7 @@ final class AjaxEditControllerTest extends TestCase
         $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
         $dataTable = new ToggleBooleanEntityFixtureDataTable($hubUrlResolver);
@@ -227,7 +227,7 @@ final class AjaxEditControllerTest extends TestCase
         $repository = $this->createMock(EntityRepository::class);
         $repository->method('find')->with($id)->willReturn($entity);
 
-        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata = $this->createStub(ClassMetadata::class);
         $metadata->method('hasField')->willReturnCallback(static fn (string $name): bool => 'isEmailAuthEnabled' === $name);
         $metadata->method('getTypeOfField')->willReturnCallback(static fn (string $name): ?string => 'isEmailAuthEnabled' === $name ? 'boolean' : null);
 
@@ -261,7 +261,7 @@ final class AjaxEditControllerTest extends TestCase
 
     private function validCsrfTokenManager(): CsrfTokenManagerInterface
     {
-        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
 
         return $csrfTokenManager;

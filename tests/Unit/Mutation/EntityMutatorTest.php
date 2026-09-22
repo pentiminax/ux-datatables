@@ -213,11 +213,11 @@ final class EntityMutatorTest extends TestCase
         $manager->expects($this->once())->method('remove')->with($entity);
         $manager->expects($this->once())->method('flush');
 
-        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher = $this->createStub(MercurePublisherInterface::class);
 
         $capturedSubject = null;
 
-        $decisionManager = $this->createMock(AccessDecisionManagerInterface::class);
+        $decisionManager = $this->createStub(AccessDecisionManagerInterface::class);
         $decisionManager->method('decide')->willReturnCallback(
             function (TokenInterface $token, array $attributes, mixed $subject = null) use (&$capturedSubject): bool {
                 $capturedSubject = $subject;
@@ -330,7 +330,7 @@ final class EntityMutatorTest extends TestCase
     #[Test]
     public function it_propagates_not_found_from_the_locator_on_delete(): void
     {
-        $repository = $this->createMock(EntityRepository::class);
+        $repository = $this->createStub(EntityRepository::class);
         $repository->method('find')->willReturn(null);
 
         $manager = $this->createMock(EntityManagerInterface::class);
@@ -440,7 +440,7 @@ final class EntityMutatorTest extends TestCase
 
     private function booleanFieldMetadata(string $field): ClassMetadata
     {
-        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata = $this->createStub(ClassMetadata::class);
         $metadata->method('hasField')->willReturnCallback(static fn (string $name): bool => $name === $field);
         $metadata->method('getTypeOfField')->willReturnCallback(static fn (string $name): ?string => $name === $field ? 'boolean' : null);
 

@@ -65,7 +65,7 @@ final class EditModalRendererTest extends TestCase
     public function it_passes_the_entity_label_when_the_entity_is_stringable(): void
     {
         $formView = new FormView();
-        $form     = $this->createMock(FormInterface::class);
+        $form     = $this->createStub(FormInterface::class);
         $form->method('createView')->willReturn($formView);
 
         $entity = new class implements \Stringable {
