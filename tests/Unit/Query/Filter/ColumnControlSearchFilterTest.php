@@ -190,21 +190,23 @@ final class ColumnControlSearchFilterTest extends TestCase
         $qb = $this->queryBuilderWithFieldType('id', $doctrineType);
         $qb->method('expr')->willReturn(new Expr());
 
-        $setParameter = $qb->expects($this->exactly(\count($expectedParameters)))
-            ->method('setParameter');
-        $setParameter->willReturnCallback(function (string $name, mixed $value, mixed $type = null) use ($expectedParameters, $qb): QueryBuilder {
-            static $call = 0;
-            $this->assertSame($expectedParameters[$call], [$name, $value, $type]);
-            ++$call;
+        $boundParameters = [];
 
-            return $qb;
-        });
+        $qb->expects($this->exactly(\count($expectedParameters)))
+            ->method('setParameter')
+            ->willReturnCallback(function (string $name, mixed $value, mixed $type = null) use (&$boundParameters, $qb): QueryBuilder {
+                $boundParameters[] = [$name, $value, $type];
+
+                return $qb;
+            });
 
         $qb->expects($this->once())
             ->method('andWhere')
             ->with(new Expr\Orx($expectedOrArguments));
 
         $this->applyList($qb, TextColumn::new('id')->setField('id'), $values);
+
+        $this->assertSame($expectedParameters, $boundParameters);
     }
 
     /**
@@ -289,16 +291,12 @@ final class ColumnControlSearchFilterTest extends TestCase
         $qb = $this->queryBuilderWithFieldType('age', 'integer');
         $qb->method('expr')->willReturn(new Expr());
 
+        $boundParameters = [];
+
         $qb->expects($this->exactly(2))
             ->method('setParameter')
-            ->willReturnCallback(function (string $name, mixed $value, mixed $type = null) use ($qb): QueryBuilder {
-                static $call = 0;
-                $expected    = [
-                    ['age_in_0', '42', 'integer'],
-                    ['age_in_1', '7', 'integer'],
-                ];
-                $this->assertSame($expected[$call], [$name, $value, $type]);
-                ++$call;
+            ->willReturnCallback(function (string $name, mixed $value, mixed $type = null) use (&$boundParameters, $qb): QueryBuilder {
+                $boundParameters[] = [$name, $value, $type];
 
                 return $qb;
             });
@@ -308,6 +306,11 @@ final class ColumnControlSearchFilterTest extends TestCase
             ->with(new Expr\Orx(['e.age = :age_in_0', 'e.age = :age_in_1']));
 
         $this->applyList($qb, TextColumn::new('age')->setField('age'), ['  42  ', '7']);
+
+        $this->assertSame([
+            ['age_in_0', '42', 'integer'],
+            ['age_in_1', '7', 'integer'],
+        ], $boundParameters);
     }
 
     #[Test]

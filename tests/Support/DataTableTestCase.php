@@ -22,7 +22,7 @@ abstract class DataTableTestCase extends TestCase
     /**
      * Asserts the header keys every column serializes the same way.
      */
-    protected function assertColumnHeader(ColumnInterface $column, string $type, string $name, string $title): void
+    final protected function assertColumnHeader(ColumnInterface $column, string $type, string $name, string $title): void
     {
         $data = $column->jsonSerialize();
 
@@ -35,7 +35,7 @@ abstract class DataTableTestCase extends TestCase
     /**
      * @param array<array-key, mixed> $expected the complete expected extension payload
      */
-    protected function assertExtensionPayload(array $expected, ExtensionInterface $extension): void
+    final protected function assertExtensionPayload(array $expected, ExtensionInterface $extension): void
     {
         $this->assertSame($expected, $extension->jsonSerialize());
     }
@@ -43,12 +43,12 @@ abstract class DataTableTestCase extends TestCase
     /**
      * @param array<string, mixed> $expected the complete expected customOptions payload
      */
-    protected function assertCustomOptions(array $expected, ColumnInterface $column): void
+    final protected function assertCustomOptions(array $expected, ColumnInterface $column): void
     {
         $this->assertSame($expected, $this->customOptions($column));
     }
 
-    protected function assertCustomOption(mixed $expected, string $option, ColumnInterface $column): void
+    final protected function assertCustomOption(mixed $expected, string $option, ColumnInterface $column): void
     {
         $options = $this->customOptions($column);
 
@@ -56,7 +56,7 @@ abstract class DataTableTestCase extends TestCase
         $this->assertSame($expected, $options[$option]);
     }
 
-    protected function assertNoCustomOption(string $option, ColumnInterface $column): void
+    final protected function assertNoCustomOption(string $option, ColumnInterface $column): void
     {
         $this->assertArrayNotHasKey($option, $this->customOptions($column));
     }
