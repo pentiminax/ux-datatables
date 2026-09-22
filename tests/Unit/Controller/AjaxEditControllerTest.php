@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\Controller\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
+use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
@@ -275,6 +276,37 @@ final class AjaxEditControllerTest extends TestCase
             newValue: $newValue,
             dataTable: $this->dataTableToken(),
         );
+    }
+
+    #[Test]
+    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
+    {
+        $controller = $this->controller(
+            entity: null,
+            id: 799,
+            accessor: $this->readOnlyAccessor(),
+            expectFlush: false,
+            csrfTokenManager: $this->validCsrfTokenManager(),
+        );
+
+        $this->expectException(InvalidDataTableTokenException::class);
+
+        $controller($this->validTokenRequest(), new AjaxEditRequestDto(
+            id: 799,
+            field: 'isEmailAuthEnabled',
+            newValue: true,
+            dataTable: $this->readTableToken(),
+        ));
+    }
+
+    private function readTableToken(): string
+    {
+        $token = $this->registry(new ToggleBooleanEntityFixtureDataTable())
+            ->getToken(ToggleBooleanEntityFixtureDataTable::class);
+
+        $this->assertNotNull($token);
+
+        return $token;
     }
 
     private function contextResolver(?AbstractDataTable $dataTable = null): BooleanMutationContextResolver

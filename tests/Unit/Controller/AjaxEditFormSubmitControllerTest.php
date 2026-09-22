@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
+use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
@@ -238,6 +239,47 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         } catch (InvalidCsrfTokenException $exception) {
             $this->assertSame(403, $exception->getStatusCode());
         }
+    }
+
+    #[Test]
+    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
+    {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManagerForClass');
+
+        $formFactory = $this->createMock(FormFactoryInterface::class);
+        $formFactory->expects($this->never())->method('createBuilder');
+
+        $renderer = $this->createMock(EditModalRenderer::class);
+        $renderer->expects($this->never())->method('renderBody');
+
+        $controller = $this->controller(new EditFormService(
+            new EntityLocator($registry),
+            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
+            $renderer,
+            $this->createStub(EditModalTemplateResolver::class),
+            new NullMercurePublisher(),
+            new MercureTopicResolver(),
+            new MutationFlusher(),
+            $this->permissionCheckerGranting(true),
+        ));
+
+        $this->expectException(InvalidDataTableTokenException::class);
+
+        $controller($this->validTokenRequest(), new AjaxEditFormRequestDto(
+            dataTable: $this->readTableToken(),
+            id: 42,
+            formData: ['name' => 'Alice'],
+        ));
+    }
+
+    private function readTableToken(): string
+    {
+        $token = $this->tableRegistry()->getToken(AjaxEditFormSubmitControllerDataTable::class);
+
+        $this->assertNotNull($token);
+
+        return $token;
     }
 
     private function controller(EditFormService $service, ?CsrfTokenManagerInterface $csrfTokenManager = null): AjaxEditFormSubmitController
