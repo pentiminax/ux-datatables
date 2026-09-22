@@ -262,6 +262,32 @@ final class AjaxBulkControllerTest extends TestCase
         );
     }
 
+    #[Test]
+    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
+    {
+        $doctrine = $this->createMock(ManagerRegistry::class);
+        $doctrine->expects($this->never())->method('getManagerForClass');
+
+        $controller = $this->createController($doctrine);
+
+        $this->expectException(InvalidDataTableTokenException::class);
+
+        $controller($this->createRequest(), new AjaxBulkQueryDto(
+            dataTable: $this->readTableToken(),
+            action: 'approve',
+            ids: [1],
+        ));
+    }
+
+    private function readTableToken(): string
+    {
+        $token = $this->registry()->getToken(BulkEntityFixtureDataTable::class);
+
+        $this->assertNotNull($token);
+
+        return $token;
+    }
+
     private function dataTableToken(): string
     {
         $token = $this->registry()->getActionToken(BulkEntityFixtureDataTable::class);
