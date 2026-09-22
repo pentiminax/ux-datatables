@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * Base class for testing the tables an application builds with this bundle.
@@ -27,7 +28,12 @@ abstract class DataTableTestCase extends WebTestCase
      */
     protected function dataTable(string $dataTableClass): DataTableRequestBuilder
     {
-        return new DataTableRequestBuilder($this->dataTableClient(), $this->dataTableRegistry(), $dataTableClass);
+        return new DataTableRequestBuilder(
+            $this->dataTableClient(),
+            $this->dataTableRegistry(),
+            $this->dataTableUrlGenerator(),
+            $dataTableClass,
+        );
     }
 
     /**
@@ -60,6 +66,17 @@ abstract class DataTableTestCase extends WebTestCase
         }
 
         return $registry;
+    }
+
+    final protected function dataTableUrlGenerator(): UrlGeneratorInterface
+    {
+        $router = static::getContainer()->get('router');
+
+        if (!$router instanceof UrlGeneratorInterface) {
+            throw new \LogicException('The router is not available in the kernel under test.');
+        }
+
+        return $router;
     }
 
     final protected function dataTableClient(): KernelBrowser
