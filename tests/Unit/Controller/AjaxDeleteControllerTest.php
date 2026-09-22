@@ -77,7 +77,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $topicResolver = $this->createStub(MercureTopicResolver::class);
         $topicResolver->method('resolve')->willReturn(['/server/deletable-entity-fixtures/{id}']);
 
-        $mutator = new EntityMutator(new EntityLocator($registry), $this->createMock(PropertyAccessorInterface::class), $publisher, new AuthorizationChecker(new TestAuthorizationChecker()), $topicResolver, new MutationFlusher());
+        $mutator = new EntityMutator(new EntityLocator($registry), $this->createStub(PropertyAccessorInterface::class), $publisher, new AuthorizationChecker(new TestAuthorizationChecker()), $topicResolver, new MutationFlusher());
 
         $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')
@@ -111,7 +111,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');
 
-        $hubUrlResolver = $this->createMock(MercureHubUrlResolver::class);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
         $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
 
         $dataTable = new DeletableEntityFixtureDataTable($hubUrlResolver);
@@ -122,7 +122,7 @@ final class AjaxDeleteControllerTest extends TestCase
 
         $mutator = new EntityMutator(
             new EntityLocator($registry),
-            $this->createMock(PropertyAccessorInterface::class),
+            $this->createStub(PropertyAccessorInterface::class),
             $publisher,
             new AuthorizationChecker(new TestAuthorizationChecker()),
             new MercureTopicResolver($resolver, $dataTables),
@@ -146,7 +146,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $registry = $this->createMock(ManagerRegistry::class);
         $registry->expects($this->never())->method('getManagerForClass');
 
-        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(false);
 
         $controller = $this->createController($registry, $csrfTokenManager);
@@ -206,7 +206,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
 
-        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker->method('isGranted')->willReturn(false);
 
         $controller = $this->createController(
@@ -225,8 +225,8 @@ final class AjaxDeleteControllerTest extends TestCase
     {
         $controller = new AjaxDeleteController(
             new EntityMutator(
-                new EntityLocator($this->createMock(ManagerRegistry::class)),
-                $this->createMock(PropertyAccessorInterface::class),
+                new EntityLocator($this->createStub(ManagerRegistry::class)),
+                $this->createStub(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
                 new AuthorizationChecker(new TestAuthorizationChecker()),
                 new MercureTopicResolver(),
@@ -260,7 +260,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
 
-        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker->method('isGranted')->willReturnCallback(
             static fn (string $attribute, mixed $subject = null): bool => Permission::DT_DELETE_ROW === $attribute
                 || ($subject instanceof ActionPermissionContext && !$subject->hasRowContext)
@@ -333,7 +333,7 @@ final class AjaxDeleteControllerTest extends TestCase
         return new AjaxDeleteController(
             new EntityMutator(
                 new EntityLocator($registry),
-                $this->createMock(PropertyAccessorInterface::class),
+                $this->createStub(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
                 $permissionChecker,
                 new MercureTopicResolver(),

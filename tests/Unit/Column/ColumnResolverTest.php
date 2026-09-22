@@ -170,7 +170,7 @@ final class ColumnResolverTest extends TestCase
     {
         $expected = [TextColumn::new('name', 'Name')];
 
-        $detector = $this->createMock(ColumnAutoDetector::class);
+        $detector = $this->createStub(ColumnAutoDetector::class);
         $detector->method('supports')->willReturn(true);
         $detector->method('detectColumns')->willReturn($expected);
 
@@ -438,7 +438,7 @@ final class ColumnResolverTest extends TestCase
      */
     private function createResolverWithPermissions(array $isGrantedMap): ColumnResolver
     {
-        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner = $this->createStub(AuthorizationCheckerInterface::class);
         $inner->method('isGranted')->willReturnCallback(static function (string $attribute, mixed $subject = null) use ($isGrantedMap): bool {
             if (Permission::DT_EXECUTE_ACTION === $attribute && $subject instanceof ActionPermissionContext) {
                 $attribute = (string) $subject->action->getPermission();

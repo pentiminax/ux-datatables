@@ -69,7 +69,7 @@ final class MutationFlusherTest extends TestCase
 
     private function managerFailingWith(\Throwable $failure): ObjectManager
     {
-        $manager = $this->createMock(ObjectManager::class);
+        $manager = $this->createStub(ObjectManager::class);
         $manager->method('flush')->willThrowException($failure);
 
         return $manager;

@@ -56,7 +56,7 @@ trait BuildsTypedFieldQueryBuilder
         $metadata->method('hasAssociation')->with($field)->willReturn(false);
         $metadata->method('hasField')->with($field)->willReturn(false);
 
-        $em = $this->createMock(EntityManagerInterface::class);
+        $em = $this->createStub(EntityManagerInterface::class);
         $em->method('getClassMetadata')->willReturn($metadata);
 
         $qb = $this->createMock(QueryBuilder::class);
@@ -76,7 +76,7 @@ trait BuildsTypedFieldQueryBuilder
         $metadata = $this->createMock(ClassMetadata::class);
         $metadata->method('hasAssociation')->with($field)->willReturn(true);
 
-        $em = $this->createMock(EntityManagerInterface::class);
+        $em = $this->createStub(EntityManagerInterface::class);
         $em->method('getClassMetadata')->willReturn($metadata);
 
         $qb = $this->createMock(QueryBuilder::class);

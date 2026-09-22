@@ -214,7 +214,7 @@ final class GlobalSearchFilterTest extends TestCase
         $metadata->method('hasField')->willReturnCallback(static fn (string $field): bool => 'name' === $field);
         $metadata->method('getFieldMapping')->with('name')->willReturn(new FieldMapping('string', 'name', 'name'));
 
-        $em = $this->createMock(EntityManagerInterface::class);
+        $em = $this->createStub(EntityManagerInterface::class);
         $em->method('getClassMetadata')->willReturn($metadata);
 
         $qb = $this->createMock(QueryBuilder::class);

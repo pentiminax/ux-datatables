@@ -90,7 +90,7 @@ final class ExportServiceTest extends TestCase
     {
         $csv = new RecordingExporter();
 
-        $inner = $this->createMock(AuthorizationCheckerInterface::class);
+        $inner = $this->createStub(AuthorizationCheckerInterface::class);
         $inner->method('isGranted')->willReturnCallback(static fn (string $attribute): bool => 'ROLE_HR' !== $attribute);
 
         $service = new ExportService(

@@ -43,7 +43,7 @@ final class ColumnAutoDetectorTest extends TestCase
         }
 
         $this->resourceMetadataFactory = $this->createStub(ResourceMetadataCollectionFactoryInterface::class);
-        $this->propertyNameFactory     = $this->createMock(PropertyNameCollectionFactoryInterface::class);
+        $this->propertyNameFactory     = $this->createStub(PropertyNameCollectionFactoryInterface::class);
         $this->propertyMetadataFactory = $this->createStub(PropertyMetadataFactoryInterface::class);
         $this->propertyInfoExtractor   = new TestPropertyInfoExtractor();
     }
@@ -214,11 +214,13 @@ final class ColumnAutoDetectorTest extends TestCase
     {
         $groups = ['product:list'];
 
-        $this->propertyNameFactory
+        $propertyNameFactory = $this->createMock(PropertyNameCollectionFactoryInterface::class);
+        $propertyNameFactory
             ->expects($this->once())
             ->method('create')
             ->with('App\Entity\Product', ['serializer_groups' => $groups])
             ->willReturn(new PropertyNameCollection([]));
+        $this->propertyNameFactory = $propertyNameFactory;
 
         $this->createDetector()->detectColumns('App\Entity\Product', $groups);
     }

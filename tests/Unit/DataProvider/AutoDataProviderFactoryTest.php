@@ -31,7 +31,7 @@ final class AutoDataProviderFactoryTest extends TestCase
     {
         $provider = $this->create(
             asDataTable: new AsDataTable(entityClass: \stdClass::class),
-            em: $this->createMock(EntityManagerInterface::class),
+            em: $this->createStub(EntityManagerInterface::class),
         );
 
         $this->assertInstanceOf(DoctrineDataProvider::class, $provider);
@@ -96,7 +96,7 @@ final class AutoDataProviderFactoryTest extends TestCase
     {
         $provider = $this->create(
             asDataTable: new AsDataTable(entityClass: \stdClass::class, apiPlatform: true),
-            em: $this->createMock(EntityManagerInterface::class),
+            em: $this->createStub(EntityManagerInterface::class),
             apiPlatformProviderFactory: $this->buildApiPlatformProviderFactory(withCollectionOperation: false),
             apiPlatform: true,
         );
@@ -109,12 +109,12 @@ final class AutoDataProviderFactoryTest extends TestCase
      */
     private function entityManagerMapping(string $mappedClass): EntityManagerInterface
     {
-        $metadataFactory = $this->createMock(ClassMetadataFactory::class);
+        $metadataFactory = $this->createStub(ClassMetadataFactory::class);
         $metadataFactory
             ->method('isTransient')
             ->willReturnCallback(static fn (string $class): bool => $class !== $mappedClass);
 
-        $em = $this->createMock(EntityManagerInterface::class);
+        $em = $this->createStub(EntityManagerInterface::class);
         $em->method('getMetadataFactory')->willReturn($metadataFactory);
 
         return $em;

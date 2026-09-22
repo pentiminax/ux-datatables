@@ -52,7 +52,7 @@ final class RowProcessingPipelineTest extends TestCase
     #[Test]
     public function it_strips_denied_column_values_and_keeps_unrelated_keys(): void
     {
-        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker->method('isGranted')->willReturnCallback(
             static fn (mixed $attribute): bool => 'ROLE_HR' !== $attribute
         );
@@ -75,7 +75,7 @@ final class RowProcessingPipelineTest extends TestCase
     #[Test]
     public function it_strips_denied_nested_dotted_paths_from_array_rows(): void
     {
-        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker->method('isGranted')->willReturnCallback(
             static fn (mixed $attribute): bool => 'ROLE_HR' !== $attribute
         );
@@ -98,7 +98,7 @@ final class RowProcessingPipelineTest extends TestCase
     #[Test]
     public function it_strips_denied_nested_paths_from_object_backed_array_rows(): void
     {
-        $checker = $this->createMock(AuthorizationCheckerInterface::class);
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
         $checker->method('isGranted')->willReturnCallback(
             static fn (mixed $attribute): bool => 'ROLE_HR' !== $attribute
         );
