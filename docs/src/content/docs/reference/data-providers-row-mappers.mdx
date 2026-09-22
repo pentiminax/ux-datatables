@@ -227,7 +227,10 @@ rendering, and action-resolution behavior as the built-in Doctrine provider. `se
 ## Page Projection
 
 `projectPage()` transforms a complete, already-paginated page of source entities, so a page can be
-batch-enriched without an N+1. A server-side export has no page: it streams every filtered row, so
+batch-enriched without an N+1. When the projected rows are a DTO carrying its own
+`#[DataTableColumn]` declarations, name it as the table's
+[`dataClass`](/ux-datatables/reference/attributes/#dataclass-and-entityclass) and keep the queried
+entity as `entityClass`. A server-side export has no page: it streams every filtered row, so
 the projector is called once per batch instead, with a batch size unrelated to the DataTables page
 length. Project each item from itself rather than from the batch it arrived in. See
 [Custom Exporters](/ux-datatables/reference/custom-exporters/#projectpage-and-batching).

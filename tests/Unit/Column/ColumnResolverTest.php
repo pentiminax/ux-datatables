@@ -56,6 +56,17 @@ final class ColumnResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_reads_the_columns_on_the_data_class_not_the_entity_class(): void
+    {
+        $columns = (new ColumnResolver())->resolveColumns(
+            new AsDataTable(dataClass: ResolverDataClassFixture::class, entityClass: ResolverEntityFixture::class),
+            dataTableClass: SilentTableFixture::class,
+        );
+
+        $this->assertSame(['declaredOnDataClass'], array_map(static fn (ColumnInterface $column) => $column->getName(), $columns));
+    }
+
+    #[Test]
     #[DataProvider('provideEmptyResolutions')]
     public function it_resolves_no_column_without_usable_configuration(\Closure $resolve): void
     {
@@ -451,6 +462,12 @@ final class ResolverEntityFixture
 {
     #[DataTableColumn]
     public string $declaredOnEntity = '';
+}
+
+final class ResolverDataClassFixture
+{
+    #[DataTableColumn]
+    public string $declaredOnDataClass = '';
 }
 
 #[DataTableColumn(name: 'declaredOnTable')]

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\DataProvider;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadataFactory;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
@@ -34,6 +35,29 @@ final class AutoDataProviderFactoryTest extends TestCase
         );
 
         $this->assertInstanceOf(DoctrineDataProvider::class, $provider);
+    }
+
+    #[Test]
+    public function it_queries_the_entity_class_when_the_data_class_is_a_plain_dto(): void
+    {
+        $provider = $this->create(
+            asDataTable: new AsDataTable(dataClass: PlainRowFixture::class, entityClass: \stdClass::class),
+            em: $this->entityManagerMapping(\stdClass::class),
+        );
+
+        $this->assertInstanceOf(DoctrineDataProvider::class, $provider);
+    }
+
+    #[Test]
+    public function it_throws_when_the_entity_class_is_not_mapped(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('The entity class "Pentiminax\UX\DataTables\Tests\Unit\DataProvider\PlainRowFixture" declared on #[AsDataTable] is not mapped by Doctrine');
+
+        $this->create(
+            asDataTable: new AsDataTable(dataClass: PlainRowFixture::class),
+            em: $this->entityManagerMapping(\stdClass::class),
+        );
     }
 
     #[Test]
@@ -80,6 +104,22 @@ final class AutoDataProviderFactoryTest extends TestCase
         $this->assertInstanceOf(DoctrineDataProvider::class, $provider);
     }
 
+    /**
+     * @param class-string $mappedClass
+     */
+    private function entityManagerMapping(string $mappedClass): EntityManagerInterface
+    {
+        $metadataFactory = $this->createMock(ClassMetadataFactory::class);
+        $metadataFactory
+            ->method('isTransient')
+            ->willReturnCallback(static fn (string $class): bool => $class !== $mappedClass);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->method('getMetadataFactory')->willReturn($metadataFactory);
+
+        return $em;
+    }
+
     private function create(
         ?AsDataTable $asDataTable = null,
         ?EntityManagerInterface $em = null,
@@ -93,4 +133,9 @@ final class AutoDataProviderFactoryTest extends TestCase
             apiPlatform: $apiPlatform,
         );
     }
+}
+
+final class PlainRowFixture
+{
+    public string $label = '';
 }
