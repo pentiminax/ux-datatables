@@ -18,7 +18,6 @@ use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
-use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
@@ -65,14 +64,6 @@ final class AjaxDeleteControllerTest extends TestCase
         $publisher->expects($this->once())
             ->method('publish')
             ->with(['/server/deletable-entity-fixtures/{id}'], ['type' => 'delete', 'id' => 12]);
-
-        $resolver = $this->createMock(MercureConfigResolver::class);
-        $resolver->method('resolveMercureConfig')
-            ->with(DeletableEntityFixture::class)
-            ->willReturn(new MercureConfig(
-                topics: ['/server/deletable-entity-fixtures/{id}'],
-                hubUrl: 'https://hub.example/.well-known/mercure',
-            ));
 
         $topicResolver = $this->createStub(MercureTopicResolver::class);
         $topicResolver->method('resolve')->willReturn(['/server/deletable-entity-fixtures/{id}']);
