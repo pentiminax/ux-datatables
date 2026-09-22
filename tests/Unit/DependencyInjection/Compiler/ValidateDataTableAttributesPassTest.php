@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\DependencyInjection\Compiler;
 
+use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
 use Pentiminax\UX\DataTables\Attribute\DataTableFilter;
@@ -177,6 +178,14 @@ final class ValidateDataTableAttributesPassTest extends TestCase
     public function it_accepts_the_projected_fields_the_entity_backs(): void
     {
         $this->process(MappedProjectionTableFixture::class);
+
+        $this->expectNotToPerformAssertions();
+    }
+
+    #[Test]
+    public function it_leaves_a_column_building_its_own_search_predicate_alone(): void
+    {
+        $this->process(CustomPredicateProjectionTableFixture::class);
 
         $this->expectNotToPerformAssertions();
     }
@@ -361,5 +370,26 @@ final class MappedProjectionTableFixture extends AbstractDataTable
 
 #[AsDataTable(dataClass: UnmappedProjectionDataFixture::class)]
 final class SelfProjectedTableFixture extends AbstractDataTable
+{
+}
+
+final class SelfSearchingColumn extends TextColumn
+{
+    public function buildSearchPredicate(QueryBuilder $qb, string $alias, string $value, string $paramName): ?string
+    {
+        $qb->setParameter($paramName, '%'.$value.'%');
+
+        return \sprintf('%s.name LIKE :%s', $alias, $paramName);
+    }
+}
+
+final class CustomPredicateProjectionDataFixture
+{
+    #[DataTableColumn(type: SelfSearchingColumn::class, options: ['orderable' => false])]
+    public string $fullName = '';
+}
+
+#[AsDataTable(dataClass: CustomPredicateProjectionDataFixture::class, entityClass: ProjectedEntityFixture::class)]
+final class CustomPredicateProjectionTableFixture extends AbstractDataTable
 {
 }
