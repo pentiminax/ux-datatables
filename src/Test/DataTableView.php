@@ -67,7 +67,9 @@ final class DataTableView
      */
     public function rows(): array
     {
-        return array_values($this->payload['data'] ?? []);
+        $rows = $this->payload['data'] ?? [];
+
+        return \is_array($rows) ? array_values($rows) : [];
     }
 
     /**
@@ -89,9 +91,15 @@ final class DataTableView
      */
     public function columns(): array
     {
+        $columns = $this->payload['columns'] ?? [];
+
+        if (!\is_array($columns)) {
+            return [];
+        }
+
         return array_values(array_map(
             static fn (array $column): string => (string) ($column['name'] ?? $column['data'] ?? ''),
-            $this->payload['columns'] ?? [],
+            $columns,
         ));
     }
 
