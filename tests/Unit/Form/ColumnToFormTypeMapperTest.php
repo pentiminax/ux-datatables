@@ -14,7 +14,9 @@ use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Model\Actions;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -27,7 +29,8 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 /**
  * @internal
  */
-class ColumnToFormTypeMapperTest extends TestCase
+#[CoversClass(ColumnToFormTypeMapper::class)]
+final class ColumnToFormTypeMapperTest extends TestCase
 {
     private ColumnToFormTypeMapper $mapper;
 
@@ -40,7 +43,8 @@ class ColumnToFormTypeMapperTest extends TestCase
      * @param array{formType: class-string, options: array<string, mixed>} $expected
      */
     #[DataProvider('mappedColumnProvider')]
-    public function test_column_maps_to_a_form_type_with_its_options(array $expected, ColumnInterface $column): void
+    #[Test]
+    public function column_maps_to_a_form_type_with_its_options(array $expected, ColumnInterface $column): void
     {
         $this->assertSame($expected, $this->mapper->map($column));
     }
@@ -85,7 +89,8 @@ class ColumnToFormTypeMapperTest extends TestCase
     }
 
     #[DataProvider('skippedColumnProvider')]
-    public function test_column_is_skipped(ColumnInterface $column): void
+    #[Test]
+    public function column_is_skipped(ColumnInterface $column): void
     {
         $this->assertNull($this->mapper->map($column));
     }
@@ -99,7 +104,8 @@ class ColumnToFormTypeMapperTest extends TestCase
         yield 'hidden when updating' => [TextColumn::new('createdAt', 'Created At')->setCustomOption('hideWhenUpdating', true)];
     }
 
-    public function test_enum_typed_property_maps_to_enum_type_with_choice_column_labels(): void
+    #[Test]
+    public function enum_typed_property_maps_to_enum_type_with_choice_column_labels(): void
     {
         $column = ChoiceColumn::new('role', 'Role')->setChoices(ColumnToFormTypeMapperRole::class);
 
@@ -110,7 +116,8 @@ class ColumnToFormTypeMapperTest extends TestCase
         $this->assertSame('Administrator', ($mapped['options']['choice_label'])(ColumnToFormTypeMapperRole::Admin));
     }
 
-    public function test_enum_typed_property_maps_to_enum_type_without_a_choice_column(): void
+    #[Test]
+    public function enum_typed_property_maps_to_enum_type_without_a_choice_column(): void
     {
         $mapped = $this->mapper->map(TextColumn::new('role', 'Role'), new ColumnToFormTypeMapperEntity());
 
@@ -118,7 +125,8 @@ class ColumnToFormTypeMapperTest extends TestCase
         $this->assertArrayNotHasKey('choice_label', $mapped['options']);
     }
 
-    public function test_scalar_property_is_unaffected_by_the_entity(): void
+    #[Test]
+    public function scalar_property_is_unaffected_by_the_entity(): void
     {
         $mapped = $this->mapper->map(TextColumn::new('name', 'Name'), new ColumnToFormTypeMapperEntity());
 
