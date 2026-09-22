@@ -11,7 +11,9 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Model\Actions;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
@@ -23,7 +25,8 @@ use Symfony\Component\Form\FormInterface;
 /**
  * @internal
  */
-class EditFormBuilderTest extends TestCase
+#[CoversClass(EditFormBuilder::class)]
+final class EditFormBuilderTest extends TestCase
 {
     /**
      * @param ColumnInterface[]                                        $columns
@@ -31,7 +34,8 @@ class EditFormBuilderTest extends TestCase
      * @param array<string, array{class-string, array<string, mixed>}> $expectedFields   Field name => [form type, options], in the order they must be added
      */
     #[DataProvider('provideColumnScenarios')]
-    public function test_build_form_adds_one_field_per_mapped_column(array $columns, array $identifierFields, array $expectedFields): void
+    #[Test]
+    public function build_form_adds_one_field_per_mapped_column(array $columns, array $identifierFields, array $expectedFields): void
     {
         $entity = new \stdClass();
         $form   = $this->createStub(FormInterface::class);
