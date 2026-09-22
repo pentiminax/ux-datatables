@@ -72,6 +72,27 @@ final class AjaxDetailControllerTest extends TestCase
         $controller(new AjaxEntityQueryDto(dataTable: 'forged-token', id: 7));
     }
 
+    #[Test]
+    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
+    {
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects($this->never())->method('getManagerForClass');
+
+        $controller = $this->controller($registry, true);
+
+        $this->expectException(InvalidDataTableTokenException::class);
+        $controller(new AjaxEntityQueryDto(dataTable: $this->readTableToken(), id: 7));
+    }
+
+    private function readTableToken(): string
+    {
+        $token = $this->tableRegistry()->getToken(AjaxDetailControllerDataTable::class);
+
+        $this->assertNotNull($token);
+
+        return $token;
+    }
+
     private function controller(ManagerRegistry $registry, bool $granted): AjaxDetailController
     {
         $authorizationChecker = $this->createStub(AuthorizationCheckerInterface::class);
