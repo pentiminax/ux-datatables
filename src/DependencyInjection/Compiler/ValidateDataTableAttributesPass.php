@@ -76,6 +76,7 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
                 : [];
 
             $this->assertFieldsResolveOnTheEntity(
+                $container,
                 $class,
                 $asDataTable,
                 [] !== $classColumns ? $classColumns : $dataColumns,
@@ -87,7 +88,8 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
     /**
      * A table reading its shape from a DTO still builds its DQL against the entity, so a field the
      * entity does not carry orders and searches nothing. The runtime skips it in silence; here it
-     * fails the build instead.
+     * fails the build instead, or is logged when the field only backs a fallback the column may
+     * never reach.
      *
      * Only single-segment paths are checked. A dotted path may target a join alias declared in
      * customizeQueryBuilder() or through getSearchJoins(), which this pass cannot know about --
@@ -98,7 +100,7 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
      * @param list<ColumnInterface> $columns
      * @param list<AbstractFilter>  $filters
      */
-    private function assertFieldsResolveOnTheEntity(string $dataTableClass, AsDataTable $asDataTable, array $columns, array $filters): void
+    private function assertFieldsResolveOnTheEntity(ContainerBuilder $container, string $dataTableClass, AsDataTable $asDataTable, array $columns, array $filters): void
     {
         $dataClass   = $asDataTable->dataClass;
         $entityClass = $asDataTable->entityClass;
@@ -108,8 +110,8 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
         }
 
         foreach ($columns as $column) {
-            foreach ($this->queriedColumnFields($column) as $field) {
-                $this->assertFieldExists($dataTableClass, $dataClass, $entityClass, $field, \sprintf('column "%s"', $column->getName()));
+            foreach ($this->queriedColumnFields($column) as $field => $required) {
+                $this->assertFieldExists($container, $dataTableClass, $dataClass, $entityClass, (string) $field, \sprintf('column "%s"', $column->getName()), $required);
             }
         }
 
@@ -118,14 +120,20 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
                 continue;
             }
 
-            $this->assertFieldExists($dataTableClass, $dataClass, $entityClass, $filter->getField(), \sprintf('filter "%s"', $filter->getName()));
+            $this->assertFieldExists($container, $dataTableClass, $dataClass, $entityClass, $filter->getField(), \sprintf('filter "%s"', $filter->getName()), true);
         }
     }
 
     /**
-     * The field paths a column actually hands to the QueryBuilder, ordering and search alike.
+     * The field paths a column actually hands to the QueryBuilder, ordering and search alike,
+     * each mapped to whether the field is required to resolve on the entity.
      *
-     * @return list<string>
+     * A column building its own search condition names the fields it needs itself, so its
+     * displayed field only backs the fallback its predicate declines. That fallback is reported
+     * rather than required: {@see \Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder}
+     * consults the predicate first and only reads the field when it returns null.
+     *
+     * @return array<string, bool>
      */
     private function queriedColumnFields(ColumnInterface $column): array
     {
@@ -136,22 +144,27 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
         $fields = [];
 
         if ($column->isOrderable() && null === $column->getOrderExpression()) {
-            $fields[] = $column->getField();
+            $field = $column->getField();
+
+            if (null !== $field && '' !== $field) {
+                $fields[$field] = true;
+            }
         }
 
-        if (($column->isSearchable() || $column->isGlobalSearchable()) && !self::buildsItsOwnSearchPredicate($column)) {
-            $fields[] = ($column instanceof SearchableColumnInterface ? $column->getSearchField() : null) ?? $column->getField();
+        if ($column->isSearchable() || $column->isGlobalSearchable()) {
+            $field = ($column instanceof SearchableColumnInterface ? $column->getSearchField() : null) ?? $column->getField();
+
+            if (null !== $field && '' !== $field) {
+                $fields[$field] ??= !self::buildsItsOwnSearchPredicate($column);
+            }
         }
 
-        return array_values(array_unique(array_filter($fields, static fn (?string $field): bool => null !== $field && '' !== $field)));
+        return $fields;
     }
 
     /**
-     * A column building its own search condition names the fields it needs itself, so the field it
-     * displays backs no predicate and must not be held to the entity.
-     *
-     * {@see \Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder} consults it before
-     * anything field-based and returns its result verbatim.
+     * Whether the column builds its own search condition, through a subclass overriding
+     * buildSearchPredicate() or through a setSearchPredicate() closure.
      */
     private static function buildsItsOwnSearchPredicate(ColumnInterface $column): bool
     {
@@ -171,13 +184,21 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
      * @param class-string $dataClass
      * @param class-string $entityClass
      */
-    private function assertFieldExists(string $dataTableClass, string $dataClass, string $entityClass, string $field, string $what): void
+    private function assertFieldExists(ContainerBuilder $container, string $dataTableClass, string $dataClass, string $entityClass, string $field, string $what, bool $required): void
     {
         if (str_contains($field, '.') || property_exists($entityClass, $field)) {
             return;
         }
 
-        throw new InvalidArgumentException(\sprintf('Invalid DataTables attribute on "%s", read by the table "%s": the %s is ordered or searched on the field "%s", which "%s" does not declare. Name it after the entity field, redirect the query alone through the "searchField" option or an order expression, or turn ordering and searching off on it. The "field" option redirects the displayed value too, so it reads nothing on a projected row.', $dataClass, $dataTableClass, $what, $field, $entityClass));
+        $message = \sprintf('the %s is ordered or searched on the field "%s", which "%s" does not declare. Name it after the entity field, redirect the query alone through the "searchField" option or an order expression, or turn ordering and searching off on it. The "field" option redirects the displayed value too, so it reads nothing on a projected row.', $what, $field, $entityClass);
+
+        if (!$required) {
+            $container->log($this, \sprintf('Invalid DataTables attribute on "%s", read by the table "%s": %s The column builds its own search condition, so this field is only read when that condition declines a term.', $dataClass, $dataTableClass, $message));
+
+            return;
+        }
+
+        throw new InvalidArgumentException(\sprintf('Invalid DataTables attribute on "%s", read by the table "%s": %s', $dataClass, $dataTableClass, $message));
     }
 
     /**
