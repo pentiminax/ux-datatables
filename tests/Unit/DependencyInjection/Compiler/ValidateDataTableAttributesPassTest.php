@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\DependencyInjection\Compiler;
 
+use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
 use Pentiminax\UX\DataTables\Attribute\DataTableFilter;
@@ -155,6 +156,51 @@ final class ValidateDataTableAttributesPassTest extends TestCase
         $this->expectNotToPerformAssertions();
     }
 
+    #[Test]
+    public function it_rejects_a_data_class_field_the_entity_does_not_declare(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('the column "fullName" is ordered or searched on the field "fullName", which "Pentiminax\\UX\\DataTables\\Tests\\Unit\\DependencyInjection\\Compiler\\ProjectedEntityFixture" does not declare. Name it after the entity field');
+
+        $this->process(UnmappedProjectionTableFixture::class);
+    }
+
+    #[Test]
+    public function it_rejects_a_data_class_filter_the_entity_does_not_declare(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('the filter "fullName" is ordered or searched');
+
+        $this->process(UnmappedFilterProjectionTableFixture::class);
+    }
+
+    #[Test]
+    public function it_accepts_the_projected_fields_the_entity_backs(): void
+    {
+        $this->process(MappedProjectionTableFixture::class);
+
+        $this->expectNotToPerformAssertions();
+    }
+
+    #[Test]
+    public function it_leaves_a_column_building_its_own_search_predicate_alone(): void
+    {
+        $container = $this->process(CustomPredicateProjectionTableFixture::class);
+
+        $log = implode("\n", $container->getCompiler()->getLog());
+
+        self::assertStringContainsString('column "fullName"', $log);
+        self::assertStringContainsString('builds its own search condition', $log);
+    }
+
+    #[Test]
+    public function it_leaves_the_fields_alone_when_the_data_class_is_the_entity_class(): void
+    {
+        $this->process(SelfProjectedTableFixture::class);
+
+        $this->expectNotToPerformAssertions();
+    }
+
     /**
      * @param class-string $dataTableClass
      */
@@ -268,4 +314,85 @@ final class OwnColumnsTableFixture extends AbstractDataTable
     {
         return [TextColumn::new('manual')];
     }
+}
+
+class ProjectedEntityFixture
+{
+    public string $name = '';
+
+    public string $role = '';
+}
+
+final class UnmappedProjectionDataFixture
+{
+    #[DataTableColumn]
+    public string $fullName = '';
+}
+
+final class UnmappedFilterProjectionDataFixture
+{
+    #[DataTableFilter]
+    public string $fullName = '';
+}
+
+final class MappedProjectionDataFixture
+{
+    #[DataTableColumn]
+    public string $name = '';
+
+    #[DataTableColumn(options: ['field' => 'role'])]
+    public string $roleLabel = '';
+
+    #[DataTableColumn(options: ['field' => 'team.name'])]
+    public string $teamName = '';
+
+    #[DataTableColumn(options: ['orderable' => false, 'searchable' => false, 'globalSearchable' => false])]
+    public string $computed = '';
+
+    #[DataTableColumn(options: ['orderExpression' => 'HIDDEN_score', 'searchable' => false, 'globalSearchable' => false])]
+    public string $score = '';
+
+    #[DataTableFilter(options: ['field' => 'role'])]
+    public string $roleFilter = '';
+}
+
+#[AsDataTable(dataClass: UnmappedProjectionDataFixture::class, entityClass: ProjectedEntityFixture::class)]
+final class UnmappedProjectionTableFixture extends AbstractDataTable
+{
+}
+
+#[AsDataTable(dataClass: UnmappedFilterProjectionDataFixture::class, entityClass: ProjectedEntityFixture::class)]
+final class UnmappedFilterProjectionTableFixture extends AbstractDataTable
+{
+}
+
+#[AsDataTable(dataClass: MappedProjectionDataFixture::class, entityClass: ProjectedEntityFixture::class)]
+final class MappedProjectionTableFixture extends AbstractDataTable
+{
+}
+
+#[AsDataTable(dataClass: UnmappedProjectionDataFixture::class)]
+final class SelfProjectedTableFixture extends AbstractDataTable
+{
+}
+
+final class SelfSearchingColumn extends TextColumn
+{
+    public function buildSearchPredicate(QueryBuilder $qb, string $alias, string $value, string $paramName): ?string
+    {
+        $qb->setParameter($paramName, '%'.$value.'%');
+
+        return \sprintf('%s.name LIKE :%s', $alias, $paramName);
+    }
+}
+
+final class CustomPredicateProjectionDataFixture
+{
+    #[DataTableColumn(type: SelfSearchingColumn::class, options: ['orderable' => false])]
+    public string $fullName = '';
+}
+
+#[AsDataTable(dataClass: CustomPredicateProjectionDataFixture::class, entityClass: ProjectedEntityFixture::class)]
+final class CustomPredicateProjectionTableFixture extends AbstractDataTable
+{
 }

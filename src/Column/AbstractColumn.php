@@ -472,6 +472,14 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
         return $this;
     }
 
+    /**
+     * Whether a searchPredicate() closure replaces the type-based search condition.
+     */
+    public function hasSearchPredicate(): bool
+    {
+        return null !== $this->searchPredicate;
+    }
+
     public function buildSearchPredicate(
         QueryBuilder $qb,
         string $alias,
