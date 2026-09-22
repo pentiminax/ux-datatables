@@ -24,7 +24,7 @@ final class AbstractColumnSearchTest extends TestCase
 
         $this->assertNull($column->getSearchField());
         $this->assertSame([], $column->getSearchJoins());
-        $this->assertNull($column->buildSearchPredicate($this->createMock(QueryBuilder::class), 'e', 'ali', 'p0'));
+        $this->assertNull($column->buildSearchPredicate($this->createStub(QueryBuilder::class), 'e', 'ali', 'p0'));
     }
 
     #[Test]
@@ -87,7 +87,7 @@ final class AbstractColumnSearchTest extends TestCase
         $column = TextColumn::new('dossierId', 'Dossier')
             ->setSearchPredicate(static fn (): ?string => null);
 
-        $this->assertNull($column->buildSearchPredicate($this->createMock(QueryBuilder::class), 'e', 'x', 'p0'));
+        $this->assertNull($column->buildSearchPredicate($this->createStub(QueryBuilder::class), 'e', 'x', 'p0'));
     }
 
     #[Test]
@@ -97,6 +97,6 @@ final class AbstractColumnSearchTest extends TestCase
             ->setSearchPredicate(static fn (): string => 'first')
             ->setSearchPredicate(static fn (): string => 'second');
 
-        $this->assertSame('second', $column->buildSearchPredicate($this->createMock(QueryBuilder::class), 'e', 'x', 'p0'));
+        $this->assertSame('second', $column->buildSearchPredicate($this->createStub(QueryBuilder::class), 'e', 'x', 'p0'));
     }
 }
