@@ -84,7 +84,7 @@ trait BuildsQueryFilterContext
             $joins = [];
 
             foreach ($this->capturedJoins as [$join, $alias]) {
-                $mock = $this->createMock(Join::class);
+                $mock = $this->createStub(Join::class);
                 $mock->method('getJoin')->willReturn($join);
                 $mock->method('getAlias')->willReturn($alias);
 
@@ -124,7 +124,7 @@ trait BuildsQueryFilterContext
         $metadata->method('hasAssociation')->with($field)->willReturn(false);
         $metadata->method('hasField')->with($field)->willReturn(false);
 
-        $em = $this->createMock(EntityManagerInterface::class);
+        $em = $this->createStub(EntityManagerInterface::class);
         $em->method('getClassMetadata')->willReturn($metadata);
 
         $qb = $this->createMock(QueryBuilder::class);
@@ -144,7 +144,7 @@ trait BuildsQueryFilterContext
         $metadata = $this->createMock(ClassMetadata::class);
         $metadata->method('hasAssociation')->with($field)->willReturn(true);
 
-        $em = $this->createMock(EntityManagerInterface::class);
+        $em = $this->createStub(EntityManagerInterface::class);
         $em->method('getClassMetadata')->willReturn($metadata);
 
         $qb = $this->createMock(QueryBuilder::class);

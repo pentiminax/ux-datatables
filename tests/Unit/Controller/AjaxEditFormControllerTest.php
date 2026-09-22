@@ -51,22 +51,22 @@ final class AjaxEditFormControllerTest extends TestCase
         $formBuilder = $this->createMock(FormBuilderInterface::class);
         $formBuilder->expects($this->once())
             ->method('add')
-            ->with('name', $this->isType('string'), $this->isType('array'))
+            ->with('name', $this->isString(), $this->isArray())
             ->willReturnSelf();
         $formBuilder->expects($this->once())
             ->method('getForm')
-            ->willReturn($this->createMock(FormInterface::class));
+            ->willReturn($this->createStub(FormInterface::class));
 
         $formFactory = $this->createMock(FormFactoryInterface::class);
         $formFactory->expects($this->once())
             ->method('createBuilder')
-            ->with($this->isType('string'), $this->isType('object'))
+            ->with($this->isString(), $this->isObject())
             ->willReturn($formBuilder);
 
         $renderer = $this->createMock(EditModalRenderer::class);
         $renderer->expects($this->once())
             ->method('render')
-            ->with($this->isType('object'))
+            ->with($this->isObject())
             ->willReturn('<div>ok</div>');
 
         $templateResolver = $this->createMock(EditModalTemplateResolver::class);
@@ -151,7 +151,7 @@ final class AjaxEditFormControllerTest extends TestCase
         EditModalTemplateResolver $templateResolver,
         ?ContainerInterface $dataTables = null,
     ): AjaxEditFormController {
-        $authorizationChecker = $this->createMock(AuthorizationCheckerInterface::class);
+        $authorizationChecker = $this->createStub(AuthorizationCheckerInterface::class);
         $authorizationChecker->method('isGranted')->willReturn(true);
 
         return new AjaxEditFormController(
