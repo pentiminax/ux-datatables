@@ -115,7 +115,8 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
      * request's: an operation capping itemsPerPage -- or ignoring it, which is API Platform's
      * default -- answers a page shorter than the one asked for. Both the page number and the
      * offset are therefore recomputed from the size the paginator reports, and pages are read
-     * until the window is filled or the collection ends.
+     * until the window is filled or the collection ends. A request with no positive length is
+     * DataTables' "show all": every page is read, matching {@see self::iterateRows()}.
      *
      * @param array<string, string|array<int|string, string>> $parameters
      *
@@ -126,8 +127,14 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
         $limit = $request->length;
         $size  = (int) $paginator->getItemsPerPage();
 
-        if ($limit <= 0 || $size <= 0) {
+        if ($size <= 0) {
             return $paginator;
+        }
+
+        // length <= 0 is DataTables' "show all". Returning the first page here would keep
+        // recordsTotal at the real size while silently dropping every later row.
+        if ($limit <= 0) {
+            return $this->allPages($paginator, $parameters, $size);
         }
 
         $page      = intdiv($request->start, $size) + 1;
@@ -149,6 +156,39 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
         }
 
         return \array_slice($items, $offset, $limit);
+    }
+
+    /**
+     * Every remaining page after the one already in hand, using the page size that operation
+     * actually applied. The first `provide()` for an unbounded request carries no itemsPerPage,
+     * so API Platform's default still paginates; walking from that reported size is what matches
+     * {@see self::iterateRows()} when the operation caps the page.
+     *
+     * @param array<string, string|array<int|string, string>> $parameters
+     *
+     * @return list<mixed>
+     */
+    private function allPages(PaginatorInterface $paginator, array $parameters, int $size): array
+    {
+        $items = $this->toList($paginator);
+        $page  = (int) ($parameters['page'] ?? 1);
+        $last  = (int) $paginator->getLastPage();
+
+        while ($page < $last) {
+            ++$page;
+            $next = $this->provide([
+                'page'         => (string) $page,
+                'itemsPerPage' => (string) $size,
+            ] + $parameters);
+
+            $items = [...$items, ...$this->toList($next)];
+
+            if ($next instanceof PaginatorInterface) {
+                $last = (int) $next->getLastPage();
+            }
+        }
+
+        return $items;
     }
 
     /**

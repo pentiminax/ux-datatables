@@ -196,6 +196,35 @@ final class ApiPlatformCollectionProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_walks_every_page_when_the_request_asks_for_the_whole_collection(): void
+    {
+        // "Show all" (length <= 0) used to return the first paginator page while still
+        // advertising getTotalItems() as recordsTotal, so later rows vanished from the table.
+        $provider = new RecordingProvider([
+            $this->paginator($this->items(2), 5, lastPage: 3),
+            $this->paginator($this->items(2, 2), 5, lastPage: 3),
+            $this->paginator($this->items(1, 4), 5, lastPage: 3),
+        ]);
+
+        $result = $this->provider($provider)->fetchData($this->request(length: -1));
+        $rows   = iterator_to_array($result->data, false);
+
+        $this->assertCount(5, $rows);
+        $this->assertSame(5, $result->recordsTotal);
+        $this->assertSame(5, $result->recordsFiltered);
+        $this->assertSame('Book 0', $rows[0]['title']);
+        $this->assertSame('Book 4', $rows[4]['title']);
+        $this->assertSame(
+            [
+                [],
+                ['page' => '2', 'itemsPerPage' => '2'],
+                ['page' => '3', 'itemsPerPage' => '2'],
+            ],
+            array_map(static fn (array $call): array => $call[2]['request']->query->all(), $provider->calls),
+        );
+    }
+
+    #[Test]
     public function it_reads_the_requested_window_when_the_offset_is_not_a_multiple_of_the_page_size(): void
     {
         // Scroller scrolls to an arbitrary row: start=37 with length=50 lands inside page 1, whose
