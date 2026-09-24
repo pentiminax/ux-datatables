@@ -41,20 +41,25 @@ final class BulkActionRunner
         BulkSelection $selection,
         Request $request,
     ): BulkActionResult {
+        $dataTable = $table->table->getConfiguredDataTable();
+
+        if ($selection->allMatching && true === $dataTable->getBulkActions()?->isSelectCurrentPageOnly()) {
+            throw InvalidBulkSelectionException::selectAllForbidden();
+        }
+
         $entityClass = $table->requireEntityClass();
-        $ids         = $this->resolveIdentifiers($table, $selection, $request);
+        $manager     = $this->locator->manager($entityClass);
+        $identifier  = $this->identifierField(
+            manager: $manager,
+            entityClass: $entityClass,
+            configuredField: $dataTable->getBulkActions()?->getIdField(),
+            highlightField: $dataTable->getHighlightConfig()?->idField,
+        );
+        $ids = $this->resolveIdentifiers($table, $selection, $request, $identifier);
 
         if ([] === $ids) {
             throw InvalidBulkSelectionException::emptySelection();
         }
-
-        $manager = $this->locator->manager($entityClass);
-
-        $identifier = $this->identifierField(
-            manager: $manager,
-            entityClass: $entityClass,
-            configuredField: $table->table->getConfiguredDataTable()->getBulkActions()?->getIdField(),
-        );
 
         $context = new BulkActionContext(
             entityClass: $entityClass,
@@ -135,8 +140,12 @@ final class BulkActionRunner
     /**
      * @return list<int|string>
      */
-    private function resolveIdentifiers(ResolvedDataTable $table, BulkSelection $selection, Request $request): array
-    {
+    private function resolveIdentifiers(
+        ResolvedDataTable $table,
+        BulkSelection $selection,
+        Request $request,
+        string $identifier,
+    ): array {
         if (!$selection->allMatching) {
             return array_values(array_unique($selection->ids, \SORT_REGULAR));
         }
@@ -157,9 +166,11 @@ final class BulkActionRunner
             throw InvalidBulkSelectionException::selectAllUnsupported();
         }
 
-        // The provider answers in the field the client selection speaks in, the one written as
-        // DT_RowId: collecting primary keys instead would hand the lookup another namespace.
-        $ids        = $provider->collectIdentifiers($dataTableRequest->withoutPagination(), $bulkActions?->getIdField());
+        // The provider must answer in the field already written as DT_RowId — the same
+        // identifier findBy() will use. Passing the raw setIdField() default (`id`) lets
+        // DoctrineDataProvider collect a leftover `id` column while the lookup remaps to
+        // the primary key, so overlapping values mutate the wrong rows.
+        $ids        = $provider->collectIdentifiers($dataTableRequest->withoutPagination(), $identifier);
         $deselected = array_map($this->normalizeId(...), $selection->deselectedIds);
 
         return array_values(array_filter(
@@ -198,8 +209,23 @@ final class BulkActionRunner
         return (string) $id;
     }
 
-    private function identifierField(ObjectManager $manager, string $entityClass, ?string $configuredField): string
-    {
+    /**
+     * The property {@see \Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory::createRowMapper()}
+     * wrote as DT_RowId: highlight wins when present, otherwise the bulk id field, with the
+     * default `id` remapped onto a single Doctrine identifier.
+     */
+    private function identifierField(
+        ObjectManager $manager,
+        string $entityClass,
+        ?string $configuredField,
+        ?string $highlightField,
+    ): string {
+        // Highlight writes DT_RowId from its own field without remapping, so the lookup
+        // has to follow it even when that field is the default `id`.
+        if (null !== $highlightField) {
+            return $highlightField;
+        }
+
         $identifiers = $manager->getClassMetadata($entityClass)->getIdentifier();
 
         if (null !== $configuredField && 'id' !== $configuredField) {
