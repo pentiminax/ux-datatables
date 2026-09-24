@@ -36,10 +36,15 @@ function normalizeValue(value) {
 const FUNNEL_ICON = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
     '<path d="M3 4h14l-5.5 6.5V16l-3 1.5v-7L3 4z" /></svg>';
+const ROTATE_CCW_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />' +
+    '<path d="M3 3v5h5" /></svg>';
 export class FilterBar {
     constructor(payload, framework) {
         this.framework = framework;
         this.controls = [];
+        this.headerResetButton = null;
         this.applied = {};
         this.reload = () => { };
         this.popoverController = null;
@@ -57,10 +62,23 @@ export class FilterBar {
         this.badge.className = 'dt-filters-badge';
         this.badge.textContent = '0';
         this.toggle.appendChild(this.badge);
+        this.wrapper.appendChild(this.toggle);
+        const showHeaderReset = payload.showHeaderResetButton === true || payload.filtersHeaderReset === true;
+        if (showHeaderReset) {
+            this.headerResetButton = document.createElement('button');
+            this.headerResetButton.type = 'button';
+            this.headerResetButton.className = 'dt-filters-header-reset';
+            this.headerResetButton.setAttribute('aria-label', this.labels.reset ?? 'Reset');
+            this.headerResetButton.title = this.labels.reset ?? 'Reset';
+            this.headerResetButton.innerHTML =
+                ROTATE_CCW_ICON + `<span>${this.labels.reset ?? 'Reset'}</span>`;
+            this.headerResetButton.hidden = true;
+            this.headerResetButton.addEventListener('click', () => this.resetFilters());
+            this.wrapper.appendChild(this.headerResetButton);
+        }
         this.popover = document.createElement('div');
         this.popover.className = 'dt-filters-popover';
         this.popover.hidden = true;
-        this.wrapper.appendChild(this.toggle);
         this.wrapper.appendChild(this.popover);
     }
     attachToPayload(payload) {
@@ -112,6 +130,23 @@ export class FilterBar {
         }
         return out;
     }
+    restoreValues(values) {
+        if (!values || typeof values !== 'object') {
+            return;
+        }
+        this.applied = {};
+        for (const [key, val] of Object.entries(values)) {
+            const norm = normalizeValue(val);
+            if (norm !== null) {
+                this.applied[key] = norm;
+            }
+        }
+        for (const control of this.controls) {
+            const val = this.applied[control.definition.name] ?? null;
+            control.setValue(val);
+        }
+        this.updateBadge();
+    }
     render(reload) {
         this.reload = reload;
         this.popover.appendChild(this.buildHeader());
@@ -119,6 +154,9 @@ export class FilterBar {
         body.className = 'dt-filters-popover__body';
         for (const definition of this.definitions) {
             const { wrapper, control } = this.buildControl(definition);
+            if (this.applied[definition.name] !== undefined) {
+                control.setValue(this.applied[definition.name]);
+            }
             this.controls.push(control);
             body.appendChild(wrapper);
         }
@@ -130,6 +168,7 @@ export class FilterBar {
             toggle: this.toggle,
         });
         this.toggle.addEventListener('click', () => this.popoverController?.toggle());
+        this.updateBadge();
         return this.wrapper;
     }
     buildHeader() {
@@ -176,6 +215,9 @@ export class FilterBar {
         const count = Object.keys(this.applied).length;
         this.badge.textContent = String(count);
         this.toggle.classList.toggle('dt-filters-toggle--active', count > 0);
+        if (this.headerResetButton) {
+            this.headerResetButton.hidden = count === 0;
+        }
     }
     buildControl(definition) {
         const wrapper = document.createElement('div');
@@ -213,6 +255,9 @@ export class FilterBar {
         return {
             definition,
             getValue: () => input.value,
+            setValue: (value) => {
+                input.value = typeof value === 'string' ? value : '';
+            },
             reset: () => {
                 input.value = '';
             },
@@ -241,6 +286,19 @@ export class FilterBar {
             getValue: () => select.multiple
                 ? [...select.selectedOptions].map((o) => o.value).filter((v) => v !== '')
                 : select.value,
+            setValue: (value) => {
+                if (select.multiple && Array.isArray(value)) {
+                    for (const opt of Array.from(select.options)) {
+                        opt.selected = value.includes(opt.value);
+                    }
+                }
+                else if (typeof value === 'string') {
+                    select.value = value;
+                }
+                else {
+                    select.selectedIndex = select.multiple ? -1 : 0;
+                }
+            },
             reset: () => {
                 select.selectedIndex = select.multiple ? -1 : 0;
             },
@@ -265,6 +323,9 @@ export class FilterBar {
         return {
             definition,
             getValue: () => select.value,
+            setValue: (value) => {
+                select.value = typeof value === 'string' ? value : '';
+            },
             reset: () => {
                 select.selectedIndex = 0;
             },
@@ -289,6 +350,16 @@ export class FilterBar {
         return {
             definition,
             getValue: () => ({ from: from.value, to: to.value }),
+            setValue: (value) => {
+                if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    from.value = value.from ?? '';
+                    to.value = value.to ?? '';
+                }
+                else {
+                    from.value = '';
+                    to.value = '';
+                }
+            },
             reset: () => {
                 from.value = '';
                 to.value = '';
@@ -312,6 +383,9 @@ export class FilterBar {
         return {
             definition,
             getValue: () => (input.checked ? '1' : ''),
+            setValue: (value) => {
+                input.checked = value === '1' || value === 'true';
+            },
             reset: () => {
                 input.checked = false;
             },

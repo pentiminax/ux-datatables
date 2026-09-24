@@ -77,4 +77,18 @@ final class FiltersTest extends TestCase
         $this->assertTrue($filters->isEmpty());
         $this->assertNull($filters->get('name'));
     }
+
+    #[Test]
+    public function it_toggles_header_reset_button_visibility(): void
+    {
+        $filters = new Filters();
+
+        $this->assertFalse($filters->isHeaderResetButtonVisible());
+
+        $filters->showHeaderResetButton();
+        $this->assertTrue($filters->isHeaderResetButtonVisible());
+
+        $filters->showHeaderResetButton(false);
+        $this->assertFalse($filters->isHeaderResetButtonVisible());
+    }
 }

@@ -123,6 +123,10 @@ class DataTable
         if (null !== $this->filters && !$this->filters->isEmpty()) {
             $options['filters'] = $this->filters->jsonSerialize();
 
+            if ($this->filters->isHeaderResetButtonVisible() || ($this->options->get('showHeaderResetButton') ?? false)) {
+                $options['showHeaderResetButton'] = true;
+            }
+
             if (null !== $this->preparedFilterLabels) {
                 $options['filterLabels'] = $this->preparedFilterLabels;
             } elseif (!$this->filters->getLabels()->isEmpty()) {
@@ -696,6 +700,20 @@ class DataTable
     public function getFilters(): ?Filters
     {
         return $this->filters;
+    }
+
+    /**
+     * Display a reset button in the table header alongside the filter toggle button.
+     */
+    public function showHeaderResetButton(bool $show = true): static
+    {
+        $this->options->set('showHeaderResetButton', $show);
+
+        if (null !== $this->filters) {
+            $this->filters->showHeaderResetButton($show);
+        }
+
+        return $this;
     }
 
     /**
