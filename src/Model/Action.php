@@ -338,7 +338,7 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
     {
         $tokenId = null !== $this->csrfTokenIdResolver
             ? ($this->csrfTokenIdResolver)($row)
-            : $this->csrfTokenId;
+            : ($this->csrfTokenId ?? ($this->isAjaxRequest() ? $this->name : null));
 
         if (null === $tokenId) {
             return null;
