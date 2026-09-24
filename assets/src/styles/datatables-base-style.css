@@ -62,6 +62,42 @@
 .dt-filters {
     position: relative;
     display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.dt-filters-header-reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    height: 2.5rem;
+    padding: 0 0.65rem;
+    border: 1px solid var(--dt-filters-border);
+    border-radius: var(--dt-filters-radius-toggle);
+    background: transparent;
+    color: var(--dt-filters-danger);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+        color 0.15s ease,
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.dt-filters-header-reset:hover {
+    background: rgb(239 68 68 / 0.1);
+    border-color: var(--dt-filters-danger);
+}
+
+.dt-filters-header-reset[hidden] {
+    display: none !important;
+}
+
+.dt-filters-header-reset svg {
+    width: 0.95rem;
+    height: 0.95rem;
 }
 
 .dt-filters-toggle {

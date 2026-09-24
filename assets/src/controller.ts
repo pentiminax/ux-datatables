@@ -206,10 +206,33 @@ export default class extends Controller {
             applyUrlStateToPayload(payload, readUrlState(urlStateCfg))
         }
 
+        let filterBar: FilterBar | null = null
         if (hasFilters(payload)) {
-            const filterBar = new FilterBar(payload, framework)
+            filterBar = new FilterBar(payload, framework)
             filterBar.attachToPayload(payload)
             applyFilterLayout(payload, filterBar)
+
+            if (payload.stateSave) {
+                const originalStateSaveParams = payload.stateSaveParams
+                payload.stateSaveParams = (settings: any, data: any) => {
+                    if (typeof originalStateSaveParams === 'function') {
+                        originalStateSaveParams(settings, data)
+                    }
+                    if (filterBar) {
+                        data.uxFilters = filterBar.collectValues()
+                    }
+                }
+
+                const originalStateLoaded = payload.stateLoaded
+                payload.stateLoaded = (settings: any, data: any) => {
+                    if (typeof originalStateLoaded === 'function') {
+                        originalStateLoaded(settings, data)
+                    }
+                    if (data?.uxFilters && filterBar) {
+                        filterBar.restoreValues(data.uxFilters)
+                    }
+                }
+            }
         }
 
         if (hasBulkActions(payload)) {
