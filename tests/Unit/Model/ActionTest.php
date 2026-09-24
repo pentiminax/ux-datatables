@@ -287,6 +287,19 @@ final class ActionTest extends TestCase
     }
 
     #[Test]
+    public function it_sets_csrf_token_id_via_dedicated_method(): void
+    {
+        $action = Action::new('publish', 'Publish')->csrfToken('custom_token');
+        $this->assertSame('custom_token', $action->resolveCsrfTokenId([]));
+
+        $actionWithAlias = Action::new('publish', 'Publish')->csrfTokenId('alias_token');
+        $this->assertSame('alias_token', $actionWithAlias->resolveCsrfTokenId([]));
+
+        $actionWithCallable = Action::new('publish', 'Publish')->csrfToken(static fn (object $r): string => 'token_'.$r->id);
+        $this->assertSame('token_99', $actionWithCallable->resolveCsrfTokenId((object) ['id' => 99]));
+    }
+
+    #[Test]
     public function it_exposes_the_ajax_method_only_to_the_client(): void
     {
         $json = Action::new('publish', 'Publish')
