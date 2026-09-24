@@ -16,6 +16,15 @@ export function registerFilterFeature(DataTable: any): void {
 
         const api = new DataTable.Api(settings)
 
-        return instance.render(() => api.ajax.reload(null, true))
+        return instance.render(() => {
+            if (api.ajax) {
+                api.ajax.reload(null, true)
+            } else {
+                api.draw()
+            }
+            if (api.state && typeof api.state.save === 'function') {
+                api.state.save()
+            }
+        })
     })
 }

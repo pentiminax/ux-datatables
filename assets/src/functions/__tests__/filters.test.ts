@@ -278,4 +278,68 @@ describe('FilterBar', () => {
         toggle.click()
         expect(popover.hidden).toBe(true)
     })
+
+    it('restores previously saved filter values via restoreValues', () => {
+        const { bar } = makeBar([
+            { name: 'name', type: 'text' },
+            { name: 'status', type: 'select', options: { active: 'Active' } },
+            { name: 'createdAt', type: 'dateRange' },
+            { name: 'vip', type: 'checkbox' },
+        ])
+        const wrapper = bar.render(vi.fn())
+
+        bar.restoreValues({
+            name: 'alice',
+            status: 'active',
+            createdAt: { from: '2026-01-01', to: '2026-01-31' },
+            vip: '1',
+        })
+
+        expect(bar.collectValues()).toEqual({
+            name: 'alice',
+            status: 'active',
+            createdAt: { from: '2026-01-01', to: '2026-01-31' },
+            vip: '1',
+        })
+        expect(wrapper.querySelector('.dt-filters-badge')?.textContent).toBe('4')
+        expect((wrapper.querySelector('input[name="filters[name]"]') as HTMLInputElement).value).toBe(
+            'alice'
+        )
+        expect((wrapper.querySelector('select[name="filters[status]"]') as HTMLSelectElement).value).toBe(
+            'active'
+        )
+        expect(
+            (wrapper.querySelector('input[name="filters[createdAt][from]"]') as HTMLInputElement).value
+        ).toBe('2026-01-01')
+        expect(
+            (wrapper.querySelector('input[name="filters[vip]"]') as HTMLInputElement).checked
+        ).toBe(true)
+    })
+
+    it('renders a header reset button when showHeaderResetButton is enabled and toggles its visibility', () => {
+        const reload = vi.fn()
+        const payload: Record<string, any> = {
+            filters: [{ name: 'name', type: 'text' }],
+            showHeaderResetButton: true,
+            ajax: { url: '/data' },
+        }
+        const bar = new FilterBar(payload, 'dt')
+        const wrapper = bar.render(reload)
+
+        const headerReset = wrapper.querySelector('.dt-filters-header-reset') as HTMLButtonElement
+        expect(headerReset).not.toBeNull()
+        expect(headerReset.hidden).toBe(true)
+
+        ;(wrapper.querySelector('input[type="search"]') as HTMLInputElement).value = 'john'
+        clickApply(wrapper)
+
+        expect(headerReset.hidden).toBe(false)
+
+        headerReset.click()
+
+        expect(headerReset.hidden).toBe(true)
+        expect(bar.collectValues()).toEqual({})
+        expect((wrapper.querySelector('input[type="search"]') as HTMLInputElement).value).toBe('')
+        expect(reload).toHaveBeenCalledTimes(2)
+    })
 })
