@@ -111,10 +111,10 @@ export function matchesClientFilters(settings, filterBar, searchData, rowData) {
             const norm = String(val).toLowerCase().trim();
             const isTrue = norm === '1' || norm === 'true' || norm === 'yes';
             const isFalse = norm === '0' || norm === 'false' || norm === 'no';
-            const hasRaw = rawVal !== undefined && rawVal !== null;
-            const isNull = hasRaw
-                ? typeof rawVal === 'string' && rawVal.trim() === ''
-                : renderedText === '';
+            const isNull = rawVal === null ||
+                (rawVal === undefined
+                    ? renderedText === ''
+                    : typeof rawVal === 'string' && rawVal.trim() === '');
             if (isTrue && isNull)
                 return false;
             if (isFalse && !isNull)
@@ -152,12 +152,27 @@ function parseDateComparable(dateStr) {
     if (!dateStr)
         return null;
     const trimmed = dateStr.trim();
-    const match = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/.exec(trimmed);
-    if (match) {
-        const year = parseInt(match[1], 10);
-        const month = parseInt(match[2], 10) - 1;
-        const day = parseInt(match[3], 10);
+    const dateOnlyMatch = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/.exec(trimmed);
+    if (dateOnlyMatch) {
+        const year = parseInt(dateOnlyMatch[1], 10);
+        const month = parseInt(dateOnlyMatch[2], 10) - 1;
+        const day = parseInt(dateOnlyMatch[3], 10);
         return Date.UTC(year, month, day);
+    }
+    if (/[Zz]$|[+-]\d{2}(?::?\d{2})?$/.test(trimmed)) {
+        const d = new Date(trimmed);
+        return isNaN(d.getTime()) ? null : d.getTime();
+    }
+    const dateTimeMatch = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[T ](\d{1,2}):(\d{1,2})(?::(\d{1,2})(?:\.(\d{1,3}))?)?$/.exec(trimmed);
+    if (dateTimeMatch) {
+        const year = parseInt(dateTimeMatch[1], 10);
+        const month = parseInt(dateTimeMatch[2], 10) - 1;
+        const day = parseInt(dateTimeMatch[3], 10);
+        const hour = parseInt(dateTimeMatch[4], 10);
+        const min = parseInt(dateTimeMatch[5], 10);
+        const sec = dateTimeMatch[6] ? parseInt(dateTimeMatch[6], 10) : 0;
+        const ms = dateTimeMatch[7] ? parseInt(dateTimeMatch[7].padEnd(3, '0'), 10) : 0;
+        return Date.UTC(year, month, day, hour, min, sec, ms);
     }
     const d = new Date(trimmed);
     return isNaN(d.getTime()) ? null : d.getTime();
@@ -173,8 +188,7 @@ function parseDateUpperBound(toStr) {
         const day = parseInt(match[3], 10);
         return Date.UTC(year, month, day, 23, 59, 59, 999);
     }
-    const d = new Date(trimmed);
-    return isNaN(d.getTime()) ? null : d.getTime();
+    return parseDateComparable(toStr);
 }
 export function registerFilterFeature(DataTable) {
     if (registered) {
