@@ -99,6 +99,8 @@ final class ChoiceFilter extends AbstractFilter
         array $criteria = [],
         ?\Closure $queryBuilder = null,
     ): self {
+        $this->translatableCases  = [];
+        $this->options            = [];
         $this->entityClass        = $class;
         $this->entityLabel        = $label;
         $this->entityValue        = $value;
@@ -157,7 +159,8 @@ final class ChoiceFilter extends AbstractFilter
      */
     public function setResolvedOptions(array $options): self
     {
-        $this->options = $options;
+        $this->translatableCases = [];
+        $this->options           = $options;
 
         return $this;
     }
