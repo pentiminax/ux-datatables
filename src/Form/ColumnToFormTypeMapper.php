@@ -16,11 +16,22 @@ use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\PropertyAccess\Exception\ExceptionInterface as PropertyAccessExceptionInterface;
+use Symfony\Component\PropertyAccess\PropertyAccess;
+use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 final class ColumnToFormTypeMapper
 {
+    private readonly PropertyAccessorInterface $propertyAccessor;
+
+    public function __construct(?PropertyAccessorInterface $propertyAccessor = null)
+    {
+        $this->propertyAccessor = $propertyAccessor ?? PropertyAccess::createPropertyAccessor();
+    }
+
     /**
-     * @param object|null $entity Edited entity, used to detect enum-backed properties
+     * @param object|null $entity Edited entity, used to detect enum-backed properties and to skip
+     *                            columns the entity cannot bind
      *
      * @return array{formType: class-string, options: array<string, mixed>}|null
      */
@@ -28,7 +39,7 @@ final class ColumnToFormTypeMapper
     {
         $customOptions = $column->getCustomOptions();
 
-        if ($this->isSkippable($column, $customOptions)) {
+        if ($this->isSkippable($column, $customOptions, $entity)) {
             return null;
         }
 
@@ -151,7 +162,7 @@ final class ColumnToFormTypeMapper
         ];
     }
 
-    private function isSkippable(ColumnInterface $column, array $customOptions): bool
+    private function isSkippable(ColumnInterface $column, array $customOptions, ?object $entity): bool
     {
         if ($column instanceof ActionColumn) {
             return true;
@@ -173,6 +184,22 @@ final class ColumnToFormTypeMapper
             return true;
         }
 
-        return false;
+        // A projected DTO names columns the entity may not carry. Adding those fields
+        // makes PropertyAccess throw when the form is built against the source entity.
+        return null !== $entity && !$this->isBindable($entity, $column->getName());
+    }
+
+    private function isBindable(object $entity, string $property): bool
+    {
+        if ('' === $property) {
+            return false;
+        }
+
+        try {
+            return $this->propertyAccessor->isWritable($entity, $property)
+                || $this->propertyAccessor->isReadable($entity, $property);
+        } catch (PropertyAccessExceptionInterface) {
+            return false;
+        }
     }
 }
