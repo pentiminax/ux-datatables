@@ -47,6 +47,10 @@ final class DateRangeFilter extends AbstractFilter
             return;
         }
 
+        if (!RelationFieldResolver::supportsSearchFiltering($qb, $this->resolvedField())) {
+            return;
+        }
+
         $expr = $this->resolveExpression($qb, $alias);
         if (null === $expr) {
             return;
