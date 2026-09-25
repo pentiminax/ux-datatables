@@ -16,7 +16,7 @@ final class Filters implements \JsonSerializable
 
     private ?FilterLabels $labels = null;
 
-    private bool $showHeaderResetButton = false;
+    private ?bool $showHeaderResetButton = null;
 
     /**
      * Override the filter bar chrome strings (toggle title, reset/apply buttons,
@@ -55,7 +55,7 @@ final class Filters implements \JsonSerializable
         return $this;
     }
 
-    public function isHeaderResetButtonVisible(): bool
+    public function isHeaderResetButtonVisible(): ?bool
     {
         return $this->showHeaderResetButton;
     }
