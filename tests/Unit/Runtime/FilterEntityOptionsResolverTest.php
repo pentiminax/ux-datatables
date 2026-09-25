@@ -36,6 +36,44 @@ class DummyEntity
     }
 }
 
+class DummyStringableEntity implements \Stringable
+{
+    public function __construct(
+        private readonly int $id,
+        private readonly string $title,
+    ) {
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function __toString(): string
+    {
+        return 'Stringable: '.$this->title;
+    }
+}
+
+class DummyNamedEntity
+{
+    public function __construct(
+        private readonly int $id,
+        private readonly string $name,
+    ) {
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+}
+
 #[CoversClass(FilterEntityOptionsResolver::class)]
 final class FilterEntityOptionsResolverTest extends TestCase
 {
@@ -170,6 +208,66 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $resolver->prepare($table);
 
         $this->assertSame([], $filter->jsonSerialize()['options']);
+    }
+
+    #[Test]
+    public function it_auto_resolves_label_from_stringable_entity(): void
+    {
+        $entities = [
+            new DummyStringableEntity(100, 'Article 1'),
+            new DummyStringableEntity(101, 'Article 2'),
+        ];
+
+        $repository = $this->createStub(EntityRepository::class);
+        $repository->method('findBy')->willReturn($entities);
+
+        $em = $this->createStub(EntityManagerInterface::class);
+        $em->method('getRepository')->willReturn($repository);
+
+        $doctrine = $this->createStub(ManagerRegistry::class);
+        $doctrine->method('getManagerForClass')->willReturn($em);
+
+        $filter = ChoiceFilter::new('article')->entity(DummyStringableEntity::class);
+
+        $filters = (new Filters())->add($filter);
+        $table   = (new DataTable('test_table'))->setFilters($filters);
+
+        $resolver = new FilterEntityOptionsResolver($doctrine);
+        $resolver->prepare($table);
+
+        $this->assertSame([
+            '100' => 'Stringable: Article 1',
+            '101' => 'Stringable: Article 2',
+        ], $filter->jsonSerialize()['options']);
+    }
+
+    #[Test]
+    public function it_auto_resolves_label_from_name_property(): void
+    {
+        $entities = [
+            new DummyNamedEntity(200, 'First Name'),
+        ];
+
+        $repository = $this->createStub(EntityRepository::class);
+        $repository->method('findBy')->willReturn($entities);
+
+        $em = $this->createStub(EntityManagerInterface::class);
+        $em->method('getRepository')->willReturn($repository);
+
+        $doctrine = $this->createStub(ManagerRegistry::class);
+        $doctrine->method('getManagerForClass')->willReturn($em);
+
+        $filter = ChoiceFilter::new('user')->entity(DummyNamedEntity::class);
+
+        $filters = (new Filters())->add($filter);
+        $table   = (new DataTable('test_table'))->setFilters($filters);
+
+        $resolver = new FilterEntityOptionsResolver($doctrine);
+        $resolver->prepare($table);
+
+        $this->assertSame([
+            '200' => 'First Name',
+        ], $filter->jsonSerialize()['options']);
     }
 
     #[Test]
