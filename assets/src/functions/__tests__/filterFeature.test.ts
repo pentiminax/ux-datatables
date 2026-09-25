@@ -183,6 +183,72 @@ describe('registerFilterFeature', () => {
         expect(filterFn(settings, ['Standard'], 1, { role: '2' })).toBe(false)
     })
 
+    it('preserves datetime timezone offsets during date range comparisons', () => {
+        // 2026-01-31T23:30:00-05:00 is 2026-02-01T04:30:00Z in UTC
+        const filterBarMock: any = {
+            collectValues: () => ({ eventDate: { from: '2026-02-01' } }),
+            getDefinitions: () => [{ name: 'eventDate', type: 'dateRange' }],
+        }
+
+        const settings = {
+            _uxFilterBar: filterBarMock,
+            aoColumns: [{ name: 'eventDate', data: 'eventDate' }],
+        }
+
+        const filterFn = searchExt[0]
+
+        // 2026-01-31T23:30:00-05:00 >= 2026-02-01T00:00:00Z -> true
+        expect(filterFn(settings, ['2026-01-31 23:30'], 0, { eventDate: '2026-01-31T23:30:00-05:00' })).toBe(true)
+
+        // 2026-01-31T10:00:00-05:00 is 2026-01-31T15:00:00Z < 2026-02-01T00:00:00Z -> false
+        expect(filterFn(settings, ['2026-01-31 10:00'], 1, { eventDate: '2026-01-31T10:00:00-05:00' })).toBe(false)
+    })
+
+    it('considers nested non-empty rendered cell values as non-null in ternary filter', () => {
+        const filterBarMock: any = {
+            collectValues: () => ({ 'author.active': '1' }), // true state
+            getDefinitions: () => [{ name: 'author.active', type: 'ternary' }],
+        }
+
+        const settings = {
+            _uxFilterBar: filterBarMock,
+            aoColumns: [{ name: 'author.active', data: 'author.active' }],
+        }
+
+        const filterFn = searchExt[0]
+
+        // Row has nested object author: { active: true }
+        expect(filterFn(settings, ['Yes'], 0, { author: { active: true } })).toBe(true)
+
+        // DOM row with renderedText 'Yes' even if rowData is empty object
+        expect(filterFn(settings, ['Yes'], 1, {})).toBe(true)
+
+        // Rendered cell is empty string -> null
+        expect(filterFn(settings, [''], 2, {})).toBe(false)
+    })
+
+    it('rejects rows with empty array choices in multiselect filter', () => {
+        const filterBarMock: any = {
+            collectValues: () => ({ tags: ['php', 'symfony'] }),
+            getDefinitions: () => [
+                { name: 'tags', type: 'select', multiple: true, options: { php: 'PHP', symfony: 'Symfony' } },
+            ],
+        }
+
+        const settings = {
+            _uxFilterBar: filterBarMock,
+            aoColumns: [{ name: 'tags', data: 'tags' }],
+        }
+
+        const filterFn = searchExt[0]
+
+        // Row with empty tags array [] must NOT pass selection
+        expect(filterFn(settings, [''], 0, { tags: [] })).toBe(false)
+
+        // Row matching one tag
+        expect(filterFn(settings, ['PHP'], 1, { tags: ['php'] })).toBe(true)
+    })
+
     it('returns an empty node when no instance is provided', () => {
         const result = callback({}, null)
         expect(result).toBeInstanceOf(HTMLDivElement)
