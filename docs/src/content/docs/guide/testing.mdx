@@ -1,0 +1,196 @@
+---
+title: Testing Your Tables
+navTitle: Testing
+description: Assert what your DataTables return, with a PHPUnit base class
+order: 90
+---
+
+`DataTableTestCase` lets you assert what a table returns without writing a single DataTables
+query parameter. It ships with the bundle, in the `Pentiminax\UX\DataTables\Test` namespace.
+
+There are two helpers, one per kind of table:
+
+- `dataTable()` sends a real request to the bundle's Ajax route. Use it for a **server-side**
+  table: the router, your firewall, the query pipeline, and your data provider all take part.
+- `dataTableView()` reads a table out of a page your application rendered. Use it for a
+  **client-side** table, whose rows travel inside the page.
+
+## Requirements
+
+The harness builds on Symfony's functional testing tools, which live in your application's
+development dependencies:
+
+```bash
+composer require --dev symfony/test-pack
+```
+
+That installs PHPUnit, `symfony/browser-kit`, `symfony/dom-crawler`, and `symfony/css-selector`.
+Nothing else is needed: the harness is part of the bundle you already require.
+
+## Testing a Server-Side Table
+
+```php
+// tests/DataTable/BookDataTableTest.php
+namespace App\Tests\DataTable;
+
+use App\DataTable\BookDataTable;
+use Pentiminax\UX\DataTables\Test\DataTableTestCase;
+
+final class BookDataTableTest extends DataTableTestCase
+{
+    public function testSearchNarrowsTheResultSet(): void
+    {
+        static::createClient();
+
+        $this->dataTable(BookDataTable::class)
+            ->search('Symfony')
+            ->orderBy('title', 'desc')
+            ->page(1)
+            ->length(10)
+            ->fetch()
+            ->assertRecordsTotal(120)
+            ->assertRecordsFiltered(3)
+            ->assertColumnValues('title', ['UX in Action', 'Symfony 7', 'Doctrine Deep Dive']);
+    }
+}
+```
+
+`static::createClient()` must run first — the builder uses that client. The table token and the
+`columns[…]` payload are derived from `BookDataTable` itself, so renaming a column breaks the test
+with a message naming the valid columns instead of silently changing what is asserted.
+
+### Building the request
+
+Every method returns a new builder, so you can prepare one and branch it per assertion.
+
+| Method | Purpose |
+| --- | --- |
+| `page(int $page)` | 1-indexed page, resolved against the current length |
+| `start(int $start)` / `length(int $length)` | raw DataTables paging values |
+| `draw(int $draw)` | the draw counter, `1` by default |
+| `search(string $value, bool $regex = false)` | global search |
+| `orderBy(string $column, string $direction = 'asc')` | repeatable; takes a column name, not an index |
+| `filter(string $name, mixed $value)` | one value of a configured filter |
+| `columns(array $columns)` | replaces the derived column payload |
+| `query(array $parameters)` | extra query parameters, merged last |
+
+### Reading the response
+
+`fetch()` returns a `DataTableResponse`:
+
+```php
+$response = $this->dataTable(BookDataTable::class)->fetch();
+
+$response->draw();             // 1
+$response->recordsTotal();     // rows before filtering
+$response->recordsFiltered();  // rows after filtering
+$response->rows();             // list of mapped rows
+$response->row(0);             // one row
+$response->raw();              // the decoded payload
+```
+
+The assertions chain and each returns the response:
+
+```php
+$response
+    ->assertRowCount(10)
+    ->assertRecordsTotal(120)
+    ->assertRecordsFiltered(3)
+    ->assertRowsContain(['title' => 'Symfony 7'])
+    ->assertColumnValues('title', ['Symfony 7', 'UX in Action']);
+```
+
+`assertRowsContain()` passes when one row carries every key and value you list. `fetch()` itself
+fails the test when the route answers anything other than a `200` JSON response, reporting the
+status code and the start of the body.
+
+## Testing a Client-Side Table
+
+A client-side table has no Ajax route: its rows are embedded in the page that renders it. Request
+that page, then read the table from the crawler.
+
+```php
+// tests/Controller/BookPageTest.php
+namespace App\Tests\Controller;
+
+use Pentiminax\UX\DataTables\Test\DataTableTestCase;
+
+final class BookPageTest extends DataTableTestCase
+{
+    public function testThePageEmbedsEveryBook(): void
+    {
+        $client  = static::createClient();
+        $crawler = $client->request('GET', '/books');
+
+        $this->dataTableView($crawler)
+            ->assertRowCount(12)
+            ->assertColumns(['title', 'author', 'publishedAt'])
+            ->assertColumnValues('title', ['Symfony 7', 'UX in Action'])
+            ->assertOption('pageLength', 25);
+    }
+}
+```
+
+`DataTableView` also exposes `rows()`, `row(int $index)`, `columns()`, `option(string $name)`, and
+`raw()`.
+
+When the page renders more than one table, name the one you mean:
+
+```php
+use App\DataTable\BookDataTable;
+
+$this->dataTableView($crawler, BookDataTable::class)->assertRowCount(12);
+```
+
+Without that argument, a page carrying several tables fails with the number found.
+
+## Tables Behind a Firewall
+
+The bundle's Ajax routes are protected by your application's security configuration, so a test
+authenticates the same way any other functional test does:
+
+```php
+$client = static::createClient();
+$client->loginUser($this->getEditor());
+
+$this->dataTable(BookDataTable::class)->fetch()->assertRowCount(10);
+```
+
+To assert a denial, use `fetchRaw()`, which returns the untouched response instead of failing on a
+non-200:
+
+```php
+static::createClient();
+
+$response = $this->dataTable(BookDataTable::class)->fetchRaw();
+
+$this->assertSame(403, $response->getStatusCode());
+```
+
+<Aside type="caution" title="Assert the denial too">
+  A table token identifies which table is requested, not who is requesting it. A test that only
+  checks the happy path cannot tell you whether the route is protected — see
+  [Securing Ajax Routes](/getting-started/security/).
+</Aside>
+
+## Fixtures
+
+The harness asserts on whatever your provider returns or your controller passes to `setData()`.
+Seeding the database, or stubbing the provider, stays your application's job — use the fixtures
+approach you already use for other functional tests.
+
+## What This Does Not Cover
+
+DataTables.net never runs in a PHPUnit test. Client-side sorting, searching, and paging are
+browser behavior, so they are not exercised here: what these tests prove is that the right rows,
+columns, and options leave PHP. Cover the browser side with end-to-end tests instead.
+
+## Common Problems
+
+| Symptom | Cause |
+| --- | --- |
+| `DataTable "…" is not registered.` | The class has no `#[AsDataTable]` attribute and is not registered as a service. |
+| `Unknown column "…". Available columns: …` | `orderBy()` received a column name the table does not declare. |
+| `returned HTTP 302` in a `fetch()` failure | The request was redirected to the login form — authenticate the client first. |
+| `Expected exactly one DataTable in the page, found 2.` | Pass the table class as the second argument to `dataTableView()`. |
+| A client-side assertion sees no rows | The table is server-side; its rows come from the Ajax route, so use `dataTable()`. |
