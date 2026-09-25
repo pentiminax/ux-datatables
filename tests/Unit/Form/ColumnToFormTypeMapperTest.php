@@ -132,6 +132,23 @@ final class ColumnToFormTypeMapperTest extends TestCase
 
         $this->assertSame(TextType::class, $mapped['formType']);
     }
+
+    #[Test]
+    public function column_named_for_a_property_the_entity_does_not_carry_is_skipped(): void
+    {
+        $this->assertNull($this->mapper->map(
+            TextColumn::new('fullName', 'Full Name'),
+            new ColumnToFormTypeMapperEntity(),
+        ));
+    }
+
+    #[Test]
+    public function column_named_for_a_missing_property_is_kept_when_no_entity_is_given(): void
+    {
+        $mapped = $this->mapper->map(TextColumn::new('fullName', 'Full Name'));
+
+        $this->assertSame(TextType::class, $mapped['formType']);
+    }
 }
 
 enum ColumnToFormTypeMapperRole: string
