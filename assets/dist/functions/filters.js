@@ -122,6 +122,9 @@ export class FilterBar {
     collectValues() {
         return this.applied;
     }
+    getDefinitions() {
+        return this.definitions;
+    }
     snapshot() {
         const out = {};
         for (const control of this.controls) {
