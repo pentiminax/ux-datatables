@@ -68,8 +68,8 @@ final readonly class FilterEntityOptionsResolver
 
         foreach ($entities as $entity) {
             $value = PropertyReader::readPath($entity, $valueProperty);
-            if (null === $value && method_exists($entity, 'getId')) {
-                $value = $entity->getId();
+            if (null === $value) {
+                continue;
             }
 
             if (\is_callable($labelProperty)) {
@@ -81,9 +81,7 @@ final readonly class FilterEntityOptionsResolver
                 }
             }
 
-            if (null !== $value) {
-                $options[(string) $value] = (string) $label;
-            }
+            $options[(string) $value] = (string) $label;
         }
 
         $filter->setResolvedOptions($options);
