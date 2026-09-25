@@ -21,27 +21,49 @@ final class ChoiceFilter extends AbstractFilter
 
     private bool $multiple = false;
 
+    /** @var class-string|null */
+    private ?string $entityClass = null;
+
+    /** @var string|(\Closure(object): string) */
+    private string|\Closure $entityLabel = 'libelle';
+
+    private string $entityValue = 'id';
+
+    /** @var array<string, string> */
+    private array $entityOrderBy = [];
+
+    /** @var array<string, mixed> */
+    private array $entityCriteria = [];
+
+    /** @var (\Closure(object, QueryBuilder): void)|null */
+    private ?\Closure $entityQueryBuilder = null;
+
     /**
      * Define the available options.
      *
      * Accepts an associative array using the `[label => value]` convention
      * (keys are human-readable labels, values are the stored values), or a list
-     * of BackedEnum cases, or a BackedEnum class-string.
+     * of BackedEnum cases, or a BackedEnum class-string, or an Entity class-string.
      *
-     * @param array<string|int, string|int>|list<\BackedEnum>|class-string<\BackedEnum> $options
+     * @param array<string|int, string|int>|list<\BackedEnum>|class-string<\BackedEnum>|class-string $options
      */
     public function options(array|string $options): self
     {
         $this->translatableCases = [];
+        $this->entityClass       = null;
 
         if (\is_string($options)) {
-            if (!is_a($options, \BackedEnum::class, true)) {
-                throw new \InvalidArgumentException(\sprintf('"%s" is not a BackedEnum class.', $options));
+            if (is_a($options, \BackedEnum::class, true)) {
+                $this->options = $this->normalizeEnumOptions($options::cases());
+
+                return $this;
             }
 
-            $this->options = $this->normalizeEnumOptions($options::cases());
+            if (class_exists($options)) {
+                return $this->entity($options);
+            }
 
-            return $this;
+            throw new \InvalidArgumentException(\sprintf('"%s" is neither a BackedEnum class nor a valid entity class.', $options));
         }
 
         if ($this->isBackedEnumList($options)) {
@@ -55,6 +77,87 @@ final class ChoiceFilter extends AbstractFilter
             $map[(string) $value] = (string) $label;
         }
         $this->options = $map;
+
+        return $this;
+    }
+
+    /**
+     * Configure options to be loaded from a Doctrine entity.
+     *
+     * @param class-string $class The entity FQCN
+     * @param string|(\Closure(object): string) $label Property path or closure returning the display label
+     * @param string $value Property path for the option value (defaults to 'id')
+     * @param array<string, string> $orderBy Sorting criteria (e.g. ['libelle' => 'ASC'])
+     * @param array<string, mixed> $criteria Filtering criteria for findBy
+     * @param (\Closure(object, QueryBuilder): void)|null $queryBuilder Custom query closure
+     */
+    public function entity(
+        string $class,
+        string|\Closure $label = 'libelle',
+        string $value = 'id',
+        array $orderBy = [],
+        array $criteria = [],
+        ?\Closure $queryBuilder = null,
+    ): self {
+        $this->entityClass        = $class;
+        $this->entityLabel        = $label;
+        $this->entityValue        = $value;
+        $this->entityOrderBy      = $orderBy;
+        $this->entityCriteria     = $criteria;
+        $this->entityQueryBuilder = $queryBuilder;
+
+        return $this;
+    }
+
+    public function hasEntityConfiguration(): bool
+    {
+        return null !== $this->entityClass;
+    }
+
+    public function getEntityClass(): ?string
+    {
+        return $this->entityClass;
+    }
+
+    public function getEntityLabel(): string|\Closure
+    {
+        return $this->entityLabel;
+    }
+
+    public function getEntityValue(): string
+    {
+        return $this->entityValue;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getEntityOrderBy(): array
+    {
+        return $this->entityOrderBy;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getEntityCriteria(): array
+    {
+        return $this->entityCriteria;
+    }
+
+    public function getEntityQueryBuilder(): ?\Closure
+    {
+        return $this->entityQueryBuilder;
+    }
+
+    /**
+     * Set resolved choices [value => label].
+     *
+     * @param array<string, string> $options
+     */
+    public function setResolvedOptions(array $options): self
+    {
+        $this->options = $options;
 
         return $this;
     }

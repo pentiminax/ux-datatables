@@ -144,6 +144,26 @@ final class RelationFieldResolver
     }
 
     /**
+     * Returns whether a field path can be used for filter conditions (equality, IN, etc.).
+     *
+     * Unlike supportsSearchFiltering() which excludes bare associations because SQL LIKE cannot
+     * search them, supportsFiltering() allows mapped fields and association fields (e.g. ManyToOne)
+     * which are valid in DQL equality or IN comparisons.
+     */
+    public static function supportsFiltering(QueryBuilder $qb, ?string $fieldPath): bool
+    {
+        if (null === $fieldPath || '' === $fieldPath) {
+            return false;
+        }
+
+        if (str_contains($fieldPath, '.')) {
+            return true;
+        }
+
+        return self::isRootMappedField($qb, $fieldPath) || self::isRootAssociationField($qb, $fieldPath);
+    }
+
+    /**
      * Returns whether a field path can be used for search/filter conditions.
      *
      * Bare association fields such as "client" are rejected because they do not
