@@ -41,7 +41,10 @@
     "symfony/mercure-bundle": "^0.5.0",
     "symfony/form": "^7.0 || ^8.0",
     "symfony/translation": "^7.0 || ^8.0",
-    "openspout/openspout": "^4.0"
+    "openspout/openspout": "^4.0",
+    "symfony/browser-kit": "^7.0 || ^8.0",
+    "symfony/dom-crawler": "^7.0 || ^8.0",
+    "symfony/css-selector": "^7.0 || ^8.0"
   },
   "suggest": {
     "api-platform/core": "To auto-detect columns from API Platform metadata.",
@@ -51,7 +54,10 @@
     "symfony/expression-language": "To use Symfony Expression objects with setPermission().",
     "symfony/mercure-bundle": "To enable real-time DataTable updates via Mercure SSE.",
     "symfony/twig-bundle": "To render edit form and TwigColumn",
-    "symfony/translation": "To translate DataTable column titles and the filter bar labels (Filters/Reset/Apply/All)."
+    "symfony/translation": "To translate DataTable column titles and the filter bar labels (Filters/Reset/Apply/All).",
+    "symfony/browser-kit": "To test your tables with Pentiminax\\UX\\DataTables\\Test\\DataTableTestCase.",
+    "symfony/dom-crawler": "To assert on client-side tables with DataTableTestCase::dataTableView().",
+    "symfony/css-selector": "To let DataTableTestCase::dataTableView() locate a rendered table in the page."
   },
   "conflict": {
     "symfony/flex": "<1.13"
