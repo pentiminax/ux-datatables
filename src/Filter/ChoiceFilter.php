@@ -93,7 +93,7 @@ final class ChoiceFilter extends AbstractFilter
      */
     public function entity(
         string $class,
-        string|\Closure $label = 'libelle',
+        string|\Closure $label = 'display',
         string $value = 'id',
         array $orderBy = [],
         array $criteria = [],
