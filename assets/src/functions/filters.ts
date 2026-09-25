@@ -204,6 +204,10 @@ export class FilterBar {
         return this.applied
     }
 
+    getDefinitions(): FilterDefinition[] {
+        return this.definitions
+    }
+
     /** Live values currently entered in the controls (not yet applied). */
     private snapshot(): Record<string, FilterValue> {
         const out: Record<string, FilterValue> = {}
