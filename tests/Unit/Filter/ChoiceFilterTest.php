@@ -73,6 +73,42 @@ final class ChoiceFilterTest extends TestCase
         $this->assertSame(['draft' => 'Draft'], $filter->jsonSerialize()['options']);
     }
 
+    #[Test]
+    public function it_configures_entity_options(): void
+    {
+        $filter = ChoiceFilter::new('category')
+            ->entity(
+                class: 'App\Entity\Category',
+                label: 'name',
+                value: 'uuid',
+                orderBy: ['name' => 'ASC'],
+                criteria: ['active' => true],
+            );
+
+        $this->assertTrue($filter->hasEntityConfiguration());
+        $this->assertSame('App\Entity\Category', $filter->getEntityClass());
+        $this->assertSame('name', $filter->getEntityLabel());
+        $this->assertSame('uuid', $filter->getEntityValue());
+        $this->assertSame(['name' => 'ASC'], $filter->getEntityOrderBy());
+        $this->assertSame(['active' => true], $filter->getEntityCriteria());
+    }
+
+    #[Test]
+    public function it_accepts_entity_class_via_options_shortcut(): void
+    {
+        $filter = ChoiceFilter::new('category')->options(ChoiceFilter::class);
+
+        $this->assertTrue($filter->hasEntityConfiguration());
+        $this->assertSame(ChoiceFilter::class, $filter->getEntityClass());
+    }
+
+    #[Test]
+    public function it_throws_when_options_class_is_invalid(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        ChoiceFilter::new('category')->options('NonExistentClass');
+    }
+
     /**
      * @param list<string>         $expectedWhere
      * @param array<string, mixed> $expectedParams
