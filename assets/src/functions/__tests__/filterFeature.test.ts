@@ -1,13 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { registerFilterFeature } from '../filterFeature.js'
+import { matchesClientFilters, registerFilterFeature } from '../filterFeature.js'
 
 const reload = vi.fn()
 const draw = vi.fn()
 const saveState = vi.fn()
 const register = vi.fn()
+const searchExt: any[] = []
 
 const DataTable: any = {
     feature: { register },
+    ext: { search: searchExt },
     Api: class {
         ajax: any
         draw = draw
@@ -72,9 +74,40 @@ describe('registerFilterFeature', () => {
         expect(saveState).toHaveBeenCalledTimes(1)
     })
 
+    it('filters client-side rows based on applied filters in ext.search', () => {
+        const filterBarMock: any = {
+            collectValues: () => ({ status: 'active', name: 'alice' }),
+            getDefinitions: () => [
+                { name: 'status', type: 'select', options: { active: 'Active', inactive: 'Inactive' } },
+                { name: 'name', type: 'text' },
+            ],
+        }
+
+        const settings = {
+            _uxFilterBar: filterBarMock,
+            aoColumns: [{ name: 'name', data: 'name' }, { name: 'status', data: 'status' }],
+        }
+
+        expect(searchExt.length).toBeGreaterThan(0)
+        const filterFn = searchExt[0]
+
+        // Matching row
+        const matchingRow = { name: 'Alice Smith', status: 'active' }
+        expect(filterFn(settings, ['Alice Smith', 'Active'], 0, matchingRow)).toBe(true)
+
+        // Non-matching status
+        const wrongStatusRow = { name: 'Alice Smith', status: 'inactive' }
+        expect(filterFn(settings, ['Alice Smith', 'Inactive'], 1, wrongStatusRow)).toBe(false)
+
+        // Non-matching text
+        const wrongNameRow = { name: 'Bob Jones', status: 'active' }
+        expect(filterFn(settings, ['Bob Jones', 'Active'], 2, wrongNameRow)).toBe(false)
+    })
+
     it('returns an empty node when no instance is provided', () => {
         const result = callback({}, null)
         expect(result).toBeInstanceOf(HTMLDivElement)
     })
 })
+
 
