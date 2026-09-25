@@ -368,6 +368,57 @@ final class ActionRowDataResolverTest extends TestCase
     }
 
     #[Test]
+    public function resolves_ajax_action_with_separate_csrf_token_setter(): void
+    {
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->expects($this->once())
+            ->method('getToken')
+            ->with('custom_token_42')
+            ->willReturn(new CsrfToken('custom_token_42', 'token-val'));
+
+        $action = Action::new('publish', 'Publish')
+            ->linkToUrl('/books/42/publish')
+            ->csrfToken(static fn (object $row): string => 'custom_token_'.$row->id)
+            ->asAjaxRequest();
+
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(null, null, null, $csrfTokenManager),
+            (object) ['id' => 42],
+            $action,
+        );
+
+        $this->assertSame(
+            ['publish' => ['url' => '/books/42/publish', 'token' => 'token-val']],
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
+        );
+    }
+
+    #[Test]
+    public function resolves_ajax_action_with_default_action_name_csrf_token(): void
+    {
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->expects($this->once())
+            ->method('getToken')
+            ->with('publish')
+            ->willReturn(new CsrfToken('publish', 'default-token-val'));
+
+        $action = Action::new('publish', 'Publish')
+            ->linkToUrl('/books/42/publish')
+            ->asAjaxRequest();
+
+        $result = $this->resolveRow(
+            new ActionRowDataResolver(null, null, null, $csrfTokenManager),
+            (object) ['id' => 42],
+            $action,
+        );
+
+        $this->assertSame(
+            ['publish' => ['url' => '/books/42/publish', 'token' => 'default-token-val']],
+            $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
+        );
+    }
+
+    #[Test]
     #[TestWith([false])]
     #[TestWith([true])]
     public function skips_ajax_action_when_csrf_token_is_unavailable(bool $withFailingTokenManager): void
