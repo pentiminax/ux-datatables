@@ -74,6 +74,18 @@ final class ChoiceFilterTest extends TestCase
     }
 
     #[Test]
+    public function it_clears_translatable_cases_when_entity_is_configured(): void
+    {
+        $filter = ChoiceFilter::new('role')->options(ChoiceFilterTranslatableRole::class);
+        $filter->entity('App\Entity\Role');
+        $filter->setResolvedOptions(['admin' => 'Admin Entity']);
+        $filter->translateLabels($this->createRoleTranslator());
+
+        $this->assertSame(['admin' => 'Admin Entity'], $filter->jsonSerialize()['options']);
+    }
+
+
+    #[Test]
     public function it_configures_entity_options(): void
     {
         $filter = ChoiceFilter::new('category')
