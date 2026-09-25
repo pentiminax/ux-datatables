@@ -83,7 +83,7 @@ final class FiltersTest extends TestCase
     {
         $filters = new Filters();
 
-        $this->assertFalse($filters->isHeaderResetButtonVisible());
+        $this->assertNull($filters->isHeaderResetButtonVisible());
 
         $filters->showHeaderResetButton();
         $this->assertTrue($filters->isHeaderResetButtonVisible());
