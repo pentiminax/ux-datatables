@@ -141,6 +141,38 @@ final class FilterEntityOptionsResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_skips_entities_when_value_property_is_null_without_falling_back_to_id(): void
+    {
+        $entities = [
+            new DummyEntity(1, 'Bachelor'),
+            new DummyEntity(2, ''),
+        ];
+
+        $repository = $this->createStub(EntityRepository::class);
+        $repository->method('findBy')->willReturn($entities);
+
+        $em = $this->createStub(EntityManagerInterface::class);
+        $em->method('getRepository')->willReturn($repository);
+
+        $doctrine = $this->createStub(ManagerRegistry::class);
+        $doctrine->method('getManagerForClass')->willReturn($em);
+
+        // When requesting non-existent or null property 'code', it should not fallback to id 1 or 2
+        $filter = ChoiceFilter::new('typeDiplome')->entity(
+            class: DummyEntity::class,
+            value: 'nonExistentCode',
+        );
+
+        $filters = (new Filters())->add($filter);
+        $table   = (new DataTable('test_table'))->setFilters($filters);
+
+        $resolver = new FilterEntityOptionsResolver($doctrine);
+        $resolver->prepare($table);
+
+        $this->assertSame([], $filter->jsonSerialize()['options']);
+    }
+
+    #[Test]
     public function it_throws_when_doctrine_is_missing(): void
     {
         $filter = ChoiceFilter::new('typeDiplome')->entity(DummyEntity::class);
@@ -154,3 +186,4 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $resolver->prepare($table);
     }
 }
+
