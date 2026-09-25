@@ -1,0 +1,243 @@
+---
+title: Data Providers & Row Mappers
+description: Contracts and built-in implementations for data retrieval and row mapping
+order: 70
+---
+
+With `AbstractDataTable`, providers are resolved internally and row mapping is applied through a
+pipeline. The usual extension points are:
+
+- `createDataProvider()` for custom providers
+- `mapRow()` for domain-to-array mapping
+- `createRowMapper()` when you need the built-in mapping/template/action pipeline instance
+
+## DataProviderInterface
+
+```php
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\DataTableResult;
+
+interface DataProviderInterface
+{
+    public function fetchData(DataTableRequest $request): DataTableResult;
+}
+```
+
+Built-in providers:
+
+<Table
+  headers={['Provider', 'Use case']}
+  rows={[
+    ['`DoctrineDataProvider`', 'Doctrine ORM-backed datasets'],
+    ['`ArrayDataProvider`', 'In-memory or preloaded arrays'],
+  ]}
+/>
+
+## ArrayDataProvider
+
+`ArrayDataProvider` serves a page from an in-memory collection. Give it the table's resolved
+columns so it can honor the request, and its configured filters so a filtered request is rejected
+instead of silently ignored:
+
+```php
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+
+protected function createDataProvider(): ?DataProviderInterface
+{
+    return new ArrayDataProvider(
+        $this->rows,
+        $this->createRowMapper(),
+        $this->getResolvedColumns(),
+        $this->getConfiguredDataTable()->getFilters(),
+    );
+}
+```
+
+`getResolvedColumns()` returns the configured columns after static permission filtering — the same
+list the Doctrine provider queries with. Both arguments are optional: without columns the provider
+still pages correctly but nothing is orderable, and a request carrying a search term raises rather
+than returning every row as a match; without filters, filter values in the request are ignored, as
+the Doctrine provider ignores values for unconfigured names.
+
+### Supported request features
+
+<Table
+  headers={['Request feature', 'Behavior']}
+  rows={[
+    ['Pagination', 'Honored. Only the returned page reaches the row mapper.'],
+    [
+      'Ordering',
+      'Honored, by the column\'s source value. `getOrderExpression()` is DQL and is ignored here. Strings compare with `strnatcasecmp()`, other values with `<=>`, and rows without a value sort last in both directions.',
+    ],
+    [
+      'Global search',
+      'Honored on globally searchable columns, as the Doctrine provider does. The term is trimmed and matching is case-insensitive.',
+    ],
+    ['Per-column search', 'Honored, cumulatively: a row must match every active column search.'],
+    ['ColumnControl searches', 'Not supported — throws a `LogicException`.'],
+    ['Configured `Filters`', 'Not supported — a value for a configured filter throws a `LogicException`.'],
+  ]}
+/>
+
+Search and ordering read the **source** value of each item — the property named by the column's
+field path — not the mapped row. A field path traverses any mix of nested arrays and objects.
+Backed enums use their string or integer value for both operations. This matches the Doctrine
+semantics: a column with no matching property, such as an `ActionColumn` or a `TemplateColumn`, is
+simply not searchable or orderable in memory. Non-text values (booleans, dates) are not searchable,
+exactly as they are excluded from a Doctrine `LIKE`.
+
+A table that needs ColumnControl or configured `Filters` in memory must implement
+`DataProviderInterface` itself; the exception exists so those requests fail loudly instead of
+returning unfiltered rows with HTTP 200.
+
+## RowMapperInterface
+
+```php
+interface RowMapperInterface
+{
+    public function map(mixed $row): array;
+}
+```
+
+Built-in mappers and processors:
+
+<Table
+  headers={['Mapper', 'Use case']}
+  rows={[
+    ['`DefaultRowMapper`', 'Default row-to-array mapping behavior'],
+    ['`RowProcessingPipeline`', 'The pipeline `AbstractDataTable` builds: stages, then URL, template, and action resolution'],
+  ]}
+/>
+
+### RowStageInterface
+
+Each stage in `RowProcessingPipeline` implements `RowStageInterface`:
+
+```php
+interface RowStageInterface
+{
+    public function process(array $mappedRow, mixed $originalRow, array $columns): array;
+}
+```
+
+Built-in stages applied by default (in order):
+
+<Table
+  headers={['Stage', 'Responsibility']}
+  rows={[
+    ['`NormalizationStage`', 'Dotted-path resolution, `DateColumn` formatting, `Stringable` casting'],
+    [
+      '`IconColumnResolutionStage`',
+      'Resolves each `IconColumn` state into row icon metadata (`__ux_datatables_icons`)',
+    ],
+    [
+      '`BooleanSwitchMetadataStage`',
+      'Records the row id behind every switch-rendered `BooleanColumn` (`__ux_datatables_boolean_switches`)',
+    ],
+  ]}
+/>
+
+After those stages, `RowProcessingPipeline` still resolves URL columns, renders `TemplateColumn`
+cells via Twig, and resolves `ActionColumn` URLs into `__ux_datatables_actions`. That work runs
+inside the pipeline rather than as separate `RowStageInterface` classes.
+
+The stage list is assembled by the runtime factory and is `final` on the table:
+`AbstractDataTable::createRowMapper()` cannot be overridden, and no service tag adds a stage. To
+change how a row is mapped, override `mapRow()` — it is the base mapping every stage runs on top
+of:
+
+```php
+protected function mapRow(mixed $row): array
+{
+    $mappedRow = parent::mapRow($row);
+
+    if (isset($mappedRow['title'])) {
+        $mappedRow['title'] = strtoupper($mappedRow['title']);
+    }
+
+    return $mappedRow;
+}
+```
+
+To act *after* the pipeline instead — once template columns and action URLs are already resolved —
+wrap the built mapper in a `RowMapperInterface` of your own and hand that to a provider built in
+`createDataProvider()`. An anonymous class delegating to `createRowMapper()` is enough; it is also
+the replacement for the closure-backed mapper the bundle used to ship:
+
+```php
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+
+protected function createDataProvider(): ?DataProviderInterface
+{
+    $inner = $this->createRowMapper();
+
+    $mapper = new class ($inner) implements RowMapperInterface {
+        public function __construct(private readonly RowMapperInterface $inner)
+        {
+        }
+
+        public function map(mixed $row): array
+        {
+            $mappedRow = $this->inner->map($row);
+            $mappedRow['title'] = strtoupper($mappedRow['title'] ?? '');
+
+            return $mappedRow;
+        }
+    };
+
+    return new ArrayDataProvider($this->rows, $mapper, $this->getResolvedColumns());
+}
+```
+
+## DataTableResult
+
+```php
+new DataTableResult(
+    recordsTotal: 1000,
+    recordsFiltered: 150,
+    data: $rows,
+);
+```
+
+## When To Implement Custom Types
+
+- custom domain filters with non-Doctrine backends
+- APIs requiring specific output shape
+- performance tuning with pre-mapped row payloads
+
+## Manual Provider Example
+
+```php
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+
+protected function createDataProvider(): ?DataProviderInterface
+{
+    return new ArrayDataProvider($this->rows, $this->createRowMapper(), $this->getResolvedColumns());
+}
+```
+
+`$this->createRowMapper()` is the important part: it preserves the same mapping, template
+rendering, and action-resolution behavior as the built-in Doctrine provider. `setData()` on
+`AbstractDataTable` uses that same pipeline for inline rows.
+
+## Page Projection
+
+`projectPage()` transforms a complete, already-paginated page of source entities, so a page can be
+batch-enriched without an N+1. When the projected rows are a DTO carrying its own
+`#[DataTableColumn]` declarations, name it as the table's
+[`dataClass`](/ux-datatables/reference/attributes/#dataclass-and-entityclass) and keep the queried
+entity as `entityClass`. A server-side export has no page: it streams every filtered row, so
+the projector is called once per batch instead, with a batch size unrelated to the DataTables page
+length. Project each item from itself rather than from the batch it arrived in. See
+[Custom Exporters](/ux-datatables/reference/custom-exporters/#projectpage-and-batching).
+
+## Cross Links
+
+- [AbstractDataTable](/ux-datatables/reference/abstract-datatable/)
+- [DataTableRequest](/ux-datatables/reference/datatable-request/)
+- [Query Filters](/ux-datatables/reference/query-filters/)
+- [Custom Exporters](/ux-datatables/reference/custom-exporters/)

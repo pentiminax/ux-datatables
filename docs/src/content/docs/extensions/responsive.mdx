@@ -1,0 +1,63 @@
+---
+title: Responsive Extension
+description: Make wide tables usable on smaller viewports
+order: 40
+navTitle: Responsive
+---
+
+## When To Use
+
+Use Responsive for mobile-heavy usage and columns that cannot all fit on one line.
+
+## Minimal Example
+
+```php
+$dataTable->responsive();
+```
+
+## Advanced Example
+
+```php
+$dataTable->responsive(
+    auto: true,
+    detailsTarget: 0,
+    detailsType: 'inline',
+    orthogonal: 'display',
+);
+```
+
+`detailsType` accepts `'inline'`, `'column'`, `'colvis'`, or `false` to disable the hidden-column
+details control entirely. Pass `breakpoints` (a list of `['name' => string, 'width' => int]` pairs)
+to override DataTables' built-in breakpoint list; omit it to keep the defaults.
+
+## Column Priority
+
+By default Responsive hides columns from the right. Use `setResponsivePriority()` when a column
+must stay visible longer than its position would imply. Lower numbers stay visible first; omitted
+columns use DataTables' default of `10000`.
+
+```php
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+public function configureColumns(): iterable
+{
+    yield NumberColumn::new('id', 'ID')->setResponsivePriority(1);
+    yield TextColumn::new('email', 'Email')->setResponsivePriority(2);
+    yield TextColumn::new('notes', 'Notes')->setResponsivePriority(4);
+}
+```
+
+`ActionColumn` already defaults to priority `1` so row actions stay on screen. Override it with
+`setResponsivePriority()` when another column should win.
+
+## Frequent Pitfalls
+
+- Not setting column priorities when too many columns compete for visibility.
+- Combining with checkbox selection without validating first-column rendering.
+
+## Cross Links
+
+- [/ux-datatables/extensions/select/](/ux-datatables/extensions/select/)
+- [/ux-datatables/extensions/fixed-columns/](/ux-datatables/extensions/fixed-columns/)
+- [/ux-datatables/columns/overview/](/ux-datatables/columns/overview/)

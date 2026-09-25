@@ -1,0 +1,1298 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Model;
+
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
+use Pentiminax\UX\DataTables\Enum\ButtonType;
+use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Enum\SelectItemType;
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
+use Pentiminax\UX\DataTables\Enum\StyleFramework;
+use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicFactory;
+use Pentiminax\UX\DataTables\Model\Extensions\Button;
+use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ColReorderExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\FixedColumnsExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\FixedHeaderExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\RowGroupExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Model\Options\SearchOption;
+use Symfony\Component\ExpressionLanguage\Expression;
+
+class DataTable
+{
+    /** @var ColumnInterface[] */
+    private array $columns = [];
+
+    private DataTableOptions $options;
+
+    private DataTableExtensions $extensions;
+
+    private ?Filters $filters = null;
+
+    private ?BulkActions $bulkActions = null;
+
+    /** @var array<string, string>|null */
+    private ?array $preparedBulkActionLabels = null;
+
+    private ?string $bulkActionsUrl = null;
+
+    /** @var array<string, string>|null */
+    private ?array $preparedFilterLabels = null;
+
+    private bool $templateColumnsRendered = false;
+
+    private ?MercureConfig $mercureConfig = null;
+
+    private ?HighlightConfig $highlightConfig = null;
+
+    private ?string $editModalTemplate = null;
+
+    private ?string $editModalAdapter = null;
+
+    private ?string $dataTableClass = null;
+
+    private string|Expression|null $permission = null;
+
+    /** @var string[] */
+    private array $forwardedQueryParameters = [];
+
+    public function __construct(
+        private readonly string $id,
+        array $options = [],
+        private array $attributes = [],
+        array $extensions = [],
+    ) {
+        $this->options    = new DataTableOptions($options);
+        $this->extensions = new DataTableExtensions($extensions);
+    }
+
+    public function getId(): string
+    {
+        return $this->id;
+    }
+
+    public function getOption(string $name): mixed
+    {
+        if ('columns' === $name) {
+            return $this->getColumnDefinitions();
+        }
+
+        return $this->options->get($name);
+    }
+
+    public function getOptions(): array
+    {
+        $options            = $this->options->getOptions();
+        $options['columns'] = $this->getColumnDefinitions();
+
+        $this->addButtonsToLayout($options);
+        $this->applyPagingFeatureToLayout($options);
+
+        if (null !== $this->mercureConfig) {
+            $options['mercure'] = $this->mercureConfig->jsonSerialize();
+        }
+
+        if (null !== $this->highlightConfig) {
+            $options['highlight'] = $this->highlightConfig->jsonSerialize();
+            $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
+        }
+
+        if ($this->hasBulkActions()) {
+            $options['bulkActions'] = [
+                'actions'               => $this->bulkActions->jsonSerialize(),
+                'selectCurrentPageOnly' => $this->bulkActions->isSelectCurrentPageOnly(),
+                'url'                   => $this->bulkActionsUrl,
+                'labels'                => $this->preparedBulkActionLabels ?? [],
+                'position'              => $this->bulkActions->getPosition(),
+            ];
+
+            $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
+        }
+
+        if (null !== $this->filters && !$this->filters->isEmpty()) {
+            $options['filters'] = $this->filters->jsonSerialize();
+
+            $filtersShowReset = $this->filters->isHeaderResetButtonVisible();
+            $tableShowReset   = $this->options->get('showHeaderResetButton');
+            $showReset        = $filtersShowReset ?? $tableShowReset ?? false;
+
+            if ($showReset) {
+                $options['showHeaderResetButton'] = true;
+            } else {
+                unset($options['showHeaderResetButton']);
+            }
+
+            if (null !== $this->preparedFilterLabels) {
+                $options['filterLabels'] = $this->preparedFilterLabels;
+            } elseif (!$this->filters->getLabels()->isEmpty()) {
+                $options['filterLabels'] = $this->filters->getLabels()->jsonSerialize();
+            }
+        }
+
+        return $options;
+    }
+
+    public function getAttributes(): array
+    {
+        return $this->attributes;
+    }
+
+    public function setAttributes(array $attributes): static
+    {
+        $this->attributes = $attributes;
+
+        return $this;
+    }
+
+    public function getDataController(): ?string
+    {
+        return $this->attributes['data-controller'] ?? null;
+    }
+
+    public function setPermission(string|Expression $attribute): static
+    {
+        $this->permission = $attribute;
+
+        return $this;
+    }
+
+    public function getPermission(): string|Expression|null
+    {
+        return $this->permission;
+    }
+
+    public function editModalTemplate(string $template): static
+    {
+        $this->editModalTemplate = $template;
+
+        return $this;
+    }
+
+    public function getEditModalTemplate(): ?string
+    {
+        return $this->editModalTemplate;
+    }
+
+    public function editModalAdapter(string $adapter): static
+    {
+        $this->editModalAdapter = $adapter;
+
+        return $this;
+    }
+
+    public function getEditModalAdapter(): ?string
+    {
+        return $this->editModalAdapter;
+    }
+
+    /**
+     * Feature control DataTables' smart column width handling.
+     */
+    public function autoWidth(bool $autoWidth = true): static
+    {
+        $this->options->set('autoWidth', $autoWidth);
+
+        return $this;
+    }
+
+    /**
+     * Initial order (sort) to apply to the table.
+     *
+     * @param array $order Array of order configurations. Each element can be:
+     *                     - An array with [column_index, direction]
+     *                     - An object with {idx: number, dir: 'asc'|'desc'}
+     *                     - An object with {name: string, dir: 'asc'|'desc'}
+     */
+    public function order(array $order): static
+    {
+        $this->options->set('order', $order);
+
+        return $this;
+    }
+
+    /**
+     * Set a caption for the table.
+     */
+    public function caption(string $caption): static
+    {
+        $this->options->set('caption', $caption);
+
+        return $this;
+    }
+
+    public function add(ColumnInterface $column): static
+    {
+        if (!$this->options->has('columns')) {
+            $this->options->set('columns', []);
+        }
+
+        $this->columns[$column->getName()] = $column;
+
+        return $this;
+    }
+
+    /**
+     * @param ColumnInterface[] $columns
+     */
+    public function columns(array $columns): static
+    {
+        if (!$this->options->has('columns')) {
+            $this->options->set('columns', []);
+        }
+
+        $this->columns = [];
+
+        foreach ($columns as $column) {
+            $this->columns[$column->getName()] = $column;
+        }
+
+        return $this;
+    }
+
+    public function getColumnByName(string $name): ?ColumnInterface
+    {
+        return $this->columns[$name] ?? null;
+    }
+
+    /**
+     * Feature control deferred rendering for additional speed of initialisation.
+     */
+    public function deferRender(bool $deferRender = true): static
+    {
+        $this->options->set('deferRender', $deferRender);
+
+        return $this;
+    }
+
+    /**
+     * Feature control table information display field.
+     */
+    public function info(bool $info): static
+    {
+        $this->options->set('info', $info);
+
+        return $this;
+    }
+
+    /**
+     * Feature control the end user's ability to change the paging display length of the table.
+     */
+    public function lengthChange(bool $lengthChange): static
+    {
+        $this->options->set('lengthChange', $lengthChange);
+
+        return $this;
+    }
+
+    /**
+     * Feature control ordering (sorting) abilities in DataTables.
+     */
+    public function ordering(bool $handler = true, bool $indicators = true): static
+    {
+        $this->options->set('ordering', [
+            'handler'    => $handler,
+            'indicators' => $indicators,
+        ]);
+
+        return $this;
+    }
+
+    public function withoutOrdering(): static
+    {
+        $this->options->set('ordering', false);
+
+        return $this;
+    }
+
+    /**
+     * Configure DataTables paging feature options (boundaryNumbers, buttons, firstLast, numbers, previousNext).
+     *
+     * Stored internally as the top-level `paging` option. {@see getOptions()} rewrites
+     * unmarked `layout` paging slots to `{ paging: $options }` and sets top-level
+     * `paging` to `true`, which is the path DataTables 2/3 actually reads. An explicit
+     * `{ paging: { ... } }` layout object is left untouched. {@see withoutPaging()}
+     * still disables pagination via `paging: false`.
+     */
+    public function paging(
+        bool $boundaryNumbers = true,
+        int $buttons = 7,
+        bool $firstLast = true,
+        bool $numbers = true,
+        bool $previousNext = true,
+    ): static {
+        $this->options->set('paging', [
+            'boundaryNumbers' => $boundaryNumbers,
+            'buttons'         => $buttons,
+            'firstLast'       => $firstLast,
+            'numbers'         => $numbers,
+            'previousNext'    => $previousNext,
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Enable or disable table pagination.
+     */
+    public function withoutPaging(): static
+    {
+        $this->options->set('paging', false);
+
+        return $this;
+    }
+
+    /**
+     * Feature control the processing indicator.
+     */
+    public function processing(bool $processing = true): static
+    {
+        $this->options->set('processing', $processing);
+
+        return $this;
+    }
+
+    /**
+     * Horizontal scrolling.
+     */
+    public function scrollX(bool $scrollX): static
+    {
+        $this->options->set('scrollX', $scrollX);
+
+        return $this;
+    }
+
+    /**
+     * Vertical scrolling.
+     */
+    public function scrollY(string $scrollY): static
+    {
+        $this->options->set('scrollY', $scrollY);
+
+        return $this;
+    }
+
+    /**
+     * Feature control search (filtering) abilities.
+     */
+    public function searching(bool $searching = true): static
+    {
+        $this->options->set('searching', $searching);
+
+        return $this;
+    }
+
+    /**
+     * Feature control table information display field.
+     */
+    public function serverSide(bool $serverSide = true): static
+    {
+        $this->options->set('serverSide', $serverSide);
+
+        return $this;
+    }
+
+    /**
+     * @param array{search?: bool, order?: bool, page?: bool, pageLength?: bool} $keys
+     */
+    public function urlState(array $keys = [], string $prefix = ''): static
+    {
+        $this->options->set('urlState', [
+            'search'     => $keys['search']     ?? true,
+            'order'      => $keys['order']      ?? true,
+            'page'       => $keys['page']       ?? true,
+            'pageLength' => $keys['pageLength'] ?? true,
+            'prefix'     => $prefix,
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Enable API Platform client-side adapter mode in the Stimulus controller.
+     */
+    public function apiPlatform(bool $enabled = true): static
+    {
+        $this->options->set('apiPlatform', $enabled);
+
+        return $this;
+    }
+
+    /**
+     * Read the API Platform collection on the server instead of from the browser.
+     *
+     * Template, action and URL columns need the source entity, which only the server has. The
+     * Stimulus adapter stands down and the table behaves as an ordinary server-side table.
+     */
+    public function apiPlatformServerSide(bool $enabled = true): static
+    {
+        $this->options->set('apiPlatformServerSide', $enabled);
+
+        return $this;
+    }
+
+    /**
+     * Enable Mercure SSE real-time updates for this DataTable.
+     * Requires symfony/mercure-bundle to be installed. The hub URL is resolved
+     * automatically from the configured Mercure HubInterface at render time.
+     *
+     * @param string[] $topics          Mercure topics. Defaults to ["/datatables/{pluralized-id}/{id}"]
+     * @param bool     $withCredentials Whether to send credentials with the SSE request
+     * @param int|null $debounceMs      Debounce delay in ms (default: 500)
+     */
+    public function mercure(
+        array $topics = [],
+        bool $withCredentials = false,
+        ?int $debounceMs = null,
+    ): static {
+        $this->mercureConfig = new MercureConfig(
+            topics: [] !== $topics ? $topics : [MercureTopicFactory::fallbackTopic($this->id)],
+            withCredentials: $withCredentials,
+            debounceMs: $debounceMs,
+        );
+
+        return $this;
+    }
+
+    /**
+     * Briefly emphasizes the cells whose value changed when a Mercure update refreshes the table.
+     *
+     * @param string[] $ignoreColumns Data keys of columns that change on every refresh (relative
+     *                                dates, counters), which would otherwise highlight constantly
+     */
+    public function highlightUpdates(
+        int $durationMs = 1200,
+        array $ignoreColumns = [],
+        string $idField = HighlightConfig::DEFAULT_ID_FIELD,
+    ): static {
+        $this->highlightConfig = new HighlightConfig(
+            durationMs: $durationMs,
+            ignoreColumns: $ignoreColumns,
+            idField: $idField,
+        );
+
+        return $this;
+    }
+
+    public function setHighlightConfig(HighlightConfig $config): static
+    {
+        $this->highlightConfig = $config;
+
+        return $this;
+    }
+
+    public function getHighlightConfig(): ?HighlightConfig
+    {
+        return $this->highlightConfig;
+    }
+
+    public function setMercureConfig(MercureConfig $config): static
+    {
+        $this->mercureConfig = $config;
+
+        return $this;
+    }
+
+    public function getMercureConfig(): ?MercureConfig
+    {
+        return $this->mercureConfig;
+    }
+
+    /**
+     * Feature control table information display field.
+     */
+    public function stateSave(bool $stateSave = true): static
+    {
+        $this->options->set('stateSave', $stateSave);
+
+        return $this;
+    }
+
+    /**
+     * Define the starting point for data display when using DataTables with pagination.
+     */
+    public function displayStart(int $displayStart): static
+    {
+        $this->options->set('displayStart', $displayStart);
+
+        return $this;
+    }
+
+    /**
+     * Load data for the table's content from an Ajax source.
+     */
+    public function ajax(string $url, ?string $dataSrc = null, string $type = 'GET'): static
+    {
+        $ajax = [
+            'type' => $type,
+            'url'  => $url,
+        ];
+
+        if ($dataSrc) {
+            $ajax['dataSrc'] = $dataSrc;
+        }
+
+        $this->options->set('ajax', $ajax);
+
+        return $this;
+    }
+
+    /**
+     * Load data via Ajax with extra request data merged into every call.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function ajaxRequestData(string $url, array $data, string $type = 'GET'): static
+    {
+        $this->options->set('ajax', [
+            'type' => $type,
+            'url'  => $url,
+            'data' => $data,
+        ]);
+
+        return $this;
+    }
+
+    public function exportUrl(string $url): static
+    {
+        $this->options->set('exportUrl', $url);
+
+        return $this;
+    }
+
+    /**
+     * Names of current-request query parameters to capture at render time and
+     * forward to the AJAX endpoint on every request. Read them server-side in
+     * customizeQueryBuilder() via $this->getHttpRequest()?->query->get($name).
+     *
+     * @param string[] $parameters
+     */
+    public function forwardQueryParameters(array $parameters): static
+    {
+        $this->forwardedQueryParameters = $parameters;
+
+        return $this;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getForwardedQueryParameters(): array
+    {
+        return $this->forwardedQueryParameters;
+    }
+
+    /**
+     * Merge extra entries into the existing AJAX `data` payload.
+     *
+     * No-op when no AJAX source is configured (e.g. client-side data tables).
+     *
+     * @param array<string, mixed> $data
+     */
+    public function mergeAjaxData(array $data): static
+    {
+        $ajax = $this->options->get('ajax');
+
+        if (!\is_array($ajax)) {
+            return $this;
+        }
+
+        $ajax['data'] = array_merge($ajax['data'] ?? [], $data);
+        $this->options->set('ajax', $ajax);
+
+        return $this;
+    }
+
+    /**
+     * Data to use as the display data for the table.
+     */
+    public function data(array $data): static
+    {
+        $this->options->set('data', $data);
+
+        return $this;
+    }
+
+    /**
+     * Change the options in the page length select list.
+     */
+    public function lengthMenu(array $lengthMenu): static
+    {
+        $this->options->set('lengthMenu', $lengthMenu);
+
+        return $this;
+    }
+
+    /**
+     * Change the initial page length (number of rows per page).
+     */
+    public function pageLength(int $pageLength): static
+    {
+        $this->options->set('pageLength', $pageLength);
+
+        return $this;
+    }
+
+    public function addExtension(ExtensionInterface $extension): static
+    {
+        $this->extensions->addExtension($extension);
+
+        return $this;
+    }
+
+    /**
+     * @param ExtensionInterface[] $extensions
+     */
+    public function extensions(array $extensions): static
+    {
+        foreach ($extensions as $extension) {
+            $this->extensions->addExtension($extension);
+        }
+
+        return $this;
+    }
+
+    public function getExtensions(): array
+    {
+        return $this->extensions->jsonSerialize();
+    }
+
+    /**
+     * Mutable extension collection, already seeded with the bundle-wide
+     * `data_tables.extensions` configuration.
+     *
+     * @internal use {@see self::getExtensions()} or the fluent extension methods instead
+     */
+    public function getExtensionsCollection(): DataTableExtensions
+    {
+        return $this->extensions;
+    }
+
+    public function setExtensions(DataTableExtensions $extensions): static
+    {
+        $this->extensions = $extensions;
+
+        return $this;
+    }
+
+    public function setFilters(Filters $filters): static
+    {
+        $this->filters              = $filters;
+        $this->preparedFilterLabels = null;
+
+        return $this;
+    }
+
+    /**
+     * @param array<string, string> $labels
+     */
+    public function setPreparedFilterLabels(array $labels): static
+    {
+        $this->preparedFilterLabels = $labels;
+
+        return $this;
+    }
+
+    public function getFilters(): ?Filters
+    {
+        return $this->filters;
+    }
+
+    /**
+     * Display a reset button in the table header alongside the filter toggle button.
+     */
+    public function showHeaderResetButton(bool $show = true): static
+    {
+        $this->options->set('showHeaderResetButton', $show);
+
+        return $this;
+    }
+
+    /**
+     * Declare the bulk actions and place their bar in the layout.
+     *
+     * @internal set by {@see AbstractDataTable::configureBulkActions()}
+     */
+    public function setBulkActions(BulkActions $bulkActions): static
+    {
+        $this->bulkActions              = $bulkActions;
+        $this->preparedBulkActionLabels = null;
+
+        if ($bulkActions->isEmpty()) {
+            return $this;
+        }
+
+        return $this->placeFeature(Feature::BULK_ACTIONS, $bulkActions->getPosition());
+    }
+
+    public function getBulkActions(): ?BulkActions
+    {
+        return $this->bulkActions;
+    }
+
+    public function hasBulkActions(): bool
+    {
+        return null !== $this->bulkActions && !$this->bulkActions->isEmpty();
+    }
+
+    /**
+     * @param array<string, string> $labels
+     *
+     * @internal set by the RenderingPreparer once the translator has run
+     */
+    public function setPreparedBulkActionLabels(array $labels): static
+    {
+        $this->preparedBulkActionLabels = $labels;
+
+        return $this;
+    }
+
+    /**
+     * @internal set by the RenderingPreparer
+     */
+    public function setBulkActionsUrl(string $url): static
+    {
+        $this->bulkActionsUrl = $url;
+
+        return $this;
+    }
+
+    public function language(Language $language): static
+    {
+        $this->options->setLanguage($language);
+
+        return $this;
+    }
+
+    /**
+     * Declare the CSS framework this table renders against, skipping the frontend's
+     * stylesheet-sniffing autodetection.
+     *
+     * Autodetection inspects document.styleSheets at connect() time, which can race a
+     * lazily-loaded framework stylesheet that has not finished importing yet. Set this
+     * whenever the framework is already known so the frontend never has to guess.
+     */
+    public function styleFramework(StyleFramework $framework): static
+    {
+        $this->options->set('styleFramework', $framework->value);
+
+        return $this;
+    }
+
+    /**
+     * Set an initial search in DataTables and / or search options.
+     */
+    public function search(string $search): static
+    {
+        $this->options->setSearch($search);
+
+        return $this;
+    }
+
+    /**
+     * Register the Buttons extension and place its container in the layout in one call.
+     *
+     * Buttons needs two pieces of configuration: the button list, and a `Feature::BUTTONS` marker
+     * telling DataTables where to render the `.dt-buttons` container. Forgetting the marker
+     * silently renders no buttons at all, so this method writes both.
+     *
+     * The target position keeps whatever it already holds: a slot carrying `Feature::PAGE_LENGTH`
+     * becomes `[Feature::PAGE_LENGTH, Feature::BUTTONS]` rather than losing that feature. A
+     * position that already declares `Feature::BUTTONS` is left untouched.
+     *
+     * Like every other extension, buttons are keyed by extension name, so a second call replaces
+     * the previously registered button list instead of appending to it.
+     *
+     * @param list<ButtonType|Button|string> $buttons
+     * @param string                         $position DataTables position name (e.g. 'topStart',
+     *                                                 'topEnd', 'bottomStart', 'bottomEnd')
+     *
+     * @see layout() for full control over the DataTables layout
+     */
+    public function buttons(array $buttons, string $position = 'topStart'): static
+    {
+        $this->extensions->addExtension(new ButtonsExtension($buttons));
+
+        $layout = $this->options->get('layout');
+        $layout = \is_array($layout) ? $layout : [];
+        $slot   = $layout[$position] ?? null;
+
+        if ($this->slotDeclaresButtons($slot)) {
+            return $this->layout($layout);
+        }
+
+        return $this->placeFeature(Feature::BUTTONS, $position);
+    }
+
+    /**
+     * Add a feature marker to a layout slot without dropping what the slot already declares.
+     */
+    private function placeFeature(Feature $feature, string $position): static
+    {
+        $layout = $this->options->get('layout');
+        $layout = \is_array($layout) ? $layout : [];
+        $slot   = $layout[$position] ?? null;
+
+        if ($feature === $slot || (\is_array($slot) && \in_array($feature, $slot, true))) {
+            return $this->layout($layout);
+        }
+
+        $layout[$position] = match (true) {
+            null === $slot                           => $feature,
+            \is_array($slot) && array_is_list($slot) => [...$slot, $feature],
+            default                                  => [$slot, $feature],
+        };
+
+        return $this->layout($layout);
+    }
+
+    /**
+     * Configure the layout of DataTables UI features.
+     *
+     * Keys are DataTables position names (e.g. 'topStart', 'topEnd', 'bottomStart',
+     * 'bottomEnd', 'top', 'bottom', 'top2Start', ...). Each value can be:
+     *   - A Feature enum (e.g. Feature::SEARCH)
+     *   - An array of Feature enums (e.g. [Feature::SEARCH, Feature::BUTTONS])
+     *   - null to hide the position
+     *   - A DataTables feature object (e.g. ['div' => ['html' => '<h2>Title</h2>']])
+     */
+    public function layout(array $layout): static
+    {
+        $this->options->set('layout', $layout);
+
+        return $this;
+    }
+
+    /**
+     * Add the Responsive extension.
+     *
+     * @param list<array{name: string, width: int}>|null $breakpoints   omitted when null, so DataTables
+     *                                                                  keeps its own built-in breakpoint
+     *                                                                  list
+     * @param int|string                                 $detailsTarget column index or selector the
+     *                                                                  hidden-column details control
+     *                                                                  attaches to
+     * @param string|false                               $detailsType   'inline'|'column'|'colvis', or
+     *                                                                  false to disable the details
+     *                                                                  display entirely
+     */
+    public function responsive(
+        bool $auto = true,
+        ?array $breakpoints = null,
+        int|string $detailsTarget = 0,
+        string|false $detailsType = 'inline',
+        string $orthogonal = 'display',
+    ): static {
+        $this->extensions->addExtension(new ResponsiveExtension(
+            auto: $auto,
+            breakpoints: $breakpoints,
+            detailsTarget: $detailsTarget,
+            detailsType: $detailsType,
+            orthogonal: $orthogonal,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the Select extension.
+     *
+     * `withCheckbox` prepends a client-only selection column, and `headerCheckbox` adds the
+     * select-all control to its header.
+     */
+    public function select(
+        SelectStyle $style = SelectStyle::SINGLE,
+        bool $blurable = false,
+        string $className = 'selected',
+        bool $info = true,
+        SelectItemType $items = SelectItemType::ROW,
+        bool $keys = false,
+        string $selector = 'td, th',
+        bool $toggleable = true,
+        bool $withCheckbox = false,
+        bool $headerCheckbox = false,
+    ): static {
+        $extension = new SelectExtension(
+            style: $style,
+            blurable: $blurable,
+            className: $className,
+            info: $info,
+            items: $items,
+            keys: $keys,
+            selector: $selector,
+            toggleable: $toggleable,
+        );
+
+        $this->extensions->addExtension(
+            $extension
+                ->withCheckbox($withCheckbox)
+                ->headerCheckbox($headerCheckbox)
+        );
+
+        return $this;
+    }
+
+    /**
+     * Add the KeyTable extension.
+     *
+     * @param array{0: int, 1: int}|null $focus a [row, column] pair to focus on load, or null for none
+     * @param list<int|string>|null      $keys  key codes to listen for, or null for every key
+     */
+    public function keyTable(
+        bool $blurable = true,
+        string $className = 'focus',
+        bool $clipboard = true,
+        string $clipboardOrthogonal = 'display',
+        string $columns = '',
+        bool $editOnFocus = false,
+        ?array $focus = null,
+        ?array $keys = null,
+        ?int $tabIndex = null,
+    ): static {
+        $this->extensions->addExtension(new KeyTableExtension(
+            blurable: $blurable,
+            className: $className,
+            clipboard: $clipboard,
+            clipboardOrthogonal: $clipboardOrthogonal,
+            columns: $columns,
+            editOnFocus: $editOnFocus,
+            focus: $focus,
+            keys: $keys,
+            tabIndex: $tabIndex,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the Scroller extension.
+     *
+     * Scroller needs a vertical scrolling viewport, so pair it with {@see self::scrollY()}.
+     *
+     * @param int|string $rowHeight a pixel height, or 'auto' to measure it from the rendered rows
+     */
+    public function scroller(
+        float $boundaryScale = 0.5,
+        int $displayBuffer = 9,
+        int|string $rowHeight = 'auto',
+        int $serverWait = 200,
+    ): static {
+        $this->extensions->addExtension(new ScrollerExtension(
+            boundaryScale: $boundaryScale,
+            displayBuffer: $displayBuffer,
+            rowHeight: $rowHeight,
+            serverWait: $serverWait,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the ColReorder extension.
+     *
+     * @param string|list<int> $columns    column selector restricting which columns end users can
+     *                                     reorder — a DataTables column-selector string (e.g.
+     *                                     ':not(:first-child)') or a list of column indexes
+     * @param list<int>|null   $headerRows restricts reordering to these header row indexes, or null
+     *                                     for every row
+     * @param list<int>|null   $order      initial column order (original column indexes in their
+     *                                     new positions), or null to keep document order
+     */
+    public function colReorder(
+        bool $enable = true,
+        string|array $columns = '',
+        ?array $headerRows = null,
+        ?array $order = null,
+    ): static {
+        $this->extensions->addExtension(new ColReorderExtension(
+            enable: $enable,
+            columns: $columns,
+            headerRows: $headerRows,
+            order: $order,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the FixedColumns extension.
+     *
+     * @param int $start number of columns frozen on the leading edge
+     * @param int $end   number of columns frozen on the trailing edge
+     */
+    public function fixedColumns(int $start = 1, int $end = 0): static
+    {
+        $this->extensions->addExtension(new FixedColumnsExtension(
+            start: $start,
+            end: $end,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the FixedHeader extension.
+     *
+     * Offsets are pixel values, useful when a sticky site header would otherwise overlap the
+     * floating table header or footer.
+     */
+    public function fixedHeader(
+        bool $header = true,
+        bool $footer = false,
+        int $headerOffset = 0,
+        int $footerOffset = 0,
+    ): static {
+        $this->extensions->addExtension(new FixedHeaderExtension(
+            header: $header,
+            footer: $footer,
+            headerOffset: $headerOffset,
+            footerOffset: $footerOffset,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the RowGroup extension.
+     *
+     * @param int|string|list<int|string> $dataSrc column name, index, or list of them the rows are
+     *                                             grouped by
+     */
+    public function rowGroup(
+        int|string|array $dataSrc,
+        bool $enable = true,
+        string $className = 'group',
+        string $startClassName = 'group-start',
+        string $endClassName = 'group-end',
+        ?string $emptyDataGroup = 'No group',
+    ): static {
+        $this->extensions->addExtension(new RowGroupExtension(
+            dataSrc: $dataSrc,
+            enable: $enable,
+            className: $className,
+            startClassName: $startClassName,
+            endClassName: $endClassName,
+            emptyDataGroup: $emptyDataGroup,
+        ));
+
+        return $this;
+    }
+
+    /**
+     * Add the ColumnControl extension.
+     *
+     * Called without a target it keeps the bundled defaults: order controls on the first header
+     * row and a search input on the second. Naming a target replaces them with that single control
+     * group, so `columnControl(target: 'tfoot')` moves the per-column search inputs to the footer.
+     * ColumnControl creates the targeted row itself, so no `<tfoot>` markup is needed.
+     *
+     * Combine several groups by building the extension directly:
+     * `addExtension((new ColumnControlExtension([]))->add(0, ['order'])->add('tfoot', ['search']))`.
+     *
+     * @param int|string|null  $target  header row index, or a `tfoot` string (`'tfoot'`,
+     *                                  `'tfoot:1'`)
+     * @param list<mixed>|null $content content descriptors, as in the DataTables `columnControl`
+     *                                  option; defaults to a search input
+     *
+     * @throws \InvalidArgumentException when content is given without a target, since there is no
+     *                                   row to place it in
+     */
+    public function columnControl(int|string|null $target = null, ?array $content = null): static
+    {
+        if (null === $target) {
+            if (null !== $content) {
+                throw new \InvalidArgumentException('Column control content needs a target row. Pass a header row index or a "tfoot" string, for example columnControl(target: 1, content: [\'searchText\']).');
+            }
+
+            $this->extensions->addExtension(new ColumnControlExtension());
+
+            return $this;
+        }
+
+        $this->extensions->addExtension(
+            (new ColumnControlExtension([]))->add($target, $content ?? ['search'])
+        );
+
+        return $this;
+    }
+
+    public function withSearchOption(SearchOption $searchOption): static
+    {
+        $this->options->set('search', $searchOption->jsonSerialize());
+
+        return $this;
+    }
+
+    public function getColumns(): array
+    {
+        return $this->columns;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getColumnDefinitions(): array
+    {
+        return array_values(array_map(
+            static fn (ColumnInterface $column): array => $column->jsonSerialize(),
+            $this->columns,
+        ));
+    }
+
+    public function markTemplateColumnsRendered(bool $rendered = true): static
+    {
+        $this->templateColumnsRendered = $rendered;
+
+        return $this;
+    }
+
+    public function areTemplateColumnsRendered(): bool
+    {
+        return $this->templateColumnsRendered;
+    }
+
+    public function isServerSide(): bool
+    {
+        return $this->options->get('serverSide') ?? false;
+    }
+
+    public function setDataTableClass(string $fqcn): static
+    {
+        $this->dataTableClass = $fqcn;
+
+        return $this;
+    }
+
+    public function getDataTableClass(): ?string
+    {
+        return $this->dataTableClass;
+    }
+
+    /**
+     * Whether a layout position already renders the buttons container, either as the whole slot or
+     * as one entry of a feature list.
+     */
+    private function slotDeclaresButtons(mixed $slot): bool
+    {
+        if ($this->isButtonsFeature($slot)) {
+            return true;
+        }
+
+        if (!\is_array($slot) || !array_is_list($slot)) {
+            return false;
+        }
+
+        foreach ($slot as $item) {
+            if ($this->isButtonsFeature($item)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * A layout entry renders the buttons container when it is the {@see Feature} enum, the raw
+     * DataTables feature name, or a feature object already carrying a `buttons` configuration.
+     */
+    private function isButtonsFeature(mixed $value): bool
+    {
+        if (Feature::BUTTONS === $value || Feature::BUTTONS->value === $value) {
+            return true;
+        }
+
+        return \is_array($value) && \array_key_exists(Feature::BUTTONS->value, $value);
+    }
+
+    private function addButtonsToLayout(array &$options): void
+    {
+        $layout = $options['layout'] ?? [];
+
+        if (!\is_array($layout)) {
+            return;
+        }
+
+        $buttonsExtension = $this->extensions->getButtonsExtension();
+
+        if (!$buttonsExtension) {
+            return;
+        }
+
+        $buttonsConfig = ['buttons' => $buttonsExtension->jsonSerialize()];
+
+        foreach ($layout as $position => $value) {
+            if ($value === Feature::BUTTONS->value) {
+                $options['layout'][$position] = $buttonsConfig;
+            } elseif (\is_array($value)) {
+                foreach ($value as $i => $item) {
+                    if ($item === Feature::BUTTONS->value) {
+                        $options['layout'][$position][$i] = $buttonsConfig;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private function applyPagingFeatureToLayout(array &$options): void
+    {
+        $paging = $options['paging'] ?? null;
+
+        if (!\is_array($paging)) {
+            return;
+        }
+
+        $layout = $options['layout'] ?? null;
+
+        if (\is_array($layout)) {
+            foreach ($layout as $position => $value) {
+                $options['layout'][$position] = $this->injectPagingFeature($value, $paging);
+            }
+        }
+
+        $options['paging'] = true;
+    }
+
+    private function injectPagingFeature(mixed $value, array $pagingOptions): mixed
+    {
+        if (Feature::PAGING->value === $value) {
+            return ['paging' => $pagingOptions];
+        }
+
+        if (!\is_array($value)) {
+            return $value;
+        }
+
+        if (array_is_list($value)) {
+            foreach ($value as $index => $item) {
+                $value[$index] = $this->injectPagingFeature($item, $pagingOptions);
+            }
+
+            return $value;
+        }
+
+        if (!\array_key_exists('paging', $value)) {
+            return $value;
+        }
+
+        $pagingSlot = $value['paging'];
+
+        if (true === $pagingSlot || [] === $pagingSlot) {
+            $value['paging'] = $pagingOptions;
+        }
+
+        return $value;
+    }
+}

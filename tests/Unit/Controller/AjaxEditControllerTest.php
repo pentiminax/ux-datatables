@@ -1,0 +1,388 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Tests\Unit\Controller;
+
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
+use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Controller\AjaxEditController;
+use Pentiminax\UX\DataTables\Controller\AjaxEditRequestDto;
+use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
+use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
+use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
+use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
+use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
+use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+
+/**
+ * @internal
+ */
+#[CoversClass(AjaxEditController::class)]
+final class AjaxEditControllerTest extends TestCase
+{
+    private const string TOKEN_SECRET = 'test-secret';
+
+    /**
+     * @return iterable<string, array{bool, int|string, string}>
+     */
+    public static function booleanUpdateScenarios(): iterable
+    {
+        yield 'false value' => [false, 799, '0'];
+        yield 'true value' => [true, 799, '1'];
+        yield 'true value with a string identifier' => [true, '018f2c3e-1234-7abc-9def-0123456789ab', '1'];
+    }
+
+    #[Test]
+    #[DataProvider('booleanUpdateScenarios')]
+    public function it_updates_the_boolean_field_and_returns_its_new_value(bool $newValue, int|string $id, string $expectedContent): void
+    {
+        $entity = new ToggleBooleanEntityFixture();
+
+        $controller = $this->controller($entity, $id, $this->writableAccessor($entity, $newValue), expectFlush: true);
+
+        $response = $controller($this->validTokenRequest(), $this->payload($newValue, $id));
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame($expectedContent, (string) $response->getContent());
+    }
+
+    #[Test]
+    public function it_updates_the_field_when_the_csrf_token_is_valid(): void
+    {
+        $entity = new ToggleBooleanEntityFixture();
+
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')
+            ->with(new CsrfToken(MutationTokenValidator::TOKEN_ID, 'valid-token'))
+            ->willReturn(true);
+
+        $controller = $this->controller($entity, 799, $this->writableAccessor($entity, true), expectFlush: true, csrfTokenManager: $csrfTokenManager);
+
+        $response = $controller($this->validTokenRequest(), $this->payload(true));
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('1', (string) $response->getContent());
+    }
+
+    #[Test]
+    public function it_rejects_the_request_and_does_not_update_when_the_csrf_token_is_invalid(): void
+    {
+        $accessor = $this->readOnlyAccessor();
+
+        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(false);
+
+        $controller = $this->controller(null, 799, $accessor, expectFlush: false, csrfTokenManager: $csrfTokenManager);
+
+        $request = new Request();
+        $request->headers->set(MutationTokenValidator::HEADER, 'wrong-token');
+
+        $this->expectException(InvalidCsrfTokenException::class);
+        $controller($request, $this->payload(true));
+    }
+
+    #[Test]
+    public function it_rejects_the_request_and_does_not_update_when_the_token_header_is_missing(): void
+    {
+        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->expects($this->never())->method('isTokenValid');
+
+        $controller = $this->controller(new ToggleBooleanEntityFixture(), 799, $this->readOnlyAccessor(), expectFlush: false, csrfTokenManager: $csrfTokenManager);
+
+        $this->expectException(InvalidCsrfTokenException::class);
+        $controller(new Request(), $this->payload(false));
+    }
+
+    #[Test]
+    public function it_lets_a_not_writable_field_bubble_as_an_exception(): void
+    {
+        $entity = new ToggleBooleanEntityFixture();
+
+        $accessor = $this->readOnlyAccessor();
+        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(false);
+
+        $controller = $this->controller($entity, 799, $accessor, expectFlush: false);
+
+        $this->expectException(PropertyNotWritableException::class);
+        $controller($this->validTokenRequest(), $this->payload(false));
+    }
+
+    #[Test]
+    public function it_rejects_a_field_that_is_not_a_mapped_boolean(): void
+    {
+        $controller = $this->controller(new ToggleBooleanEntityFixture(), 799, $this->readOnlyAccessor(), expectFlush: false);
+
+        $this->expectException(InvalidBooleanMutationContextException::class);
+        $controller($this->validTokenRequest(), $this->payload(true, field: 'admin'));
+    }
+
+    #[Test]
+    public function it_lets_a_missing_entity_bubble_as_an_exception(): void
+    {
+        $accessor = $this->readOnlyAccessor();
+        $accessor->expects($this->never())->method('isWritable');
+
+        $controller = $this->controller(null, 799, $accessor, expectFlush: false);
+
+        $this->expectException(EntityNotFoundException::class);
+        $controller($this->validTokenRequest(), $this->payload(false));
+    }
+
+    #[Test]
+    public function it_forwards_the_data_table_class_from_the_payload_and_publishes_its_own_mercure_topics(): void
+    {
+        $entity = new ToggleBooleanEntityFixture();
+
+        $publisher = $this->createMock(MercurePublisherInterface::class);
+        $publisher->expects($this->once())
+            ->method('publish')
+            ->with(['/manual/toggle-boolean-entity-fixtures'], ['type' => 'edit', 'id' => 799, 'field' => 'isEmailAuthEnabled']);
+
+        $resolver = $this->createMock(MercureConfigResolver::class);
+        $resolver->expects($this->never())->method('resolveMercureConfig');
+
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
+
+        $dataTable = new ToggleBooleanEntityFixtureDataTable($hubUrlResolver);
+
+        $dataTables = $this->createMock(ContainerInterface::class);
+        $dataTables->method('has')->with(ToggleBooleanEntityFixtureDataTable::class)->willReturn(true);
+        $dataTables->method('get')->with(ToggleBooleanEntityFixtureDataTable::class)->willReturn($dataTable);
+
+        $mutator = new EntityMutator(
+            new EntityLocator($this->managerRegistry($entity, 799, expectFlush: true)),
+            $this->writableAccessor($entity, true),
+            $publisher,
+            new AuthorizationChecker(new TestAuthorizationChecker()),
+            new MercureTopicResolver($resolver, $dataTables),
+            new MutationFlusher(),
+        );
+
+        $controller = new AjaxEditController(
+            $mutator,
+            new MutationTokenValidator($this->validCsrfTokenManager()),
+            $this->contextResolver($dataTable),
+        );
+
+        $controller($this->validTokenRequest(), $this->payload(true));
+    }
+
+    private function controller(
+        ?object $entity,
+        int|string $id,
+        PropertyAccessorInterface $accessor,
+        bool $expectFlush,
+        ?CsrfTokenManagerInterface $csrfTokenManager = null,
+    ): AjaxEditController {
+        $mutator = new EntityMutator(
+            new EntityLocator($this->managerRegistry($entity, $id, $expectFlush)),
+            $accessor,
+            new NullMercurePublisher(),
+            new AuthorizationChecker(new TestAuthorizationChecker()),
+            new MercureTopicResolver(),
+            new MutationFlusher(),
+        );
+
+        return new AjaxEditController(
+            $mutator,
+            new MutationTokenValidator($csrfTokenManager ?? $this->validCsrfTokenManager()),
+            $this->contextResolver(),
+        );
+    }
+
+    private function managerRegistry(?object $entity, int|string $id, bool $expectFlush): ManagerRegistry
+    {
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->method('find')->with($id)->willReturn($entity);
+
+        $metadata = $this->createStub(ClassMetadata::class);
+        $metadata->method('hasField')->willReturnCallback(static fn (string $name): bool => 'isEmailAuthEnabled' === $name);
+        $metadata->method('getTypeOfField')->willReturnCallback(static fn (string $name): ?string => 'isEmailAuthEnabled' === $name ? 'boolean' : null);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('getRepository')->with(ToggleBooleanEntityFixture::class)->willReturn($repository);
+        $manager->method('getClassMetadata')->willReturn($metadata);
+        $manager->expects($expectFlush ? $this->once() : $this->never())->method('flush');
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->with(ToggleBooleanEntityFixture::class)->willReturn($manager);
+
+        return $registry;
+    }
+
+    private function writableAccessor(object $entity, bool $expectedValue): PropertyAccessorInterface
+    {
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->method('isWritable')->with($entity, 'isEmailAuthEnabled')->willReturn(true);
+        $accessor->expects($this->once())->method('setValue')->with($entity, 'isEmailAuthEnabled', $expectedValue);
+
+        return $accessor;
+    }
+
+    private function readOnlyAccessor(): PropertyAccessorInterface
+    {
+        $accessor = $this->createMock(PropertyAccessorInterface::class);
+        $accessor->expects($this->never())->method('setValue');
+
+        return $accessor;
+    }
+
+    private function validCsrfTokenManager(): CsrfTokenManagerInterface
+    {
+        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
+        $csrfTokenManager->method('isTokenValid')->willReturn(true);
+
+        return $csrfTokenManager;
+    }
+
+    private function payload(bool $newValue, int|string $id = 799, string $field = 'isEmailAuthEnabled'): AjaxEditRequestDto
+    {
+        return new AjaxEditRequestDto(
+            field: $field,
+            id: $id,
+            newValue: $newValue,
+            dataTable: $this->dataTableToken(),
+        );
+    }
+
+    #[Test]
+    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
+    {
+        $controller = $this->controller(
+            entity: null,
+            id: 799,
+            accessor: $this->readOnlyAccessor(),
+            expectFlush: false,
+            csrfTokenManager: $this->validCsrfTokenManager(),
+        );
+
+        $this->expectException(InvalidDataTableTokenException::class);
+
+        $controller($this->validTokenRequest(), new AjaxEditRequestDto(
+            id: 799,
+            field: 'isEmailAuthEnabled',
+            newValue: true,
+            dataTable: $this->readTableToken(),
+        ));
+    }
+
+    private function readTableToken(): string
+    {
+        $token = $this->registry(new ToggleBooleanEntityFixtureDataTable())
+            ->getToken(ToggleBooleanEntityFixtureDataTable::class);
+
+        $this->assertNotNull($token);
+
+        return $token;
+    }
+
+    private function contextResolver(?AbstractDataTable $dataTable = null): BooleanMutationContextResolver
+    {
+        return new BooleanMutationContextResolver($this->registry($dataTable ?? new ToggleBooleanEntityFixtureDataTable()));
+    }
+
+    private function registry(AbstractDataTable $dataTable): AjaxDataTableRegistry
+    {
+        $locator = $this->createMock(ContainerInterface::class);
+        $locator->method('get')->with('toggle_table')->willReturn($dataTable);
+
+        return new AjaxDataTableRegistry(
+            $locator,
+            new AjaxDataTableTokenManager(self::TOKEN_SECRET),
+            [ToggleBooleanEntityFixtureDataTable::class => 'toggle_table'],
+        );
+    }
+
+    private function dataTableToken(): string
+    {
+        $token = $this->registry(new ToggleBooleanEntityFixtureDataTable())
+            ->getActionToken(ToggleBooleanEntityFixtureDataTable::class);
+
+        $this->assertNotNull($token);
+
+        return $token;
+    }
+
+    private function validTokenRequest(): Request
+    {
+        $request = new Request();
+        $request->headers->set(MutationTokenValidator::HEADER, 'valid-token');
+
+        return $request;
+    }
+}
+
+final class ToggleBooleanEntityFixture
+{
+    private bool $isEmailAuthEnabled = true;
+
+    public function setIsEmailAuthEnabled(bool $value): void
+    {
+        $this->isEmailAuthEnabled = $value;
+    }
+
+    public function isEmailAuthEnabled(): bool
+    {
+        return $this->isEmailAuthEnabled;
+    }
+}
+
+#[AsDataTable(entityClass: ToggleBooleanEntityFixture::class, mercure: true)]
+final class ToggleBooleanEntityFixtureDataTable extends AbstractDataTable
+{
+    public function __construct(
+        private readonly ?MercureHubUrlResolver $mercureHubUrlResolver = null,
+    ) {
+        $this->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            renderingPreparer: new RenderingPreparer(
+                mercureHubUrlResolver: $this->mercureHubUrlResolver,
+            )
+        ));
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->serverSide()
+            ->mercure(topics: ['/manual/toggle-boolean-entity-fixtures']);
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('id');
+        yield BooleanColumn::new('isEmailAuthEnabled')->renderAsSwitch();
+    }
+}

@@ -1,0 +1,94 @@
+import {
+    escapeHtml,
+    isAllowedUrlProtocol,
+    isUnsafeUrl,
+    withDefaultProtocol,
+} from '../functions/htmlUtils.js'
+import type { ColumnRenderer, UrlCustomOptions, UrlRowData } from './types.js'
+
+export const urlColumnRenderer: ColumnRenderer = {
+    matches(column: Record<string, any>): boolean {
+        const opts = (column?.customOptions ?? {}) as UrlCustomOptions
+
+        return (
+            true === opts.isUrl ||
+            opts.target !== undefined ||
+            opts.displayValue !== undefined ||
+            true === opts.showExternalIcon ||
+            opts.defaultProtocol !== undefined ||
+            opts.allowedProtocols !== undefined
+        )
+    },
+
+    configure(column: Record<string, any>): void {
+        const {
+            target,
+            displayValue,
+            showExternalIcon,
+            defaultProtocol,
+            allowedProtocols,
+            renderEmptyAsAnchor,
+            hasUrlResolver,
+        } = (column.customOptions ?? {}) as UrlCustomOptions
+
+        column.render = (data: any, type: string, row: Record<string, any> & UrlRowData): any => {
+            if (type !== 'display') {
+                return data
+            }
+
+            const key = column.data ?? column.name
+            const resolvedHref =
+                typeof key === 'string' ? row.__ux_datatables_urls?.[key] : undefined
+
+            // A column bound to linkToRoute()/linkToUrl() only ever gets its href from the
+            // resolver — the cell's `data` is a display field (e.g. a name), never a URL. When
+            // the resolver produced nothing for this row, the server omits the row's
+            // __ux_datatables_urls entry entirely (see UrlColumnDataResolver::resolveRow()),
+            // which is indistinguishable from "no resolver at all" unless we track it here.
+            // Falling back to `data` in that case would turn arbitrary display text into a
+            // (broken) href, e.g. <a href="Jane">Jane</a>. Only plain field-bound columns
+            // (no resolver) may use `data` as the href fallback.
+            const rawHref = resolvedHref
+                ? resolvedHref
+                : true === hasUrlResolver
+                  ? ''
+                  : typeof data === 'string'
+                    ? data
+                    : ''
+
+            // An empty href has nowhere to link to: rendering it as `<a href="">` produces an
+            // anchor with no accessible name/purpose (WCAG 2.4.4), so fall back to plain text
+            // unless the caller explicitly opts back into the old anchor-always behavior.
+            if ('' === rawHref && true !== renderEmptyAsAnchor) {
+                return escapeHtml(String(displayValue ?? data ?? ''))
+            }
+
+            const href = withDefaultProtocol(rawHref, defaultProtocol)
+
+            if (isUnsafeUrl(href) || !isAllowedUrlProtocol(href, allowedProtocols)) {
+                return escapeHtml(String(data ?? ''))
+            }
+
+            const escapedHref = escapeHtml(href)
+            const text = escapeHtml(displayValue ?? data ?? href)
+
+            const attrs: string[] = [`href="${escapedHref}"`]
+
+            if (target) {
+                attrs.push(`target="${escapeHtml(target)}"`)
+            }
+
+            if (target === '_blank') {
+                attrs.push('rel="noopener noreferrer"')
+            }
+
+            let html = `<a ${attrs.join(' ')}>${text}</a>`
+
+            if (showExternalIcon) {
+                html += ' <span aria-label="external link">&#x2197;</span>'
+            }
+
+            return html
+        }
+    },
+}

@@ -1,0 +1,210 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Column\Rendering;
+
+use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Enum\ActionType;
+use Pentiminax\UX\DataTables\Exception\DuplicateActionNameException;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
+use Symfony\Component\PropertyAccess\Exception\ExceptionInterface as PropertyAccessExceptionInterface;
+use Symfony\Component\PropertyAccess\PropertyAccess;
+use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
+use Symfony\Component\Routing\Exception\ExceptionInterface as RoutingExceptionInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+
+final class ActionRowDataResolver
+{
+    public const string ROW_ACTIONS_KEY    = '__ux_datatables_actions';
+    public const string DENIED_ACTIONS_KEY = '__ux_datatables_denied_actions';
+
+    private readonly AuthorizationChecker $permissionChecker;
+    private readonly PropertyAccessorInterface $propertyAccessor;
+
+    public function __construct(
+        ?AuthorizationChecker $permissionChecker = null,
+        ?PropertyAccessorInterface $propertyAccessor = null,
+        private readonly ?UrlGeneratorInterface $urlGenerator = null,
+        private readonly ?CsrfTokenManagerInterface $csrfTokenManager = null,
+    ) {
+        $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
+        $this->propertyAccessor  = $propertyAccessor  ?? PropertyAccess::createPropertyAccessor();
+    }
+
+    /**
+     * @param iterable<ColumnInterface> $columns
+     */
+    public function resolveRow(array $row, mixed $sourceRow, iterable $columns, ?string $dataTableClass = null): array
+    {
+        if (\array_key_exists(self::ROW_ACTIONS_KEY, $row)) {
+            return $row;
+        }
+
+        if ($sourceRow instanceof RowContext) {
+            $sourceRow = $sourceRow->source;
+        }
+
+        $actions       = [];
+        $deniedActions = [];
+        $seenNames     = [];
+
+        foreach ($columns as $column) {
+            if (!$column instanceof ActionsProvidingColumnInterface) {
+                continue;
+            }
+
+            foreach ($column->getActions()?->getActions() ?? [] as $action) {
+                $name = $action->getName();
+
+                if (isset($seenNames[$name])) {
+                    throw DuplicateActionNameException::forName($name);
+                }
+
+                $seenNames[$name] = true;
+
+                if (null !== $action->getPermission() && !$this->permissionChecker->canExecuteActionOnRow($dataTableClass, $action, $sourceRow)) {
+                    $deniedActions[] = $name;
+
+                    continue;
+                }
+
+                $actionData = $this->resolveActionData($action, $sourceRow);
+
+                if ([] === $actionData) {
+                    continue;
+                }
+
+                $actions[$name] = $actionData;
+            }
+        }
+
+        if ([] !== $deniedActions) {
+            $row[self::DENIED_ACTIONS_KEY] = $deniedActions;
+        }
+
+        if ([] === $actions) {
+            return $row;
+        }
+
+        $row[self::ROW_ACTIONS_KEY] = $actions;
+
+        return $row;
+    }
+
+    /**
+     * @return array{url?: string, token?: string, id?: string|int}
+     */
+    private function resolveActionData(Action $action, mixed $sourceRow): array
+    {
+        $data = [];
+        $url  = $this->resolveActionUrl($action, $sourceRow);
+
+        if (null !== $url) {
+            $data['url'] = $url;
+        }
+
+        if ($action->isAjaxRequest()) {
+            $token = null === $url ? null : $this->resolveCsrfToken($action, $sourceRow);
+
+            if (null === $token) {
+                return [];
+            }
+
+            $data['token'] = $token;
+        }
+
+        if ($this->shouldExposeRowId($action)) {
+            $id = $this->resolveId($sourceRow, $action->getIdField());
+
+            if (null !== $id) {
+                $data['id'] = $id;
+            }
+        }
+
+        return $data;
+    }
+
+    private function resolveActionUrl(Action $action, mixed $sourceRow): ?string
+    {
+        $routeName = $action->getRouteName();
+
+        if (null === $routeName) {
+            return $action->resolveUrl($sourceRow);
+        }
+
+        if (null === $this->urlGenerator) {
+            return null;
+        }
+
+        try {
+            return $this->urlGenerator->generate($routeName, $action->resolveRouteParameters($sourceRow));
+        } catch (RoutingExceptionInterface) {
+            return null;
+        }
+    }
+
+    private function resolveCsrfToken(Action $action, mixed $sourceRow): ?string
+    {
+        if (null === $this->csrfTokenManager) {
+            return null;
+        }
+
+        $tokenId = $action->resolveCsrfTokenId($sourceRow);
+
+        if (null === $tokenId) {
+            return null;
+        }
+
+        try {
+            return $this->csrfTokenManager->getToken($tokenId)->getValue();
+        } catch (SessionNotFoundException) {
+            return null;
+        }
+    }
+
+    private function shouldExposeRowId(Action $action): bool
+    {
+        return $action->isCollapsible()
+            || !\in_array($action->getType(), [ActionType::Detail, ActionType::Custom], true);
+    }
+
+    private function resolveId(mixed $sourceRow, string $idField): mixed
+    {
+        if (\is_array($sourceRow)) {
+            return \array_key_exists($idField, $sourceRow) ? $this->normalizeId($sourceRow[$idField]) : null;
+        }
+
+        if (!\is_object($sourceRow)) {
+            return null;
+        }
+
+        try {
+            if (!$this->propertyAccessor->isReadable($sourceRow, $idField)) {
+                return null;
+            }
+
+            return $this->normalizeId($this->propertyAccessor->getValue($sourceRow, $idField));
+        } catch (PropertyAccessExceptionInterface) {
+            return null;
+        }
+    }
+
+    private function normalizeId(mixed $id): string|int|null
+    {
+        if (\is_string($id) || \is_int($id)) {
+            return $id;
+        }
+
+        if ($id instanceof \Stringable) {
+            return (string) $id;
+        }
+
+        return null;
+    }
+}

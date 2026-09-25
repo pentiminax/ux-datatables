@@ -1,0 +1,85 @@
+{
+  "name": "pentiminax/ux-datatables",
+  "description": "DataTables.net integration for Symfony",
+  "license": "MIT",
+  "type": "symfony-bundle",
+  "keywords": [
+    "datatables",
+    "symfony-ux"
+  ],
+  "authors": [
+    {
+      "name": "Tanguy Lemarié",
+      "email": "tanguy.lemarie6@gmail.com"
+    }
+  ],
+  "homepage": "https://github.com/pentiminax/ux-datatables",
+  "require": {
+    "php": ">=8.3",
+    "symfony/config": "^7.0 || ^8.0",
+    "symfony/dependency-injection": "^7.0 || ^8.0",
+    "symfony/http-kernel": "^7.0 || ^8.0",
+    "symfony/stimulus-bundle": "^2.0 || ^3.0",
+    "symfony/property-access": "^7.0 || ^8.0",
+    "symfony/security-bundle": "^7.0 || ^8.0",
+    "symfony/security-csrf": "^7.0 || ^8.0",
+    "symfony/deprecation-contracts": "^2.5 || ^3.0"
+  },
+  "require-dev": {
+    "api-platform/core": "^3.0 || ^4.0 || ^5.0",
+    "doctrine/orm": "^3.0",
+    "friendsofphp/php-cs-fixer": "^3.95",
+    "phpunit/phpunit": "^12.0",
+    "symfony/expression-language": "^7.0 || ^8.0",
+    "symfony/framework-bundle": "^7.0 || ^8.0",
+    "symfony/phpunit-bridge": "^7.0 || ^8.0",
+    "symfony/property-info": "^7.0 || ^8.0",
+    "symfony/twig-bundle": "^7.0 || ^8.0",
+    "symfony/var-dumper": "^7.0 || ^8.0",
+    "symfony/web-profiler-bundle": "^7.0 || ^8.0",
+    "symfony/maker-bundle": "^1.66",
+    "symfony/mercure-bundle": "^0.5.0",
+    "symfony/form": "^7.0 || ^8.0",
+    "symfony/translation": "^7.0 || ^8.0",
+    "openspout/openspout": "^4.0"
+  },
+  "suggest": {
+    "api-platform/core": "To auto-detect columns from API Platform metadata.",
+    "openspout/openspout": "To enable server-side CSV and XLSX export via Button::csv(serverSide: true) and Button::excel(serverSide: true).",
+    "symfony/maker-bundle": "To use the make:datatable command.",
+    "symfony/form": "To enable inline edit modal with auto-generated forms.",
+    "symfony/expression-language": "To use Symfony Expression objects with setPermission().",
+    "symfony/mercure-bundle": "To enable real-time DataTable updates via Mercure SSE.",
+    "symfony/twig-bundle": "To render edit form and TwigColumn",
+    "symfony/translation": "To translate DataTable column titles and the filter bar labels (Filters/Reset/Apply/All)."
+  },
+  "conflict": {
+    "symfony/flex": "<1.13"
+  },
+  "autoload": {
+    "psr-4": {
+      "Pentiminax\\UX\\DataTables\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Pentiminax\\UX\\DataTables\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "ergebnis/composer-normalize": true
+    }
+  },
+  "extra": {
+    "thanks": {
+      "name": "symfony/ux",
+      "url": "https://github.com/symfony/ux"
+    }
+  },
+  "scripts": {
+    "fix": [
+      "vendor/bin/php-cs-fixer fix"
+    ]
+  }
+}

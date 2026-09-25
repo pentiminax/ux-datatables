@@ -1,0 +1,480 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
+
+use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\AttributeColumnReader;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Column\TemplateColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Enum\ActionType;
+use Pentiminax\UX\DataTables\Model\Action;
+use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+
+/**
+ * @internal
+ */
+#[CoversClass(ColumnResolver::class)]
+final class ColumnResolverTest extends TestCase
+{
+    #[Test]
+    public function a_column_declared_on_the_table_class_wins_over_the_entity(): void
+    {
+        $columns = (new ColumnResolver())->resolveColumns(
+            new AsDataTable(entityClass: ResolverEntityFixture::class),
+            dataTableClass: ResolverTableFixture::class,
+        );
+
+        $this->assertSame(['declaredOnTable'], array_map(static fn (ColumnInterface $column) => $column->getName(), $columns));
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_entity_when_the_table_class_declares_nothing(): void
+    {
+        $columns = (new ColumnResolver())->resolveColumns(
+            new AsDataTable(entityClass: ResolverEntityFixture::class),
+            dataTableClass: SilentTableFixture::class,
+        );
+
+        $this->assertSame(['declaredOnEntity'], array_map(static fn (ColumnInterface $column) => $column->getName(), $columns));
+    }
+
+    #[Test]
+    public function it_reads_the_columns_on_the_data_class_not_the_entity_class(): void
+    {
+        $columns = (new ColumnResolver())->resolveColumns(
+            new AsDataTable(dataClass: ResolverDataClassFixture::class, entityClass: ResolverEntityFixture::class),
+            dataTableClass: SilentTableFixture::class,
+        );
+
+        $this->assertSame(['declaredOnDataClass'], array_map(static fn (ColumnInterface $column) => $column->getName(), $columns));
+    }
+
+    #[Test]
+    #[DataProvider('provideEmptyResolutions')]
+    public function it_resolves_no_column_without_usable_configuration(\Closure $resolve): void
+    {
+        $this->assertSame([], $resolve(new ColumnResolver()));
+    }
+
+    /**
+     * @return iterable<string, array{\Closure(ColumnResolver): array<ColumnInterface>}>
+     */
+    public static function provideEmptyResolutions(): iterable
+    {
+        yield 'resolveColumns without attribute' => [static fn (ColumnResolver $resolver) => $resolver->resolveColumns(null)];
+        yield 'columnsFromAttributes without attribute' => [static fn (ColumnResolver $resolver) => $resolver->columnsFromAttributes(null)];
+        yield 'columnsFromClassAttributes without table class' => [static fn (ColumnResolver $resolver) => $resolver->columnsFromClassAttributes(null)];
+        yield 'autoDetectColumns without detector' => [
+            static fn (ColumnResolver $resolver) => $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class)),
+        ];
+    }
+
+    #[Test]
+    #[TestWith([false])]
+    #[TestWith([true])]
+    public function auto_detect_returns_empty_when_detector_cannot_be_used(bool $apiPlatform): void
+    {
+        $detector = $this->createMock(ColumnAutoDetector::class);
+        $detector
+            ->expects($apiPlatform ? $this->once() : $this->never())
+            ->method('supports')
+            ->willReturn(false);
+        $detector->expects($this->never())->method('detectColumns');
+
+        $resolver = new ColumnResolver(columnAutoDetector: $detector);
+
+        $this->assertSame([], $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: $apiPlatform)));
+    }
+
+    #[Test]
+    public function auto_detect_returns_detected_columns(): void
+    {
+        $expected = [
+            NumberColumn::new('id', 'ID'),
+            TextColumn::new('name', 'Name'),
+        ];
+
+        $detector = $this->createMock(ColumnAutoDetector::class);
+        $detector->method('supports')->with(\stdClass::class)->willReturn(true);
+        $detector->method('detectColumns')->with(\stdClass::class, [])->willReturn($expected);
+
+        $resolver = new ColumnResolver(columnAutoDetector: $detector);
+
+        $this->assertSame($expected, $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: true)));
+    }
+
+    #[Test]
+    public function auto_detect_accepts_the_fluent_api_platform_opt_in(): void
+    {
+        $expected = [TextColumn::new('name', 'Name')];
+
+        $detector = $this->createMock(ColumnAutoDetector::class);
+        $detector->method('supports')->with(\stdClass::class)->willReturn(true);
+        $detector->expects($this->once())
+            ->method('detectColumns')
+            ->with(\stdClass::class, [])
+            ->willReturn($expected);
+
+        $resolver = new ColumnResolver(columnAutoDetector: $detector);
+
+        $this->assertSame(
+            $expected,
+            $resolver->autoDetectColumns(new AsDataTable(entityClass: \stdClass::class), [], true)
+        );
+    }
+
+    /**
+     * @param string[] $explicitGroups
+     * @param string[] $expectedGroups
+     */
+    #[Test]
+    #[TestWith([[], ['product:list']])]
+    #[TestWith([['custom:group'], ['custom:group']])]
+    public function auto_detect_forwards_serialization_groups(array $explicitGroups, array $expectedGroups): void
+    {
+        $detector = $this->createMock(ColumnAutoDetector::class);
+        $detector->method('supports')->willReturn(true);
+        $detector
+            ->expects($this->once())
+            ->method('detectColumns')
+            ->with(\stdClass::class, $expectedGroups)
+            ->willReturn([]);
+
+        $resolver = new ColumnResolver(columnAutoDetector: $detector);
+
+        $resolver->autoDetectColumns(
+            new AsDataTable(entityClass: \stdClass::class, serializationGroups: ['product:list'], apiPlatform: true),
+            $explicitGroups
+        );
+    }
+
+    #[Test]
+    public function resolve_columns_falls_through_to_auto_detect(): void
+    {
+        $expected = [TextColumn::new('name', 'Name')];
+
+        $detector = $this->createStub(ColumnAutoDetector::class);
+        $detector->method('supports')->willReturn(true);
+        $detector->method('detectColumns')->willReturn($expected);
+
+        // stdClass has no #[Column] attributes, so AttributeColumnReader returns []
+        $resolver = new ColumnResolver(
+            attributeColumnReader: new AttributeColumnReader(),
+            columnAutoDetector: $detector,
+        );
+
+        $this->assertSame(
+            $expected,
+            $resolver->resolveColumns(new AsDataTable(entityClass: \stdClass::class, apiPlatform: true))
+        );
+    }
+
+    #[Test]
+    #[TestWith(['stdClass'])]
+    #[TestWith([null])]
+    public function configure_action_entity_class_only_applies_with_an_attribute(?string $entityClass): void
+    {
+        $resolver = new ColumnResolver();
+
+        $actions = new Actions();
+        $actions->add(Action::delete());
+        $actions->add(Action::detail());
+
+        $resolver->configureActionEntityClass(
+            $actions,
+            null === $entityClass ? null : new AsDataTable(entityClass: $entityClass)
+        );
+
+        foreach ($actions->getActions() as $action) {
+            $serialized = $action->jsonSerialize();
+
+            if (null === $entityClass) {
+                $this->assertArrayNotHasKey('entityClass', $serialized);
+
+                continue;
+            }
+
+            $this->assertSame($entityClass, $serialized['entityClass']);
+        }
+    }
+
+    #[Test]
+    public function filter_exportable_keeps_visible_exportable_columns_in_order(): void
+    {
+        $columns = [
+            TextColumn::new('email'),
+            TextColumn::new('secret')->setExportable(false),
+            TextColumn::new('internal')->setVisible(false),
+            TemplateColumn::new('user')->setTemplate('user.html.twig'),
+            ActionColumn::fromActions('actions', 'Actions', new Actions()),
+            TextColumn::new('name'),
+        ];
+
+        $this->assertSame(['email', 'name'], array_map(
+            static fn (ColumnInterface $column): string => $column->getName(),
+            (new ColumnResolver())->filterExportable($columns),
+        ));
+    }
+
+    #[Test]
+    public function filter_static_permissions_drops_denied_columns(): void
+    {
+        $resolver = $this->createResolverWithPermissions([
+            ['ROLE_HR', null, false],
+            ['ROLE_PUBLIC', null, true],
+        ]);
+
+        $salary = TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR');
+        $name   = TextColumn::new('name', 'Name');
+        $public = TextColumn::new('public', 'Public')->setPermission('ROLE_PUBLIC');
+
+        $filtered = $resolver->filterStaticPermissions([$salary, $name, $public]);
+
+        $this->assertSame([$name, $public], $filtered);
+    }
+
+    #[Test]
+    public function filter_static_permissions_filters_actions_inside_action_column(): void
+    {
+        $resolver = $this->createResolverWithPermissions([
+            ['ROLE_ADMIN', null, false],
+            ['ROLE_EDITOR', null, true],
+        ]);
+
+        $actions = new Actions();
+        $actions->add(Action::delete()->setPermission('ROLE_ADMIN'));
+        $actions->add(Action::edit()->setPermission('ROLE_EDITOR'));
+
+        $filtered = $resolver->filterStaticPermissions([ActionColumn::fromActions('actions', '', $actions)]);
+
+        $this->assertCount(1, $filtered);
+        $this->assertSame(2, $actions->count());
+        $this->assertSame(ActionType::Delete, $actions->getActions()[0]->getType());
+        $this->assertInstanceOf(ActionColumn::class, $filtered[0]);
+        $this->assertSame(1, $filtered[0]->getActions()?->count());
+        $this->assertSame(ActionType::Edit, $filtered[0]->getActions()?->getActions()[0]->getType());
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param ColumnInterface[]    $columns
+     * @param array<string, mixed> $expected
+     */
+    #[Test]
+    #[DataProvider('provideDeniedColumnValueRemovals')]
+    public function remove_denied_column_values_drops_unauthorized_keys_only(array $row, array $columns, array $expected): void
+    {
+        $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
+
+        $this->assertSame($expected, $resolver->removeDeniedColumnValues($row, $columns));
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>, list<ColumnInterface>, array<string, mixed>}>
+     */
+    public static function provideDeniedColumnValueRemovals(): iterable
+    {
+        $salary = TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR');
+        $name   = TextColumn::new('name', 'Name');
+
+        yield 'flat unauthorized key' => [
+            ['salary' => 120000, 'name' => 'Ada', 'extra' => 'kept'],
+            [$salary, $name],
+            ['name' => 'Ada', 'extra' => 'kept'],
+        ];
+
+        yield 'literal dotted unauthorized key' => [
+            ['user.email' => 'secret', 'name' => 'Ada'],
+            [TextColumn::new('user.email', 'Email')->setPermission('ROLE_HR'), $name],
+            ['name' => 'Ada'],
+        ];
+
+        yield 'nested unauthorized dotted path' => [
+            ['user' => ['email' => 'secret', 'role' => 'admin'], 'name' => 'Ada'],
+            [TextColumn::new('user.email', 'Email')->setPermission('ROLE_HR'), $name],
+            ['user' => ['role' => 'admin'], 'name' => 'Ada'],
+        ];
+
+        yield 'literal and nested representations of the same path' => [
+            ['user.email' => 'literal', 'user' => ['email' => 'nested', 'role' => 'admin'], 'name' => 'Ada'],
+            [TextColumn::new('user.email', 'Email')->setPermission('ROLE_HR'), $name],
+            ['user' => ['role' => 'admin'], 'name' => 'Ada'],
+        ];
+
+        yield 'nested field path when the row key differs' => [
+            ['email' => 'top-level', 'user' => ['email' => 'secret', 'role' => 'admin'], 'name' => 'Ada'],
+            [TextColumn::new('email', 'Email')->setField('user.email')->setPermission('ROLE_HR'), $name],
+            ['user' => ['role' => 'admin'], 'name' => 'Ada'],
+        ];
+
+        yield 'missing nested path is a no-op' => [
+            ['name' => 'Ada', 'extra' => 'kept'],
+            [TextColumn::new('user.email', 'Email')->setPermission('ROLE_HR'), $name],
+            ['name' => 'Ada', 'extra' => 'kept'],
+        ];
+
+        yield 'object-backed nested path' => [
+            ['value' => (object) ['name' => 'secret', 'role' => 'admin'], 'kept' => true],
+            [TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'), $name],
+            ['value' => ['role' => 'admin'], 'kept' => true],
+        ];
+
+        yield 'array-object nested path' => [
+            ['value' => new \ArrayObject(['name' => 'secret', 'role' => 'admin']), 'kept' => true],
+            [TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'), $name],
+            ['value' => ['role' => 'admin'], 'kept' => true],
+        ];
+
+        yield 'json-serializable nested path' => [
+            ['value' => new class implements \JsonSerializable {
+                public function jsonSerialize(): array
+                {
+                    return ['name' => 'secret', 'role' => 'admin'];
+                }
+            }, 'kept' => true],
+            [TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'), $name],
+            ['value' => ['role' => 'admin'], 'kept' => true],
+        ];
+
+        yield 'nested object two levels deep' => [
+            [
+                'user' => (object) [
+                    'profile' => (object) ['email' => 'secret', 'id' => 7],
+                    'role'    => 'admin',
+                ],
+                'name' => 'Ada',
+            ],
+            [TextColumn::new('user.profile.email', 'Email')->setPermission('ROLE_HR'), $name],
+            ['user' => ['profile' => ['id' => 7], 'role' => 'admin'], 'name' => 'Ada'],
+        ];
+    }
+
+    #[Test]
+    public function remove_denied_column_values_does_not_mutate_nested_objects(): void
+    {
+        $value    = (object) ['name' => 'secret', 'role' => 'admin'];
+        $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
+
+        $filtered = $resolver->removeDeniedColumnValues(
+            ['value' => $value, 'name' => 'Ada'],
+            [
+                TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'),
+                TextColumn::new('name', 'Name'),
+            ],
+        );
+
+        $this->assertSame(['value' => ['role' => 'admin'], 'name' => 'Ada'], $filtered);
+        $this->assertSame('secret', $value->name);
+        $this->assertSame('admin', $value->role);
+    }
+
+    #[Test]
+    public function filter_static_permissions_drops_action_column_when_column_permission_denied(): void
+    {
+        $resolver = $this->createResolverWithPermissions([['ROLE_MANAGER', null, false]]);
+
+        $actions = new Actions();
+        $actions->add(Action::delete());
+        $actionColumn = ActionColumn::fromActions('actions', '', $actions)->setPermission('ROLE_MANAGER');
+
+        $this->assertSame([], $resolver->filterStaticPermissions([$actionColumn]));
+    }
+
+    #[Test]
+    public function filter_actions_by_static_permissions_delegates_to_actions(): void
+    {
+        $resolver = $this->createResolverWithPermissions([['ROLE_ADMIN', null, false]]);
+
+        $actions = new Actions();
+        $actions->add(Action::delete()->setPermission('ROLE_ADMIN'));
+
+        $resolver->filterActionsByStaticPermissions($actions);
+
+        $this->assertTrue($actions->isEmpty());
+    }
+
+    #[Test]
+    #[DataProvider('provideColumnsKeptWithoutPermissionCheck')]
+    public function filter_static_permissions_keeps_columns_it_cannot_deny(ColumnInterface $column): void
+    {
+        $this->assertSame([$column], (new ColumnResolver())->filterStaticPermissions([$column]));
+    }
+
+    /**
+     * @return iterable<string, array{ColumnInterface}>
+     */
+    public static function provideColumnsKeptWithoutPermissionCheck(): iterable
+    {
+        yield 'custom column implementing ColumnInterface with no permission' => [self::createStub(ColumnInterface::class)];
+    }
+
+    #[Test]
+    public function filter_static_permissions_throws_without_an_authorization_checker(): void
+    {
+        $this->expectException(\LogicException::class);
+
+        (new ColumnResolver())->filterStaticPermissions([TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR')]);
+    }
+
+    /**
+     * @param list<array{string, mixed, bool}> $isGrantedMap
+     */
+    private function createResolverWithPermissions(array $isGrantedMap): ColumnResolver
+    {
+        $inner = $this->createStub(AuthorizationCheckerInterface::class);
+        $inner->method('isGranted')->willReturnCallback(static function (string $attribute, mixed $subject = null) use ($isGrantedMap): bool {
+            if (Permission::DT_EXECUTE_ACTION === $attribute && $subject instanceof ActionPermissionContext) {
+                $attribute = (string) $subject->action->getPermission();
+                $subject   = null;
+            }
+
+            foreach ($isGrantedMap as [$expectedAttribute, $expectedSubject, $granted]) {
+                if ($attribute === $expectedAttribute && $subject === $expectedSubject) {
+                    return $granted;
+                }
+            }
+
+            return true;
+        });
+
+        return new ColumnResolver(permissionChecker: new AuthorizationChecker($inner));
+    }
+}
+
+final class ResolverEntityFixture
+{
+    #[DataTableColumn]
+    public string $declaredOnEntity = '';
+}
+
+final class ResolverDataClassFixture
+{
+    #[DataTableColumn]
+    public string $declaredOnDataClass = '';
+}
+
+#[DataTableColumn(name: 'declaredOnTable')]
+final class ResolverTableFixture
+{
+}
+
+final class SilentTableFixture
+{
+}

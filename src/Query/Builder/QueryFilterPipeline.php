@@ -1,0 +1,91 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Query\Builder;
+
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Model\Filters;
+use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
+use Pentiminax\UX\DataTables\Query\Filter\ColumnControlSearchFilter;
+use Pentiminax\UX\DataTables\Query\Filter\ColumnSearchFilter;
+use Pentiminax\UX\DataTables\Query\Filter\GlobalSearchFilter;
+use Pentiminax\UX\DataTables\Query\Filter\OrderFilter;
+use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
+use Pentiminax\UX\DataTables\Query\QueryFilterContext;
+use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
+
+/**
+ * Assembles and runs the server-side query pipeline for a DataTable request.
+ */
+final class QueryFilterPipeline
+{
+    private const ROOT_ALIAS = 'e';
+
+    public function __construct(
+        private readonly DefaultDataTableQueryIntentFactory $intentFactory,
+    ) {
+    }
+
+    /**
+     * @param array<ColumnInterface> $columns Configured, permission-filtered columns in display order;
+     *                                        may be name-keyed — normalized to a list internally
+     */
+    public function apply(
+        QueryBuilder $qb,
+        DataTableRequest $request,
+        array $columns,
+        ?Filters $filters,
+        SearchStrategyRegistry $registry,
+        SearchPredicateBuilderInterface $predicateBuilder = new DefaultSearchPredicateBuilder(),
+    ): QueryBuilder {
+        $intent = $this->intentFactory->create($request, array_values($columns));
+
+        $columnsByName = [];
+        foreach ($columns as $column) {
+            $columnsByName[$column->getName()] = $column;
+        }
+
+        $context = new QueryFilterContext(
+            intent: $intent,
+            columns: $columnsByName,
+            alias: self::ROOT_ALIAS,
+        );
+
+        $queryFilters = [
+            new OrderFilter(),
+            new GlobalSearchFilter($predicateBuilder),
+            new ColumnSearchFilter($registry),
+            new ColumnControlSearchFilter($registry),
+        ];
+
+        foreach ($queryFilters as $queryFilter) {
+            $queryFilter->apply($qb, $context);
+            $context->resetParamIndexScope();
+        }
+
+        $this->applyConfiguredFilters($qb, $request, $filters);
+
+        return $qb;
+    }
+
+    private function applyConfiguredFilters(QueryBuilder $qb, DataTableRequest $request, ?Filters $filters): void
+    {
+        if (null === $filters || $filters->isEmpty()) {
+            return;
+        }
+
+        foreach ($filters->getFilters() as $filter) {
+            $value = $request->filters[$filter->getName()] ?? null;
+
+            if (null === $value || '' === $value || [] === $value) {
+                continue;
+            }
+
+            $filter->apply($qb, $value, self::ROOT_ALIAS);
+        }
+    }
+}

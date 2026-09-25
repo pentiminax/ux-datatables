@@ -1,0 +1,436 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Tests\Unit\Attribute;
+
+use Doctrine\ORM\EntityManagerInterface;
+use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
+use Pentiminax\UX\DataTables\ApiPlatform\ColumnAutoDetector;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
+use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
+use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithAttribute;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithData;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithEditModalAttribute;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithFluentApiPlatform;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualAjax;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualMercure;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithManualOverride;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureAndData;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureAndManualAjax;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureAttribute;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithMercureTopicsAttribute;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithoutAttribute;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithSerializationGroups;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithServerSide;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * @internal
+ */
+#[CoversClass(AsDataTable::class)]
+final class AsDataTableTest extends TestCase
+{
+    #[Test]
+    public function it_auto_configures_and_caches_the_data_provider(): void
+    {
+        $table = new TestDataTableWithAttribute();
+        $em    = $this->createStub(EntityManagerInterface::class);
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            runtimeFactory: new DataTableRuntimeFactory(
+                autoDataProviderFactory: new AutoDataProviderFactory($em)
+            )
+        ));
+
+        $provider = $table->getDataProvider();
+
+        $this->assertInstanceOf(DoctrineDataProvider::class, $provider);
+        $this->assertSame($provider, $table->getDataProvider());
+    }
+
+    #[Test]
+    public function it_manual_override_takes_precedence(): void
+    {
+        $table = new TestDataTableWithManualOverride();
+
+        $provider = $table->getDataProvider();
+
+        $this->assertInstanceOf(ArrayDataProvider::class, $provider);
+    }
+
+    #[Test]
+    public function it_returns_null_without_attribute(): void
+    {
+        $table = new TestDataTableWithoutAttribute();
+
+        $this->assertNull($table->getDataProvider());
+    }
+
+    /**
+     * @param class-string<AbstractDataTable> $tableClass
+     */
+    #[Test]
+    #[DataProvider('provideApiPlatformTables')]
+    public function it_configures_ajax_for_api_resource(string $tableClass): void
+    {
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
+        $resolver
+            ->expects($this->once())
+            ->method('resolveCollectionUrl')
+            ->with(\stdClass::class)
+            ->willReturn('/api/books');
+
+        $table = new $tableClass(apiResourceCollectionUrlResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertSame([
+            'type' => 'GET',
+            'url'  => '/api/books',
+        ], $table->getDataTable()->getOption('ajax'));
+
+        $this->assertTrue($table->getDataTable()->getOption('apiPlatform'));
+    }
+
+    public static function provideApiPlatformTables(): iterable
+    {
+        yield 'client side' => [TestDataTableWithAttribute::class];
+
+        yield 'server side' => [TestDataTableWithServerSide::class];
+    }
+
+    #[Test]
+    public function it_does_nothing_when_ajax_already_configured(): void
+    {
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
+        $resolver->expects($this->never())->method('resolveCollectionUrl');
+
+        $table = new TestDataTableWithManualAjax(apiResourceCollectionUrlResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertSame([
+            'type' => 'GET',
+            'url'  => '/custom-endpoint',
+        ], $table->getDataTable()->getOption('ajax'));
+
+        $this->assertFalse($table->getDataTable()->getOption('apiPlatform') ?? false);
+    }
+
+    #[Test]
+    public function it_does_nothing_when_data_already_configured(): void
+    {
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
+        $resolver->expects($this->never())->method('resolveCollectionUrl');
+
+        $table = new TestDataTableWithData(apiResourceCollectionUrlResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertNull($table->getDataTable()->getOption('ajax'));
+    }
+
+    #[Test]
+    public function it_does_nothing_without_attribute(): void
+    {
+        $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
+        $resolver->expects($this->never())->method('resolveCollectionUrl');
+
+        $table = new TestDataTableWithoutAttribute(apiResourceCollectionUrlResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertNull($table->getDataTable()->getOption('ajax'));
+    }
+
+    #[Test]
+    public function it_does_nothing_without_resolver(): void
+    {
+        $table = new TestDataTableWithAttribute();
+
+        $table->prepareForRendering();
+
+        $this->assertNull($table->getDataTable()->getOption('ajax'));
+    }
+
+    /**
+     * @param class-string<AbstractDataTable> $tableClass
+     * @param string[]                        $topics
+     */
+    #[Test]
+    #[DataProvider('provideAutoConfiguredMercureTables')]
+    public function it_auto_configures_mercure_for_attribute(string $tableClass, array $topics, string $ajaxUrl): void
+    {
+        $resolver = $this->createMock(MercureConfigResolver::class);
+        $resolver
+            ->expects($this->once())
+            ->method('resolveMercureConfig')
+            ->with(\stdClass::class)
+            ->willReturn(
+                (new MercureConfig(topics: $topics))
+                    ->withHubUrl('http://localhost/.well-known/mercure')
+            );
+
+        $table = new $tableClass(mercureConfigResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertSame([
+            'type' => 'GET',
+            'url'  => $ajaxUrl,
+        ], $table->getDataTable()->getOption('ajax'));
+
+        $this->assertSame([
+            'hubUrl' => 'http://localhost/.well-known/mercure',
+            'topics' => $topics,
+        ], $table->getDataTable()->getOptions()['mercure']);
+    }
+
+    public static function provideAutoConfiguredMercureTables(): iterable
+    {
+        yield 'attribute only' => [
+            TestDataTableWithMercureAttribute::class,
+            ['/api/books/{id}'],
+            '/api/books',
+        ];
+
+        yield 'manual ajax' => [
+            TestDataTableWithMercureAndManualAjax::class,
+            ['/api/books/{id}', '/api/authors/{id}'],
+            '/custom-endpoint',
+        ];
+    }
+
+    #[Test]
+    public function it_configures_mercure_from_attribute_topics(): void
+    {
+        $resolver = $this->createMock(MercureConfigResolver::class);
+        $resolver->expects($this->never())->method('resolveMercureConfig');
+
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
+
+        $table = new TestDataTableWithMercureTopicsAttribute(
+            mercureConfigResolver: $resolver,
+            mercureHubUrlResolver: $hubUrlResolver,
+        );
+
+        $table->prepareForRendering();
+
+        $this->assertSame([
+            'hubUrl' => '/.well-known/mercure',
+            'topics' => ['https://example.com/books'],
+        ], $table->getDataTable()->getOptions()['mercure']);
+    }
+
+    #[Test]
+    public function it_does_not_auto_configure_mercure_for_static_data(): void
+    {
+        $resolver = $this->createMock(MercureConfigResolver::class);
+        $resolver->expects($this->never())->method('resolveMercureConfig');
+
+        $table = new TestDataTableWithMercureAndData(mercureConfigResolver: $resolver);
+
+        $table->prepareForRendering();
+
+        $this->assertArrayNotHasKey('mercure', $table->getDataTable()->getOptions());
+    }
+
+    #[Test]
+    public function it_keeps_manual_mercure_configuration(): void
+    {
+        $resolver = $this->createMock(MercureConfigResolver::class);
+        $resolver->expects($this->never())->method('resolveMercureConfig');
+
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('/.well-known/mercure');
+
+        $table = new TestDataTableWithManualMercure(
+            mercureConfigResolver: $resolver,
+            mercureHubUrlResolver: $hubUrlResolver,
+        );
+
+        $table->prepareForRendering();
+
+        $this->assertSame([
+            'hubUrl' => '/.well-known/mercure',
+            'topics' => ['manual/topic'],
+        ], $table->getDataTable()->getOptions()['mercure']);
+    }
+
+    #[Test]
+    public function it_rejects_a_data_class_that_does_not_exist(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The data class "App\Entity\Missing" declared on #[AsDataTable] must be an existing class.');
+
+        new AsDataTable(dataClass: 'App\Entity\Missing');
+    }
+
+    #[Test]
+    public function it_rejects_an_interface_as_the_data_class(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The data class "Countable" declared on #[AsDataTable] must be an existing class.');
+
+        new AsDataTable(dataClass: \Countable::class);
+    }
+
+    #[Test]
+    public function it_accepts_a_class_that_doctrine_does_not_map(): void
+    {
+        $attribute = new AsDataTable(dataClass: PlainDataTransferObject::class);
+
+        $this->assertSame(PlainDataTransferObject::class, $attribute->dataClass);
+    }
+
+    #[Test]
+    public function the_entity_class_defaults_to_the_data_class(): void
+    {
+        $attribute = new AsDataTable(dataClass: PlainDataTransferObject::class);
+
+        $this->assertSame(PlainDataTransferObject::class, $attribute->entityClass);
+    }
+
+    #[Test]
+    public function the_data_class_defaults_to_the_entity_class(): void
+    {
+        $attribute = new AsDataTable(entityClass: PlainDataTransferObject::class);
+
+        $this->assertSame(PlainDataTransferObject::class, $attribute->dataClass);
+    }
+
+    #[Test]
+    public function it_keeps_the_data_class_and_the_entity_class_apart(): void
+    {
+        $attribute = new AsDataTable(dataClass: PlainDataTransferObject::class, entityClass: \stdClass::class);
+
+        $this->assertSame(PlainDataTransferObject::class, $attribute->dataClass);
+        $this->assertSame(\stdClass::class, $attribute->entityClass);
+    }
+
+    #[Test]
+    public function it_rejects_an_entity_class_that_does_not_exist(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The entity class "App\Entity\Missing" declared on #[AsDataTable] must be an existing class.');
+
+        new AsDataTable(dataClass: PlainDataTransferObject::class, entityClass: 'App\Entity\Missing');
+    }
+
+    #[Test]
+    public function it_rejects_a_declaration_naming_no_class(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must name the class holding the data');
+
+        new AsDataTable();
+    }
+
+    #[Test]
+    public function it_applies_the_edit_modal_overrides_of_the_attribute(): void
+    {
+        $table = new TestDataTableWithEditModalAttribute();
+
+        $table->prepareForRendering();
+
+        $this->assertSame('bs5', $table->getDataTable()->getEditModalAdapter());
+        $this->assertSame('datatables/attribute_edit_modal.html.twig', $table->getDataTable()->getEditModalTemplate());
+    }
+
+    #[Test]
+    public function it_keeps_the_fluent_edit_modal_overrides_over_the_attribute(): void
+    {
+        $table = new FluentEditModalOverrideDataTable();
+
+        $table->prepareForRendering();
+
+        $this->assertSame('dt', $table->getDataTable()->getEditModalAdapter());
+        $this->assertSame('fluent.html.twig', $table->getDataTable()->getEditModalTemplate());
+    }
+
+    #[Test]
+    public function it_counts_the_fluent_api_platform_option_as_a_column_auto_detection_opt_in(): void
+    {
+        $expected = [TextColumn::new('name', 'Name')];
+
+        $detector = $this->createMock(ColumnAutoDetector::class);
+        $detector->method('supports')->with(\stdClass::class)->willReturn(true);
+        $detector->expects($this->once())
+            ->method('detectColumns')
+            ->with(\stdClass::class, [])
+            ->willReturn($expected);
+
+        $table = new TestDataTableWithFluentApiPlatform();
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            columnResolver: new ColumnResolver(columnAutoDetector: $detector),
+        ));
+
+        $this->assertSame($expected, array_values($table->getConfiguredDataTable()->getColumns()));
+    }
+
+    #[Test]
+    public function it_forwards_the_attribute_serialization_groups_to_the_column_detector(): void
+    {
+        $expected = [TextColumn::new('name', 'Name')];
+
+        $detector = $this->createMock(ColumnAutoDetector::class);
+        $detector->method('supports')->with(\stdClass::class)->willReturn(true);
+        $detector->expects($this->once())
+            ->method('detectColumns')
+            ->with(\stdClass::class, ['product:list'])
+            ->willReturn($expected);
+
+        $table = new TestDataTableWithSerializationGroups();
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            columnResolver: new ColumnResolver(columnAutoDetector: $detector),
+        ));
+
+        $this->assertSame($expected, array_values($table->getConfiguredDataTable()->getColumns()));
+    }
+}
+
+#[AsDataTable(
+    entityClass: \stdClass::class,
+    editModalTemplate: 'attribute.html.twig',
+    editModalAdapter: 'bs5',
+)]
+final class FluentEditModalOverrideDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->editModalTemplate('fluent.html.twig')
+            ->editModalAdapter('dt');
+    }
+
+    public function configureColumns(): iterable
+    {
+        return [];
+    }
+
+    protected function createDataProvider(): ?DataProviderInterface
+    {
+        return new ArrayDataProvider([], $this->createRowMapper());
+    }
+}
+
+final class PlainDataTransferObject
+{
+    public string $name = '';
+}

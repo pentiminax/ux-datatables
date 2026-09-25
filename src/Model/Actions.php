@@ -1,0 +1,230 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Pentiminax\UX\DataTables\Model;
+
+use Pentiminax\UX\DataTables\Enum\ActionsAlignment;
+use Pentiminax\UX\DataTables\Enum\ActionsPosition;
+use Pentiminax\UX\DataTables\Enum\ActionType;
+use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Security\Permission;
+
+final class Actions implements \JsonSerializable
+{
+    /** @var Action[] */
+    private array $actions = [];
+
+    private string $columnLabel = 'Actions';
+
+    private ?string $columnClassName = null;
+
+    private ActionsPosition $position = ActionsPosition::AfterColumns;
+
+    private ?ActionsAlignment $alignment = null;
+
+    private ?array $columnControl = null;
+
+    public function add(Action $action): self
+    {
+        $name = $action->getName();
+
+        if ('' === trim($name)) {
+            throw new \InvalidArgumentException('Action name must not be empty.');
+        }
+
+        if (ActionType::Custom === $action->getType() && $this->isReservedName($name)) {
+            throw new \InvalidArgumentException(\sprintf('Custom action name "%s" is reserved.', $name));
+        }
+
+        if (isset($this->actions[$name])) {
+            throw new \InvalidArgumentException(\sprintf('Action name "%s" is already used.', $name));
+        }
+
+        $this->actions[$name] = $action;
+
+        return $this;
+    }
+
+    private function isReservedName(string $name): bool
+    {
+        foreach (ActionType::cases() as $type) {
+            if (0 === strcasecmp($name, $type->value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function remove(ActionType $type): self
+    {
+        unset($this->actions[$type->value]);
+
+        return $this;
+    }
+
+    public function setColumnLabel(string $label): self
+    {
+        $this->columnLabel = $label;
+
+        return $this;
+    }
+
+    public function getColumnLabel(): string
+    {
+        return $this->columnLabel;
+    }
+
+    public function setColumnClassName(?string $className): self
+    {
+        $this->columnClassName = $className;
+
+        return $this;
+    }
+
+    public function getColumnClassName(): ?string
+    {
+        return $this->columnClassName;
+    }
+
+    /**
+     * Place the actions column before or after the data columns (default: after).
+     */
+    public function position(ActionsPosition $position): self
+    {
+        $this->position = $position;
+
+        return $this;
+    }
+
+    public function getPosition(): ActionsPosition
+    {
+        return $this->position;
+    }
+
+    /**
+     * Horizontally align the actions cell (default: framework default, no class added).
+     */
+    public function alignment(ActionsAlignment $alignment): self
+    {
+        $this->alignment = $alignment;
+
+        return $this;
+    }
+
+    public function getAlignment(): ?ActionsAlignment
+    {
+        return $this->alignment;
+    }
+
+    /**
+     * Override the ColumnControl content for the generated actions column, using the same
+     * content descriptors as AbstractColumn::setColumnControl() (e.g. `['colvisDropdown']`).
+     *
+     * Requires `ColumnControlExtension` to be added to the table to have any visible effect.
+     *
+     * @param list<mixed> $columnControl
+     */
+    public function setColumnControl(array $columnControl): self
+    {
+        $this->columnControl = $columnControl;
+
+        return $this;
+    }
+
+    public function getColumnControl(): ?array
+    {
+        return $this->columnControl;
+    }
+
+    /**
+     * Split the actions into position-grouped collections.
+     *
+     * Each action is placed in the group matching its own position when set,
+     * otherwise in the group matching the collection-level position. Every
+     * returned collection inherits this collection's column metadata (label,
+     * class name, alignment). Only non-empty groups are returned, preserving
+     * the order in which positions are first encountered.
+     *
+     * @return array<value-of<ActionsPosition>, self>
+     */
+    public function partitionByPosition(): array
+    {
+        $groups = [];
+
+        foreach ($this->actions as $action) {
+            $position = ($action->getPosition() ?? $this->position)->value;
+
+            ($groups[$position] ??= $this->withoutActions())->add($action);
+        }
+
+        return $groups;
+    }
+
+    public function isEmpty(): bool
+    {
+        return [] === $this->actions;
+    }
+
+    public function count(): int
+    {
+        return \count($this->actions);
+    }
+
+    /**
+     * @return Action[]
+     */
+    public function getActions(): array
+    {
+        return array_values($this->actions);
+    }
+
+    /**
+     * Remove actions whose static permission is not granted, or mark them denied when the action
+     * opts into {@see Action::disabledWhenDenied()}. Mutates in place.
+     */
+    public function filterStaticPermissions(AuthorizationChecker $checker, ?string $dataTableClass = null): self
+    {
+        foreach ($this->actions as $key => $action) {
+            if (!$action->hasStaticPermission()) {
+                continue;
+            }
+
+            if (!$checker->canExecuteAction($dataTableClass, $action)) {
+                if ($action->isDisabledWhenDenied()) {
+                    $this->actions[$key] = $action->asDenied();
+
+                    continue;
+                }
+
+                unset($this->actions[$key]);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Create an empty collection that copies this one's column metadata.
+     */
+    private function withoutActions(): self
+    {
+        $clone                  = new self();
+        $clone->columnLabel     = $this->columnLabel;
+        $clone->columnClassName = $this->columnClassName;
+        $clone->position        = $this->position;
+        $clone->alignment       = $this->alignment;
+        $clone->columnControl   = $this->columnControl;
+
+        return $clone;
+    }
+
+    public function jsonSerialize(): array
+    {
+        return array_values(array_map(
+            static fn (Action $action): array => $action->jsonSerialize(),
+            $this->actions
+        ));
+    }
+}
