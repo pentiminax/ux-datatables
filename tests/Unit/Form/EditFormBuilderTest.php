@@ -21,6 +21,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\Forms;
 
 /**
  * @internal
@@ -37,7 +38,7 @@ final class EditFormBuilderTest extends TestCase
     #[Test]
     public function build_form_adds_one_field_per_mapped_column(array $columns, array $identifierFields, array $expectedFields): void
     {
-        $entity = new \stdClass();
+        $entity = new EditFormBuilderEntity();
         $form   = $this->createStub(FormInterface::class);
 
         $addCalls = [];
@@ -94,4 +95,30 @@ final class EditFormBuilderTest extends TestCase
             ],
         ];
     }
+
+    #[Test]
+    public function it_builds_a_form_without_columns_the_entity_does_not_carry(): void
+    {
+        $entity = new EditFormBuilderEntity();
+        $form   = (new EditFormBuilder(Forms::createFormFactory(), new ColumnToFormTypeMapper()))
+            ->buildForm($entity, [
+                TextColumn::new('name', 'Name'),
+                TextColumn::new('fullName', 'Full Name'),
+                NumberColumn::new('id', 'ID'),
+            ], ['id']);
+
+        $this->assertTrue($form->has('name'));
+        $this->assertTrue($form->has('id'));
+        $this->assertFalse($form->has('fullName'));
+        $this->assertTrue($form->get('id')->isDisabled());
+    }
+}
+
+final class EditFormBuilderEntity
+{
+    public int $id = 1;
+
+    public string $name = 'Ada';
+
+    public int $price = 10;
 }

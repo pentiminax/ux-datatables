@@ -449,6 +449,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
 
 final class AjaxEditFormSubmitControllerFixture
 {
+    public string $name = '';
 }
 
 #[AsDataTable(entityClass: AjaxEditFormSubmitControllerFixture::class)]
