@@ -27,11 +27,25 @@ export function matchesClientFilters(
             (col) => col.sName === name || col.name === name || col.data === name || col.mData === name
         )
 
+        const hasRawProperty =
+            rowData && typeof rowData === 'object' && !Array.isArray(rowData) && name in rowData
+        const hasColData =
+            colIndex !== -1 &&
+            rowData &&
+            typeof rowData === 'object' &&
+            !Array.isArray(rowData) &&
+            columns[colIndex].data in rowData
+
+        // If the filter target is neither a rendered column nor present in row data, skip it
+        if (colIndex === -1 && !hasRawProperty) {
+            continue
+        }
+
         let rawVal: any = undefined
-        if (rowData && typeof rowData === 'object' && !Array.isArray(rowData)) {
-            rawVal =
-                rowData[name] ??
-                (colIndex !== -1 && columns[colIndex].data ? rowData[columns[colIndex].data] : undefined)
+        if (hasRawProperty) {
+            rawVal = rowData[name]
+        } else if (hasColData) {
+            rawVal = rowData[columns[colIndex].data]
         } else if (Array.isArray(rowData) && colIndex !== -1) {
             rawVal = rowData[colIndex]
         }
@@ -39,99 +53,128 @@ export function matchesClientFilters(
         const renderedText =
             colIndex !== -1 && searchData?.[colIndex] !== undefined
                 ? String(searchData[colIndex]).trim()
-                : String(rawVal ?? '').trim()
-
-        if (rawVal === undefined) {
-            rawVal = renderedText
-        }
+                : ''
 
         const type = def?.type ?? 'text'
+
+        // Checkbox filters in ux-datatables are driven by server-side query closures
+        if (type === 'checkbox') {
+            continue
+        }
 
         if (type === 'text') {
             const searchStr = String(val).trim().toLowerCase()
             if (!searchStr) continue
-            const rowStr = String(rawVal).toLowerCase()
-            const rendStr = renderedText.toLowerCase()
-            if (!rowStr.includes(searchStr) && !rendStr.includes(searchStr)) {
+            const rowStr =
+                rawVal !== undefined && rawVal !== null
+                    ? String(rawVal).toLowerCase()
+                    : renderedText.toLowerCase()
+            if (!rowStr.includes(searchStr) && !renderedText.toLowerCase().includes(searchStr)) {
                 return false
             }
         } else if (type === 'select') {
             const options = def?.options ?? {}
+            const hasRaw = rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== ''
+
             if (def?.multiple && Array.isArray(val)) {
                 if (val.length === 0) continue
-                const rowStr = String(rawVal).trim()
-                const matches = val.some((v) => {
-                    const strV = String(v)
-                    const label = options[strV]
-                    return (
-                        strV === rowStr ||
-                        (label !== undefined && (label === renderedText || label === rowStr)) ||
-                        (Array.isArray(rawVal) && rawVal.map(String).includes(strV))
-                    )
-                })
-                if (!matches) return false
+                const selectedStrings = val.map(String)
+                if (hasRaw) {
+                    if (Array.isArray(rawVal)) {
+                        const rawStrings = rawVal.map(String)
+                        if (!selectedStrings.some((s) => rawStrings.includes(s))) {
+                            return false
+                        }
+                    } else if (!selectedStrings.includes(String(rawVal).trim())) {
+                        return false
+                    }
+                } else if (renderedText !== '') {
+                    const expectedLabels = selectedStrings.map((s) => options[s] ?? s)
+                    if (!expectedLabels.includes(renderedText)) {
+                        return false
+                    }
+                }
             } else {
-                const selVal = String(val).trim()
-                if (!selVal) continue
-                const rowStr = String(rawVal).trim()
-                const label = options[selVal]
-                const matches =
-                    selVal === rowStr ||
-                    (label !== undefined && (label === renderedText || label === rowStr))
-                if (!matches) return false
+                const selStr = String(val).trim()
+                if (!selStr) continue
+                if (hasRaw) {
+                    if (String(rawVal).trim() !== selStr) {
+                        return false
+                    }
+                } else if (renderedText !== '') {
+                    const expectedLabel = options[selStr] ?? selStr
+                    if (renderedText !== expectedLabel) {
+                        return false
+                    }
+                }
             }
         } else if (type === 'ternary') {
             const norm = String(val).toLowerCase().trim()
             const isTrue = norm === '1' || norm === 'true' || norm === 'yes'
             const isFalse = norm === '0' || norm === 'false' || norm === 'no'
-            const hasValue =
-                rawVal !== null &&
-                rawVal !== undefined &&
-                rawVal !== '' &&
-                rawVal !== false &&
-                rawVal !== 0 &&
-                rawVal !== '0' &&
-                renderedText !== '' &&
-                renderedText !== '0' &&
-                renderedText !== 'No' &&
-                renderedText !== 'Non'
 
-            if (isTrue && !hasValue) return false
-            if (isFalse && hasValue) return false
+            const isNull =
+                rawVal === null ||
+                rawVal === undefined ||
+                (typeof rawVal === 'string' && rawVal.trim() === '') ||
+                (rawVal === undefined && renderedText === '')
+
+            if (isTrue && isNull) return false
+            if (isFalse && !isNull) return false
         } else if (type === 'dateRange') {
             if (typeof val === 'object' && val !== null) {
                 const { from, to } = val as { from?: string; to?: string }
-                const dateStr = String(rawVal || renderedText).trim()
-                if (!dateStr) return false
-                const rowDate = new Date(dateStr)
-                if (isNaN(rowDate.getTime())) return false
+                const dateTarget =
+                    rawVal !== undefined && rawVal !== null && rawVal !== ''
+                        ? String(rawVal)
+                        : renderedText
+                if (!dateTarget) return false
+                const rowTime = parseDateComparable(dateTarget)
+                if (rowTime === null) return false
 
                 if (from) {
-                    const fromDate = new Date(from)
-                    if (!isNaN(fromDate.getTime()) && rowDate < fromDate) {
+                    const fromTime = parseDateComparable(from)
+                    if (fromTime !== null && rowTime < fromTime) {
                         return false
                     }
                 }
                 if (to) {
-                    const toDate = new Date(to)
-                    if (!isNaN(toDate.getTime())) {
-                        if (/^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/.test(to)) {
-                            toDate.setHours(23, 59, 59, 999)
-                        }
-                        if (rowDate > toDate) {
-                            return false
-                        }
+                    const toTime = parseDateUpperBound(to)
+                    if (toTime !== null && rowTime > toTime) {
+                        return false
                     }
                 }
-            }
-        } else if (type === 'checkbox') {
-            if (Boolean(val) && !Boolean(rawVal)) {
-                return false
             }
         }
     }
 
     return true
+}
+
+function parseDateComparable(dateStr: string): number | null {
+    if (!dateStr) return null
+    const match = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/.exec(dateStr.trim())
+    if (match) {
+        const year = parseInt(match[1], 10)
+        const month = parseInt(match[2], 10) - 1
+        const day = parseInt(match[3], 10)
+        return Date.UTC(year, month, day)
+    }
+    const d = new Date(dateStr)
+    return isNaN(d.getTime()) ? null : d.getTime()
+}
+
+function parseDateUpperBound(toStr: string): number | null {
+    if (!toStr) return null
+    const match = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/.exec(toStr.trim())
+    if (match) {
+        const year = parseInt(match[1], 10)
+        const month = parseInt(match[2], 10) - 1
+        const day = parseInt(match[3], 10)
+        return Date.UTC(year, month, day, 23, 59, 59, 999)
+    }
+    const d = new Date(toStr)
+    return isNaN(d.getTime()) ? null : d.getTime()
 }
 
 export function registerFilterFeature(DataTable: any): void {
