@@ -25,7 +25,8 @@ const DataTable: any = {
 // Registration is a module-level singleton, so register exactly once and reuse
 // the captured callback across the behavioural assertions below.
 registerFilterFeature(DataTable)
-const callback = register.mock.calls[0][1] as (settings: any, opts: any) => HTMLElement
+const registeredFeatureName = register.mock.calls[0]?.[0]
+const callback = register.mock.calls[0]?.[1] as (settings: any, opts: any) => HTMLElement
 
 describe('registerFilterFeature', () => {
     beforeEach(() => {
@@ -33,8 +34,10 @@ describe('registerFilterFeature', () => {
     })
 
     it('registers a "filters" feature once and ignores repeat calls', () => {
-        registerFilterFeature({ feature: { register: vi.fn() } } as any)
-        expect(register).toHaveBeenCalledTimes(0) // cleared by beforeEach, but originally called once
+        expect(registeredFeatureName).toBe('filters')
+        const secondRegister = vi.fn()
+        registerFilterFeature({ feature: { register: secondRegister } } as any)
+        expect(secondRegister).not.toHaveBeenCalled()
     })
 
     it('renders the instance and wires reload to the table ajax for Ajax tables', () => {
