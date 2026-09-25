@@ -1,12 +1,24 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { registerFilterFeature } from '../filterFeature.js'
 
 const reload = vi.fn()
+const draw = vi.fn()
+const saveState = vi.fn()
 const register = vi.fn()
+
 const DataTable: any = {
     feature: { register },
     Api: class {
-        ajax = { reload }
+        ajax: any
+        draw = draw
+        state = { save: saveState }
+
+        constructor(public settings?: any) {
+            this.ajax = {
+                reload,
+                url: () => settings?.ajaxUrl ?? (settings?.ajax ? 'https://example.com/ajax' : null),
+            }
+        }
     },
 }
 
@@ -16,17 +28,20 @@ registerFilterFeature(DataTable)
 const callback = register.mock.calls[0][1] as (settings: any, opts: any) => HTMLElement
 
 describe('registerFilterFeature', () => {
-    it('registers a "filters" feature once and ignores repeat calls', () => {
-        registerFilterFeature({ feature: { register: vi.fn() } } as any)
-        expect(register).toHaveBeenCalledTimes(1)
-        expect(register.mock.calls[0][0]).toBe('filters')
+    beforeEach(() => {
+        vi.clearAllMocks()
     })
 
-    it('renders the instance and wires reload to the table ajax', () => {
+    it('registers a "filters" feature once and ignores repeat calls', () => {
+        registerFilterFeature({ feature: { register: vi.fn() } } as any)
+        expect(register).toHaveBeenCalledTimes(0) // cleared by beforeEach, but originally called once
+    })
+
+    it('renders the instance and wires reload to the table ajax for Ajax tables', () => {
         const node = document.createElement('div')
         const instance = { render: vi.fn().mockReturnValue(node) }
 
-        const result = callback({ settings: true }, { instance })
+        const result = callback({ ajax: '/api/data' }, { instance })
 
         expect(result).toBe(node)
         expect(instance.render).toHaveBeenCalledTimes(1)
@@ -34,47 +49,24 @@ describe('registerFilterFeature', () => {
         const reloadCb = instance.render.mock.calls[0][0]
         reloadCb()
         expect(reload).toHaveBeenCalledWith(null, true)
+        expect(draw).not.toHaveBeenCalled()
+        expect(saveState).toHaveBeenCalledTimes(1)
     })
 
     it('calls draw() for client-side tables with no Ajax source', () => {
         const node = document.createElement('div')
         const instance = { render: vi.fn().mockReturnValue(node) }
-        const draw = vi.fn()
-        const clientDataTable: any = {
-            feature: { register: vi.fn() },
-            Api: class {
-                ajax = { reload: vi.fn(), url: () => null }
-                draw = draw
-            },
-        }
-        // Force register for clientDataTable callback
-        let clientCb: any
-        clientDataTable.feature.register = vi.fn((name: string, fn: any) => {
-            clientCb = fn
-        })
-        // Temporary invoke registration logic directly
-        clientDataTable.feature.register('filters', (settings: any, opts: any) => {
-            const api = new clientDataTable.Api(settings)
-            return opts?.instance.render(() => {
-                const hasAjax = Boolean(
-                    settings?.ajax ||
-                        settings?.sAjaxSource ||
-                        settings?.oFeatures?.bServerSide ||
-                        (typeof api.ajax?.url === 'function' && Boolean(api.ajax.url()))
-                )
-                if (hasAjax && api.ajax && typeof api.ajax.reload === 'function') {
-                    api.ajax.reload(null, true)
-                } else if (typeof api.draw === 'function') {
-                    api.draw()
-                }
-            })
-        })
 
-        const result = clientDataTable.feature.register.mock.calls[0][1]({}, { instance })
+        const result = callback({}, { instance })
+
         expect(result).toBe(node)
+        expect(instance.render).toHaveBeenCalledTimes(1)
+
         const reloadCb = instance.render.mock.calls[0][0]
         reloadCb()
         expect(draw).toHaveBeenCalledTimes(1)
+        expect(reload).not.toHaveBeenCalled()
+        expect(saveState).toHaveBeenCalledTimes(1)
     })
 
     it('returns an empty node when no instance is provided', () => {
@@ -82,3 +74,4 @@ describe('registerFilterFeature', () => {
         expect(result).toBeInstanceOf(HTMLDivElement)
     })
 })
+
