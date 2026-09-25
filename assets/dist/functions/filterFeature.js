@@ -1,4 +1,19 @@
 let registered = false;
+function readNestedProperty(obj, path) {
+    if (!obj || typeof obj !== 'object' || !path)
+        return undefined;
+    if (path in obj)
+        return obj[path];
+    const parts = path.split('.');
+    let current = obj;
+    for (const part of parts) {
+        if (current === null || current === undefined || typeof current !== 'object') {
+            return undefined;
+        }
+        current = current[part];
+    }
+    return current;
+}
 export function matchesClientFilters(settings, filterBar, searchData, rowData) {
     const applied = filterBar.collectValues();
     if (!applied || Object.keys(applied).length === 0) {
@@ -13,21 +28,12 @@ export function matchesClientFilters(settings, filterBar, searchData, rowData) {
         }
         const def = defsByName.get(name);
         const colIndex = columns.findIndex((col) => col.sName === name || col.name === name || col.data === name || col.mData === name);
-        const hasRawProperty = rowData && typeof rowData === 'object' && !Array.isArray(rowData) && name in rowData;
-        const hasColData = colIndex !== -1 &&
-            rowData &&
-            typeof rowData === 'object' &&
-            !Array.isArray(rowData) &&
-            columns[colIndex].data in rowData;
-        if (colIndex === -1 && !hasRawProperty) {
-            continue;
-        }
         let rawVal = undefined;
-        if (hasRawProperty) {
-            rawVal = rowData[name];
-        }
-        else if (hasColData) {
-            rawVal = rowData[columns[colIndex].data];
+        if (rowData && typeof rowData === 'object' && !Array.isArray(rowData)) {
+            rawVal = readNestedProperty(rowData, name);
+            if (rawVal === undefined && colIndex !== -1 && columns[colIndex].data) {
+                rawVal = readNestedProperty(rowData, String(columns[colIndex].data));
+            }
         }
         else if (Array.isArray(rowData) && colIndex !== -1) {
             rawVal = rowData[colIndex];
@@ -35,6 +41,9 @@ export function matchesClientFilters(settings, filterBar, searchData, rowData) {
         const renderedText = colIndex !== -1 && searchData?.[colIndex] !== undefined
             ? String(searchData[colIndex]).trim()
             : '';
+        if (colIndex === -1 && rawVal === undefined) {
+            continue;
+        }
         const type = def?.type ?? 'text';
         if (type === 'checkbox') {
             continue;
@@ -52,19 +61,19 @@ export function matchesClientFilters(settings, filterBar, searchData, rowData) {
         }
         else if (type === 'select') {
             const options = def?.options ?? {};
-            const hasRaw = rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '';
+            const isRawPresent = rawVal !== undefined && rawVal !== null;
             if (def?.multiple && Array.isArray(val)) {
                 if (val.length === 0)
                     continue;
                 const selectedStrings = val.map(String);
-                if (hasRaw) {
-                    if (Array.isArray(rawVal)) {
-                        const rawStrings = rawVal.map(String);
-                        if (!selectedStrings.some((s) => rawStrings.includes(s))) {
-                            return false;
-                        }
+                if (Array.isArray(rawVal)) {
+                    const rawStrings = rawVal.map(String);
+                    if (rawStrings.length === 0 || !selectedStrings.some((s) => rawStrings.includes(s))) {
+                        return false;
                     }
-                    else if (!selectedStrings.includes(String(rawVal).trim())) {
+                }
+                else if (isRawPresent && String(rawVal).trim() !== '') {
+                    if (!selectedStrings.includes(String(rawVal).trim())) {
                         return false;
                     }
                 }
@@ -74,12 +83,15 @@ export function matchesClientFilters(settings, filterBar, searchData, rowData) {
                         return false;
                     }
                 }
+                else {
+                    return false;
+                }
             }
             else {
                 const selStr = String(val).trim();
                 if (!selStr)
                     continue;
-                if (hasRaw) {
+                if (isRawPresent && String(rawVal).trim() !== '') {
                     if (String(rawVal).trim() !== selStr) {
                         return false;
                     }
@@ -90,16 +102,19 @@ export function matchesClientFilters(settings, filterBar, searchData, rowData) {
                         return false;
                     }
                 }
+                else {
+                    return false;
+                }
             }
         }
         else if (type === 'ternary') {
             const norm = String(val).toLowerCase().trim();
             const isTrue = norm === '1' || norm === 'true' || norm === 'yes';
             const isFalse = norm === '0' || norm === 'false' || norm === 'no';
-            const isNull = rawVal === null ||
-                rawVal === undefined ||
-                (typeof rawVal === 'string' && rawVal.trim() === '') ||
-                (rawVal === undefined && renderedText === '');
+            const hasRaw = rawVal !== undefined && rawVal !== null;
+            const isNull = hasRaw
+                ? typeof rawVal === 'string' && rawVal.trim() === ''
+                : renderedText === '';
             if (isTrue && isNull)
                 return false;
             if (isFalse && !isNull)
@@ -136,27 +151,29 @@ export function matchesClientFilters(settings, filterBar, searchData, rowData) {
 function parseDateComparable(dateStr) {
     if (!dateStr)
         return null;
-    const match = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/.exec(dateStr.trim());
+    const trimmed = dateStr.trim();
+    const match = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/.exec(trimmed);
     if (match) {
         const year = parseInt(match[1], 10);
         const month = parseInt(match[2], 10) - 1;
         const day = parseInt(match[3], 10);
         return Date.UTC(year, month, day);
     }
-    const d = new Date(dateStr);
+    const d = new Date(trimmed);
     return isNaN(d.getTime()) ? null : d.getTime();
 }
 function parseDateUpperBound(toStr) {
     if (!toStr)
         return null;
-    const match = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/.exec(toStr.trim());
+    const trimmed = toStr.trim();
+    const match = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/.exec(trimmed);
     if (match) {
         const year = parseInt(match[1], 10);
         const month = parseInt(match[2], 10) - 1;
         const day = parseInt(match[3], 10);
         return Date.UTC(year, month, day, 23, 59, 59, 999);
     }
-    const d = new Date(toStr);
+    const d = new Date(trimmed);
     return isNaN(d.getTime()) ? null : d.getTime();
 }
 export function registerFilterFeature(DataTable) {
