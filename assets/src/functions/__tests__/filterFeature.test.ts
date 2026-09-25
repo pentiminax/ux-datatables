@@ -204,6 +204,27 @@ describe('registerFilterFeature', () => {
         expect(filterFn(settings, ['2026-01-31 10:00'], 1, { eventDate: '2026-01-31T10:00:00-05:00' })).toBe(false)
     })
 
+    it('parses timezone-less datetimes in UTC to avoid local timezone shifts against date bounds', () => {
+        // Upper bound date-only '2026-02-01' covers up to 2026-02-01T23:59:59.999Z
+        const filterBarMock: any = {
+            collectValues: () => ({ eventDate: { from: '2026-02-01', to: '2026-02-01' } }),
+            getDefinitions: () => [{ name: 'eventDate', type: 'dateRange' }],
+        }
+
+        const settings = {
+            _uxFilterBar: filterBarMock,
+            aoColumns: [{ name: 'eventDate', data: 'eventDate' }],
+        }
+
+        const filterFn = searchExt[0]
+
+        // Timezone-less datetime at 23:30 on 2026-02-01 should be parsed in UTC and fall within 2026-02-01 range
+        expect(filterFn(settings, ['2026-02-01 23:30:00'], 0, { eventDate: '2026-02-01T23:30:00' })).toBe(true)
+
+        // Timezone-less datetime on 2026-02-02 00:00:01 should be excluded
+        expect(filterFn(settings, ['2026-02-02 00:00:01'], 1, { eventDate: '2026-02-02T00:00:01' })).toBe(false)
+    })
+
     it('considers nested non-empty rendered cell values as non-null in ternary filter', () => {
         const filterBarMock: any = {
             collectValues: () => ({ 'author.active': '1' }), // true state
