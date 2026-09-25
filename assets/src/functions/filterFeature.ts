@@ -125,10 +125,10 @@ export function matchesClientFilters(
             const isTrue = norm === '1' || norm === 'true' || norm === 'yes'
             const isFalse = norm === '0' || norm === 'false' || norm === 'no'
 
-            const hasRaw = rawVal !== undefined && rawVal !== null
-            const isNull = hasRaw
-                ? typeof rawVal === 'string' && rawVal.trim() === ''
-                : renderedText === ''
+            const isNull = rawVal === null ||
+                (rawVal === undefined
+                    ? renderedText === ''
+                    : typeof rawVal === 'string' && rawVal.trim() === '')
 
             if (isTrue && isNull) return false
             if (isFalse && !isNull) return false
