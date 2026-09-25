@@ -74,10 +74,21 @@ final readonly class FilterEntityOptionsResolver
 
             if (\is_callable($labelProperty)) {
                 $label = (string) $labelProperty($entity);
-            } else {
+            } elseif (null !== $labelProperty && '' !== $labelProperty) {
                 $label = PropertyReader::readPath($entity, $labelProperty);
                 if (null === $label) {
                     $label = method_exists($entity, '__toString') ? (string) $entity : (string) $value;
+                }
+            } else {
+                if (method_exists($entity, '__toString')) {
+                    $label = (string) $entity;
+                } else {
+                    $label = PropertyReader::readPath($entity, 'libelle')
+                        ?? PropertyReader::readPath($entity, 'name')
+                        ?? PropertyReader::readPath($entity, 'label')
+                        ?? PropertyReader::readPath($entity, 'title')
+                        ?? PropertyReader::readPath($entity, 'display')
+                        ?? (string) $value;
                 }
             }
 

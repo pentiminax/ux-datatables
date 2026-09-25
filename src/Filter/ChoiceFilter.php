@@ -24,8 +24,8 @@ final class ChoiceFilter extends AbstractFilter
     /** @var class-string|null */
     private ?string $entityClass = null;
 
-    /** @var string|(\Closure(object): string) */
-    private string|\Closure $entityLabel = 'libelle';
+    /** @var string|(\Closure(object): string)|null */
+    private string|\Closure|null $entityLabel = null;
 
     private string $entityValue = 'id';
 
@@ -85,7 +85,7 @@ final class ChoiceFilter extends AbstractFilter
      * Configure options to be loaded from a Doctrine entity.
      *
      * @param class-string $class The entity FQCN
-     * @param string|(\Closure(object): string) $label Property path or closure returning the display label
+     * @param string|(\Closure(object): string)|null $label Property path or closure returning the display label (defaults to null for auto-discovery)
      * @param string $value Property path for the option value (defaults to 'id')
      * @param array<string, string> $orderBy Sorting criteria (e.g. ['libelle' => 'ASC'])
      * @param array<string, mixed> $criteria Filtering criteria for findBy
@@ -93,7 +93,7 @@ final class ChoiceFilter extends AbstractFilter
      */
     public function entity(
         string $class,
-        string|\Closure $label = 'display',
+        string|\Closure|null $label = null,
         string $value = 'id',
         array $orderBy = [],
         array $criteria = [],
@@ -121,7 +121,7 @@ final class ChoiceFilter extends AbstractFilter
         return $this->entityClass;
     }
 
-    public function getEntityLabel(): string|\Closure
+    public function getEntityLabel(): string|\Closure|null
     {
         return $this->entityLabel;
     }
