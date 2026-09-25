@@ -342,4 +342,41 @@ describe('FilterBar', () => {
         expect((wrapper.querySelector('input[type="search"]') as HTMLInputElement).value).toBe('')
         expect(reload).toHaveBeenCalledTimes(2)
     })
+
+    it('safely renders header reset label containing markup as text', () => {
+        const payload: Record<string, any> = {
+            filters: [{ name: 'name', type: 'text' }],
+            filterLabels: { reset: '<img src=x onerror=alert(1)>' },
+            showHeaderResetButton: true,
+            ajax: { url: '/data' },
+        }
+        const bar = new FilterBar(payload, 'dt')
+        const wrapper = bar.render(vi.fn())
+
+        const headerReset = wrapper.querySelector('.dt-filters-header-reset') as HTMLButtonElement
+        expect(headerReset.querySelector('img')).toBeNull()
+        expect(headerReset.querySelector('span')?.textContent).toBe('<img src=x onerror=alert(1)>')
+    })
+
+    it('ignores unsupported filters or invalid select options during restoreValues', () => {
+        const { bar } = makeBar([
+            { name: 'status', type: 'select', options: { active: 'Active', pending: 'Pending' } },
+            { name: 'role', type: 'select', multiple: true, options: { admin: 'Admin', user: 'User' } },
+            { name: 'active', type: 'ternary' },
+        ])
+        const wrapper = bar.render(vi.fn())
+
+        bar.restoreValues({
+            status: 'removed_option', // invalid option
+            role: ['admin', 'obsolete_role'], // partial invalid
+            active: 'invalid_boolean', // invalid ternary
+            unknownFilter: 'some_value', // deleted filter
+        })
+
+        expect(bar.collectValues()).toEqual({
+            role: ['admin'],
+        })
+        expect(wrapper.querySelector('.dt-filters-badge')?.textContent).toBe('1')
+        expect((wrapper.querySelector('select[name="filters[status]"]') as HTMLSelectElement).value).toBe('')
+    })
 })

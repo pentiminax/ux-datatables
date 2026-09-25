@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Model;
 
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
+use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
@@ -824,5 +825,25 @@ final class DataTableTest extends TestCase
                 detailsType: false,
             ),
         ];
+    }
+
+    #[Test]
+    public function it_allows_filters_to_override_table_header_reset_button(): void
+    {
+        $filters = (new \Pentiminax\UX\DataTables\Model\Filters())
+            ->add(TextFilter::new('name'))
+            ->showHeaderResetButton(false);
+
+        $table = (new DataTable('tableId'))
+            ->showHeaderResetButton(true)
+            ->setFilters($filters);
+
+        $serialized = $table->getOptions();
+        $this->assertArrayNotHasKey('showHeaderResetButton', $serialized);
+
+        $filters->showHeaderResetButton(true);
+        $table->showHeaderResetButton(false);
+        $serialized2 = $table->getOptions();
+        $this->assertTrue($serialized2['showHeaderResetButton'] ?? false);
     }
 }

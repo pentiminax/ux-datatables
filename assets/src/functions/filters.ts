@@ -129,8 +129,10 @@ export class FilterBar {
             this.headerResetButton.className = 'dt-filters-header-reset'
             this.headerResetButton.setAttribute('aria-label', this.labels.reset ?? 'Reset')
             this.headerResetButton.title = this.labels.reset ?? 'Reset'
-            this.headerResetButton.innerHTML =
-                ROTATE_CCW_ICON + `<span>${this.labels.reset ?? 'Reset'}</span>`
+            this.headerResetButton.innerHTML = ROTATE_CCW_ICON
+            const textSpan = document.createElement('span')
+            textSpan.textContent = this.labels.reset ?? 'Reset'
+            this.headerResetButton.appendChild(textSpan)
             this.headerResetButton.hidden = true
             this.headerResetButton.addEventListener('click', () => this.resetFilters())
             this.wrapper.appendChild(this.headerResetButton)
@@ -222,11 +224,23 @@ export class FilterBar {
             return
         }
 
+        const definitionsByName = new Map<string, FilterDefinition>(
+            this.definitions.map((def) => [def.name, def])
+        )
+
         this.applied = {}
         for (const [key, val] of Object.entries(values)) {
+            const def = definitionsByName.get(key)
+            if (!def) {
+                continue
+            }
             const norm = normalizeValue(val)
-            if (norm !== null) {
-                this.applied[key] = norm
+            if (norm === null) {
+                continue
+            }
+            const validated = this.validateValueForDefinition(def, norm)
+            if (validated !== null) {
+                this.applied[key] = validated
             }
         }
 
@@ -236,6 +250,69 @@ export class FilterBar {
         }
 
         this.updateBadge()
+    }
+
+    private validateValueForDefinition(
+        definition: FilterDefinition,
+        value: FilterValue
+    ): FilterValue | null {
+        switch (definition.type) {
+            case 'select': {
+                const validKeys = new Set(Object.keys(definition.options ?? {}))
+                if (definition.multiple === true) {
+                    if (Array.isArray(value)) {
+                        const filtered = value.filter((v) => validKeys.has(String(v)))
+                        return filtered.length > 0 ? filtered : null
+                    }
+                    if (typeof value === 'string' && validKeys.has(value)) {
+                        return [value]
+                    }
+                    return null
+                }
+                if (typeof value === 'string' && validKeys.has(value)) {
+                    return value
+                }
+                return null
+            }
+            case 'ternary': {
+                if (value === 'true' || value === 'false') {
+                    return value
+                }
+                return null
+            }
+            case 'checkbox': {
+                if (value === '1' || value === 'true') {
+                    return '1'
+                }
+                return null
+            }
+            case 'dateRange': {
+                if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    const from =
+                        typeof value.from === 'string' && value.from.trim() !== ''
+                            ? value.from.trim()
+                            : undefined
+                    const to =
+                        typeof value.to === 'string' && value.to.trim() !== ''
+                            ? value.to.trim()
+                            : undefined
+                    if (from === undefined && to === undefined) {
+                        return null
+                    }
+                    const range: { from?: string; to?: string } = {}
+                    if (from !== undefined) range.from = from
+                    if (to !== undefined) range.to = to
+                    return range
+                }
+                return null
+            }
+            default: {
+                if (typeof value === 'string' && value.trim() !== '') {
+                    return value
+                }
+                return null
+            }
+        }
     }
 
     /**

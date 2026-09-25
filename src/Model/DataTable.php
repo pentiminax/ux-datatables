@@ -123,8 +123,14 @@ class DataTable
         if (null !== $this->filters && !$this->filters->isEmpty()) {
             $options['filters'] = $this->filters->jsonSerialize();
 
-            if ($this->filters->isHeaderResetButtonVisible() || ($this->options->get('showHeaderResetButton') ?? false)) {
+            $filtersShowReset = $this->filters->isHeaderResetButtonVisible();
+            $tableShowReset   = $this->options->get('showHeaderResetButton');
+            $showReset        = $filtersShowReset ?? $tableShowReset ?? false;
+
+            if ($showReset) {
                 $options['showHeaderResetButton'] = true;
+            } else {
+                unset($options['showHeaderResetButton']);
             }
 
             if (null !== $this->preparedFilterLabels) {
@@ -708,10 +714,6 @@ class DataTable
     public function showHeaderResetButton(bool $show = true): static
     {
         $this->options->set('showHeaderResetButton', $show);
-
-        if (null !== $this->filters) {
-            $this->filters->showHeaderResetButton($show);
-        }
 
         return $this;
     }
