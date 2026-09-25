@@ -179,4 +179,18 @@ final class DateRangeFilterTest extends TestCase
         $this->assertSame('datetime', $this->capturedParamTypes['filter_createdAt_from']);
         $this->assertSame('2024-01-01', $this->capturedParams['filter_createdAt_from']->format('Y-m-d'));
     }
+
+    #[Test]
+    public function it_skips_bare_association_fields(): void
+    {
+        DateRangeFilter::new('category')->apply(
+            $this->createAssociationFieldQueryBuilder(),
+            ['from' => '2024-01-01', 'to' => '2024-12-31'],
+            'e',
+        );
+
+        $this->assertSame([], $this->capturedWhere);
+        $this->assertSame([], $this->capturedParams);
+    }
 }
+
