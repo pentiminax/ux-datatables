@@ -22,6 +22,15 @@ use Twig\TwigFunction;
 
 class DataTablesExtension extends AbstractExtension
 {
+    /**
+     * The Stimulus controller a rendered table is bound to, and the data attribute carrying its
+     * serialized view. {@see \Pentiminax\UX\DataTables\Test\DataTableView} reads the attribute,
+     * so both names are part of the bundle's public contract.
+     */
+    public const string CONTROLLER_NAME = '@pentiminax/ux-datatables/datatable';
+
+    public const string VIEW_ATTRIBUTE = 'data-pentiminax--ux-datatables--datatable-view-value';
+
     public function __construct(
         private readonly StimulusHelper $stimulus,
         private readonly ColumnResolver $columnResolver,
@@ -87,7 +96,7 @@ class DataTablesExtension extends AbstractExtension
             $view['mutationsEnabled'] = true;
         }
 
-        $controllers['@pentiminax/ux-datatables/datatable'] = [
+        $controllers[self::CONTROLLER_NAME] = [
             'view' => $view,
         ];
 
