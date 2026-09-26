@@ -20,7 +20,7 @@ export function registerFilterFeature(DataTable: any): void {
 
         if (!hasAjaxSource(settings)) {
             console.warn(
-                '[ux-datatables] Filters require an Ajax data source; enable serverSide() to use them.'
+                '[ux-datatables] Filters require an Ajax source; enable serverSide() to use them.'
             )
             return document.createElement('div')
         }
