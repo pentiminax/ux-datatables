@@ -193,6 +193,27 @@ final class BulkActionRunnerTest extends TestCase
     }
 
     #[Test]
+    public function it_refuses_a_configured_id_field_that_doctrine_cannot_look_up(): void
+    {
+        $handled = false;
+        $action  = BulkAction::new('touch')->handler(function () use (&$handled): void {
+            $handled = true;
+        });
+        $table = $this->resolved($action);
+        $table->table->getConfiguredDataTable()->getBulkActions()?->setIdField('reference');
+
+        try {
+            $this->runner()->run($table, $action, new BulkSelection(ids: ['Beta']), new Request());
+            $this->fail('An unmapped id field must be refused.');
+        } catch (\LogicException $exception) {
+            $this->assertStringContainsString('"reference"', $exception->getMessage());
+            $this->assertStringContainsString('setIdField()', $exception->getMessage());
+        }
+
+        $this->assertFalse($handled);
+    }
+
+    #[Test]
     public function it_publishes_one_mercure_message_for_the_whole_batch(): void
     {
         $publisher = $this->createMock(MercurePublisherInterface::class);
