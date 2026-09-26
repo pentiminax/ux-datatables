@@ -7,10 +7,10 @@ namespace Pentiminax\UX\DataTables\Mutation;
 /**
  * The entities a bulk action handler operates on.
  *
- * Iteration is lazy and single-pass: the runner loads one chunk, authorizes each entity, and
- * yields the authorized ones, so a handler that iterates once never holds more than one chunk
- * plus whatever it keeps itself. A second iteration throws, because the first one consumed the
- * underlying generator.
+ * Iteration is lazy and single-pass: the runner loads one chunk per query, authorizes each entity,
+ * yields the authorized ones, and flushes before loading the next chunk. That bounds each query
+ * and each flush, not memory: the entity manager keeps every entity it loaded managed until the
+ * request ends. A second iteration throws, because the first one consumed the underlying generator.
  *
  * {@see self::count()} reports the number of *selected* records, not the authorized ones:
  * authorization needs the entity, so an authorized count cannot exist before iteration. Read

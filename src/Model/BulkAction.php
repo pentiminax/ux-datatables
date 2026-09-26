@@ -32,7 +32,6 @@ final class BulkAction implements \JsonSerializable, ExecutableActionInterface
     private ?\Closure $permissionSubjectResolver = null;
     private int $chunkSize                       = self::DEFAULT_CHUNK_SIZE;
     private bool $deselectRecordsAfterCompletion = true;
-    private bool $denied                         = false;
 
     private function __construct(
         private readonly string $name,
@@ -195,22 +194,6 @@ final class BulkAction implements \JsonSerializable, ExecutableActionInterface
         return null !== $this->permission && null !== $this->permissionSubjectResolver;
     }
 
-    /**
-     * @internal copy marked as denied by a static permission check, serialized without actionable data
-     */
-    public function asDenied(): self
-    {
-        $clone         = clone $this;
-        $clone->denied = true;
-
-        return $clone;
-    }
-
-    public function isDenied(): bool
-    {
-        return $this->denied;
-    }
-
     public function jsonSerialize(): array
     {
         $data = [
@@ -240,12 +223,6 @@ final class BulkAction implements \JsonSerializable, ExecutableActionInterface
         }
 
         $data['deselectAfterCompletion'] = $this->deselectRecordsAfterCompletion;
-
-        if ($this->denied) {
-            $data['denied'] = true;
-
-            unset($data['confirm'], $data['confirmButton'], $data['successMessage'], $data['deselectAfterCompletion']);
-        }
 
         return $data;
     }

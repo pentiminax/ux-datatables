@@ -86,9 +86,9 @@ final class ChoiceFilter extends AbstractFilter
      * Configure options to be loaded from a Doctrine entity.
      *
      * @param class-string                                                  $class        The entity FQCN
-     * @param string|(\Closure(object): string)|null                        $label        Property path or closure returning the display label; null tries display, libelle, name, label, and title, then __toString()
+     * @param string|(\Closure(object): string)|null                        $label        Property path or closure returning the display label; null tries display, name, label, and title, then __toString()
      * @param string                                                        $value        Property path for the option value (defaults to 'id')
-     * @param array<string, string>                                         $orderBy      Sorting criteria (e.g. ['libelle' => 'ASC'])
+     * @param array<string, string>                                         $orderBy      Sorting criteria (e.g. ['name' => 'ASC'])
      * @param array<string, mixed>                                          $criteria     Filtering criteria for findBy
      * @param (\Closure(EntityRepository<object>, QueryBuilder): void)|null $queryBuilder Custom query closure
      */
