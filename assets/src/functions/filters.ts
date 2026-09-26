@@ -133,10 +133,7 @@ export class FilterBar {
 
         this.wrapper.appendChild(this.toggle)
 
-        const showHeaderReset =
-            payload.showHeaderResetButton === true || payload.filtersHeaderReset === true
-
-        if (showHeaderReset) {
+        if (payload.showHeaderResetButton === true) {
             this.headerResetButton = document.createElement('button')
             this.headerResetButton.type = 'button'
             this.headerResetButton.className = 'dt-filters-header-reset'
@@ -299,32 +296,10 @@ export class FilterBar {
                 }
                 return null
             }
-            case 'dateRange': {
-                if (value && typeof value === 'object' && !Array.isArray(value)) {
-                    const from =
-                        typeof value.from === 'string' && value.from.trim() !== ''
-                            ? value.from.trim()
-                            : undefined
-                    const to =
-                        typeof value.to === 'string' && value.to.trim() !== ''
-                            ? value.to.trim()
-                            : undefined
-                    if (from === undefined && to === undefined) {
-                        return null
-                    }
-                    const range: { from?: string; to?: string } = {}
-                    if (from !== undefined) range.from = from
-                    if (to !== undefined) range.to = to
-                    return range
-                }
-                return null
-            }
-            default: {
-                if (typeof value === 'string' && value.trim() !== '') {
-                    return value
-                }
-                return null
-            }
+            case 'dateRange':
+                return isPlainRecord(value) ? value : null
+            default:
+                return typeof value === 'string' ? value : null
         }
     }
 
