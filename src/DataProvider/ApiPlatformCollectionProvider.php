@@ -18,6 +18,7 @@ use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
+use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -53,6 +54,8 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
         private readonly ?RowMapperInterface $exportRowMapper = null,
         private readonly ?string $dataTableClass = null,
         private readonly int $exportChunkSize = 250,
+        /** @var (\Closure(list<mixed>):(list<mixed>|null))|null */
+        private readonly ?\Closure $pageProjector = null,
     ) {
     }
 
@@ -98,9 +101,7 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
             ] + $parameters);
             $items = $this->toList($data);
 
-            foreach ($items as $item) {
-                yield $mapper->map($item);
-            }
+            yield from $this->mapRows($items, $mapper);
 
             if ([] === $items || !$this->hasPageAfter($data, $page, \count($items))) {
                 return;
@@ -287,12 +288,30 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
     }
 
     /**
+     * Pair each source item with its projection, the same contract DoctrineDataProvider honors.
+     *
+     * $pageProjector runs once over the page (or export chunk) already in hand. Returning null
+     * leaves the source items unchanged; changing the count is a contract violation.
+     *
+     * @param iterable<mixed> $items
+     *
      * @return \Generator<int, array<string, mixed>>
      */
     private function mapRows(iterable $items, RowMapperInterface $mapper): \Generator
     {
-        foreach ($items as $item) {
-            yield $mapper->map($item);
+        $items         = $this->toList($items);
+        $pageProjector = $this->pageProjector;
+        $projectedRaw  = null !== $pageProjector ? ($pageProjector)($items) : null;
+        $projected     = null === $projectedRaw ? null : array_values($projectedRaw);
+
+        if (null !== $projected && \count($projected) !== \count($items)) {
+            throw new \LogicException(\sprintf('Page projector returned %d items for a source page containing %d items. Projectors must preserve page size and order.', \count($projected), \count($items)));
+        }
+
+        foreach ($items as $index => $item) {
+            yield $mapper->map(
+                null === $projected ? $item : new RowContext($item, $projected[$index]),
+            );
         }
     }
 

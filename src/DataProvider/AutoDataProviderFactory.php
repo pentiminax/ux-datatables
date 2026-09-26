@@ -41,12 +41,15 @@ final class AutoDataProviderFactory
         }
 
         if ($apiPlatform && null !== $this->apiPlatformProviderFactory) {
+            // projectPage() is a table-level contract, not a Doctrine one. Template columns
+            // and DTO mapping still run when this collection is read through API Platform.
             $apiPlatformProvider = $this->apiPlatformProviderFactory->create(
                 entityClass: $asDataTable->entityClass,
                 columns: $columns,
                 rowMapper: $rowMapper,
                 exportRowMapper: $exportRowMapper,
                 dataTableClass: $dataTableClass,
+                pageProjector: $pageProjector,
             );
 
             // An entity with no collection operation falls through to Doctrine, the same

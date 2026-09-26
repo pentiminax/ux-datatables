@@ -41,6 +41,7 @@ final class ApiPlatformCollectionProviderFactory
         RowMapperInterface $rowMapper,
         ?RowMapperInterface $exportRowMapper = null,
         ?string $dataTableClass = null,
+        ?\Closure $pageProjector = null,
     ): ?ApiPlatformCollectionProvider {
         if (null === $this->collectionResolver->resolveCollection($entityClass)) {
             return null;
@@ -58,6 +59,7 @@ final class ApiPlatformCollectionProviderFactory
             rowMapper: $rowMapper,
             exportRowMapper: $exportRowMapper,
             dataTableClass: $dataTableClass,
+            pageProjector: $pageProjector,
         );
     }
 }
