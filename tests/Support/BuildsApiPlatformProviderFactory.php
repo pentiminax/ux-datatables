@@ -21,11 +21,14 @@ use Symfony\Component\HttpFoundation\RequestStack;
 trait BuildsApiPlatformProviderFactory
 {
     /**
-     * @param bool $withCollectionOperation whether the resource exposes the collection operation
-     *                                      the provider reads from
+     * @param bool                   $withCollectionOperation whether the resource exposes the collection operation
+     *                                                        the provider reads from
+     * @param ProviderInterface|null $stateProvider           serves the collection; an empty one by default
      */
-    private function buildApiPlatformProviderFactory(bool $withCollectionOperation = true): ApiPlatformCollectionProviderFactory
-    {
+    private function buildApiPlatformProviderFactory(
+        bool $withCollectionOperation = true,
+        ?ProviderInterface $stateProvider = null,
+    ): ApiPlatformCollectionProviderFactory {
         $resource = $withCollectionOperation
             ? (new ApiResource())->withOperations(new Operations([
                 new GetCollection(uriTemplate: '/books{._format}', routePrefix: '/api'),
@@ -37,7 +40,7 @@ trait BuildsApiPlatformProviderFactory
             ->method('create')
             ->willReturnCallback(static fn (string $resourceClass): ResourceMetadataCollection => new ResourceMetadataCollection($resourceClass, [$resource]));
 
-        $stateProvider = new class implements ProviderInterface {
+        $stateProvider ??= new class implements ProviderInterface {
             public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
             {
                 return [];
