@@ -15,15 +15,22 @@ function selectClass(framework) {
 export function hasFilters(payload) {
     return Array.isArray(payload?.filters) && payload.filters.length > 0;
 }
+function isFilledString(value) {
+    return typeof value === 'string' && value.trim() !== '';
+}
 function normalizeValue(value) {
-    if (value === null)
-        return null;
     if (typeof value === 'string')
-        return value.trim() === '' ? null : value;
-    if (Array.isArray(value))
-        return value.length === 0 ? null : value;
-    const from = value.from?.trim() ? value.from : undefined;
-    const to = value.to?.trim() ? value.to : undefined;
+        return isFilledString(value) ? value : null;
+    if (Array.isArray(value)) {
+        const items = value
+            .filter((item) => typeof item === 'string' || typeof item === 'number')
+            .map(String);
+        return items.length === 0 ? null : items;
+    }
+    if (!isPlainRecord(value))
+        return null;
+    const from = isFilledString(value.from) ? value.from : undefined;
+    const to = isFilledString(value.to) ? value.to : undefined;
     if (from === undefined && to === undefined)
         return null;
     const range = {};
@@ -133,7 +140,7 @@ export class FilterBar {
         return out;
     }
     restoreValues(values) {
-        if (!values || typeof values !== 'object') {
+        if (!isPlainRecord(values)) {
             return;
         }
         const definitionsByName = new Map(this.definitions.map((def) => [def.name, def]));
@@ -164,7 +171,7 @@ export class FilterBar {
                 const validKeys = new Set(Object.keys(definition.options ?? {}));
                 if (definition.multiple === true) {
                     if (Array.isArray(value)) {
-                        const filtered = value.filter((v) => validKeys.has(String(v)));
+                        const filtered = value.filter((v) => validKeys.has(v));
                         return filtered.length > 0 ? filtered : null;
                     }
                     if (typeof value === 'string' && validKeys.has(value)) {

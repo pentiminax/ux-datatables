@@ -828,6 +828,14 @@ final class DataTableTest extends TestCase
     }
 
     #[Test]
+    public function it_does_not_serialize_header_reset_button_without_filters(): void
+    {
+        $table = new DataTable('tableId', ['showHeaderResetButton' => true]);
+
+        $this->assertArrayNotHasKey('showHeaderResetButton', $table->getOptions());
+    }
+
+    #[Test]
     public function it_allows_filters_to_override_table_header_reset_button(): void
     {
         $filters = (new \Pentiminax\UX\DataTables\Model\Filters())

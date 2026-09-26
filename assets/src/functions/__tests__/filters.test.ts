@@ -379,4 +379,38 @@ describe('FilterBar', () => {
         expect(wrapper.querySelector('.dt-filters-badge')?.textContent).toBe('1')
         expect((wrapper.querySelector('select[name="filters[status]"]') as HTMLSelectElement).value).toBe('')
     })
+
+    it('drops malformed persisted values instead of throwing during restoreValues', () => {
+        const { bar } = makeBar([
+            { name: 'name', type: 'text' },
+            { name: 'createdAt', type: 'dateRange' },
+            { name: 'status', type: 'select', options: { active: 'Active' } },
+        ])
+        const wrapper = bar.render(vi.fn())
+
+        expect(() =>
+            bar.restoreValues({
+                name: 42,
+                createdAt: { from: 5, to: null },
+                status: { from: 'active' },
+            })
+        ).not.toThrow()
+        expect(() => bar.restoreValues('not-an-object')).not.toThrow()
+
+        expect(bar.collectValues()).toEqual({})
+        expect(wrapper.querySelector('.dt-filters-badge')?.textContent).toBe('0')
+    })
+
+    it('restores numeric multi-select values as selected string options', () => {
+        const { bar } = makeBar([
+            { name: 'role', type: 'select', multiple: true, options: { '1': 'Admin', '2': 'User' } },
+        ])
+        const wrapper = bar.render(vi.fn())
+
+        bar.restoreValues({ role: [1, 'unknown'] })
+
+        const select = wrapper.querySelector('select[name="filters[role]"]') as HTMLSelectElement
+        expect(bar.collectValues()).toEqual({ role: ['1'] })
+        expect([...select.selectedOptions].map((option) => option.value)).toEqual(['1'])
+    })
 })
