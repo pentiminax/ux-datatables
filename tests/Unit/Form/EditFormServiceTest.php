@@ -511,6 +511,7 @@ final class EditFormServiceTest extends TestCase
 
 final class EditFormServiceFixture
 {
+    public string $name = '';
 }
 
 final class EditActionMissingDataTable extends EditFormServiceFixtureDataTable
