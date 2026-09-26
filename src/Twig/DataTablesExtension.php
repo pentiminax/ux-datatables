@@ -77,9 +77,14 @@ class DataTablesExtension extends AbstractExtension
             $columns,
         ));
 
-        $this->filterBulkActions($options, $dataTable->getBulkActions(), $dataTableClass);
+        $extensions = $dataTable->getExtensions();
 
-        $view = array_merge($options, $dataTable->getExtensions(), [
+        // Checkboxes the table only shows for its bulk actions would select rows for nothing.
+        if (!$this->filterBulkActions($options, $dataTable->getBulkActions(), $dataTableClass) && $dataTable->isSelectionForBulkActions()) {
+            unset($extensions['select']);
+        }
+
+        $view = array_merge($options, $extensions, [
             'dataTable' => $this->ajaxRegistry?->getActionToken($dataTableClass),
             'editModal' => [
                 'adapter' => $dataTable->getEditModalAdapter(),
@@ -130,11 +135,13 @@ class DataTablesExtension extends AbstractExtension
      * Drop bulk actions the user may not run, without touching the container-shared collection.
      *
      * @param array<string, mixed> $options
+     *
+     * @return bool whether the user may run at least one bulk action
      */
-    private function filterBulkActions(array &$options, ?BulkActions $bulkActions, string $dataTableClass): void
+    private function filterBulkActions(array &$options, ?BulkActions $bulkActions, string $dataTableClass): bool
     {
         if (null === $bulkActions || !isset($options['bulkActions'])) {
-            return;
+            return false;
         }
 
         $allowed = (clone $bulkActions)->filterStaticPermissions(
@@ -145,10 +152,12 @@ class DataTablesExtension extends AbstractExtension
         if ($allowed->isEmpty()) {
             unset($options['bulkActions']);
 
-            return;
+            return false;
         }
 
         $options['bulkActions']['actions'] = $allowed->jsonSerialize();
+
+        return true;
     }
 
     private function getMutationToken(): ?string

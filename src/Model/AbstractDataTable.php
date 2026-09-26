@@ -103,9 +103,10 @@ abstract class AbstractDataTable
 
         $this->asDataTable = $this->resolveAsDataTable();
 
-        $this->table = $this->configureDataTable(
-            $this->infrastructure()->createDataTable($this->getClassName())
-        );
+        $table         = $this->infrastructure()->createDataTable($this->getClassName());
+        $defaultSelect = $table->getExtensionsCollection()->getSelectExtension();
+
+        $this->table = $this->configureDataTable($table);
 
         $this->table->setDataTableClass(static::class);
 
@@ -137,7 +138,7 @@ abstract class AbstractDataTable
         $bulkActions = $this->configureBulkActions(new BulkActions());
 
         if (!$bulkActions->isEmpty()) {
-            $this->enableSelectionForBulkActions();
+            $this->enableSelectionForBulkActions($defaultSelect);
         }
 
         $this->table->setBulkActions($bulkActions);
@@ -594,16 +595,20 @@ abstract class AbstractDataTable
 
     /**
      * Bulk actions need checkboxes and multi-row selection, so a table that declares them gets the
-     * Select extension configured for that. A table that already declares Select keeps its own
+     * Select extension configured for that. A table that declares Select itself keeps its own
      * configuration, except that single-row selection is refused outright: it can never produce a
      * batch.
+     *
+     * The bundle-wide `data_tables.extensions.select` default is not a choice the table made, so it
+     * is replaced rather than refused: its `single` default would otherwise break every table that
+     * declares bulk actions.
      */
-    private function enableSelectionForBulkActions(): void
+    private function enableSelectionForBulkActions(?SelectExtension $defaultSelect): void
     {
         $select = $this->table->getExtensionsCollection()->getSelectExtension();
 
-        if (null === $select) {
-            $this->table->addExtension(
+        if (null === $select || $select === $defaultSelect) {
+            $this->table->useSelectionForBulkActions(
                 (new SelectExtension(style: SelectStyle::MULTI))->withCheckbox()->headerCheckbox()
             );
 

@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\Model\BulkAction;
 use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -44,6 +45,40 @@ final class AbstractDataTableBulkActionsTest extends TestCase
         $table = $this->table(static fn (DataTable $t): DataTable => $t->extensions([$configured]));
 
         $this->assertSame($configured, $table->getDataTable()->getExtensionsCollection()->getSelectExtension());
+    }
+
+    #[Test]
+    public function it_replaces_a_bundle_wide_single_selection_instead_of_refusing_it(): void
+    {
+        $table = $this->table();
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(extensions: ['select' => ['style' => 'single']]));
+
+        $dataTable = $table->getDataTable();
+        $payload   = $dataTable->getExtensionsCollection()->getSelectExtension()?->jsonSerialize();
+
+        $this->assertSame('multi', $payload['style'] ?? null);
+        $this->assertTrue($payload['withCheckbox']);
+        $this->assertTrue($payload['headerCheckbox']);
+        $this->assertTrue($dataTable->isSelectionForBulkActions());
+    }
+
+    #[Test]
+    public function it_adds_checkboxes_to_a_bundle_wide_multi_selection(): void
+    {
+        $table = $this->table();
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(extensions: ['select' => ['style' => 'multi']]));
+
+        $payload = $table->getDataTable()->getExtensionsCollection()->getSelectExtension()?->jsonSerialize();
+
+        $this->assertTrue($payload['withCheckbox'] ?? null);
+    }
+
+    #[Test]
+    public function it_does_not_claim_a_selection_the_table_declared(): void
+    {
+        $table = $this->table(static fn (DataTable $t): DataTable => $t->extensions([new SelectExtension(style: SelectStyle::MULTI)]));
+
+        $this->assertFalse($table->getDataTable()->isSelectionForBulkActions());
     }
 
     #[Test]
