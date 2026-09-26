@@ -57,13 +57,26 @@ export function hasFilters(payload: Record<string, any>): boolean {
     return Array.isArray(payload?.filters) && payload.filters.length > 0
 }
 
-function normalizeValue(value: FilterValue | null): FilterValue | null {
-    if (value === null) return null
-    if (typeof value === 'string') return value.trim() === '' ? null : value
-    if (Array.isArray(value)) return value.length === 0 ? null : value
+function isFilledString(value: unknown): value is string {
+    return typeof value === 'string' && value.trim() !== ''
+}
 
-    const from = value.from?.trim() ? value.from : undefined
-    const to = value.to?.trim() ? value.to : undefined
+/**
+ * Also runs on untrusted persisted state, so every shape is checked rather
+ * than trusted from the `FilterValue` type.
+ */
+function normalizeValue(value: unknown): FilterValue | null {
+    if (typeof value === 'string') return isFilledString(value) ? value : null
+    if (Array.isArray(value)) {
+        const items = value
+            .filter((item) => typeof item === 'string' || typeof item === 'number')
+            .map(String)
+        return items.length === 0 ? null : items
+    }
+    if (!isPlainRecord(value)) return null
+
+    const from = isFilledString(value.from) ? value.from : undefined
+    const to = isFilledString(value.to) ? value.to : undefined
     if (from === undefined && to === undefined) return null
 
     const range: { from?: string; to?: string } = {}
@@ -120,10 +133,7 @@ export class FilterBar {
 
         this.wrapper.appendChild(this.toggle)
 
-        const showHeaderReset =
-            payload.showHeaderResetButton === true || payload.filtersHeaderReset === true
-
-        if (showHeaderReset) {
+        if (payload.showHeaderResetButton === true) {
             this.headerResetButton = document.createElement('button')
             this.headerResetButton.type = 'button'
             this.headerResetButton.className = 'dt-filters-header-reset'
@@ -204,10 +214,6 @@ export class FilterBar {
         return this.applied
     }
 
-    getDefinitions(): FilterDefinition[] {
-        return this.definitions
-    }
-
     /** Live values currently entered in the controls (not yet applied). */
     private snapshot(): Record<string, FilterValue> {
         const out: Record<string, FilterValue> = {}
@@ -223,8 +229,8 @@ export class FilterBar {
     /**
      * Restore previously saved filter values (e.g. from stateSave).
      */
-    restoreValues(values: Record<string, FilterValue>): void {
-        if (!values || typeof values !== 'object') {
+    restoreValues(values: unknown): void {
+        if (!isPlainRecord(values)) {
             return
         }
 
@@ -265,7 +271,7 @@ export class FilterBar {
                 const validKeys = new Set(Object.keys(definition.options ?? {}))
                 if (definition.multiple === true) {
                     if (Array.isArray(value)) {
-                        const filtered = value.filter((v) => validKeys.has(String(v)))
+                        const filtered = value.filter((v) => validKeys.has(v))
                         return filtered.length > 0 ? filtered : null
                     }
                     if (typeof value === 'string' && validKeys.has(value)) {
@@ -290,32 +296,10 @@ export class FilterBar {
                 }
                 return null
             }
-            case 'dateRange': {
-                if (value && typeof value === 'object' && !Array.isArray(value)) {
-                    const from =
-                        typeof value.from === 'string' && value.from.trim() !== ''
-                            ? value.from.trim()
-                            : undefined
-                    const to =
-                        typeof value.to === 'string' && value.to.trim() !== ''
-                            ? value.to.trim()
-                            : undefined
-                    if (from === undefined && to === undefined) {
-                        return null
-                    }
-                    const range: { from?: string; to?: string } = {}
-                    if (from !== undefined) range.from = from
-                    if (to !== undefined) range.to = to
-                    return range
-                }
-                return null
-            }
-            default: {
-                if (typeof value === 'string' && value.trim() !== '') {
-                    return value
-                }
-                return null
-            }
+            case 'dateRange':
+                return isPlainRecord(value) ? value : null
+            default:
+                return typeof value === 'string' ? value : null
         }
     }
 

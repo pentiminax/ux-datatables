@@ -32,6 +32,7 @@ use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountDocument;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
@@ -411,6 +412,109 @@ final class BulkActionRunnerTest extends TestCase
     }
 
     #[Test]
+    public function it_resolves_a_select_all_in_the_primary_key_when_id_is_another_field(): void
+    {
+        $em = $this->createEntityManager(CountDocument::class);
+        $em->persist(new CountDocument(1, 10, 'Alpha'));
+        $em->persist(new CountDocument(2, 20, 'Beta'));
+        $em->persist(new CountDocument(10, 99, 'Gamma'));
+        $em->flush();
+        $em->clear();
+
+        $seen   = [];
+        $action = BulkAction::new('touch')->handler(function (BulkRecords $records) use (&$seen): void {
+            foreach ($records as $document) {
+                $seen[] = $document->name;
+            }
+        });
+
+        $result = $this->runner(em: $em)->run(
+            $this->resolvedDocument($em, $action),
+            $action,
+            new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+            $this->postRequest(),
+        );
+
+        // Collecting the leftover `id` column would look up pk 10/20/99 and mutate only Gamma.
+        $this->assertSame(['Alpha', 'Beta', 'Gamma'], $seen);
+        $this->assertSame(3, $result->processed);
+        $this->assertSame(0, $result->skipped);
+    }
+
+    #[Test]
+    public function it_follows_the_highlight_id_field_when_that_is_what_dt_row_id_writes(): void
+    {
+        $em = $this->createEntityManager(CountDocument::class);
+        $em->persist(new CountDocument(1, 10, 'Alpha'));
+        $em->persist(new CountDocument(2, 20, 'Beta'));
+        $em->persist(new CountDocument(10, 99, 'Gamma'));
+        $em->flush();
+        $em->clear();
+
+        $provider = new class implements DataProviderInterface, IdentifierCollectingDataProviderInterface {
+            public ?string $seenField = null;
+
+            public function fetchData(DataTableRequest $request): DataTableResult
+            {
+                return new DataTableResult(0, 0, []);
+            }
+
+            public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
+            {
+                $this->seenField = $field;
+
+                return [10, 20];
+            }
+        };
+
+        $seen   = [];
+        $action = BulkAction::new('touch')->handler(function (BulkRecords $records) use (&$seen): void {
+            foreach ($records as $document) {
+                $seen[] = $document->name;
+            }
+        });
+
+        $result = $this->runner(em: $em)->run(
+            $this->resolvedDocument($em, $action, provider: $provider, highlightIdField: 'id'),
+            $action,
+            new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+            $this->postRequest(),
+        );
+
+        $this->assertSame('id', $provider->seenField);
+        $this->assertEqualsCanonicalizing(['Alpha', 'Beta'], $seen);
+        $this->assertSame(2, $result->processed);
+    }
+
+    #[Test]
+    public function it_refuses_a_highlight_id_field_that_doctrine_cannot_look_up(): void
+    {
+        $em = $this->createEntityManager(CountDocument::class);
+        $em->persist(new CountDocument(1, 10, 'Alpha'));
+        $em->flush();
+        $em->clear();
+
+        $handled = false;
+        $action  = BulkAction::new('touch')->handler(function () use (&$handled): void {
+            $handled = true;
+        });
+
+        try {
+            $this->runner(em: $em)->run(
+                $this->resolvedDocument($em, $action, highlightIdField: 'reference'),
+                $action,
+                new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+                $this->postRequest(),
+            );
+            $this->fail('An unmapped highlight id field must be refused.');
+        } catch (\LogicException $exception) {
+            $this->assertStringContainsString('"reference"', $exception->getMessage());
+        }
+
+        $this->assertFalse($handled);
+    }
+
+    #[Test]
     public function it_subtracts_the_rows_deselected_after_a_select_all(): void
     {
         $seen   = [];
@@ -467,9 +571,10 @@ final class BulkActionRunnerTest extends TestCase
         ?MutationFlusher $flusher = null,
         ?MercurePublisherInterface $publisher = null,
         ?MercureTopicResolver $topicResolver = null,
+        ?EntityManagerInterface $em = null,
     ): BulkActionRunner {
         $registry = $this->createStub(ManagerRegistry::class);
-        $registry->method('getManagerForClass')->willReturn($this->em);
+        $registry->method('getManagerForClass')->willReturn($em ?? $this->em);
 
         return new BulkActionRunner(
             new EntityLocator($registry),
@@ -512,6 +617,37 @@ final class BulkActionRunnerTest extends TestCase
         );
 
         return new ResolvedDataTable($table, CountCustomer::class, AbstractDataTable::class);
+    }
+
+    private function resolvedDocument(
+        EntityManagerInterface $em,
+        BulkAction $action,
+        ?DataProviderInterface $provider = null,
+        ?string $highlightIdField = null,
+    ): ResolvedDataTable {
+        $table = new ConfigurableDataTable(
+            columnsConfig: [TextColumn::new('id'), TextColumn::new('name')],
+            configureTable: static function (DataTable $table) use ($highlightIdField): DataTable {
+                $table->serverSide();
+
+                return null === $highlightIdField ? $table : $table->highlightUpdates(idField: $highlightIdField);
+            },
+            dataProvider: $provider ?? new DoctrineDataProvider(
+                em: $em,
+                entityClass: CountDocument::class,
+                rowMapper: new class implements \Pentiminax\UX\DataTables\Contracts\RowMapperInterface {
+                    public function map(mixed $row): array
+                    {
+                        $item = $row instanceof RowContext ? $row->item : $row;
+
+                        return ['id' => $item->id, 'name' => $item->name];
+                    }
+                },
+            ),
+            bulkActions: static fn (BulkActions $actions): BulkActions => $actions->add($action),
+        );
+
+        return new ResolvedDataTable($table, CountDocument::class, AbstractDataTable::class);
     }
 
     private function postRequest(): Request

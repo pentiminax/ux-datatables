@@ -135,7 +135,10 @@ unchecked afterwards.
 This requires a data provider implementing `IdentifierCollectingDataProviderInterface`;
 `DoctrineDataProvider` does. The provider is asked for the field the selection speaks in — the one
 written as `DT_RowId`, which `setIdField()` may point away from the primary key — so a custom
-implementation must answer with values from that field. Any other provider answers `400` for a select-all, and so does a table
+implementation must answer with values from that field. A table that calls `highlightUpdates()` writes
+`DT_RowId` from its `idField` instead. Either way, that field must be a mapped, unique Doctrine field:
+the rows are loaded back by its values, so a value shared by several rows would pull in every one of
+them, including rows outside the current search and filters. Any other provider answers `400` for a select-all, and so does a table
 declaring `selectCurrentPageOnly()`.
 
 ## Authorization
