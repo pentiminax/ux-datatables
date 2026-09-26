@@ -855,4 +855,27 @@ final class DataTableTest extends TestCase
         $serialized2 = $table->getOptions();
         $this->assertTrue($serialized2['showHeaderResetButton'] ?? false);
     }
+
+    #[Test]
+    public function it_records_a_selection_enabled_on_behalf_of_bulk_actions(): void
+    {
+        $table  = new DataTable('testTable');
+        $select = (new SelectExtension(style: SelectStyle::MULTI))->withCheckbox();
+
+        $this->assertFalse($table->isSelectionForBulkActions());
+
+        $table->useSelectionForBulkActions($select);
+
+        $this->assertTrue($table->isSelectionForBulkActions());
+        $this->assertSame($select, $table->getExtensionsCollection()->getSelectExtension());
+    }
+
+    #[Test]
+    public function it_does_not_attribute_a_selection_added_directly_to_bulk_actions(): void
+    {
+        $table = new DataTable('testTable');
+        $table->addExtension(new SelectExtension(style: SelectStyle::MULTI));
+
+        $this->assertFalse($table->isSelectionForBulkActions());
+    }
 }
