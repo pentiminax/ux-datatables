@@ -79,7 +79,7 @@ none); the next selection change brings the count back. Move the button with
 Declaring a bulk action also enables the Select extension in `multi` style with a checkbox column
 and a header checkbox, unless the table configures one itself. A bundle-wide
 `data_tables.extensions.select` default does not count as the table's own choice: it is replaced
-for tables that declare bulk actions. Configuring `SelectStyle::SINGLE` on the table alongside bulk
+for tables that declare bulk actions, unless `configureDataTable()` changed it in place. Configuring `SelectStyle::SINGLE` on the table alongside bulk
 actions throws — a bulk action over one row is a row action.
 
 When the current user may run none of the declared actions, the button disappears, and so do the

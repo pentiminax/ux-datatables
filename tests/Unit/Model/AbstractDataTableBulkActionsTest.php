@@ -74,6 +74,39 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     }
 
     #[Test]
+    public function it_refuses_a_bundle_wide_selection_the_table_switched_to_single_in_place(): void
+    {
+        $table = $this->table(static function (DataTable $t): DataTable {
+            $t->getExtensionsCollection()->getSelectExtension()?->style(SelectStyle::SINGLE);
+
+            return $t;
+        });
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(extensions: ['select' => ['style' => 'multi']]));
+
+        $this->expectException(\LogicException::class);
+
+        $table->getDataTable();
+    }
+
+    #[Test]
+    public function it_keeps_a_bundle_wide_selection_the_table_customized_in_place(): void
+    {
+        $table = $this->table(static function (DataTable $t): DataTable {
+            $t->getExtensionsCollection()->getSelectExtension()?->withCheckbox();
+
+            return $t;
+        });
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(extensions: ['select' => ['style' => 'multi']]));
+
+        $dataTable = $table->getDataTable();
+        $payload   = $dataTable->getExtensionsCollection()->getSelectExtension()?->jsonSerialize();
+
+        $this->assertTrue($payload['withCheckbox'] ?? null);
+        $this->assertFalse($payload['headerCheckbox']);
+        $this->assertFalse($dataTable->isSelectionForBulkActions());
+    }
+
+    #[Test]
     public function it_does_not_claim_a_selection_the_table_declared(): void
     {
         $table = $this->table(static fn (DataTable $t): DataTable => $t->extensions([new SelectExtension(style: SelectStyle::MULTI)]));
