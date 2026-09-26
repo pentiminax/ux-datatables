@@ -90,28 +90,4 @@ final class BulkActionTest extends TestCase
         $this->assertFalse($perRow->hasStaticPermission());
         $this->assertTrue($perRow->hasPerRowPermission());
     }
-
-    #[Test]
-    public function a_denied_copy_carries_no_actionable_data(): void
-    {
-        $payload = BulkAction::new('approve', 'Approve')
-            ->askConfirmation('Approve {count} orders?')
-            ->successMessage('Done.')
-            ->asDenied()
-            ->jsonSerialize();
-
-        $this->assertTrue($payload['denied']);
-        $this->assertArrayNotHasKey('confirm', $payload);
-        $this->assertArrayNotHasKey('successMessage', $payload);
-        $this->assertArrayNotHasKey('deselectAfterCompletion', $payload);
-    }
-
-    #[Test]
-    public function a_denied_copy_leaves_the_original_untouched(): void
-    {
-        $action = BulkAction::new('approve');
-        $action->asDenied();
-
-        $this->assertFalse($action->isDenied());
-    }
 }

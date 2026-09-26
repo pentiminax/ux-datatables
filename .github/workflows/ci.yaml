@@ -31,6 +31,10 @@ jobs:
       - name: Check for dangerous and broken dependencies
         run: composer audit
 
+      - name: Check coding standards
+        if: matrix.php == '8.4'
+        run: vendor/bin/php-cs-fixer fix --dry-run --diff
+
       - name: Run automated tests
         run: vendor/bin/phpunit --coverage-text --coverage-xml build/coverage-xml --coverage-cobertura build/cobertura.xml
 
@@ -70,3 +74,14 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Source maps are left out: their mappings differ between build environments even when the
+      # emitted code is identical, so only the files the bundle ships are compared.
+      - name: Check that dist matches the sources
+        run: |
+          if [ -n "$(git status --porcelain -- dist ':(exclude)*.map')" ]; then
+            echo "assets/dist is out of date: run 'npm run build' in assets/ and commit the result."
+            git status --short -- dist ':(exclude)*.map'
+            git diff --stat -- dist ':(exclude)*.map'
+            exit 1
+          fi

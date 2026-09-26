@@ -15,7 +15,6 @@ export interface BulkActionDefinition {
     confirmButton?: string
     successMessage?: string
     deselectAfterCompletion?: boolean
-    denied?: boolean
 }
 
 export interface BulkActionLabels {
@@ -266,7 +265,7 @@ export class BulkActionBar {
         item.dataset.bulkAction = action.name
         item.setAttribute('role', 'menuitem')
 
-        if (action.denied === true || !this.canRun()) {
+        if (!this.canRun()) {
             item.disabled = true
 
             return item
