@@ -127,13 +127,14 @@ stay named arguments:
 
 ```php
 use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
+use Pentiminax\UX\DataTables\Column\EmailColumn;
 
 // before
-#[Column(title: 'Email', orderable: false, width: '120px')]
+#[Column(type: EmailColumn::class, title: 'Email', orderable: false, width: '120px')]
 private string $email;
 
 // after
-#[DataTableColumn(options: ['title' => 'Email', 'orderable' => false, 'width' => '120px'])]
+#[DataTableColumn(EmailColumn::class, ['title' => 'Email', 'orderable' => false, 'width' => '120px'])]
 private string $email;
 ```
 

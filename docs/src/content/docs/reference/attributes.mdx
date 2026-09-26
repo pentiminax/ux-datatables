@@ -216,7 +216,10 @@ unless the API Platform opt-in is set — through the attribute's `apiPlatform: 
 Target: property, method, or class. Repeatable.
 
 ```php
-#[DataTableColumn(options: ['title' => 'Email', 'orderable' => false])]
+use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
+use Pentiminax\UX\DataTables\Column\EmailColumn;
+
+#[DataTableColumn(EmailColumn::class, ['title' => 'Email', 'orderable' => false])]
 private string $email;
 ```
 
@@ -353,12 +356,14 @@ data class. The full reference, including the guessed types and the `values` ali
 Its named parameters each became an option, so migration is mechanical:
 
 ```php
+use Pentiminax\UX\DataTables\Column\EmailColumn;
+
 // Before
-#[Column(title: 'Email', orderable: false, width: '120px')]
+#[Column(type: EmailColumn::class, title: 'Email', orderable: false, width: '120px')]
 private string $email;
 
 // After
-#[DataTableColumn(options: ['title' => 'Email', 'orderable' => false, 'width' => '120px'])]
+#[DataTableColumn(EmailColumn::class, ['title' => 'Email', 'orderable' => false, 'width' => '120px'])]
 private string $email;
 ```
 
