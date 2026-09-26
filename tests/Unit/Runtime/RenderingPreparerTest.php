@@ -600,6 +600,7 @@ final class RenderingPreparerTest extends TestCase
         $this->assertSame('tr:bulk.bar.trigger', $bulk['labels']['trigger']);
         $this->assertSame('tr:bulk.bar.selected', $bulk['labels']['selected']);
         $this->assertSame('tr:bulk.bar.skipped', $bulk['labels']['skipped']);
+        $this->assertSame('tr:bulk.bar.failed', $bulk['labels']['failed']);
     }
 
     #[Test]

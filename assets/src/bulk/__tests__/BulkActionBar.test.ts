@@ -300,6 +300,66 @@ describe('BulkActionBar', () => {
         })
     })
 
+    it('keeps the outcome through the reload, then shows the count once the selection changes', async () => {
+        const h = build()
+        const count = (): string | null | undefined =>
+            summary().querySelector('.dt-bulk-summary__count')?.textContent
+        h.api.emitSelection('select', [0, 1])
+
+        item(h).click()
+        await vi.waitFor(() => expect(h.api.reloaded.length).toBe(1))
+
+        h.api.drawPage([
+            { id: '1', selected: false },
+            { id: '2', selected: false },
+        ])
+        expect(count()).toContain('2 processed')
+
+        h.api.emitSelection('select', [0])
+        expect(count()).toBe('1 records selected')
+    })
+
+    it('reports a refused run with the endpoint message instead of a success', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi
+                .fn()
+                .mockResolvedValue(
+                    new Response(
+                        JSON.stringify({ success: false, message: 'No row is selected.' }),
+                        { status: 400 }
+                    )
+                )
+        )
+        const h = build({
+            bulkActions: {
+                actions: [{ name: 'approve', label: 'Approve', successMessage: 'Approved.' }],
+            },
+        })
+        h.api.emitSelection('select', [0])
+
+        item(h).click()
+        await vi.waitFor(() => expect(h.api.reloaded.length).toBe(1))
+
+        expect(summary().querySelector('.dt-bulk-summary__count')?.textContent).toBe(
+            'No row is selected.'
+        )
+        expect(h.api.rows({ selected: true }).ids().toArray()).toEqual(['1'])
+        expect(h.dispatch).toHaveBeenCalledWith('bulk:error', expect.anything())
+    })
+
+    it('reports a run the network cut short and reloads what was committed', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+        const h = build({ bulkActions: { labels: { failed: 'Run failed.' } } })
+        h.api.emitSelection('select', [0])
+
+        item(h).click()
+        await vi.waitFor(() => expect(h.api.reloaded.length).toBe(1))
+
+        expect(summary().querySelector('.dt-bulk-summary__count')?.textContent).toBe('Run failed.')
+        expect(h.dispatch).toHaveBeenCalledWith('bulk:error', expect.anything())
+    })
+
     it('does nothing without a selection', async () => {
         const h = build()
 
