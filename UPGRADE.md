@@ -109,11 +109,64 @@ Two details are worth checking in an existing application:
   forces. The bundle detects a single Doctrine identifier automatically; configure another field
   with `BulkActions::setIdField()` when no Doctrine metadata is available.
 
+- **A bundle-wide `data_tables.extensions.select` default does not apply to a table with bulk
+  actions.** Such a table always gets a multi-row selection with checkboxes. Only a Select extension
+  the table configures itself is kept, and a single-row one throws.
+
 A custom data provider can opt into "select every matching row" by implementing
 `IdentifierCollectingDataProviderInterface`; `DoctrineDataProvider` already does. Its
 `collectIdentifiers()` receives the field the selection speaks in — the one written as `DT_RowId` —
 so it must answer with values from that field, not from the primary key. Without the interface, a
 select-all is rejected with `400` while an explicit selection keeps working.
+
+### `#[Column]` is deprecated in favor of `#[DataTableColumn]`
+
+`#[Column]` still works for the whole 1.x line, but triggers a deprecation and is removed in 2.0.
+Each of its named parameters became an entry of the `options` array; `type`, `name` and `position`
+stay named arguments:
+
+```php
+use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
+
+// before
+#[Column(title: 'Email', orderable: false, width: '120px')]
+private string $email;
+
+// after
+#[DataTableColumn(options: ['title' => 'Email', 'orderable' => false, 'width' => '120px'])]
+private string $email;
+```
+
+The new attribute also goes on a getter or on the table class, and filters get their own
+`#[DataTableFilter]`. See [Attributes](https://pentiminax.github.io/ux-datatables/reference/attributes/).
+
+### `Feature` gains a `BULK_ACTIONS` case
+
+`Pentiminax\UX\DataTables\Enum\Feature` has a new `BULK_ACTIONS` case, the layout marker of the
+bulk action button. A `match` over `Feature` without a `default` arm must handle it.
+
+### `Action::asAjaxRequest()` no longer requires a CSRF token id (additive)
+
+The argument is now optional. Without one, the token is signed with the action name, or with the
+id set through the new `csrfToken()` method (alias `csrfTokenId()`). Existing calls passing an id
+behave as before. An endpoint serving an action declared without an id validates the action name:
+
+```php
+// the action
+Action::new('publish', 'Publish')
+    ->linkToRoute('book_publish', fn (Book $book): array => ['id' => $book->getId()])
+    ->asAjaxRequest();
+
+// the endpoint
+#[IsCsrfTokenValid('publish')]
+public function publish(Book $book): Response
+```
+
+### `ChoiceFilter::options()` accepts an entity class (additive)
+
+A class-string that is not a `BackedEnum` used to throw. It now loads the options from that
+Doctrine entity, like `ChoiceFilter::entity()`. See
+[Filters](https://pentiminax.github.io/ux-datatables/reference/filters/#options-from-a-doctrine-entity).
 
 ## v0.90 → v1.0
 
