@@ -183,6 +183,14 @@ final class ValidateDataTableAttributesPassTest extends TestCase
     }
 
     #[Test]
+    public function it_accepts_a_field_the_entity_inherits_as_a_private_property(): void
+    {
+        $this->process(InheritedIdProjectionTableFixture::class);
+
+        $this->expectNotToPerformAssertions();
+    }
+
+    #[Test]
     public function it_leaves_a_column_building_its_own_search_predicate_alone(): void
     {
         $container = $this->process(CustomPredicateProjectionTableFixture::class);
@@ -394,5 +402,29 @@ final class CustomPredicateProjectionDataFixture
 
 #[AsDataTable(dataClass: CustomPredicateProjectionDataFixture::class, entityClass: ProjectedEntityFixture::class)]
 final class CustomPredicateProjectionTableFixture extends AbstractDataTable
+{
+}
+
+abstract class MappedSuperclassFixture
+{
+    private ?int $id = null;
+}
+
+class InheritedIdEntityFixture extends MappedSuperclassFixture
+{
+    public string $name = '';
+}
+
+final class InheritedIdProjectionDataFixture
+{
+    #[DataTableColumn]
+    public int $id = 0;
+
+    #[DataTableColumn]
+    public string $name = '';
+}
+
+#[AsDataTable(dataClass: InheritedIdProjectionDataFixture::class, entityClass: InheritedIdEntityFixture::class)]
+final class InheritedIdProjectionTableFixture extends AbstractDataTable
 {
 }
