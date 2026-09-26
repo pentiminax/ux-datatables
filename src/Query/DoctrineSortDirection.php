@@ -15,9 +15,12 @@ use Doctrine\ORM\QueryBuilder;
  */
 final class DoctrineSortDirection
 {
-    public static function from(string $direction): string|\SortDirection
+    /**
+     * @param class-string $queryBuilderClass class whose addOrderBy() receives the direction
+     */
+    public static function from(string $direction, string $queryBuilderClass = QueryBuilder::class): string|\SortDirection
     {
-        $orderType = (string) (new \ReflectionParameter([QueryBuilder::class, 'addOrderBy'], 1))->getType();
+        $orderType = (string) (new \ReflectionParameter([$queryBuilderClass, 'addOrderBy'], 1))->getType();
         if (!str_contains($orderType, 'SortDirection')) {
             return $direction;
         }
