@@ -193,6 +193,20 @@ The response is `{"success": true, "processed": n, "skipped": m}`.
   actually happened.
 </Aside>
 
+## Events
+
+The table element dispatches `datatables:bulk:start` before the request, then
+`datatables:bulk:success` or `datatables:bulk:error`. Each carries the action name; `start` adds the
+selection, `success` the parsed response, and `error` either the refused response or the network
+error:
+
+```javascript
+this.element.addEventListener('datatables:bulk:success', (event) => {
+  const { action, result } = event.detail
+  console.info(`${action}: ${result.processed} processed, ${result.skipped} skipped`)
+})
+```
+
 ## Translations
 
 The chrome is translated server-side from the `DataTables` catalog: `bulk.bar.trigger` (the button

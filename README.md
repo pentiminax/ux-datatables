@@ -94,11 +94,16 @@ public function index(UserDataTable $table, Request $request): Response
 
 > Tip: run `php bin/console make:datatable` to scaffold a DataTable class from any Doctrine entity.
 
+Beyond this, a table can declare filters, row actions, bulk actions over the selected rows, inline
+editing and exports, and stay live through Mercure or API Platform. `DataTableTestCase` tests it
+through the same Ajax routes the browser uses.
+
 ## Security
 
 The bundle auto-registers a set of Ajax routes under `/datatables/ajax/*` (`ux_datatables_ajax_data`,
 `ux_datatables_ajax_delete`, `ux_datatables_ajax_edit`, `ux_datatables_ajax_edit_form`,
-`ux_datatables_ajax_edit_form_submit`, `ux_datatables_ajax_detail`, `ux_datatables_ajax_export`).
+`ux_datatables_ajax_edit_form_submit`, `ux_datatables_ajax_detail`, `ux_datatables_ajax_bulk`,
+`ux_datatables_ajax_export`).
 
 The table token embedded in the rendered HTML identifies **which** table is requested, not **who** is
 requesting it — it is **not** a user-authentication or per-user authorization mechanism. If a table is
