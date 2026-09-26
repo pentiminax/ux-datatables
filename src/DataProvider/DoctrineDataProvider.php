@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
+use Pentiminax\UX\DataTables\Query\DoctrineSortDirection;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
 class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectingDataProviderInterface, StreamingDataProviderInterface
@@ -223,7 +224,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             ? $field
             : $metadata->getSingleIdentifierFieldName();
 
-        $qb->addOrderBy("$alias.$identifier", 'ASC');
+        $qb->addOrderBy("$alias.$identifier", DoctrineSortDirection::from('asc'));
 
         return [$qb, $alias, $identifier];
     }

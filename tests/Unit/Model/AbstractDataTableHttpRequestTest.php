@@ -51,7 +51,7 @@ final class AbstractDataTableHttpRequestTest extends TestCase
             ->willReturn($qb);
         $qb->expects($this->once())
             ->method('addOrderBy')
-            ->with('e.id', 'desc')
+            ->with('e.id', \SortDirection::Descending)
             ->willReturn($qb);
 
         $request = new DataTableRequest(

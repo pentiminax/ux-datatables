@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
+use Pentiminax\UX\DataTables\Query\DoctrineSortDirection;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 
@@ -40,7 +41,7 @@ final class OrderFilter implements QueryFilterInterface
 
         $orderExpression = $column->getOrderExpression();
         if (null !== $orderExpression) {
-            $qb->addOrderBy($orderExpression, $orderDir);
+            $qb->addOrderBy($orderExpression, DoctrineSortDirection::from($orderDir));
 
             return;
         }
@@ -50,6 +51,6 @@ final class OrderFilter implements QueryFilterInterface
             return;
         }
 
-        $qb->addOrderBy(RelationFieldResolver::resolve($qb, $context->alias, $field), $orderDir);
+        $qb->addOrderBy(RelationFieldResolver::resolve($qb, $context->alias, $field), DoctrineSortDirection::from($orderDir));
     }
 }
