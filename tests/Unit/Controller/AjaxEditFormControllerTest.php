@@ -280,6 +280,7 @@ final class AjaxEditFormControllerTest extends TestCase
 
 final class AjaxEditFormControllerFixture
 {
+    public string $name = '';
 }
 
 #[AsDataTable(entityClass: AjaxEditFormControllerFixture::class)]
