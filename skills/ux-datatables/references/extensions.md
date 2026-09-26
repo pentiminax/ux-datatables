@@ -56,8 +56,8 @@ Button::collection([Button::csv(), Button::excel(), 'colvis'])->text('Export');
 
 `Button::csv()` / `Button::excel()` are the DataTables client exports (loaded rows only). On a
 `serverSide()` table, pass `serverSide: true` to stream every filtered row from PHP via OpenSpout.
-Columns follow `setExportable()` / `#[Column(exportable: false)]`. Set the download name with
-`filename('users')`; the extension comes from the format.
+Columns follow `setExportable()` / `#[DataTableColumn(options: ['exportable' => false])]`. Set the
+download name with `filename('users')`; the extension comes from the format.
 
 ```php
 Button::csv(serverSide: true)->text('Export CSV')->filename('users');
