@@ -84,7 +84,6 @@ final class ChoiceFilterTest extends TestCase
         $this->assertSame(['admin' => 'Admin Entity'], $filter->jsonSerialize()['options']);
     }
 
-
     #[Test]
     public function it_configures_entity_options(): void
     {
@@ -130,6 +129,15 @@ final class ChoiceFilterTest extends TestCase
     public function it_applies_a_condition(ChoiceFilter $filter, mixed $value, array $expectedWhere, array $expectedParams): void
     {
         $this->assertFilterProduces($filter, $value, $expectedWhere, $expectedParams);
+    }
+
+    #[Test]
+    public function it_applies_a_condition_on_a_bare_association_field(): void
+    {
+        ChoiceFilter::new('typeDiplome')->apply($this->createAssociationFieldQueryBuilder(), '3', 'e');
+
+        $this->assertSame(['e.typeDiplome = :filter_typeDiplome'], $this->capturedWhere);
+        $this->assertSame(['filter_typeDiplome' => '3'], $this->capturedParams);
     }
 
     /**

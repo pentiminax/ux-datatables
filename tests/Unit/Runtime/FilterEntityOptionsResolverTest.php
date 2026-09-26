@@ -74,6 +74,33 @@ class DummyNamedEntity
     }
 }
 
+class DummyDisplayableEntity implements \Stringable
+{
+    public function __construct(
+        private readonly int $id,
+        private readonly string $display,
+    ) {
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+
+    public function getDisplay(): string
+    {
+        return $this->display;
+    }
+
+    public function __toString(): string
+    {
+        return 'Stringable: '.$this->display;
+    }
+}
+
+/**
+ * @internal
+ */
 #[CoversClass(FilterEntityOptionsResolver::class)]
 final class FilterEntityOptionsResolverTest extends TestCase
 {
@@ -242,6 +269,46 @@ final class FilterEntityOptionsResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_prefers_display_property_over_to_string_when_label_is_omitted(): void
+    {
+        $repository = $this->createStub(EntityRepository::class);
+        $repository->method('findBy')->willReturn([new DummyDisplayableEntity(300, 'Displayed')]);
+
+        $em = $this->createStub(EntityManagerInterface::class);
+        $em->method('getRepository')->willReturn($repository);
+
+        $doctrine = $this->createStub(ManagerRegistry::class);
+        $doctrine->method('getManagerForClass')->willReturn($em);
+
+        $filter = ChoiceFilter::new('level')->entity(DummyDisplayableEntity::class);
+        $table  = (new DataTable('test_table'))->setFilters((new Filters())->add($filter));
+
+        (new FilterEntityOptionsResolver($doctrine))->prepare($table);
+
+        $this->assertSame(['300' => 'Displayed'], $filter->jsonSerialize()['options']);
+    }
+
+    #[Test]
+    public function it_reads_a_string_label_as_a_property_path_even_if_it_names_a_php_function(): void
+    {
+        $repository = $this->createStub(EntityRepository::class);
+        $repository->method('findBy')->willReturn([new DummyEntity(1, 'Bachelor')]);
+
+        $em = $this->createStub(EntityManagerInterface::class);
+        $em->method('getRepository')->willReturn($repository);
+
+        $doctrine = $this->createStub(ManagerRegistry::class);
+        $doctrine->method('getManagerForClass')->willReturn($em);
+
+        $filter = ChoiceFilter::new('typeDiplome')->entity(DummyEntity::class, label: 'trim');
+        $table  = (new DataTable('test_table'))->setFilters((new Filters())->add($filter));
+
+        (new FilterEntityOptionsResolver($doctrine))->prepare($table);
+
+        $this->assertSame(['1' => '1'], $filter->jsonSerialize()['options']);
+    }
+
+    #[Test]
     public function it_auto_resolves_label_from_name_property(): void
     {
         $entities = [
@@ -284,4 +351,3 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $resolver->prepare($table);
     }
 }
-

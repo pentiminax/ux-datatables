@@ -193,4 +193,3 @@ final class DateRangeFilterTest extends TestCase
         $this->assertSame([], $this->capturedParams);
     }
 }
-

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Filter;
 
+use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -35,7 +36,7 @@ final class ChoiceFilter extends AbstractFilter
     /** @var array<string, mixed> */
     private array $entityCriteria = [];
 
-    /** @var (\Closure(object, QueryBuilder): void)|null */
+    /** @var (\Closure(EntityRepository<object>, QueryBuilder): void)|null */
     private ?\Closure $entityQueryBuilder = null;
 
     /**
@@ -84,12 +85,12 @@ final class ChoiceFilter extends AbstractFilter
     /**
      * Configure options to be loaded from a Doctrine entity.
      *
-     * @param class-string $class The entity FQCN
-     * @param string|(\Closure(object): string)|null $label Property path or closure returning the display label (defaults to null for auto-discovery)
-     * @param string $value Property path for the option value (defaults to 'id')
-     * @param array<string, string> $orderBy Sorting criteria (e.g. ['libelle' => 'ASC'])
-     * @param array<string, mixed> $criteria Filtering criteria for findBy
-     * @param (\Closure(object, QueryBuilder): void)|null $queryBuilder Custom query closure
+     * @param class-string                                                  $class        The entity FQCN
+     * @param string|(\Closure(object): string)|null                        $label        Property path or closure returning the display label; null tries display, libelle, name, label, and title, then __toString()
+     * @param string                                                        $value        Property path for the option value (defaults to 'id')
+     * @param array<string, string>                                         $orderBy      Sorting criteria (e.g. ['libelle' => 'ASC'])
+     * @param array<string, mixed>                                          $criteria     Filtering criteria for findBy
+     * @param (\Closure(EntityRepository<object>, QueryBuilder): void)|null $queryBuilder Custom query closure
      */
     public function entity(
         string $class,
