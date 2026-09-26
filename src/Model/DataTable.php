@@ -47,6 +47,8 @@ class DataTable
 
     private ?string $bulkActionsUrl = null;
 
+    private bool $selectionForBulkActions = false;
+
     /** @var array<string, string>|null */
     private ?array $preparedFilterLabels = null;
 
@@ -743,6 +745,27 @@ class DataTable
     public function hasBulkActions(): bool
     {
         return null !== $this->bulkActions && !$this->bulkActions->isEmpty();
+    }
+
+    /**
+     * Enable the Select extension on behalf of the bulk actions, so it can be dropped with them when
+     * the user may run none.
+     *
+     * @internal called by {@see AbstractDataTable} when the table declares bulk actions
+     */
+    public function useSelectionForBulkActions(SelectExtension $select): static
+    {
+        $this->selectionForBulkActions = true;
+
+        return $this->addExtension($select);
+    }
+
+    /**
+     * Whether the Select extension exists only because the table declares bulk actions.
+     */
+    public function isSelectionForBulkActions(): bool
+    {
+        return $this->selectionForBulkActions;
     }
 
     /**
