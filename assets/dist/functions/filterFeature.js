@@ -13,7 +13,7 @@ export function registerFilterFeature(DataTable) {
             return document.createElement('div');
         }
         if (!hasAjaxSource(settings)) {
-            console.warn('[ux-datatables] Filters require an Ajax data source; enable serverSide() to use them.');
+            console.warn('[ux-datatables] Filters require an Ajax source; enable serverSide() to use them.');
             return document.createElement('div');
         }
         const api = new DataTable.Api(settings);

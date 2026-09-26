@@ -61,4 +61,3 @@ describe('registerFilterFeature', () => {
         expect(result).toBeInstanceOf(HTMLDivElement)
     })
 })
-
