@@ -27,6 +27,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
+use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -332,10 +333,77 @@ final class ApiPlatformCollectionProviderTest extends TestCase
         )));
     }
 
+    #[Test]
+    public function it_projects_the_page_and_pairs_source_with_item(): void
+    {
+        $captured = [];
+        $state    = $this->recordingProvider($this->paginator($this->items(2), 2));
+
+        $rows = iterator_to_array(
+            $this->provider($state, pageProjector: $this->titleBadgeProjector(...), capturing: $captured)
+                ->fetchData($this->request(length: 2))
+                ->data,
+            false,
+        );
+
+        $this->assertSame([
+            ['title' => 'Book 0', 'badge' => 'BADGE:Book 0'],
+            ['title' => 'Book 1', 'badge' => 'BADGE:Book 1'],
+        ], $rows);
+        $this->assertContainsOnlyInstancesOf(RowContext::class, $captured);
+        $this->assertSame('Book 0', $captured[0]->source->title);
+        $this->assertSame('BADGE:Book 0', $captured[0]->item->badge);
+    }
+
+    #[Test]
+    public function it_throws_when_the_projector_changes_the_page_size(): void
+    {
+        $state = $this->recordingProvider($this->paginator($this->items(2), 2));
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Page projector returned 1 items for a source page containing 2 items');
+
+        iterator_to_array(
+            $this->provider($state, pageProjector: static fn (array $items): array => [reset($items)])
+                ->fetchData($this->request(length: 2))
+                ->data,
+        );
+    }
+
+    #[Test]
+    public function it_projects_each_export_chunk(): void
+    {
+        $captured = [];
+        $state    = new RecordingProvider([
+            $this->paginator($this->items(2), 3, lastPage: 2),
+            $this->paginator($this->items(1, 2), 3, lastPage: 2),
+        ]);
+
+        $rows = iterator_to_array(
+            $this->provider(
+                $state,
+                exportChunkSize: 2,
+                pageProjector: $this->titleBadgeProjector(...),
+                capturing: $captured,
+            )->iterateRows($this->request()->withoutPagination()),
+            false,
+        );
+
+        $this->assertSame([
+            ['title' => 'Book 0', 'badge' => 'BADGE:Book 0'],
+            ['title' => 'Book 1', 'badge' => 'BADGE:Book 1'],
+            ['title' => 'Book 2', 'badge' => 'BADGE:Book 2'],
+        ], $rows);
+        $this->assertCount(3, $captured);
+        $this->assertContainsOnlyInstancesOf(RowContext::class, $captured);
+    }
+
     private function provider(
         RecordingProvider $stateProvider,
         ?ApiResource $resource = null,
         int $exportChunkSize = 250,
+        ?\Closure $pageProjector = null,
+        ?array &$capturing = null,
     ): ApiPlatformCollectionProvider {
         $resource ??= (new ApiResource())->withOperations(new Operations([
             new GetCollection(uriTemplate: '/books{._format}', routePrefix: '/api'),
@@ -346,9 +414,22 @@ final class ApiPlatformCollectionProviderTest extends TestCase
             ->method('create')
             ->willReturn(new ResourceMetadataCollection(self::ENTITY_CLASS, [$resource]));
 
-        $rowMapper = new class implements RowMapperInterface {
+        $rowMapper = new class($capturing) implements RowMapperInterface {
+            /** @param list<mixed>|null $captured */
+            public function __construct(private ?array &$captured)
+            {
+            }
+
             public function map(mixed $row): array
             {
+                if (null !== $this->captured) {
+                    $this->captured[] = $row;
+                }
+
+                if ($row instanceof RowContext) {
+                    return ['title' => $row->item->title, 'badge' => $row->item->badge];
+                }
+
                 return ['title' => $row->title];
             }
         };
@@ -364,6 +445,23 @@ final class ApiPlatformCollectionProviderTest extends TestCase
             columns: [TextColumn::new('title', 'Title')->setField('title')],
             rowMapper: $rowMapper,
             exportChunkSize: $exportChunkSize,
+            pageProjector: $pageProjector,
+        );
+    }
+
+    /**
+     * @param list<object> $items
+     *
+     * @return list<object>
+     */
+    private function titleBadgeProjector(array $items): array
+    {
+        return array_map(
+            static fn (object $item): object => (object) [
+                'title' => $item->title,
+                'badge' => 'BADGE:'.$item->title,
+            ],
+            $items,
         );
     }
 
