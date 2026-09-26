@@ -236,6 +236,10 @@ final class BulkActionRunner
         $identifiers = $metadata->getIdentifier();
 
         if (null !== $configuredField && 'id' !== $configuredField) {
+            if (!$metadata->hasField($configuredField)) {
+                throw new \LogicException(\sprintf('Bulk actions look rows up by the "%s" field that setIdField() writes as DT_RowId, but it is not a mapped field of "%s". Point BulkActions::setIdField() at a mapped, unique field.', $configuredField, $entityClass));
+            }
+
             return $configuredField;
         }
 
