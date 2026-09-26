@@ -41,6 +41,7 @@ final class RenderingPreparer
         'cancel'              => 'bulk.bar.cancel',
         'processed'           => 'bulk.bar.processed',
         'skipped'             => 'bulk.bar.skipped',
+        'failed'              => 'bulk.bar.failed',
     ];
 
     public function __construct(

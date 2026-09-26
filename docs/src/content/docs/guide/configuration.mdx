@@ -26,6 +26,8 @@ data_tables:
       firstLast: true
       numbers: true
       previousNext: true
+    stateSave: false
+    showHeaderResetButton: false
   table_attributes:
     class: 'table'
   extensions:
@@ -203,6 +205,34 @@ data_tables:
 Override it per table with `$table->paging(...)`, or disable pagination entirely with
 `$table->withoutPaging()`.
 
+### stateSave
+
+Persist each table's state (page, ordering, search, page length, and the applied
+[filters](/ux-datatables/reference/filters/#remembering-applied-filters)) in the browser. Both keys
+are optional and absent by default.
+
+```yaml
+data_tables:
+  options:
+    stateSave: true
+```
+
+Override it per table with `$table->stateSave(false)`.
+
+### showHeaderResetButton
+
+Show a **Reset** button next to the filter toggle on every table that declares filters. It only
+appears while at least one filter is applied.
+
+```yaml
+data_tables:
+  options:
+    showHeaderResetButton: true
+```
+
+A table overrides it with `$table->showHeaderResetButton()` or `$filters->showHeaderResetButton()`;
+see [Reset button in the header](/ux-datatables/reference/filters/#reset-button-in-the-header).
+
 ## Table Attributes
 
 Default HTML attributes for the generated `<table>` element:
@@ -253,6 +283,10 @@ extensions:
     style: single # Single row selection
     # style: multi  # Multiple row selection
 ```
+
+A table that declares [bulk actions](/ux-datatables/features/bulk-actions/) does not use this
+default: it gets a multi-row selection with checkboxes instead. Only a Select extension the table
+configures itself replaces that one.
 
 ## Per-Table Override
 

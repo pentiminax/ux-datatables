@@ -5,8 +5,8 @@ order: 50
 ---
 
 UX DataTables registers a small set of Ajax routes automatically. Server-side tables,
-server-side exports, the inline edit modal, row deletion and detail rendering all go through
-these endpoints:
+server-side exports, the inline edit modal, row deletion, detail rendering and bulk actions all go
+through these endpoints:
 
 <Table
   headers={['Route name', 'Path', 'Method(s)', 'Used by']}
@@ -17,6 +17,7 @@ these endpoints:
     ['ux_datatables_ajax_edit_form', '/datatables/ajax/edit-form/view', 'POST', 'Edit modal form'],
     ['ux_datatables_ajax_edit_form_submit', '/datatables/ajax/edit-form', 'POST', 'Edit modal submit'],
     ['ux_datatables_ajax_detail', '/datatables/ajax/detail', 'POST', 'Row detail rendering'],
+    ['ux_datatables_ajax_bulk', '/datatables/ajax/bulk', 'POST', 'Bulk actions over selected rows'],
     ['ux_datatables_ajax_export', '/datatables/ajax/export', 'POST', 'Server-side CSV/XLSX export'],
   ]}
 />

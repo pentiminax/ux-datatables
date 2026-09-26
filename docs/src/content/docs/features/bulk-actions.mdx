@@ -71,12 +71,19 @@ A **Bulk actions** button sits in the table's top-right layout cell. It is alway
 disabled until a row is checked; clicking it opens a dropdown listing the configured actions.
 
 Below the toolbar row, a full-width band shows the current selection — `5 records selected` on the
-left, `Select all 50` and `Deselect all` on the right — and, after a run, the processed and skipped
-counts. Move the button with `BulkActions::position()`; the band follows it.
+left, `Select all 50` and `Deselect all` on the right. After a run it shows the processed and
+skipped counts, or, when the run fails, the endpoint's message (`bulk.bar.failed` when it gives
+none); the next selection change brings the count back. Move the button with
+`BulkActions::position()`; the band follows it.
 
 Declaring a bulk action also enables the Select extension in `multi` style with a checkbox column
-and a header checkbox, unless you configured one yourself. Configuring `SelectStyle::SINGLE`
-alongside bulk actions throws — a bulk action over one row is a row action.
+and a header checkbox, unless the table configures one itself. A bundle-wide
+`data_tables.extensions.select` default does not count as the table's own choice: it is replaced
+for tables that declare bulk actions, unless `configureDataTable()` changed it in place. Configuring `SelectStyle::SINGLE` on the table alongside bulk
+actions throws — a bulk action over one row is a row action.
+
+When the current user may run none of the declared actions, the button disappears, and so do the
+checkboxes the bundle added for them. A Select extension the table configured itself stays.
 
 ## What the Handler Receives
 
@@ -186,12 +193,26 @@ The response is `{"success": true, "processed": n, "skipped": m}`.
   actually happened.
 </Aside>
 
+## Events
+
+The table element dispatches `datatables:bulk:start` before the request, then
+`datatables:bulk:success` or `datatables:bulk:error`. Each carries the action name; `start` adds the
+selection, `success` the parsed response, and `error` either the refused response or the network
+error:
+
+```javascript
+this.element.addEventListener('datatables:bulk:success', (event) => {
+  const { action, result } = event.detail
+  console.info(`${action}: ${result.processed} processed, ${result.skipped} skipped`)
+})
+```
+
 ## Translations
 
 The chrome is translated server-side from the `DataTables` catalog: `bulk.bar.trigger` (the button
 label), `bulk.bar.selected`, `bulk.bar.selectAllMatching`, `bulk.bar.allMatchingSelected`,
-`bulk.bar.clear`, `bulk.bar.confirm`, `bulk.bar.cancel`, `bulk.bar.processed` and
-`bulk.bar.skipped`. The count-bearing ones accept a `{count}` placeholder.
+`bulk.bar.clear`, `bulk.bar.confirm`, `bulk.bar.cancel`, `bulk.bar.processed`,
+`bulk.bar.skipped` and `bulk.bar.failed`. The count-bearing ones accept a `{count}` placeholder.
 
 ## Related
 

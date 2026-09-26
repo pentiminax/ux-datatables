@@ -54,6 +54,10 @@
                 <source>bulk.bar.skipped</source>
                 <target>{count} lignes ignorées</target>
             </trans-unit>
+            <trans-unit id="bulk.bar.failed">
+                <source>bulk.bar.failed</source>
+                <target>L'action groupée n'a pas pu aboutir.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

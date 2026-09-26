@@ -60,10 +60,36 @@ describe('runBulkAction', () => {
         })
     })
 
-    it('reports a failure without reading the body', async () => {
+    it('reports a failure that carries no readable message', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('nope', { status: 403 })))
 
-        expect(await runBulkAction(request)).toEqual({ success: false, processed: 0, skipped: 0 })
+        expect(await runBulkAction(request)).toEqual({
+            success: false,
+            processed: 0,
+            skipped: 0,
+            message: undefined,
+        })
+    })
+
+    it('reports the message the endpoint gave for a refused run', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi
+                .fn()
+                .mockResolvedValue(
+                    new Response(
+                        JSON.stringify({ success: false, message: 'No row is selected.' }),
+                        { status: 400 }
+                    )
+                )
+        )
+
+        expect(await runBulkAction(request)).toEqual({
+            success: false,
+            processed: 0,
+            skipped: 0,
+            message: 'No row is selected.',
+        })
     })
 
     it('keeps numeric-looking identifiers opaque', async () => {
