@@ -87,6 +87,22 @@ final class AutoDataProviderFactoryTest extends TestCase
         $this->assertInstanceOf(ApiPlatformCollectionProvider::class, $provider);
     }
 
+    #[Test]
+    public function it_forwards_the_page_projector_to_the_api_platform_provider(): void
+    {
+        $projector = static fn (array $items): array => $items;
+
+        $provider = $this->create(
+            asDataTable: new AsDataTable(entityClass: \stdClass::class, apiPlatform: true),
+            apiPlatformProviderFactory: $this->buildApiPlatformProviderFactory(),
+            apiPlatform: true,
+            pageProjector: $projector,
+        );
+
+        $this->assertInstanceOf(ApiPlatformCollectionProvider::class, $provider);
+        $this->assertSame($projector, (new \ReflectionProperty($provider, 'pageProjector'))->getValue($provider));
+    }
+
     /**
      * The RenderingPreparer leaves a table whose entity exposes no collection operation on its
      * Doctrine wiring, so the provider must fall back the same way instead of raising later.
@@ -125,11 +141,13 @@ final class AutoDataProviderFactoryTest extends TestCase
         ?EntityManagerInterface $em = null,
         ?ApiPlatformCollectionProviderFactory $apiPlatformProviderFactory = null,
         bool $apiPlatform = false,
+        ?\Closure $pageProjector = null,
     ): ?DataProviderInterface {
         return (new AutoDataProviderFactory($em, $apiPlatformProviderFactory))->create(
             asDataTable: $asDataTable,
             rowMapper: new DefaultRowMapper([]),
             configureQueryBuilder: static fn ($qb, $request) => $qb,
+            pageProjector: $pageProjector,
             apiPlatform: $apiPlatform,
         );
     }
