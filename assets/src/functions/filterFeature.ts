@@ -2,6 +2,10 @@ import type { FilterBar } from './filters.js'
 
 let registered = false
 
+function hasAjaxSource(settings: any): boolean {
+    return Boolean(settings?.ajax || settings?.oFeatures?.bServerSide)
+}
+
 export function registerFilterFeature(DataTable: any): void {
     if (registered) {
         return
@@ -11,6 +15,13 @@ export function registerFilterFeature(DataTable: any): void {
     DataTable.feature.register('filters', (settings: any, opts: any): HTMLElement => {
         const instance = opts?.instance as FilterBar | undefined
         if (!instance) {
+            return document.createElement('div')
+        }
+
+        if (!hasAjaxSource(settings)) {
+            console.warn(
+                '[ux-datatables] Filters require an Ajax source; enable serverSide() to use them.'
+            )
             return document.createElement('div')
         }
 
