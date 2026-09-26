@@ -28,6 +28,7 @@ export interface BulkActionLabels {
     cancel?: string
     processed?: string
     skipped?: string
+    failed?: string
 }
 
 export interface BulkActionsConfig {
@@ -173,7 +174,7 @@ export class BulkActionBar {
         this.selectAllButton.addEventListener('click', () => this.store?.selectAllMatching())
         this.clearButton.addEventListener('click', () => this.store?.clear())
 
-        this.store.attach((snapshot) => this.update(snapshot))
+        this.store.attach((snapshot, changedByUser) => this.update(snapshot, changedByUser))
 
         // The feature runs while DataTables builds the layout, so the wrapper has no parent yet.
         queueMicrotask(() => this.mountSummary())
@@ -203,7 +204,15 @@ export class BulkActionBar {
         tableRow?.parentNode?.insertBefore(this.summary, tableRow)
     }
 
-    private update(snapshot: SelectionSnapshot): void {
+    /**
+     * The outcome of the last run stays in the band until the user changes the selection: the
+     * redraw that follows a run re-applies the selection without replacing what the run reported.
+     */
+    private update(snapshot: SelectionSnapshot, changedByUser = false): void {
+        if (changedByUser) {
+            this.resultMessage = null
+        }
+
         this.mountSummary()
         this.trigger.disabled = snapshot.count === 0 || !this.canRun()
 
@@ -313,7 +322,6 @@ export class BulkActionBar {
                 csrfToken: this.csrfToken,
             })
 
-            this.resultMessage = this.summarize(action, result.processed, result.skipped)
             this.dispatch(result.success ? 'bulk:success' : 'bulk:error', {
                 action: action.name,
                 result,
@@ -323,16 +331,35 @@ export class BulkActionBar {
                 this.store.clear()
             }
 
-            this.setSummaryEmpty(false)
-            this.summaryCount.textContent = this.resultMessage
+            this.showResult(
+                result.success
+                    ? this.summarize(action, result.processed, result.skipped)
+                    : this.failureMessage(result.message)
+            )
             this.reload()
         } catch (error) {
             this.dispatch('bulk:error', { action: action.name, error })
+            this.showResult(this.failureMessage())
+            this.reload()
         } finally {
             this.running = false
             this.trigger.removeAttribute('aria-busy')
             this.trigger.disabled = this.store.snapshot().count === 0 || !this.canRun()
         }
+    }
+
+    private showResult(message: string): void {
+        this.resultMessage = message
+        this.setSummaryEmpty(false)
+        this.summaryCount.textContent = message
+    }
+
+    /**
+     * A run that failed part-way may still have committed its earlier chunks, which is why the
+     * table reloads either way; the message only says the run did not complete.
+     */
+    private failureMessage(serverMessage?: string): string {
+        return serverMessage ?? this.labels.failed ?? 'The bulk action could not be completed.'
     }
 
     private summarize(action: BulkActionDefinition, processed: number, skipped: number): string {

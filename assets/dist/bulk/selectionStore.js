@@ -27,19 +27,19 @@ export class SelectionStore {
             }
             this.allMatching = false;
             this.deselectedIds.clear();
-            this.restore();
+            this.restore(true);
             return;
         }
         this.allMatching = true;
         this.deselectedIds.clear();
-        this.restore();
+        this.restore(true);
     }
     clear() {
         this.ids.clear();
         this.deselectedIds.clear();
         this.allMatching = false;
         this.api.rows({ selected: true }).deselect();
-        this.emit();
+        this.emit(true);
     }
     snapshot() {
         const total = this.totalCount();
@@ -67,9 +67,9 @@ export class SelectionStore {
                 this.deselectedIds.add(id);
             }
         }
-        this.emit();
+        this.emit(true);
     }
-    restore() {
+    restore(changedByUser = false) {
         this.restoring = true;
         try {
             for (const index of this.api.rows({ page: 'current' }).indexes().toArray()) {
@@ -93,7 +93,7 @@ export class SelectionStore {
         finally {
             this.restoring = false;
         }
-        this.emit();
+        this.emit(changedByUser);
     }
     isSelected(id) {
         return this.allMatching ? !this.deselectedIds.has(id) : this.ids.has(id);
@@ -127,8 +127,8 @@ export class SelectionStore {
     isServerSide() {
         return this.api.page?.info?.()?.serverSide === true;
     }
-    emit() {
-        this.listener(this.snapshot());
+    emit(changedByUser = false) {
+        this.listener(this.snapshot(), changedByUser);
     }
 }
 //# sourceMappingURL=selectionStore.js.map
