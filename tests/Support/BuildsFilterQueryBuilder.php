@@ -116,4 +116,3 @@ trait BuildsFilterQueryBuilder
         $this->assertSame($expectedParams, $this->capturedParams);
     }
 }
-
