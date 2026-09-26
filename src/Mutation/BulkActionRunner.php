@@ -220,13 +220,20 @@ final class BulkActionRunner
         ?string $configuredField,
         ?string $highlightField,
     ): string {
+        $metadata = $manager->getClassMetadata($entityClass);
+
         // Highlight writes DT_RowId from its own field without remapping, so the lookup
-        // has to follow it even when that field is the default `id`.
+        // has to follow it even when that field is the default `id`. Falling back to the
+        // primary key would compare values from two namespaces and mutate the wrong rows.
         if (null !== $highlightField) {
+            if (!$metadata->hasField($highlightField)) {
+                throw new \LogicException(\sprintf('Bulk actions look rows up by the "%s" field that highlightUpdates() writes as DT_RowId, but it is not a mapped field of "%s". Point highlightUpdates(idField: ...) at a mapped, unique field.', $highlightField, $entityClass));
+            }
+
             return $highlightField;
         }
 
-        $identifiers = $manager->getClassMetadata($entityClass)->getIdentifier();
+        $identifiers = $metadata->getIdentifier();
 
         if (null !== $configuredField && 'id' !== $configuredField) {
             return $configuredField;
