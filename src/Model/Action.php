@@ -253,25 +253,12 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
     }
 
     /**
-     * Send this action as a same-origin Ajax request instead of navigating to its URL.
+     * Define the CSRF token ID (or a callable resolving it per row) for this action.
      *
-     * The CSRF token id is resolved per row and its value is sent as `_token`. The application
-     * endpoint remains responsible for validating it (`#[IsCsrfTokenValid]`) and for
-     * authorization (`#[IsGranted]`).
-     *
-     * @param string|callable $csrfTokenId a token id, or a callable receiving the raw row
-     * @param string          $method      `POST` or `DELETE`
+     * @param string|callable $csrfTokenId a static token id, or a callable receiving the row
      */
-    public function asAjaxRequest(string|callable $csrfTokenId, string $method = 'POST'): self
+    public function csrfToken(string|callable $csrfTokenId): self
     {
-        $normalizedMethod = strtoupper($method);
-
-        if (!\in_array($normalizedMethod, ['POST', 'DELETE'], true)) {
-            throw new \InvalidArgumentException(\sprintf('Ajax action method must be "POST" or "DELETE", "%s" given.', $method));
-        }
-
-        $this->ajaxMethod = $normalizedMethod;
-
         if (\is_string($csrfTokenId)) {
             $this->csrfTokenId         = $csrfTokenId;
             $this->csrfTokenIdResolver = null;
@@ -281,6 +268,41 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
 
         $this->csrfTokenId         = null;
         $this->csrfTokenIdResolver = $csrfTokenId instanceof \Closure ? $csrfTokenId : $csrfTokenId(...);
+
+        return $this;
+    }
+
+    /**
+     * Alias for {@see self::csrfToken()}.
+     */
+    public function csrfTokenId(string|callable $csrfTokenId): self
+    {
+        return $this->csrfToken($csrfTokenId);
+    }
+
+    /**
+     * Send this action as a same-origin Ajax request instead of navigating to its URL.
+     *
+     * The CSRF token id is resolved per row and its value is sent as `_token`. The application
+     * endpoint remains responsible for validating it (`#[IsCsrfTokenValid]`) and for
+     * authorization (`#[IsGranted]`).
+     *
+     * @param string|callable|null $csrfTokenId optional token id, or a callable receiving the raw row
+     * @param string               $method      `POST` or `DELETE`
+     */
+    public function asAjaxRequest(string|callable|null $csrfTokenId = null, string $method = 'POST'): self
+    {
+        $normalizedMethod = strtoupper($method);
+
+        if (!\in_array($normalizedMethod, ['POST', 'DELETE'], true)) {
+            throw new \InvalidArgumentException(\sprintf('Ajax action method must be "POST" or "DELETE", "%s" given.', $method));
+        }
+
+        $this->ajaxMethod = $normalizedMethod;
+
+        if (null !== $csrfTokenId) {
+            $this->csrfToken($csrfTokenId);
+        }
 
         return $this;
     }
@@ -316,7 +338,7 @@ final class Action implements \JsonSerializable, ExecutableActionInterface
     {
         $tokenId = null !== $this->csrfTokenIdResolver
             ? ($this->csrfTokenIdResolver)($row)
-            : $this->csrfTokenId;
+            : ($this->csrfTokenId ?? ($this->isAjaxRequest() ? $this->name : null));
 
         if (null === $tokenId) {
             return null;
