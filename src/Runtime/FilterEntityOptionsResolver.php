@@ -11,6 +11,8 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 
 final readonly class FilterEntityOptionsResolver
 {
+    private const array DEFAULT_LABEL_PATHS = ['display', 'libelle', 'name', 'label', 'title'];
+
     public function __construct(
         private ?ManagerRegistry $doctrine = null,
     ) {
@@ -55,7 +57,7 @@ final readonly class FilterEntityOptionsResolver
             $queryBuilderClosure($repository, $qb);
             $entities = $qb->getQuery()->getResult();
         } else {
-            $orderBy = $filter->getEntityOrderBy();
+            $orderBy  = $filter->getEntityOrderBy();
             $entities = $em->getRepository($entityClass)->findBy(
                 $filter->getEntityCriteria(),
                 [] !== $orderBy ? $orderBy : null,
@@ -72,29 +74,29 @@ final readonly class FilterEntityOptionsResolver
                 continue;
             }
 
-            if (\is_callable($labelProperty)) {
-                $label = (string) $labelProperty($entity);
-            } elseif (null !== $labelProperty && '' !== $labelProperty) {
-                $label = PropertyReader::readPath($entity, $labelProperty);
-                if (null === $label) {
-                    $label = method_exists($entity, '__toString') ? (string) $entity : (string) $value;
-                }
-            } else {
-                if (method_exists($entity, '__toString')) {
-                    $label = (string) $entity;
-                } else {
-                    $label = PropertyReader::readPath($entity, 'libelle')
-                        ?? PropertyReader::readPath($entity, 'name')
-                        ?? PropertyReader::readPath($entity, 'label')
-                        ?? PropertyReader::readPath($entity, 'title')
-                        ?? PropertyReader::readPath($entity, 'display')
-                        ?? (string) $value;
-                }
-            }
-
-            $options[(string) $value] = (string) $label;
+            $options[(string) $value] = $this->resolveLabel($entity, $labelProperty, $value);
         }
 
         $filter->setResolvedOptions($options);
+    }
+
+    private function resolveLabel(object $entity, string|\Closure|null $labelProperty, mixed $value): string
+    {
+        if ($labelProperty instanceof \Closure) {
+            return (string) $labelProperty($entity);
+        }
+
+        $labelPaths = null !== $labelProperty && '' !== $labelProperty
+            ? [$labelProperty]
+            : self::DEFAULT_LABEL_PATHS;
+
+        foreach ($labelPaths as $labelPath) {
+            $label = PropertyReader::readPath($entity, $labelPath);
+            if (null !== $label) {
+                return (string) $label;
+            }
+        }
+
+        return $entity instanceof \Stringable ? (string) $entity : (string) $value;
     }
 }
