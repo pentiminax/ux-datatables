@@ -56,20 +56,17 @@ describe('registerFilterFeature', () => {
         expect(saveState).toHaveBeenCalledTimes(1)
     })
 
-    it('calls draw() for client-side tables with no Ajax source', () => {
-        const node = document.createElement('div')
-        const instance = { render: vi.fn().mockReturnValue(node) }
+    it('does not render the filter bar for client-side tables with no Ajax source', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+        const instance = { render: vi.fn() }
 
         const result = callback({}, { instance })
 
-        expect(result).toBe(node)
-        expect(instance.render).toHaveBeenCalledTimes(1)
-
-        const reloadCb = instance.render.mock.calls[0][0]
-        reloadCb()
-        expect(draw).toHaveBeenCalledTimes(1)
-        expect(reload).not.toHaveBeenCalled()
-        expect(saveState).toHaveBeenCalledTimes(1)
+        expect(result).toBeInstanceOf(HTMLDivElement)
+        expect(result.childNodes).toHaveLength(0)
+        expect(instance.render).not.toHaveBeenCalled()
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('serverSide()'))
+        warn.mockRestore()
     })
 
     it('returns an empty node when no instance is provided', () => {

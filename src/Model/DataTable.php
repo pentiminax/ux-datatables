@@ -120,17 +120,17 @@ class DataTable
             $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
         }
 
+        unset($options['showHeaderResetButton']);
+
         if (null !== $this->filters && !$this->filters->isEmpty()) {
             $options['filters'] = $this->filters->jsonSerialize();
 
-            $filtersShowReset = $this->filters->isHeaderResetButtonVisible();
-            $tableShowReset   = $this->options->get('showHeaderResetButton');
-            $showReset        = $filtersShowReset ?? $tableShowReset ?? false;
+            $showReset = $this->filters->isHeaderResetButtonVisible()
+                ?? $this->options->get('showHeaderResetButton')
+                ?? false;
 
             if ($showReset) {
                 $options['showHeaderResetButton'] = true;
-            } else {
-                unset($options['showHeaderResetButton']);
             }
 
             if (null !== $this->preparedFilterLabels) {
