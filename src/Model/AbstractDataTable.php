@@ -103,8 +103,9 @@ abstract class AbstractDataTable
 
         $this->asDataTable = $this->resolveAsDataTable();
 
-        $table         = $this->infrastructure()->createDataTable($this->getClassName());
-        $defaultSelect = $table->getExtensionsCollection()->getSelectExtension();
+        $table              = $this->infrastructure()->createDataTable($this->getClassName());
+        $defaultSelect      = $table->getExtensionsCollection()->getSelectExtension();
+        $defaultSelectState = $defaultSelect?->jsonSerialize();
 
         $this->table = $this->configureDataTable($table);
 
@@ -138,7 +139,7 @@ abstract class AbstractDataTable
         $bulkActions = $this->configureBulkActions(new BulkActions());
 
         if (!$bulkActions->isEmpty()) {
-            $this->enableSelectionForBulkActions($defaultSelect);
+            $this->enableSelectionForBulkActions($defaultSelect, $defaultSelectState);
         }
 
         $this->table->setBulkActions($bulkActions);
@@ -601,13 +602,20 @@ abstract class AbstractDataTable
      *
      * The bundle-wide `data_tables.extensions.select` default is not a choice the table made, so it
      * is replaced rather than refused: its `single` default would otherwise break every table that
-     * declares bulk actions.
+     * declares bulk actions. The default only counts as untouched while configureDataTable() left
+     * it as it was seeded; a table that changed it in place made the choice its own.
+     *
+     * @param array<string, mixed>|null $defaultSelectState the default as seeded, before configureDataTable()
      */
-    private function enableSelectionForBulkActions(?SelectExtension $defaultSelect): void
+    private function enableSelectionForBulkActions(?SelectExtension $defaultSelect, ?array $defaultSelectState): void
     {
         $select = $this->table->getExtensionsCollection()->getSelectExtension();
 
-        if (null === $select || $select === $defaultSelect) {
+        $untouchedDefault = null !== $select
+            && $select                  === $defaultSelect
+            && $select->jsonSerialize() === $defaultSelectState;
+
+        if (null === $select || $untouchedDefault) {
             $this->table->useSelectionForBulkActions(
                 (new SelectExtension(style: SelectStyle::MULTI))->withCheckbox()->headerCheckbox()
             );

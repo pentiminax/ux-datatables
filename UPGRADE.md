@@ -110,8 +110,8 @@ Two details are worth checking in an existing application:
   with `BulkActions::setIdField()` when no Doctrine metadata is available.
 
 - **A bundle-wide `data_tables.extensions.select` default does not apply to a table with bulk
-  actions.** Such a table always gets a multi-row selection with checkboxes. Only a Select extension
-  the table configures itself is kept, and a single-row one throws.
+  actions.** Such a table gets a multi-row selection with checkboxes instead. A Select extension the
+  table configures itself, or a default it changed in place, is kept, and a single-row one throws.
 
 A custom data provider can opt into "select every matching row" by implementing
 `IdentifierCollectingDataProviderInterface`; `DoctrineDataProvider` already does. Its
