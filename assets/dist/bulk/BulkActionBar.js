@@ -127,7 +127,7 @@ export class BulkActionBar {
         const item = this.createButton(action.label, `dt-bulk-menu__item ${action.className ?? ''}`.trim(), action);
         item.dataset.bulkAction = action.name;
         item.setAttribute('role', 'menuitem');
-        if (action.denied === true || !this.canRun()) {
+        if (!this.canRun()) {
             item.disabled = true;
             return item;
         }

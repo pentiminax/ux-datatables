@@ -10,7 +10,6 @@ use Pentiminax\UX\DataTables\Mutation\BulkActionRunner;
 use Pentiminax\UX\DataTables\Mutation\BulkSelection;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
-use Pentiminax\UX\DataTables\Security\Permission;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -65,11 +64,10 @@ final class AjaxBulkController
             request: $request,
         );
 
-        return $this->json([
+        return new JsonResponse([
             'success'   => true,
             'processed' => $result->processed,
             'skipped'   => $result->skipped,
-            'message'   => $result->message,
         ]);
     }
 
@@ -86,12 +84,5 @@ final class AjaxBulkController
             $values,
             static fn (mixed $value): bool => \is_int($value) || (\is_string($value) && '' !== $value),
         ));
-    }
-
-    private function json(array $data): JsonResponse
-    {
-        return new JsonResponse(
-            array_filter($data, static fn (mixed $value): bool => null !== $value)
-        );
     }
 }
