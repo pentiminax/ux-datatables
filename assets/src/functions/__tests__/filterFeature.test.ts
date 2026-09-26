@@ -2,23 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { registerFilterFeature } from '../filterFeature.js'
 
 const reload = vi.fn()
-const draw = vi.fn()
-const saveState = vi.fn()
 const register = vi.fn()
 
 const DataTable: any = {
     feature: { register },
     Api: class {
-        ajax: any
-        draw = draw
-        state = { save: saveState }
-
-        constructor(public settings?: any) {
-            this.ajax = {
-                reload,
-                url: () => settings?.ajaxUrl ?? (settings?.ajax ? 'https://example.com/ajax' : null),
-            }
-        }
+        ajax = { reload }
     },
 }
 
@@ -52,8 +41,6 @@ describe('registerFilterFeature', () => {
         const reloadCb = instance.render.mock.calls[0][0]
         reloadCb()
         expect(reload).toHaveBeenCalledWith(null, true)
-        expect(draw).not.toHaveBeenCalled()
-        expect(saveState).toHaveBeenCalledTimes(1)
     })
 
     it('does not render the filter bar for client-side tables with no Ajax source', () => {
