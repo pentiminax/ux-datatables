@@ -14,7 +14,10 @@ export interface SelectionSnapshot {
     totalCount: number
 }
 
-type Listener = (snapshot: SelectionSnapshot) => void
+/**
+ * `changedByUser` is false when the store only re-applied the selection to a new draw.
+ */
+type Listener = (snapshot: SelectionSnapshot, changedByUser: boolean) => void
 
 export class SelectionStore {
     private readonly ids = new Set<string>()
@@ -57,14 +60,14 @@ export class SelectionStore {
 
             this.allMatching = false
             this.deselectedIds.clear()
-            this.restore()
+            this.restore(true)
 
             return
         }
 
         this.allMatching = true
         this.deselectedIds.clear()
-        this.restore()
+        this.restore(true)
     }
 
     clear(): void {
@@ -72,7 +75,7 @@ export class SelectionStore {
         this.deselectedIds.clear()
         this.allMatching = false
         this.api.rows({ selected: true }).deselect()
-        this.emit()
+        this.emit(true)
     }
 
     snapshot(): SelectionSnapshot {
@@ -108,7 +111,7 @@ export class SelectionStore {
             }
         }
 
-        this.emit()
+        this.emit(true)
     }
 
     /**
@@ -117,7 +120,7 @@ export class SelectionStore {
      * `restoring` keeps the select events this triggers from feeding back into the store, which
      * would otherwise re-add rows the user deselected while "all matching" is on.
      */
-    private restore(): void {
+    private restore(changedByUser = false): void {
         this.restoring = true
 
         try {
@@ -145,7 +148,7 @@ export class SelectionStore {
             this.restoring = false
         }
 
-        this.emit()
+        this.emit(changedByUser)
     }
 
     private isSelected(id: string): boolean {
@@ -188,7 +191,7 @@ export class SelectionStore {
         return this.api.page?.info?.()?.serverSide === true
     }
 
-    private emit(): void {
-        this.listener(this.snapshot())
+    private emit(changedByUser = false): void {
+        this.listener(this.snapshot(), changedByUser)
     }
 }

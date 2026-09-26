@@ -45,16 +45,35 @@ export async function runBulkAction({
         }),
     })
 
-    if (!response.ok) {
-        return { success: false, processed: 0, skipped: 0 }
-    }
+    const payload = await readPayload(response)
 
-    const payload = (await response.json()) as Partial<BulkActionResult>
+    if (!response.ok) {
+        return {
+            success: false,
+            processed: 0,
+            skipped: 0,
+            message: typeof payload.message === 'string' ? payload.message : undefined,
+        }
+    }
 
     return {
         success: payload.success === true,
         processed: typeof payload.processed === 'number' ? payload.processed : 0,
         skipped: typeof payload.skipped === 'number' ? payload.skipped : 0,
         message: typeof payload.message === 'string' ? payload.message : undefined,
+    }
+}
+
+/**
+ * The bundle answers a refused run with a client-safe `message`; anything in front of it (a
+ * firewall, a proxy) may answer with HTML instead, which carries nothing to show.
+ */
+async function readPayload(response: Response): Promise<Partial<BulkActionResult>> {
+    try {
+        const payload = await response.json()
+
+        return payload !== null && typeof payload === 'object' ? payload : {}
+    } catch {
+        return {}
     }
 }
