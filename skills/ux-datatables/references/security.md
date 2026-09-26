@@ -4,7 +4,7 @@ Three independent layers. Skipping any of them leaves a hole the other two do no
 
 1. **Firewall / `access_control`** — who may call `/datatables/ajax/*` at all. The bundle never does this for you.
 2. **Bundle permission checks** — Symfony voters called at rendering, table Ajax resolution, row actions, and built-in mutations.
-3. **CSRF** — session-backed mutation token on delete / inline-edit / edit-form.
+3. **CSRF** — session-backed mutation token on delete / inline-edit / edit-form / bulk actions.
 
 ## 1. Protect the Ajax routes (required)
 
@@ -17,7 +17,7 @@ security:
         - { path: ^/datatables/ajax, roles: ROLE_USER }
 ```
 
-Routes: `/datatables/ajax/{data,templates,edit,delete,edit-form,edit-form/view,detail,export}`.
+Routes: `/datatables/ajax/{data,templates,edit,delete,edit-form,edit-form/view,detail,bulk,export}`.
 
 Keep this rule in sync with the page rendering the table — a table on an admin page whose data endpoint is public leaks the whole dataset.
 

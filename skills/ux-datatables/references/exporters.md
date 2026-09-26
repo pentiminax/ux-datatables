@@ -58,6 +58,6 @@ An exporter built on a library other than OpenSpout implements `ExporterInterfac
 
 ## Notes
 
-- Columns come from `filterExportable()` — same rule as client export (`setExportable(false)` / `#[Column(exportable: false)]` excluded). Template Twig, action voters, URL generation, CSRF do not run for exported rows.
+- Columns come from `filterExportable()` — same rule as client export (`setExportable(false)` / `#[DataTableColumn(options: ['exportable' => false])]` excluded). Template Twig, action voters, URL generation, CSRF do not run for exported rows.
 - `projectPage()` batching during export — see `references/gotchas.md` and `references/defining-a-datatable.md`.
 - Row streaming comes from `StreamingDataProviderInterface::iterateRows()` when the data provider implements it (both shipped providers do); otherwise falls back to `fetchData()->data` (materializes the whole set).
