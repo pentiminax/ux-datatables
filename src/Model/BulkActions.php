@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Model;
 
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
-use Pentiminax\UX\DataTables\Security\Permission;
 
 /**
  * The bulk actions a table offers over its selected rows, plus the selection rules that apply to

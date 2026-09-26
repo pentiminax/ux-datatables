@@ -8,7 +8,6 @@ use Pentiminax\UX\DataTables\Enum\ActionsAlignment;
 use Pentiminax\UX\DataTables\Enum\ActionsPosition;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
-use Pentiminax\UX\DataTables\Security\Permission;
 
 final class Actions implements \JsonSerializable
 {
