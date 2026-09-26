@@ -69,6 +69,40 @@ trait BuildsFilterQueryBuilder
         return $qb;
     }
 
+    private function createAssociationFieldQueryBuilder(): QueryBuilder
+    {
+        $this->capturedWhere      = [];
+        $this->capturedParams     = [];
+        $this->capturedParamTypes = [];
+
+        $metadata = $this->createStub(ClassMetadata::class);
+        $metadata->method('hasAssociation')->willReturn(true);
+        $metadata->method('hasField')->willReturn(false);
+
+        $em = $this->createStub(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->willReturn($metadata);
+
+        $qb = $this->createStub(QueryBuilder::class);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
+        $qb->method('getEntityManager')->willReturn($em);
+        $qb->method('getDQLPart')->willReturn([]);
+
+        $qb->method('andWhere')->willReturnCallback(function (string $where) use ($qb): QueryBuilder {
+            $this->capturedWhere[] = $where;
+
+            return $qb;
+        });
+
+        $qb->method('setParameter')->willReturnCallback(function (string $name, mixed $value, mixed $type = null) use ($qb): QueryBuilder {
+            $this->capturedParams[$name]     = $value;
+            $this->capturedParamTypes[$name] = $type;
+
+            return $qb;
+        });
+
+        return $qb;
+    }
+
     /**
      * @param list<string>         $expectedWhere
      * @param array<string, mixed> $expectedParams

@@ -52,6 +52,7 @@ final class RenderingPreparer
         private readonly ?AjaxDataTableRegistry $ajaxRegistry = null,
         private readonly ?RequestStack $requestStack = null,
         private readonly ?SearchListOptionsResolver $searchListOptionsResolver = null,
+        private readonly ?FilterEntityOptionsResolver $filterEntityOptionsResolver = null,
     ) {
     }
 
@@ -70,8 +71,14 @@ final class RenderingPreparer
         $this->configureForwardedQueryParameters($table);
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
+        $this->resolveFilterEntityOptions($table);
         $this->translateFilterLabels($table);
         ($this->searchListOptionsResolver ?? new SearchListOptionsResolver($this->translator))->prepare($table);
+    }
+
+    private function resolveFilterEntityOptions(DataTable $table): void
+    {
+        ($this->filterEntityOptionsResolver ?? new FilterEntityOptionsResolver())->prepare($table);
     }
 
     public function prepareAfterDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
