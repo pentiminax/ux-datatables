@@ -87,9 +87,12 @@ checkboxes the bundle added for them. A Select extension the table configured it
 
 ## What the Handler Receives
 
-`BulkRecords` yields the selected entities lazily, chunk by chunk, so a selection of 50,000 rows
-never materializes as 50,000 objects. It is `Countable` and `IteratorAggregate`, plus `map()`,
-`filter()`, `first()`, `isEmpty()` and `toArray()`.
+`BulkRecords` yields the selected entities lazily, one chunk per query, and the runner flushes each
+chunk before loading the next, so a selection of 50,000 rows never runs as a single query or a
+single flush. Doctrine still keeps every loaded entity managed until the request ends, so memory
+grows with the selection; size `chunk()` and the selections you allow accordingly. It is
+`Countable` and `IteratorAggregate`, plus `map()`, `filter()`, `first()`, `isEmpty()` and
+`toArray()`.
 
 <Aside type="caution">
   `count()` reports the number of **selected** rows, which is known before anything is loaded. Rows

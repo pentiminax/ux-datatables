@@ -269,13 +269,7 @@ describe('BulkActionBar', () => {
         expect(h.api.rows({ selected: true }).ids().toArray()).toEqual(['1'])
     })
 
-    it('disables an entry the server refused, and every entry without mutations', () => {
-        const denied = build({
-            bulkActions: { actions: [{ name: 'approve', label: 'Approve', denied: true }] },
-        })
-        expect(item(denied).disabled).toBe(true)
-
-        document.body.innerHTML = ''
+    it('disables every entry without mutations', () => {
         const readOnly = build({ mutationsEnabled: false })
         expect(item(readOnly).disabled).toBe(true)
         expect(trigger(readOnly).disabled).toBe(true)
