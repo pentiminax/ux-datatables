@@ -96,7 +96,7 @@ final class OrderFilterTest extends TestCase
 
         $qb->expects($this->once())
             ->method('addOrderBy')
-            ->with($expectedExpression, $direction);
+            ->with($expectedExpression, 'desc' === $direction ? \SortDirection::Descending : \SortDirection::Ascending);
 
         (new OrderFilter())->apply($qb, $this->orderedContext($column, $direction));
     }
@@ -159,7 +159,7 @@ final class OrderFilterTest extends TestCase
         $qb->expects($this->never())->method('leftJoin');
         $qb->expects($this->once())
             ->method('addOrderBy')
-            ->with('invoiceCount', 'desc');
+            ->with('invoiceCount', \SortDirection::Descending);
 
         $column = TextColumn::new('invoiceCount', 'Invoices')->setOrderExpression('invoiceCount');
 
