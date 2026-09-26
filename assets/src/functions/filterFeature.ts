@@ -2,6 +2,15 @@ import type { FilterBar } from './filters.js'
 
 let registered = false
 
+function hasAjaxSource(settings: any, api: any): boolean {
+    return Boolean(
+        settings?.ajax ||
+            settings?.sAjaxSource ||
+            settings?.oFeatures?.bServerSide ||
+            (typeof api.ajax?.url === 'function' && Boolean(api.ajax.url()))
+    )
+}
+
 export function registerFilterFeature(DataTable: any): void {
     if (registered) {
         return
@@ -16,20 +25,15 @@ export function registerFilterFeature(DataTable: any): void {
 
         const api = new DataTable.Api(settings)
 
-        return instance.render(() => {
-            const hasAjax = Boolean(
-                settings?.ajax ||
-                    settings?.sAjaxSource ||
-                    settings?.oFeatures?.bServerSide ||
-                    (typeof api.ajax?.url === 'function' && Boolean(api.ajax.url())) ||
-                    (api.ajax && typeof api.ajax.reload === 'function' && typeof api.draw !== 'function')
+        if (!hasAjaxSource(settings, api)) {
+            console.warn(
+                '[ux-datatables] Filters require an Ajax data source; enable serverSide() to use them.'
             )
+            return document.createElement('div')
+        }
 
-            if (hasAjax && api.ajax && typeof api.ajax.reload === 'function') {
-                api.ajax.reload(null, true)
-            } else if (typeof api.draw === 'function') {
-                api.draw()
-            }
+        return instance.render(() => {
+            api.ajax.reload(null, true)
             if (api.state && typeof api.state.save === 'function') {
                 api.state.save()
             }

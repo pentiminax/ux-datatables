@@ -104,6 +104,22 @@ final class PentiminaxDataTablesBundleTest extends TestCase
     }
 
     #[Test]
+    public function it_does_not_inject_unset_state_save_or_header_reset_options(): void
+    {
+        $kernel = new ConfigDefaultsAppKernel('test', true);
+        $kernel->boot();
+
+        try {
+            $options = $kernel->getContainer()->getParameter('datatables.options');
+
+            self::assertArrayNotHasKey('stateSave', $options);
+            self::assertArrayNotHasKey('showHeaderResetButton', $options);
+        } finally {
+            $kernel->shutdown();
+        }
+    }
+
+    #[Test]
     public function it_registers_the_filter_bar_translation_catalog(): void
     {
         /** @var TranslatorInterface $translator */
