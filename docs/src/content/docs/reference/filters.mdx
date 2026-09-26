@@ -96,6 +96,52 @@ ChoiceFilter::new('status')->options(['Draft' => 'draft', 'Published' => 'publis
 ChoiceFilter::new('roles')->multiple()->options(Role::class);
 ```
 
+#### Options from a Doctrine entity
+
+`entity()` loads the options from the rows of an entity, which suits a filter on an association.
+The value defaults to the entity's `id`, so the filter compares the association itself:
+
+```php
+use App\Entity\Author;
+use App\Entity\Category;
+use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
+
+ChoiceFilter::new('category')
+    ->label('Category')
+    ->entity(Category::class, label: 'name', orderBy: ['name' => 'ASC']);
+
+ChoiceFilter::new('author')
+    ->multiple()
+    ->entity(
+        class: Author::class,
+        label: static fn (Author $author): string => $author->getFullName(),
+        queryBuilder: static function (EntityRepository $repository, QueryBuilder $qb): void {
+            $qb->andWhere('e.active = true');
+        },
+    );
+```
+
+<Table
+  headers={['Argument', 'Meaning']}
+  rows={[
+    ['`class`', 'Entity to load the options from.'],
+    ['`label`', 'Property path or closure giving the option label. See below when omitted.'],
+    ['`value`', 'Property path giving the submitted value. Defaults to `id`; rows where it is null are skipped.'],
+    ['`orderBy`', '`findBy()` ordering, such as `[\'name\' => \'ASC\']`.'],
+    ['`criteria`', '`findBy()` criteria.'],
+    ['`queryBuilder`', 'Closure receiving the repository and a query builder aliased `e`; replaces `criteria` and `orderBy`.'],
+  ]}
+/>
+
+Without a `label`, the first non-null of `display`, `libelle`, `name`, `label` and `title` is used,
+then `__toString()`, then the value itself. `options(Category::class)` is a shortcut for
+`entity(Category::class)`: a class that is not a `BackedEnum` is read as an entity.
+
+The options are queried each time the table renders, so they follow the data without a cache to
+clear. Doctrine must manage the class: rendering throws otherwise.
+
 ### TernaryFilter
 
 Three states (all / true / false). By default the true state matches
@@ -308,6 +354,40 @@ DateRangeFilter::new('lastLoginAt')
 
 `TernaryFilter::trueLabel()` / `falseLabel()` and `ChoiceFilter` options backed
 by a `TranslatableInterface` enum are translated the same way.
+
+## Reset button in the header
+
+`showHeaderResetButton()` adds a **Reset** button next to the funnel toggle, so the user can clear
+every filter without opening the popover. It only shows while at least one filter is applied, and
+reuses the `reset` label.
+
+```php
+protected function configureFilters(Filters $filters): Filters
+{
+    return $filters
+        ->showHeaderResetButton()
+        ->add(ChoiceFilter::new('status')->options(Status::class));
+}
+```
+
+The first setting found wins: `Filters::showHeaderResetButton()`, then
+`DataTable::showHeaderResetButton()`, then the `data_tables.options.showHeaderResetButton`
+[configuration](/ux-datatables/guide/configuration/#showheaderresetbutton) key. The button is off
+otherwise.
+
+## Remembering applied filters
+
+With `stateSave()` enabled on the table, the applied filter values are saved alongside the rest of
+the DataTables state and restored when the table loads again. A restored value is checked against
+the current filter declarations: a filter that no longer exists, or a choice that is no longer
+offered, is dropped rather than submitted.
+
+```php
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table->serverSide(true)->stateSave();
+}
+```
 
 ## Positioning the filter button
 

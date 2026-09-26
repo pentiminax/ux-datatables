@@ -287,9 +287,9 @@ composer require openspout/openspout
 The export reuses the request's current search, order, and filters, and ignores pagination.
 
 **Columns** use the same `setExportable(false)` flag as client-side export (and
-`#[Column(exportable: false)]`). Action columns, template columns, and hidden columns
-(`setVisible(false)`) are already excluded. Order in the file is `configureColumns()` order, and
-headers are column titles.
+`#[DataTableColumn(options: ['exportable' => false])]`). Action columns, template columns, and
+hidden columns (`setVisible(false)`) are already excluded. Order in the file is `configureColumns()`
+order, and headers are column titles.
 
 A `TemplateColumn` renders markup for the browser, so it stays out of an export unless
 `setExportable(true)` opts it back in — its rendered HTML is then stripped to text and its
