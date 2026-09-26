@@ -75,11 +75,13 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Source maps are left out: their mappings differ between build environments even when the
+      # emitted code is identical, so only the files the bundle ships are compared.
       - name: Check that dist matches the sources
         run: |
-          if [ -n "$(git status --porcelain -- dist)" ]; then
+          if [ -n "$(git status --porcelain -- dist ':(exclude)*.map')" ]; then
             echo "assets/dist is out of date: run 'npm run build' in assets/ and commit the result."
-            git status --short -- dist
-            git diff --stat -- dist
+            git status --short -- dist ':(exclude)*.map'
+            git diff --stat -- dist ':(exclude)*.map'
             exit 1
           fi
