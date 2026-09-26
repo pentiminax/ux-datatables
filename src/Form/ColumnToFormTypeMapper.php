@@ -16,7 +16,6 @@ use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
-use Symfony\Component\PropertyAccess\Exception\ExceptionInterface as PropertyAccessExceptionInterface;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
@@ -195,11 +194,7 @@ final class ColumnToFormTypeMapper
             return false;
         }
 
-        try {
-            return $this->propertyAccessor->isWritable($entity, $property)
-                || $this->propertyAccessor->isReadable($entity, $property);
-        } catch (PropertyAccessExceptionInterface) {
-            return false;
-        }
+        return $this->propertyAccessor->isWritable($entity, $property)
+            || $this->propertyAccessor->isReadable($entity, $property);
     }
 }
