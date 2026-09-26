@@ -79,7 +79,7 @@ export class BulkActionBar {
         this.trigger.addEventListener('click', () => this.popover?.toggle());
         this.selectAllButton.addEventListener('click', () => this.store?.selectAllMatching());
         this.clearButton.addEventListener('click', () => this.store?.clear());
-        this.store.attach((snapshot) => this.update(snapshot));
+        this.store.attach((snapshot, changedByUser) => this.update(snapshot, changedByUser));
         queueMicrotask(() => this.mountSummary());
         return this.wrapper;
     }
@@ -92,7 +92,10 @@ export class BulkActionBar {
         const tableRow = container?.querySelector('.dt-layout-table');
         tableRow?.parentNode?.insertBefore(this.summary, tableRow);
     }
-    update(snapshot) {
+    update(snapshot, changedByUser = false) {
+        if (changedByUser) {
+            this.resultMessage = null;
+        }
         this.mountSummary();
         this.trigger.disabled = snapshot.count === 0 || !this.canRun();
         if (snapshot.count === 0) {
@@ -169,7 +172,6 @@ export class BulkActionBar {
                 query: snapshot.allMatching ? this.currentQuery() : {},
                 csrfToken: this.csrfToken,
             });
-            this.resultMessage = this.summarize(action, result.processed, result.skipped);
             this.dispatch(result.success ? 'bulk:success' : 'bulk:error', {
                 action: action.name,
                 result,
@@ -177,18 +179,29 @@ export class BulkActionBar {
             if (result.success && action.deselectAfterCompletion !== false) {
                 this.store.clear();
             }
-            this.setSummaryEmpty(false);
-            this.summaryCount.textContent = this.resultMessage;
+            this.showResult(result.success
+                ? this.summarize(action, result.processed, result.skipped)
+                : this.failureMessage(result.message));
             this.reload();
         }
         catch (error) {
             this.dispatch('bulk:error', { action: action.name, error });
+            this.showResult(this.failureMessage());
+            this.reload();
         }
         finally {
             this.running = false;
             this.trigger.removeAttribute('aria-busy');
             this.trigger.disabled = this.store.snapshot().count === 0 || !this.canRun();
         }
+    }
+    showResult(message) {
+        this.resultMessage = message;
+        this.setSummaryEmpty(false);
+        this.summaryCount.textContent = message;
+    }
+    failureMessage(serverMessage) {
+        return serverMessage ?? this.labels.failed ?? 'The bulk action could not be completed.';
     }
     summarize(action, processed, skipped) {
         const parts = [

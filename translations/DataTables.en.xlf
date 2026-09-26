@@ -54,6 +54,10 @@
                 <source>bulk.bar.skipped</source>
                 <target>{count} rows skipped</target>
             </trans-unit>
+            <trans-unit id="bulk.bar.failed">
+                <source>bulk.bar.failed</source>
+                <target>The bulk action could not be completed.</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>
