@@ -297,6 +297,13 @@ return static function (ContainerConfigurator $container): void {
             ->private();
     }
 
+    $services->set('datatables.filter.entity_options_resolver', \Pentiminax\UX\DataTables\Runtime\FilterEntityOptionsResolver::class)
+        ->arg(0, service('doctrine')->nullOnInvalid())
+        ->private();
+
+    $services->alias(\Pentiminax\UX\DataTables\Runtime\FilterEntityOptionsResolver::class, 'datatables.filter.entity_options_resolver')
+        ->private();
+
     $services->set('datatables.rendering.preparer', RenderingPreparer::class)
         ->arg(0, service(ApiResourceCollectionUrlResolver::class)->nullOnInvalid())
         ->arg(1, service(MercureConfigResolver::class)->nullOnInvalid())
@@ -306,6 +313,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(5, service('datatables.ajax.registry'))
         ->arg(6, service('request_stack')->nullOnInvalid())
         ->arg(7, service('datatables.column_control.search_list_options_resolver'))
+        ->arg(8, service('datatables.filter.entity_options_resolver')->nullOnInvalid())
         ->private();
 
     $services->alias(RenderingPreparer::class, 'datatables.rendering.preparer')

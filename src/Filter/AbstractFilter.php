@@ -156,7 +156,7 @@ abstract class AbstractFilter implements FilterInterface
     {
         $field = $this->resolvedField();
 
-        if (!RelationFieldResolver::supportsSearchFiltering($qb, $field)) {
+        if (!RelationFieldResolver::supportsFiltering($qb, $field)) {
             return null;
         }
 
