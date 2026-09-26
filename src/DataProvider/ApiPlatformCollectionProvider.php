@@ -18,6 +18,7 @@ use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
+use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -53,6 +54,8 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
         private readonly ?RowMapperInterface $exportRowMapper = null,
         private readonly ?string $dataTableClass = null,
         private readonly int $exportChunkSize = 250,
+        /** @var (\Closure(list<mixed>):(list<mixed>|null))|null */
+        private readonly ?\Closure $pageProjector = null,
     ) {
     }
 
@@ -98,9 +101,7 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
             ] + $parameters);
             $items = $this->toList($data);
 
-            foreach ($items as $item) {
-                yield $mapper->map($item);
-            }
+            yield from $this->mapRows($items, $mapper);
 
             if ([] === $items || !$this->hasPageAfter($data, $page, \count($items))) {
                 return;
@@ -115,7 +116,8 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
      * request's: an operation capping itemsPerPage -- or ignoring it, which is API Platform's
      * default -- answers a page shorter than the one asked for. Both the page number and the
      * offset are therefore recomputed from the size the paginator reports, and pages are read
-     * until the window is filled or the collection ends.
+     * until the window is filled or the collection ends. A request with no positive length is
+     * DataTables' "show all": every page is read, matching {@see self::iterateRows()}.
      *
      * @param array<string, string|array<int|string, string>> $parameters
      *
@@ -126,8 +128,14 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
         $limit = $request->length;
         $size  = (int) $paginator->getItemsPerPage();
 
-        if ($limit <= 0 || $size <= 0) {
+        if ($size <= 0) {
             return $paginator;
+        }
+
+        // length <= 0 is DataTables' "show all". Returning the first page here would keep
+        // recordsTotal at the real size while silently dropping every later row.
+        if ($limit <= 0) {
+            return $this->allPages($paginator, $parameters, $size);
         }
 
         $page      = intdiv($request->start, $size) + 1;
@@ -149,6 +157,39 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
         }
 
         return \array_slice($items, $offset, $limit);
+    }
+
+    /**
+     * Every remaining page after the one already in hand, using the page size that operation
+     * actually applied. The first `provide()` for an unbounded request carries no itemsPerPage,
+     * so API Platform's default still paginates; walking from that reported size is what matches
+     * {@see self::iterateRows()} when the operation caps the page.
+     *
+     * @param array<string, string|array<int|string, string>> $parameters
+     *
+     * @return list<mixed>
+     */
+    private function allPages(PaginatorInterface $paginator, array $parameters, int $size): array
+    {
+        $items = $this->toList($paginator);
+        $page  = (int) ($parameters['page'] ?? 1);
+        $last  = (int) $paginator->getLastPage();
+
+        while ($page < $last) {
+            ++$page;
+            $next = $this->provide([
+                'page'         => (string) $page,
+                'itemsPerPage' => (string) $size,
+            ] + $parameters);
+
+            $items = [...$items, ...$this->toList($next)];
+
+            if ($next instanceof PaginatorInterface) {
+                $last = (int) $next->getLastPage();
+            }
+        }
+
+        return $items;
     }
 
     /**
@@ -247,12 +288,30 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
     }
 
     /**
+     * Pair each source item with its projection, the same contract DoctrineDataProvider honors.
+     *
+     * $pageProjector runs once over the page (or export chunk) already in hand. Returning null
+     * leaves the source items unchanged; changing the count is a contract violation.
+     *
+     * @param iterable<mixed> $items
+     *
      * @return \Generator<int, array<string, mixed>>
      */
     private function mapRows(iterable $items, RowMapperInterface $mapper): \Generator
     {
-        foreach ($items as $item) {
-            yield $mapper->map($item);
+        $items         = $this->toList($items);
+        $pageProjector = $this->pageProjector;
+        $projectedRaw  = null !== $pageProjector ? ($pageProjector)($items) : null;
+        $projected     = null === $projectedRaw ? null : array_values($projectedRaw);
+
+        if (null !== $projected && \count($projected) !== \count($items)) {
+            throw new \LogicException(\sprintf('Page projector returned %d items for a source page containing %d items. Projectors must preserve page size and order.', \count($projected), \count($items)));
+        }
+
+        foreach ($items as $index => $item) {
+            yield $mapper->map(
+                null === $projected ? $item : new RowContext($item, $projected[$index]),
+            );
         }
     }
 
