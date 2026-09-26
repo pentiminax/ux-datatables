@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Query\DoctrineSortDirection;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -51,7 +52,7 @@ final class AbstractDataTableHttpRequestTest extends TestCase
             ->willReturn($qb);
         $qb->expects($this->once())
             ->method('addOrderBy')
-            ->with('e.id', \SortDirection::Descending)
+            ->with('e.id', DoctrineSortDirection::from('desc'))
             ->willReturn($qb);
 
         $request = new DataTableRequest(
