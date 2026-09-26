@@ -120,8 +120,18 @@ class DataTable
             $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
         }
 
+        unset($options['showHeaderResetButton']);
+
         if (null !== $this->filters && !$this->filters->isEmpty()) {
             $options['filters'] = $this->filters->jsonSerialize();
+
+            $showReset = $this->filters->isHeaderResetButtonVisible()
+                ?? $this->options->get('showHeaderResetButton')
+                ?? false;
+
+            if ($showReset) {
+                $options['showHeaderResetButton'] = true;
+            }
 
             if (null !== $this->preparedFilterLabels) {
                 $options['filterLabels'] = $this->preparedFilterLabels;
@@ -696,6 +706,16 @@ class DataTable
     public function getFilters(): ?Filters
     {
         return $this->filters;
+    }
+
+    /**
+     * Display a reset button in the table header alongside the filter toggle button.
+     */
+    public function showHeaderResetButton(bool $show = true): static
+    {
+        $this->options->set('showHeaderResetButton', $show);
+
+        return $this;
     }
 
     /**

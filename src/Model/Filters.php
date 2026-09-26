@@ -16,6 +16,8 @@ final class Filters implements \JsonSerializable
 
     private ?FilterLabels $labels = null;
 
+    private ?bool $showHeaderResetButton = null;
+
     /**
      * Override the filter bar chrome strings (toggle title, reset/apply buttons,
      * empty-select placeholder). Values may be plain strings or translation keys;
@@ -41,6 +43,21 @@ final class Filters implements \JsonSerializable
     public function getLabels(): FilterLabels
     {
         return $this->labels ??= new FilterLabels();
+    }
+
+    /**
+     * Toggle display of the reset button directly in the table header next to the filter toggle button.
+     */
+    public function showHeaderResetButton(bool $show = true): self
+    {
+        $this->showHeaderResetButton = $show;
+
+        return $this;
+    }
+
+    public function isHeaderResetButtonVisible(): ?bool
+    {
+        return $this->showHeaderResetButton;
     }
 
     public function add(FilterInterface $filter): self

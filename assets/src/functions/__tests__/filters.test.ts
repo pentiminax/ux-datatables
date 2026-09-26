@@ -278,4 +278,152 @@ describe('FilterBar', () => {
         toggle.click()
         expect(popover.hidden).toBe(true)
     })
+
+    it('restores previously saved filter values via restoreValues', () => {
+        const { bar } = makeBar([
+            { name: 'name', type: 'text' },
+            { name: 'status', type: 'select', options: { active: 'Active' } },
+            { name: 'createdAt', type: 'dateRange' },
+            { name: 'vip', type: 'checkbox' },
+        ])
+        const wrapper = bar.render(vi.fn())
+
+        bar.restoreValues({
+            name: 'alice',
+            status: 'active',
+            createdAt: { from: '2026-01-01', to: '2026-01-31' },
+            vip: '1',
+        })
+
+        expect(bar.collectValues()).toEqual({
+            name: 'alice',
+            status: 'active',
+            createdAt: { from: '2026-01-01', to: '2026-01-31' },
+            vip: '1',
+        })
+        expect(wrapper.querySelector('.dt-filters-badge')?.textContent).toBe('4')
+        expect(
+            (wrapper.querySelector('input[name="filters[name]"]') as HTMLInputElement).value
+        ).toBe('alice')
+        expect(
+            (wrapper.querySelector('select[name="filters[status]"]') as HTMLSelectElement).value
+        ).toBe('active')
+        expect(
+            (wrapper.querySelector('input[name="filters[createdAt][from]"]') as HTMLInputElement)
+                .value
+        ).toBe('2026-01-01')
+        expect(
+            (wrapper.querySelector('input[name="filters[vip]"]') as HTMLInputElement).checked
+        ).toBe(true)
+    })
+
+    it('shows the header reset button only while filters are applied', () => {
+        const reload = vi.fn()
+        const payload: Record<string, any> = {
+            filters: [{ name: 'name', type: 'text' }],
+            showHeaderResetButton: true,
+            ajax: { url: '/data' },
+        }
+        const bar = new FilterBar(payload, 'dt')
+        const wrapper = bar.render(reload)
+
+        const headerReset = wrapper.querySelector('.dt-filters-header-reset') as HTMLButtonElement
+        expect(headerReset).not.toBeNull()
+        expect(headerReset.hidden).toBe(true)
+
+        ;(wrapper.querySelector('input[type="search"]') as HTMLInputElement).value = 'john'
+        clickApply(wrapper)
+
+        expect(headerReset.hidden).toBe(false)
+
+        headerReset.click()
+
+        expect(headerReset.hidden).toBe(true)
+        expect(bar.collectValues()).toEqual({})
+        expect((wrapper.querySelector('input[type="search"]') as HTMLInputElement).value).toBe('')
+        expect(reload).toHaveBeenCalledTimes(2)
+    })
+
+    it('safely renders header reset label containing markup as text', () => {
+        const payload: Record<string, any> = {
+            filters: [{ name: 'name', type: 'text' }],
+            filterLabels: { reset: '<img src=x onerror=alert(1)>' },
+            showHeaderResetButton: true,
+            ajax: { url: '/data' },
+        }
+        const bar = new FilterBar(payload, 'dt')
+        const wrapper = bar.render(vi.fn())
+
+        const headerReset = wrapper.querySelector('.dt-filters-header-reset') as HTMLButtonElement
+        expect(headerReset.querySelector('img')).toBeNull()
+        expect(headerReset.querySelector('span')?.textContent).toBe('<img src=x onerror=alert(1)>')
+    })
+
+    it('ignores unsupported filters or invalid select options during restoreValues', () => {
+        const { bar } = makeBar([
+            { name: 'status', type: 'select', options: { active: 'Active', pending: 'Pending' } },
+            {
+                name: 'role',
+                type: 'select',
+                multiple: true,
+                options: { admin: 'Admin', user: 'User' },
+            },
+            { name: 'active', type: 'ternary' },
+        ])
+        const wrapper = bar.render(vi.fn())
+
+        bar.restoreValues({
+            status: 'removed_option', // invalid option
+            role: ['admin', 'obsolete_role'], // partial invalid
+            active: 'invalid_boolean', // invalid ternary
+            unknownFilter: 'some_value', // deleted filter
+        })
+
+        expect(bar.collectValues()).toEqual({
+            role: ['admin'],
+        })
+        expect(wrapper.querySelector('.dt-filters-badge')?.textContent).toBe('1')
+        expect(
+            (wrapper.querySelector('select[name="filters[status]"]') as HTMLSelectElement).value
+        ).toBe('')
+    })
+
+    it('drops malformed persisted values instead of throwing during restoreValues', () => {
+        const { bar } = makeBar([
+            { name: 'name', type: 'text' },
+            { name: 'createdAt', type: 'dateRange' },
+            { name: 'status', type: 'select', options: { active: 'Active' } },
+        ])
+        const wrapper = bar.render(vi.fn())
+
+        expect(() =>
+            bar.restoreValues({
+                name: 42,
+                createdAt: { from: 5, to: null },
+                status: { from: 'active' },
+            })
+        ).not.toThrow()
+        expect(() => bar.restoreValues('not-an-object')).not.toThrow()
+
+        expect(bar.collectValues()).toEqual({})
+        expect(wrapper.querySelector('.dt-filters-badge')?.textContent).toBe('0')
+    })
+
+    it('restores numeric multi-select values as selected string options', () => {
+        const { bar } = makeBar([
+            {
+                name: 'role',
+                type: 'select',
+                multiple: true,
+                options: { '1': 'Admin', '2': 'User' },
+            },
+        ])
+        const wrapper = bar.render(vi.fn())
+
+        bar.restoreValues({ role: [1, 'unknown'] })
+
+        const select = wrapper.querySelector('select[name="filters[role]"]') as HTMLSelectElement
+        expect(bar.collectValues()).toEqual({ role: ['1'] })
+        expect([...select.selectedOptions].map((option) => option.value)).toEqual(['1'])
+    })
 })
