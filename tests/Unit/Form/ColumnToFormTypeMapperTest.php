@@ -132,6 +132,37 @@ final class ColumnToFormTypeMapperTest extends TestCase
 
         $this->assertSame(TextType::class, $mapped['formType']);
     }
+
+    #[Test]
+    public function column_named_for_a_property_the_entity_does_not_carry_is_skipped(): void
+    {
+        $this->assertNull($this->mapper->map(
+            TextColumn::new('fullName', 'Full Name'),
+            new ColumnToFormTypeMapperEntity(),
+        ));
+    }
+
+    #[Test]
+    public function column_named_for_a_missing_property_is_kept_when_no_entity_is_given(): void
+    {
+        $mapped = $this->mapper->map(TextColumn::new('fullName', 'Full Name'));
+
+        $this->assertSame(TextType::class, $mapped['formType']);
+    }
+
+    #[Test]
+    public function column_without_a_name_is_skipped_when_an_entity_is_given(): void
+    {
+        $this->assertNull($this->mapper->map(TextColumn::new('', 'Untitled'), new ColumnToFormTypeMapperEntity()));
+    }
+
+    #[Test]
+    public function column_named_for_a_getter_only_property_is_kept(): void
+    {
+        $mapped = $this->mapper->map(TextColumn::new('slug', 'Slug'), new ColumnToFormTypeMapperEntity());
+
+        $this->assertSame(TextType::class, $mapped['formType']);
+    }
 }
 
 enum ColumnToFormTypeMapperRole: string
@@ -150,4 +181,9 @@ final class ColumnToFormTypeMapperEntity
     public string $name = 'Ada';
 
     public ?ColumnToFormTypeMapperRole $role = null;
+
+    public function getSlug(): string
+    {
+        return 'ada';
+    }
 }
