@@ -126,10 +126,31 @@ class default_1 extends Controller {
         if (urlStateCfg) {
             applyUrlStateToPayload(payload, readUrlState(urlStateCfg));
         }
+        let filterBar = null;
         if (hasFilters(payload)) {
-            const filterBar = new FilterBar(payload, framework);
+            filterBar = new FilterBar(payload, framework);
             filterBar.attachToPayload(payload);
             applyFilterLayout(payload, filterBar);
+            if (payload.stateSave) {
+                const originalStateSaveParams = payload.stateSaveParams;
+                payload.stateSaveParams = (settings, data) => {
+                    if (typeof originalStateSaveParams === 'function') {
+                        originalStateSaveParams(settings, data);
+                    }
+                    if (filterBar) {
+                        data.uxFilters = filterBar.collectValues();
+                    }
+                };
+                const originalStateLoaded = payload.stateLoaded;
+                payload.stateLoaded = (settings, data) => {
+                    if (typeof originalStateLoaded === 'function') {
+                        originalStateLoaded(settings, data);
+                    }
+                    if (data?.uxFilters && filterBar) {
+                        filterBar.restoreValues(data.uxFilters);
+                    }
+                };
+            }
         }
         if (hasBulkActions(payload)) {
             const bulkBar = new BulkActionBar(payload, framework, (name, detail) => this.dispatchEvent(name, detail));

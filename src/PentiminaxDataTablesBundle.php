@@ -44,6 +44,8 @@ class PentiminaxDataTablesBundle extends AbstractBundle
                 ->arrayNode('options')
                     ->children()
                         ->scalarNode('language')->defaultValue('en-GB')->end()
+                        ->booleanNode('stateSave')->end()
+                        ->booleanNode('showHeaderResetButton')->end()
                         ->variableNode('layout')
                             ->defaultValue([
                                 'topStart'    => 'pageLength',
