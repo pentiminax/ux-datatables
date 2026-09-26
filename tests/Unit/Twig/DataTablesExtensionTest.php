@@ -11,10 +11,14 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Model\BulkAction;
+use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
@@ -382,6 +386,36 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
+    public function it_drops_the_selection_it_enabled_for_bulk_actions_the_user_may_not_run(): void
+    {
+        $actual = $this->renderPayload($this->bulkTable('ROLE_DENIED'));
+
+        $this->assertArrayNotHasKey('bulkActions', $actual);
+        $this->assertArrayNotHasKey('select', $actual);
+    }
+
+    #[Test]
+    public function it_keeps_a_selection_the_table_declared_when_every_bulk_action_is_denied(): void
+    {
+        $actual = $this->renderPayload($this->bulkTable(
+            'ROLE_DENIED',
+            static fn (DataTable $table): DataTable => $table->extensions([new SelectExtension(style: SelectStyle::MULTI)]),
+        ));
+
+        $this->assertArrayNotHasKey('bulkActions', $actual);
+        $this->assertSame('multi', $actual['select']['style']);
+    }
+
+    #[Test]
+    public function it_keeps_the_bulk_actions_selection_while_one_action_is_allowed(): void
+    {
+        $actual = $this->renderPayload($this->bulkTable(null));
+
+        $this->assertSame(['approve'], array_column($actual['bulkActions']['actions'], 'name'));
+        $this->assertTrue($actual['select']['withCheckbox']);
+    }
+
+    #[Test]
     public function it_keeps_unauthorized_columns_on_a_shared_abstract_datatable_after_render(): void
     {
         $table = new ConfigurableDataTable(
@@ -600,6 +634,27 @@ final class DataTablesExtensionTest extends TestCase
     private function inlineTable(array $columns, ?\Closure $configureTable = null): ConfigurableDataTable
     {
         $table = new ConfigurableDataTable($columns, configureTable: $configureTable);
+        $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
+
+        return $table;
+    }
+
+    /**
+     * @param (\Closure(DataTable): DataTable)|null $configureTable
+     */
+    private function bulkTable(?string $permission, ?\Closure $configureTable = null): ConfigurableDataTable
+    {
+        $action = BulkAction::new('approve');
+
+        if (null !== $permission) {
+            $action->setPermission($permission);
+        }
+
+        $table = new ConfigurableDataTable(
+            [TextColumn::new('id')],
+            configureTable: static fn (DataTable $table): DataTable => (null === $configureTable ? $table : $configureTable($table))->data([['id' => 1]]),
+            bulkActions: static fn (BulkActions $actions): BulkActions => $actions->add($action),
+        );
         $table->setDataTableInfrastructure($this->container->get('test.datatables.infrastructure'));
 
         return $table;
