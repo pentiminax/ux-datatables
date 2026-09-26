@@ -186,7 +186,7 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
      */
     private function assertFieldExists(ContainerBuilder $container, string $dataTableClass, string $dataClass, string $entityClass, string $field, string $what, bool $required): void
     {
-        if (str_contains($field, '.') || property_exists($entityClass, $field)) {
+        if (str_contains($field, '.') || self::declaresProperty($entityClass, $field)) {
             return;
         }
 
@@ -199,6 +199,23 @@ final class ValidateDataTableAttributesPass implements CompilerPassInterface
         }
 
         throw new InvalidArgumentException(\sprintf('Invalid DataTables attribute on "%s", read by the table "%s": %s', $dataClass, $dataTableClass, $message));
+    }
+
+    /**
+     * Walks the parents explicitly: a private property declared on a mapped superclass, such as a
+     * shared `$id`, is invisible to property_exists() on the entity, while Doctrine maps it.
+     *
+     * @param class-string $class
+     */
+    private static function declaresProperty(string $class, string $property): bool
+    {
+        for ($reflection = new \ReflectionClass($class); false !== $reflection; $reflection = $reflection->getParentClass()) {
+            if ($reflection->hasProperty($property)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
