@@ -487,6 +487,34 @@ final class BulkActionRunnerTest extends TestCase
     }
 
     #[Test]
+    public function it_refuses_a_highlight_id_field_that_doctrine_cannot_look_up(): void
+    {
+        $em = $this->createEntityManager(CountDocument::class);
+        $em->persist(new CountDocument(1, 10, 'Alpha'));
+        $em->flush();
+        $em->clear();
+
+        $handled = false;
+        $action  = BulkAction::new('touch')->handler(function () use (&$handled): void {
+            $handled = true;
+        });
+
+        try {
+            $this->runner(em: $em)->run(
+                $this->resolvedDocument($em, $action, highlightIdField: 'reference'),
+                $action,
+                new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+                $this->postRequest(),
+            );
+            $this->fail('An unmapped highlight id field must be refused.');
+        } catch (\LogicException $exception) {
+            $this->assertStringContainsString('"reference"', $exception->getMessage());
+        }
+
+        $this->assertFalse($handled);
+    }
+
+    #[Test]
     public function it_subtracts_the_rows_deselected_after_a_select_all(): void
     {
         $seen   = [];
