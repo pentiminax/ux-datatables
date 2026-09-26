@@ -121,7 +121,7 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $doctrine = $this->createStub(ManagerRegistry::class);
         $doctrine->method('getManagerForClass')->willReturn($em);
 
-        $filter = ChoiceFilter::new('typeDiplome')->entity(DummyEntity::class);
+        $filter = ChoiceFilter::new('typeDiplome')->entity(DummyEntity::class, label: 'libelle');
 
         $filters = (new Filters())->add($filter);
         $table   = (new DataTable('test_table'))->setFilters($filters);
@@ -133,6 +133,26 @@ final class FilterEntityOptionsResolverTest extends TestCase
             '1' => 'Bachelor',
             '2' => 'Master',
         ], $filter->jsonSerialize()['options']);
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_value_when_no_default_label_path_exists(): void
+    {
+        $repository = $this->createStub(EntityRepository::class);
+        $repository->method('findBy')->willReturn([new DummyEntity(1, 'Bachelor')]);
+
+        $em = $this->createStub(EntityManagerInterface::class);
+        $em->method('getRepository')->willReturn($repository);
+
+        $doctrine = $this->createStub(ManagerRegistry::class);
+        $doctrine->method('getManagerForClass')->willReturn($em);
+
+        $filter = ChoiceFilter::new('typeDiplome')->entity(DummyEntity::class);
+        $table  = (new DataTable('test_table'))->setFilters((new Filters())->add($filter));
+
+        (new FilterEntityOptionsResolver($doctrine))->prepare($table);
+
+        $this->assertSame(['1' => '1'], $filter->jsonSerialize()['options']);
     }
 
     #[Test]
@@ -190,6 +210,7 @@ final class FilterEntityOptionsResolverTest extends TestCase
         $invoked = false;
         $filter  = ChoiceFilter::new('typeDiplome')->entity(
             class: DummyEntity::class,
+            label: 'libelle',
             queryBuilder: static function ($repo, $builder) use (&$invoked): void {
                 $invoked = true;
             },

@@ -135,7 +135,7 @@ ChoiceFilter::new('author')
   ]}
 />
 
-Without a `label`, the first non-null of `display`, `libelle`, `name`, `label` and `title` is used,
+Without a `label`, the first non-null of `display`, `name`, `label` and `title` is used,
 then `__toString()`, then the value itself. `options(Category::class)` is a shortcut for
 `entity(Category::class)`: a class that is not a `BackedEnum` is read as an entity.
 
