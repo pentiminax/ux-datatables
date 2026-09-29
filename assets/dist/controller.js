@@ -8,6 +8,7 @@ import { createIconColumnRenderer } from './columnRenderers/iconColumnRenderer.j
 import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js';
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js';
 import { relativeDateColumnRenderer } from './columnRenderers/relativeDateColumnRenderer.js';
+import { textColumnRenderer } from './columnRenderers/textColumnRenderer.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
 import { ApiPlatformAdapter, isApiPlatformAdapterEnabled, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
@@ -278,6 +279,7 @@ class default_1 extends Controller {
             urlColumnRenderer,
             createIconColumnRenderer(style),
             createActionColumnRenderer(this.areMutationsEnabled(payload)),
+            textColumnRenderer,
         ];
         payload.columns.forEach((column) => {
             for (const renderer of columnRenderers) {
