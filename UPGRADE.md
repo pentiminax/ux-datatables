@@ -169,6 +169,15 @@ A class-string that is not a `BackedEnum` used to throw. It now loads the option
 Doctrine entity, like `ChoiceFilter::entity()`. See
 [Filters](https://pentiminax.github.io/ux-datatables/reference/filters/#options-from-a-doctrine-entity).
 
+### `TextColumn` HTML-escapes display
+
+DataTables inserts Ajax cell values as HTML. A `TextColumn` without `html()` used to render
+user-controlled markup (and scripts) in the cell. Display is now escaped for the `string` and
+`string-utf8` types.
+
+Call `html()` (or `html()->utf8()`) when the cell contains trusted, already-sanitized markup.
+Sorting and searching still strip tags in that mode; display inserts the HTML as-is.
+
 ## v0.90 → v1.0
 
 ### The bundle class is renamed
