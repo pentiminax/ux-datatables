@@ -138,20 +138,62 @@ class ApiPlatformQueryParameterFactory
     /**
      * A {from, to} filter maps onto API Platform's DateFilter bounds.
      *
+     * Date-only `to` becomes `strictly_before` of the next calendar day: API Platform's
+     * inclusive `before=YYYY-MM-DD` is midnight of that day, which would drop every later
+     * timestamp on the selected end day — the same trap {@see \Pentiminax\UX\DataTables\Filter\DateRangeFilter}
+     * already avoids on the Doctrine path.
+     *
      * @param array<string, string|array<int|string, string>> $parameters
      * @param array<array-key, mixed>                         $value
      */
     private function appendRangeFilter(array &$parameters, string $name, array $value): void
     {
-        foreach (['from' => 'after', 'to' => 'before'] as $key => $bound) {
-            $boundary = $value[$key] ?? null;
-
-            if (!\is_scalar($boundary) || '' === trim((string) $boundary)) {
-                continue;
+        $from = $value['from'] ?? null;
+        if (\is_scalar($from)) {
+            $fromBound = trim((string) $from);
+            if ('' !== $fromBound) {
+                $this->set($parameters, \sprintf('%s[after]', $name), $fromBound);
             }
-
-            $this->set($parameters, \sprintf('%s[%s]', $name, $bound), (string) $boundary);
         }
+
+        $to = $value['to'] ?? null;
+        if (!\is_scalar($to)) {
+            return;
+        }
+
+        $toBound = trim((string) $to);
+        if ('' === $toBound) {
+            return;
+        }
+
+        $exclusiveTo = $this->exclusiveNextDayUpperBound($toBound);
+        if (null !== $exclusiveTo) {
+            $this->set($parameters, \sprintf('%s[strictly_before]', $name), $exclusiveTo);
+
+            return;
+        }
+
+        $this->set($parameters, \sprintf('%s[before]', $name), $toBound);
+    }
+
+    /**
+     * Next calendar day for a date-only HTML bound, or null when the value carries a time
+     * (kept as inclusive `before`) or is not a calendar date.
+     */
+    private function exclusiveNextDayUpperBound(string $rawTo): ?string
+    {
+        if (1 !== preg_match('/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/', $rawTo, $matches)) {
+            return null;
+        }
+
+        $normalized = \sprintf('%04d-%02d-%02d', (int) $matches[1], (int) $matches[2], (int) $matches[3]);
+        $date       = \DateTimeImmutable::createFromFormat('!Y-m-d', $normalized);
+
+        if (false === $date || $date->format('Y-m-d') !== $normalized) {
+            return null;
+        }
+
+        return $date->add(new \DateInterval('P1D'))->format('Y-m-d');
     }
 
     /**
