@@ -89,7 +89,7 @@ Notes:
   | --- | --- |
   | `text`, `select`, `ternary`, `checkbox` | `?name=value` |
   | `select` with `multiple()` | `?name[0]=value&name[1]=value` |
-  | `dateRange` | `?name[after]=YYYY-MM-DD&name[before]=YYYY-MM-DD` |
+  | `dateRange` | `?name[after]=YYYY-MM-DD&name[strictly_before]=YYYY-MM-DD` (exclusive next day; a time-bearing `to` stays `before`) |
 
 ## Reading the collection server-side
 
