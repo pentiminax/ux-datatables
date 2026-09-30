@@ -53,7 +53,7 @@ final class BooleanSwitchMetadataStageTest extends TestCase
             [BooleanColumn::new('active')->renderAsSwitch()],
             [
                 'active'                                 => true,
-                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => '42'],
+                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => 42],
             ],
         ];
 
@@ -95,7 +95,7 @@ final class BooleanSwitchMetadataStageTest extends TestCase
             [
                 'active'                                 => true,
                 'verified'                               => false,
-                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => '42', 'verified' => '42'],
+                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => 42, 'verified' => 42],
             ],
         ];
 
@@ -158,7 +158,7 @@ final class BooleanSwitchMetadataStageTest extends TestCase
             [BooleanColumn::new('active')->renderAsSwitch()],
             [
                 'active'                                 => true,
-                BooleanSwitchMetadataStage::METADATA_KEY => ['verified' => '7', 'active' => '42'],
+                BooleanSwitchMetadataStage::METADATA_KEY => ['verified' => 7, 'active' => 42],
             ],
         ];
 
@@ -171,7 +171,7 @@ final class BooleanSwitchMetadataStageTest extends TestCase
             [BooleanColumn::new('active')->renderAsSwitch()],
             [
                 'active'                                 => true,
-                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => '42'],
+                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => 42],
             ],
         ];
     }
