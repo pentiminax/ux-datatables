@@ -49,42 +49,58 @@ final class BooleanSwitchMetadataStage implements RowStageInterface
     }
 
     /**
-     * @return array<string, int|string>
+     * @return array<string, string>
      */
     private function extractExistingMetadata(array $mappedRow): array
     {
         $metadata = $mappedRow[self::METADATA_KEY] ?? [];
 
-        return \is_array($metadata) ? array_filter(
-            $metadata,
-            static fn (mixed $value, mixed $field): bool => \is_string($field)
-                && '' !== $field
-                && (\is_int($value) || (\is_string($value) && '' !== $value)),
-            \ARRAY_FILTER_USE_BOTH,
-        ) : [];
+        if (!\is_array($metadata)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach ($metadata as $field => $value) {
+            if (!\is_string($field) || '' === $field) {
+                continue;
+            }
+
+            $id = $this->normalizeId($value);
+
+            if (null !== $id) {
+                $normalized[$field] = $id;
+            }
+        }
+
+        return $normalized;
     }
 
-    private function resolveSwitchId(mixed $source, BooleanColumn $column): int|string|null
+    private function resolveSwitchId(mixed $source, BooleanColumn $column): ?string
     {
         $idField = $column->getCustomOption(BooleanColumn::OPTION_TOGGLE_ID_FIELD);
         if (!\is_string($idField) || '' === $idField) {
             $idField = 'id';
         }
 
-        $id = PropertyReader::readPath($source, $idField);
+        return $this->normalizeId(PropertyReader::readPath($source, $idField));
+    }
 
+    /**
+     * Identifiers travel through JSON into browser attributes. Keeping integers as numbers
+     * loses precision above Number.MAX_SAFE_INTEGER, so every usable id becomes a string —
+     * matching {@see RowIdStage}.
+     */
+    private function normalizeId(mixed $id): ?string
+    {
         if (\is_int($id)) {
-            return $id;
+            return (string) $id;
         }
 
-        if (\is_string($id) && '' !== $id) {
-            return $id;
-        }
+        if (\is_string($id) || $id instanceof \Stringable) {
+            $id = (string) $id;
 
-        if ($id instanceof \Stringable) {
-            $stringId = (string) $id;
-
-            return '' !== $stringId ? $stringId : null;
+            return '' !== $id ? $id : null;
         }
 
         return null;
