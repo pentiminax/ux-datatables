@@ -5,6 +5,20 @@ current version and the target, oldest first.
 
 ## v1.0 → v1.1
 
+### DataTables extension dependencies
+
+The frontend dependency ranges now use DataTables 3.1.2, ColReorder 3.1.2, FixedHeader 5.1.1,
+KeyTable 3.1.1, RowGroup 2.1.1, and Scroller 3.1.1 across all supported themes. Update the core,
+styling packages, and extensions together: these extension releases require DataTables 3.1 or
+newer. The peer dependencies and Symfony importmap defaults include the matching minimum versions.
+Applications with existing importmap pins must update those pins as well.
+
+RowGroup 2.1.1 escapes group labels in its default `startRender` callback to prevent HTML injection.
+A group value such as `<b>Engineering</b>` now displays literally instead of rendering bold text.
+If you intentionally render trusted HTML in a group heading, provide a custom `startRender`
+callback through `datatables:pre-connect`. Custom callbacks retain their HTML behavior and must
+escape untrusted values themselves; prefer DOM nodes with `textContent` for user-provided data.
+
 ### `#[AsDataTable]` separates `dataClass` from `entityClass` (additive)
 
 The attribute now carries two distinct classes. `dataClass` is where the `#[DataTableColumn]` and
