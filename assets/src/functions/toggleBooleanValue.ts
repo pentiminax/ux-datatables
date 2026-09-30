@@ -19,9 +19,11 @@ export async function toggleBooleanValue({
     dataTable,
     csrfToken,
 }: ToggleBooleanPayload): Promise<Response> {
-    const numericId = Number(id)
+    // Keep the id as a string. Coercing through Number() collapses zero-padded keys,
+    // scientific-notation keys, and values above Number.MAX_SAFE_INTEGER — the same
+    // shapes bulk selection and the edit-form path already preserve.
     const body: Record<string, unknown> = {
-        id: id.trim() !== '' && Number.isFinite(numericId) ? numericId : id,
+        id,
         field,
         newValue,
         dataTable,
