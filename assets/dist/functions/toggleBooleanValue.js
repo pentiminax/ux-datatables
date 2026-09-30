@@ -1,7 +1,8 @@
 import { createMutationHeaders } from './createMutationHeaders.js';
 export async function toggleBooleanValue({ id, field, newValue, url, method = 'PATCH', dataTable, csrfToken, }) {
+    const numericId = Number(id);
     const body = {
-        id,
+        id: id.trim() !== '' && Number.isFinite(numericId) ? numericId : id,
         field,
         newValue,
         dataTable,
