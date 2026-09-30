@@ -57,6 +57,10 @@ disabled for later activation through the DataTables API.
 
 ## Custom JavaScript Grouping And Summaries
 
+Since RowGroup 2.1.1, the default renderer escapes group labels to prevent HTML injection. A group
+value such as `<b>Engineering</b>` displays as text. Custom `startRender` callbacks can still return
+trusted HTML, but must escape any untrusted values themselves.
+
 PHP configuration is serialized as JSON, so `dataSrc`, `startRender`, and `endRender` functions
 must be attached through the `datatables:pre-connect` event.
 
