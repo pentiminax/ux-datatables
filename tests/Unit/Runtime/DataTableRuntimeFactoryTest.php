@@ -80,7 +80,7 @@ final class DataTableRuntimeFactoryTest extends TestCase
 
         $this->assertSame([
             'active'                           => true,
-            '__ux_datatables_boolean_switches' => ['active' => 42],
+            '__ux_datatables_boolean_switches' => ['active' => '42'],
         ], $mapper->map(new DataTableRuntimeFactoryBooleanSwitchFixture(42)));
     }
 

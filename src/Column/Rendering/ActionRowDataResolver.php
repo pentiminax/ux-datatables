@@ -195,14 +195,21 @@ final class ActionRowDataResolver
         }
     }
 
-    private function normalizeId(mixed $id): string|int|null
+    /**
+     * Identifiers travel through JSON into browser attributes. Keeping integers as numbers
+     * loses precision above Number.MAX_SAFE_INTEGER, so every usable id becomes a string —
+     * matching {@see \Pentiminax\UX\DataTables\RowMapper\Stage\RowIdStage}.
+     */
+    private function normalizeId(mixed $id): ?string
     {
-        if (\is_string($id) || \is_int($id)) {
-            return $id;
+        if (\is_int($id)) {
+            return (string) $id;
         }
 
-        if ($id instanceof \Stringable) {
-            return (string) $id;
+        if (\is_string($id) || $id instanceof \Stringable) {
+            $id = (string) $id;
+
+            return '' !== $id ? $id : null;
         }
 
         return null;
