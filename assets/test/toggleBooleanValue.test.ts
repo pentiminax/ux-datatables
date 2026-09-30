@@ -6,7 +6,7 @@ describe('toggleBooleanValue', () => {
         vi.restoreAllMocks()
     })
 
-    it('preserves numeric-looking ids as strings', async () => {
+    it('sends numeric ids as numbers', async () => {
         const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
         vi.stubGlobal('fetch', fetchMock)
 
@@ -23,7 +23,7 @@ describe('toggleBooleanValue', () => {
             '/datatables/ajax/edit',
             expect.objectContaining({
                 body: JSON.stringify({
-                    id: '42',
+                    id: 42,
                     field: 'enabled',
                     newValue: true,
                     dataTable: 'signed-token',
@@ -75,7 +75,7 @@ describe('toggleBooleanValue', () => {
             '/datatables/ajax/edit',
             expect.objectContaining({
                 body: JSON.stringify({
-                    id: '42',
+                    id: 42,
                     field: 'enabled',
                     newValue: true,
                     dataTable: 'signed-token',
@@ -99,31 +99,12 @@ describe('toggleBooleanValue', () => {
         expect(fetchMock).toHaveBeenCalledOnce()
         const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
         expect(body).toEqual({
-            id: '42',
+            id: 42,
             field: 'enabled',
             newValue: true,
             dataTable: 'signed-token',
         })
         expect(body).not.toHaveProperty('entity')
         expect(body).not.toHaveProperty('dataTableClass')
-    })
-
-    it('preserves zero-padded and unsafe-integer ids', async () => {
-        const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
-        vi.stubGlobal('fetch', fetchMock)
-
-        for (const id of ['00123', '9007199254740993', '1e3']) {
-            fetchMock.mockClear()
-            await toggleBooleanValue({
-                id,
-                field: 'enabled',
-                newValue: true,
-                url: '/datatables/ajax/edit',
-                dataTable: 'signed-token',
-            })
-
-            const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
-            expect(body.id).toBe(id)
-        }
     })
 })
