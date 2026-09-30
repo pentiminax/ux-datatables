@@ -82,13 +82,13 @@ final class ActionRowDataResolverTest extends TestCase
         yield 'collapsible detail action exposes the id' => [
             [Action::detail()->collapsible('book/detail.html.twig')],
             (object) ['id' => 7],
-            ['DETAIL' => ['id' => '7']],
+            ['DETAIL' => ['id' => 7]],
         ];
 
         yield 'id read from the default entity identifier' => [
             [Action::edit()],
             new ActionRowDataResolverEntity(7),
-            ['EDIT' => ['id' => '7']],
+            ['EDIT' => ['id' => 7]],
         ];
 
         yield 'id read from a custom entity identifier' => [
@@ -100,7 +100,7 @@ final class ActionRowDataResolverTest extends TestCase
         yield 'id read from an array source row' => [
             [Action::delete()],
             ['id' => 9],
-            ['DELETE' => ['id' => '9']],
+            ['DELETE' => ['id' => 9]],
         ];
 
         // An AuthorizationChecker without inner checker grants the bundle's own attributes.
@@ -111,7 +111,7 @@ final class ActionRowDataResolverTest extends TestCase
                     ->setPermission('EDIT', static fn ($r) => $r),
             ],
             (object) ['id' => 7],
-            ['EDIT' => ['url' => '/items/7', 'id' => '7']],
+            ['EDIT' => ['url' => '/items/7', 'id' => 7]],
         ];
 
         yield 'action with neither url nor readable id' => [
@@ -146,7 +146,7 @@ final class ActionRowDataResolverTest extends TestCase
         $result = $this->resolveRow(new ActionRowDataResolver(new AuthorizationChecker($inner)), $sourceRow, $action);
 
         $this->assertSame(
-            $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => '7']] : null,
+            $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]] : null,
             $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
         );
         $this->assertSame($granted ? null : ['EDIT'], $result[ActionRowDataResolver::DENIED_ACTIONS_KEY] ?? null);
@@ -177,7 +177,7 @@ final class ActionRowDataResolverTest extends TestCase
         $result = $this->resolveRow(new ActionRowDataResolver(new AuthorizationChecker($inner)), $sourceRow, $action);
 
         $this->assertSame(
-            ['EDIT' => ['url' => '/items/7/edit', 'id' => '7']],
+            ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]],
             $result[ActionRowDataResolver::ROW_ACTIONS_KEY],
         );
     }
@@ -208,7 +208,7 @@ final class ActionRowDataResolverTest extends TestCase
         );
 
         $this->assertSame(
-            $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => '7']] : null,
+            $granted ? ['EDIT' => ['url' => '/items/7/edit', 'id' => 7]] : null,
             $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
         );
         $this->assertSame($granted ? null : ['EDIT'], $result[ActionRowDataResolver::DENIED_ACTIONS_KEY] ?? null);
@@ -240,7 +240,7 @@ final class ActionRowDataResolverTest extends TestCase
         );
 
         $this->assertSame(
-            ['DELETE' => ['id' => '42']],
+            ['DELETE' => ['id' => 42]],
             $result[ActionRowDataResolver::ROW_ACTIONS_KEY] ?? null,
         );
     }
