@@ -8,6 +8,7 @@ import { createIconColumnRenderer } from './columnRenderers/iconColumnRenderer.j
 import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js'
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js'
 import { relativeDateColumnRenderer } from './columnRenderers/relativeDateColumnRenderer.js'
+import { textColumnRenderer } from './columnRenderers/textColumnRenderer.js'
 import type { ColumnRenderer } from './columnRenderers/types.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js'
@@ -440,6 +441,9 @@ export default class extends Controller {
             urlColumnRenderer,
             createIconColumnRenderer(style),
             createActionColumnRenderer(this.areMutationsEnabled(payload)),
+            // Last: only string/string-utf8 columns without a renderer, so html()
+            // markup and the specialized renderers above keep control of display.
+            textColumnRenderer,
         ]
 
         payload.columns.forEach((column: any): void => {
