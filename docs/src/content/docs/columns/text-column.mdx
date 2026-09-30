@@ -5,7 +5,7 @@ order: 20
 navTitle: Text
 ---
 
-`TextColumn` is the default column type for string values. It uses the DataTables `string` type for sorting and searching, which means values are compared as plain text.
+`TextColumn` is the default column type for string values. It uses the DataTables `string` type for sorting and searching, which means values are compared as plain text. Display is HTML-escaped, so characters like `<` show as text instead of markup.
 
 ## Basic Usage
 
@@ -17,7 +17,7 @@ TextColumn::new('name', 'Name');
 
 ## HTML Content
 
-When the cell value contains HTML markup, call `html()` to switch the DataTables type to `html`. This strips tags before sorting and searching, so users search against the visible text, not the markup.
+When the cell value contains trusted HTML markup, call `html()` to switch the DataTables type to `html`. Display then inserts the markup as HTML. Sorting and searching strip tags, so users search against the visible text, not the markup. Do not call `html()` on user-controlled values unless they are already sanitized.
 
 ```php
 TextColumn::new('description', 'Description')
@@ -47,7 +47,7 @@ TextColumn::new('content', 'Content')
   headers={['Method', 'Description']}
   rows={[
     ["`TextColumn::new(string $name, string $title = '')`", 'Creates a new TextColumn (type: `string`)'],
-    ['`html(bool $html = true)`', 'Switches to `html` type (or `html-utf8` when combined with `utf8()`)'],
+    ['`html(bool $html = true)`', 'Renders the cell as HTML (or `html-utf8` with `utf8()`). Skip this on unsanitized user input.'],
     ['`utf8(bool $utf8 = true)`', 'Switches to `string-utf8` type (or `html-utf8` when combined with `html()`)'],
   ]}
 />
@@ -81,7 +81,7 @@ final class UsersDataTable extends AbstractDataTable
 }
 ```
 
-<Aside type="note">
-  Use `html()` only when the cell actually contains markup — the extra tag-stripping step has a
-  small runtime cost in the browser.
+<Aside type="caution">
+  Use `html()` only when the cell contains trusted, already-sanitized markup. The default
+  `string` type HTML-escapes display so user-controlled text cannot run as HTML.
 </Aside>
