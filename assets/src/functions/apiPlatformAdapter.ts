@@ -112,6 +112,38 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+/**
+ * Next calendar day for a date-only HTML bound (`YYYY-MM-DD` / `YYYY/MM/DD`).
+ * Returns null for time-bearing values so callers keep inclusive `before`.
+ */
+function nextDayDateOnly(value: string): string | null {
+    const match = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(value)
+    if (!match) {
+        return null
+    }
+
+    const year = Number.parseInt(match[1], 10)
+    const month = Number.parseInt(match[2], 10) - 1
+    const day = Number.parseInt(match[3], 10)
+    const date = new Date(Date.UTC(year, month, day))
+
+    if (
+        date.getUTCFullYear() !== year ||
+        date.getUTCMonth() !== month ||
+        date.getUTCDate() !== day
+    ) {
+        return null
+    }
+
+    date.setUTCDate(date.getUTCDate() + 1)
+
+    const nextYear = date.getUTCFullYear()
+    const nextMonth = String(date.getUTCMonth() + 1).padStart(2, '0')
+    const nextDay = String(date.getUTCDate()).padStart(2, '0')
+
+    return `${nextYear}-${nextMonth}-${nextDay}`
+}
+
 export class ApiPlatformAdapter {
     private readonly columns: ReadonlyArray<ColumnConfig>
 
@@ -316,11 +348,19 @@ export class ApiPlatformAdapter {
             const to = value.to
 
             if ('string' === typeof from && '' !== from.trim()) {
-                this.setFilterParam(result, `${name}[after]`, from)
+                this.setFilterParam(result, `${name}[after]`, from.trim())
             }
 
             if ('string' === typeof to && '' !== to.trim()) {
-                this.setFilterParam(result, `${name}[before]`, to)
+                const toBound = to.trim()
+                // Date-only `to` must become exclusive next-midnight: API Platform's
+                // inclusive `before=YYYY-MM-DD` is midnight and drops the rest of that day.
+                const exclusiveTo = nextDayDateOnly(toBound)
+                if (null !== exclusiveTo) {
+                    this.setFilterParam(result, `${name}[strictly_before]`, exclusiveTo)
+                } else {
+                    this.setFilterParam(result, `${name}[before]`, toBound)
+                }
             }
         }
     }

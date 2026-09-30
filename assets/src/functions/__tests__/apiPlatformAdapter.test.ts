@@ -63,7 +63,7 @@ describe('filter bar values', () => {
             filters: {
                 status: 'active',
                 roles: ['ROLE_ADMIN', '', 'ROLE_USER'],
-                createdAt: { from: '2026-01-01', to: '2026-02-01' },
+                createdAt: { from: '2026-01-01', to: '2026-01-31' },
                 empty: '   ',
             },
         })
@@ -75,7 +75,26 @@ describe('filter bar values', () => {
             'roles[0]': 'ROLE_ADMIN',
             'roles[1]': 'ROLE_USER',
             'createdAt[after]': '2026-01-01',
-            'createdAt[before]': '2026-02-01',
+            'createdAt[strictly_before]': '2026-02-01',
+        })
+    })
+
+    it('keeps a time-bearing range upper bound as inclusive before', () => {
+        const adapter = new ApiPlatformAdapter([{ name: 'email' }])
+
+        const params = adapter.buildRequestParams({
+            start: 0,
+            length: 25,
+            filters: {
+                createdAt: { from: '2026-01-01T00:00:00', to: '2026-01-31T14:30:00' },
+            },
+        })
+
+        expect(params).toEqual({
+            page: '1',
+            itemsPerPage: '25',
+            'createdAt[after]': '2026-01-01T00:00:00',
+            'createdAt[before]': '2026-01-31T14:30:00',
         })
     })
 
