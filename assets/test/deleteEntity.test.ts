@@ -6,7 +6,7 @@ describe('deleteEntity', () => {
         vi.restoreAllMocks()
     })
 
-    it('sends numeric ids as numbers', async () => {
+    it('preserves numeric-looking ids as strings', async () => {
         const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
         vi.stubGlobal('fetch', fetchMock)
 
@@ -21,7 +21,7 @@ describe('deleteEntity', () => {
             expect.objectContaining({
                 body: JSON.stringify({
                     dataTable: 'signed-token',
-                    id: 42,
+                    id: '42',
                 }),
             })
         )
@@ -46,5 +46,22 @@ describe('deleteEntity', () => {
                 }),
             })
         )
+    })
+
+    it('preserves zero-padded and unsafe-integer ids', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
+        vi.stubGlobal('fetch', fetchMock)
+
+        for (const id of ['00123', '9007199254740993', '1e3']) {
+            fetchMock.mockClear()
+            await deleteEntity({ dataTable: 'signed-token', id })
+
+            expect(fetchMock).toHaveBeenCalledWith(
+                '/datatables/ajax/delete',
+                expect.objectContaining({
+                    body: JSON.stringify({ dataTable: 'signed-token', id }),
+                })
+            )
+        }
     })
 })
