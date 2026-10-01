@@ -27,8 +27,8 @@ export function installRequestParams(payload, options = {}) {
             data.filters = options.filters();
         }
         const sent = typeof userData === 'function' ? callUserData(data, userData, settings) : data;
-        const parsed = typeof sent === 'string' && !options.transport ? parseJsonRecord(sent) : null;
-        const params = typeof sent === 'string' ? (parsed ?? data) : sent;
+        const returned = (typeof sent === 'string' ? parseJsonRecord(sent) : sent) ?? data;
+        const params = options.transport ? { ...data, ...returned } : returned;
         if (options.filters && undefined === params.filters) {
             params.filters = data.filters;
         }
