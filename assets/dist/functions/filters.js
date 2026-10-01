@@ -1,3 +1,4 @@
+import { applyFeatureLayout } from './featureLayout.js';
 import { createPopover } from './popover.js';
 const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
 function isPlainRecord(value) {
@@ -409,5 +410,57 @@ export class FilterBar {
             },
         };
     }
+}
+const registeredOn = new WeakSet();
+function hasAjaxSource(settings) {
+    return Boolean(settings?.ajax || settings?.oFeatures?.bServerSide);
+}
+function registerFilterFeature(DataTable) {
+    if (registeredOn.has(DataTable)) {
+        return;
+    }
+    registeredOn.add(DataTable);
+    DataTable.feature.register('filters', (settings, opts) => {
+        const instance = opts?.instance;
+        if (!instance) {
+            return document.createElement('div');
+        }
+        if (!hasAjaxSource(settings)) {
+            console.warn('[ux-datatables] Filters require an Ajax source; enable serverSide() to use them.');
+            return document.createElement('div');
+        }
+        const api = new DataTable.Api(settings);
+        return instance.render(() => api.ajax.reload(null, true));
+    });
+}
+function chainFilterState(payload, filterBar) {
+    const userStateSaveParams = payload.stateSaveParams;
+    payload.stateSaveParams = (settings, data) => {
+        if (typeof userStateSaveParams === 'function') {
+            userStateSaveParams(settings, data);
+        }
+        data.uxFilters = filterBar.collectValues();
+    };
+    const userStateLoaded = payload.stateLoaded;
+    payload.stateLoaded = (settings, data) => {
+        if (typeof userStateLoaded === 'function') {
+            userStateLoaded(settings, data);
+        }
+        if (data?.uxFilters) {
+            filterBar.restoreValues(data.uxFilters);
+        }
+    };
+}
+export function installFilterBar(payload, DataTable, framework) {
+    registerFilterFeature(DataTable);
+    if (!hasFilters(payload)) {
+        return null;
+    }
+    const filterBar = new FilterBar(payload, framework);
+    applyFeatureLayout(payload, 'filters', { filters: { instance: filterBar } }, { position: 'topEnd', before: ['search'] });
+    if (payload.stateSave) {
+        chainFilterState(payload, filterBar);
+    }
+    return filterBar;
 }
 //# sourceMappingURL=filters.js.map

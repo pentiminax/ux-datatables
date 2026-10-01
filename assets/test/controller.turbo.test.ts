@@ -15,10 +15,6 @@ vi.mock('../src/functions/bulkActionsFeature.js', () => ({
     registerBulkActionsFeature: vi.fn(),
 }))
 
-vi.mock('../src/functions/filterFeature.js', () => ({
-    registerFilterFeature: vi.fn(),
-}))
-
 vi.mock('../src/functions/mercureSubscription.js', () => ({
     createMercureSubscription: vi.fn(),
 }))
@@ -256,6 +252,7 @@ describe('datatable controller Turbo snapshot cleanup', () => {
             return instance
         }
 
+        MockDataTable.feature = { register: vi.fn() }
         MockDataTable.isDataTable = (element: Element) => initialized.has(element)
         // DataTables resolves `new DataTable.Api(node)` to the live instance for that table.
         MockDataTable.Api = class {
@@ -321,6 +318,7 @@ function createMockDataTable(initialized: WeakSet<Element>, instances: MockInsta
         return instance
     }
 
+    MockDataTable.feature = { register: vi.fn() }
     MockDataTable.isDataTable = (element: Element) => initialized.has(element)
     // DataTables resolves `new DataTable.Api(node)` to the live instance for that table.
     MockDataTable.Api = class {
