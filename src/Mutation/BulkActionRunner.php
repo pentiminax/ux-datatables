@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Mutation;
 
+use Doctrine\Persistence\Mapping\ClassMetadata;
 use Doctrine\Persistence\ObjectManager;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Exception\InvalidBulkSelectionException;
+use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Model\BulkAction;
+use Pentiminax\UX\DataTables\RowMapper\RowIdField;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -53,7 +56,7 @@ final class BulkActionRunner
             manager: $manager,
             entityClass: $entityClass,
             configuredField: $dataTable->getBulkActions()?->getIdField(),
-            highlightField: $dataTable->getHighlightConfig()?->idField,
+            highlight: $dataTable->getHighlightConfig(),
         );
         $ids = $this->resolveIdentifiers($table, $selection, $request, $identifier);
 
@@ -210,40 +213,28 @@ final class BulkActionRunner
     }
 
     /**
-     * The property {@see \Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory::createRowMapper()}
-     * wrote as DT_RowId: highlight wins when present, otherwise the bulk id field, with the
-     * default `id` remapped onto a single Doctrine identifier.
+     * The field {@see RowIdField} names as DT_RowId, refused when Doctrine cannot look rows up by it.
      */
     private function identifierField(
         ObjectManager $manager,
         string $entityClass,
         ?string $configuredField,
-        ?string $highlightField,
+        ?HighlightConfig $highlight,
     ): string {
         $metadata = $manager->getClassMetadata($entityClass);
+        $field    = RowIdField::resolve($highlight, $configuredField ?? 'id', static fn (): ClassMetadata => $metadata) ?? 'id';
 
-        // Highlight writes DT_RowId from its own field without remapping, so the lookup
-        // has to follow it even when that field is the default `id`. Falling back to the
-        // primary key would compare values from two namespaces and mutate the wrong rows.
-        if (null !== $highlightField) {
-            if (!$metadata->hasField($highlightField)) {
-                throw new \LogicException(\sprintf('Bulk actions look rows up by the "%s" field that highlightUpdates() writes as DT_RowId, but it is not a mapped field of "%s". Point highlightUpdates(idField: ...) at a mapped, unique field.', $highlightField, $entityClass));
-            }
-
-            return $highlightField;
+        // Falling back to the primary key would compare values from two namespaces and mutate
+        // the wrong rows, so a field Doctrine cannot look up is refused instead.
+        if ($metadata->hasField($field) || \in_array($field, $metadata->getIdentifier(), true)) {
+            return $field;
         }
 
-        $identifiers = $metadata->getIdentifier();
-
-        if (null !== $configuredField && 'id' !== $configuredField) {
-            if (!$metadata->hasField($configuredField)) {
-                throw new \LogicException(\sprintf('Bulk actions look rows up by the "%s" field that setIdField() writes as DT_RowId, but it is not a mapped field of "%s". Point BulkActions::setIdField() at a mapped, unique field.', $configuredField, $entityClass));
-            }
-
-            return $configuredField;
+        if (null !== $highlight) {
+            throw new \LogicException(\sprintf('Bulk actions look rows up by the "%s" field that highlightUpdates() writes as DT_RowId, but it is not a mapped field of "%s". Point highlightUpdates(idField: ...) at a mapped, unique field.', $field, $entityClass));
         }
 
-        return 1 === \count($identifiers) ? $identifiers[0] : ($configuredField ?? 'id');
+        throw new \LogicException(\sprintf('Bulk actions look rows up by the "%s" field that setIdField() writes as DT_RowId, but it is not a mapped field of "%s". Point BulkActions::setIdField() at a mapped, unique field.', $field, $entityClass));
     }
 
     private function publish(string $entityClass, string $dataTableClass, BulkAction $action, int $processed): void
