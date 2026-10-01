@@ -74,6 +74,43 @@ describe('datatable controller Turbo lifecycle', () => {
         vi.clearAllMocks()
     })
 
+    it('builds the table once when a reattach re-enters connect during initialization', async () => {
+        const table = mountTable()
+        await getController(application, table)
+
+        await detach(table)
+        await attach(table)
+
+        for (const resolve of loadResolvers) {
+            resolve(MockDataTable)
+        }
+        await settle()
+
+        expect(loadResolvers).toHaveLength(2)
+        expect(instances).toHaveLength(1)
+    })
+
+    it('builds the table once when two Stimulus applications control it', async () => {
+        const secondApplication = Application.start()
+        secondApplication.register('datatable', DatatableController)
+
+        try {
+            const table = mountTable()
+            await getController(application, table)
+            await getController(secondApplication, table)
+
+            for (const resolve of loadResolvers) {
+                resolve(MockDataTable)
+            }
+            await settle()
+
+            expect(loadResolvers).toHaveLength(2)
+            expect(instances).toHaveLength(1)
+        } finally {
+            secondApplication.stop()
+        }
+    })
+
     it('keeps the table when Stimulus reports a reparent instead of a detach', async () => {
         const table = mountTable()
         const controller = await getController(application, table)

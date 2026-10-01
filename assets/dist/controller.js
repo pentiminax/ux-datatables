@@ -104,10 +104,7 @@ class default_1 extends Controller {
         const DataTable = await loadDataTableLibrary(framework);
         registerFilterFeature(DataTable);
         registerBulkActionsFeature(DataTable);
-        if (DataTable.isDataTable(this.element)) {
-            this.isDataTableInitialized = true;
-            this.table = new DataTable.Api(this.element);
-            this.dispatchEvent('reconnect', { table: this.table });
+        if (this.adoptLiveTable(DataTable)) {
             return;
         }
         this.resetRestoredMarkup();
@@ -169,6 +166,9 @@ class default_1 extends Controller {
         await applyLocalLanguage(payload);
         applyServerExportUrls(payload);
         applyCustomButtonActions(payload);
+        if (this.adoptLiveTable(DataTable)) {
+            return;
+        }
         this.table = new DataTable(this.element, payload);
         const themedContainer = this.element.closest('.dt-container');
         if (themedContainer && detectTheme() !== null) {
@@ -195,6 +195,15 @@ class default_1 extends Controller {
             window.removeEventListener('popstate', this.popstateHandler);
             this.popstateHandler = null;
         }
+    }
+    adoptLiveTable(DataTable) {
+        if (!DataTable.isDataTable(this.element)) {
+            return false;
+        }
+        this.isDataTableInitialized = true;
+        this.table = new DataTable.Api(this.element);
+        this.dispatchEvent('reconnect', { table: this.table });
+        return true;
     }
     applyUrlStateToTable(cfg) {
         if (!this.table)
