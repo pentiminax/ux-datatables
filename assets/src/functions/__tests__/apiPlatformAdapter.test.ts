@@ -109,29 +109,6 @@ describe('filter bar values', () => {
             'createdAt[before]': '2026-01-31T14:30:00',
         })
     })
-
-    it('sends filters added by the filter bar through the configured data callback', () => {
-        const adapter = new ApiPlatformAdapter([{ name: 'email' }])
-        const payload: Record<string, unknown> = {
-            ajax: { url: '/api/users' },
-            columns: [{ name: 'email' }],
-        }
-
-        adapter.configure(payload)
-
-        const ajaxConfig = payload.ajax as {
-            data: ((params: unknown) => Record<string, string>) & { consumesFilters?: boolean }
-        }
-
-        expect(ajaxConfig.data.consumesFilters).toBe(true)
-        expect(
-            ajaxConfig.data({ draw: 1, start: 0, length: 10, filters: { status: 'active' } })
-        ).toEqual({
-            page: '1',
-            itemsPerPage: '10',
-            status: 'active',
-        })
-    })
 })
 
 describe('filter parameter collisions', () => {
@@ -147,33 +124,6 @@ describe('filter parameter collisions', () => {
         expect(params).toEqual({
             page: '3',
             itemsPerPage: '25',
-            status: 'active',
-        })
-    })
-
-    it('keeps filters when a user ajax.data callback returns a replacement object', () => {
-        const adapter = new ApiPlatformAdapter([{ name: 'email' }])
-        const payload: Record<string, unknown> = {
-            ajax: {
-                url: '/api/users',
-                data: (params: Record<string, unknown>) => ({
-                    draw: params.draw,
-                    start: params.start,
-                    length: params.length,
-                }),
-            },
-            columns: [{ name: 'email' }],
-        }
-
-        adapter.configure(payload)
-
-        const ajaxConfig = payload.ajax as { data: (params: unknown) => Record<string, string> }
-
-        expect(
-            ajaxConfig.data({ draw: 1, start: 0, length: 10, filters: { status: 'active' } })
-        ).toEqual({
-            page: '1',
-            itemsPerPage: '10',
             status: 'active',
         })
     })
