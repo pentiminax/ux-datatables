@@ -23,7 +23,6 @@ export class FakeApi {
     }
 
     ajax = {
-        params: () => ({ draw: 1, search: { value: 'Beta' } }),
         reload: () => this.reloaded.push(1),
     }
 

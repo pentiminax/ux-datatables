@@ -97,7 +97,8 @@ export class BulkActionBar {
         private readonly dispatch: (
             name: string,
             detail: Record<string, unknown>
-        ) => void = () => {}
+        ) => void = () => {},
+        private readonly currentParams: () => Record<string, unknown> = () => ({})
     ) {
         this.config = getBulkActionsConfig(payload)
         this.labels = this.config.labels ?? {}
@@ -317,7 +318,7 @@ export class BulkActionBar {
                 ids: snapshot.ids,
                 allMatching: snapshot.allMatching,
                 deselectedIds: snapshot.deselectedIds,
-                query: snapshot.allMatching ? this.currentQuery() : {},
+                query: snapshot.allMatching ? this.currentParams() : {},
                 csrfToken: this.csrfToken,
             })
 
@@ -377,16 +378,6 @@ export class BulkActionBar {
         }
 
         return parts.join(' ')
-    }
-
-    /**
-     * The parameters of the request the table is displaying, so a select-all resolves server-side
-     * against the same search, ordering and filters the user sees.
-     */
-    private currentQuery(): Record<string, unknown> {
-        const params = this.api?.ajax?.params?.()
-
-        return params !== null && typeof params === 'object' ? params : {}
     }
 
     private reload(): void {
