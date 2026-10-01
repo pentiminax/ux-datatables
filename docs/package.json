@@ -7,7 +7,7 @@
     "start": "astro dev",
     "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
-    "astro": "^7.3.5",
+    "astro": "astro",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test:build": "node --test test/build.test.mjs"
