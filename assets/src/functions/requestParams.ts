@@ -51,12 +51,16 @@ export function installRequestParams(
 
     const userData = payload.ajax.data
     payload.ajax.data = (data: RequestParams, settings?: unknown): RequestParams | string => {
+        // Merged first so the applied filter values win over static `filters`.
+        if (isPlainRecord(userData)) {
+            Object.assign(data, userData)
+        }
         if (options.filters) {
             data.filters = options.filters()
         }
 
-        const sent = applyUserData(data, userData, settings)
-        const params = typeof sent === 'string' ? data : sent
+        const sent = typeof userData === 'function' ? callUserData(data, userData, settings) : data
+        const params = typeof sent === 'string' ? (parseJsonRecord(sent) ?? data) : sent
 
         // A callback that returns a replacement object keeps the filters unless it set its own.
         if (options.filters && undefined === params.filters) {
@@ -75,27 +79,26 @@ export function installRequestParams(
 }
 
 /**
- * A static object is merged into the params. A callback may mutate them, return a replacement
- * object, or return a serialized string that goes on the wire as is.
+ * A callback may mutate the params, return a replacement object, or return a serialized string
+ * that goes on the wire as is.
  */
-function applyUserData(
+function callUserData(
     data: RequestParams,
-    userData: unknown,
+    userData: (data: RequestParams, settings: unknown) => unknown,
     settings: unknown
 ): RequestParams | string {
-    if (typeof userData === 'function') {
-        const returned = userData(data, settings)
+    const returned = userData(data, settings)
 
-        if (typeof returned === 'string' || isPlainRecord(returned)) {
-            return returned
-        }
+    return typeof returned === 'string' || isPlainRecord(returned) ? returned : data
+}
 
-        return data
+/** A JSON string is what was actually sent, so it is remembered over the params behind it. */
+function parseJsonRecord(sent: string): RequestParams | null {
+    try {
+        const parsed: unknown = JSON.parse(sent)
+
+        return isPlainRecord(parsed) ? parsed : null
+    } catch {
+        return null
     }
-
-    if (isPlainRecord(userData)) {
-        Object.assign(data, userData)
-    }
-
-    return data
 }
