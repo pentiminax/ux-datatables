@@ -44,14 +44,15 @@ function nextDayDateOnly(value) {
     const year = Number.parseInt(match[1], 10);
     const month = Number.parseInt(match[2], 10) - 1;
     const day = Number.parseInt(match[3], 10);
-    const date = new Date(Date.UTC(year, month, day));
+    const date = new Date(0);
+    date.setUTCFullYear(year, month, day);
     if (date.getUTCFullYear() !== year ||
         date.getUTCMonth() !== month ||
         date.getUTCDate() !== day) {
         return null;
     }
     date.setUTCDate(date.getUTCDate() + 1);
-    const nextYear = date.getUTCFullYear();
+    const nextYear = String(date.getUTCFullYear()).padStart(4, '0');
     const nextMonth = String(date.getUTCMonth() + 1).padStart(2, '0');
     const nextDay = String(date.getUTCDate()).padStart(2, '0');
     return `${nextYear}-${nextMonth}-${nextDay}`;
