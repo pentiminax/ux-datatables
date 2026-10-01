@@ -23,6 +23,7 @@ use Pentiminax\UX\DataTables\Query\DefaultSearchPredicateBuilder;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
+use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -218,12 +219,10 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
-        // A client-side table embeds its rows at render time, and
-        // configureMercure() suppresses attribute/auto-resolved live updates once
-        // inline data is present. Manual ->mercure() config is always serialized,
-        // so only short-circuit when there is no manual config to preserve.
-        // Reproduce that suppression here WITHOUT performing the data fetch.
-        if (null === $this->table->getMercureConfig() && $this->shouldHydrateClientSideData()) {
+        // Hydration turns a ClientHydrated table into an Inline one, whose attribute and
+        // auto-resolved updates resolveMercureConfig() suppresses. Answer that without the fetch;
+        // a manual ->mercure() config is always serialized, so it is left to the resolver.
+        if (null === $this->table->getMercureConfig() && DataSourceMode::ClientHydrated === $this->dataSourceMode()) {
             return null;
         }
 
@@ -324,7 +323,7 @@ abstract class AbstractDataTable
 
     private function hydrateClientSideData(): void
     {
-        if (!$this->shouldHydrateClientSideData()) {
+        if (DataSourceMode::ClientHydrated !== $this->dataSourceMode()) {
             return;
         }
 
@@ -341,13 +340,9 @@ abstract class AbstractDataTable
         $this->mapInlineRows($data);
     }
 
-    private function shouldHydrateClientSideData(): bool
+    private function dataSourceMode(): DataSourceMode
     {
-        return !$this->table->isServerSide()
-            && null === $this->table->getOption('data')
-            && null === $this->table->getOption('ajax')
-            && true !== $this->table->getOption('apiPlatform')
-            && true !== $this->asDataTable?->apiPlatform;
+        return $this->infrastructure()->renderingPreparer->resolveDataSourceMode($this->table, $this->asDataTable);
     }
 
     private function createClientSideDataRequest(): DataTableRequest
