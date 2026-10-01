@@ -455,6 +455,33 @@ describe('actionColumnRenderer', () => {
             expect(html).not.toContain('data-id="42"')
         })
 
+        it('prefers a server-resolved string id over a numeric display column', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        name: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', {
+                id: 9007199254740993,
+                __ux_datatables_actions: {
+                    DELETE: {
+                        id: '9007199254740993',
+                    },
+                },
+            })
+
+            expect(html).toContain('data-id="9007199254740993"')
+        })
+
         it('hides a denied built-in action before falling back to the row id', () => {
             const column: Record<string, any> = {
                 actions: [
