@@ -725,6 +725,31 @@ final class RenderingPreparerTest extends TestCase
         $this->assertSame('/api/users', $table->getOption('ajax')['url']);
     }
 
+    #[Test]
+    public function it_wires_no_endpoint_for_a_server_side_table_whose_api_platform_collection_is_unresolvable(): void
+    {
+        $urlResolver = $this->createStub(ApiResourceCollectionUrlResolver::class);
+        $urlResolver->method('resolveCollectionUrl')->willReturn(null);
+
+        $urlGenerator = $this->createStub(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturn('/datatables/ajax/data');
+
+        $preparer = new RenderingPreparer(
+            urlResolver: $urlResolver,
+            urlGenerator: $urlGenerator,
+            ajaxRegistry: $this->createAjaxRegistry(self::TABLE_SERVICE_IDS),
+        );
+        $table = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->serverSide()
+            ->apiPlatform();
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class));
+
+        $this->assertNull($table->getOption('ajax'));
+        $this->assertFalse($table->getOption('apiPlatform'));
+    }
+
     /**
      * @param array<string, string>|null $query                 null when there is no current request
      * @param list<string>               $forwarded

@@ -53,7 +53,7 @@ final class AutoDataProviderFactory
             );
 
             // An entity with no collection operation falls through to Doctrine, the same
-            // fallback the RenderingPreparer applies when it cannot resolve a collection URL.
+            // fallback DataSourceMode::resolve() applies when it cannot resolve a collection URL.
             if (null !== $apiPlatformProvider) {
                 return $apiPlatformProvider;
             }
