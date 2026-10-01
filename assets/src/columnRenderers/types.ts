@@ -96,7 +96,7 @@ export interface ActionConfig {
 }
 
 export interface ActionRowConfig {
-    id?: string | number
+    id?: string
     url?: string
     token?: string
 }
@@ -111,5 +111,5 @@ export interface UrlRowData {
 }
 
 export interface BooleanSwitchRowData {
-    __ux_datatables_boolean_switches?: Record<string, string | number | null | undefined>
+    __ux_datatables_boolean_switches?: Record<string, string | null | undefined>
 }

@@ -3,6 +3,24 @@
 Each section covers one version bump. When you skip versions, apply every section between your
 current version and the target, oldest first.
 
+## v1.1 → v1.2
+
+### Row identifiers are sent as strings
+
+Identifiers above `Number.MAX_SAFE_INTEGER` (such as snowflake ids) and zero-padded keys such as
+`00123` were rounded or reshaped when they traveled as JSON numbers, so a delete or a boolean toggle
+could target another entity. Every identifier the bundle exchanges with the browser is now a string,
+like `DT_RowId` already was:
+
+- the `id` sent by the built-in delete and boolean-toggle requests: `{"id": "42"}` instead of
+  `{"id": 42}`;
+- the ids under `__ux_datatables_actions` and `__ux_datatables_boolean_switches` in row data;
+- the `id` of the Mercure `delete` and `edit` updates.
+
+Doctrine finds integer primary keys from their string form, so the bundle's own endpoints need no
+change. Update custom code that compares these ids strictly to numbers, such as a Mercure listener
+using `update.id === 42` or a decorated controller that requires an `int` id.
+
 ## v1.1 → v1.1.1
 
 ### Deprecated frontend feature modules

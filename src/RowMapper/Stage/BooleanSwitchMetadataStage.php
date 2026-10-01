@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowStageInterface;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\RowMapper\RowIdNormalizer;
 
 final class BooleanSwitchMetadataStage implements RowStageInterface
 {
@@ -60,28 +61,16 @@ final class BooleanSwitchMetadataStage implements RowStageInterface
 
         $normalized = [];
         foreach ($metadata as $field => $value) {
-            if (!\is_string($field) || '' === $field) {
-                continue;
-            }
+            $id = RowIdNormalizer::normalize($value);
 
-            if (\is_int($value)) {
-                $normalized[$field] = (string) $value;
-
-                continue;
-            }
-
-            if (\is_string($value) && '' !== $value) {
-                $normalized[$field] = $value;
+            if (\is_string($field) && '' !== $field && null !== $id) {
+                $normalized[$field] = $id;
             }
         }
 
         return $normalized;
     }
 
-    /**
-     * Identifiers are strings so JSON does not round them through IEEE-754 the way a JSON
-     * number would above Number.MAX_SAFE_INTEGER.
-     */
     private function resolveSwitchId(mixed $source, BooleanColumn $column): ?string
     {
         $idField = $column->getCustomOption(BooleanColumn::OPTION_TOGGLE_ID_FIELD);
@@ -89,23 +78,7 @@ final class BooleanSwitchMetadataStage implements RowStageInterface
             $idField = 'id';
         }
 
-        $id = PropertyReader::readPath($source, $idField);
-
-        if (\is_int($id)) {
-            return (string) $id;
-        }
-
-        if (\is_string($id) && '' !== $id) {
-            return $id;
-        }
-
-        if ($id instanceof \Stringable) {
-            $stringId = (string) $id;
-
-            return '' !== $stringId ? $stringId : null;
-        }
-
-        return null;
+        return RowIdNormalizer::normalize(PropertyReader::readPath($source, $idField));
     }
 
     private function resolveEffectiveField(ColumnInterface $column): string
