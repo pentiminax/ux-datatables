@@ -1,3 +1,4 @@
+import { applyFeatureLayout } from '../functions/featureLayout.js'
 import { renderLucideIcon } from '../functions/lucideIcons.js'
 import { createPopover, type Popover } from '../functions/popover.js'
 import { runBulkAction } from '../functions/runBulkAction.js'
@@ -421,4 +422,53 @@ export class BulkActionBar {
             ? `btn btn-sm btn-outline-secondary ${className}`
             : `dt-button ${className}`
     }
+}
+
+const registeredOn = new WeakSet<object>()
+
+function registerBulkActionsFeature(DataTable: any): void {
+    if (registeredOn.has(DataTable)) {
+        return
+    }
+    registeredOn.add(DataTable)
+
+    DataTable.feature.register('bulkActions', (settings: any, opts: any): HTMLElement => {
+        const instance = opts?.instance as BulkActionBar | undefined
+
+        if (!instance) {
+            return document.createElement('div')
+        }
+
+        return instance.render(new DataTable.Api(settings))
+    })
+}
+
+/**
+ * Wire the bulk action bar into a table payload: its layout cell and the `bulkActions` DataTables
+ * feature. The feature is registered even for a table without bulk actions, because the server
+ * keeps the layout marker when the user may run none of them.
+ */
+export function installBulkActionBar(
+    payload: Record<string, any>,
+    DataTable: any,
+    framework: StyleFramework,
+    dispatch: (name: string, detail: Record<string, unknown>) => void,
+    currentParams: () => Record<string, unknown>
+): BulkActionBar | null {
+    registerBulkActionsFeature(DataTable)
+
+    if (!hasBulkActions(payload)) {
+        return null
+    }
+
+    const bulkBar = new BulkActionBar(payload, framework, dispatch, currentParams)
+
+    applyFeatureLayout(
+        payload,
+        'bulkActions',
+        { bulkActions: { instance: bulkBar } },
+        { position: payload.bulkActions.position ?? 'topEnd' }
+    )
+
+    return bulkBar
 }

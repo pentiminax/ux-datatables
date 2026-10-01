@@ -10,10 +10,6 @@ vi.mock('../src/functions/detectStyleFramework.js', () => ({
     detectStyleFramework: () => 'dt',
 }))
 
-vi.mock('../src/functions/bulkActionsFeature.js', () => ({
-    registerBulkActionsFeature: vi.fn(),
-}))
-
 import DatatableController from '../src/controller.js'
 
 const INSTANCE_LIMIT = 5
