@@ -89,42 +89,6 @@ export class FilterBar {
         this.popover.hidden = true;
         this.wrapper.appendChild(this.popover);
     }
-    attachToPayload(payload) {
-        if (typeof payload.ajax === 'function') {
-            const originalAjax = payload.ajax;
-            payload.ajax = (data, ...rest) => {
-                data.filters = this.collectValues();
-                return originalAjax(data, ...rest);
-            };
-            return;
-        }
-        if (!payload.ajax || typeof payload.ajax !== 'object') {
-            return;
-        }
-        const existing = payload.ajax.data;
-        payload.ajax.data = (data) => {
-            if (typeof existing === 'function') {
-                data.filters = this.collectValues();
-                const transformed = existing(data);
-                if (typeof transformed === 'string') {
-                    return transformed;
-                }
-                if (isPlainRecord(transformed)) {
-                    if (true !== existing.consumesFilters) {
-                        transformed.filters = this.collectValues();
-                    }
-                    return transformed;
-                }
-                data.filters = this.collectValues();
-                return data;
-            }
-            if (isPlainRecord(existing)) {
-                Object.assign(data, existing);
-            }
-            data.filters = this.collectValues();
-            return data;
-        };
-    }
     collectValues() {
         return this.applied;
     }

@@ -153,6 +153,7 @@ export class ApiPlatformAdapter {
      * DataTables `rowId` option read is added here instead of by `RowIdStage`.
      */
     private rowIdField: string | null = null
+    private draw = 0
 
     constructor(columns: ColumnConfig[]) {
         this.columns = columns
@@ -233,26 +234,18 @@ export class ApiPlatformAdapter {
         }
     }
 
+    /**
+     * Point the table at API Platform: read Hydra responses back as DataTables ones. The request
+     * side goes through {@link toRequestParams}, which the controller hands to the request params
+     * module as its transport.
+     */
     configure(payload: Record<string, unknown>): void {
         const ajaxConfig = payload.ajax as Record<string, unknown>
         this.rowIdField = resolveRowIdField(payload.highlight)
-        const originalData = ajaxConfig.data
         const originalDataFilter = ajaxConfig.dataFilter
 
         payload.serverSide = true
         payload.columns = this.withDefaultColumnContent(payload.columns)
-
-        let draw = 0
-
-        const buildData = (params: DataTableServerSideParams): Record<string, string> => {
-            const resolvedParams = this.resolveDataTableParams(params, originalData)
-            draw = this.toDraw(resolvedParams.draw)
-
-            return this.buildRequestParams(resolvedParams)
-        }
-        buildData.consumesFilters = true
-
-        ajaxConfig.data = buildData
 
         ajaxConfig.dataFilter = (rawData: string, type: string): string => {
             const filteredRawData = this.resolveRawResponse(rawData, type, originalDataFilter)
@@ -263,7 +256,7 @@ export class ApiPlatformAdapter {
                 return typeof filteredRawData === 'string' ? filteredRawData : rawData
             }
 
-            const response = this.buildResponse(parsedPayload, draw)
+            const response = this.buildResponse(parsedPayload, this.draw)
 
             return JSON.stringify(response)
         }
@@ -436,48 +429,11 @@ export class ApiPlatformAdapter {
         return rawData
     }
 
-    resolveDataTableParams(
-        params: DataTableServerSideParams,
-        originalData: unknown
-    ): DataTableServerSideParams {
-        if (typeof originalData === 'function') {
-            const transformed = (originalData as (value: DataTableServerSideParams) => unknown)(
-                params
-            )
-            if (isRecord(transformed)) {
-                return this.withFilters(transformed as DataTableServerSideParams, params.filters)
-            }
+    /** Rewrite the DataTables params into the Hydra query, remembering the draw to echo back. */
+    toRequestParams(params: DataTableServerSideParams): Record<string, string> {
+        this.draw = this.toDraw(params.draw)
 
-            return params
-        }
-
-        if (isRecord(originalData)) {
-            return {
-                ...params,
-                ...originalData,
-            } as DataTableServerSideParams
-        }
-
-        return params
-    }
-
-    /**
-     * A user `ajax.data` callback may return a replacement object rather than the request params it
-     * was handed. The filter bar merges its values into the original object, so they are carried
-     * over unless the callback set its own.
-     */
-    private withFilters(
-        params: DataTableServerSideParams,
-        filters: unknown
-    ): DataTableServerSideParams {
-        if (undefined === filters || undefined !== params.filters) {
-            return params
-        }
-
-        return {
-            ...params,
-            filters,
-        }
+        return this.buildRequestParams(params)
     }
 
     toDraw(value: number | string | undefined): number {
