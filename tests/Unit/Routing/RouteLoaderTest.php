@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Routing;
 
 use Pentiminax\UX\DataTables\Routing\RouteLoader;
+use Pentiminax\UX\DataTables\Tests\Kernel\RouteLoaderAppKernel;
 use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Routing\Loader\ContainerLoader;
 
 /**
  * @internal
@@ -27,9 +27,15 @@ final class RouteLoaderTest extends TestCase
             'Symfony\\Bundle\\FrameworkBundle\\Routing\\RouteLoaderInterface',
             class_implements(RouteLoader::class),
         );
-        $routes = (new ContainerLoader($this->container))->load('datatables.route_loader::loadRoutes', 'service');
-        $this->assertCount(8, $routes);
-        $this->assertSame('/datatables/ajax/data', $routes->get('ux_datatables_ajax_data')->getPath());
+        $kernel = new RouteLoaderAppKernel('test', true);
+        try {
+            $kernel->boot();
+            $routes = $kernel->getContainer()->get('router')->getRouteCollection();
+            $this->assertCount(8, $routes);
+            $this->assertSame('/datatables/ajax/data', $routes->get('ux_datatables_ajax_data')->getPath());
+        } finally {
+            $kernel->shutdown();
+        }
     }
 
     /**
