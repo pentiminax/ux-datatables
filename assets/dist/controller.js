@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { BulkActionBar, hasBulkActions } from './bulk/BulkActionBar.js';
+import { installBulkActionBar } from './bulk/BulkActionBar.js';
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js';
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
@@ -13,8 +13,6 @@ import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
 import { ApiPlatformAdapter, isApiPlatformAdapterEnabled, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js';
-import { registerBulkActionsFeature } from './functions/bulkActionsFeature.js';
-import { applyBulkActionsLayout } from './functions/bulkActionsLayout.js';
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
@@ -100,7 +98,6 @@ class default_1 extends Controller {
             : detectStyleFramework();
         this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
-        registerBulkActionsFeature(DataTable);
         if (this.adoptLiveTable(DataTable)) {
             return;
         }
@@ -124,18 +121,16 @@ class default_1 extends Controller {
         if (urlStateCfg) {
             applyUrlStateToPayload(payload, readUrlState(urlStateCfg));
         }
+        let requestParams = null;
         const filterBar = installFilterBar(payload, DataTable, framework);
-        const requestParams = filterBar || apiPlatformAdapter || hasBulkActions(payload)
-            ? installRequestParams(payload, {
+        const bulkBar = installBulkActionBar(payload, DataTable, framework, (name, detail) => this.dispatchEvent(name, detail), () => requestParams?.current() ?? {});
+        if (filterBar || bulkBar || apiPlatformAdapter) {
+            requestParams = installRequestParams(payload, {
                 filters: filterBar ? () => filterBar.collectValues() : undefined,
                 transport: apiPlatformAdapter
                     ? (params) => apiPlatformAdapter.toRequestParams(params)
                     : undefined,
-            })
-            : null;
-        if (hasBulkActions(payload)) {
-            const bulkBar = new BulkActionBar(payload, framework, (name, detail) => this.dispatchEvent(name, detail), () => requestParams?.current() ?? {});
-            applyBulkActionsLayout(payload, bulkBar, payload.bulkActions?.position);
+            });
         }
         await applyLocalLanguage(payload);
         applyServerExportUrls(payload);
