@@ -21,8 +21,8 @@ composer require --dev symfony/profiler-pack
 <Aside type="note">
   The import is deliberately conditional. `DataTableProfiler` records eagerly — the Twig function
   and `AbstractDataTable::getResponse()` call it directly on every request, not only when Symfony's
-  profiler pulls a `collect()`. Registering the services unconditionally would mean paying that
-  cost in production.
+  profiler pulls a `collect()`. Registering the services unconditionally would mean paying that cost
+  in production.
 </Aside>
 
 ## What is collected
@@ -48,18 +48,18 @@ the declared filters, the resolved Mercure configuration, and the edit-modal tem
 the bundle's own Ajax controller or a custom endpoint calling `handleRequest()` / `getResponse()`
 directly. Each record holds:
 
-| Field                              | Description                                              |
-| ---------------------------------- | -------------------------------------------------------- |
-| `class`                            | The `AbstractDataTable` subclass that answered            |
-| `token`                            | The `table` query parameter identifying the table         |
-| `request`                          | The parsed `DataTableRequest`, plus a flattened summary   |
-| `recordsTotal` / `recordsFiltered` | Row counts read back from the JSON payload                |
-| `durationMs`                       | Time spent building the response                          |
-| `providerClass`                    | The resolved data provider's class                        |
-| `entityClass`                      | The entity behind the table, when it has one              |
-| `rowCount`                         | Rows in the returned payload                              |
-| `payloadBytes`                     | Response body size                                        |
-| `httpStatus`                       | Response status code                                      |
+| Field                              | Description                                             |
+| ---------------------------------- | ------------------------------------------------------- |
+| `class`                            | The `AbstractDataTable` subclass that answered          |
+| `token`                            | The `table` query parameter identifying the table       |
+| `request`                          | The parsed `DataTableRequest`, plus a flattened summary |
+| `recordsTotal` / `recordsFiltered` | Row counts read back from the JSON payload              |
+| `durationMs`                       | Time spent building the response                        |
+| `providerClass`                    | The resolved data provider's class                      |
+| `entityClass`                      | The entity behind the table, when it has one            |
+| `rowCount`                         | Rows in the returned payload                            |
+| `payloadBytes`                     | Response body size                                      |
+| `httpStatus`                       | Response status code                                    |
 
 <Aside type="tip">
   Records hold scalars and plain arrays only. Row data never reaches the profile, so business values

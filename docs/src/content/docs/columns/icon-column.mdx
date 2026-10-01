@@ -115,26 +115,14 @@ IconColumn::new('status', 'Status')
       '`color(string|callable $color)`',
       'Semantic variant (`string`) rendered client-side, or a `fn ($state)` resolved server-side per row.',
     ],
-    [
-      '`size(string|IconSize $size)`',
-      'Icon size: `xs | sm | md | lg | xl` (default `md`).',
-    ],
-    [
-      '`tooltips(array $tooltips)`',
-      'Map of cell value => `title` attribute.',
-    ],
-    [
-      '`boolean(bool $boolean = true)`',
-      'Switch to true/false rendering.',
-    ],
+    ['`size(string|IconSize $size)`', 'Icon size: `xs | sm | md | lg | xl` (default `md`).'],
+    ['`tooltips(array $tooltips)`', 'Map of cell value => `title` attribute.'],
+    ['`boolean(bool $boolean = true)`', 'Switch to true/false rendering.'],
     [
       '`trueIcon(string|Icon $icon)` / `falseIcon(string|Icon $icon)`',
       'Icons used in boolean mode.',
     ],
-    [
-      '`trueColor(string $color)` / `falseColor(string $color)`',
-      'Variants used in boolean mode.',
-    ],
+    ['`trueColor(string $color)` / `falseColor(string $color)`', 'Variants used in boolean mode.'],
   ]}
 />
 
@@ -185,6 +173,6 @@ final class UsersDataTable extends AbstractDataTable
 ```
 
 <Aside type="note">
-  Searching and sorting operate on the raw cell value, not the rendered icon. The icon
-  library is lazy-loaded in the browser only when at least one `IconColumn` is present.
+  Searching and sorting operate on the raw cell value, not the rendered icon. The icon library is
+  lazy-loaded in the browser only when at least one `IconColumn` is present.
 </Aside>

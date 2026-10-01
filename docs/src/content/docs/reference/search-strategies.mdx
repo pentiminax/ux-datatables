@@ -57,19 +57,19 @@ strategies use as a hint when the column's own type is not decisive.
 `SearchStrategyRegistry` maps a logic identifier to a strategy and falls back to a default
 strategy — `ContainsSearchStrategy` — for any logic it does not know.
 
-| Method                                     | Description                                            |
-| ------------------------------------------ | ------------------------------------------------------ |
-| `register(SearchStrategyInterface)`        | Index a strategy under its own `getLogic()`            |
-| `get(string $logic)`                       | The strategy for that logic, or the default one        |
-| `has(string $logic)`                       | Whether a strategy is registered for that logic        |
+| Method                              | Description                                     |
+| ----------------------------------- | ----------------------------------------------- |
+| `register(SearchStrategyInterface)` | Index a strategy under its own `getLogic()`     |
+| `get(string $logic)`                | The strategy for that logic, or the default one |
+| `has(string $logic)`                | Whether a strategy is registered for that logic |
 
 `DefaultSearchStrategyRegistry` is the registry the bundle uses. It registers:
 
-| Strategy                                   | Logic                                                                                  |
-| ------------------------------------------ | -------------------------------------------------------------------------------------- |
-| `ContainsSearchStrategy`                   | `contains` (also the fallback for unknown logic)                                       |
-| `NullnessSearchStrategy`                   | `empty`, and `notEmpty` when constructed with `true`                                   |
-| `ComparisonSearchStrategy`                 | `equal`, `notEqual`, `starts`, `ends`, `notContains`, `greater`, `greaterOrEqual`, `less`, `lessOrEqual` |
+| Strategy                   | Logic                                                                                                    |
+| -------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `ContainsSearchStrategy`   | `contains` (also the fallback for unknown logic)                                                         |
+| `NullnessSearchStrategy`   | `empty`, and `notEmpty` when constructed with `true`                                                     |
+| `ComparisonSearchStrategy` | `equal`, `notEqual`, `starts`, `ends`, `notContains`, `greater`, `greaterOrEqual`, `less`, `lessOrEqual` |
 
 `ComparisonSearchStrategy` is parameterized by a `ColumnControlLogic` case rather than existing as
 one class per operator: the enum supplies the SQL operator, the parameter wrapping format, and
@@ -102,9 +102,9 @@ that interface to make the same choice; otherwise it is normalized. `setSearchPr
 the escape hatch for anything neither mode expresses.
 
 <Aside type="note">
-  `ColumnControlLogic::In` has no dedicated strategy. ColumnControl list selections
-  (`searchList`) are applied by `ColumnControlSearchFilter` through an explicit `IN` branch, which
-  never consults the registry.
+  `ColumnControlLogic::In` has no dedicated strategy. ColumnControl list selections (`searchList`)
+  are applied by `ColumnControlSearchFilter` through an explicit `IN` branch, which never consults
+  the registry.
 </Aside>
 
 Beyond ColumnControl, the plain per-column search boxes DataTables sends are applied by
@@ -244,7 +244,7 @@ type:
 | numeric (or `$forceNumeric`) | exact match when the term is numeric, `null` otherwise             |
 | date                         | `null` — a partial date term has no meaningful `LIKE`              |
 | native UUID / ULID           | exact match when the term is a well-formed identifier of that type |
-| anything else                | `LOWER(field) LIKE %term%` when the field supports text search      |
+| anything else                | `LOWER(field) LIKE %term%` when the field supports text search     |
 
 `$field` is resolved by the caller through `RelationFieldResolver::resolveSearchField()` before the
 builder is reached, so a `setSearchField()` override and any `addSearchJoin()` are already in

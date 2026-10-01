@@ -75,10 +75,19 @@ return static function (RoutingConfigurator $routes): void {
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ["`BooleanColumn::new(string $name, string $title = '')`", 'Creates a new BooleanColumn (type: `num`)'],
+    [
+      "`BooleanColumn::new(string $name, string $title = '')`",
+      'Creates a new BooleanColumn (type: `num`)',
+    ],
     ['`renderAsSwitch(bool $defaultState = false)`', 'Enable switch rendering with AJAX toggle'],
-    ['`setEntityClass(string $class)`', 'Set the Doctrine entity class for the AJAX request (auto-injected when using `#[AsDataTable]`)'],
-    ['`setToggleAjax(string $idField = \'id\', string $method = \'PATCH\')`', 'Customize the identifier field and HTTP method for the toggle request'],
+    [
+      '`setEntityClass(string $class)`',
+      'Set the Doctrine entity class for the AJAX request (auto-injected when using `#[AsDataTable]`)',
+    ],
+    [
+      "`setToggleAjax(string $idField = 'id', string $method = 'PATCH')`",
+      'Customize the identifier field and HTTP method for the toggle request',
+    ],
     ['`getDefaultState(): bool`', 'Returns the configured default switch state'],
     ['`getToggleField(): ?string`', 'Returns the field name used in the toggle request'],
   ]}
@@ -117,6 +126,6 @@ final class UsersDataTable extends AbstractDataTable
 ```
 
 <Aside type="note">
-  `BooleanColumn` uses the `num` DataTables type internally so that `true`/`1` and `false`/`0`
-  sort correctly. The bundle routes must be imported for the AJAX toggle to work.
+  `BooleanColumn` uses the `num` DataTables type internally so that `true`/`1` and `false`/`0` sort
+  correctly. The bundle routes must be imported for the AJAX toggle to work.
 </Aside>

@@ -23,13 +23,13 @@ The column name (`status_display`) is the key used in `mapRow()`. `setField()` t
 
 Inside the template, the following variables are available:
 
-| Variable | Value |
-|---|---|
-| `row` | The object passed to `mapRow()` (the projected DTO when a page projector is active, otherwise the source object) |
-| `source` | The original hydrated object. Same reference as `row` when no projector is active |
-| `payload` | The array returned by `mapRow()`. Use it to read a mapped key other than this cell's |
-| `data` | The resolved field value for this cell |
-| `column` | Serialized column configuration array |
+| Variable  | Value                                                                                                            |
+| --------- | ---------------------------------------------------------------------------------------------------------------- |
+| `row`     | The object passed to `mapRow()` (the projected DTO when a page projector is active, otherwise the source object) |
+| `source`  | The original hydrated object. Same reference as `row` when no projector is active                                |
+| `payload` | The array returned by `mapRow()`. Use it to read a mapped key other than this cell's                             |
+| `data`    | The resolved field value for this cell                                                                           |
+| `column`  | Serialized column configuration array                                                                            |
 
 Read domain properties from `row`, this cell's value from `data`, and any other mapped key from `payload`.
 
@@ -38,10 +38,10 @@ Read domain properties from `row`, this cell's value from `data`, and any other 
 <Aside type="caution">
   Never branch on `payload` for authorization or visibility. On the API Platform render route the
   rows are posted by the browser, so `payload` is client-controlled input — read `row` or `source`
-  instead. On that same route, `row` and `source` fall back to the posted array when the
-  row cannot be rehydrated (no identifier, a composite primary key, or no matching record), so
-  guard method calls on them. For a bare `DataTable` whose `data()` you called by hand there is no
-  `mapRow()` at all: `row`, `source`, and `payload` are the same raw array.
+  instead. On that same route, `row` and `source` fall back to the posted array when the row cannot
+  be rehydrated (no identifier, a composite primary key, or no matching record), so guard method
+  calls on them. For a bare `DataTable` whose `data()` you called by hand there is no `mapRow()` at
+  all: `row`, `source`, and `payload` are the same raw array.
 </Aside>
 
 Example template:
@@ -71,8 +71,14 @@ Parameters are merged into the template context. The keys `row`, `source`, `payl
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ["`TemplateColumn::new(string $name, string $title = '')`", 'Creates a new TemplateColumn (type: `html`)'],
-    ['`setTemplate(string $template, array $parameters = [])`', 'Set the Twig template path and optional static parameters. Throws on an empty path, and on a parameter using a reserved context key.'],
+    [
+      "`TemplateColumn::new(string $name, string $title = '')`",
+      'Creates a new TemplateColumn (type: `html`)',
+    ],
+    [
+      '`setTemplate(string $template, array $parameters = [])`',
+      'Set the Twig template path and optional static parameters. Throws on an empty path, and on a parameter using a reserved context key.',
+    ],
     ['`getTemplate(): string`', 'Returns the configured template path. Throws if not set.'],
     ['`getTemplateParameters(): array`', 'Returns the static parameters passed to the template'],
   ]}
