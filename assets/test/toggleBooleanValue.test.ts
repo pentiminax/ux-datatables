@@ -6,7 +6,7 @@ describe('toggleBooleanValue', () => {
         vi.restoreAllMocks()
     })
 
-    it('sends numeric ids as numbers', async () => {
+    it('keeps numeric-looking ids as strings', async () => {
         const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
         vi.stubGlobal('fetch', fetchMock)
 
@@ -23,13 +23,43 @@ describe('toggleBooleanValue', () => {
             '/datatables/ajax/edit',
             expect.objectContaining({
                 body: JSON.stringify({
-                    id: 42,
+                    id: '42',
                     field: 'enabled',
                     newValue: true,
                     dataTable: 'signed-token',
                 }),
             })
         )
+    })
+
+    it('does not round identifiers above Number.MAX_SAFE_INTEGER', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+        vi.stubGlobal('fetch', fetchMock)
+
+        await toggleBooleanValue({
+            id: '9007199254740993',
+            field: 'enabled',
+            newValue: true,
+            url: '/datatables/ajax/edit',
+            dataTable: 'signed-token',
+        })
+
+        expect(JSON.parse(fetchMock.mock.calls[0][1].body as string).id).toBe('9007199254740993')
+    })
+
+    it('preserves zero-padded ids', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }))
+        vi.stubGlobal('fetch', fetchMock)
+
+        await toggleBooleanValue({
+            id: '00123',
+            field: 'enabled',
+            newValue: true,
+            url: '/datatables/ajax/edit',
+            dataTable: 'signed-token',
+        })
+
+        expect(JSON.parse(fetchMock.mock.calls[0][1].body as string).id).toBe('00123')
     })
 
     it('preserves non-numeric ids', async () => {
@@ -75,7 +105,7 @@ describe('toggleBooleanValue', () => {
             '/datatables/ajax/edit',
             expect.objectContaining({
                 body: JSON.stringify({
-                    id: 42,
+                    id: '42',
                     field: 'enabled',
                     newValue: true,
                     dataTable: 'signed-token',
@@ -99,7 +129,7 @@ describe('toggleBooleanValue', () => {
         expect(fetchMock).toHaveBeenCalledOnce()
         const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
         expect(body).toEqual({
-            id: 42,
+            id: '42',
             field: 'enabled',
             newValue: true,
             dataTable: 'signed-token',
