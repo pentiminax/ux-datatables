@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Runtime;
 
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\Mapping\ClassMetadata;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\Rendering\ActionRowDataResolver;
@@ -16,6 +17,7 @@ use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\RowMapper\RowIdField;
 use Pentiminax\UX\DataTables\RowMapper\RowProcessingPipeline;
 use Pentiminax\UX\DataTables\RowMapper\Stage\BooleanSwitchMetadataStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\IconColumnResolutionStage;
@@ -66,7 +68,7 @@ final class DataTableRuntimeFactory
 
         // Highlighting needs a row id to tell a changed row from a moved one; a selection needs
         // one to survive the redraw that server-side paging forces. Either reason is enough.
-        $idField = $highlight?->idField ?? $this->resolveRowIdField($rowIdField, $entityClass);
+        $idField = RowIdField::resolve($highlight, $rowIdField, $this->metadataFor($entityClass));
 
         if (null !== $idField) {
             $pipeline->add(new RowIdStage($idField));
@@ -158,21 +160,16 @@ final class DataTableRuntimeFactory
 
     /**
      * @param class-string|null $entityClass
+     *
+     * @return ClassMetadata<object>|null
      */
-    private function resolveRowIdField(?string $configuredField, ?string $entityClass): ?string
+    private function metadataFor(?string $entityClass): ?ClassMetadata
     {
-        if (null === $configuredField || 'id' !== $configuredField || null === $entityClass) {
-            return $configuredField;
+        if (null === $entityClass) {
+            return null;
         }
 
-        $manager = $this->doctrine?->getManagerForClass($entityClass);
-        if (null === $manager) {
-            return $configuredField;
-        }
-
-        $identifiers = $manager->getClassMetadata($entityClass)->getIdentifier();
-
-        return 1 === \count($identifiers) ? $identifiers[0] : $configuredField;
+        return $this->doctrine?->getManagerForClass($entityClass)?->getClassMetadata($entityClass);
     }
 
     private function columnResolver(): ColumnResolver
