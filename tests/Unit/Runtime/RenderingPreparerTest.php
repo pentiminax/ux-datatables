@@ -726,7 +726,7 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
-    public function it_reads_a_server_side_table_through_the_bundle_when_its_api_platform_collection_is_unresolvable(): void
+    public function it_wires_no_endpoint_for_a_server_side_table_whose_api_platform_collection_is_unresolvable(): void
     {
         $urlResolver = $this->createStub(ApiResourceCollectionUrlResolver::class);
         $urlResolver->method('resolveCollectionUrl')->willReturn(null);
@@ -746,7 +746,7 @@ final class RenderingPreparerTest extends TestCase
 
         $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class));
 
-        $this->assertSame('/datatables/ajax/data', $table->getOption('ajax')['url']);
+        $this->assertNull($table->getOption('ajax'));
         $this->assertFalse($table->getOption('apiPlatform'));
     }
 

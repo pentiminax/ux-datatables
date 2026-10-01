@@ -494,18 +494,7 @@ final class DataTablesExtensionTest extends TestCase
 
         yield 'ajax table' => ['ajax', 0, null];
 
-        yield 'api platform table without a collection' => ['apiPlatform', 1, [
-            [
-                'id'                      => 5,
-                'title'                   => 'Dune',
-                '__ux_datatables_actions' => ['DETAIL' => ['url' => '/books/5']],
-            ],
-            [
-                'id'                      => 9,
-                'title'                   => 'Foundation',
-                '__ux_datatables_actions' => ['DETAIL' => ['url' => '/books/9']],
-            ],
-        ]];
+        yield 'api platform table' => ['apiPlatform', 0, null];
 
         yield 'table with explicit data' => ['data', 0, [['id' => 99, 'title' => 'Manual']]];
     }

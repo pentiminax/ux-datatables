@@ -75,7 +75,6 @@ final class RenderingPreparer
             $this->configureAutoAjax($table);
         }
 
-        $this->withdrawUnreadApiPlatformOptIn($table, $mode);
         $this->configureExportUrl($table);
         $this->configureBulkActions($table);
         $this->configureForwardedQueryParameters($table);
@@ -94,6 +93,7 @@ final class RenderingPreparer
     public function prepareAfterDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
     {
         $this->configureMercure($table, $asDataTable);
+        $this->withdrawUnreadApiPlatformOptIn($table, $asDataTable);
     }
 
     /**
@@ -127,14 +127,13 @@ final class RenderingPreparer
     /**
      * The browser reads a serialized `apiPlatform` flag as "query the collection yourself", which a
      * table opted in through `apiPlatform()` but left without a collection URL cannot do.
+     *
+     * Withdrawn last: earlier, the table would resolve as ClientHydrated or ServerSide and read
+     * its rows around the collection's authorization.
      */
-    private function withdrawUnreadApiPlatformOptIn(DataTable $table, DataSourceMode $mode): void
+    private function withdrawUnreadApiPlatformOptIn(DataTable $table, ?AsDataTable $asDataTable): void
     {
-        if (true !== $table->getOption('apiPlatform')) {
-            return;
-        }
-
-        if (DataSourceMode::ServerSide !== $mode && DataSourceMode::ClientHydrated !== $mode) {
+        if (true !== $table->getOption('apiPlatform') || DataSourceMode::ApiPlatformUnavailable !== $this->resolveDataSourceMode($table, $asDataTable)) {
             return;
         }
 
