@@ -51,7 +51,10 @@ function build(overrides: Record<string, any> = {}): Harness {
         10
     )
     const dispatch = vi.fn()
-    const bar = new BulkActionBar(payload(overrides), 'dt', dispatch)
+    const bar = new BulkActionBar(payload(overrides), 'dt', dispatch, () => ({
+        draw: 1,
+        search: { value: 'Beta' },
+    }))
 
     const container = document.createElement('div')
     container.className = 'dt-container'
