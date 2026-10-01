@@ -157,7 +157,7 @@ describe('ApiPlatformAdapter', () => {
     })
 
     describe('configure', () => {
-        it('wires ajax data/dataFilter hooks for API Platform mode', () => {
+        it('reads Hydra responses back and echoes the draw of the last request', () => {
             const payload: Record<string, any> = {
                 columns: [{ name: 'id' }, { name: 'publishedAt', field: 'createdAt' }],
                 serverSide: false,
@@ -167,13 +167,14 @@ describe('ApiPlatformAdapter', () => {
                 },
             }
 
-            new ApiPlatformAdapter(payload.columns).configure(payload)
+            const adapter = new ApiPlatformAdapter(payload.columns)
+            adapter.configure(payload)
 
-            expect(typeof payload.ajax.data).toBe('function')
+            expect(payload.ajax.data).toBeUndefined()
             expect(typeof payload.ajax.dataFilter).toBe('function')
             expect(payload.serverSide).toBe(true)
 
-            const query = payload.ajax.data({
+            const query = adapter.toRequestParams({
                 draw: 4,
                 start: 10,
                 length: 10,
