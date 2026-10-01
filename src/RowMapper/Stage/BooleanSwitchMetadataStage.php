@@ -49,22 +49,40 @@ final class BooleanSwitchMetadataStage implements RowStageInterface
     }
 
     /**
-     * @return array<string, int|string>
+     * @return array<string, string>
      */
     private function extractExistingMetadata(array $mappedRow): array
     {
         $metadata = $mappedRow[self::METADATA_KEY] ?? [];
+        if (!\is_array($metadata)) {
+            return [];
+        }
 
-        return \is_array($metadata) ? array_filter(
-            $metadata,
-            static fn (mixed $value, mixed $field): bool => \is_string($field)
-                && '' !== $field
-                && (\is_int($value) || (\is_string($value) && '' !== $value)),
-            \ARRAY_FILTER_USE_BOTH,
-        ) : [];
+        $normalized = [];
+        foreach ($metadata as $field => $value) {
+            if (!\is_string($field) || '' === $field) {
+                continue;
+            }
+
+            if (\is_int($value)) {
+                $normalized[$field] = (string) $value;
+
+                continue;
+            }
+
+            if (\is_string($value) && '' !== $value) {
+                $normalized[$field] = $value;
+            }
+        }
+
+        return $normalized;
     }
 
-    private function resolveSwitchId(mixed $source, BooleanColumn $column): int|string|null
+    /**
+     * Identifiers are strings so JSON does not round them through IEEE-754 the way a JSON
+     * number would above Number.MAX_SAFE_INTEGER.
+     */
+    private function resolveSwitchId(mixed $source, BooleanColumn $column): ?string
     {
         $idField = $column->getCustomOption(BooleanColumn::OPTION_TOGGLE_ID_FIELD);
         if (!\is_string($idField) || '' === $idField) {
@@ -74,7 +92,7 @@ final class BooleanSwitchMetadataStage implements RowStageInterface
         $id = PropertyReader::readPath($source, $idField);
 
         if (\is_int($id)) {
-            return $id;
+            return (string) $id;
         }
 
         if (\is_string($id) && '' !== $id) {

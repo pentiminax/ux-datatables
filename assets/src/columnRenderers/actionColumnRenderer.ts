@@ -223,16 +223,18 @@ function renderDeniedAction(action: ActionConfig): string {
 }
 
 function resolveActionId(action: ActionConfig, row: ActionRowData): string | number | null {
+    // Server-resolved ids are strings. Prefer them over a display column that JSON
+    // parsed as a number, which silently rounds values above Number.MAX_SAFE_INTEGER.
+    const resolvedId = row.__ux_datatables_actions?.[action.name]?.id
+
+    if (isUsableActionId(resolvedId)) {
+        return resolvedId
+    }
+
     const idField = action.idField ?? 'id'
     const rowId = (row as Record<string, unknown>)[idField]
 
-    if (isUsableActionId(rowId)) {
-        return rowId
-    }
-
-    const resolvedId = row.__ux_datatables_actions?.[action.name]?.id
-
-    return isUsableActionId(resolvedId) ? resolvedId : null
+    return isUsableActionId(rowId) ? rowId : null
 }
 
 function isUsableActionId(value: unknown): value is string | number {
