@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Exception\InvalidBulkSelectionException;
+use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\BulkAction;
@@ -28,6 +29,7 @@ use Pentiminax\UX\DataTables\Mutation\BulkSelection;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
@@ -37,6 +39,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -535,6 +538,62 @@ final class BulkActionRunnerTest extends TestCase
         $this->assertFalse($handled);
     }
 
+    /**
+     * The row mapper and the runner each resolve the DT_RowId field; this maps a row through the
+     * real factory and selects it by the id the browser would send back.
+     */
+    #[Test]
+    #[DataProvider('provideRowIdConfigurations')]
+    public function it_looks_rows_up_by_the_field_the_row_mapper_wrote_as_dt_row_id(
+        ?string $highlightIdField,
+        ?string $bulkIdField,
+    ): void {
+        $em = $this->createEntityManager(CountDocument::class);
+        $em->persist(new CountDocument(1, 10, 'Alpha'));
+        $em->persist(new CountDocument(10, 99, 'Gamma'));
+        $em->persist(new CountDocument(99, 1, 'Omega'));
+        $em->flush();
+        $em->clear();
+
+        $seen   = [];
+        $action = BulkAction::new('touch')->handler(function (BulkRecords $records) use (&$seen): void {
+            foreach ($records as $document) {
+                $seen[] = $document->name;
+            }
+        });
+        $table     = $this->resolvedDocument($em, $action, highlightIdField: $highlightIdField, bulkIdField: $bulkIdField);
+        $dataTable = $table->table->getConfiguredDataTable();
+
+        $registry = $this->createStub(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->willReturn($em);
+        $row = (new DataTableRuntimeFactory(doctrine: $registry))->createRowMapper(
+            baseMapper: static fn (): array => [],
+            columns: [],
+            highlight: $dataTable->getHighlightConfig(),
+            rowIdField: $dataTable->getBulkActions()?->getIdField(),
+            entityClass: CountDocument::class,
+        )->map($em->find(CountDocument::class, 10));
+
+        $this->runner(em: $em)->run(
+            $table,
+            $action,
+            new BulkSelection(ids: [$row[HighlightConfig::ROW_ID_KEY]]),
+            $this->postRequest(),
+        );
+
+        $this->assertSame(['Gamma'], $seen);
+    }
+
+    /**
+     * @return iterable<string, array{?string, ?string}>
+     */
+    public static function provideRowIdConfigurations(): iterable
+    {
+        yield 'default id remapped onto the primary key' => [null, null];
+        yield 'highlight id field written as is' => ['id', null];
+        yield 'explicit bulk id field' => [null, 'name'];
+    }
+
     #[Test]
     public function it_subtracts_the_rows_deselected_after_a_select_all(): void
     {
@@ -645,6 +704,7 @@ final class BulkActionRunnerTest extends TestCase
         BulkAction $action,
         ?DataProviderInterface $provider = null,
         ?string $highlightIdField = null,
+        ?string $bulkIdField = null,
     ): ResolvedDataTable {
         $table = new ConfigurableDataTable(
             columnsConfig: [TextColumn::new('id'), TextColumn::new('name')],
@@ -665,7 +725,11 @@ final class BulkActionRunnerTest extends TestCase
                     }
                 },
             ),
-            bulkActions: static fn (BulkActions $actions): BulkActions => $actions->add($action),
+            bulkActions: static function (BulkActions $actions) use ($action, $bulkIdField): BulkActions {
+                $actions->add($action);
+
+                return null === $bulkIdField ? $actions : $actions->setIdField($bulkIdField);
+            },
         );
 
         return new ResolvedDataTable($table, CountDocument::class, AbstractDataTable::class);
