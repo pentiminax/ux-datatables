@@ -1,3 +1,4 @@
+import { applyFeatureLayout } from '../functions/featureLayout.js';
 import { renderLucideIcon } from '../functions/lucideIcons.js';
 import { createPopover } from '../functions/popover.js';
 import { runBulkAction } from '../functions/runBulkAction.js';
@@ -247,5 +248,28 @@ export class BulkActionBar {
             ? `btn btn-sm btn-outline-secondary ${className}`
             : `dt-button ${className}`;
     }
+}
+const registeredOn = new WeakSet();
+export function registerBulkActionsFeature(DataTable) {
+    if (registeredOn.has(DataTable)) {
+        return;
+    }
+    registeredOn.add(DataTable);
+    DataTable.feature.register('bulkActions', (settings, opts) => {
+        const instance = opts?.instance;
+        if (!instance) {
+            return document.createElement('div');
+        }
+        return instance.render(new DataTable.Api(settings));
+    });
+}
+export function installBulkActionBar(payload, DataTable, framework, dispatch, currentParams) {
+    registerBulkActionsFeature(DataTable);
+    if (!hasBulkActions(payload)) {
+        return null;
+    }
+    const bulkBar = new BulkActionBar(payload, framework, dispatch, currentParams);
+    applyFeatureLayout(payload, 'bulkActions', { bulkActions: { instance: bulkBar } }, { position: payload.bulkActions.position ?? 'topEnd' });
+    return bulkBar;
 }
 //# sourceMappingURL=BulkActionBar.js.map
