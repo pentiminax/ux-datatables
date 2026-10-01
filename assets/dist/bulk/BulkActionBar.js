@@ -250,7 +250,7 @@ export class BulkActionBar {
     }
 }
 const registeredOn = new WeakSet();
-function registerBulkActionsFeature(DataTable) {
+export function registerBulkActionsFeature(DataTable) {
     if (registeredOn.has(DataTable)) {
         return;
     }
