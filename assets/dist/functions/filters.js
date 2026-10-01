@@ -415,7 +415,7 @@ const registeredOn = new WeakSet();
 function hasAjaxSource(settings) {
     return Boolean(settings?.ajax || settings?.oFeatures?.bServerSide);
 }
-function registerFilterFeature(DataTable) {
+export function registerFilterFeature(DataTable) {
     if (registeredOn.has(DataTable)) {
         return;
     }

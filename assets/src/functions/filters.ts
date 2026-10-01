@@ -550,7 +550,7 @@ function hasAjaxSource(settings: any): boolean {
     return Boolean(settings?.ajax || settings?.oFeatures?.bServerSide)
 }
 
-function registerFilterFeature(DataTable: any): void {
+export function registerFilterFeature(DataTable: any): void {
     if (registeredOn.has(DataTable)) {
         return
     }
