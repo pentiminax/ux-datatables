@@ -79,6 +79,18 @@ describe('filter bar values', () => {
         })
     })
 
+    it('keeps the end day for date-only upper bounds before year 100', () => {
+        const adapter = new ApiPlatformAdapter([{ name: 'email' }])
+
+        const params = adapter.buildRequestParams({
+            start: 0,
+            length: 25,
+            filters: { createdAt: { to: '0050-12-31' } },
+        })
+
+        expect(params['createdAt[strictly_before]']).toBe('0051-01-01')
+    })
+
     it('keeps a time-bearing range upper bound as inclusive before', () => {
         const adapter = new ApiPlatformAdapter([{ name: 'email' }])
 
