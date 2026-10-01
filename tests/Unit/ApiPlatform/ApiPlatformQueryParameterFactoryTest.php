@@ -125,14 +125,27 @@ final class ApiPlatformQueryParameterFactoryTest extends TestCase
     }
 
     #[Test]
-    public function it_maps_a_range_filter_onto_date_filter_bounds(): void
+    public function it_maps_a_date_only_range_onto_after_and_exclusive_strictly_before(): void
     {
         $parameters = $this->create($this->request(filters: [
             'createdAt' => ['from' => '2026-01-01', 'to' => '2026-01-31'],
         ]));
 
         $this->assertSame('2026-01-01', $parameters['createdAt[after]']);
-        $this->assertSame('2026-01-31', $parameters['createdAt[before]']);
+        $this->assertSame('2026-02-01', $parameters['createdAt[strictly_before]']);
+        $this->assertArrayNotHasKey('createdAt[before]', $parameters);
+    }
+
+    #[Test]
+    public function it_keeps_a_time_bearing_range_upper_bound_as_inclusive_before(): void
+    {
+        $parameters = $this->create($this->request(filters: [
+            'createdAt' => ['from' => '2026-01-01T00:00:00', 'to' => '2026-01-31T14:30:00'],
+        ]));
+
+        $this->assertSame('2026-01-01T00:00:00', $parameters['createdAt[after]']);
+        $this->assertSame('2026-01-31T14:30:00', $parameters['createdAt[before]']);
+        $this->assertArrayNotHasKey('createdAt[strictly_before]', $parameters);
     }
 
     #[Test]
