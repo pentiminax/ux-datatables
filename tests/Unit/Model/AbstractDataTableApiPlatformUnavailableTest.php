@@ -8,7 +8,6 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
-use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
@@ -22,11 +21,11 @@ use PHPUnit\Framework\TestCase;
  * @internal
  */
 #[CoversClass(AbstractDataTable::class)]
-final class AbstractDataTableApiPlatformFallbackTest extends TestCase
+final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
 {
     #[Test]
     #[DataProvider('provideUnresolvableCollections')]
-    public function it_embeds_the_rows_of_a_client_side_api_platform_table_without_a_collection_url(
+    public function it_reads_no_rows_for_an_api_platform_table_without_a_collection(
         string $tableClass,
         ?ApiResourceCollectionUrlResolver $urlResolver,
     ): void {
@@ -35,8 +34,8 @@ final class AbstractDataTableApiPlatformFallbackTest extends TestCase
         $dataTable = $table->getDataTable();
 
         $this->assertNull($dataTable->getOption('ajax'));
+        $this->assertNull($dataTable->getOption('data'));
         $this->assertNotTrue($dataTable->getOption('apiPlatform'));
-        $this->assertSame([['id' => 1], ['id' => 2]], $dataTable->getOption('data'));
     }
 
     public static function provideUnresolvableCollections(): iterable
@@ -52,17 +51,17 @@ final class AbstractDataTableApiPlatformFallbackTest extends TestCase
             }
         };
 
-        yield 'attribute, no collection operation' => [AttributeApiPlatformFallbackFixture::class, $urlResolver];
+        yield 'attribute, no collection operation' => [AttributeApiPlatformUnavailableFixture::class, $urlResolver];
 
-        yield 'attribute, API Platform not installed' => [AttributeApiPlatformFallbackFixture::class, null];
+        yield 'attribute, API Platform not installed' => [AttributeApiPlatformUnavailableFixture::class, null];
 
-        yield 'fluent opt-in, no collection operation' => [FluentApiPlatformFallbackFixture::class, $urlResolver];
+        yield 'fluent opt-in, no collection operation' => [FluentApiPlatformUnavailableFixture::class, $urlResolver];
 
-        yield 'fluent opt-in, API Platform not installed' => [FluentApiPlatformFallbackFixture::class, null];
+        yield 'fluent opt-in, API Platform not installed' => [FluentApiPlatformUnavailableFixture::class, null];
     }
 }
 
-abstract class ApiPlatformFallbackFixture extends AbstractDataTable
+abstract class ApiPlatformUnavailableFixture extends AbstractDataTable
 {
     public function __construct(?ApiResourceCollectionUrlResolver $urlResolver)
     {
@@ -76,19 +75,22 @@ abstract class ApiPlatformFallbackFixture extends AbstractDataTable
         yield TextColumn::new('id');
     }
 
+    /**
+     * Reading through Doctrine would skip the authorization the collection operation applies.
+     */
     protected function createDataProvider(): ?DataProviderInterface
     {
-        return new ArrayDataProvider([['id' => 1], ['id' => 2]], $this->createRowMapper());
+        throw new \LogicException('An API Platform table without a collection must read no rows.');
     }
 }
 
 #[AsDataTable(entityClass: \stdClass::class, apiPlatform: true)]
-final class AttributeApiPlatformFallbackFixture extends ApiPlatformFallbackFixture
+final class AttributeApiPlatformUnavailableFixture extends ApiPlatformUnavailableFixture
 {
 }
 
 #[AsDataTable(entityClass: \stdClass::class)]
-final class FluentApiPlatformFallbackFixture extends ApiPlatformFallbackFixture
+final class FluentApiPlatformUnavailableFixture extends ApiPlatformUnavailableFixture
 {
     public function configureDataTable(DataTable $table): DataTable
     {

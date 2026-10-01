@@ -85,13 +85,13 @@ final class DataSourceModeTest extends TestCase
 
         yield 'fluent opt-in' => [$fluentOptIn, $attribute, '/api/books', DataSourceMode::ApiPlatform];
 
-        yield 'fluent opt-in without an entity' => [$fluentOptIn, null, '/api/books', DataSourceMode::ClientHydrated];
+        yield 'fluent opt-in without an entity' => [$fluentOptIn, null, '/api/books', DataSourceMode::ApiPlatformUnavailable];
 
-        yield 'opt-in, no collection operation' => [$plain, $optedIn, null, DataSourceMode::ClientHydrated];
+        yield 'opt-in, no collection operation' => [$plain, $optedIn, null, DataSourceMode::ApiPlatformUnavailable];
 
-        yield 'opt-in, no collection operation, server side' => [$serverSide, $optedIn, null, DataSourceMode::ServerSide];
+        yield 'opt-in, no collection operation, server side' => [$serverSide, $optedIn, null, DataSourceMode::ApiPlatformUnavailable];
 
-        yield 'opt-in, API Platform not installed' => [$fluentOptIn, $optedIn, self::NOT_INSTALLED, DataSourceMode::ClientHydrated];
+        yield 'opt-in, API Platform not installed' => [$fluentOptIn, $optedIn, self::NOT_INSTALLED, DataSourceMode::ApiPlatformUnavailable];
     }
 
     #[Test]

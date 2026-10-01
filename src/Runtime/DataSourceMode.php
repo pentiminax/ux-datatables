@@ -34,6 +34,12 @@ enum DataSourceMode
     /** Rows the table reads once at render time and embeds in the payload. */
     case ClientHydrated;
 
+    /**
+     * Opted into API Platform with no collection to read. No rows are read: falling back to
+     * Doctrine would skip the authorization the collection operation applies.
+     */
+    case ApiPlatformUnavailable;
+
     public static function resolve(DataTable $table, ?AsDataTable $asDataTable, ?ApiResourceCollectionUrlResolver $collectionUrlResolver): self
     {
         if (null !== $table->getOption('ajax')) {
@@ -44,8 +50,8 @@ enum DataSourceMode
             return self::Inline;
         }
 
-        if (self::readsApiPlatformCollection($table, $asDataTable, $collectionUrlResolver)) {
-            return self::ApiPlatform;
+        if (true === $asDataTable?->apiPlatform || true === $table->getOption('apiPlatform')) {
+            return self::resolvesCollection($asDataTable, $collectionUrlResolver) ? self::ApiPlatform : self::ApiPlatformUnavailable;
         }
 
         return $table->isServerSide() ? self::ServerSide : self::ClientHydrated;
@@ -53,16 +59,11 @@ enum DataSourceMode
 
     /**
      * The `apiPlatform` option counts on its own: the fluent `apiPlatform()` sets it without the
-     * attribute. A table opted in for an entity with no collection operation, or without API
-     * Platform installed, reads its rows the way it would without the opt-in.
+     * attribute. The collection URL needs the attribute's entity and API Platform installed.
      */
-    private static function readsApiPlatformCollection(DataTable $table, ?AsDataTable $asDataTable, ?ApiResourceCollectionUrlResolver $collectionUrlResolver): bool
+    private static function resolvesCollection(?AsDataTable $asDataTable, ?ApiResourceCollectionUrlResolver $collectionUrlResolver): bool
     {
         if (null === $asDataTable || null === $collectionUrlResolver) {
-            return false;
-        }
-
-        if (!$asDataTable->apiPlatform && true !== $table->getOption('apiPlatform')) {
             return false;
         }
 
