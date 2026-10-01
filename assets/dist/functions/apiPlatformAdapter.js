@@ -60,6 +60,7 @@ function nextDayDateOnly(value) {
 export class ApiPlatformAdapter {
     constructor(columns) {
         this.rowIdField = null;
+        this.draw = 0;
         this.columns = columns;
     }
     buildRequestParams(params) {
@@ -118,25 +119,16 @@ export class ApiPlatformAdapter {
     configure(payload) {
         const ajaxConfig = payload.ajax;
         this.rowIdField = resolveRowIdField(payload.highlight);
-        const originalData = ajaxConfig.data;
         const originalDataFilter = ajaxConfig.dataFilter;
         payload.serverSide = true;
         payload.columns = this.withDefaultColumnContent(payload.columns);
-        let draw = 0;
-        const buildData = (params) => {
-            const resolvedParams = this.resolveDataTableParams(params, originalData);
-            draw = this.toDraw(resolvedParams.draw);
-            return this.buildRequestParams(resolvedParams);
-        };
-        buildData.consumesFilters = true;
-        ajaxConfig.data = buildData;
         ajaxConfig.dataFilter = (rawData, type) => {
             const filteredRawData = this.resolveRawResponse(rawData, type, originalDataFilter);
             const parsedPayload = this.parseResponsePayload(filteredRawData);
             if (null === parsedPayload) {
                 return typeof filteredRawData === 'string' ? filteredRawData : rawData;
             }
-            const response = this.buildResponse(parsedPayload, draw);
+            const response = this.buildResponse(parsedPayload, this.draw);
             return JSON.stringify(response);
         };
     }
@@ -251,30 +243,9 @@ export class ApiPlatformAdapter {
         }
         return rawData;
     }
-    resolveDataTableParams(params, originalData) {
-        if (typeof originalData === 'function') {
-            const transformed = originalData(params);
-            if (isRecord(transformed)) {
-                return this.withFilters(transformed, params.filters);
-            }
-            return params;
-        }
-        if (isRecord(originalData)) {
-            return {
-                ...params,
-                ...originalData,
-            };
-        }
-        return params;
-    }
-    withFilters(params, filters) {
-        if (undefined === filters || undefined !== params.filters) {
-            return params;
-        }
-        return {
-            ...params,
-            filters,
-        };
+    toRequestParams(params) {
+        this.draw = this.toDraw(params.draw);
+        return this.buildRequestParams(params);
     }
     toDraw(value) {
         if (typeof value === 'number' && Number.isFinite(value)) {

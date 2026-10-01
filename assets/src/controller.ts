@@ -40,6 +40,7 @@ import {
     hasLucideIconsInActions,
     loadLucideIcons,
 } from './functions/lucideIcons.js'
+import { installRequestParams } from './functions/requestParams.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
 import { submitEditForm } from './functions/submitEditForm.js'
@@ -186,11 +187,13 @@ export default class extends Controller {
 
         this.dispatchEvent('pre-init', { config: payload, DataTable })
 
+        let apiPlatformAdapter: ApiPlatformAdapter | null = null
         if (this.isApiPlatformEnabled(payload)) {
             const columns = Array.isArray(payload.columns)
                 ? (payload.columns as ColumnConfig[])
                 : []
-            new ApiPlatformAdapter(columns).configure(payload)
+            apiPlatformAdapter = new ApiPlatformAdapter(columns)
+            apiPlatformAdapter.configure(payload)
         }
 
         this.configureColumns(payload)
@@ -207,10 +210,19 @@ export default class extends Controller {
             applyUrlStateToPayload(payload, readUrlState(urlStateCfg))
         }
 
-        let filterBar: FilterBar | null = null
-        if (hasFilters(payload)) {
-            filterBar = new FilterBar(payload, framework)
-            filterBar.attachToPayload(payload)
+        const filterBar = hasFilters(payload) ? new FilterBar(payload, framework) : null
+        // Tables with none of these keep DataTables' own `ajax.data` handling untouched.
+        const requestParams =
+            filterBar || apiPlatformAdapter || hasBulkActions(payload)
+                ? installRequestParams(payload, {
+                      filters: filterBar ? () => filterBar.collectValues() : undefined,
+                      transport: apiPlatformAdapter
+                          ? (params) => apiPlatformAdapter.toRequestParams(params)
+                          : undefined,
+                  })
+                : null
+
+        if (filterBar) {
             applyFilterLayout(payload, filterBar)
 
             if (payload.stateSave) {
@@ -237,8 +249,11 @@ export default class extends Controller {
         }
 
         if (hasBulkActions(payload)) {
-            const bulkBar = new BulkActionBar(payload, framework, (name, detail) =>
-                this.dispatchEvent(name, detail)
+            const bulkBar = new BulkActionBar(
+                payload,
+                framework,
+                (name, detail) => this.dispatchEvent(name, detail),
+                () => requestParams?.current() ?? {}
             )
             applyBulkActionsLayout(payload, bulkBar, payload.bulkActions?.position)
         }

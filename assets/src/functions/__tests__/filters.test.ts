@@ -2,12 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { FilterBar, type FilterDefinition, hasFilters } from '../filters.js'
 
 function makeBar(filters: FilterDefinition[]) {
-    const payload: Record<string, any> = {
-        filters,
-        ajax: { url: '/data', data: { extra: 'kept' } },
-    }
+    const payload: Record<string, any> = { filters }
     const bar = new FilterBar(payload, 'dt')
-    bar.attachToPayload(payload)
     return { bar, payload }
 }
 
@@ -114,68 +110,6 @@ describe('FilterBar', () => {
         expect(wrapper.querySelector('.dt-filters-badge')?.textContent).toBe('1')
     })
 
-    it('merges applied filter values into the ajax data, preserving static data', () => {
-        const { bar, payload } = makeBar([{ name: 'name', type: 'text' }])
-        const wrapper = bar.render(vi.fn())
-        ;(wrapper.querySelector('input[type="search"]') as HTMLInputElement).value = 'john'
-        clickApply(wrapper)
-
-        const data: Record<string, any> = { draw: 1 }
-        const result = payload.ajax.data(data)
-
-        expect(result).toMatchObject({
-            draw: 1,
-            extra: 'kept',
-            filters: { name: 'john' },
-        })
-    })
-
-    it('composes with an existing ajax.data function instead of replacing it', () => {
-        const apiPlatformData = vi.fn((params: Record<string, any>) => ({
-            page: String(Math.floor(params.start / params.length) + 1),
-            itemsPerPage: String(params.length),
-        }))
-        const payload: Record<string, any> = {
-            filters: [{ name: 'name', type: 'text' }],
-            ajax: { url: '/books', data: apiPlatformData },
-        }
-        const bar = new FilterBar(payload, 'dt')
-        bar.attachToPayload(payload)
-
-        const wrapper = bar.render(vi.fn())
-        ;(wrapper.querySelector('input[type="search"]') as HTMLInputElement).value = 'john'
-        clickApply(wrapper)
-
-        const result = payload.ajax.data({ draw: 2, start: 25, length: 25 })
-
-        expect(apiPlatformData).toHaveBeenCalledTimes(1)
-        expect(result).toEqual({
-            page: '2',
-            itemsPerPage: '25',
-            filters: { name: 'john' },
-        })
-        expect(result).not.toHaveProperty('draw')
-        expect(result).not.toHaveProperty('start')
-    })
-
-    it('preserves a serialized ajax.data return value with filters included', () => {
-        const payload: Record<string, any> = {
-            filters: [{ name: 'status', type: 'select', options: { draft: 'Draft' } }],
-            ajax: { url: '/data', data: (params: Record<string, any>) => JSON.stringify(params) },
-        }
-        const bar = new FilterBar(payload, 'dt')
-        bar.attachToPayload(payload)
-
-        const wrapper = bar.render(vi.fn())
-        ;(wrapper.querySelector('select') as HTMLSelectElement).value = 'draft'
-        clickApply(wrapper)
-
-        const data: Record<string, any> = { draw: 1 }
-        expect(payload.ajax.data(data)).toBe(
-            JSON.stringify({ draw: 1, filters: { status: 'draft' } })
-        )
-    })
-
     it('wraps date range bounds in dt-filter-range', () => {
         const { bar } = makeBar([{ name: 'lastLoginAt', type: 'dateRange' }])
         const wrapper = bar.render(vi.fn())
@@ -214,55 +148,6 @@ describe('FilterBar', () => {
         expect(bar.collectValues()).toEqual({})
         expect(wrapper.querySelector('.dt-filters-badge')?.textContent).toBe('0')
         expect(reload).toHaveBeenCalledTimes(2)
-    })
-
-    it('skips the nested filters object when the ajax.data callback consumed the filters', () => {
-        const apiPlatformData = Object.assign(
-            (params: Record<string, any>) => ({
-                page: '1',
-                itemsPerPage: String(params.length),
-                name: params.filters?.name,
-            }),
-            { consumesFilters: true }
-        )
-        const payload: Record<string, any> = {
-            filters: [{ name: 'name', type: 'text' }],
-            ajax: { url: '/api/books', data: apiPlatformData },
-        }
-        const bar = new FilterBar(payload, 'dt')
-        bar.attachToPayload(payload)
-
-        const wrapper = bar.render(vi.fn())
-        ;(wrapper.querySelector('input[type="search"]') as HTMLInputElement).value = 'john'
-        clickApply(wrapper)
-
-        expect(payload.ajax.data({ draw: 1, start: 0, length: 25 })).toEqual({
-            page: '1',
-            itemsPerPage: '25',
-            name: 'john',
-        })
-    })
-
-    it('attaches filters to a function ajax used by API Platform template rendering', () => {
-        const ajax = vi.fn()
-        const payload: Record<string, any> = {
-            filters: [{ name: 'name', type: 'text' }],
-            ajax,
-        }
-        const bar = new FilterBar(payload, 'dt')
-        bar.attachToPayload(payload)
-
-        const wrapper = bar.render(vi.fn())
-        ;(wrapper.querySelector('input[type="search"]') as HTMLInputElement).value = 'john'
-        clickApply(wrapper)
-
-        const callback = vi.fn()
-        payload.ajax({ draw: 1, start: 0, length: 25 }, callback)
-
-        expect(ajax).toHaveBeenCalledWith(
-            expect.objectContaining({ filters: { name: 'john' } }),
-            callback
-        )
     })
 
     it('toggles the popover open and closed', () => {
