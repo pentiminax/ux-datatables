@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Mutation;
 
+use Doctrine\Persistence\Mapping\ClassMetadata;
 use Doctrine\Persistence\ObjectManager;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
@@ -221,7 +222,7 @@ final class BulkActionRunner
         ?HighlightConfig $highlight,
     ): string {
         $metadata = $manager->getClassMetadata($entityClass);
-        $field    = RowIdField::resolve($highlight, $configuredField ?? 'id', $metadata) ?? 'id';
+        $field    = RowIdField::resolve($highlight, $configuredField ?? 'id', static fn (): ClassMetadata => $metadata) ?? 'id';
 
         // Falling back to the primary key would compare values from two namespaces and mutate
         // the wrong rows, so a field Doctrine cannot look up is refused instead.
