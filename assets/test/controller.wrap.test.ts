@@ -10,14 +10,6 @@ vi.mock('../src/functions/detectStyleFramework.js', () => ({
     detectStyleFramework: () => 'dt',
 }))
 
-vi.mock('../src/functions/bulkActionsFeature.js', () => ({
-    registerBulkActionsFeature: vi.fn(),
-}))
-
-vi.mock('../src/functions/filterFeature.js', () => ({
-    registerFilterFeature: vi.fn(),
-}))
-
 import DatatableController from '../src/controller.js'
 
 const INSTANCE_LIMIT = 5
@@ -57,6 +49,7 @@ describe('datatable controller DOM wrapping', () => {
             }
         }
 
+        MockDataTable.feature = { register: vi.fn() }
         MockDataTable.isDataTable = (element: Element) => initialized.has(element)
         MockDataTable.Api = class {
             constructor(private readonly element: Element) {}

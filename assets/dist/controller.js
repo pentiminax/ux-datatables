@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
-import { BulkActionBar, hasBulkActions } from './bulk/BulkActionBar.js';
+import { installBulkActionBar } from './bulk/BulkActionBar.js';
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js';
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
@@ -13,8 +13,6 @@ import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
 import { ApiPlatformAdapter, isApiPlatformAdapterEnabled, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js';
-import { registerBulkActionsFeature } from './functions/bulkActionsFeature.js';
-import { applyBulkActionsLayout } from './functions/bulkActionsLayout.js';
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
@@ -22,9 +20,7 @@ import { detectTheme } from './functions/detectTheme.js';
 import { ExtensionRegistry } from './functions/extensionRegistry.js';
 import { fetchDetailRow } from './functions/fetchDetailRow.js';
 import { fetchEditForm } from './functions/fetchEditForm.js';
-import { registerFilterFeature } from './functions/filterFeature.js';
-import { applyFilterLayout } from './functions/filterLayout.js';
-import { FilterBar, hasFilters } from './functions/filters.js';
+import { installFilterBar } from './functions/filters.js';
 import { isHighlightEnabled } from './functions/highlightUpdates.js';
 import { isDataTableClone } from './functions/isDataTableClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
@@ -102,8 +98,6 @@ class default_1 extends Controller {
             : detectStyleFramework();
         this.framework = framework;
         const DataTable = await loadDataTableLibrary(framework);
-        registerFilterFeature(DataTable);
-        registerBulkActionsFeature(DataTable);
         if (this.adoptLiveTable(DataTable)) {
             return;
         }
@@ -127,41 +121,16 @@ class default_1 extends Controller {
         if (urlStateCfg) {
             applyUrlStateToPayload(payload, readUrlState(urlStateCfg));
         }
-        const filterBar = hasFilters(payload) ? new FilterBar(payload, framework) : null;
-        const requestParams = filterBar || apiPlatformAdapter || hasBulkActions(payload)
-            ? installRequestParams(payload, {
+        let requestParams = null;
+        const filterBar = installFilterBar(payload, DataTable, framework);
+        const bulkBar = installBulkActionBar(payload, DataTable, framework, (name, detail) => this.dispatchEvent(name, detail), () => requestParams?.current() ?? {});
+        if (filterBar || bulkBar || apiPlatformAdapter) {
+            requestParams = installRequestParams(payload, {
                 filters: filterBar ? () => filterBar.collectValues() : undefined,
                 transport: apiPlatformAdapter
                     ? (params) => apiPlatformAdapter.toRequestParams(params)
                     : undefined,
-            })
-            : null;
-        if (filterBar) {
-            applyFilterLayout(payload, filterBar);
-            if (payload.stateSave) {
-                const originalStateSaveParams = payload.stateSaveParams;
-                payload.stateSaveParams = (settings, data) => {
-                    if (typeof originalStateSaveParams === 'function') {
-                        originalStateSaveParams(settings, data);
-                    }
-                    if (filterBar) {
-                        data.uxFilters = filterBar.collectValues();
-                    }
-                };
-                const originalStateLoaded = payload.stateLoaded;
-                payload.stateLoaded = (settings, data) => {
-                    if (typeof originalStateLoaded === 'function') {
-                        originalStateLoaded(settings, data);
-                    }
-                    if (data?.uxFilters && filterBar) {
-                        filterBar.restoreValues(data.uxFilters);
-                    }
-                };
-            }
-        }
-        if (hasBulkActions(payload)) {
-            const bulkBar = new BulkActionBar(payload, framework, (name, detail) => this.dispatchEvent(name, detail), () => requestParams?.current() ?? {});
-            applyBulkActionsLayout(payload, bulkBar, payload.bulkActions?.position);
+            });
         }
         await applyLocalLanguage(payload);
         applyServerExportUrls(payload);
