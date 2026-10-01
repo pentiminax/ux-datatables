@@ -32,7 +32,8 @@ export const sections: NavSection[] = [
   {
     id: 'recipes',
     title: 'Recipes',
-    description: 'Complete tables you can paste into a project — entity, table class, controller, template.',
+    description:
+      'Complete tables you can paste into a project — entity, table class, controller, template.',
   },
   {
     id: 'guide',
@@ -73,7 +74,7 @@ export function sectionOf(slug: string): NavSection {
 
   if (!section) {
     throw new Error(
-      `Page "${slug}" is not in a known section directory (${sections.map((item) => item.id).join(', ')}).`,
+      `Page "${slug}" is not in a known section directory (${sections.map((item) => item.id).join(', ')}).`
     )
   }
 
@@ -99,7 +100,7 @@ export async function getDocsNav(): Promise<NavItem[]> {
         // otherwise the pager walks sideways between sections sharing a number.
         sections.indexOf(a.section) - sections.indexOf(b.section) ||
         a.order - b.order ||
-        a.slug.localeCompare(b.slug),
+        a.slug.localeCompare(b.slug)
     )
 }
 

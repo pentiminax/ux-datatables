@@ -41,7 +41,7 @@ function rehypeWrapTables() {
             },
             children: [node],
           }
-        : node,
+        : node
     )
 }
 
@@ -55,7 +55,12 @@ function rehypeBaseLinks() {
     mapElements(tree, (node) => {
       const href = node.properties?.href
 
-      if (node.tagName === 'a' && typeof href === 'string' && href.startsWith('/') && !href.startsWith(`${base}/`)) {
+      if (
+        node.tagName === 'a' &&
+        typeof href === 'string' &&
+        href.startsWith('/') &&
+        !href.startsWith(`${base}/`)
+      ) {
         node.properties.href = `${base}${href}`
       }
 

@@ -114,10 +114,7 @@ attributes are read, `entityClass` is what the runtime targets.**
 <Table
   headers={['Argument', 'Read by']}
   rows={[
-    [
-      '`dataClass`',
-      '`#[DataTableColumn]` and `#[DataTableFilter]` declarations',
-    ],
+    ['`dataClass`', '`#[DataTableColumn]` and `#[DataTableFilter]` declarations'],
     [
       '`entityClass`',
       'Doctrine query building, inline edit, bulk actions, row identifiers, Mercure topics, API Platform metadata and collection URL',
@@ -195,14 +192,15 @@ query building rejects it, naming the class rather than failing inside the query
   compiles and names the offender. Dotted paths are left alone: they may target a join alias added in
   `customizeQueryBuilder()`.
 
-  A column building its own search condition through `searchPredicate` is reported in the compiler
-  log rather than failing the build: its displayed field is only read when that condition declines a
-  term.
+A column building its own search condition through `searchPredicate` is reported in the compiler
+log rather than failing the build: its displayed field is only read when that condition declines a
+term.
 
-  The simplest fix is to name the DTO property after the entity field it displays. When the two names
-  must differ, redirect the query alone with the `searchField` option or an
-  `orderExpression`, or turn ordering and searching off on the column. Do not reach for the `field`
-  option here: it redirects the displayed value as well, and reads nothing on a projected row.
+The simplest fix is to name the DTO property after the entity field it displays. When the two names
+must differ, redirect the query alone with the `searchField` option or an
+`orderExpression`, or turn ordering and searching off on the column. Do not reach for the `field`
+option here: it redirects the displayed value as well, and reads nothing on a projected row.
+
 </Aside>
 
 ### `serializationGroups`
@@ -261,7 +259,10 @@ Four keys do not follow either naming convention and are handled by the alias ta
   headers={['Option', 'Effect']}
   rows={[
     ['`globalSearchable: false`', 'Calls `disableGlobalSearch()`.'],
-    ['`searchJoins`', 'A `join => alias` map, added one by one. Join conditions stay with the fluent API.'],
+    [
+      '`searchJoins`',
+      'A `join => alias` map, added one by one. Join conditions stay with the fluent API.',
+    ],
     ['`customOptions`', 'A map, set one by one.'],
     ['`searchNormalized`', 'Calls `setSearchNormalization()`.'],
   ]}

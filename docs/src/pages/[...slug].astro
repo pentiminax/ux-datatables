@@ -52,12 +52,14 @@ const isSectionHub = !entry.id.includes('/')
     <article class="doc-article" data-pagefind-body>
       <header class="doc-header">
         <Breadcrumb
-          trail={isSectionHub
-            ? [{ label: current.section.title }]
-            : [
-                { label: current.section.title, href: withBase(`${current.section.id}/`) },
-                { label: entry.data.title },
-              ]}
+          trail={
+            isSectionHub
+              ? [{ label: current.section.title }]
+              : [
+                  { label: current.section.title, href: withBase(`${current.section.id}/`) },
+                  { label: entry.data.title },
+                ]
+          }
         />
         <h1>{entry.data.title}</h1>
         <p class="doc-lede">{entry.data.description}</p>

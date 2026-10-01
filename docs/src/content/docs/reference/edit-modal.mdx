@@ -113,8 +113,16 @@ Custom modal templates must preserve these attributes:
 <Table
   headers={['Attribute / ID', 'Element', 'Purpose']}
   rows={[
-    ['`data-ux-datatables-modal`', 'Modal root (`<dialog>` for `dt`, `<div class="modal">` for Bootstrap)', 'Used by the adapter to open/close the modal'],
-    ['`data-ux-datatables-modal-body`', 'Body container', 'Replaced in-place after validation errors'],
+    [
+      '`data-ux-datatables-modal`',
+      'Modal root (`<dialog>` for `dt`, `<div class="modal">` for Bootstrap)',
+      'Used by the adapter to open/close the modal',
+    ],
+    [
+      '`data-ux-datatables-modal-body`',
+      'Body container',
+      'Replaced in-place after validation errors',
+    ],
     ['`data-ux-datatables-submit`', 'Submit button', 'Wired to the form submit handler'],
     ['`data-ux-datatables-cancel`', 'Cancel button(s)', 'Closes the modal and triggers `onCancel`'],
     ['`id="ux-datatables-edit-form"`', '`<form>` element', 'Required for form serialization'],
@@ -204,10 +212,18 @@ For advanced modal behavior (animations, third-party libraries), implement the `
 import type { ModalAdapter, ModalHandlers } from '@pentiminax/ux-datatables'
 
 export class MyModalAdapter implements ModalAdapter {
-    async show(html: string, handlers: ModalHandlers): Promise<void> { /* ... */ }
-    replaceBody(html: string): void { /* ... */ }
-    async hide(): Promise<void> { /* ... */ }
-    isOpen(): boolean { /* ... */ }
+  async show(html: string, handlers: ModalHandlers): Promise<void> {
+    /* ... */
+  }
+  replaceBody(html: string): void {
+    /* ... */
+  }
+  async hide(): Promise<void> {
+    /* ... */
+  }
+  isOpen(): boolean {
+    /* ... */
+  }
 }
 ```
 
@@ -230,10 +246,10 @@ protected function configureDataTable(DataTable $table): DataTable
 
 The built-in adapters are:
 
-| Key | Adapter | When used |
-|-----|---------|-----------|
-| `dt` | `DialogModalAdapter` | Default fallback (Tailwind, custom CSS) |
-| `bs` / `bs4` / `bs5` | `BootstrapModalAdapter` | Bootstrap CSS detected |
+| Key                  | Adapter                 | When used                               |
+| -------------------- | ----------------------- | --------------------------------------- |
+| `dt`                 | `DialogModalAdapter`    | Default fallback (Tailwind, custom CSS) |
+| `bs` / `bs4` / `bs5` | `BootstrapModalAdapter` | Bootstrap CSS detected                  |
 
 ## Cross Links
 

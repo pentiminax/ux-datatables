@@ -34,16 +34,16 @@ hub which protocol it speaks (`HubInterface::getProtocolVersion()`, available wi
 ```yaml
 # config/packages/mercure.yaml — symfony/mercure-bundle 0.5+
 mercure:
-    hubs:
-        default:
-            url: '%env(MERCURE_URL)%'
-            public_url: '%env(MERCURE_PUBLIC_URL)%'
-            protocol_version: '1.0'
-            jwt:
-                secret: '%env(MERCURE_JWT_SECRET)%'
-                claims:                       # required by RFC 9068 on a 1.0 hub
-                    iss: 'https://example.com'
-                    sub: 'mercure-hub'
+  hubs:
+    default:
+      url: '%env(MERCURE_URL)%'
+      public_url: '%env(MERCURE_PUBLIC_URL)%'
+      protocol_version: '1.0'
+      jwt:
+        secret: '%env(MERCURE_JWT_SECRET)%'
+        claims: # required by RFC 9068 on a 1.0 hub
+          iss: 'https://example.com'
+          sub: 'mercure-hub'
 ```
 
 Topics keep their existing syntax. On a 1.0 hub a topic containing a `{name}` placeholder is sent as
@@ -122,7 +122,7 @@ subscriber cookie comes from its `Authorization` service or from the `mercure()`
 - **The grant has to cover the concrete published topic.** Under 1.0 each `topics` entry is an
   object (`{ "match": ..., "match_type"?: ... }`), bare strings are rejected, and `match_type`
   defaults to `exact`. A grant ported from 0.x and holding `https://example.com/api/books/{id}` is
-  an *exact* match on that literal string: it does not match the published
+  an _exact_ match on that literal string: it does not match the published
   `https://example.com/api/books/42`, and the hub answers `403 insufficient_scope`. Only a
   `urlpattern` grant covers it:
 
@@ -148,8 +148,8 @@ $token = $factory->create(
 ```
 
 `iss`, `aud`, `sub` and `client_id` are all mandatory: `create()` builds an RFC 9068 access token
-under `ProtocolVersion::V1` and throws `InvalidArgumentException` (*The "aud" additional claim is
-required by RFC 9068 access tokens.*) when one of them is missing.
+under `ProtocolVersion::V1` and throws `InvalidArgumentException` (_The "aud" additional claim is
+required by RFC 9068 access tokens._) when one of them is missing.
 
 See the [Mercure authorization concepts](https://github.com/dunglas/mercure/blob/main/docs/concepts/authorization.md)
 and the [Mercure upgrade guide](https://github.com/dunglas/mercure/blob/main/docs/UPGRADE.md).
@@ -266,11 +266,11 @@ public function configureDataTable(DataTable $table): DataTable
 }
 ```
 
-| Parameter | Default | Purpose |
-| --- | --- | --- |
-| `durationMs` | `1200` | How long a cell stays emphasized. |
-| `ignoreColumns` | `[]` | Data keys never highlighted. |
-| `idField` | `'id'` | Property read to identify a row. |
+| Parameter       | Default | Purpose                           |
+| --------------- | ------- | --------------------------------- |
+| `durationMs`    | `1200`  | How long a cell stays emphasized. |
+| `ignoreColumns` | `[]`    | Data keys never highlighted.      |
+| `idField`       | `'id'`  | Property read to identify a row.  |
 
 `ignoreColumns` matters more than it looks. A column whose rendered value changes on every refresh -
 a relative date, a counter, an "updated at" stamp - would be highlighted on every single event and
@@ -300,7 +300,7 @@ The animation lives in the bundle stylesheet and is driven by two custom propert
 
 ```css
 :root {
-    --dt-highlight-color: rgb(16 185 129 / 0.3);
+  --dt-highlight-color: rgb(16 185 129 / 0.3);
 }
 ```
 
@@ -311,9 +311,9 @@ To drive your own effect instead, skip the class and listen to the event:
 
 ```js
 document.addEventListener('datatables:highlight', (event) => {
-    for (const cell of event.detail.cells) {
-        // ...
-    }
+  for (const cell of event.detail.cells) {
+    // ...
+  }
 })
 ```
 

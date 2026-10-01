@@ -48,9 +48,7 @@ Attach a real JavaScript callback through the `datatables:pre-connect` event:
 
 ```javascript
 this.element.addEventListener('datatables:pre-connect', (event) => {
-  const priceColumn = event.detail.config.columns.find(
-    (column) => column.name === 'price'
-  )
+  const priceColumn = event.detail.config.columns.find((column) => column.name === 'price')
 
   if (priceColumn) {
     priceColumn.render = (data, type) =>
@@ -66,9 +64,18 @@ Returning the raw value for sorting and filtering preserves numeric behavior.
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ["`NumberColumn::new(string $name, string $title = '')`", 'Creates a new NumberColumn (type: `num`)'],
-    ['`formatted(bool $formatted = true)`', 'Switches to `num-fmt` type (or `html-num-fmt` when combined with `html()`)'],
-    ['`html(bool $html = true)`', 'Switches to `html-num` type (or `html-num-fmt` when combined with `formatted()`)'],
+    [
+      "`NumberColumn::new(string $name, string $title = '')`",
+      'Creates a new NumberColumn (type: `num`)',
+    ],
+    [
+      '`formatted(bool $formatted = true)`',
+      'Switches to `num-fmt` type (or `html-num-fmt` when combined with `html()`)',
+    ],
+    [
+      '`html(bool $html = true)`',
+      'Switches to `html-num` type (or `html-num-fmt` when combined with `formatted()`)',
+    ],
   ]}
 />
 
@@ -105,6 +112,6 @@ final class ProductsDataTable extends AbstractDataTable
 
 <Aside type="note">
   `NumberColumn` uses the `num` DataTables type. Sorting is numeric; searching compares raw values.
-  Keep the raw numeric value in `mapRow()` and format display values client-side so sorting
-  remains numeric.
+  Keep the raw numeric value in `mapRow()` and format display values client-side so sorting remains
+  numeric.
 </Aside>

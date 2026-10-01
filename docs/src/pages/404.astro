@@ -25,14 +25,12 @@ import { sections, withBase } from '../nav'
     </p>
 
     <nav class="section-jump" aria-label="Documentation sections">
-      {
-        sections.map((section) => (
-          <a href={withBase(`${section.id}/`)}>
-            <span class="section-jump-title">{section.title}</span>
-            <span class="section-jump-description">{section.description}</span>
-          </a>
-        ))
-      }
+      {sections.map((section) => (
+        <a href={withBase(`${section.id}/`)}>
+          <span class="section-jump-title">{section.title}</span>
+          <span class="section-jump-description">{section.description}</span>
+        </a>
+      ))}
     </nav>
   </section>
 </Layout>
