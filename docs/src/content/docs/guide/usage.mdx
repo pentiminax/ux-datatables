@@ -147,12 +147,32 @@ Then attach your controller in Twig:
   headers={['Event', 'Description', 'Detail Properties']}
   rows={[
     ['datatables:pre-connect', 'Fired before table initialization', 'config: Configuration object'],
-    ['datatables:pre-init', 'Fired after extension plugins have loaded, just before the table is constructed', 'config: Configuration object, DataTable: the loaded DataTable class'],
+    [
+      'datatables:pre-init',
+      'Fired after extension plugins have loaded, just before the table is constructed',
+      'config: Configuration object, DataTable: the loaded DataTable class',
+    ],
     ['datatables:connect', 'Fired after table is created', 'table: DataTable instance'],
-    ['datatables:reconnect', 'Fired when a controller connects to a table that is already built, after DataTables restructures the DOM', 'table: DataTable instance'],
-    ['datatables:bulk:start', 'Fired when a bulk action is about to be sent, after any confirmation', 'action: action name, selection: selected ids, allMatching, deselectedIds and counts'],
-    ['datatables:bulk:success', 'Fired when the bulk endpoint accepted the run', 'action: action name, result: success, processed, skipped, message'],
-    ['datatables:bulk:error', 'Fired when the endpoint refused the run or the request failed', 'action: action name, and result (refused) or error (network failure)'],
+    [
+      'datatables:reconnect',
+      'Fired when a controller connects to a table that is already built, after DataTables restructures the DOM',
+      'table: DataTable instance',
+    ],
+    [
+      'datatables:bulk:start',
+      'Fired when a bulk action is about to be sent, after any confirmation',
+      'action: action name, selection: selected ids, allMatching, deselectedIds and counts',
+    ],
+    [
+      'datatables:bulk:success',
+      'Fired when the bulk endpoint accepted the run',
+      'action: action name, result: success, processed, skipped, message',
+    ],
+    [
+      'datatables:bulk:error',
+      'Fired when the endpoint refused the run or the request failed',
+      'action: action name, and result (refused) or error (network failure)',
+    ],
   ]}
 />
 

@@ -9,13 +9,12 @@ const { headings } = Astro.props
 const items = headings.filter((heading) => heading.depth > 1 && heading.depth < 4)
 ---
 
-{
-  items.length > 1 && (
-    <nav class="toc" aria-label="On this page" data-toc>
-      {/* Open on desktop, where it is a sidebar; the script folds it on narrow
+{items.length > 1 && (
+  <nav class="toc" aria-label="On this page" data-toc>
+    {/* Open on desktop, where it is a sidebar; the script folds it on narrow
           screens so it never stands between the reader and the page title. */}
-      <details class="toc-panel" open data-toc-panel>
-        <summary class="toc-heading">On this page</summary>
+    <details class="toc-panel" open data-toc-panel>
+      <summary class="toc-heading">On this page</summary>
       <ul>
         {items.map((heading) => (
           <li class:list={['toc-item', `toc-depth-${heading.depth}`]}>
@@ -25,10 +24,9 @@ const items = headings.filter((heading) => heading.depth > 1 && heading.depth < 
           </li>
         ))}
       </ul>
-      </details>
-    </nav>
-  )
-}
+    </details>
+  </nav>
+)}
 
 <script>
   const toc = document.querySelector('[data-toc]')
@@ -42,7 +40,8 @@ const items = headings.filter((heading) => heading.depth > 1 && heading.depth < 
     narrow.addEventListener('change', fold)
 
     toc.addEventListener('click', (event) => {
-      if (narrow.matches && panel && (event.target as HTMLElement).closest('[data-toc-link]')) panel.open = false
+      if (narrow.matches && panel && (event.target as HTMLElement).closest('[data-toc-link]'))
+        panel.open = false
     })
 
     const links = new Map<string, HTMLAnchorElement>()
@@ -79,7 +78,7 @@ const items = headings.filter((heading) => heading.depth > 1 && heading.depth < 
       },
       // Track a band just under the sticky header so a heading counts as "current"
       // from the moment it reaches the top of the reading area.
-      { rootMargin: '-88px 0px -70% 0px', threshold: 0 },
+      { rootMargin: '-88px 0px -70% 0px', threshold: 0 }
     )
 
     headings.forEach((heading) => observer.observe(heading))
