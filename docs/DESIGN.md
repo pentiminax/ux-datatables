@@ -155,7 +155,7 @@ job.
 ### Secondary
 
 - **Reserved Amber** (`#f4d35e`): the focus halo only — `color-mix(in srgb, var(--amber-500) 55%,
-  transparent)` behind the indigo outline. **Warm Amber** (`#a17c11`) carries warning asides.
+transparent)` behind the indigo outline. **Warm Amber** (`#a17c11`) carries warning asides.
 - **Symfony Crimson** (`#c62734`): used where Symfony itself is meant, and for danger asides. It is
   a citation, not a palette color.
 - **Guide Teal** (`#0a6350`): tip asides only.

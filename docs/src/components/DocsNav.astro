@@ -12,13 +12,12 @@ const groups = await getDocsNavSections()
 ---
 
 <nav class="docs-nav" aria-label={label} id={id}>
-  {
-    groups.map((group) => {
-      // `recipes` and `extensions` are authored hub pages living at the section
-      // URL: the heading already links to them, so they must not repeat below it.
-      const items = group.items.filter((item) => item.slug !== group.section.id)
+  {groups.map((group) => {
+    // `recipes` and `extensions` are authored hub pages living at the section
+    // URL: the heading already links to them, so they must not repeat below it.
+    const items = group.items.filter((item) => item.slug !== group.section.id)
 
-      return (
+    return (
       <div class="docs-nav-group">
         <a
           class="docs-nav-heading"
@@ -40,7 +39,6 @@ const groups = await getDocsNavSections()
           ))}
         </ul>
       </div>
-      )
-    })
-  }
+    )
+  })}
 </nav>

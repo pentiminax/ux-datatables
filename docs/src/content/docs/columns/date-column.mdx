@@ -71,13 +71,10 @@ For anything other than a relative label, attach a renderer through the
 
 ```javascript
 this.element.addEventListener('datatables:pre-connect', (event) => {
-  const createdAtColumn = event.detail.config.columns.find(
-    (column) => column.name === 'createdAt'
-  )
+  const createdAtColumn = event.detail.config.columns.find((column) => column.name === 'createdAt')
 
   if (createdAtColumn) {
-    createdAtColumn.render = (data) =>
-      data ? new Date(data).toLocaleDateString('fr-FR') : ''
+    createdAtColumn.render = (data) => (data ? new Date(data).toLocaleDateString('fr-FR') : '')
   }
 })
 ```
@@ -87,10 +84,19 @@ this.element.addEventListener('datatables:pre-connect', (event) => {
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ["`DateColumn::new(string $name, string $title = '')`", 'Creates a new DateColumn (type: `date`). Default format: `Y-m-d`.'],
+    [
+      "`DateColumn::new(string $name, string $title = '')`",
+      'Creates a new DateColumn (type: `date`). Default format: `Y-m-d`.',
+    ],
     ['`setFormat(?string $format)`', 'Set the expected date format; `null` resets to default'],
-    ['`getFormat()`', 'Returns the active format string, or ISO 8601 while `relative()` is enabled'],
-    ['`relative(bool $relative = true)`', 'Render the cell as a localized relative label in the browser'],
+    [
+      '`getFormat()`',
+      'Returns the active format string, or ISO 8601 while `relative()` is enabled',
+    ],
+    [
+      '`relative(bool $relative = true)`',
+      'Render the cell as a localized relative label in the browser',
+    ],
     ['`isRelative()`', 'Whether relative rendering is enabled'],
   ]}
 />

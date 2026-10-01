@@ -40,9 +40,15 @@ Pass an ISO 4217 code to `currency()` (three letters). When `storedAsCents(true)
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ["`MoneyColumn::new(string $name, string $title = '')`", 'Creates a MoneyColumn (type: `num`, `isMoney: true`)'],
+    [
+      "`MoneyColumn::new(string $name, string $title = '')`",
+      'Creates a MoneyColumn (type: `num`, `isMoney: true`)',
+    ],
     ['`currency(string $currency)`', 'ISO 4217 currency code (default: `EUR`)'],
-    ['`storedAsCents(bool $storedAsCents = true)`', 'Divide by 100 before display when `true` (default)'],
+    [
+      '`storedAsCents(bool $storedAsCents = true)`',
+      'Divide by 100 before display when `true` (default)',
+    ],
     ['`decimals(int $decimals)`', 'Fraction digits for display (0–20, default: `2`)'],
     ['`showCurrencySign(bool $show = true)`', 'Use currency style vs plain decimal formatting'],
   ]}

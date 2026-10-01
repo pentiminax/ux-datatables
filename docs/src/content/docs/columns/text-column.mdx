@@ -46,9 +46,18 @@ TextColumn::new('content', 'Content')
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ["`TextColumn::new(string $name, string $title = '')`", 'Creates a new TextColumn (type: `string`)'],
-    ['`html(bool $html = true)`', 'Renders the cell as HTML (or `html-utf8` with `utf8()`). Skip this on unsanitized user input.'],
-    ['`utf8(bool $utf8 = true)`', 'Switches to `string-utf8` type (or `html-utf8` when combined with `html()`)'],
+    [
+      "`TextColumn::new(string $name, string $title = '')`",
+      'Creates a new TextColumn (type: `string`)',
+    ],
+    [
+      '`html(bool $html = true)`',
+      'Renders the cell as HTML (or `html-utf8` with `utf8()`). Skip this on unsanitized user input.',
+    ],
+    [
+      '`utf8(bool $utf8 = true)`',
+      'Switches to `string-utf8` type (or `html-utf8` when combined with `html()`)',
+    ],
   ]}
 />
 
@@ -82,6 +91,6 @@ final class UsersDataTable extends AbstractDataTable
 ```
 
 <Aside type="caution">
-  Use `html()` only when the cell contains trusted, already-sanitized markup. The default
-  `string` type HTML-escapes display so user-controlled text cannot run as HTML.
+  Use `html()` only when the cell contains trusted, already-sanitized markup. The default `string`
+  type HTML-escapes display so user-controlled text cannot run as HTML.
 </Aside>

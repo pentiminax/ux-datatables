@@ -63,16 +63,16 @@ with a message naming the valid columns instead of silently changing what is ass
 
 Every method returns a new builder, so you can prepare one and branch it per assertion.
 
-| Method | Purpose |
-| --- | --- |
-| `page(int $page)` | 1-indexed page, resolved against the current length |
-| `start(int $start)` / `length(int $length)` | raw DataTables paging values |
-| `draw(int $draw)` | the draw counter, `1` by default |
-| `search(string $value, bool $regex = false)` | global search |
-| `orderBy(string $column, string $direction = 'asc')` | repeatable; takes a column name, not an index |
-| `filter(string $name, mixed $value)` | one value of a configured filter |
-| `columns(array $columns)` | replaces the derived column payload |
-| `query(array $parameters)` | extra query parameters, merged last |
+| Method                                               | Purpose                                             |
+| ---------------------------------------------------- | --------------------------------------------------- |
+| `page(int $page)`                                    | 1-indexed page, resolved against the current length |
+| `start(int $start)` / `length(int $length)`          | raw DataTables paging values                        |
+| `draw(int $draw)`                                    | the draw counter, `1` by default                    |
+| `search(string $value, bool $regex = false)`         | global search                                       |
+| `orderBy(string $column, string $direction = 'asc')` | repeatable; takes a column name, not an index       |
+| `filter(string $name, mixed $value)`                 | one value of a configured filter                    |
+| `columns(array $columns)`                            | replaces the derived column payload                 |
+| `query(array $parameters)`                           | extra query parameters, merged last                 |
 
 ### Reading the response
 
@@ -169,8 +169,8 @@ $this->assertSame(403, $response->getStatusCode());
 
 <Aside type="caution" title="Assert the denial too">
   A table token identifies which table is requested, not who is requesting it. A test that only
-  checks the happy path cannot tell you whether the route is protected — see
-  [Securing Ajax Routes](/getting-started/security/).
+  checks the happy path cannot tell you whether the route is protected — see [Securing Ajax
+  Routes](/getting-started/security/).
 </Aside>
 
 ## Fixtures
@@ -187,10 +187,10 @@ columns, and options leave PHP. Cover the browser side with end-to-end tests ins
 
 ## Common Problems
 
-| Symptom | Cause |
-| --- | --- |
-| `DataTable "…" is not registered.` | The class has no `#[AsDataTable]` attribute and is not registered as a service. |
-| `Unknown column "…". Available columns: …` | `orderBy()` received a column name the table does not declare. |
-| `returned HTTP 302` in a `fetch()` failure | The request was redirected to the login form — authenticate the client first. |
-| `Expected exactly one DataTable in the page, found 2.` | Pass the table class as the second argument to `dataTableView()`. |
-| A client-side assertion sees no rows | The table is server-side; its rows come from the Ajax route, so use `dataTable()`. |
+| Symptom                                                | Cause                                                                              |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `DataTable "…" is not registered.`                     | The class has no `#[AsDataTable]` attribute and is not registered as a service.    |
+| `Unknown column "…". Available columns: …`             | `orderBy()` received a column name the table does not declare.                     |
+| `returned HTTP 302` in a `fetch()` failure             | The request was redirected to the login form — authenticate the client first.      |
+| `Expected exactly one DataTable in the page, found 2.` | Pass the table class as the second argument to `dataTableView()`.                  |
+| A client-side assertion sees no rows                   | The table is server-side; its rows come from the Ajax route, so use `dataTable()`. |
