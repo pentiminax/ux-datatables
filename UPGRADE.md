@@ -5,6 +5,13 @@ current version and the target, oldest first.
 
 ## v1.1 → v1.1.1
 
+### Deprecated frontend feature modules
+
+The filter bar and the bulk action bar each have one install entry point now. Deep imports of
+`dist/functions/filterFeature.js`, `filterLayout.js`, `bulkActionsFeature.js` and
+`bulkActionsLayout.js` keep working but are deprecated and will be removed in v2.0. They are not
+part of the package entry point; the controller wires both bars itself.
+
 ### `TextColumn` HTML-escapes display
 
 DataTables inserts Ajax cell values as HTML. A `TextColumn` without `html()` used to render

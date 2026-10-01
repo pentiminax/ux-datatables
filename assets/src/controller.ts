@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus'
-import { BulkActionBar, hasBulkActions } from './bulk/BulkActionBar.js'
+import { installBulkActionBar } from './bulk/BulkActionBar.js'
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
@@ -19,8 +19,6 @@ import {
     resolveColumnDataKey,
 } from './functions/apiPlatformAdapter.js'
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js'
-import { registerBulkActionsFeature } from './functions/bulkActionsFeature.js'
-import { applyBulkActionsLayout } from './functions/bulkActionsLayout.js'
 import { normalizeDisabledColumnControls } from './functions/columnControl.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
@@ -28,9 +26,7 @@ import { detectTheme } from './functions/detectTheme.js'
 import { ExtensionRegistry } from './functions/extensionRegistry.js'
 import { fetchDetailRow } from './functions/fetchDetailRow.js'
 import { fetchEditForm } from './functions/fetchEditForm.js'
-import { registerFilterFeature } from './functions/filterFeature.js'
-import { applyFilterLayout } from './functions/filterLayout.js'
-import { FilterBar, hasFilters } from './functions/filters.js'
+import { installFilterBar } from './functions/filters.js'
 import { isHighlightEnabled, type UpdateHighlighter } from './functions/highlightUpdates.js'
 import { isDataTableClone } from './functions/isDataTableClone.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
@@ -40,7 +36,7 @@ import {
     hasLucideIconsInActions,
     loadLucideIcons,
 } from './functions/lucideIcons.js'
-import { installRequestParams } from './functions/requestParams.js'
+import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
 import { submitEditForm } from './functions/submitEditForm.js'
@@ -168,8 +164,6 @@ export default class extends Controller {
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)
-        registerFilterFeature(DataTable)
-        registerBulkActionsFeature(DataTable)
 
         if (this.adoptLiveTable(DataTable)) {
             return
@@ -204,52 +198,24 @@ export default class extends Controller {
             applyUrlStateToPayload(payload, readUrlState(urlStateCfg))
         }
 
-        const filterBar = hasFilters(payload) ? new FilterBar(payload, framework) : null
+        let requestParams: RequestParamsHandle | null = null
+        const filterBar = installFilterBar(payload, DataTable, framework)
+        const bulkBar = installBulkActionBar(
+            payload,
+            DataTable,
+            framework,
+            (name, detail) => this.dispatchEvent(name, detail),
+            () => requestParams?.current() ?? {}
+        )
+
         // Tables with none of these keep DataTables' own `ajax.data` handling untouched.
-        const requestParams =
-            filterBar || apiPlatformAdapter || hasBulkActions(payload)
-                ? installRequestParams(payload, {
-                      filters: filterBar ? () => filterBar.collectValues() : undefined,
-                      transport: apiPlatformAdapter
-                          ? (params) => apiPlatformAdapter.toRequestParams(params)
-                          : undefined,
-                  })
-                : null
-
-        if (filterBar) {
-            applyFilterLayout(payload, filterBar)
-
-            if (payload.stateSave) {
-                const originalStateSaveParams = payload.stateSaveParams
-                payload.stateSaveParams = (settings: any, data: any) => {
-                    if (typeof originalStateSaveParams === 'function') {
-                        originalStateSaveParams(settings, data)
-                    }
-                    if (filterBar) {
-                        data.uxFilters = filterBar.collectValues()
-                    }
-                }
-
-                const originalStateLoaded = payload.stateLoaded
-                payload.stateLoaded = (settings: any, data: any) => {
-                    if (typeof originalStateLoaded === 'function') {
-                        originalStateLoaded(settings, data)
-                    }
-                    if (data?.uxFilters && filterBar) {
-                        filterBar.restoreValues(data.uxFilters)
-                    }
-                }
-            }
-        }
-
-        if (hasBulkActions(payload)) {
-            const bulkBar = new BulkActionBar(
-                payload,
-                framework,
-                (name, detail) => this.dispatchEvent(name, detail),
-                () => requestParams?.current() ?? {}
-            )
-            applyBulkActionsLayout(payload, bulkBar, payload.bulkActions?.position)
+        if (filterBar || bulkBar || apiPlatformAdapter) {
+            requestParams = installRequestParams(payload, {
+                filters: filterBar ? () => filterBar.collectValues() : undefined,
+                transport: apiPlatformAdapter
+                    ? (params) => apiPlatformAdapter.toRequestParams(params)
+                    : undefined,
+            })
         }
 
         await applyLocalLanguage(payload)
