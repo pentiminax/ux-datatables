@@ -57,8 +57,8 @@ class OrderTable extends AbstractDataTable
     <div class="hero-copy">
       <h1>Declare the table. Ship the grid.</h1>
       <p class="hero-lede">
-        UX DataTables wires <a href="https://datatables.net">DataTables.net</a> into Symfony. Columns,
-        filters, and row actions are declared in a PHP class; the bundle ships the Stimulus
+        UX DataTables wires <a href="https://datatables.net">DataTables.net</a> into Symfony.
+        Columns, filters, and row actions are declared in a PHP class; the bundle ships the Stimulus
         controller, the Ajax endpoints, and the Twig function that renders them.
       </p>
 
@@ -85,27 +85,27 @@ class OrderTable extends AbstractDataTable
           <tr>
             <th scope="col">Reference</th>
             <th scope="col">Customer</th>
-            <th scope="col" class="mock-numeric">Total</th>
+            <th scope="col" class="mock-numeric">
+              Total
+            </th>
             <th scope="col">Status</th>
           </tr>
         </thead>
         <tbody>
-          {
-            orders.map((order) => (
-              <tr>
-                <th scope="row">{order.reference}</th>
-                <td>{order.customer}</td>
-                <td class="mock-numeric" data-value={order.total}>
-                  {money.format(order.total)}
-                </td>
-                <td>
-                  <span class:list={['mock-status', `mock-status-${order.status.toLowerCase()}`]}>
-                    {order.status}
-                  </span>
-                </td>
-              </tr>
-            ))
-          }
+          {orders.map((order) => (
+            <tr>
+              <th scope="row">{order.reference}</th>
+              <td>{order.customer}</td>
+              <td class="mock-numeric" data-value={order.total}>
+                {money.format(order.total)}
+              </td>
+              <td>
+                <span class:list={['mock-status', `mock-status-${order.status.toLowerCase()}`]}>
+                  {order.status}
+                </span>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
       <figcaption>Four columns, four types. The header is the only control you need.</figcaption>
@@ -115,18 +115,16 @@ class OrderTable extends AbstractDataTable
   <section class="home-section" aria-labelledby="modes-heading">
     <h2 id="modes-heading">Where the rows come from</h2>
     <div class="mode-cards">
-      {
-        modes.map((mode) => (
-          <a class="mode-card" href={mode.href}>
-            <h3>{mode.name}</h3>
-            <p>{mode.description}</p>
-            <span class="mode-card-cue">
-              Read the guide
-              <Icon name="arrow-right" size={15} />
-            </span>
-          </a>
-        ))
-      }
+      {modes.map((mode) => (
+        <a class="mode-card" href={mode.href}>
+          <h3>{mode.name}</h3>
+          <p>{mode.description}</p>
+          <span class="mode-card-cue">
+            Read the guide
+            <Icon name="arrow-right" size={15} />
+          </span>
+        </a>
+      ))}
     </div>
   </section>
 
@@ -140,11 +138,10 @@ class OrderTable extends AbstractDataTable
           and the same declaration drives the Doctrine query behind server-side processing.
         </p>
         <p>
-          Thirteen column types ship with the bundle, from <a href={withBase('columns/text-column/')}
-            >Text</a
-          > to <a href={withBase('columns/action-column/')}>Action</a>. The <a
-            href={withBase('columns/overview/')}>columns overview</a
-          > compares them side by side.
+          Thirteen column types ship with the bundle, from{' '}
+          <a href={withBase('columns/text-column/')}>Text</a> to{' '}
+          <a href={withBase('columns/action-column/')}>Action</a>. The{' '}
+          <a href={withBase('columns/overview/')}>columns overview</a> compares them side by side.
         </p>
       </div>
       <pre><code>{tableClass}</code></pre>
@@ -154,24 +151,22 @@ class OrderTable extends AbstractDataTable
   <section class="home-section" aria-labelledby="docs-heading">
     <h2 id="docs-heading">Find your way in</h2>
     <div class="home-sections">
-      {
-        groups.map((group) => (
-          <div class="home-section-card">
-            <a class="home-section-title" href={withBase(`${group.section.id}/`)}>
-              {group.section.title}
-              <Icon name="arrow-right" size={16} />
-            </a>
-            <p>{group.section.description}</p>
-            <ul>
-              {group.items.slice(0, 4).map((item) => (
-                <li>
-                  <a href={withBase(`${item.slug}/`)}>{item.navTitle}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))
-      }
+      {groups.map((group) => (
+        <div class="home-section-card">
+          <a class="home-section-title" href={withBase(`${group.section.id}/`)}>
+            {group.section.title}
+            <Icon name="arrow-right" size={16} />
+          </a>
+          <p>{group.section.description}</p>
+          <ul>
+            {group.items.slice(0, 4).map((item) => (
+              <li>
+                <a href={withBase(`${item.slug}/`)}>{item.navTitle}</a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   </section>
 

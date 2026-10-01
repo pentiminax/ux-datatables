@@ -85,11 +85,11 @@ Notes:
 - Ordering and column search are matched by column name, so a column inserted by the client (the Select extension in `checkbox` mode) does not shift the fields sent to the API.
 - Filter bar values are flattened into API Platform's own query shape, so each filter needs a matching API Platform filter on the resource:
 
-  | Filter type | Query parameters |
-  | --- | --- |
-  | `text`, `select`, `ternary`, `checkbox` | `?name=value` |
-  | `select` with `multiple()` | `?name[0]=value&name[1]=value` |
-  | `dateRange` | `?name[after]=YYYY-MM-DD&name[before]=YYYY-MM-DD` |
+  | Filter type                             | Query parameters                                  |
+  | --------------------------------------- | ------------------------------------------------- |
+  | `text`, `select`, `ternary`, `checkbox` | `?name=value`                                     |
+  | `select` with `multiple()`              | `?name[0]=value&name[1]=value`                    |
+  | `dateRange`                             | `?name[after]=YYYY-MM-DD&name[before]=YYYY-MM-DD` |
 
 ## Reading the collection server-side
 
@@ -140,8 +140,8 @@ final class User
 
 <Aside type="caution" title="Secure the bundle's Ajax routes too">
   The table token in the rendered HTML says which table is requested, not who is requesting it.
-  Protect `/datatables/ajax/*` with your own `access_control` rule — see
-  [Securing Ajax Routes](/getting-started/security/).
+  Protect `/datatables/ajax/*` with your own `access_control` rule — see [Securing Ajax
+  Routes](/getting-started/security/).
 </Aside>
 
 <Aside type="note" title="Column values are read from the entity">

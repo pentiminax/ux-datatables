@@ -39,33 +39,29 @@ const { section, items } = group
       </header>
 
       <ol class="section-index">
-        {
-          items.map((item, position) => (
-            <li>
-              <a href={withBase(`${item.slug}/`)}>
-                <span class="section-index-rank">{String(position + 1).padStart(2, '0')}</span>
-                <span class="section-index-body">
-                  <span class="section-index-title">{item.title}</span>
-                  <span class="section-index-description">{item.description}</span>
-                </span>
-                <Icon name="arrow-right" size={18} class="section-index-arrow" />
-              </a>
-            </li>
-          ))
-        }
+        {items.map((item, position) => (
+          <li>
+            <a href={withBase(`${item.slug}/`)}>
+              <span class="section-index-rank">{String(position + 1).padStart(2, '0')}</span>
+              <span class="section-index-body">
+                <span class="section-index-title">{item.title}</span>
+                <span class="section-index-description">{item.description}</span>
+              </span>
+              <Icon name="arrow-right" size={18} class="section-index-arrow" />
+            </a>
+          </li>
+        ))}
       </ol>
 
       <nav class="section-jump" aria-label="Other sections">
-        {
-          sections
-            .filter((other) => other.id !== section.id)
-            .map((other) => (
-              <a href={withBase(`${other.id}/`)}>
-                <span class="section-jump-title">{other.title}</span>
-                <span class="section-jump-description">{other.description}</span>
-              </a>
-            ))
-        }
+        {sections
+          .filter((other) => other.id !== section.id)
+          .map((other) => (
+            <a href={withBase(`${other.id}/`)}>
+              <span class="section-jump-title">{other.title}</span>
+              <span class="section-jump-description">{other.description}</span>
+            </a>
+          ))}
       </nav>
     </article>
   </div>

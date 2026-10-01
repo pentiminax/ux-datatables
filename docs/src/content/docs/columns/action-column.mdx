@@ -73,10 +73,22 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ["``Action::delete($label = 'Delete', $className = 'btn btn-danger')``", 'Create the built-in delete action'],
-    ["``Action::detail($label = 'Detail', $className = 'btn btn-primary')``", 'Create a link action to a detail page'],
-    ["``Action::edit($label = 'Edit', $className = 'btn btn-warning')``", 'Create an inline edit action (opens the configured edit modal)'],
-    ["``Action::new($name, $label = '', $className = '')``", 'Create a custom link action identified by a unique `$name`. Several custom actions coexist as long as their names differ. Provide the destination with `linkToUrl()`'],
+    [
+      "``Action::delete($label = 'Delete', $className = 'btn btn-danger')``",
+      'Create the built-in delete action',
+    ],
+    [
+      "``Action::detail($label = 'Detail', $className = 'btn btn-primary')``",
+      'Create a link action to a detail page',
+    ],
+    [
+      "``Action::edit($label = 'Edit', $className = 'btn btn-warning')``",
+      'Create an inline edit action (opens the configured edit modal)',
+    ],
+    [
+      "``Action::new($name, $label = '', $className = '')``",
+      'Create a custom link action identified by a unique `$name`. Several custom actions coexist as long as their names differ. Provide the destination with `linkToUrl()`',
+    ],
   ]}
 />
 
@@ -88,19 +100,52 @@ When `configureActions()` returns at least one action, `AbstractDataTable` autom
     ['`label(string $label)`', 'Override the button label'],
     ['`setClassName(string $className)`', 'Customize button classes'],
     ['`icon(string|Icon $icon)`', 'Render a CSS-class icon or a Lucide icon before the label'],
-    ['`htmlAttributes(array $htmlAttributes)`', 'Set extra HTML attributes on the rendered action button/link'],
-    ['`askConfirmation(string $message)`', 'Display a browser confirmation prompt before the action'],
-    ['`displayIf(string $field, mixed $value)`', 'Show the action only when `row[field] === value`'],
+    [
+      '`htmlAttributes(array $htmlAttributes)`',
+      'Set extra HTML attributes on the rendered action button/link',
+    ],
+    [
+      '`askConfirmation(string $message)`',
+      'Display a browser confirmation prompt before the action',
+    ],
+    [
+      '`displayIf(string $field, mixed $value)`',
+      'Show the action only when `row[field] === value`',
+    ],
     ['`setIdField(string $idField)`', 'Use another row key instead of `id`'],
     ['`setEntityClass(string $entityClass)`', 'Set the Doctrine entity class explicitly'],
-    ['`linkToUrl(string|callable $url)`', 'Set the URL for detail actions (static string or per-row callable)'],
-    ['`linkToRoute(string $routeName, array|callable|null $params = null)`', 'Target a Symfony route generated per row (static parameters array, or a callable receiving the raw row). Mutually exclusive with `linkToUrl()`: the last call wins'],
-    ['`csrfToken(string|callable $csrfTokenId)`', 'Define a custom CSRF token id (static string or per-row callable). Alias: `csrfTokenId()`'],
-    ["`asAjaxRequest(string|callable|null $csrfTokenId = null, string $method = 'POST')`", 'Send the action as a same-origin Ajax request instead of navigating. `$method` accepts `POST` or `DELETE`. The CSRF token id defaults to the action name or the one set via `csrfToken()`. Its value is posted as `_token`. See [Ajax Actions](#ajax-actions)'],
-    ['`collapsible(string $template, array $parameters = [])`', 'Render a `detail` action as an expand/collapse control that lazily loads a Twig child row (the template receives the row as `entity`, plus any extra `$parameters`). Only meaningful for `Action::detail()`'],
-    ['`setPermission(string|Expression $attribute, ?callable $subjectResolver = null)`', 'Restrict the action with a Symfony security attribute (role/voter/expression). Without a resolver it is evaluated once before serialization; with a resolver it is evaluated per row (the resolver receives the raw source row). Denied actions are removed and never serialized to the client, unless the action opts into `disabledWhenDenied()`'],
-    ['`disabledWhenDenied(bool $disabled = true)`', 'Render the action as a disabled button instead of hiding it when its permission is denied. The disabled control carries no URL, CSRF token, or row id. See [Disabling denied actions](#disabling-denied-actions)'],
-    ['`position(?ActionsPosition $position)`', 'Override the column placement for this action only (`null` inherits the `Actions` collection position). See [Column Position & Alignment](#column-position--alignment)'],
+    [
+      '`linkToUrl(string|callable $url)`',
+      'Set the URL for detail actions (static string or per-row callable)',
+    ],
+    [
+      '`linkToRoute(string $routeName, array|callable|null $params = null)`',
+      'Target a Symfony route generated per row (static parameters array, or a callable receiving the raw row). Mutually exclusive with `linkToUrl()`: the last call wins',
+    ],
+    [
+      '`csrfToken(string|callable $csrfTokenId)`',
+      'Define a custom CSRF token id (static string or per-row callable). Alias: `csrfTokenId()`',
+    ],
+    [
+      "`asAjaxRequest(string|callable|null $csrfTokenId = null, string $method = 'POST')`",
+      'Send the action as a same-origin Ajax request instead of navigating. `$method` accepts `POST` or `DELETE`. The CSRF token id defaults to the action name or the one set via `csrfToken()`. Its value is posted as `_token`. See [Ajax Actions](#ajax-actions)',
+    ],
+    [
+      '`collapsible(string $template, array $parameters = [])`',
+      'Render a `detail` action as an expand/collapse control that lazily loads a Twig child row (the template receives the row as `entity`, plus any extra `$parameters`). Only meaningful for `Action::detail()`',
+    ],
+    [
+      '`setPermission(string|Expression $attribute, ?callable $subjectResolver = null)`',
+      'Restrict the action with a Symfony security attribute (role/voter/expression). Without a resolver it is evaluated once before serialization; with a resolver it is evaluated per row (the resolver receives the raw source row). Denied actions are removed and never serialized to the client, unless the action opts into `disabledWhenDenied()`',
+    ],
+    [
+      '`disabledWhenDenied(bool $disabled = true)`',
+      'Render the action as a disabled button instead of hiding it when its permission is denied. The disabled control carries no URL, CSRF token, or row id. See [Disabling denied actions](#disabling-denied-actions)',
+    ],
+    [
+      '`position(?ActionsPosition $position)`',
+      'Override the column placement for this action only (`null` inherits the `Actions` collection position). See [Column Position & Alignment](#column-position--alignment)',
+    ],
   ]}
 />
 
@@ -216,9 +261,9 @@ public function configureActions(Actions $actions): Actions
 ```
 
 <Aside type="note">
-  Custom actions are pure links: they resolve a URL per row and are **not** wired to any
-  built-in Stimulus handler (no delete/edit/collapse behavior). The unique `$name` is what keeps
-  them from colliding both in the `Actions` collection and in the per-row URL metadata.
+  Custom actions are pure links: they resolve a URL per row and are **not** wired to any built-in
+  Stimulus handler (no delete/edit/collapse behavior). The unique `$name` is what keeps them from
+  colliding both in the `Actions` collection and in the per-row URL metadata.
 </Aside>
 
 ### Ajax Actions
@@ -272,8 +317,8 @@ A failed request dispatches `datatables:action:error` and re-enables the button.
 <Aside type="caution">
   `setPermission()` only decides whether the button is rendered. It replaces neither `#[IsGranted]`
   nor `#[IsCsrfTokenValid]` on the endpoint — the route stays the security boundary. Ajax actions
-  are refused when their URL is not same-origin, and are not rendered at all when no CSRF token
-  can be issued (no session, no token manager).
+  are refused when their URL is not same-origin, and are not rendered at all when no CSRF token can
+  be issued (no session, no token manager).
 </Aside>
 
 Direct API Platform endpoints and custom controllers keep their own authorization and CSRF checks.
@@ -288,8 +333,14 @@ rows returned directly by API Platform or another controller.
     ['`add(Action $action)`', 'Register an action for the column'],
     ['`remove(ActionType $type)`', 'Remove a previously registered action'],
     ['`setColumnLabel(string $label)`', 'Customize the action column header'],
-    ['`position(ActionsPosition $position)`', 'Place the actions column before or after the data columns (default: `AfterColumns`)'],
-    ['`alignment(ActionsAlignment $alignment)`', 'Horizontally align the action cell. See [Column Position & Alignment](#column-position--alignment)'],
+    [
+      '`position(ActionsPosition $position)`',
+      'Place the actions column before or after the data columns (default: `AfterColumns`)',
+    ],
+    [
+      '`alignment(ActionsAlignment $alignment)`',
+      'Horizontally align the action cell. See [Column Position & Alignment](#column-position--alignment)',
+    ],
   ]}
 />
 
@@ -365,8 +416,8 @@ ActionsAlignment::Right;  // value: right
 ```
 
 <Aside type="caution">
-  The PHP method is literally named `alignment(...)` (missing the second `n`). This is the
-  exact method name in the source — use it verbatim so copy-paste works.
+  The PHP method is literally named `alignment(...)` (missing the second `n`). This is the exact
+  method name in the source — use it verbatim so copy-paste works.
 </Aside>
 
 ### Per-action position
@@ -484,11 +535,10 @@ row, even if the table's provider hydrates arrays elsewhere — see
 static permission is evaluated as-is. An action the user cannot see is an action they cannot fetch.
 
 <Aside type="note">
-  The endpoint needs Twig, a table that declares an entity class, and exactly one collapsible
-  detail action to resolve; it answers `400` when Twig is unavailable, `403` when the collapsible
-  detail action is missing or permission denies, and `404` when the entity no longer exists. Like
-  every bundle Ajax route, it must still be
-  protected by your own `security.firewalls` configuration — see
+  The endpoint needs Twig, a table that declares an entity class, and exactly one collapsible detail
+  action to resolve; it answers `400` when Twig is unavailable, `403` when the collapsible detail
+  action is missing or permission denies, and `404` when the entity no longer exists. Like every
+  bundle Ajax route, it must still be protected by your own `security.firewalls` configuration — see
   [Securing Ajax Routes](/ux-datatables/getting-started/security/).
 </Aside>
 

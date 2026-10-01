@@ -213,9 +213,9 @@ What this means for a search term:
 - Hyphens are required in UUIDs: `018f2c3e12347abc9def0123456789ab` is not recognized.
 
 <Aside type="caution">
-On MySQL and SQLite, where UUIDs are usually stored as text, partial search on these columns is not
-supported. Add a searchable text column (a slug, a reference number, or a `string` copy of the
-identifier) when users need partial matching.
+  On MySQL and SQLite, where UUIDs are usually stored as text, partial search on these columns is
+  not supported. Add a searchable text column (a slug, a reference number, or a `string` copy of the
+  identifier) when users need partial matching.
 </Aside>
 
 ## Sorting Computed Columns
@@ -264,10 +264,10 @@ to-many relation inflates the counts (cartesian product) and changes pagination.
 keeps one row per root entity, so `LIMIT`/`OFFSET` paginate correctly.
 
 <Aside type="note">
-`setOrderExpression()` only affects ordering. Search resolves the column's field independently —
-see [Searching computed and virtual columns](#searching-computed-and-virtual-columns) below for
-pointing it somewhere valid, or disable it with `setSearchable(false)` and
-`disableGlobalSearch()`.
+  `setOrderExpression()` only affects ordering. Search resolves the column's field independently —
+  see [Searching computed and virtual columns](#searching-computed-and-virtual-columns) below for
+  pointing it somewhere valid, or disable it with `setSearchable(false)` and
+  `disableGlobalSearch()`.
 </Aside>
 
 The count query the provider builds for `recordsFiltered` resets the `SELECT` and `ORDER BY` parts,

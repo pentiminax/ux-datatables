@@ -68,7 +68,7 @@ the Doctrine provider ignores values for unconfigured names.
     ['Pagination', 'Honored. Only the returned page reaches the row mapper.'],
     [
       'Ordering',
-      'Honored, by the column\'s source value. `getOrderExpression()` is DQL and is ignored here. Strings compare with `strnatcasecmp()`, other values with `<=>`, and rows without a value sort last in both directions.',
+      "Honored, by the column's source value. `getOrderExpression()` is DQL and is ignored here. Strings compare with `strnatcasecmp()`, other values with `<=>`, and rows without a value sort last in both directions.",
     ],
     [
       'Global search',
@@ -76,7 +76,10 @@ the Doctrine provider ignores values for unconfigured names.
     ],
     ['Per-column search', 'Honored, cumulatively: a row must match every active column search.'],
     ['ColumnControl searches', 'Not supported — throws a `LogicException`.'],
-    ['Configured `Filters`', 'Not supported — a value for a configured filter throws a `LogicException`.'],
+    [
+      'Configured `Filters`',
+      'Not supported — a value for a configured filter throws a `LogicException`.',
+    ],
   ]}
 />
 
@@ -106,7 +109,10 @@ Built-in mappers and processors:
   headers={['Mapper', 'Use case']}
   rows={[
     ['`DefaultRowMapper`', 'Default row-to-array mapping behavior'],
-    ['`RowProcessingPipeline`', 'The pipeline `AbstractDataTable` builds: stages, then URL, template, and action resolution'],
+    [
+      '`RowProcessingPipeline`',
+      'The pipeline `AbstractDataTable` builds: stages, then URL, template, and action resolution',
+    ],
   ]}
 />
 
@@ -126,7 +132,10 @@ Built-in stages applied by default (in order):
 <Table
   headers={['Stage', 'Responsibility']}
   rows={[
-    ['`NormalizationStage`', 'Dotted-path resolution, `DateColumn` formatting, `Stringable` casting'],
+    [
+      '`NormalizationStage`',
+      'Dotted-path resolution, `DateColumn` formatting, `Stringable` casting',
+    ],
     [
       '`IconColumnResolutionStage`',
       'Resolves each `IconColumn` state into row icon metadata (`__ux_datatables_icons`)',
@@ -160,7 +169,7 @@ protected function mapRow(mixed $row): array
 }
 ```
 
-To act *after* the pipeline instead — once template columns and action URLs are already resolved —
+To act _after_ the pipeline instead — once template columns and action URLs are already resolved —
 wrap the built mapper in a `RowMapperInterface` of your own and hand that to a provider built in
 `createDataProvider()`. An anonymous class delegating to `createRowMapper()` is enough; it is also
 the replacement for the closure-backed mapper the bundle used to ship:

@@ -36,7 +36,7 @@ Two consequences shape every implementation:
   Buffering it into an array defeats the point of the export.
 - **Nothing recoverable may throw.** Once headers are sent, an exception can no longer become an
   error page — the client gets a truncated file. Everything checkable belongs in `isAvailable()`,
-  which `ExporterRegistry` consults *before* the response is built, so a missing optional
+  which `ExporterRegistry` consults _before_ the response is built, so a missing optional
   dependency surfaces as a clean `400` instead of a broken download.
 
 <Aside type="caution">
@@ -54,14 +54,14 @@ writes each row, calls `configureSheet()` once while the sheet is still open, an
 buffer every 500 rows. A concrete exporter supplies only `format()`, `isAvailable()`, and
 `createWriter()`.
 
-| Method to override                        | Purpose                                                          |
-| ----------------------------------------- | ---------------------------------------------------------------- |
-| `format()`                                | The `ExportFormat` case this exporter handles                     |
-| `isAvailable()`                           | Whether the writer library is installed                           |
-| `createWriter()`                          | The OpenSpout `WriterInterface` to write with                      |
-| `headings(array $columns)`                | Header labels (defaults to column titles, falling back to names)  |
-| `cellValue(ColumnInterface, array $row)`  | One cell's scalar value                                            |
-| `configureSheet(WriterInterface, array)`  | Post-write sheet configuration (XLSX uses it for freeze/filter)   |
+| Method to override                       | Purpose                                                          |
+| ---------------------------------------- | ---------------------------------------------------------------- |
+| `format()`                               | The `ExportFormat` case this exporter handles                    |
+| `isAvailable()`                          | Whether the writer library is installed                          |
+| `createWriter()`                         | The OpenSpout `WriterInterface` to write with                    |
+| `headings(array $columns)`               | Header labels (defaults to column titles, falling back to names) |
+| `cellValue(ColumnInterface, array $row)` | One cell's scalar value                                          |
+| `configureSheet(WriterInterface, array)` | Post-write sheet configuration (XLSX uses it for freeze/filter)  |
 
 Two behaviors are worth keeping when you override `cellValue()`:
 
@@ -78,12 +78,12 @@ Two behaviors are worth keeping when you override `cellValue()`:
 
 ## How the pieces fit
 
-| Class                                | Responsibility                                                                                     |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `ExporterRegistry`                   | Indexes exporters by `format()->value`; throws a `BadRequestHttpException` for an unknown or unavailable format |
-| `ExportService`                      | Resolves the button, format, exporter, exportable columns, row iterator, and filename — everything that can fail — *before* returning the response |
-| `ExportStream`                       | The response body, as a named invokable calling `$exporter->write()`                                 |
-| `StreamingDataProviderInterface`     | Optional provider capability: stream rows without pagination or a `COUNT`                            |
+| Class                            | Responsibility                                                                                                                                     |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ExporterRegistry`               | Indexes exporters by `format()->value`; throws a `BadRequestHttpException` for an unknown or unavailable format                                    |
+| `ExportService`                  | Resolves the button, format, exporter, exportable columns, row iterator, and filename — everything that can fail — _before_ returning the response |
+| `ExportStream`                   | The response body, as a named invokable calling `$exporter->write()`                                                                               |
+| `StreamingDataProviderInterface` | Optional provider capability: stream rows without pagination or a `COUNT`                                                                          |
 
 `ExportService` resolves the row iterator from the table's data provider with pagination removed. A
 provider implementing `StreamingDataProviderInterface` is asked for `iterateRows()`; anything else
