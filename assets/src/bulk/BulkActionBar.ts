@@ -426,7 +426,7 @@ export class BulkActionBar {
 
 const registeredOn = new WeakSet<object>()
 
-function registerBulkActionsFeature(DataTable: any): void {
+export function registerBulkActionsFeature(DataTable: any): void {
     if (registeredOn.has(DataTable)) {
         return
     }
