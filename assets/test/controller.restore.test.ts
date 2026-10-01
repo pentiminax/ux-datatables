@@ -10,10 +10,6 @@ vi.mock('../src/functions/detectStyleFramework.js', () => ({
     detectStyleFramework: () => 'dt',
 }))
 
-vi.mock('../src/functions/bulkActionsFeature.js', () => ({
-    registerBulkActionsFeature: vi.fn(),
-}))
-
 import DatatableController from '../src/controller.js'
 
 // A browser history restore can hand back the markup DataTables generated on the previous

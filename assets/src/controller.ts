@@ -1,5 +1,5 @@
 import { Controller } from '@hotwired/stimulus'
-import { BulkActionBar, hasBulkActions } from './bulk/BulkActionBar.js'
+import { installBulkActionBar } from './bulk/BulkActionBar.js'
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
@@ -19,8 +19,6 @@ import {
     resolveColumnDataKey,
 } from './functions/apiPlatformAdapter.js'
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js'
-import { registerBulkActionsFeature } from './functions/bulkActionsFeature.js'
-import { applyBulkActionsLayout } from './functions/bulkActionsLayout.js'
 import { normalizeDisabledColumnControls } from './functions/columnControl.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
@@ -38,7 +36,7 @@ import {
     hasLucideIconsInActions,
     loadLucideIcons,
 } from './functions/lucideIcons.js'
-import { installRequestParams } from './functions/requestParams.js'
+import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
 import { submitEditForm } from './functions/submitEditForm.js'
@@ -166,7 +164,6 @@ export default class extends Controller {
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)
-        registerBulkActionsFeature(DataTable)
 
         if (this.adoptLiveTable(DataTable)) {
             return
@@ -201,26 +198,24 @@ export default class extends Controller {
             applyUrlStateToPayload(payload, readUrlState(urlStateCfg))
         }
 
+        let requestParams: RequestParamsHandle | null = null
         const filterBar = installFilterBar(payload, DataTable, framework)
-        // Tables with none of these keep DataTables' own `ajax.data` handling untouched.
-        const requestParams =
-            filterBar || apiPlatformAdapter || hasBulkActions(payload)
-                ? installRequestParams(payload, {
-                      filters: filterBar ? () => filterBar.collectValues() : undefined,
-                      transport: apiPlatformAdapter
-                          ? (params) => apiPlatformAdapter.toRequestParams(params)
-                          : undefined,
-                  })
-                : null
+        const bulkBar = installBulkActionBar(
+            payload,
+            DataTable,
+            framework,
+            (name, detail) => this.dispatchEvent(name, detail),
+            () => requestParams?.current() ?? {}
+        )
 
-        if (hasBulkActions(payload)) {
-            const bulkBar = new BulkActionBar(
-                payload,
-                framework,
-                (name, detail) => this.dispatchEvent(name, detail),
-                () => requestParams?.current() ?? {}
-            )
-            applyBulkActionsLayout(payload, bulkBar, payload.bulkActions?.position)
+        // Tables with none of these keep DataTables' own `ajax.data` handling untouched.
+        if (filterBar || bulkBar || apiPlatformAdapter) {
+            requestParams = installRequestParams(payload, {
+                filters: filterBar ? () => filterBar.collectValues() : undefined,
+                transport: apiPlatformAdapter
+                    ? (params) => apiPlatformAdapter.toRequestParams(params)
+                    : undefined,
+            })
         }
 
         await applyLocalLanguage(payload)
