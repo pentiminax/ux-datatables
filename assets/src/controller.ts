@@ -171,13 +171,7 @@ export default class extends Controller {
         registerFilterFeature(DataTable)
         registerBulkActionsFeature(DataTable)
 
-        if (DataTable.isDataTable(this.element)) {
-            this.isDataTableInitialized = true
-            // Stimulus builds a fresh controller instance when DataTables reparents the table, so
-            // adopt the live instance instead of leaving this controller without a handle.
-            this.table = new DataTable.Api(this.element) as DataTableWithAjax
-            this.dispatchEvent('reconnect', { table: this.table })
-
+        if (this.adoptLiveTable(DataTable)) {
             return
         }
 
@@ -263,6 +257,13 @@ export default class extends Controller {
         applyServerExportUrls(payload)
         applyCustomButtonActions(payload)
 
+        // A concurrent connect may have built the table while this one awaited: a detach + reattach
+        // re-enters connect on the same instance, and a second Stimulus application runs its own
+        // controller on the same node. Nothing is awaited between this check and the constructor.
+        if (this.adoptLiveTable(DataTable)) {
+            return
+        }
+
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
 
         const themedContainer = (this.element as HTMLElement).closest('.dt-container')
@@ -299,6 +300,22 @@ export default class extends Controller {
             window.removeEventListener('popstate', this.popstateHandler)
             this.popstateHandler = null
         }
+    }
+
+    /**
+     * Binds this controller to a DataTable that already lives on the element instead of letting
+     * `new DataTable()` fail with "Cannot reinitialise DataTable".
+     */
+    private adoptLiveTable(DataTable: any): boolean {
+        if (!DataTable.isDataTable(this.element)) {
+            return false
+        }
+
+        this.isDataTableInitialized = true
+        this.table = new DataTable.Api(this.element) as DataTableWithAjax
+        this.dispatchEvent('reconnect', { table: this.table })
+
+        return true
     }
 
     private applyUrlStateToTable(cfg: UrlStateConfig): void {
