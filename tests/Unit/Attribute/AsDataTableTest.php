@@ -158,6 +158,16 @@ final class AsDataTableTest extends TestCase
         $this->assertNull($table->getDataTable()->getOption('ajax'));
     }
 
+    #[Test]
+    public function it_does_nothing_without_resolver(): void
+    {
+        $table = new TestDataTableWithAttribute();
+
+        $table->prepareForRendering();
+
+        $this->assertNull($table->getDataTable()->getOption('ajax'));
+    }
+
     /**
      * @param class-string<AbstractDataTable> $tableClass
      * @param string[]                        $topics
