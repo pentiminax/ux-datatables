@@ -56,7 +56,10 @@ new DataTable(
       'Sync selected DataTables state keys to the page URL query string',
     ],
     ['`serverSide(bool $serverSide = true)`', 'Enable server-side processing mode'],
-    ['`apiPlatform(bool $enabled = true)`', 'Opt-in to API Platform integration: column auto-detection and collection URL resolution'],
+    [
+      '`apiPlatform(bool $enabled = true)`',
+      'Opt-in to API Platform integration: column auto-detection and collection URL resolution',
+    ],
     [
       '`mercure(array $topics = [], bool $withCredentials = false, ?int $debounceMs = null)`',
       'Enable Mercure live updates with one or many topics',
@@ -83,7 +86,10 @@ new DataTable(
     ['`processing(bool $processing = true)`', 'Toggle processing indicator'],
     ['`searching(bool $searching = true)`', 'Toggle global search'],
     ['`stateSave(bool $stateSave = true)`', 'Persist table state in browser'],
-    ['`setPermission(string|Expression $attribute)`', 'Restrict table rendering and bundle Ajax access with a Symfony security attribute or expression'],
+    [
+      '`setPermission(string|Expression $attribute)`',
+      'Restrict table rendering and bundle Ajax access with a Symfony security attribute or expression',
+    ],
   ]}
 />
 
@@ -92,10 +98,7 @@ new DataTable(
 <Table
   headers={['Method', 'Description']}
   rows={[
-    [
-      '`layout(array $layout)`',
-      'Position DataTables UI blocks',
-    ],
+    ['`layout(array $layout)`', 'Position DataTables UI blocks'],
     ['`caption(string $caption)`', 'Set the table caption text'],
     ['`displayStart(int $displayStart)`', 'Set initial row offset'],
     ['`lengthMenu(array $lengthMenu)`', 'Configure available page sizes'],
@@ -109,7 +112,10 @@ new DataTable(
   headers={['Method', 'Description']}
   rows={[
     ['`editModalTemplate(string $template)`', 'Twig template used for the inline edit modal'],
-    ['`editModalAdapter(string $adapter)`', 'Modal adapter name (`dt`, `bs`, `bs4`, `bs5`, or a name registered with `modalAdapters.register()`)'],
+    [
+      '`editModalAdapter(string $adapter)`',
+      'Modal adapter name (`dt`, `bs`, `bs4`, `bs5`, or a name registered with `modalAdapters.register()`)',
+    ],
   ]}
 />
 
@@ -139,7 +145,10 @@ new DataTable(
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ['`styleFramework(StyleFramework $framework)`', 'Declare the CSS framework, skipping frontend autodetection'],
+    [
+      '`styleFramework(StyleFramework $framework)`',
+      'Declare the CSS framework, skipping frontend autodetection',
+    ],
   ]}
 />
 
@@ -153,7 +162,7 @@ new DataTable(
     ['`getExtensions(): array`', 'Return configured extensions'],
     ['`setExtensions(DataTableExtensions $extensions)`', 'Replace extension collection'],
     [
-      '`responsive(bool $auto = true, ?array $breakpoints = null, int|string $detailsTarget = 0, string|false $detailsType = \'inline\', string $orthogonal = \'display\')`',
+      "`responsive(bool $auto = true, ?array $breakpoints = null, int|string $detailsTarget = 0, string|false $detailsType = 'inline', string $orthogonal = 'display')`",
       'Add the Responsive extension',
     ],
     [
@@ -165,10 +174,16 @@ new DataTable(
       'Add the Select extension, checkbox column included',
     ],
     ['`keyTable(bool $blurable = true, ...)`', 'Add the KeyTable extension'],
-    ['`scroller(float $boundaryScale = 0.5, ...)`', 'Add the Scroller extension; pair it with `scrollY()`'],
+    [
+      '`scroller(float $boundaryScale = 0.5, ...)`',
+      'Add the Scroller extension; pair it with `scrollY()`',
+    ],
     ['`colReorder(bool $enable = true, ...)`', 'Add the ColReorder extension'],
     ['`fixedColumns(int $start = 1, int $end = 0)`', 'Add the FixedColumns extension'],
-    ['`fixedHeader(bool $header = true, bool $footer = false, ...)`', 'Add the FixedHeader extension'],
+    [
+      '`fixedHeader(bool $header = true, bool $footer = false, ...)`',
+      'Add the FixedHeader extension',
+    ],
     [
       '`rowGroup(int|string|array $dataSrc, ...)`',
       'Add the RowGroup extension; the grouping data source is required',
