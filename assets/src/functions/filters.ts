@@ -155,60 +155,6 @@ export class FilterBar {
         this.wrapper.appendChild(this.popover)
     }
 
-    /**
-     * Merge the last applied filter values into the table's AJAX request data.
-     *
-     * A static `ajax.data` object is copied onto the request. A function — the
-     * API Platform adapter installs one that rewrites DataTables params into
-     * `page`/`itemsPerPage` — is called first and its return value is kept;
-     * replacing it made every filtered API Platform table send the raw
-     * DataTables protocol instead of Hydra query parameters.
-     */
-    attachToPayload(payload: Record<string, any>): void {
-        if (typeof payload.ajax === 'function') {
-            const originalAjax = payload.ajax
-            payload.ajax = (data: Record<string, any>, ...rest: unknown[]) => {
-                data.filters = this.collectValues()
-
-                return originalAjax(data, ...rest)
-            }
-
-            return
-        }
-
-        if (!payload.ajax || typeof payload.ajax !== 'object') {
-            return
-        }
-
-        const existing = payload.ajax.data
-        payload.ajax.data = (data: Record<string, any>) => {
-            if (typeof existing === 'function') {
-                data.filters = this.collectValues()
-                const transformed = existing(data)
-                if (typeof transformed === 'string') {
-                    return transformed
-                }
-                if (isPlainRecord(transformed)) {
-                    if (true !== (existing as { consumesFilters?: boolean }).consumesFilters) {
-                        transformed.filters = this.collectValues()
-                    }
-
-                    return transformed
-                }
-
-                data.filters = this.collectValues()
-
-                return data
-            }
-
-            if (isPlainRecord(existing)) {
-                Object.assign(data, existing)
-            }
-            data.filters = this.collectValues()
-            return data
-        }
-    }
-
     /** The applied snapshot — what server-side requests should use. */
     collectValues(): Record<string, FilterValue> {
         return this.applied

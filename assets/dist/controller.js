@@ -30,6 +30,7 @@ import { isDataTableClone } from './functions/isDataTableClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { applyLocalLanguage } from './functions/localLanguage.js';
 import { hasLucideIcons, hasLucideIconsInActions, loadLucideIcons, } from './functions/lucideIcons.js';
+import { installRequestParams } from './functions/requestParams.js';
 import { runAjaxAction } from './functions/runAjaxAction.js';
 import { applyServerExportUrls } from './functions/serverExport.js';
 import { submitEditForm } from './functions/submitEditForm.js';
@@ -112,11 +113,13 @@ class default_1 extends Controller {
         this.resetRestoredMarkup();
         await this.loadExtensions(payload, framework, DataTable);
         this.dispatchEvent('pre-init', { config: payload, DataTable });
+        let apiPlatformAdapter = null;
         if (this.isApiPlatformEnabled(payload)) {
             const columns = Array.isArray(payload.columns)
                 ? payload.columns
                 : [];
-            new ApiPlatformAdapter(columns).configure(payload);
+            apiPlatformAdapter = new ApiPlatformAdapter(columns);
+            apiPlatformAdapter.configure(payload);
         }
         this.configureColumns(payload);
         if (hasLucideIcons(payload.columns) ||
@@ -127,10 +130,16 @@ class default_1 extends Controller {
         if (urlStateCfg) {
             applyUrlStateToPayload(payload, readUrlState(urlStateCfg));
         }
-        let filterBar = null;
-        if (hasFilters(payload)) {
-            filterBar = new FilterBar(payload, framework);
-            filterBar.attachToPayload(payload);
+        const filterBar = hasFilters(payload) ? new FilterBar(payload, framework) : null;
+        const requestParams = filterBar || apiPlatformAdapter || hasBulkActions(payload)
+            ? installRequestParams(payload, {
+                filters: filterBar ? () => filterBar.collectValues() : undefined,
+                transport: apiPlatformAdapter
+                    ? (params) => apiPlatformAdapter.toRequestParams(params)
+                    : undefined,
+            })
+            : null;
+        if (filterBar) {
             applyFilterLayout(payload, filterBar);
             if (payload.stateSave) {
                 const originalStateSaveParams = payload.stateSaveParams;
@@ -154,7 +163,7 @@ class default_1 extends Controller {
             }
         }
         if (hasBulkActions(payload)) {
-            const bulkBar = new BulkActionBar(payload, framework, (name, detail) => this.dispatchEvent(name, detail));
+            const bulkBar = new BulkActionBar(payload, framework, (name, detail) => this.dispatchEvent(name, detail), () => requestParams?.current() ?? {});
             applyBulkActionsLayout(payload, bulkBar, payload.bulkActions?.position);
         }
         await applyLocalLanguage(payload);
