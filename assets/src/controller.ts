@@ -28,9 +28,7 @@ import { detectTheme } from './functions/detectTheme.js'
 import { ExtensionRegistry } from './functions/extensionRegistry.js'
 import { fetchDetailRow } from './functions/fetchDetailRow.js'
 import { fetchEditForm } from './functions/fetchEditForm.js'
-import { registerFilterFeature } from './functions/filterFeature.js'
-import { applyFilterLayout } from './functions/filterLayout.js'
-import { FilterBar, hasFilters } from './functions/filters.js'
+import { installFilterBar } from './functions/filters.js'
 import { isHighlightEnabled, type UpdateHighlighter } from './functions/highlightUpdates.js'
 import { isDataTableClone } from './functions/isDataTableClone.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
@@ -168,7 +166,6 @@ export default class extends Controller {
         this.framework = framework
 
         const DataTable = await loadDataTableLibrary(framework)
-        registerFilterFeature(DataTable)
         registerBulkActionsFeature(DataTable)
 
         if (this.adoptLiveTable(DataTable)) {
@@ -204,7 +201,7 @@ export default class extends Controller {
             applyUrlStateToPayload(payload, readUrlState(urlStateCfg))
         }
 
-        const filterBar = hasFilters(payload) ? new FilterBar(payload, framework) : null
+        const filterBar = installFilterBar(payload, DataTable, framework)
         // Tables with none of these keep DataTables' own `ajax.data` handling untouched.
         const requestParams =
             filterBar || apiPlatformAdapter || hasBulkActions(payload)
@@ -215,32 +212,6 @@ export default class extends Controller {
                           : undefined,
                   })
                 : null
-
-        if (filterBar) {
-            applyFilterLayout(payload, filterBar)
-
-            if (payload.stateSave) {
-                const originalStateSaveParams = payload.stateSaveParams
-                payload.stateSaveParams = (settings: any, data: any) => {
-                    if (typeof originalStateSaveParams === 'function') {
-                        originalStateSaveParams(settings, data)
-                    }
-                    if (filterBar) {
-                        data.uxFilters = filterBar.collectValues()
-                    }
-                }
-
-                const originalStateLoaded = payload.stateLoaded
-                payload.stateLoaded = (settings: any, data: any) => {
-                    if (typeof originalStateLoaded === 'function') {
-                        originalStateLoaded(settings, data)
-                    }
-                    if (data?.uxFilters && filterBar) {
-                        filterBar.restoreValues(data.uxFilters)
-                    }
-                }
-            }
-        }
 
         if (hasBulkActions(payload)) {
             const bulkBar = new BulkActionBar(
