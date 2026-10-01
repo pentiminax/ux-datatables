@@ -19,9 +19,8 @@ export async function toggleBooleanValue({
     dataTable,
     csrfToken,
 }: ToggleBooleanPayload): Promise<Response> {
-    const numericId = Number(id)
     const body: Record<string, unknown> = {
-        id: id.trim() !== '' && Number.isFinite(numericId) ? numericId : id,
+        id,
         field,
         newValue,
         dataTable,
