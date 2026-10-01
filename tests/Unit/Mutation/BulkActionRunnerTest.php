@@ -35,6 +35,7 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountDocument;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountLine;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
@@ -592,6 +593,53 @@ final class BulkActionRunnerTest extends TestCase
         yield 'default id remapped onto the primary key' => [null, null];
         yield 'highlight id field written as is' => ['id', null];
         yield 'explicit bulk id field' => [null, 'name'];
+    }
+
+    /**
+     * A composite key leaves the default `id` unmapped: the row mapper writes no DT_RowId from it,
+     * and the runner must refuse it rather than hand Doctrine an unknown field.
+     */
+    #[Test]
+    public function it_refuses_the_default_id_on_a_composite_key(): void
+    {
+        $em = $this->createEntityManager(CountLine::class);
+        $em->persist(new CountLine(1, 1, 'Alpha'));
+        $em->flush();
+        $em->clear();
+
+        $registry = $this->createStub(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->willReturn($em);
+        $row = (new DataTableRuntimeFactory(doctrine: $registry))->createRowMapper(
+            baseMapper: static fn (): array => [],
+            columns: [],
+            rowIdField: 'id',
+            entityClass: CountLine::class,
+        )->map($em->find(CountLine::class, ['orderId' => 1, 'lineNo' => 1]));
+
+        $this->assertArrayNotHasKey(HighlightConfig::ROW_ID_KEY, $row);
+
+        $handled = false;
+        $action  = BulkAction::new('touch')->handler(function () use (&$handled): void {
+            $handled = true;
+        });
+        $table = new ConfigurableDataTable(
+            columnsConfig: [TextColumn::new('name')],
+            bulkActions: static fn (BulkActions $actions): BulkActions => $actions->add($action),
+        );
+
+        try {
+            $this->runner(em: $em)->run(
+                new ResolvedDataTable($table, CountLine::class, AbstractDataTable::class),
+                $action,
+                new BulkSelection(ids: ['1']),
+                $this->postRequest(),
+            );
+            $this->fail('The unmapped default id must be refused on a composite key.');
+        } catch (\LogicException $exception) {
+            $this->assertStringContainsString('"id" field that setIdField() writes', $exception->getMessage());
+        }
+
+        $this->assertFalse($handled);
     }
 
     #[Test]
