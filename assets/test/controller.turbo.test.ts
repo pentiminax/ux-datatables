@@ -76,6 +76,7 @@ describe('datatable controller Turbo lifecycle', () => {
 
     it('builds the table once when a reattach re-enters connect during initialization', async () => {
         const table = mountTable()
+        const reconnectEvents = collectEvents(table, 'datatables:reconnect')
         await getController(application, table)
 
         await detach(table)
@@ -88,6 +89,8 @@ describe('datatable controller Turbo lifecycle', () => {
 
         expect(loadResolvers).toHaveLength(2)
         expect(instances).toHaveLength(1)
+        expect(reconnectEvents).toHaveLength(1)
+        expect(reconnectEvents[0].detail.table).toBe(instances[0])
     })
 
     it('builds the table once when two Stimulus applications control it', async () => {
@@ -96,6 +99,7 @@ describe('datatable controller Turbo lifecycle', () => {
 
         try {
             const table = mountTable()
+            const reconnectEvents = collectEvents(table, 'datatables:reconnect')
             await getController(application, table)
             await getController(secondApplication, table)
 
@@ -106,6 +110,8 @@ describe('datatable controller Turbo lifecycle', () => {
 
             expect(loadResolvers).toHaveLength(2)
             expect(instances).toHaveLength(1)
+            expect(reconnectEvents).toHaveLength(1)
+            expect(reconnectEvents[0].detail.table).toBe(instances[0])
         } finally {
             secondApplication.stop()
         }
@@ -352,6 +358,12 @@ async function getController(
     }
 
     return controller as InstanceType<typeof DatatableController>
+}
+
+function collectEvents(element: Element, type: string): CustomEvent[] {
+    const events: CustomEvent[] = []
+    element.addEventListener(type, (event) => events.push(event as CustomEvent))
+    return events
 }
 
 async function detach(table: HTMLTableElement): Promise<void> {
