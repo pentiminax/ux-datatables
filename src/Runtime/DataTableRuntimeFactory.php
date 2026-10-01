@@ -68,7 +68,7 @@ final class DataTableRuntimeFactory
 
         // Highlighting needs a row id to tell a changed row from a moved one; a selection needs
         // one to survive the redraw that server-side paging forces. Either reason is enough.
-        $idField = RowIdField::resolve($highlight, $rowIdField, $this->metadataFor($entityClass));
+        $idField = RowIdField::resolve($highlight, $rowIdField, fn (): ?ClassMetadata => $this->metadataFor($entityClass));
 
         if (null !== $idField) {
             $pipeline->add(new RowIdStage($idField));
