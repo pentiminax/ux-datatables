@@ -19,6 +19,10 @@ use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
@@ -36,6 +40,27 @@ final class PentiminaxDataTablesBundleTest extends TestCase
 
         self::assertArrayHasKey('PentiminaxDataTablesBundle', $this->kernel->getBundles());
         self::assertInstanceOf(DataTableInfrastructure::class, $infrastructure);
+    }
+
+    /**
+     * Symfony 8.2 no longer ships FrameworkBundle's Resources/config/asset_mapper.php; AssetMapper
+     * is detected through its own bundle instead.
+     */
+    #[Test]
+    public function it_registers_its_asset_path_when_asset_mapper_is_its_own_bundle(): void
+    {
+        $builder = new ContainerBuilder();
+        $builder->setParameter('kernel.bundles_metadata', [
+            'FrameworkBundle'   => ['path' => sys_get_temp_dir().'/framework-bundle-without-asset-mapper-config'],
+            'AssetMapperBundle' => ['path' => sys_get_temp_dir().'/asset-mapper-bundle'],
+        ]);
+
+        $instanceof   = [];
+        $configurator = new ContainerConfigurator($builder, new PhpFileLoader($builder, new FileLocator()), $instanceof, '', '');
+        (new PentiminaxDataTablesBundle())->prependExtension($configurator, $builder);
+
+        $paths = $builder->getExtensionConfig('framework')[0]['asset_mapper']['paths'] ?? [];
+        self::assertContains('@pentiminax/ux-datatables', $paths);
     }
 
     #[Test]

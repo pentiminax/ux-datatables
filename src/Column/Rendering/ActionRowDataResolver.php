@@ -98,7 +98,7 @@ final class ActionRowDataResolver
     }
 
     /**
-     * @return array{url?: string, token?: string, id?: string|int}
+     * @return array{url?: string, token?: string, id?: string}
      */
     private function resolveActionData(Action $action, mixed $sourceRow): array
     {
@@ -174,7 +174,7 @@ final class ActionRowDataResolver
             || !\in_array($action->getType(), [ActionType::Detail, ActionType::Custom], true);
     }
 
-    private function resolveId(mixed $sourceRow, string $idField): mixed
+    private function resolveId(mixed $sourceRow, string $idField): ?string
     {
         if (\is_array($sourceRow)) {
             return \array_key_exists($idField, $sourceRow) ? $this->normalizeId($sourceRow[$idField]) : null;
@@ -195,14 +195,21 @@ final class ActionRowDataResolver
         }
     }
 
-    private function normalizeId(mixed $id): string|int|null
+    /**
+     * JSON numbers lose precision above Number.MAX_SAFE_INTEGER, so identifiers travel as
+     * strings — the same contract {@see \Pentiminax\UX\DataTables\RowMapper\Stage\RowIdStage}
+     * already uses for DT_RowId.
+     */
+    private function normalizeId(mixed $id): ?string
     {
-        if (\is_string($id) || \is_int($id)) {
-            return $id;
+        if (\is_int($id)) {
+            return (string) $id;
         }
 
-        if ($id instanceof \Stringable) {
-            return (string) $id;
+        if (\is_string($id) || $id instanceof \Stringable) {
+            $id = (string) $id;
+
+            return '' !== $id ? $id : null;
         }
 
         return null;
