@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Routing\Loader\ContainerLoader;
 
 /**
  * @internal
@@ -18,6 +19,18 @@ use PHPUnit\Framework\TestCase;
 final class RouteLoaderTest extends TestCase
 {
     use BootsTwigKernel;
+
+    #[Test]
+    public function it_loads_routes_through_the_registered_service_without_the_deprecated_interface(): void
+    {
+        $this->assertNotContains(
+            'Symfony\\Bundle\\FrameworkBundle\\Routing\\RouteLoaderInterface',
+            class_implements(RouteLoader::class),
+        );
+        $routes = (new ContainerLoader($this->container))->load('datatables.route_loader::loadRoutes', 'service');
+        $this->assertCount(8, $routes);
+        $this->assertSame('/datatables/ajax/data', $routes->get('ux_datatables_ajax_data')->getPath());
+    }
 
     /**
      * @return iterable<string, array{string, string, string, list<string>}>
