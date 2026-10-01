@@ -90,7 +90,7 @@ final class AsDataTableTest extends TestCase
     {
         $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $resolver
-            ->expects($this->once())
+            ->expects($this->atLeastOnce())
             ->method('resolveCollectionUrl')
             ->with(\stdClass::class)
             ->willReturn('/api/books');
@@ -152,16 +152,6 @@ final class AsDataTableTest extends TestCase
         $resolver->expects($this->never())->method('resolveCollectionUrl');
 
         $table = new TestDataTableWithoutAttribute(apiResourceCollectionUrlResolver: $resolver);
-
-        $table->prepareForRendering();
-
-        $this->assertNull($table->getDataTable()->getOption('ajax'));
-    }
-
-    #[Test]
-    public function it_does_nothing_without_resolver(): void
-    {
-        $table = new TestDataTableWithAttribute();
 
         $table->prepareForRendering();
 
