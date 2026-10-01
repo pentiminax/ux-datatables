@@ -22,19 +22,19 @@ final class RowIdField
      * Highlight wins and is never remapped: it writes DT_RowId from its own field. Otherwise the
      * bulk id field is used, with the default `id` remapped onto a single Doctrine identifier.
      *
-     * @param ClassMetadata<object>|null $metadata
+     * @param \Closure(): (ClassMetadata<object>|null) $metadata called only when the default `id` may need remapping
      */
-    public static function resolve(?HighlightConfig $highlight, ?string $bulkIdField, ?ClassMetadata $metadata): ?string
+    public static function resolve(?HighlightConfig $highlight, ?string $bulkIdField, \Closure $metadata): ?string
     {
         if (null !== $highlight) {
             return $highlight->idField;
         }
 
-        if ('id' !== $bulkIdField || null === $metadata) {
+        if ('id' !== $bulkIdField) {
             return $bulkIdField;
         }
 
-        $identifiers = $metadata->getIdentifier();
+        $identifiers = $metadata()?->getIdentifier() ?? [];
 
         return 1 === \count($identifiers) ? $identifiers[0] : $bulkIdField;
     }
