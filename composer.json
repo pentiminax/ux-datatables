@@ -44,7 +44,8 @@
     "openspout/openspout": "^4.0",
     "symfony/browser-kit": "^7.0 || ^8.0",
     "symfony/dom-crawler": "^7.0 || ^8.0",
-    "symfony/css-selector": "^7.0 || ^8.0"
+    "symfony/css-selector": "^7.0 || ^8.0",
+    "symfony/asset-mapper": "^7.0 || ^8.0"
   },
   "suggest": {
     "api-platform/core": "To auto-detect columns from API Platform metadata.",
