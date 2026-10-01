@@ -59,7 +59,7 @@ Every filter is created with `::new(string $name)`. The name is the AJAX payload
 key (`filters[name]`).
 
 | Method                | Description                                                                          |
-|-----------------------|--------------------------------------------------------------------------------------|
+| --------------------- | ------------------------------------------------------------------------------------ |
 | `label(string)`       | Control label (defaults to a humanized name)                                         |
 | `field(string)`       | Doctrine field path (defaults to the name). Supports relations, e.g. `author.name`   |
 | `placeholder(string)` | Control placeholder / empty option label                                             |
@@ -128,10 +128,16 @@ ChoiceFilter::new('author')
   rows={[
     ['`class`', 'Entity to load the options from.'],
     ['`label`', 'Property path or closure giving the option label. See below when omitted.'],
-    ['`value`', 'Property path giving the submitted value. Defaults to `id`; rows where it is null are skipped.'],
-    ['`orderBy`', '`findBy()` ordering, such as `[\'name\' => \'ASC\']`.'],
+    [
+      '`value`',
+      'Property path giving the submitted value. Defaults to `id`; rows where it is null are skipped.',
+    ],
+    ['`orderBy`', "`findBy()` ordering, such as `['name' => 'ASC']`."],
     ['`criteria`', '`findBy()` criteria.'],
-    ['`queryBuilder`', 'Closure receiving the repository and a query builder aliased `e`; replaces `criteria` and `orderBy`.'],
+    [
+      '`queryBuilder`',
+      'Closure receiving the repository and a query builder aliased `e`; replaces `criteria` and `orderBy`.',
+    ],
   ]}
 />
 

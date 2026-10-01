@@ -51,7 +51,10 @@ const { currentSlug, currentTitle, sectionTitle } = Astro.props
     drawer.addEventListener('click', (event) => {
       const box = drawer.getBoundingClientRect()
       const outside =
-        event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom
+        event.clientX < box.left ||
+        event.clientX > box.right ||
+        event.clientY < box.top ||
+        event.clientY > box.bottom
       if (outside) drawer.close()
     })
 

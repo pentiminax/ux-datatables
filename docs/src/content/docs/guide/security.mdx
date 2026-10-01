@@ -78,7 +78,7 @@ public function configureDataTable(DataTable $table): DataTable
 `Permission::DT_ACCESS_TABLE` and `Permission::DT_EXECUTE_ACTION` are handled by the bundle voter
 (`SecurityVoter`). It supports only those two attributes and abstains on everything else, so it never
 competes with your application voters: it looks up the attribute you passed to
-`DataTable::setPermission()` or `Action::setPermission()` and relays Symfony's decision on *that*
+`DataTable::setPermission()` or `Action::setPermission()` and relays Symfony's decision on _that_
 attribute. When your voter denies, the bundle voter denies too, so Symfony's default `affirmative`
 strategy already behaves correctly — there is nothing to reconfigure.
 
@@ -94,7 +94,10 @@ row exposes an action, except the boolean toggle, which is not an action:
     ['Edit modal', 'DT_EDIT_ROW + DT_EXECUTE_ACTION'],
     ['Delete', 'DT_DELETE_ROW + DT_EXECUTE_ACTION'],
     ['Collapsible detail row', 'DT_VIEW_ROW_DETAILS + DT_EXECUTE_ACTION'],
-    ['Boolean toggle', 'DT_EDIT_ROW only (the column permission is evaluated separately by BooleanMutationContextResolver)'],
+    [
+      'Boolean toggle',
+      'DT_EDIT_ROW only (the column permission is evaluated separately by BooleanMutationContextResolver)',
+    ],
   ]}
 />
 
@@ -234,14 +237,14 @@ reverse), and those are never `===`-identical even when they represent the same 
 
 Keep both layers in place:
 
-- **`access_control`** gates the Ajax *routes* — it is your coarse-grained, per-request perimeter.
+- **`access_control`** gates the Ajax _routes_ — it is your coarse-grained, per-request perimeter.
   See [Securing Ajax Routes](/getting-started/security/).
-- **Voters** gate individual *entities* — they close [insecure direct object reference
+- **Voters** gate individual _entities_ — they close [insecure direct object reference
   (IDOR)](https://owasp.org/www-community/attacks/Insecure_Direct_Object_Reference) style issues,
   where an authenticated, otherwise-authorized user tries to edit or delete a row they don't own by
   guessing or tampering with its identifier.
 
-A firewall rule alone would let any authenticated admin-area user delete *any* row reachable through
+A firewall rule alone would let any authenticated admin-area user delete _any_ row reachable through
 the table; the voter is what scopes that down to the rows they're actually allowed to touch.
 
 Custom actions keep their own route authorization and CSRF boundary. `Action::setPermission()` only

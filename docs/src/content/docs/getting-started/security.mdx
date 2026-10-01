@@ -15,7 +15,12 @@ through these endpoints:
     ['ux_datatables_ajax_delete', '/datatables/ajax/delete', 'DELETE', 'Row delete action'],
     ['ux_datatables_ajax_edit', '/datatables/ajax/edit', 'POST, PATCH', 'Inline cell edit'],
     ['ux_datatables_ajax_edit_form', '/datatables/ajax/edit-form/view', 'POST', 'Edit modal form'],
-    ['ux_datatables_ajax_edit_form_submit', '/datatables/ajax/edit-form', 'POST', 'Edit modal submit'],
+    [
+      'ux_datatables_ajax_edit_form_submit',
+      '/datatables/ajax/edit-form',
+      'POST',
+      'Edit modal submit',
+    ],
     ['ux_datatables_ajax_detail', '/datatables/ajax/detail', 'POST', 'Row detail rendering'],
     ['ux_datatables_ajax_bulk', '/datatables/ajax/bulk', 'POST', 'Bulk actions over selected rows'],
     ['ux_datatables_ajax_export', '/datatables/ajax/export', 'POST', 'Server-side CSV/XLSX export'],
@@ -64,14 +69,14 @@ tables. Add it to `config/packages/security.yaml`:
 ```yaml
 # config/packages/security.yaml
 security:
-    # ...
+  # ...
 
-    access_control:
-        # Restrict every UX DataTables Ajax endpoint to authenticated admins.
-        # Match this to whatever the pages rendering your tables require.
-        - { path: ^/datatables/ajax, roles: ROLE_ADMIN }
+  access_control:
+    # Restrict every UX DataTables Ajax endpoint to authenticated admins.
+    # Match this to whatever the pages rendering your tables require.
+    - { path: ^/datatables/ajax, roles: ROLE_ADMIN }
 
-        # ... your other rules
+    # ... your other rules
 ```
 
 <Aside type="caution">
@@ -118,7 +123,7 @@ session-backed delete and toggle endpoints.
 
 ## Authorizing tables, actions, and rows
 
-`access_control` protects the *route* — it decides who may call `/datatables/ajax/*` at all. It does
+`access_control` protects the _route_ — it decides who may call `/datatables/ajax/*` at all. It does
 not know anything about the specific table, action, or row a request targets. The bundle closes that
 gap by calling Symfony authorization before rendering a table, executing an action, reading private
 row details, or mutating anything.
@@ -129,9 +134,9 @@ need.
 
 <Aside type="caution">
   With a firewall active, Symfony denies any attribute no voter grants. If your tables use the edit
-  modal, delete, or collapsible detail rows, they need voters for
-  `Permission::DT_EDIT_ROW`, `Permission::DT_DELETE_ROW`, and `Permission::DT_VIEW_ROW_DETAILS`
-  — otherwise those endpoints answer `403` for everyone.
+  modal, delete, or collapsible detail rows, they need voters for `Permission::DT_EDIT_ROW`,
+  `Permission::DT_DELETE_ROW`, and `Permission::DT_VIEW_ROW_DETAILS` — otherwise those endpoints
+  answer `403` for everyone.
 </Aside>
 
 ## HTML Escaping Checklist

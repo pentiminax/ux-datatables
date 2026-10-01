@@ -33,23 +33,23 @@ function inline(cell: string): string {
     {caption && <caption>{caption}</caption>}
     <thead>
       <tr>
-        {headers.map((header) => <th scope="col" set:html={inline(header)} />)}
+        {headers.map((header) => (
+          <th scope="col" set:html={inline(header)} />
+        ))}
       </tr>
     </thead>
     <tbody>
-      {
-        rows.map((row) => (
-          <tr>
-            {row.map((cell, column) =>
-              column === 0 ? (
-                <th scope="row" set:html={inline(cell)} />
-              ) : (
-                <td set:html={inline(cell)} />
-              )
-            )}
-          </tr>
-        ))
-      }
+      {rows.map((row) => (
+        <tr>
+          {row.map((cell, column) =>
+            column === 0 ? (
+              <th scope="row" set:html={inline(cell)} />
+            ) : (
+              <td set:html={inline(cell)} />
+            )
+          )}
+        </tr>
+      ))}
     </tbody>
   </table>
 </div>
