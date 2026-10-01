@@ -63,7 +63,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->once())
             ->method('publish')
-            ->with(['/server/deletable-entity-fixtures/{id}'], ['type' => 'delete', 'id' => 12]);
+            ->with(['/server/deletable-entity-fixtures/{id}'], ['type' => 'delete', 'id' => '12']);
 
         $topicResolver = $this->createStub(MercureTopicResolver::class);
         $topicResolver->method('resolve')->willReturn(['/server/deletable-entity-fixtures/{id}']);
@@ -95,7 +95,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->once())
             ->method('publish')
-            ->with(['/manual/deletable-entity-fixtures'], ['type' => 'delete', 'id' => 12]);
+            ->with(['/manual/deletable-entity-fixtures'], ['type' => 'delete', 'id' => '12']);
 
         // The bare entity-class resolver would publish a *different* topic;
         // it must not be consulted once the token's data table resolves.

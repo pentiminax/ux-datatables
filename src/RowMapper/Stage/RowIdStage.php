@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Contracts\RowStageInterface;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\RowMapper\RowIdNormalizer;
 
 /**
  * Exposes the row identifier under {@see HighlightConfig::ROW_ID_KEY}.
@@ -29,7 +30,7 @@ final class RowIdStage implements RowStageInterface
         }
 
         $source = $originalRow instanceof RowContext ? $originalRow->source : $originalRow;
-        $id     = $this->normalizeId(PropertyReader::readPath($source, $this->idField));
+        $id     = RowIdNormalizer::normalize(PropertyReader::readPath($source, $this->idField));
 
         if (null === $id) {
             return $mappedRow;
@@ -38,20 +39,5 @@ final class RowIdStage implements RowStageInterface
         $mappedRow[HighlightConfig::ROW_ID_KEY] = $id;
 
         return $mappedRow;
-    }
-
-    private function normalizeId(mixed $id): ?string
-    {
-        if (\is_int($id)) {
-            return (string) $id;
-        }
-
-        if (\is_string($id) || $id instanceof \Stringable) {
-            $id = (string) $id;
-
-            return '' !== $id ? $id : null;
-        }
-
-        return null;
     }
 }

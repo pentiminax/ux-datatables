@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\DuplicateActionNameException;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\RowMapper\RowIdNormalizer;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Symfony\Component\HttpFoundation\Exception\SessionNotFoundException;
 use Symfony\Component\PropertyAccess\Exception\ExceptionInterface as PropertyAccessExceptionInterface;
@@ -177,7 +178,7 @@ final class ActionRowDataResolver
     private function resolveId(mixed $sourceRow, string $idField): ?string
     {
         if (\is_array($sourceRow)) {
-            return \array_key_exists($idField, $sourceRow) ? $this->normalizeId($sourceRow[$idField]) : null;
+            return \array_key_exists($idField, $sourceRow) ? RowIdNormalizer::normalize($sourceRow[$idField]) : null;
         }
 
         if (!\is_object($sourceRow)) {
@@ -189,29 +190,9 @@ final class ActionRowDataResolver
                 return null;
             }
 
-            return $this->normalizeId($this->propertyAccessor->getValue($sourceRow, $idField));
+            return RowIdNormalizer::normalize($this->propertyAccessor->getValue($sourceRow, $idField));
         } catch (PropertyAccessExceptionInterface) {
             return null;
         }
-    }
-
-    /**
-     * JSON numbers lose precision above Number.MAX_SAFE_INTEGER, so identifiers travel as
-     * strings — the same contract {@see \Pentiminax\UX\DataTables\RowMapper\Stage\RowIdStage}
-     * already uses for DT_RowId.
-     */
-    private function normalizeId(mixed $id): ?string
-    {
-        if (\is_int($id)) {
-            return (string) $id;
-        }
-
-        if (\is_string($id) || $id instanceof \Stringable) {
-            $id = (string) $id;
-
-            return '' !== $id ? $id : null;
-        }
-
-        return null;
     }
 }

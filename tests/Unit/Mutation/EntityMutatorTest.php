@@ -77,7 +77,7 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->once())
             ->method('publish')
-            ->with(self::RESOLVED_TOPICS, ['type' => 'delete', 'id' => 5]);
+            ->with(self::RESOLVED_TOPICS, ['type' => 'delete', 'id' => '5']);
 
         $this->mutator($manager, $publisher, topicResolver: $topicResolver)
             ->delete(EntityMutatorFixture::class, 5, self::DATA_TABLE_CLASS, Action::delete());
@@ -99,7 +99,7 @@ final class EntityMutatorTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->once())
             ->method('publish')
-            ->with(self::RESOLVED_TOPICS, ['type' => 'edit', 'id' => 5, 'field' => 'enabled']);
+            ->with(self::RESOLVED_TOPICS, ['type' => 'edit', 'id' => '5', 'field' => 'enabled']);
 
         $mutator = $this->mutator(
             $manager,

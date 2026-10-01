@@ -455,7 +455,7 @@ describe('actionColumnRenderer', () => {
             expect(html).not.toContain('data-id="42"')
         })
 
-        it('prefers a server-resolved string id over a numeric display column', () => {
+        it('prefers a server-resolved string id over a rounded numeric display column', () => {
             const column: Record<string, any> = {
                 actions: [
                     {
@@ -480,6 +480,26 @@ describe('actionColumnRenderer', () => {
             })
 
             expect(html).toContain('data-id="9007199254740993"')
+        })
+
+        it('does not render a rounded numeric row id without a server-resolved id', () => {
+            const column: Record<string, any> = {
+                actions: [
+                    {
+                        type: 'DELETE',
+                        name: 'DELETE',
+                        label: 'Delete',
+                        className: 'btn btn-danger',
+                        idField: 'id',
+                    },
+                ],
+            }
+
+            actionColumnRenderer.configure(column)
+
+            const html = column.render(null, 'display', { id: 9007199254740993 })
+
+            expect(html).not.toContain('data-id="9007199254740992"')
         })
 
         it('hides a denied built-in action before falling back to the row id', () => {
