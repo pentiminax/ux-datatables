@@ -35,6 +35,7 @@ final class AbstractDataTableApiPlatformFallbackTest extends TestCase
         $dataTable = $table->getDataTable();
 
         $this->assertNull($dataTable->getOption('ajax'));
+        $this->assertNotTrue($dataTable->getOption('apiPlatform'));
         $this->assertSame([['id' => 1], ['id' => 2]], $dataTable->getOption('data'));
     }
 
