@@ -60,9 +60,10 @@ export function installRequestParams(
         }
 
         const sent = typeof userData === 'function' ? callUserData(data, userData, settings) : data
-        // Under a transport the string never goes on the wire: the transport rewrites the params.
-        const parsed = typeof sent === 'string' && !options.transport ? parseJsonRecord(sent) : null
-        const params = typeof sent === 'string' ? (parsed ?? data) : sent
+        const returned = (typeof sent === 'string' ? parseJsonRecord(sent) : sent) ?? data
+        // A transport rewrites the whole request, so it needs the paging, search and ordering the
+        // callback left out as well as every change the callback made.
+        const params = options.transport ? { ...data, ...returned } : returned
 
         // A callback that returns a replacement object keeps the filters unless it set its own.
         if (options.filters && undefined === params.filters) {

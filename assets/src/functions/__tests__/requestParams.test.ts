@@ -166,7 +166,36 @@ describe('installRequestParams', () => {
         const handle = installRequestParams(payload, { transport })
 
         expect(payload.ajax.data(protocol())).toEqual({ page: '2' })
-        expect(handle.current()).toEqual(protocol())
+        expect(handle.current()).toEqual({ ...protocol(), custom: 'body' })
+    })
+
+    it('hands the transport the search a JSON string narrowed', () => {
+        const payload: Record<string, any> = {
+            ajax: { url: '/api/books', data: () => JSON.stringify({ search: { value: 'narrow' } }) },
+        }
+        const handle = installRequestParams(payload, {
+            transport: (params) => ({
+                page: String(params.start / params.length + 1),
+                q: params.search.value,
+            }),
+        })
+
+        expect(payload.ajax.data({ ...protocol(), search: { value: '' } })).toEqual({
+            page: '2',
+            q: 'narrow',
+        })
+        expect(handle.current().search).toEqual({ value: 'narrow' })
+    })
+
+    it('keeps the paging for the transport when a replacement object omits it', () => {
+        const payload: Record<string, any> = {
+            ajax: { url: '/api/books', data: () => ({ custom: 'body' }) },
+        }
+        installRequestParams(payload, {
+            transport: (params) => ({ page: String(params.start / params.length + 1) }),
+        })
+
+        expect(payload.ajax.data(protocol())).toEqual({ page: '2' })
     })
 
     it('attaches the filters to a function ajax and remembers the request', () => {
