@@ -14,10 +14,6 @@ vi.mock('../src/functions/bulkActionsFeature.js', () => ({
     registerBulkActionsFeature: vi.fn(),
 }))
 
-vi.mock('../src/functions/filterFeature.js', () => ({
-    registerFilterFeature: vi.fn(),
-}))
-
 import DatatableController from '../src/controller.js'
 
 describe('datatable controller reconnect event', () => {
@@ -57,6 +53,7 @@ describe('datatable controller reconnect event', () => {
             }
         }
 
+        MockDataTable.feature = { register: vi.fn() }
         MockDataTable.isDataTable = (element: Element) => initialized.has(element)
         MockDataTable.Api = class {
             constructor(private readonly element: Element) {}

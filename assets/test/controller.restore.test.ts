@@ -14,10 +14,6 @@ vi.mock('../src/functions/bulkActionsFeature.js', () => ({
     registerBulkActionsFeature: vi.fn(),
 }))
 
-vi.mock('../src/functions/filterFeature.js', () => ({
-    registerFilterFeature: vi.fn(),
-}))
-
 import DatatableController from '../src/controller.js'
 
 // A browser history restore can hand back the markup DataTables generated on the previous
@@ -49,6 +45,7 @@ describe('datatable controller history restore', () => {
             return { destroy: vi.fn(), on: vi.fn() }
         }
 
+        MockDataTable.feature = { register: vi.fn() }
         MockDataTable.isDataTable = (element: Element) => initialized.has(element)
         MockDataTable.Api = class {
             constructor(_element: Element) {

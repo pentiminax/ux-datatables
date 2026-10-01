@@ -1,4 +1,5 @@
 import type { StyleFramework } from '../types/styleFramework.js'
+import { applyFeatureLayout } from './featureLayout.js'
 import { createPopover, type Popover } from './popover.js'
 
 export type FilterType = 'text' | 'select' | 'ternary' | 'dateRange' | 'checkbox'
@@ -541,4 +542,91 @@ export class FilterBar {
             },
         }
     }
+}
+
+const registeredOn = new WeakSet<object>()
+
+function hasAjaxSource(settings: any): boolean {
+    return Boolean(settings?.ajax || settings?.oFeatures?.bServerSide)
+}
+
+function registerFilterFeature(DataTable: any): void {
+    if (registeredOn.has(DataTable)) {
+        return
+    }
+    registeredOn.add(DataTable)
+
+    DataTable.feature.register('filters', (settings: any, opts: any): HTMLElement => {
+        const instance = opts?.instance as FilterBar | undefined
+        if (!instance) {
+            return document.createElement('div')
+        }
+
+        if (!hasAjaxSource(settings)) {
+            console.warn(
+                '[ux-datatables] Filters require an Ajax source; enable serverSide() to use them.'
+            )
+            return document.createElement('div')
+        }
+
+        const api = new DataTable.Api(settings)
+
+        return instance.render(() => api.ajax.reload(null, true))
+    })
+}
+
+/**
+ * Persist the applied filter values with the rest of the saved table state, after the user's
+ * own callbacks have run.
+ */
+function chainFilterState(payload: Record<string, any>, filterBar: FilterBar): void {
+    const userStateSaveParams = payload.stateSaveParams
+    payload.stateSaveParams = (settings: any, data: any) => {
+        if (typeof userStateSaveParams === 'function') {
+            userStateSaveParams(settings, data)
+        }
+        data.uxFilters = filterBar.collectValues()
+    }
+
+    const userStateLoaded = payload.stateLoaded
+    payload.stateLoaded = (settings: any, data: any) => {
+        if (typeof userStateLoaded === 'function') {
+            userStateLoaded(settings, data)
+        }
+        if (data?.uxFilters) {
+            filterBar.restoreValues(data.uxFilters)
+        }
+    }
+}
+
+/**
+ * Wire the filter bar into a table payload: its layout cell, its saved state and the `filters`
+ * DataTables feature. The feature is registered even for a table without filters, because a
+ * `filters` layout marker the server placed would otherwise fail as an unknown feature.
+ */
+export function installFilterBar(
+    payload: Record<string, any>,
+    DataTable: any,
+    framework: StyleFramework
+): FilterBar | null {
+    registerFilterFeature(DataTable)
+
+    if (!hasFilters(payload)) {
+        return null
+    }
+
+    const filterBar = new FilterBar(payload, framework)
+
+    applyFeatureLayout(
+        payload,
+        'filters',
+        { filters: { instance: filterBar } },
+        { position: 'topEnd', before: ['search'] }
+    )
+
+    if (payload.stateSave) {
+        chainFilterState(payload, filterBar)
+    }
+
+    return filterBar
 }
