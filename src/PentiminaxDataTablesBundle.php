@@ -165,11 +165,15 @@ class PentiminaxDataTablesBundle extends AbstractBundle
         }
 
         $bundlesMetadata = $builder->getParameter('kernel.bundles_metadata');
-        if (!isset($bundlesMetadata['FrameworkBundle'])) {
-            return false;
+
+        // Symfony 8.2 moved AssetMapper out of FrameworkBundle into its own AssetMapperBundle,
+        // so FrameworkBundle no longer ships Resources/config/asset_mapper.php.
+        if (isset($bundlesMetadata['AssetMapperBundle'])) {
+            return true;
         }
 
-        return is_file($bundlesMetadata['FrameworkBundle']['path'].'/Resources/config/asset_mapper.php');
+        return isset($bundlesMetadata['FrameworkBundle'])
+            && is_file($bundlesMetadata['FrameworkBundle']['path'].'/Resources/config/asset_mapper.php');
     }
 
     private function isApiPlatformAvailable(ContainerBuilder $builder): bool
