@@ -168,7 +168,7 @@ final class AjaxEditControllerTest extends TestCase
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->once())
             ->method('publish')
-            ->with(['/manual/toggle-boolean-entity-fixtures'], ['type' => 'edit', 'id' => 799, 'field' => 'isEmailAuthEnabled']);
+            ->with(['/manual/toggle-boolean-entity-fixtures'], ['type' => 'edit', 'id' => '799', 'field' => 'isEmailAuthEnabled']);
 
         $resolver = $this->createMock(MercureConfigResolver::class);
         $resolver->expects($this->never())->method('resolveMercureConfig');

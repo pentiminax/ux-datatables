@@ -120,6 +120,22 @@ describe('booleanColumnRenderer', () => {
             expect(html).not.toContain('data-entity=')
         })
 
+        it('uses the string metadata id over a rounded numeric row id', () => {
+            const renderer = createRenderer()
+            const column: Record<string, any> = {
+                customOptions: { renderAsSwitch: true },
+                data: 'active',
+            }
+            renderer.configure(column)
+            const html = column.render(true, 'display', {
+                id: 9007199254740993,
+                __ux_datatables_boolean_switches: {
+                    active: '9007199254740993',
+                },
+            })
+            expect(html).toContain('data-id="9007199254740993"')
+        })
+
         it('renders an unchecked switch for display mode when value is false', () => {
             const renderer = createRenderer()
             const column: Record<string, any> = {

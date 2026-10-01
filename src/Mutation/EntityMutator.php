@@ -49,7 +49,7 @@ final class EntityMutator
 
         $this->publisher->publish($this->topicResolver->resolve($entityClass, $dataTableClass), [
             'type' => 'delete',
-            'id'   => $id,
+            'id'   => (string) $id,
         ]);
     }
 
@@ -85,7 +85,7 @@ final class EntityMutator
 
         $this->publisher->publish($this->topicResolver->resolve($entityClass, $dataTableClass), [
             'type'  => 'edit',
-            'id'    => $id,
+            'id'    => (string) $id,
             'field' => $field,
         ]);
     }
