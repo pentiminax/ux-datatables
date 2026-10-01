@@ -75,6 +75,7 @@ final class RenderingPreparer
             $this->configureAutoAjax($table);
         }
 
+        $this->withdrawUnreadApiPlatformOptIn($table, $mode);
         $this->configureExportUrl($table);
         $this->configureBulkActions($table);
         $this->configureForwardedQueryParameters($table);
@@ -121,6 +122,23 @@ final class RenderingPreparer
         }
 
         $table->ajax($collectionUrl);
+    }
+
+    /**
+     * The browser reads a serialized `apiPlatform` flag as "query the collection yourself", which a
+     * table opted in through `apiPlatform()` but left without a collection URL cannot do.
+     */
+    private function withdrawUnreadApiPlatformOptIn(DataTable $table, DataSourceMode $mode): void
+    {
+        if (true !== $table->getOption('apiPlatform')) {
+            return;
+        }
+
+        if (DataSourceMode::ServerSide !== $mode && DataSourceMode::ClientHydrated !== $mode) {
+            return;
+        }
+
+        $table->apiPlatform(false);
     }
 
     /**
