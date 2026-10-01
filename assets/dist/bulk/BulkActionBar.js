@@ -18,9 +18,10 @@ export function getBulkActionsConfig(payload) {
     return payload.bulkActions;
 }
 export class BulkActionBar {
-    constructor(payload, framework, dispatch = () => { }) {
+    constructor(payload, framework, dispatch = () => { }, currentParams = () => ({})) {
         this.framework = framework;
         this.dispatch = dispatch;
+        this.currentParams = currentParams;
         this.popover = null;
         this.store = null;
         this.api = null;
@@ -169,7 +170,7 @@ export class BulkActionBar {
                 ids: snapshot.ids,
                 allMatching: snapshot.allMatching,
                 deselectedIds: snapshot.deselectedIds,
-                query: snapshot.allMatching ? this.currentQuery() : {},
+                query: snapshot.allMatching ? this.currentParams() : {},
                 csrfToken: this.csrfToken,
             });
             this.dispatch(result.success ? 'bulk:success' : 'bulk:error', {
@@ -212,10 +213,6 @@ export class BulkActionBar {
             parts.push((this.labels.skipped ?? '{count} rows skipped').replace('{count}', String(skipped)));
         }
         return parts.join(' ');
-    }
-    currentQuery() {
-        const params = this.api?.ajax?.params?.();
-        return params !== null && typeof params === 'object' ? params : {};
     }
     reload() {
         this.api?.ajax?.reload?.(null, false);
