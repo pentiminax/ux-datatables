@@ -20,11 +20,14 @@ export function installRequestParams(payload, options = {}) {
     }
     const userData = payload.ajax.data;
     payload.ajax.data = (data, settings) => {
+        if (isPlainRecord(userData)) {
+            Object.assign(data, userData);
+        }
         if (options.filters) {
             data.filters = options.filters();
         }
-        const sent = applyUserData(data, userData, settings);
-        const params = typeof sent === 'string' ? data : sent;
+        const sent = typeof userData === 'function' ? callUserData(data, userData, settings) : data;
+        const params = typeof sent === 'string' ? (parseJsonRecord(sent) ?? data) : sent;
         if (options.filters && undefined === params.filters) {
             params.filters = data.filters;
         }
@@ -36,17 +39,17 @@ export function installRequestParams(payload, options = {}) {
     };
     return handle;
 }
-function applyUserData(data, userData, settings) {
-    if (typeof userData === 'function') {
-        const returned = userData(data, settings);
-        if (typeof returned === 'string' || isPlainRecord(returned)) {
-            return returned;
-        }
-        return data;
+function callUserData(data, userData, settings) {
+    const returned = userData(data, settings);
+    return typeof returned === 'string' || isPlainRecord(returned) ? returned : data;
+}
+function parseJsonRecord(sent) {
+    try {
+        const parsed = JSON.parse(sent);
+        return isPlainRecord(parsed) ? parsed : null;
     }
-    if (isPlainRecord(userData)) {
-        Object.assign(data, userData);
+    catch {
+        return null;
     }
-    return data;
 }
 //# sourceMappingURL=requestParams.js.map
