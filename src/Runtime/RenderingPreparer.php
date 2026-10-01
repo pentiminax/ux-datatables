@@ -65,8 +65,16 @@ final class RenderingPreparer
 
     public function prepareBeforeDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
     {
-        $this->configureApiPlatform($table, $asDataTable);
-        $this->configureAutoAjax($table);
+        $mode = $this->resolveDataSourceMode($table, $asDataTable);
+
+        if (DataSourceMode::ApiPlatform === $mode) {
+            $this->configureApiPlatform($table, $asDataTable);
+        }
+
+        if (DataSourceMode::ServerSide === $mode) {
+            $this->configureAutoAjax($table);
+        }
+
         $this->configureExportUrl($table);
         $this->configureBulkActions($table);
         $this->configureForwardedQueryParameters($table);
@@ -85,15 +93,20 @@ final class RenderingPreparer
     public function prepareAfterDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
     {
         $this->configureMercure($table, $asDataTable);
+        $this->withdrawUnreadApiPlatformOptIn($table, $asDataTable);
+    }
+
+    /**
+     * @internal
+     */
+    public function resolveDataSourceMode(DataTable $table, ?AsDataTable $asDataTable): DataSourceMode
+    {
+        return DataSourceMode::resolve($table, $asDataTable, $this->urlResolver);
     }
 
     private function configureApiPlatform(DataTable $table, ?AsDataTable $asDataTable): void
     {
-        if (!$this->canAutoWireApiPlatform($table, $asDataTable)) {
-            return;
-        }
-
-        $collectionUrl = $this->urlResolver->resolveCollectionUrl($asDataTable->entityClass);
+        $collectionUrl = null === $asDataTable ? null : $this->urlResolver?->resolveCollectionUrl($asDataTable->entityClass);
 
         if (null === $collectionUrl) {
             return;
@@ -109,6 +122,22 @@ final class RenderingPreparer
         }
 
         $table->ajax($collectionUrl);
+    }
+
+    /**
+     * The browser reads a serialized `apiPlatform` flag as "query the collection yourself", which a
+     * table opted in through `apiPlatform()` but left without a collection URL cannot do.
+     *
+     * Withdrawn last: earlier, the table would resolve as ClientHydrated or ServerSide and read
+     * its rows around the collection's authorization.
+     */
+    private function withdrawUnreadApiPlatformOptIn(DataTable $table, ?AsDataTable $asDataTable): void
+    {
+        if (true !== $table->getOption('apiPlatform') || DataSourceMode::ApiPlatformUnavailable !== $this->resolveDataSourceMode($table, $asDataTable)) {
+            return;
+        }
+
+        $table->apiPlatform(false);
     }
 
     /**
@@ -142,15 +171,6 @@ final class RenderingPreparer
         return true;
     }
 
-    private function canAutoWireApiPlatform(DataTable $table, ?AsDataTable $asDataTable): bool
-    {
-        return null === $table->getOption('ajax')
-            && null === $table->getOption('data')
-            && null !== $this->urlResolver
-            && null !== $asDataTable
-            && ($asDataTable->apiPlatform || $table->getOption('apiPlatform'));
-    }
-
     /**
      * Whether a column renders from the entity rather than from the row the browser holds.
      *
@@ -176,12 +196,8 @@ final class RenderingPreparer
 
     private function configureAutoAjax(DataTable $table): void
     {
-        if (!$this->canAutoWireAjax($table)) {
-            return;
-        }
-
         $fqcn = $table->getDataTableClass();
-        if (null === $fqcn) {
+        if (null === $fqcn || null === $this->urlGenerator) {
             return;
         }
 
@@ -197,16 +213,6 @@ final class RenderingPreparer
             data: ['table' => $token],
             type: 'GET',
         );
-    }
-
-    private function canAutoWireAjax(DataTable $table): bool
-    {
-        return $table->isServerSide()
-            && null === $table->getOption('ajax')
-            && null === $table->getOption('data')
-            && true !== $table->getOption('apiPlatform')
-            && null !== $this->urlGenerator
-            && null !== $this->ajaxRegistry;
     }
 
     private function configureExportUrl(DataTable $table): void
@@ -314,7 +320,7 @@ final class RenderingPreparer
             return null;
         }
 
-        if (null !== $table->getOption('data') && null === $table->getOption('ajax')) {
+        if (DataSourceMode::Inline === $this->resolveDataSourceMode($table, $asDataTable)) {
             return null;
         }
 

@@ -90,7 +90,7 @@ final class AsDataTableTest extends TestCase
     {
         $resolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
         $resolver
-            ->expects($this->once())
+            ->expects($this->atLeastOnce())
             ->method('resolveCollectionUrl')
             ->with(\stdClass::class)
             ->willReturn('/api/books');
