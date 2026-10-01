@@ -240,11 +240,14 @@ When multiple columns are sorted, the format becomes indexed:
 ```
 
 <Aside type="note">
-  State is written via `history.replaceState` — no browser history pollution. Columns must have a `name` defined for ordering to be serialised; columns created with `TextColumn::new('email', …)` have one automatically.
+  State is written via `history.replaceState` — no browser history pollution. Columns must have a
+  `name` defined for ordering to be serialised; columns created with `TextColumn::new('email', …)`
+  have one automatically.
 </Aside>
 
 <Aside type="tip">
-  `urlState` and `stateSave` are complementary: `stateSave` (localStorage) restores state for the same user on the same browser; `urlState` makes the URL shareable across users and devices.
+  `urlState` and `stateSave` are complementary: `stateSave` (localStorage) restores state for the
+  same user on the same browser; `urlState` makes the URL shareable across users and devices.
 </Aside>
 
 ## Scrolling

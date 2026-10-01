@@ -86,10 +86,7 @@ Renders as: `user@example.com`
       '`obfuscate(bool $obfuscate = true)`',
       'Encodes the mailto href with HTML entities to deter email scrapers',
     ],
-    [
-      '`mask(bool $mask = true)`',
-      'Partially hides the displayed address: `u***@example.com`',
-    ],
+    ['`mask(bool $mask = true)`', 'Partially hides the displayed address: `u***@example.com`'],
     [
       '`setDisplayValue(string $displayValue)`',
       'Sets a fixed display text (takes priority over `mask()`)',
@@ -134,6 +131,6 @@ final class UsersDataTable extends AbstractDataTable
 ```
 
 <Aside type="note">
-  Searching and sorting operate on the raw email value, not the masked or obfuscated display text.
-  A search for `john` will still match `john@example.com` even when masking is enabled.
+  Searching and sorting operate on the raw email value, not the masked or obfuscated display text. A
+  search for `john` will still match `john@example.com` even when masking is enabled.
 </Aside>

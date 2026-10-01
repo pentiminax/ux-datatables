@@ -40,14 +40,14 @@ An implementation reads its criteria from the context, never from the raw reques
 
 One context is built per query and shared by every filter in the chain.
 
-| Member                                  | Description                                                       |
-| --------------------------------------- | ----------------------------------------------------------------- |
+| Member                                  | Description                                                        |
+| --------------------------------------- | ------------------------------------------------------------------ |
 | `intent`                                | The normalized `DataTableQueryIntent`, built once                  |
 | `columns`                               | Configured, permission-filtered columns indexed by name            |
 | `alias`                                 | The query's root alias (`e`)                                       |
 | `columnByName(string $name)`            | The configured column behind an intent column reference, or `null` |
 | `nextParamIndex()`                      | A fresh index, never reused for the life of the context            |
-| `paramIndexFor(ColumnReadReference $r)` | An index stable within one `apply()` call, for the same reference   |
+| `paramIndexFor(ColumnReadReference $r)` | An index stable within one `apply()` call, for the same reference  |
 
 Use `nextParamIndex()` for each bound value. Use `paramIndexFor()` when a single filter needs to
 reference one bound value from more than one DQL fragment — it returns the same index for the same
@@ -59,17 +59,17 @@ filters from colliding on the same column.
 The intent is provider-neutral: no Doctrine classes, no DQL, no aliases, no raw DataTables request
 indexes. It is what lets a non-Doctrine provider consume the same criteria.
 
-| Field            | Type                                                        | Description                                       |
-| ---------------- | ----------------------------------------------------------- | ------------------------------------------------- |
-| `draw`           | `?int`                                                      | The request's draw counter, echoed in the response |
-| `offset`         | `int`                                                       | First row to return                                |
-| `limit`          | `?int`                                                      | Page length; `null` means unpaginated              |
-| `columns`        | `list<ColumnReadReference>`                                 | Requested columns, in request order                |
-| `globalSearch`   | `?string`                                                   | Trimmed global search term, `null` when empty      |
-| `orderColumn`    | `?ColumnReadReference`                                      | Column to order by                                 |
-| `orderDir`       | `'asc'\|'desc'\|null`                                       | Order direction                                    |
-| `columnSearches` | `list<array{column: ColumnReadReference, value: string}>`    | Per-column search box terms                        |
-| `columnControls` | `list<ColumnControlIntent>`                                 | ColumnControl scalar and list criteria             |
+| Field            | Type                                                      | Description                                        |
+| ---------------- | --------------------------------------------------------- | -------------------------------------------------- |
+| `draw`           | `?int`                                                    | The request's draw counter, echoed in the response |
+| `offset`         | `int`                                                     | First row to return                                |
+| `limit`          | `?int`                                                    | Page length; `null` means unpaginated              |
+| `columns`        | `list<ColumnReadReference>`                               | Requested columns, in request order                |
+| `globalSearch`   | `?string`                                                 | Trimmed global search term, `null` when empty      |
+| `orderColumn`    | `?ColumnReadReference`                                    | Column to order by                                 |
+| `orderDir`       | `'asc'\|'desc'\|null`                                     | Order direction                                    |
+| `columnSearches` | `list<array{column: ColumnReadReference, value: string}>` | Per-column search box terms                        |
+| `columnControls` | `list<ColumnControlIntent>`                               | ColumnControl scalar and list criteria             |
 
 A `ColumnReadReference` carries the column's `name`, its `fieldPath`, and whether it is
 `globalSearchable` — enough to know what to read without knowing how to read it. The Doctrine-only
@@ -81,12 +81,12 @@ details stay out: a column's raw `getOrderExpression()`, for instance, is resolv
 `QueryFilterPipeline::apply()` runs these four filters, in this order, resetting the context's
 parameter-index scope between each:
 
-| # | Filter                      | What it applies                                                                       |
-| - | --------------------------- | ------------------------------------------------------------------------------------- |
-| 1 | `OrderFilter`               | `orderColumn` / `orderDir`, using the column's order expression when it defines one   |
-| 2 | `GlobalSearchFilter`        | `globalSearch`, one predicate per globally searchable column, combined with `OR`       |
-| 3 | `ColumnSearchFilter`        | `columnSearches`, one AND condition each, via the registry's `contains` strategy       |
-| 4 | `ColumnControlSearchFilter` | `columnControls`: list criteria as typed `IN` branches, scalar criteria via the registry |
+| #   | Filter                      | What it applies                                                                          |
+| --- | --------------------------- | ---------------------------------------------------------------------------------------- |
+| 1   | `OrderFilter`               | `orderColumn` / `orderDir`, using the column's order expression when it defines one      |
+| 2   | `GlobalSearchFilter`        | `globalSearch`, one predicate per globally searchable column, combined with `OR`         |
+| 3   | `ColumnSearchFilter`        | `columnSearches`, one AND condition each, via the registry's `contains` strategy         |
+| 4   | `ColumnControlSearchFilter` | `columnControls`: list criteria as typed `IN` branches, scalar criteria via the registry |
 
 Filters 2–4 delegate condition building to the search strategy registry and the search predicate
 builder, which is why overriding `createSearchStrategyRegistry()` or
@@ -152,10 +152,10 @@ final class InvoiceDataTable extends AbstractDataTable
 <Aside type="caution">
   A scoping condition like this is authorization, so it belongs in `customizeQueryBuilder()`, which
   is evaluated per request. Reading the security token from a `configure*()` method would bind the
-  container-shared table instance to whoever initialized it first — see the
-  [purity contract](/ux-datatables/reference/abstract-datatable/#configuration-methods-must-be-pure).
-  Scoping the query is also not a substitute for protecting the Ajax route itself; see
-  [Securing Ajax Routes](/ux-datatables/getting-started/security/).
+  container-shared table instance to whoever initialized it first — see the [purity
+  contract](/ux-datatables/reference/abstract-datatable/#configuration-methods-must-be-pure).
+  Scoping the query is also not a substitute for protecting the Ajax route itself; see [Securing
+  Ajax Routes](/ux-datatables/getting-started/security/).
 </Aside>
 
 To share that condition across several tables, extract it into a service and call it from each

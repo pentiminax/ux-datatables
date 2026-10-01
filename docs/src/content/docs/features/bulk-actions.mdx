@@ -109,15 +109,27 @@ grows with the selection; size `chunk()` and the selections you allow accordingl
 <Table
   headers={['Method', 'Description']}
   rows={[
-    ["``BulkAction::new($name, $label = '', $className = '')``", 'Create an action; `$name` must be unique within the table'],
+    [
+      "``BulkAction::new($name, $label = '', $className = '')``",
+      'Create an action; `$name` must be unique within the table',
+    ],
     ['``label($label)``', 'Override the button label'],
     ['``setClassName($className)``', 'CSS classes for the button'],
     ['``icon($icon)``', 'A Lucide `Icon` case or a raw icon class string'],
-    ['``askConfirmation($message, $buttonLabel = null)``', 'Confirm through the table modal adapter before running; `{count}` is replaced client-side'],
+    [
+      '``askConfirmation($message, $buttonLabel = null)``',
+      'Confirm through the table modal adapter before running; `{count}` is replaced client-side',
+    ],
     ['``successMessage($message)``', 'Message shown in the bar instead of the processed count'],
-    ['``setPermission($attribute, $subjectResolver = null)``', 'Static permission, or a per-row one when a resolver is given'],
+    [
+      '``setPermission($attribute, $subjectResolver = null)``',
+      'Static permission, or a per-row one when a resolver is given',
+    ],
     ['``chunk($size)``', 'Rows loaded and flushed per batch (default `250`)'],
-    ['``deselectRecordsAfterCompletion($deselect = true)``', 'Clear the selection once the run succeeds (default `true`)'],
+    [
+      '``deselectRecordsAfterCompletion($deselect = true)``',
+      'Clear the selection once the run succeeds (default `true`)',
+    ],
     ['``handler($handler)``', 'Required closure receiving `BulkRecords` and `BulkActionContext`'],
   ]}
 />
@@ -129,9 +141,18 @@ grows with the selection; size `chunk()` and the selections you allow accordingl
   rows={[
     ['``add($action)``', 'Add an action; a duplicate name throws'],
     ['``remove($name)``', 'Remove an action by name'],
-    ['``selectCurrentPageOnly($only = true)``', 'Forbid selecting every matching row; the server rejects such a request too'],
-    ["``setIdField($field)``", 'Override the row identifier written as `DT_RowId`; Doctrine identifiers are detected automatically, otherwise the default is `id`'],
-    ["``position($layoutPosition)``", 'DataTables layout cell hosting the button (default `topEnd`)'],
+    [
+      '``selectCurrentPageOnly($only = true)``',
+      'Forbid selecting every matching row; the server rejects such a request too',
+    ],
+    [
+      '``setIdField($field)``',
+      'Override the row identifier written as `DT_RowId`; Doctrine identifiers are detected automatically, otherwise the default is `id`',
+    ],
+    [
+      '``position($layoutPosition)``',
+      'DataTables layout cell hosting the button (default `topEnd`)',
+    ],
   ]}
 />
 
