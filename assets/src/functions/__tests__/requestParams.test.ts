@@ -14,6 +14,16 @@ describe('installRequestParams', () => {
         expect(handle.current()).toBe(sent)
     })
 
+    it('lets the applied filter values win over static ajax.data filters', () => {
+        const payload: Record<string, any> = {
+            ajax: { url: '/data', data: { filters: { name: 'static' } } },
+        }
+        const handle = installRequestParams(payload, { filters: () => ({ name: 'john' }) })
+
+        expect(payload.ajax.data(protocol()).filters).toEqual({ name: 'john' })
+        expect(handle.current().filters).toEqual({ name: 'john' })
+    })
+
     it('reads the filter values at request time, not at install time', () => {
         let values: Record<string, unknown> = {}
         const payload: Record<string, any> = { ajax: { url: '/data' } }
@@ -80,6 +90,35 @@ describe('installRequestParams', () => {
             filters: { status: 'draft' },
             scope: 'mine',
         })
+    })
+
+    it('remembers what a JSON string sent, not the broader params behind it', () => {
+        const payload: Record<string, any> = {
+            ajax: {
+                url: '/data',
+                data: (params: Record<string, any>) =>
+                    JSON.stringify({ ...params, search: { value: 'narrow' } }),
+            },
+        }
+        const handle = installRequestParams(payload, { filters: () => ({ status: 'draft' }) })
+
+        payload.ajax.data({ ...protocol(), search: { value: '' } })
+
+        expect(handle.current()).toEqual({
+            ...protocol(),
+            search: { value: 'narrow' },
+            filters: { status: 'draft' },
+        })
+    })
+
+    it('falls back to the params behind a non-JSON string', () => {
+        const payload: Record<string, any> = {
+            ajax: { url: '/data', data: (params: Record<string, any>) => `draw=${params.draw}` },
+        }
+        const handle = installRequestParams(payload)
+
+        expect(payload.ajax.data(protocol())).toBe('draw=2')
+        expect(handle.current()).toEqual(protocol())
     })
 
     it('sends the transport rewrite but remembers the DataTables-protocol params', () => {
