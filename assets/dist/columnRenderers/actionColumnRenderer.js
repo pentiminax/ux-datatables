@@ -164,13 +164,13 @@ function renderDeniedAction(action) {
     return `<button ${attrs.join(' ')}>${renderActionIcon(action)}${escapeHtml(action.label)}</button>`;
 }
 function resolveActionId(action, row) {
+    const resolvedId = row.__ux_datatables_actions?.[action.name]?.id;
+    if (isUsableActionId(resolvedId)) {
+        return resolvedId;
+    }
     const idField = action.idField ?? 'id';
     const rowId = row[idField];
-    if (isUsableActionId(rowId)) {
-        return rowId;
-    }
-    const resolvedId = row.__ux_datatables_actions?.[action.name]?.id;
-    return isUsableActionId(resolvedId) ? resolvedId : null;
+    return isUsableActionId(rowId) ? rowId : null;
 }
 function isUsableActionId(value) {
     if (typeof value === 'number') {

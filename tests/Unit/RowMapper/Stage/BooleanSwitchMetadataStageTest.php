@@ -53,7 +53,7 @@ final class BooleanSwitchMetadataStageTest extends TestCase
             [BooleanColumn::new('active')->renderAsSwitch()],
             [
                 'active'                                 => true,
-                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => 42],
+                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => '42'],
             ],
         ];
 
@@ -95,7 +95,7 @@ final class BooleanSwitchMetadataStageTest extends TestCase
             [
                 'active'                                 => true,
                 'verified'                               => false,
-                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => 42, 'verified' => 42],
+                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => '42', 'verified' => '42'],
             ],
         ];
 
@@ -158,7 +158,7 @@ final class BooleanSwitchMetadataStageTest extends TestCase
             [BooleanColumn::new('active')->renderAsSwitch()],
             [
                 'active'                                 => true,
-                BooleanSwitchMetadataStage::METADATA_KEY => ['verified' => 7, 'active' => 42],
+                BooleanSwitchMetadataStage::METADATA_KEY => ['verified' => '7', 'active' => '42'],
             ],
         ];
 
@@ -171,7 +171,27 @@ final class BooleanSwitchMetadataStageTest extends TestCase
             [BooleanColumn::new('active')->renderAsSwitch()],
             [
                 'active'                                 => true,
-                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => 42],
+                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => '42'],
+            ],
+        ];
+
+        yield 'integer id is stringified so JSON keeps values above JS MAX_SAFE_INTEGER' => [
+            ['active' => true],
+            new BooleanSwitchMetadataFixture(9007199254740993),
+            [BooleanColumn::new('active')->renderAsSwitch()],
+            [
+                'active'                                 => true,
+                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => '9007199254740993'],
+            ],
+        ];
+
+        yield 'zero-padded string id is kept' => [
+            ['active' => true],
+            new BooleanSwitchMetadataFixture('00123'),
+            [BooleanColumn::new('active')->renderAsSwitch()],
+            [
+                'active'                                 => true,
+                BooleanSwitchMetadataStage::METADATA_KEY => ['active' => '00123'],
             ],
         ];
     }
