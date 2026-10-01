@@ -156,6 +156,19 @@ describe('installRequestParams', () => {
         expect(payload.ajax.data(protocol())).toEqual({ draw: '2' })
     })
 
+    it('keeps the paging for the transport when a JSON string omits it', () => {
+        const transport = vi.fn((params: Record<string, any>) => ({
+            page: String(params.start / params.length + 1),
+        }))
+        const payload: Record<string, any> = {
+            ajax: { url: '/api/books', data: () => JSON.stringify({ custom: 'body' }) },
+        }
+        const handle = installRequestParams(payload, { transport })
+
+        expect(payload.ajax.data(protocol())).toEqual({ page: '2' })
+        expect(handle.current()).toEqual(protocol())
+    })
+
     it('attaches the filters to a function ajax and remembers the request', () => {
         const ajax = vi.fn()
         const payload: Record<string, any> = { ajax }
