@@ -121,6 +121,34 @@ describe('datatable controller Turbo lifecycle', () => {
         expect(instances[0].destroy).not.toHaveBeenCalled()
     })
 
+    it('reopens the Mercure subscription after a Stimulus reconnect', async () => {
+        const table = mountTable({
+            ajax: { url: '/datatables/ajax' },
+            mercure: { hubUrl: 'https://hub.example/.well-known/mercure', topics: ['/users'] },
+        })
+        await getController(application, table)
+
+        loadResolvers[0](MockDataTable)
+        await settle()
+
+        expect(createMercureSubscription).toHaveBeenCalledTimes(1)
+        const firstSource = vi.mocked(createMercureSubscription).mock.results[0]?.value as {
+            close: ReturnType<typeof vi.fn>
+        }
+        expect(firstSource.close).not.toHaveBeenCalled()
+
+        await detach(table)
+        await attach(table)
+        await settle()
+
+        expect(firstSource.close).toHaveBeenCalledTimes(1)
+        expect(createMercureSubscription).toHaveBeenCalledTimes(2)
+        const secondSource = vi.mocked(createMercureSubscription).mock.results[1]?.value as {
+            close: ReturnType<typeof vi.fn>
+        }
+        expect(secondSource.close).not.toHaveBeenCalled()
+    })
+
     it('does not duplicate mutation handlers after a reconnect', async () => {
         const table = mountTable({
             dataTable: 'mutation-token',

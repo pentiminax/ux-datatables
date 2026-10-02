@@ -147,6 +147,8 @@ export default class extends Controller {
             // controller instance needs a signal to bind again. `connect` stays a build-only event.
             if (this.table) {
                 this.dispatchEvent('reconnect', { table: this.table })
+                // disconnect() closed the EventSource; the table is still live, so subscribe again.
+                await this.initMercure(this.viewValue)
             }
 
             return
@@ -461,7 +463,7 @@ export default class extends Controller {
     }
 
     private async initMercure(payload: Record<string, any>): Promise<void> {
-        if (!this.isMercureEnabled(payload)) {
+        if (this.eventSource || !this.isMercureEnabled(payload)) {
             return
         }
 

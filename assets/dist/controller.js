@@ -86,6 +86,7 @@ class default_1 extends Controller {
         if (this.isDataTableInitialized) {
             if (this.table) {
                 this.dispatchEvent('reconnect', { table: this.table });
+                await this.initMercure(this.viewValue);
             }
             return;
         }
@@ -283,7 +284,7 @@ class default_1 extends Controller {
         }
     }
     async initMercure(payload) {
-        if (!this.isMercureEnabled(payload)) {
+        if (this.eventSource || !this.isMercureEnabled(payload)) {
             return;
         }
         await this.initHighlighter(payload);
