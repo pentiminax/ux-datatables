@@ -35,6 +35,12 @@ MoneyColumn::new('rate', 'Rate')
 Pass an ISO 4217 code to `currency()` (three letters). When `storedAsCents(true)` (the default),
 `12345` displays as `€123.45`. When `false`, the raw number is formatted as-is.
 
+## In The Edit Modal
+
+The edit form maps a money column to Symfony's `MoneyType` with the column's currency and decimals.
+A column stored as cents is edited in whole currency units: `2500` opens as `25.00`, and saving `30.5`
+stores `3050`. A column stored as whole units is bound as entered.
+
 ## API Reference
 
 <Table
