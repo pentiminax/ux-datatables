@@ -103,6 +103,18 @@ final class ColumnToFormTypeMapperTest extends TestCase
             MoneyColumn::new('fee', 'Fee')->currency('KWD')->decimals(3),
         ];
 
+        yield 'money at the eight decimals limit' => [
+            ['formType' => MoneyType::class, 'options' => [
+                'label'    => 'Amount',
+                'currency' => 'BTC',
+                'scale'    => 8,
+                'html5'    => true,
+                'divisor'  => 100_000_000,
+                'input'    => 'integer',
+            ]],
+            MoneyColumn::new('amount', 'Amount')->currency('BTC')->decimals(8),
+        ];
+
         yield 'money stored as whole units' => [
             ['formType' => MoneyType::class, 'options' => [
                 'label'    => 'Price',
@@ -137,6 +149,7 @@ final class ColumnToFormTypeMapperTest extends TestCase
         yield 'template column' => [TemplateColumn::new('custom', 'Custom')->setCustomOption('templatePath', 'some/template.html.twig')];
         yield 'url column' => [UrlColumn::new('link', 'Link')];
         yield 'nested field path' => [TextColumn::new('author', 'Author')->setField('author.firstName')];
+        yield 'money in cents beyond float precision' => [MoneyColumn::new('wei', 'Wei')->currency('ETH')->decimals(18)];
         yield 'hidden when updating' => [TextColumn::new('createdAt', 'Created At')->setCustomOption('hideWhenUpdating', true)];
     }
 
