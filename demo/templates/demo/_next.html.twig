@@ -1,0 +1,7 @@
+{% set next = demo_next_page(page) %}
+{% if next %}
+    <a class="next-page" href="{{ path(next.route) }}">
+        <span class="next-label">{{ 'page.next'|trans }}</span>
+        <span class="next-title">{{ ('page.' ~ next.route ~ '.title')|trans }} <span aria-hidden="true">→</span></span>
+    </a>
+{% endif %}
