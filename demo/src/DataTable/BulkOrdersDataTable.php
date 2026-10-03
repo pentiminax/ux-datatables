@@ -27,8 +27,14 @@ final class BulkOrdersDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('reference', 'Reference');
-        yield TextColumn::new('customer', 'Customer')->setField('customer.name');
-        yield MoneyColumn::new('total', 'Total')->currency('EUR')->storedAsCents();
+
+        yield TextColumn::new('customer', 'Customer')
+            ->setField('customer.name');
+
+        yield MoneyColumn::new('total', 'Total')
+            ->currency('EUR')
+            ->storedAsCents();
+
         yield ChoiceColumn::new('status', 'Status')
             ->setChoices(OrderStatus::class)
             ->renderAsBadges([
@@ -38,46 +44,60 @@ final class BulkOrdersDataTable extends AbstractDataTable
                 'delivered' => 'success',
                 'cancelled' => 'danger',
             ]);
-        yield DateColumn::new('placedAt', 'Placed at')->setFormat('Y-m-d H:i');
-        yield DateColumn::new('shippedAt', 'Shipped at')->setFormat('Y-m-d H:i')->setDefaultContent('—');
+
+        yield DateColumn::new('placedAt', 'Placed at')
+            ->setFormat('Y-m-d H:i');
+
+        yield DateColumn::new('shippedAt', 'Shipped at')
+            ->setFormat('Y-m-d H:i')
+            ->setDefaultContent('—');
     }
 
     public function configureDataTable(DataTable $table): DataTable
     {
-        return $table->serverSide()->processing()->order([['name' => 'placedAt', 'dir' => 'desc']]);
+        return $table
+            ->serverSide()
+            ->processing()
+            ->order([['name' => 'placedAt', 'dir' => 'desc']]);
     }
 
     public function configureFilters(Filters $filters): Filters
     {
-        return $filters->add(ChoiceFilter::new('status')->label('Status')->options(OrderStatus::class)->multiple());
+        $statusFilter = ChoiceFilter::new('status')
+            ->label('Status')
+            ->options(OrderStatus::class)
+            ->multiple();
+
+        return $filters
+            ->add($statusFilter);
     }
 
     public function configureBulkActions(BulkActions $actions): BulkActions
     {
+        $shipAction = BulkAction::new('ship', 'Mark as shipped')
+            ->icon(Icon::Truck)
+            ->setPermission(OrderVoter::SHIP, static fn (Order $order): Order => $order)
+            ->successMessage('Orders marked as shipped.')
+            ->handler(static function (BulkRecords $records): void {
+                foreach ($records as $order) {
+                    $order->status    = OrderStatus::Shipped;
+                    $order->shippedAt = new \DateTimeImmutable();
+                }
+            });
+
+        $cancelAction = BulkAction::new('cancel', 'Cancel')
+            ->icon(Icon::Ban)
+            ->askConfirmation('Cancel {count} orders?')
+            ->setPermission(OrderVoter::CANCEL, static fn (Order $order): Order => $order)
+            ->successMessage('Orders cancelled.')
+            ->handler(static function (BulkRecords $records): void {
+                foreach ($records as $order) {
+                    $order->status = OrderStatus::Cancelled;
+                }
+            });
+
         return $actions
-            ->add(
-                BulkAction::new('ship', 'Mark as shipped')
-                    ->icon(Icon::Truck)
-                    ->setPermission(OrderVoter::SHIP, static fn (Order $order): Order => $order)
-                    ->successMessage('Orders marked as shipped.')
-                    ->handler(static function (BulkRecords $records): void {
-                        foreach ($records as $order) {
-                            $order->status    = OrderStatus::Shipped;
-                            $order->shippedAt = new \DateTimeImmutable();
-                        }
-                    })
-            )
-            ->add(
-                BulkAction::new('cancel', 'Cancel')
-                    ->icon(Icon::Ban)
-                    ->askConfirmation('Cancel {count} orders?')
-                    ->setPermission(OrderVoter::CANCEL, static fn (Order $order): Order => $order)
-                    ->successMessage('Orders cancelled.')
-                    ->handler(static function (BulkRecords $records): void {
-                        foreach ($records as $order) {
-                            $order->status = OrderStatus::Cancelled;
-                        }
-                    })
-            );
+            ->add($shipAction)
+            ->add($cancelAction);
     }
 }
