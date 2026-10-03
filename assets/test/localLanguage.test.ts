@@ -57,4 +57,45 @@ describe('applyLocalLanguage', () => {
 
         expect(payload).toEqual({ columns: [] })
     })
+
+    it.each(['fr', 'fr_FR', 'fr-CA'])(
+        'follows the %s request locale when no language is configured',
+        async (locale) => {
+            const payload: any = { locale }
+
+            await applyLocalLanguage(payload)
+
+            expect(payload.language.search).toBe('Rechercher :')
+        }
+    )
+
+    it.each(['en', 'en_US'])(
+        'loads the English catalog for the %s request locale',
+        async (locale) => {
+            const payload: any = { locale }
+
+            await applyLocalLanguage(payload)
+
+            expect(payload.language.emptyTable).toBe('No data available in table')
+        }
+    )
+
+    it.each(['de', 'xx'])(
+        'keeps the DataTables defaults for the %s request locale',
+        async (locale) => {
+            const payload: any = { locale }
+
+            await applyLocalLanguage(payload)
+
+            expect(payload.language).toBeUndefined()
+        }
+    )
+
+    it('lets an explicit language win over the request locale', async () => {
+        const payload: any = { locale: 'fr', language: { url: cdnUrl('en-GB') } }
+
+        await applyLocalLanguage(payload)
+
+        expect(payload.language.emptyTable).toBe('No data available in table')
+    })
 })
