@@ -131,8 +131,32 @@ final class DataTableTest extends TestCase
         $expectedButtons = (new ButtonsExtension([ButtonType::CSV, ButtonType::EXCEL]))->jsonSerialize();
 
         $this->assertSame(
-            ['buttons' => $expectedButtons],
+            ['pageLength', ['buttons' => $expectedButtons]],
             $table->getOptions()['layout']['topStart'],
+        );
+    }
+
+    #[Test]
+    public function buttons_keeps_the_default_feature_of_the_slot_it_takes(): void
+    {
+        $table = (new DataTable('testTable'))->buttons([ButtonType::CSV], 'topEnd');
+
+        $this->assertSame(
+            ['search', ['buttons' => (new ButtonsExtension([ButtonType::CSV]))->jsonSerialize()]],
+            $table->getOptions()['layout']['topEnd'],
+        );
+    }
+
+    #[Test]
+    public function buttons_replaces_a_slot_hidden_with_null(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout(['topEnd' => null])
+            ->buttons([ButtonType::CSV], 'topEnd');
+
+        $this->assertSame(
+            ['buttons' => (new ButtonsExtension([ButtonType::CSV]))->jsonSerialize()],
+            $table->getOptions()['layout']['topEnd'],
         );
     }
 
@@ -145,7 +169,7 @@ final class DataTableTest extends TestCase
 
         $this->assertArrayNotHasKey('topStart', $layout);
         $this->assertSame(
-            ['buttons' => (new ButtonsExtension([ButtonType::CSV]))->jsonSerialize()],
+            ['paging', ['buttons' => (new ButtonsExtension([ButtonType::CSV]))->jsonSerialize()]],
             $layout['bottomEnd'],
         );
     }
@@ -249,7 +273,7 @@ final class DataTableTest extends TestCase
         ]))->jsonSerialize();
 
         $this->assertSame(
-            ['buttons' => $expectedButtons],
+            ['pageLength', ['buttons' => $expectedButtons]],
             $table->getOptions()['layout']['topStart'],
         );
     }
@@ -262,7 +286,7 @@ final class DataTableTest extends TestCase
             ->buttons([ButtonType::PRINT]);
 
         $this->assertSame(
-            ['buttons' => (new ButtonsExtension([ButtonType::PRINT]))->jsonSerialize()],
+            ['pageLength', ['buttons' => (new ButtonsExtension([ButtonType::PRINT]))->jsonSerialize()]],
             $table->getOptions()['layout']['topStart'],
         );
     }
