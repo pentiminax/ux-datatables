@@ -34,8 +34,11 @@ The second argument is a DataTables position name and defaults to `topStart`:
 $dataTable->buttons([ButtonType::CSV], 'topEnd');
 ```
 
-The target position keeps whatever it already holds, so ordering `layout()`
-before `buttons()` combines features instead of replacing them:
+The target position keeps whatever it already holds, including the DataTables
+default when `layout()` does not mention it: `buttons()` leaves the page length
+selector in `topStart`, and `buttons([...], 'topEnd')` leaves the search box.
+Hide a default with `->layout(['topStart' => null])` before calling `buttons()`.
+Ordering `layout()` before `buttons()` combines features the same way:
 
 ```php
 use Pentiminax\UX\DataTables\Enum\Feature;
