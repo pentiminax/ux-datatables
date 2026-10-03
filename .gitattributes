@@ -15,6 +15,7 @@
 /assets/tsconfig.json export-ignore
 /assets/vitest.config.ts export-ignore
 /codecov.yml export-ignore
+/demo export-ignore
 /docs export-ignore
 /phpunit.xml.dist export-ignore
 /skills export-ignore
