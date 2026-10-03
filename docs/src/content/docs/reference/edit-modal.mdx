@@ -139,6 +139,7 @@ The form builder maps each column to a Symfony Form type:
     ['`BooleanColumn` (`renderAsSwitch`)', '`CheckboxType`'],
     ['`ChoiceColumn` (has `choices`)', '`ChoiceType`'],
     ['`DateColumn` (has `dateFormat`)', '`DateType` (single_text widget)'],
+    ['`MoneyColumn`', '`MoneyType` (currency and decimals from the column, divisor for cents)'],
     ['`NumberColumn` (`num`, `num-fmt`, …)', '`NumberType`'],
     ['`TextColumn` (`string`, `string-utf8`)', '`TextType`'],
     ['`html` type', '`TextareaType`'],

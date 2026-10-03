@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Form;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
+use Pentiminax\UX\DataTables\Column\MoneyColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -22,6 +23,7 @@ use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
+use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -76,6 +78,40 @@ final class ColumnToFormTypeMapperTest extends TestCase
         yield 'num-fmt' => [$number, NumberColumn::new('price', 'Price')->formatted()];
         yield 'html-num' => [$number, NumberColumn::new('price', 'Price')->html()];
         yield 'html-num-fmt' => [$number, NumberColumn::new('price', 'Price')->html()->formatted()];
+
+        yield 'money stored as cents' => [
+            ['formType' => MoneyType::class, 'options' => [
+                'label'    => 'Price',
+                'currency' => 'USD',
+                'scale'    => 2,
+                'html5'    => true,
+                'divisor'  => 100,
+                'input'    => 'integer',
+            ]],
+            MoneyColumn::new('price', 'Price')->currency('USD'),
+        ];
+
+        yield 'money with three decimals' => [
+            ['formType' => MoneyType::class, 'options' => [
+                'label'    => 'Fee',
+                'currency' => 'KWD',
+                'scale'    => 3,
+                'html5'    => true,
+                'divisor'  => 1000,
+                'input'    => 'integer',
+            ]],
+            MoneyColumn::new('fee', 'Fee')->currency('KWD')->decimals(3),
+        ];
+
+        yield 'money stored as whole units' => [
+            ['formType' => MoneyType::class, 'options' => [
+                'label'    => 'Price',
+                'currency' => 'EUR',
+                'scale'    => 2,
+                'html5'    => true,
+            ]],
+            MoneyColumn::new('price', 'Price')->storedAsCents(false),
+        ];
 
         $text = ['formType' => TextType::class, 'options' => ['label' => 'Full Name']];
 

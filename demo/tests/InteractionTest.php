@@ -52,16 +52,32 @@ final class InteractionTest extends DataTableTestCase
         self::assertSame(!$product->featured, $this->reload($product)->featured);
     }
 
-    public function test_edit_form_is_generated_without_the_cents_price(): void
+    public function test_edit_form_shows_and_saves_the_price_in_euros(): void
     {
-        $product = $this->product(ProductStatus::Active);
+        $product        = $this->product(ProductStatus::Active);
+        $product->price = 2500;
+        $this->entityManager()->flush();
 
         $this->mutate('POST', '/datatables/ajax/edit-form/view', ProductActionsDataTable::class, ['id' => $product->id]);
 
         self::assertResponseIsSuccessful();
         $html = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR)['html'];
-        self::assertStringContainsString($product->name, $html);
-        self::assertStringNotContainsString('[price]', $html);
+        self::assertStringContainsString('value="25.00"', $html);
+
+        $this->mutate('POST', '/datatables/ajax/edit-form', ProductActionsDataTable::class, [
+            'id'       => $product->id,
+            'formData' => [
+                'name'     => $product->name,
+                'category' => $product->category->value,
+                'price'    => '30.5',
+                'stock'    => (string) $product->stock,
+                'status'   => $product->status->value,
+                '_token'   => 'csrf-token',
+            ],
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(3050, $this->reload($product)->price);
     }
 
     public function test_voter_only_lets_archived_products_be_deleted(): void

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Form;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\MoneyColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -94,6 +95,23 @@ final class EditFormBuilderTest extends TestCase
                 'name' => [TextType::class, ['label' => 'Name']],
             ],
         ];
+    }
+
+    #[Test]
+    public function a_money_column_stored_in_cents_is_edited_in_currency_units(): void
+    {
+        $entity        = new EditFormBuilderEntity();
+        $entity->price = 2500;
+
+        $form = (new EditFormBuilder(Forms::createFormFactory(), new ColumnToFormTypeMapper()))
+            ->buildForm($entity, [MoneyColumn::new('price', 'Price')], []);
+
+        $this->assertSame('25.00', $form->get('price')->getViewData());
+
+        $form->submit(['price' => '30.5']);
+
+        $this->assertTrue($form->isSynchronized());
+        $this->assertSame(3050, $entity->price);
     }
 
     #[Test]
