@@ -244,7 +244,6 @@ svg.filled {
     top: var(--space-2);
 }
 
-/* Top bar: the frozen header row of the page. */
 .topbar {
     position: sticky;
     top: 0;
@@ -480,7 +479,6 @@ svg.filled {
     font-weight: 600;
 }
 
-/* Page header */
 .page-header h1 {
     margin: 0;
     font-size: var(--text-2xl);
@@ -693,7 +691,6 @@ svg.filled {
     color: #9ec5f5;
 }
 
-/* Home */
 .hero h1 {
     max-width: 18ch;
     margin: 0;
@@ -811,7 +808,6 @@ svg.filled {
     --dts-table_background: rgb(var(--dt-tw-surface));
 }
 
-/* Cell and row templates rendered by the bundle. */
 .stock {
     display: inline-flex;
     align-items: center;
