@@ -467,6 +467,17 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
         rgb(var(--dt-tw-surface));
 }
 
+/* Sortable headers tint on hover; a pinned one needs the tint over the surface as well. */
+.dt-container.dt-container
+    table.dataTable
+    thead
+    > tr
+    > th:is(.dtfc-fixed-start, .dtfc-fixed-end):is(.dt-orderable-asc, .dt-orderable-desc):hover {
+    background:
+        linear-gradient(var(--dt-tw-sunken), var(--dt-tw-sunken)),
+        rgb(var(--dt-tw-surface));
+}
+
 .dt-container.dt-container table.dataTable tbody > tr > :is(.dtfc-fixed-start, .dtfc-fixed-end) {
     background: rgb(var(--dt-tw-surface));
 }
@@ -778,8 +789,10 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 }
 
 /* The column visibility menu and the copy confirmation are appended to <body>, outside the
-   container, so they read the Buttons variables from :root. Their defaults are white. */
-:root:root {
+   container, so they read the Buttons variables from :root. Their defaults are white, and the
+   extension's own `:root.dark` block has the same specificity as `:root:root`, so this one is
+   a notch higher to win whatever the stylesheet order. */
+:root:root:root {
     --dtb-collection_background-color: rgb(var(--dt-tw-surface));
     --dtb-collection_border: 1px solid var(--dt-tw-divider);
     --dtb-collection_box-shadow: var(--dt-tw-shadow-panel);
