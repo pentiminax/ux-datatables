@@ -126,3 +126,22 @@ ID: 'ID'
 Actions: 'Actions'
 'Yes': 'Oui'
 'No': 'Non'
+
+enum:
+    category:
+        audio: 'Audio'
+        home: 'Maison'
+        office: 'Bureau'
+        outdoor: 'Plein air'
+        kitchen: 'Cuisine'
+        travel: 'Voyage'
+    product_status:
+        active: 'Actif'
+        draft: 'Brouillon'
+        archived: 'Archivé'
+    order_status:
+        pending: 'En attente'
+        paid: 'Payée'
+        shipped: 'Expédiée'
+        delivered: 'Livrée'
+        cancelled: 'Annulée'

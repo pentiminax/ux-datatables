@@ -5,6 +5,19 @@ current version and the target, oldest first.
 
 ## Next release
 
+### The table language follows the request locale
+
+`data_tables.options.language` no longer defaults to `en-GB`. A table without a language now loads
+the bundled catalog matching the request locale (`fr`, `fr_FR` and `fr-CA` load French, `en` loads
+English), and keeps the DataTables built-in English strings for a locale with no bundled catalog.
+Set `data_tables.options.language` or call `language()` on a table to pin a language as before.
+
+### `ChoiceColumn` translates `TranslatableInterface` enum labels
+
+`setChoices()` already stored the case name or `label()` for an enum; cases of an enum implementing
+`TranslatableInterface` are now translated at render time, like `ChoiceFilter` options. Enums that
+do not implement it are unchanged.
+
 ### `buttons()` and bulk actions keep the default content of their slot
 
 `buttons()` and the bulk actions bar wrote their marker into an empty layout slot, which replaced

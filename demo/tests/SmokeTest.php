@@ -55,6 +55,19 @@ final class SmokeTest extends DataTableTestCase
         self::assertGreaterThanOrEqual(3, $crawler->filter('.code-panel [role="tab"]')->count());
     }
 
+    public function test_choice_labels_follow_the_request_locale(): void
+    {
+        $client = self::createClient();
+
+        foreach (['en' => 'Delivered', 'fr' => 'Livrée'] as $locale => $label) {
+            $url = self::getContainer()->get('router')->generate('server_side', ['_locale' => $locale]);
+
+            $client->request('GET', $url);
+
+            self::assertStringContainsString(json_encode($label, \JSON_HEX_QUOT | \JSON_HEX_APOS), (string) html_entity_decode($client->getResponse()->getContent()));
+        }
+    }
+
     /**
      * @return iterable<string, array{class-string, int}>
      */
