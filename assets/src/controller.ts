@@ -39,6 +39,7 @@ import {
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
+import { shiftOrderForSelectColumn } from './functions/shiftOrderForSelectColumn.js'
 import { submitEditForm } from './functions/submitEditForm.js'
 import { applyThemeSearchPlaceholder } from './functions/themeSearchField.js'
 import { toggleBooleanValue } from './functions/toggleBooleanValue.js'
@@ -409,6 +410,7 @@ export default class extends Controller {
                 searchable: false,
                 title: '',
             })
+            payload.order = shiftOrderForSelectColumn(payload.order)
             payload.columnDefs = [
                 {
                     orderable: false,

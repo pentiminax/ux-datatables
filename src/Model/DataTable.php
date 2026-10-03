@@ -31,6 +31,16 @@ use Symfony\Component\ExpressionLanguage\Expression;
 
 class DataTable
 {
+    /**
+     * The slots DataTables 2 fills when `layout` does not mention them.
+     */
+    private const array DEFAULT_LAYOUT = [
+        'topStart'    => Feature::PAGE_LENGTH,
+        'topEnd'      => Feature::SEARCH,
+        'bottomStart' => Feature::INFO,
+        'bottomEnd'   => Feature::PAGING,
+    ];
+
     /** @var ColumnInterface[] */
     private array $columns = [];
 
@@ -848,7 +858,7 @@ class DataTable
 
         $layout = $this->options->get('layout');
         $layout = \is_array($layout) ? $layout : [];
-        $slot   = $layout[$position] ?? null;
+        $slot   = \array_key_exists($position, $layout) ? $layout[$position] : null;
 
         if ($this->slotDeclaresButtons($slot)) {
             return $this->layout($layout);
@@ -864,7 +874,7 @@ class DataTable
     {
         $layout = $this->options->get('layout');
         $layout = \is_array($layout) ? $layout : [];
-        $slot   = $layout[$position] ?? null;
+        $slot   = \array_key_exists($position, $layout) ? $layout[$position] : self::DEFAULT_LAYOUT[$position] ?? null;
 
         if ($feature === $slot || (\is_array($slot) && \in_array($feature, $slot, true))) {
             return $this->layout($layout);
