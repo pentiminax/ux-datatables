@@ -46,7 +46,8 @@ export default class extends Controller {
 
         try {
             await navigator.clipboard.writeText(text)
-        } catch {
+        } catch (error) {
+            console.warn('Clipboard unavailable; select the code to copy it.', error)
             return
         }
 

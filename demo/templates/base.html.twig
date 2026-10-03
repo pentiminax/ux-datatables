@@ -9,9 +9,11 @@
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%234a46c4%22/><path d=%22M8 11h16M8 16h16M8 21h16M14 8v16%22 stroke=%22white%22 stroke-width=%222%22/></svg>">
         <script>
             try {
-                const theme = localStorage.getItem('demo-theme');
-                if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-            } catch (e) {}
+                const theme = localStorage.getItem('demo-theme')
+                if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme
+            } catch (error) {
+                console.warn('Stored theme unavailable; following the system theme.', error)
+            }
         </script>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

@@ -30,7 +30,7 @@ final class ShowcaseProductsDataTable extends AbstractDataTable
         yield ImageColumn::new('image', 'Image')->setImageWidth(40)->setImageHeight(40)->rounded()->setOrderable(false);
         yield TextColumn::new('name', 'Product');
         yield ChoiceColumn::new('category', 'Category')->setChoices(Category::class)->renderAsBadges();
-        yield MoneyColumn::new('price', 'Price')->currency('EUR')->storedAsCents();
+        yield MoneyColumn::new('price', 'Price')->currency('EUR')->storedAsCents()->hideWhenUpdating();
         yield NumberColumn::new('stock', 'Stock');
         yield ChoiceColumn::new('status', 'Status')
             ->setChoices(ProductStatus::class)

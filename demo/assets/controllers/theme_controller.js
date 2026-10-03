@@ -11,6 +11,8 @@ export default class extends Controller {
         root.dataset.theme = next
         try {
             localStorage.setItem('demo-theme', next)
-        } catch {}
+        } catch (error) {
+            console.warn('Theme preference not saved; it applies to this page only.', error)
+        }
     }
 }

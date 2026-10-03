@@ -65,7 +65,7 @@ page:
     bulk_actions:
         title: 'Bulk actions'
         intro: 'Select rows across pages and run a server-side action on all of them, with confirmation and feedback.'
-        try: 'Filter on “Paid”, select a few orders, then mark them as shipped.'
+        try: 'Select a few orders and mark them as shipped: only paid orders change, the others are reported as skipped.'
     export:
         title: 'Export'
         intro: 'Copy, CSV, Excel, PDF, and print buttons. Columns can opt out of exports.'
