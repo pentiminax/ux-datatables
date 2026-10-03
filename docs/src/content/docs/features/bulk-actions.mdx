@@ -104,6 +104,35 @@ grows with the selection; size `chunk()` and the selections you allow accordingl
 `BulkActionContext` carries `entityClass`, `dataTableClass`, `action`, `objectManager`,
 `selectedCount`, and the two running counters above.
 
+### Skipping a row from the handler
+
+When a rule is about the data rather than the user, decline the row with `$context->skip()`. It moves
+the entity you were just handed from the processed to the skipped tally, so the result the user sees
+matches what the handler did:
+
+```php
+use App\Enum\OrderStatus;
+use Pentiminax\UX\DataTables\Model\BulkAction;
+use Pentiminax\UX\DataTables\Mutation\BulkActionContext;
+use Pentiminax\UX\DataTables\Mutation\BulkRecords;
+
+BulkAction::new('ship', 'Mark as shipped')
+    ->handler(static function (BulkRecords $records, BulkActionContext $context): void {
+        foreach ($records as $order) {
+            if (OrderStatus::Paid !== $order->status) {
+                $context->skip();
+
+                continue;
+            }
+
+            $order->status = OrderStatus::Shipped;
+        }
+    });
+```
+
+Call it once per entity, while iterating. It does not undo changes already made to the entity. Use a
+per-row permission instead when the rule is about what the current user may do.
+
 ## `BulkAction` API
 
 <Table

@@ -40,11 +40,28 @@ final class BulkActionContext
     }
 
     /**
-     * Selected entities excluded so far, because they are gone or the user may not act on them.
+     * Selected entities excluded so far: gone, denied to the user, or declined with {@see skip()}.
      */
     public function skippedCount(): int
     {
         return $this->skipped;
+    }
+
+    /**
+     * Report that the handler declined the entity it was just handed, for a business rule such as
+     * "only paid orders can be shipped".
+     *
+     * The entity moves from the processed to the skipped tally, so the counts the user sees match
+     * what the handler did. Call it once per entity, while iterating; it does not undo changes
+     * already made to the entity.
+     */
+    public function skip(): void
+    {
+        if ($this->processed > 0) {
+            --$this->processed;
+        }
+
+        ++$this->skipped;
     }
 
     /**

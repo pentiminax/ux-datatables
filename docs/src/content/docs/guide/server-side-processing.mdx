@@ -26,7 +26,8 @@ The rendered table will call the built-in `ux_datatables_ajax_data` route. The r
 opaque table token, not the PHP class name, and the bundle resolves the matching tagged
 `AbstractDataTable` service before calling `handleRequest()` internally.
 
-Make sure the bundle routes are imported once in your app:
+The Symfony Flex recipe imports the bundle routes for you. Without Flex, import them once in your
+app:
 
 ```php
 // config/routes/ux_datatables.php

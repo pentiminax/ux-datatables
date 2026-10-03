@@ -111,6 +111,24 @@ final class InteractionTest extends DataTableTestCase
         self::assertSame(OrderStatus::Pending, $this->reload($pending)->status);
     }
 
+    public function test_bulk_cancel_skips_orders_the_user_may_not_cancel(): void
+    {
+        $paid      = $this->order(OrderStatus::Paid);
+        $delivered = $this->order(OrderStatus::Delivered);
+
+        $this->mutate('POST', '/datatables/ajax/bulk', BulkOrdersDataTable::class, [
+            'action' => 'cancel',
+            'ids'    => [(string) $paid->id, (string) $delivered->id],
+        ]);
+
+        self::assertResponseIsSuccessful();
+        $result = json_decode((string) $this->client->getResponse()->getContent(), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertSame(1, $result['processed']);
+        self::assertSame(1, $result['skipped']);
+        self::assertSame(OrderStatus::Cancelled, $this->reload($paid)->status);
+        self::assertSame(OrderStatus::Delivered, $this->reload($delivered)->status);
+    }
+
     public function test_reset_button_restores_the_seeded_data(): void
     {
         $archived = $this->product(ProductStatus::Archived);
