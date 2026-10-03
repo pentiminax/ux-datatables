@@ -1,0 +1,49 @@
+---
+title: Run the Demo
+description: Explore every feature in a local Symfony demo app, next to the code running it
+order: 55
+---
+
+The repository ships a Symfony demo app in
+[`demo/`](https://github.com/pentiminax/ux-datatables/tree/main/demo). Each page renders one table
+built only with what the bundle provides, and shows the exact `AbstractDataTable`, controller action,
+and Twig call behind it.
+
+## Start it
+
+You need PHP 8.4+ with `pdo_sqlite`, and Composer. No database server, Node.js, or Docker.
+
+```bash
+git clone https://github.com/pentiminax/ux-datatables.git
+cd ux-datatables/demo
+composer install
+php bin/console app:demo:reset
+php -S 127.0.0.1:8000 -t public
+```
+
+Open `http://127.0.0.1:8000`. The reset command seeds 60 products, 500 customers, and 10,000 orders
+in SQLite; the **Reset data** button in the header restores them after you edit or delete rows.
+
+## What the tour covers
+
+| Page                        | Features                                                                          |
+| --------------------------- | --------------------------------------------------------------------------------- |
+| Overview                    | Images, money, badges, inline switch, edit and delete actions, export, Responsive |
+| Client-side table           | `DataTable::data()` with a plain PHP array                                        |
+| Server-side processing      | Doctrine paging, search, and ordering over 10,000 rows, `urlState()`              |
+| Column types                | Every built-in column, including `TemplateColumn` and relative dates              |
+| Filters                     | Text, choice, date range, ternary, and custom checkbox filters                    |
+| Attributes                  | `#[DataTableColumn]` and `#[DataTableFilter]` on the entity                       |
+| Actions and edit modal      | Detail rows, generated edit form, guarded delete, row voter                       |
+| Bulk actions                | Selection across pages, confirmation, server-side handlers                        |
+| Export                      | Copy, CSV, Excel, PDF, and print buttons                                          |
+| Scrolling and fixed columns | Scroller with `fixedColumns()`                                                    |
+| Column tools                | ColumnControl, ColReorder, RowGroup, KeyTable, column visibility                  |
+
+The demo installs the bundle through a Composer `path` repository, so it always runs the branch you
+have checked out — a handy way to try a change by hand.
+
+<Aside type="caution">
+  The demo has no login and leaves `^/datatables/ajax` public. Your application must protect those
+  routes; see [Securing Ajax Routes](../security/).
+</Aside>

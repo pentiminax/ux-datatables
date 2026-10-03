@@ -1,0 +1,12 @@
+<header class="page-header">
+    <h1>{{ ('page.' ~ page.route ~ '.title')|trans }}</h1>
+    <p class="page-summary">{{ ('page.' ~ page.route ~ '.intro')|trans }}</p>
+    <div class="page-meta">
+        <ul class="features" aria-label="{{ 'page.features'|trans }}">
+            {% for feature in page.features %}
+                <li><code>{{ feature }}</code></li>
+            {% endfor %}
+        </ul>
+        <a class="docs-link" href="{{ constant('App\\Demo\\Pages::DOCS') ~ page.docs }}">{{ 'page.docs'|trans }} <span aria-hidden="true">→</span></a>
+    </div>
+</header>

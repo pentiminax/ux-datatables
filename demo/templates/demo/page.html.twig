@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    {% set page = demo_page() %}
+    {{ include('demo/_header.html.twig') }}
+
+    <p class="try">{{ ('page.' ~ page.route ~ '.try')|trans }}</p>
+
+    <div class="table-frame">
+        {{ render_datatable(table) }}
+    </div>
+
+    <h2 class="section-title">{{ 'code.title'|trans }}</h2>
+    {{ include('demo/_code.html.twig') }}
+
+    {{ include('demo/_next.html.twig') }}
+{% endblock %}

@@ -1,0 +1,5 @@
+{% set level = data >= 100 ? 'high' : (data > 20 ? 'medium' : (data > 0 ? 'low' : 'empty')) %}
+<span class="stock stock-{{ level }}">
+    <meter min="0" max="240" low="21" high="100" optimum="240" value="{{ data }}"></meter>
+    {{ data }}
+</span>

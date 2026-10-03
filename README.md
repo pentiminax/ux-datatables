@@ -129,3 +129,15 @@ details.
 
 ## Documentation
 - [Online documentation](https://pentiminax.github.io/ux-datatables/)
+
+## Demo
+
+A Symfony demo app lives in [`demo/`](demo/). It tours columns, filters, actions, bulk actions,
+exports, and extensions, each page next to the code running it:
+
+```bash
+cd demo
+composer install
+php bin/console app:demo:reset
+php -S 127.0.0.1:8000 -t public
+```
