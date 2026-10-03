@@ -1,6 +1,7 @@
 import { Application } from '@hotwired/stimulus'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadDataTableLibrary } from '../src/functions/loadDataTableLibrary.js'
+import { createMercureSubscription } from '../src/functions/mercureSubscription.js'
 
 vi.mock('../src/functions/loadDataTableLibrary.js', () => ({
     loadDataTableLibrary: vi.fn(),
@@ -8,6 +9,10 @@ vi.mock('../src/functions/loadDataTableLibrary.js', () => ({
 
 vi.mock('../src/functions/detectStyleFramework.js', () => ({
     detectStyleFramework: () => 'dt',
+}))
+
+vi.mock('../src/functions/mercureSubscription.js', () => ({
+    createMercureSubscription: vi.fn(),
 }))
 
 import DatatableController from '../src/controller.js'
@@ -60,6 +65,9 @@ describe('datatable controller reconnect event', () => {
         }
 
         vi.mocked(loadDataTableLibrary).mockResolvedValue(MockDataTable)
+        vi.mocked(createMercureSubscription).mockImplementation(() => {
+            return { close: vi.fn() } as unknown as EventSource
+        })
 
         document.addEventListener('datatables:connect', collectConnect)
         document.addEventListener('datatables:reconnect', collectReconnect)
@@ -87,6 +95,26 @@ describe('datatable controller reconnect event', () => {
         expect(reconnectEvents[0].detail.table).toBeTruthy()
     })
 
+    it('keeps Mercure subscribed after DataTables reparents the table', async () => {
+        mountTable({
+            ajax: { url: '/datatables/ajax' },
+            mercure: { hubUrl: 'https://hub.example/.well-known/mercure', topics: ['/users'] },
+        })
+
+        await settle()
+
+        expect(initCount).toBe(1)
+        expect(reconnectEvents).toHaveLength(1)
+        expect(createMercureSubscription).toHaveBeenCalled()
+
+        const sources = vi.mocked(createMercureSubscription).mock.results.map(
+            (result) => result.value as { close: ReturnType<typeof vi.fn> }
+        )
+        const openSources = sources.filter((source) => source.close.mock.calls.length === 0)
+
+        expect(openSources).toHaveLength(1)
+    })
+
     it('does not dispatch reconnect once the table has been destroyed for a Turbo snapshot', async () => {
         mountTable()
 
@@ -103,12 +131,15 @@ describe('datatable controller reconnect event', () => {
     })
 })
 
-function mountTable(): HTMLTableElement {
+function mountTable(extraView: Record<string, unknown> = {}): HTMLTableElement {
     const table = document.createElement('table')
     table.setAttribute('data-controller', 'datatable')
     table.setAttribute(
         'data-datatable-view-value',
-        JSON.stringify({ columns: [{ data: 'name', title: 'Name' }] })
+        JSON.stringify({
+            columns: [{ data: 'name', title: 'Name' }],
+            ...extraView,
+        })
     )
     document.body.appendChild(table)
 
