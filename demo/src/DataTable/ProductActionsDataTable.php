@@ -27,7 +27,7 @@ final class ProductActionsDataTable extends AbstractDataTable
         yield TextColumn::new('name', 'Product');
         yield TextColumn::new('sku', 'SKU')->hideWhenUpdating();
         yield ChoiceColumn::new('category', 'Category')->setChoices(Category::class);
-        yield MoneyColumn::new('price', 'Price')->currency('EUR')->storedAsCents()->hideWhenUpdating();
+        yield MoneyColumn::new('price', 'Price')->currency('EUR')->storedAsCents();
         yield NumberColumn::new('stock', 'Stock');
         yield ChoiceColumn::new('status', 'Status')
             ->setChoices(ProductStatus::class)

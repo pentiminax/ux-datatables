@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Form;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\MoneyColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
@@ -13,6 +14,7 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
+use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -21,6 +23,13 @@ use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 final class ColumnToFormTypeMapper
 {
+    /**
+     * MoneyType converts through floats, which hold integers exactly up to 2^53. Eight decimals
+     * (satoshis) keeps every realistic stored amount under that, so a value the user leaves alone
+     * saves back unchanged; more decimals would round the stored integer silently.
+     */
+    private const int MAX_MONEY_FORM_DECIMALS = 8;
+
     private readonly PropertyAccessorInterface $propertyAccessor;
 
     public function __construct(?PropertyAccessorInterface $propertyAccessor = null)
@@ -75,6 +84,13 @@ final class ColumnToFormTypeMapper
             ];
         }
 
+        if (!empty($customOptions[MoneyColumn::OPTION_IS_MONEY])) {
+            return [
+                'formType' => MoneyType::class,
+                'options'  => $options + $this->moneyOptions($customOptions),
+            ];
+        }
+
         if (!empty($customOptions['isEmail'])) {
             return [
                 'formType' => EmailType::class,
@@ -115,6 +131,34 @@ final class ColumnToFormTypeMapper
         return [
             'formType' => TextType::class,
             'options'  => $options,
+        ];
+    }
+
+    /**
+     * A column stored in cents is edited in whole currency units: the form divides the stored
+     * integer for display and multiplies it back on submit, so 2500 opens as 25.00 and typing 25
+     * saves 2500 rather than 25 cents.
+     *
+     * @param array<string, mixed> $customOptions
+     *
+     * @return array<string, mixed>
+     */
+    private function moneyOptions(array $customOptions): array
+    {
+        $decimals = (int) ($customOptions[MoneyColumn::OPTION_DECIMALS] ?? 2);
+        $options  = [
+            'currency' => $customOptions[MoneyColumn::OPTION_CURRENCY] ?? 'EUR',
+            'scale'    => $decimals,
+            'html5'    => true,
+        ];
+
+        if (false === ($customOptions[MoneyColumn::OPTION_STORED_AS_CENTS] ?? true)) {
+            return $options;
+        }
+
+        return $options + [
+            'divisor' => 10 ** $decimals,
+            'input'   => 'integer',
         ];
     }
 
@@ -179,6 +223,10 @@ final class ColumnToFormTypeMapper
             return true;
         }
 
+        if ($this->exceedsMoneyFormPrecision($customOptions)) {
+            return true;
+        }
+
         if (str_contains($column->getField() ?? '', '.')) {
             return true;
         }
@@ -186,6 +234,16 @@ final class ColumnToFormTypeMapper
         // A projected DTO names columns the entity may not carry. Adding those fields
         // makes PropertyAccess throw when the form is built against the source entity.
         return null !== $entity && !$this->isBindable($entity, $column->getName());
+    }
+
+    /**
+     * @param array<string, mixed> $customOptions
+     */
+    private function exceedsMoneyFormPrecision(array $customOptions): bool
+    {
+        return !empty($customOptions[MoneyColumn::OPTION_IS_MONEY])
+            && false !== ($customOptions[MoneyColumn::OPTION_STORED_AS_CENTS] ?? true)
+            && (int) ($customOptions[MoneyColumn::OPTION_DECIMALS] ?? 2) > self::MAX_MONEY_FORM_DECIMALS;
     }
 
     private function isBindable(object $entity, string $property): bool

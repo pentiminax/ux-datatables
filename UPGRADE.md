@@ -5,6 +5,13 @@ current version and the target, oldest first.
 
 ## Next release
 
+### Money columns are edited in currency units
+
+The edit modal bound a `MoneyColumn` to a plain `NumberType`, so a value stored as cents opened as
+`2500` and saving `25` stored 25 cents. The form now uses `MoneyType`: `2500` opens as `25.00` and
+`30.5` saves `3050`. A column set to `storedAsCents(false)` is bound as entered. Update tests or
+custom edit templates that submitted raw cents for these columns.
+
 ### `symfony/serializer` is required
 
 The edit modal, inline edit, delete, detail rows, and bulk actions map their Ajax payload with
