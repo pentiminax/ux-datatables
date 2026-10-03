@@ -31,7 +31,7 @@ Renders as: `<img src="..." alt="" width="50" height="50" loading="lazy">`
 
 ## Rounded (Avatar Style)
 
-`rounded()` adds `class="rounded-circle"` for circular avatar styling (Bootstrap).
+`rounded()` adds `class="rounded-circle rounded-full"` for circular avatar styling: Bootstrap and Tailwind each recognize one of the two names, and the bundled Tailwind theme styles `rounded-circle`.
 
 ```php
 ImageColumn::new('avatar', 'Avatar')
@@ -91,7 +91,7 @@ ImageColumn::new('avatar', 'Avatar')
     ['`setPlaceholder(string $url)`', 'Fallback image URL for missing or broken sources'],
     [
       '`rounded(bool $rounded = true)`',
-      'Adds `class="rounded-circle"` for circular avatar display',
+      'Adds `class="rounded-circle rounded-full"` for circular avatar display with Bootstrap, Tailwind, or the bundled theme',
     ],
     ['`lazy(bool $lazy = true)`', 'Toggles `loading="lazy"` (enabled by default)'],
     [
