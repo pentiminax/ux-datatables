@@ -3,6 +3,16 @@
 Each section covers one version bump. When you skip versions, apply every section between your
 current version and the target, oldest first.
 
+## Next release
+
+### `symfony/serializer` is required
+
+The edit modal, inline edit, delete, detail rows, and bulk actions map their Ajax payload with
+`#[MapRequestPayload]`, which Symfony refuses to run without the Serializer component: these
+requests answered HTTP 500 in an application that did not already have it. The bundle now requires
+`symfony/serializer`, so `composer update` installs it and FrameworkBundle enables it on its own.
+An application that configures its own serializer needs no change.
+
 ## v1.1 → v1.2
 
 ### Row identifiers are sent as strings
