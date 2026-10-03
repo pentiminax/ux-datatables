@@ -11,27 +11,23 @@ use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
 /**
- * Decides, row by row, which selected orders a bulk action may touch. Denied rows are skipped by
- * the bundle and reported as such, so shipping a pending order never counts as shipped.
+ * Decides, row by row, which selected orders the user may cancel. Denied rows are skipped by the
+ * bundle and reported as such. Business rules that are not about the user, like which orders can
+ * ship, live in the bulk action handler instead.
  *
  * @extends Voter<string, Order>
  */
 final class OrderVoter extends Voter
 {
-    public const string SHIP   = 'ORDER_SHIP';
     public const string CANCEL = 'ORDER_CANCEL';
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return $subject instanceof Order && \in_array($attribute, [self::SHIP, self::CANCEL], true);
+        return $subject instanceof Order && self::CANCEL === $attribute;
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
     {
-        return match ($attribute) {
-            self::SHIP   => OrderStatus::Paid === $subject->status,
-            self::CANCEL => \in_array($subject->status, [OrderStatus::Pending, OrderStatus::Paid], true),
-            default      => false,
-        };
+        return \in_array($subject->status, [OrderStatus::Pending, OrderStatus::Paid], true);
     }
 }
