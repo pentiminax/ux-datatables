@@ -5,6 +5,22 @@ current version and the target, oldest first.
 
 ## Next release
 
+### `buttons()` and bulk actions keep the default content of their slot
+
+`buttons()` and the bulk actions bar wrote their marker into an empty layout slot, which replaced
+what DataTables puts there by default: `buttons([...])` dropped the page length selector,
+`buttons([...], 'topEnd')` and the bulk actions bar dropped the search box. They now sit next to it,
+as `[Feature::PAGE_LENGTH, Feature::BUTTONS]` already did when you declared the layout yourself. To
+keep the old result, hide the default with `layout(['topStart' => null])` before calling
+`buttons()`, or disable the feature with `lengthChange(false)` or `searching(false)`.
+
+### Initial `order()` indexes ignore the selection column
+
+With `select(withCheckbox: true)`, the client prepends a column, so `order([[1, 'asc']])` sorted the
+column before the one you meant. Numeric indexes (`[1, 'asc']` and `['idx' => 1, ...]`) now refer to
+the columns you declared, as `['name' => ...]` entries always did. If you compensated by adding 1,
+remove it.
+
 ### Money columns are edited in currency units
 
 The edit modal bound a `MoneyColumn` to a plain `NumberType`, so a value stored as cents opened as
