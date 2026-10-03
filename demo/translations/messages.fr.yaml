@@ -65,7 +65,7 @@ page:
     bulk_actions:
         title: 'Actions groupées'
         intro: 'Sélectionnez des lignes sur plusieurs pages et lancez une action serveur sur toutes, avec confirmation et retour.'
-        try: 'Filtrez sur « Paid », sélectionnez quelques commandes, puis marquez-les comme expédiées.'
+        try: 'Sélectionnez quelques commandes et marquez-les comme expédiées : seules les commandes payées changent, les autres sont signalées comme ignorées.'
     export:
         title: 'Export'
         intro: 'Boutons copier, CSV, Excel, PDF et impression. Une colonne peut être exclue des exports.'

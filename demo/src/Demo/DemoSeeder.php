@@ -50,7 +50,7 @@ final readonly class DemoSeeder
 
         $faker = Factory::create();
         $faker->seed(42);
-        $now = new \DateTimeImmutable('today 18:00');
+        $now = new \DateTimeImmutable('today');
 
         $connection = $this->entityManager->getConnection();
         $connection->transactional(function (Connection $db) use ($faker, $now): void {
