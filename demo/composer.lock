@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d9290b11b66685509c5630e4c5d9711e",
+    "content-hash": "80b734aaa40c2b78bae675928df6eb47",
     "packages": [
         {
             "name": "composer/semver",
@@ -1070,11 +1070,11 @@
         },
         {
             "name": "pentiminax/ux-datatables",
-            "version": "dev-feat/demo-app",
+            "version": "dev-fix/declare-serializer-dependency",
             "dist": {
                 "type": "path",
                 "url": "..",
-                "reference": "e219e41647a9dd06720572c51667cc2fcdd012e0"
+                "reference": "6ef0f58cdb7e269436751bfcef87801dc26edd6f"
             },
             "require": {
                 "php": ">=8.3",
@@ -1085,6 +1085,7 @@
                 "symfony/property-access": "^7.0 || ^8.0",
                 "symfony/security-bundle": "^7.0 || ^8.0",
                 "symfony/security-csrf": "^7.0 || ^8.0",
+                "symfony/serializer": "^7.0 || ^8.0",
                 "symfony/stimulus-bundle": "^2.0 || ^3.0"
             },
             "conflict": {
