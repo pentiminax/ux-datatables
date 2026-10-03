@@ -14,7 +14,6 @@ use Pentiminax\UX\DataTables\Column\ImageColumn;
 use Pentiminax\UX\DataTables\Column\MoneyColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Icon;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
@@ -45,7 +44,6 @@ final class ShowcaseProductsDataTable extends AbstractDataTable
             ->lengthMenu([5, 10, 25])
             ->order([['name' => 'name', 'dir' => 'asc']])
             ->responsive()
-            ->layout(['topEnd' => Feature::SEARCH])
             ->buttons([Button::copy(), Button::csv(), Button::excel()], 'topEnd');
     }
 
