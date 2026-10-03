@@ -802,12 +802,6 @@ svg.filled {
     font: 700 1.125rem / 1.3 var(--font-display);
 }
 
-/* FixedColumns and Scroller paint white from their own variables; point them at the table palette. */
-:root:root {
-    --dtfc_background: rgb(var(--dt-tw-surface));
-    --dts-table_background: rgb(var(--dt-tw-surface));
-}
-
 .stock {
     display: inline-flex;
     align-items: center;
@@ -915,19 +909,6 @@ svg.filled {
 
     .main {
         padding: var(--space-6) var(--space-4) var(--space-12);
-    }
-
-    .dt-container .dt-layout-row {
-        flex-wrap: wrap;
-    }
-
-    .dt-container .dt-paging,
-    .dt-container .dt-paging nav {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        min-width: 0;
-        max-width: 100%;
     }
 
     .section-title {

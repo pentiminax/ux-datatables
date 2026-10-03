@@ -53,7 +53,7 @@ export const imageColumnRenderer: ColumnRenderer = {
             }
 
             if (rounded) {
-                attrs.push('class="rounded-circle"')
+                attrs.push('class="rounded-circle rounded-full"')
             }
 
             if (placeholder !== null && rawSrc !== null) {
