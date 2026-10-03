@@ -4,7 +4,9 @@ description: Protect the bundle's Ajax endpoints with your application's access 
 order: 50
 ---
 
-UX DataTables registers a small set of Ajax routes automatically. Server-side tables,
+UX DataTables adds a small set of Ajax routes: the Symfony Flex recipe imports them in
+`config/routes/data_tables.yaml`, and without Flex you import
+`@PentiminaxDataTablesBundle/config/routes.php` yourself. Server-side tables,
 server-side exports, the inline edit modal, row deletion, detail rendering and bulk actions all go
 through these endpoints:
 
