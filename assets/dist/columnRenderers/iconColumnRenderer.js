@@ -24,9 +24,12 @@ export function createIconColumnRenderer(style) {
                 let tooltip;
                 if (booleanMode) {
                     const on = parseBooleanValue(data);
-                    iconName = (on ? customOptions.trueIcon : customOptions.falseIcon) ?? staticIcon;
+                    iconName =
+                        (on ? customOptions.trueIcon : customOptions.falseIcon) ??
+                            (staticIcon || (on ? 'circle-check' : 'circle-x'));
                     variant =
-                        (on ? customOptions.trueColor : customOptions.falseColor) ?? staticColor;
+                        (on ? customOptions.trueColor : customOptions.falseColor) ??
+                            (staticColor || (on ? 'success' : 'danger'));
                     tooltip = '';
                 }
                 else {

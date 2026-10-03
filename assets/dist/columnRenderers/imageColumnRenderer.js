@@ -37,7 +37,7 @@ export const imageColumnRenderer = {
                 attrs.push('loading="lazy"');
             }
             if (rounded) {
-                attrs.push('class="rounded-circle"');
+                attrs.push('class="rounded-circle rounded-full"');
             }
             if (placeholder !== null && rawSrc !== null) {
                 const escapedPlaceholder = escapeHtml(placeholder).replace(/'/g, '&#039;');
