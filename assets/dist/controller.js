@@ -289,6 +289,9 @@ class default_1 extends Controller {
         }
         await this.initHighlighter(payload);
         const { createMercureSubscription } = await import('./functions/mercureSubscription.js');
+        if (!this.element.isConnected || this.eventSource) {
+            return;
+        }
         this.eventSource = createMercureSubscription(payload.mercure, (event) => {
             this.dispatchEvent('mercure:message', { data: event.data, event });
             this.highlighter?.arm();
@@ -300,6 +303,9 @@ class default_1 extends Controller {
             return;
         }
         const { UpdateHighlighter } = await import('./functions/highlightUpdates.js');
+        if (!this.element.isConnected || this.highlighter) {
+            return;
+        }
         this.highlighter = new UpdateHighlighter(this.table, payload.highlight, Array.isArray(payload.columns) ? payload.columns : [], (cells) => this.dispatchEvent('highlight', { cells }));
     }
     bindActionHandler(payload) {
