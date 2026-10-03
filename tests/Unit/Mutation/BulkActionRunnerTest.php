@@ -161,6 +161,34 @@ final class BulkActionRunnerTest extends TestCase
     }
 
     #[Test]
+    public function it_moves_an_entity_the_handler_declines_from_processed_to_skipped(): void
+    {
+        $seen   = [];
+        $action = BulkAction::new('touch')->handler(function (BulkRecords $records, BulkActionContext $context) use (&$seen): void {
+            foreach ($records as $customer) {
+                if ('Beta' === $customer->name) {
+                    $context->skip();
+
+                    continue;
+                }
+
+                $seen[] = $customer->name;
+            }
+        });
+
+        $result = $this->runner()->run(
+            $this->resolved($action),
+            $action,
+            new BulkSelection(ids: [1, 2, 3]),
+            new Request(),
+        );
+
+        $this->assertSame(['Alpha', 'Gamma'], $seen);
+        $this->assertSame(2, $result->processed);
+        $this->assertSame(1, $result->skipped);
+    }
+
+    #[Test]
     public function it_counts_a_selected_row_that_no_longer_exists_as_skipped(): void
     {
         $action = BulkAction::new('touch')->handler(static function (BulkRecords $records): void {

@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\Model\BulkAction;
 use Pentiminax\UX\DataTables\Model\BulkActions;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Filters;
+use Pentiminax\UX\DataTables\Mutation\BulkActionContext;
 use Pentiminax\UX\DataTables\Mutation\BulkRecords;
 
 #[AsDataTable(Order::class)]
@@ -76,10 +77,15 @@ final class BulkOrdersDataTable extends AbstractDataTable
     {
         $shipAction = BulkAction::new('ship', 'Mark as shipped')
             ->icon(Icon::Truck)
-            ->setPermission(OrderVoter::SHIP, static fn (Order $order): Order => $order)
             ->successMessage('Orders marked as shipped.')
-            ->handler(static function (BulkRecords $records): void {
+            ->handler(static function (BulkRecords $records, BulkActionContext $context): void {
                 foreach ($records as $order) {
+                    if (OrderStatus::Paid !== $order->status) {
+                        $context->skip();
+
+                        continue;
+                    }
+
                     $order->status    = OrderStatus::Shipped;
                     $order->shippedAt = new \DateTimeImmutable();
                 }
