@@ -77,6 +77,8 @@ Exports are not affected: they read every filtered row by design.
 
 Sets the default language locale for DataTables UI elements. The bundle translates locale codes into the correct CDN URL for DataTables language files.
 
+When no language is configured, each table follows the locale of the current request: `fr`, `fr_FR`, and `fr-CA` load the bundled French catalog, and `en` loads the English one. A locale without a bundled catalog keeps the DataTables built-in English strings. Set `language` here, or call `language()` on a table, to pin it instead.
+
 ```yaml
 data_tables:
   options:

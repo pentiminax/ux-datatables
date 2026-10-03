@@ -39,6 +39,29 @@ ChoiceColumn::new('status', 'Status')
 // Generates: ['active' => 'Active', 'inactive' => 'Inactive', 'pending' => 'Pending']
 ```
 
+## Translating Labels
+
+Cases of an enum that implements Symfony's `TranslatableInterface` are translated when the table renders, in the locale of the current request. The `ChoiceFilter` does the same, so the column and its filter stay in sync:
+
+```php
+use Symfony\Contracts\Translation\TranslatableInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+enum Status: string implements TranslatableInterface
+{
+    case Active   = 'active';
+    case Inactive = 'inactive';
+
+    public function trans(TranslatorInterface $translator, ?string $locale = null): string
+    {
+        return $translator->trans('status.'.$this->value, [], null, $locale);
+    }
+}
+
+ChoiceColumn::new('status', 'Status')
+    ->setChoices(Status::class);
+```
+
 ## Rendering as Badges
 
 Use `renderAsBadges()` to wrap each label in a badge. Map individual values to **semantic** color variants (`success`, `danger`, `warning`, `info`, `primary`, `secondary`, `light`, `dark`), and provide a fallback for unmapped values.

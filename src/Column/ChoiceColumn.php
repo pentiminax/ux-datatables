@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Enum\ColumnType;
+use Symfony\Contracts\Translation\TranslatableInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class ChoiceColumn extends AbstractColumn
 {
@@ -19,6 +21,9 @@ class ChoiceColumn extends AbstractColumn
      * @var list<string>
      */
     public const array VALID_BADGE_TYPES = ['success', 'warning', 'danger', 'info', 'primary', 'secondary', 'light', 'dark'];
+
+    /** @var array<string, TranslatableInterface> value => translatable enum case */
+    private array $translatableCases = [];
 
     public static function new(string $name, string $title = ''): static
     {
@@ -37,12 +42,15 @@ class ChoiceColumn extends AbstractColumn
      * Choices are always stored internally as `[value => label]` so the frontend
      * renderer can resolve the label from the raw cell value. For enums, the label
      * is taken from a `getLabel()`/`label()` method when available, otherwise the
-     * case name.
+     * case name. Cases of an enum implementing `TranslatableInterface` are translated at
+     * render time instead, in the locale of the current request.
      *
      * @param array<string|int, string|int>|list<\BackedEnum>|class-string<\BackedEnum> $choices
      */
     public function setChoices(array|string $choices): static
     {
+        $this->translatableCases = [];
+
         if (\is_string($choices)) {
             if (!is_a($choices, \BackedEnum::class, true)) {
                 throw new \InvalidArgumentException(\sprintf('"%s" is not a BackedEnum class.', $choices));
@@ -62,6 +70,27 @@ class ChoiceColumn extends AbstractColumn
         $this->setCustomOption(self::OPTION_CHOICES, $this->normalizeArrayChoices($choices));
 
         return $this;
+    }
+
+    /**
+     * Replace the labels of translatable enum cases with their translation.
+     *
+     * Called by the RenderingPreparer when a translator is available, so the label is resolved
+     * at render time rather than when the column is configured.
+     */
+    public function translateLabels(TranslatorInterface $translator, ?string $locale = null): void
+    {
+        if ([] === $this->translatableCases) {
+            return;
+        }
+
+        $choices = $this->getCustomOptions()[self::OPTION_CHOICES] ?? [];
+
+        foreach ($this->translatableCases as $value => $case) {
+            $choices[$value] = $case->trans($translator, $locale);
+        }
+
+        $this->setCustomOption(self::OPTION_CHOICES, $choices);
     }
 
     /**
@@ -131,6 +160,10 @@ class ChoiceColumn extends AbstractColumn
 
         foreach ($choices as $case) {
             $map[(string) $case->value] = $this->resolveEnumLabel($case);
+
+            if ($case instanceof TranslatableInterface) {
+                $this->translatableCases[(string) $case->value] = $case;
+            }
         }
 
         return $map;
