@@ -147,6 +147,8 @@ export default class extends Controller {
             // controller instance needs a signal to bind again. `connect` stays a build-only event.
             if (this.table) {
                 this.dispatchEvent('reconnect', { table: this.table })
+                // disconnect() closed the EventSource; the table is still live, so subscribe again.
+                await this.initMercure(this.viewValue)
             }
 
             return
@@ -461,13 +463,20 @@ export default class extends Controller {
     }
 
     private async initMercure(payload: Record<string, any>): Promise<void> {
-        if (!this.isMercureEnabled(payload)) {
+        if (this.eventSource || !this.isMercureEnabled(payload)) {
             return
         }
 
         await this.initHighlighter(payload)
 
         const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
+
+        // The element may have been detached, or a concurrent connect may have subscribed, while
+        // the modules loaded; disconnect() could not close a socket that did not exist yet.
+        if (!this.element.isConnected || this.eventSource) {
+            return
+        }
+
         this.eventSource = createMercureSubscription(payload.mercure, (event) => {
             this.dispatchEvent('mercure:message', { data: event.data, event })
             // Armed before the reload so the diff compares against what the viewer is looking at,
@@ -483,6 +492,10 @@ export default class extends Controller {
         }
 
         const { UpdateHighlighter } = await import('./functions/highlightUpdates.js')
+
+        if (!this.element.isConnected || this.highlighter) {
+            return
+        }
 
         this.highlighter = new UpdateHighlighter(
             this.table,
