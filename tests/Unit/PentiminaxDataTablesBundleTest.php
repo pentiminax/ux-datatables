@@ -129,6 +129,19 @@ final class PentiminaxDataTablesBundleTest extends TestCase
     }
 
     #[Test]
+    public function it_leaves_the_language_to_the_request_locale_by_default(): void
+    {
+        $kernel = new ConfigDefaultsAppKernel('test', true);
+        $kernel->boot();
+
+        try {
+            self::assertArrayNotHasKey('language', $kernel->getContainer()->getParameter('datatables.options'));
+        } finally {
+            $kernel->shutdown();
+        }
+    }
+
+    #[Test]
     public function it_does_not_inject_unset_state_save_or_header_reset_options(): void
     {
         $kernel = new ConfigDefaultsAppKernel('test', true);
