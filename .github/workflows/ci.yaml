@@ -43,6 +43,33 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  demo:
+    runs-on: ubuntu-latest
+    name: Demo app
+    defaults:
+      run:
+        working-directory: demo
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Install dependencies
+        run: composer install --no-progress
+
+      - name: Download importmap packages
+        run: php bin/console importmap:install
+
+      - name: Lint container and templates
+        run: php bin/console lint:container && php bin/console lint:twig templates
+
+      - name: Run smoke tests
+        run: php bin/phpunit
+
   js:
     runs-on: ubuntu-latest
     name: JS
