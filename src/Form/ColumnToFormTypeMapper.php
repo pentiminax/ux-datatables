@@ -23,6 +23,13 @@ use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 
 final class ColumnToFormTypeMapper
 {
+    /**
+     * MoneyType converts through floats, which hold integers exactly up to 2^53. Eight decimals
+     * (satoshis) keeps every realistic stored amount under that, so a value the user leaves alone
+     * saves back unchanged; more decimals would round the stored integer silently.
+     */
+    private const int MAX_MONEY_FORM_DECIMALS = 8;
+
     private readonly PropertyAccessorInterface $propertyAccessor;
 
     public function __construct(?PropertyAccessorInterface $propertyAccessor = null)
@@ -216,6 +223,10 @@ final class ColumnToFormTypeMapper
             return true;
         }
 
+        if ($this->exceedsMoneyFormPrecision($customOptions)) {
+            return true;
+        }
+
         if (str_contains($column->getField() ?? '', '.')) {
             return true;
         }
@@ -223,6 +234,16 @@ final class ColumnToFormTypeMapper
         // A projected DTO names columns the entity may not carry. Adding those fields
         // makes PropertyAccess throw when the form is built against the source entity.
         return null !== $entity && !$this->isBindable($entity, $column->getName());
+    }
+
+    /**
+     * @param array<string, mixed> $customOptions
+     */
+    private function exceedsMoneyFormPrecision(array $customOptions): bool
+    {
+        return !empty($customOptions[MoneyColumn::OPTION_IS_MONEY])
+            && false !== ($customOptions[MoneyColumn::OPTION_STORED_AS_CENTS] ?? true)
+            && (int) ($customOptions[MoneyColumn::OPTION_DECIMALS] ?? 2) > self::MAX_MONEY_FORM_DECIMALS;
     }
 
     private function isBindable(object $entity, string $property): bool
