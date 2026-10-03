@@ -6,6 +6,7 @@ namespace App\DataTable;
 
 use App\Entity\Order;
 use App\Enum\OrderStatus;
+use App\Security\OrderVoter;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
@@ -57,13 +58,12 @@ final class BulkOrdersDataTable extends AbstractDataTable
             ->add(
                 BulkAction::new('ship', 'Mark as shipped')
                     ->icon(Icon::Truck)
+                    ->setPermission(OrderVoter::SHIP, static fn (Order $order): Order => $order)
                     ->successMessage('Orders marked as shipped.')
                     ->handler(static function (BulkRecords $records): void {
                         foreach ($records as $order) {
-                            if (OrderStatus::Paid === $order->status) {
-                                $order->status    = OrderStatus::Shipped;
-                                $order->shippedAt = new \DateTimeImmutable();
-                            }
+                            $order->status    = OrderStatus::Shipped;
+                            $order->shippedAt = new \DateTimeImmutable();
                         }
                     })
             )
@@ -71,6 +71,7 @@ final class BulkOrdersDataTable extends AbstractDataTable
                 BulkAction::new('cancel', 'Cancel')
                     ->icon(Icon::Ban)
                     ->askConfirmation('Cancel {count} orders?')
+                    ->setPermission(OrderVoter::CANCEL, static fn (Order $order): Order => $order)
                     ->successMessage('Orders cancelled.')
                     ->handler(static function (BulkRecords $records): void {
                         foreach ($records as $order) {
