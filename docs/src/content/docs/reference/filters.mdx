@@ -151,8 +151,12 @@ clear. Doctrine must manage the class: rendering throws otherwise.
 ### TernaryFilter
 
 Three states (all / true / false). By default the true state matches
-`field IS NOT NULL` and the false state `field IS NULL`. Use `values()` to
-compare against concrete values instead (e.g. a boolean column).
+`field IS NOT NULL` and the false state `field IS NULL`, which suits a nullable date or any field
+where "is set" is the question.
+
+On a boolean, use `values(true, false)`. Without it, a boolean that cannot hold `NULL` matches every
+row for "true" and none for "false". A filter guessed from a `bool` property through
+`#[DataTableFilter]` already carries this comparison.
 
 ```php
 TernaryFilter::new('verified')->field('emailVerifiedAt')
@@ -237,7 +241,8 @@ compiles instead of failing silently on the first request.
 
 A ternary filter guessed from a `bool` compares the column value, so "true" and "false" each match
 the rows they name. Naming `TernaryFilter` yourself asks for what that class does, so it keeps its
-usual `IS NULL` / `IS NOT NULL` default — on a `bool` as much as on a nullable date. A `ChoiceFilter`
+usual `IS NULL` / `IS NOT NULL` default — on a `bool` as much as on a nullable date. On a `bool`,
+add `values(true, false)` to get the comparison the guessed filter has. A `ChoiceFilter`
 is filled from the enum either way, since an explicit `options` entry still wins.
 
 `CheckboxFilter` is never guessed and cannot be declared: it has no default condition, so it only
