@@ -1,0 +1,9 @@
+<div class="product-detail">
+    <img src="{{ entity.image }}" alt="" width="72" height="72">
+    <dl>
+        <div><dt>{{ 'SKU'|trans }}</dt><dd><code>{{ entity.sku }}</code></dd></div>
+        <div><dt>{{ 'Supplier'|trans }}</dt><dd><a href="mailto:{{ entity.supplierEmail }}">{{ entity.supplierEmail }}</a></dd></div>
+        <div><dt>{{ 'Shop page'|trans }}</dt><dd><a href="{{ entity.url }}">{{ entity.url }}</a></dd></div>
+        <div><dt>{{ 'Added'|trans }}</dt><dd>{{ entity.createdAt|date('Y-m-d') }}</dd></div>
+    </dl>
+</div>

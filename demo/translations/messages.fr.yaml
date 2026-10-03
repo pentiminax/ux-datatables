@@ -1,0 +1,128 @@
+meta.description: 'Visite interactive de UX DataTables, le bundle Symfony qui transforme une classe PHP en grille DataTables.net complète.'
+
+nav:
+    skip: 'Aller au contenu'
+    open: 'Ouvrir la navigation'
+    label: 'Pages de la démo'
+    language: 'Langue'
+    theme: 'Basculer entre thème clair et sombre'
+    reset: 'Réinitialiser'
+    docs: 'Documentation'
+
+flash.reset: 'Données restaurées : 60 produits, 500 clients, 10 000 commandes.'
+
+group:
+    start: 'Démarrer'
+    essentials: 'Essentiels'
+    interactions: 'Interactions'
+    extensions: 'Extensions'
+
+home:
+    title: 'Une classe PHP. Une table complète.'
+    summary: 'UX DataTables transforme une classe Symfony en grille DataTables.net triable, filtrable et éditable. Chaque table de cette démo utilise uniquement ce que le bundle fournit.'
+    how: 'Comment ça marche'
+    how_summary: 'Décrivez les colonnes dans une classe, injectez-la dans un contrôleur, affichez-la en Twig. Le code ci-dessous est exactement celui qui fait tourner la table ci-dessus.'
+    tour: 'Explorer la visite'
+
+code:
+    title: 'Le code derrière cette table'
+    label: 'Code source'
+    copy: 'Copier'
+    copied: 'Copié'
+
+page:
+    features: 'API utilisées sur cette page'
+    docs: 'Lire la documentation'
+    next: 'Suivant'
+    overview:
+        title: 'Vue d’ensemble'
+        intro: 'Des produits Doctrine avec images, prix, badges, interrupteur en ligne, actions et boutons d’export.'
+        try: 'Basculez « Mis en avant », modifiez un produit ou réduisez la fenêtre pour voir les colonnes se replier.'
+    client_side:
+        title: 'Table côté client'
+        intro: 'La table minimale : un tableau PHP passé à data(). Ni entité, ni base de données, ni Ajax.'
+        try: 'Recherchez, triez, paginez : tout se passe dans le navigateur.'
+    server_side:
+        title: 'Traitement côté serveur'
+        intro: 'Dix mille commandes paginées, recherchées et triées par Doctrine. Le navigateur ne reçoit que la page visible.'
+        try: 'Triez par total ou cherchez un client, puis copiez l’URL : l’état de la table y est conservé.'
+    columns:
+        title: 'Types de colonnes'
+        intro: 'Tous les types de colonnes fournis dans une seule table : montants, images, icônes, dates relatives et template Twig.'
+        try: 'Chaque colonne formate sa valeur : comparez l’entité brute avec l’affichage.'
+    filters:
+        title: 'Filtres'
+        intro: 'Une barre de filtres appliqués comme conditions Doctrine : texte, choix, plage de dates, oui/non et requête personnalisée.'
+        try: 'Choisissez deux statuts et une plage de dates, puis appliquez.'
+    attributes:
+        title: 'Attributs'
+        intro: 'Colonnes et filtres déclarés sur l’entité avec des attributs PHP. La classe de la table est presque vide.'
+        try: 'Ouvrez l’onglet Customer.php : c’est là que cette table est configurée.'
+    actions:
+        title: 'Actions et modale d’édition'
+        intro: 'Lignes de détail dépliables, formulaire d’édition généré depuis l’entité, suppression conditionnelle et interrupteur en ligne.'
+        try: 'Modifiez un produit et enregistrez. La suppression n’apparaît que sur les produits archivés.'
+    bulk_actions:
+        title: 'Actions groupées'
+        intro: 'Sélectionnez des lignes sur plusieurs pages et lancez une action serveur sur toutes, avec confirmation et retour.'
+        try: 'Sélectionnez quelques commandes et marquez-les comme expédiées : seules les commandes payées changent, les autres sont signalées comme ignorées.'
+    export:
+        title: 'Export'
+        intro: 'Boutons copier, CSV, Excel, PDF et impression. Une colonne peut être exclue des exports.'
+        try: 'Exportez en Excel : la colonne Fournisseur reste hors du fichier.'
+    layout:
+        title: 'Défilement et colonnes figées'
+        intro: 'Défilement virtuel de 10 000 lignes côté serveur, avec la première colonne figée pendant le défilement horizontal.'
+        try: 'Faites défiler vite vers le bas, puis sur le côté : la colonne référence reste en place.'
+    column_tools:
+        title: 'Outils de colonnes'
+        intro: 'Contrôles par colonne, en-têtes réordonnables par glisser-déposer, lignes groupées, navigation clavier et menu de visibilité.'
+        try: 'Glissez un en-tête, cherchez dans une seule colonne, déplacez-vous avec les flèches ou masquez une colonne.'
+
+# Column titles and labels translated by the bundle.
+Product: 'Produit'
+Category: 'Catégorie'
+Price: 'Prix'
+Stock: 'Stock'
+Status: 'Statut'
+Featured: 'Mis en avant'
+Image: 'Image'
+'In stock': 'En stock'
+'Stock level': 'Niveau de stock'
+Supplier: 'Fournisseur'
+'Shop page': 'Fiche boutique'
+Added: 'Ajouté'
+SKU: 'Référence produit'
+Warehouse: 'Entrepôt'
+Country: 'Pays'
+'Capacity (m²)': 'Capacité (m²)'
+Staff: 'Effectif'
+'Open on Sundays': 'Ouvert le dimanche'
+Reference: 'Référence'
+Customer: 'Client'
+Items: 'Articles'
+Total: 'Total'
+'Placed at': 'Passée le'
+'Shipped at': 'Expédiée le'
+Express: 'Express'
+Email: 'E-mail'
+Name: 'Nom'
+VIP: 'VIP'
+'Customer since': 'Client depuis'
+'Name contains…': 'Le nom contient…'
+'Placed between': 'Passée entre'
+'Express shipping': 'Livraison express'
+'Orders over €500': 'Commandes de plus de 500 €'
+Edit: 'Modifier'
+Delete: 'Supprimer'
+Details: 'Détails'
+'Delete this product?': 'Supprimer ce produit ?'
+'Mark as shipped': 'Marquer comme expédiées'
+Cancel: 'Annuler'
+'Cancel {count} orders?': 'Annuler {count} commandes ?'
+'Orders marked as shipped.': 'Commandes marquées comme expédiées.'
+'Orders cancelled.': 'Commandes annulées.'
+ID: 'ID'
+Actions: 'Actions'
+'Yes': 'Oui'
+'No': 'Non'

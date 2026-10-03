@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    {% set page = demo_page() %}
+
+    <header class="hero">
+        <h1>{{ 'home.title'|trans }}</h1>
+        <p class="hero-summary">{{ 'home.summary'|trans }}</p>
+        <div class="install" data-controller="code">
+            <code><span class="prompt" aria-hidden="true">$</span> composer require pentiminax/ux-datatables</code>
+            <button type="button" class="code-copy" data-action="code#copy" data-copy-text="composer require pentiminax/ux-datatables" data-copied-label="{{ 'code.copied'|trans }}">{{ 'code.copy'|trans }}</button>
+        </div>
+    </header>
+
+    <p class="try">{{ 'page.overview.try'|trans }}</p>
+
+    <div class="table-frame table-frame-showcase">
+        {{ render_datatable(table) }}
+    </div>
+
+    <h2 class="section-title">{{ 'home.how'|trans }}</h2>
+    <p class="section-summary">{{ 'home.how_summary'|trans }}</p>
+    {{ include('demo/_code.html.twig') }}
+
+    <h2 class="section-title">{{ 'home.tour'|trans }}</h2>
+    <div class="tour">
+        {% for group, pages in demo_navigation() %}
+            <section>
+                <h3 class="nav-heading">{{ ('group.' ~ group)|trans }}</h3>
+                <ul>
+                    {% for item in pages|filter(p => p.route != 'overview') %}
+                        <li>
+                            <a href="{{ path(item.route) }}">
+                                <span class="tour-title">{{ ('page.' ~ item.route ~ '.title')|trans }}</span>
+                                <span class="tour-summary">{{ ('page.' ~ item.route ~ '.intro')|trans }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endfor %}
+    </div>
+{% endblock %}

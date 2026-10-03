@@ -1,0 +1,17 @@
+security:
+    providers:
+        users_in_memory: { memory: null }
+
+    firewalls:
+        dev:
+            pattern: ^/(_profiler|_wdt|assets|build)/
+            security: false
+        main:
+            lazy: true
+            provider: users_in_memory
+
+    # The demo has no login, so its Ajax endpoints are public. CSRF and table-purpose checks still
+    # run inside the bundle, but a real application MUST restrict ^/datatables/ajax to the users
+    # allowed to read and change the data: https://pentiminax.github.io/ux-datatables/getting-started/security/
+    access_control:
+        - { path: ^/datatables/ajax, roles: PUBLIC_ACCESS }

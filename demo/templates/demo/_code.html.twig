@@ -1,0 +1,16 @@
+<section class="code-panel" data-controller="code" aria-label="{{ 'code.label'|trans }}">
+    <div class="code-tabs" role="tablist">
+        {% for source in demo_sources(page) %}
+            <button type="button" role="tab" id="tab-{{ loop.index }}" aria-controls="source-{{ loop.index }}"
+                    aria-selected="{{ loop.first ? 'true' : 'false' }}" tabindex="{{ loop.first ? 0 : -1 }}"
+                    data-code-target="tab" data-action="code#select keydown->code#navigate">{{ source.name }}</button>
+        {% endfor %}
+        <button type="button" class="code-copy" data-action="code#copy" data-copied-label="{{ 'code.copied'|trans }}">{{ 'code.copy'|trans }}</button>
+    </div>
+    {% for source in demo_sources(page) %}
+        <div class="code-body" role="tabpanel" id="source-{{ loop.index }}" aria-labelledby="tab-{{ loop.index }}" tabindex="0"
+             data-code-target="panel" {% if not loop.first %}hidden{% endif %}>
+            <pre><code class="language-{{ source.language }}">{{ source.code }}</code></pre>
+        </div>
+    {% endfor %}
+</section>
