@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
@@ -601,6 +602,24 @@ final class RenderingPreparerTest extends TestCase
         $this->assertSame('tr:bulk.bar.selected', $bulk['labels']['selected']);
         $this->assertSame('tr:bulk.bar.skipped', $bulk['labels']['skipped']);
         $this->assertSame('tr:bulk.bar.failed', $bulk['labels']['failed']);
+    }
+
+    #[Test]
+    public function it_translates_the_labels_of_choice_columns(): void
+    {
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnCallback(static fn (string $id): string => 'tr:'.$id);
+
+        $table = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->add(ChoiceColumn::new('role', 'Role')->setChoices(RenderingPreparerRole::class));
+
+        (new RenderingPreparer(translator: $translator))->prepare($table, null);
+
+        $this->assertSame(
+            ['admin' => 'tr:role.admin'],
+            $table->getColumns()['role']->getCustomOptions()['choices'],
+        );
     }
 
     #[Test]

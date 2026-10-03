@@ -43,7 +43,7 @@ class PentiminaxDataTablesBundle extends AbstractBundle
                 ->end()
                 ->arrayNode('options')
                     ->children()
-                        ->scalarNode('language')->defaultValue('en-GB')->end()
+                        ->scalarNode('language')->end()
                         ->booleanNode('stateSave')->end()
                         ->booleanNode('showHeaderResetButton')->end()
                         ->variableNode('layout')

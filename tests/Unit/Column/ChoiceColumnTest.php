@@ -10,6 +10,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
+use Symfony\Contracts\Translation\TranslatableInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @internal
@@ -107,6 +109,46 @@ final class ChoiceColumnTest extends DataTableTestCase
     }
 
     #[Test]
+    public function it_translates_the_labels_of_translatable_enum_cases(): void
+    {
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnCallback(
+            static fn (string $id, array $parameters = [], ?string $domain = null, ?string $locale = null): string => $locale.':'.$id
+        );
+
+        $column = ChoiceColumn::new('status')->setChoices(ChoiceColumnTranslatableStatus::class);
+        $column->translateLabels($translator, 'fr');
+
+        $this->assertCustomOption(['draft' => 'fr:status.draft', 'sent' => 'fr:status.sent'], 'choices', $column);
+    }
+
+    #[Test]
+    public function it_leaves_labels_untouched_without_translatable_cases(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator->expects($this->never())->method('trans');
+
+        $column = ChoiceColumn::new('status')->setChoices(['Draft' => 'draft']);
+        $column->translateLabels($translator);
+
+        $this->assertCustomOption(['draft' => 'Draft'], 'choices', $column);
+    }
+
+    #[Test]
+    public function it_forgets_translatable_cases_when_the_choices_are_replaced(): void
+    {
+        $translator = $this->createMock(TranslatorInterface::class);
+        $translator->expects($this->never())->method('trans');
+
+        $column = ChoiceColumn::new('status')
+            ->setChoices(ChoiceColumnTranslatableStatus::cases())
+            ->setChoices(['Draft' => 'draft']);
+        $column->translateLabels($translator);
+
+        $this->assertCustomOption(['draft' => 'Draft'], 'choices', $column);
+    }
+
+    #[Test]
     public function it_keeps_the_subclass_type_through_fluent_calls(): void
     {
         $column = ChoiceColumnSubclassFixture::new('status');
@@ -118,4 +160,15 @@ final class ChoiceColumnTest extends DataTableTestCase
 
 final class ChoiceColumnSubclassFixture extends ChoiceColumn
 {
+}
+
+enum ChoiceColumnTranslatableStatus: string implements TranslatableInterface
+{
+    case Draft = 'draft';
+    case Sent  = 'sent';
+
+    public function trans(TranslatorInterface $translator, ?string $locale = null): string
+    {
+        return $translator->trans('status.'.$this->value, [], null, $locale);
+    }
 }
