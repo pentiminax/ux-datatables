@@ -42,7 +42,7 @@ final class MutationEndpointsTest extends WebTestCase
             'Serializer component is not installed',
             (string) $client->getResponse()->getContent(),
         );
-        $this->assertContains($client->getResponse()->getStatusCode(), [400, 403, 404, 422]);
+        $this->assertSame(422, $client->getResponse()->getStatusCode());
     }
 
     protected static function createKernel(array $options = []): KernelInterface
