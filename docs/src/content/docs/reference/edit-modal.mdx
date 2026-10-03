@@ -11,6 +11,7 @@ order: 60
 - `symfony/form` must be installed (`composer require symfony/form`)
 - `symfony/twig-bundle` must be installed to render the modal templates
 - Bootstrap is only required when you use the Bootstrap modal adapter (detected automatically when Bootstrap CSS is loaded)
+- A voter that grants `DT_EDIT_ROW` on the entity, or the edit endpoints answer `403` (see [Authorization and Voters](/ux-datatables/guide/security/))
 
 ## How It Works
 

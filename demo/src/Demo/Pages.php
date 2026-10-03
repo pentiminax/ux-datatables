@@ -36,7 +36,7 @@ final class Pages
             new Page('filters', 'essentials', FilteredOrdersDataTable::class, 'guide/filters/', ['TextFilter', 'ChoiceFilter', 'DateRangeFilter', 'TernaryFilter', 'CheckboxFilter']),
             new Page('attributes', 'essentials', CustomersDataTable::class, 'reference/attributes/', ['#[AsDataTable]', '#[DataTableColumn]', '#[DataTableFilter]'], ['src/Entity/Customer.php']),
             new Page('actions', 'interactions', ProductActionsDataTable::class, 'columns/action-column/', ['Action::detail()', 'collapsible()', 'Action::edit()', 'Action::delete()', 'displayIf()', 'renderAsSwitch()'], ['src/Security/ProductVoter.php', 'templates/rows/product_detail.html.twig']),
-            new Page('bulk_actions', 'interactions', BulkOrdersDataTable::class, 'features/bulk-actions/', ['BulkAction', 'askConfirmation()', 'setPermission()', 'successMessage()'], ['src/Security/OrderVoter.php']),
+            new Page('bulk_actions', 'interactions', BulkOrdersDataTable::class, 'features/bulk-actions/', ['BulkAction', 'askConfirmation()', 'setPermission()', 'BulkActionContext::skip()', 'successMessage()'], ['src/Security/OrderVoter.php']),
             new Page('export', 'interactions', ExportProductsDataTable::class, 'extensions/buttons/', ['Button::copy()', 'Button::csv()', 'Button::excel()', 'Button::pdf()', 'Button::print()', 'setExportable()']),
             new Page('layout', 'extensions', LayoutOrdersDataTable::class, 'extensions/scroller/', ['scroller()', 'scrollY()', 'scrollX()', 'fixedColumns()']),
             new Page('column_tools', 'extensions', ColumnToolsDataTable::class, 'extensions/column-control/', ['columnControl()', 'colReorder()', 'rowGroup()', 'keyTable()', 'Button::colVis()']),
