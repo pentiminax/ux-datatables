@@ -111,6 +111,11 @@ the entity you were just handed from the processed to the skipped tally, so the 
 matches what the handler did:
 
 ```php
+use App\Enum\OrderStatus;
+use Pentiminax\UX\DataTables\Model\BulkAction;
+use Pentiminax\UX\DataTables\Mutation\BulkActionContext;
+use Pentiminax\UX\DataTables\Mutation\BulkRecords;
+
 BulkAction::new('ship', 'Mark as shipped')
     ->handler(static function (BulkRecords $records, BulkActionContext $context): void {
         foreach ($records as $order) {
