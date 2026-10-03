@@ -149,6 +149,20 @@ describe('datatable controller Turbo lifecycle', () => {
         expect(secondSource.close).not.toHaveBeenCalled()
     })
 
+    it('does not open a Mercure subscription for a table detached during setup', async () => {
+        const table = mountTable({
+            ajax: { url: '/datatables/ajax' },
+            mercure: { hubUrl: 'https://hub.example/.well-known/mercure', topics: ['/users'] },
+        })
+        await getController(application, table)
+
+        loadResolvers[0](MockDataTable)
+        await detach(table)
+        await settle()
+
+        expect(createMercureSubscription).not.toHaveBeenCalled()
+    })
+
     it('does not duplicate mutation handlers after a reconnect', async () => {
         const table = mountTable({
             dataTable: 'mutation-token',
