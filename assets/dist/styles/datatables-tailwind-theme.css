@@ -139,6 +139,8 @@
     --dt-row_background-stripe: var(--dt-tw-gray-950);
     --dt-column-ordering_background: var(--dt-tw-text-muted);
     --dt-processing-circle_background: var(--dt-tw-primary-500);
+    --dtfc_background: rgb(var(--dt-tw-surface));
+    --dts-table_background: rgb(var(--dt-tw-surface));
 }
 
 /* ---------------------------------------------------------------- shell -- */
@@ -254,6 +256,14 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 
     div.dt-container.dt-container div.dt-layout-row:not(.dt-layout-table) div.dt-layout-cell > * {
         margin: 0;
+    }
+
+    .dt-container.dt-container div.dt-paging,
+    .dt-container.dt-container div.dt-paging nav {
+        flex-wrap: wrap;
+        justify-content: center;
+        min-width: 0;
+        max-width: 100%;
     }
 
     .dt-container.dt-container div.dt-search {
@@ -447,6 +457,51 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     background: rgb(var(--dt-tw-primary-500) / 0.12);
     box-shadow: none;
     color: rgb(var(--dt-tw-text));
+}
+
+/* FixedColumns pins cells over the scrolling ones, so they must be opaque: each tint is layered
+   over the surface instead of replacing it. */
+.dt-container.dt-container table.dataTable :is(thead, tfoot) > tr > :is(.dtfc-fixed-start, .dtfc-fixed-end) {
+    background:
+        linear-gradient(var(--dt-tw-head), var(--dt-tw-head)),
+        rgb(var(--dt-tw-surface));
+}
+
+/* Sortable headers tint on hover; a pinned one needs the tint over the surface as well. */
+.dt-container.dt-container
+    table.dataTable
+    thead
+    > tr
+    > th:is(.dtfc-fixed-start, .dtfc-fixed-end):is(.dt-orderable-asc, .dt-orderable-desc):hover {
+    background:
+        linear-gradient(var(--dt-tw-sunken), var(--dt-tw-sunken)),
+        rgb(var(--dt-tw-surface));
+}
+
+.dt-container.dt-container table.dataTable tbody > tr > :is(.dtfc-fixed-start, .dtfc-fixed-end) {
+    background: rgb(var(--dt-tw-surface));
+}
+
+@media (hover: hover) {
+    .dt-container.dt-container
+        table.dataTable
+        tbody
+        > tr:hover
+        > :is(.dtfc-fixed-start, .dtfc-fixed-end) {
+        background:
+            linear-gradient(var(--dt-tw-sunken), var(--dt-tw-sunken)),
+            rgb(var(--dt-tw-surface));
+    }
+}
+
+.dt-container.dt-container
+    table.dataTable
+    tbody
+    > tr.selected
+    > :is(.dtfc-fixed-start, .dtfc-fixed-end) {
+    background:
+        linear-gradient(rgb(var(--dt-tw-primary-500) / 0.12), rgb(var(--dt-tw-primary-500) / 0.12)),
+        rgb(var(--dt-tw-surface));
 }
 
 /* Figures line up column-wise only with lining tabular numerals; DataTables
@@ -726,6 +781,29 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 .dt-container.dt-container :is(button, div, a).dt-button.buttons-excel {
     --dt-tw-export: var(--dt-tw-success);
     --dt-tw-export-icon: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='black'%20stroke-width='2'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M14%202H6a2%202%200%200%200-2%202v16a2%202%200%200%200%202%202h12a2%202%200%200%200%202-2V8z'/%3E%3Cpath%20d='M14%202v6h6'/%3E%3Cpath%20d='M8%2013h8'/%3E%3Cpath%20d='M8%2017h8'/%3E%3Cpath%20d='M12%2012v6'/%3E%3C/svg%3E");
+}
+
+/* ImageColumn::rounded() emits Bootstrap's and Tailwind's class names side by side. */
+.dt-container.dt-container img.rounded-circle {
+    border-radius: 9999px;
+}
+
+/* The column visibility menu and the copy confirmation are appended to <body>, outside the
+   container, so they read the Buttons variables from :root. Their defaults are white, and the
+   extension's own `:root.dark` block has the same specificity as `:root:root`, so this one is
+   a notch higher to win whatever the stylesheet order. */
+:root:root:root {
+    --dtb-collection_background-color: rgb(var(--dt-tw-surface));
+    --dtb-collection_border: 1px solid var(--dt-tw-divider);
+    --dtb-collection_box-shadow: var(--dt-tw-shadow-panel);
+    --dtb-button_background-hover: rgb(var(--dt-tw-neutral) / 0.12);
+    --dtb-button_background-active: rgb(var(--dt-tw-primary-500) / 0.14);
+    --dtb-button_background-active-hover: rgb(var(--dt-tw-primary-500) / 0.2);
+}
+
+div.dt-button-info {
+    background-color: rgb(var(--dt-tw-surface));
+    color: rgb(var(--dt-tw-text));
 }
 
 /* ------------------------------------------------------- row actions -- */
