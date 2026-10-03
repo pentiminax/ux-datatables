@@ -8,18 +8,38 @@ const catalogs: Record<string, CatalogLoader> = {
 const CDN_LOCALE_PATTERN = /\/i18n\/([\w-]+)\.json(?:[?#].*)?$/
 
 export async function applyLocalLanguage(payload: any): Promise<void> {
-    const url = payload?.language?.url
-
-    if (typeof url !== 'string') {
-        return
-    }
-
-    const locale = CDN_LOCALE_PATTERN.exec(url)?.[1]
-    const loader = locale ? catalogs[locale] : undefined
+    const loader = payload?.language ? loaderForUrl(payload.language.url) : loaderForLocale(payload)
 
     if (!loader) {
         return
     }
 
     payload.language = { ...(await loader()).default }
+}
+
+function loaderForUrl(url: unknown): CatalogLoader | undefined {
+    if (typeof url !== 'string') {
+        return undefined
+    }
+
+    const locale = CDN_LOCALE_PATTERN.exec(url)?.[1]
+
+    return locale ? catalogs[locale] : undefined
+}
+
+/**
+ * A table without a `language` option follows the request locale, matched on its language part
+ * (`fr`, `fr_FR` and `fr-CA` all load the French catalog). Locales without a bundled catalog keep
+ * the DataTables built-in English strings.
+ */
+function loaderForLocale(payload: any): CatalogLoader | undefined {
+    if (typeof payload?.locale !== 'string') {
+        return undefined
+    }
+
+    const language = payload.locale.split(/[-_]/)[0].toLowerCase()
+
+    return Object.entries(catalogs).find(
+        ([key]) => key.split('-')[0].toLowerCase() === language
+    )?.[1]
 }
