@@ -16,6 +16,7 @@ assets/node_modules/
 node_modules/.vite/
 
 composer.lock
+!/demo/composer.lock
 _bmad/
 _bmad-output/
 config/reference.php
