@@ -1,5 +1,5 @@
 import { escapeHtml } from '../functions/htmlUtils.js';
-function normalizeMoneyValue(data, storedAsCents) {
+function normalizeMoneyValue(data, storedAsCents, decimals) {
     if (data === null || data === undefined || data === '') {
         return null;
     }
@@ -7,7 +7,7 @@ function normalizeMoneyValue(data, storedAsCents) {
     if (!Number.isFinite(value)) {
         return null;
     }
-    return storedAsCents ? value / 100 : value;
+    return storedAsCents ? value / 10 ** decimals : value;
 }
 function resolveDecimals(value) {
     return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 20
@@ -35,7 +35,7 @@ export const moneyColumnRenderer = {
             maximumFractionDigits: decimals,
         });
         column.render = (data, type) => {
-            const value = normalizeMoneyValue(data, storedAsCents);
+            const value = normalizeMoneyValue(data, storedAsCents, decimals);
             if (type === 'sort' || type === 'type') {
                 return value ?? data;
             }

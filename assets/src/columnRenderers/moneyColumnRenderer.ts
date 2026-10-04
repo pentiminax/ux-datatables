@@ -1,7 +1,11 @@
 import { escapeHtml } from '../functions/htmlUtils.js'
 import type { ColumnRenderer, MoneyCustomOptions } from './types.js'
 
-function normalizeMoneyValue(data: unknown, storedAsCents: boolean): number | null {
+function normalizeMoneyValue(
+    data: unknown,
+    storedAsCents: boolean,
+    decimals: number
+): number | null {
     if (data === null || data === undefined || data === '') {
         return null
     }
@@ -11,7 +15,7 @@ function normalizeMoneyValue(data: unknown, storedAsCents: boolean): number | nu
         return null
     }
 
-    return storedAsCents ? value / 100 : value
+    return storedAsCents ? value / 10 ** decimals : value
 }
 
 function resolveDecimals(value: unknown): number {
@@ -44,7 +48,7 @@ export const moneyColumnRenderer: ColumnRenderer = {
         })
 
         column.render = (data: any, type: string): any => {
-            const value = normalizeMoneyValue(data, storedAsCents)
+            const value = normalizeMoneyValue(data, storedAsCents, decimals)
 
             if (type === 'sort' || type === 'type') {
                 return value ?? data

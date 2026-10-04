@@ -77,6 +77,53 @@ describe('moneyColumnRenderer', () => {
             expect(column.render(123, 'display')).toBe('$123')
         })
 
+        it('divides a cents-backed amount by 10^decimals, matching the edit form', () => {
+            const column: Record<string, any> = {
+                customOptions: {
+                    isMoney: true,
+                    currency: 'KWD',
+                    decimals: 3,
+                    locale: 'en-US',
+                    storedAsCents: true,
+                },
+            }
+
+            moneyColumnRenderer.configure(column)
+
+            const expected = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'KWD',
+                minimumFractionDigits: 3,
+                maximumFractionDigits: 3,
+            }).format(12.345)
+
+            expect(column.render(12345, 'display')).toBe(expected)
+            expect(column.render(12345, 'sort')).toBe(12.345)
+        })
+
+        it('does not scale a zero-decimal cents-backed amount', () => {
+            const column: Record<string, any> = {
+                customOptions: {
+                    isMoney: true,
+                    currency: 'JPY',
+                    decimals: 0,
+                    locale: 'en-US',
+                    storedAsCents: true,
+                },
+            }
+
+            moneyColumnRenderer.configure(column)
+
+            const expected = new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'JPY',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+            }).format(12345)
+
+            expect(column.render(12345, 'display')).toBe(expected)
+        })
+
         it('returns numeric values for sort and type modes', () => {
             const column: Record<string, any> = {
                 customOptions: {
