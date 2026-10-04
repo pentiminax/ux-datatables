@@ -283,6 +283,7 @@ export default class extends Controller {
         this.isDataTableInitialized = true
         this.table = new DataTable.Api(this.element) as DataTableWithAjax
         this.dispatchEvent('reconnect', { table: this.table })
+        this.bindPopstate(isUrlStateEnabled(this.viewValue))
 
         return true
     }

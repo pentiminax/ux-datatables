@@ -174,6 +174,7 @@ class default_1 extends Controller {
         this.isDataTableInitialized = true;
         this.table = new DataTable.Api(this.element);
         this.dispatchEvent('reconnect', { table: this.table });
+        this.bindPopstate(isUrlStateEnabled(this.viewValue));
         return true;
     }
     bindPopstate(cfg) {
