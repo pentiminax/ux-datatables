@@ -41,6 +41,10 @@ The edit modal bound a `MoneyColumn` to a plain `NumberType`, so a value stored 
 `30.5` saves `3050`. A column set to `storedAsCents(false)` is bound as entered. Update tests or
 custom edit templates that submitted raw cents for these columns.
 
+A cents-backed column with `decimals()` other than 2 used to display at a `/100` scale while the
+edit form divided by `10^decimals`. The table now uses the same scale as the form: `12345` with
+`decimals(3)` displays as `12.345`, not `123.45`.
+
 ### `symfony/serializer` is required
 
 The edit modal, inline edit, delete, detail rows, and bulk actions map their Ajax payload with
