@@ -163,6 +163,53 @@ describe('datatable controller Turbo lifecycle', () => {
         expect(createMercureSubscription).not.toHaveBeenCalled()
     })
 
+    it('does not bind popstate for a table detached during setup, then binds it on reattach', async () => {
+        const addListener = vi.spyOn(window, 'addEventListener')
+        const popstateBinds = () =>
+            addListener.mock.calls.filter(([type]) => type === 'popstate').length
+        const table = mountTable({
+            ajax: { url: '/datatables/ajax' },
+            urlState: { search: true },
+        })
+        await getController(application, table)
+
+        loadResolvers[0](MockDataTable)
+        await detach(table)
+        await settle()
+
+        expect(popstateBinds()).toBe(0)
+
+        await attach(table)
+        await settle()
+
+        expect(popstateBinds()).toBe(1)
+        addListener.mockRestore()
+    })
+
+    it('rebinds popstate when a reattach adopts the table while Mercure is still loading', async () => {
+        const addListener = vi.spyOn(window, 'addEventListener')
+        const popstateBinds = () =>
+            addListener.mock.calls.filter(([type]) => type === 'popstate').length
+        const table = mountTable({
+            ajax: { url: '/datatables/ajax' },
+            urlState: { search: true },
+            mercure: { hubUrl: 'https://hub.example/.well-known/mercure', topics: ['/users'] },
+        })
+        await getController(application, table)
+
+        loadResolvers[0](MockDataTable)
+        await flushMicrotasks()
+        expect(popstateBinds()).toBe(1)
+
+        await detach(table)
+        await attach(table)
+        loadResolvers[1]?.(MockDataTable)
+        await settle()
+
+        expect(popstateBinds()).toBe(2)
+        addListener.mockRestore()
+    })
+
     it('does not duplicate mutation handlers after a reconnect', async () => {
         const table = mountTable({
             dataTable: 'mutation-token',
