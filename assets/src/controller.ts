@@ -148,6 +148,7 @@ export default class extends Controller {
             // controller instance needs a signal to bind again. `connect` stays a build-only event.
             if (this.table) {
                 this.dispatchEvent('reconnect', { table: this.table })
+                this.bindPopstate(isUrlStateEnabled(this.viewValue))
                 // disconnect() closed the EventSource; the table is still live, so subscribe again.
                 await this.initMercure(this.viewValue)
             }
@@ -245,8 +246,7 @@ export default class extends Controller {
 
         if (urlStateCfg && this.table) {
             this.table.on('draw.dt', () => writeUrlState(urlStateCfg, this.table!))
-            this.popstateHandler = () => this.applyUrlStateToTable(urlStateCfg)
-            window.addEventListener('popstate', this.popstateHandler)
+            this.bindPopstate(urlStateCfg)
         }
 
         await this.initMercure(payload)
@@ -283,8 +283,19 @@ export default class extends Controller {
         this.isDataTableInitialized = true
         this.table = new DataTable.Api(this.element) as DataTableWithAjax
         this.dispatchEvent('reconnect', { table: this.table })
+        this.bindPopstate(isUrlStateEnabled(this.viewValue))
 
         return true
+    }
+
+    private bindPopstate(cfg: UrlStateConfig | null | false): void {
+        // A detached controller never gets another disconnect() to remove the listener.
+        if (!cfg || this.popstateHandler || !this.element.isConnected) {
+            return
+        }
+
+        this.popstateHandler = () => this.applyUrlStateToTable(cfg)
+        window.addEventListener('popstate', this.popstateHandler)
     }
 
     private applyUrlStateToTable(cfg: UrlStateConfig): void {

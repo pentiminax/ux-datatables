@@ -87,6 +87,7 @@ class default_1 extends Controller {
         if (this.isDataTableInitialized) {
             if (this.table) {
                 this.dispatchEvent('reconnect', { table: this.table });
+                this.bindPopstate(isUrlStateEnabled(this.viewValue));
                 await this.initMercure(this.viewValue);
             }
             return;
@@ -148,8 +149,7 @@ class default_1 extends Controller {
         this.dispatchEvent('connect', { table: this.table });
         if (urlStateCfg && this.table) {
             this.table.on('draw.dt', () => writeUrlState(urlStateCfg, this.table));
-            this.popstateHandler = () => this.applyUrlStateToTable(urlStateCfg);
-            window.addEventListener('popstate', this.popstateHandler);
+            this.bindPopstate(urlStateCfg);
         }
         await this.initMercure(payload);
         this.bindActionHandler(payload);
@@ -174,7 +174,15 @@ class default_1 extends Controller {
         this.isDataTableInitialized = true;
         this.table = new DataTable.Api(this.element);
         this.dispatchEvent('reconnect', { table: this.table });
+        this.bindPopstate(isUrlStateEnabled(this.viewValue));
         return true;
+    }
+    bindPopstate(cfg) {
+        if (!cfg || this.popstateHandler || !this.element.isConnected) {
+            return;
+        }
+        this.popstateHandler = () => this.applyUrlStateToTable(cfg);
+        window.addEventListener('popstate', this.popstateHandler);
     }
     applyUrlStateToTable(cfg) {
         if (!this.table)
