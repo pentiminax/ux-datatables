@@ -177,7 +177,7 @@
     "datatables.net-columncontrol-dt": "^2.0.2",
     "datatables.net-dt": "^3.1.2",
     "datatables.net-fixedcolumns-bs": "^6.0.0",
-    "datatables.net-fixedcolumns-bs4": "^6.0.0",
+    "datatables.net-fixedcolumns-bs4": "^6.1.1",
     "datatables.net-fixedcolumns-bs5": "^6.0.0",
     "datatables.net-fixedcolumns-dt": "^6.0.0",
     "datatables.net-fixedheader-bs": "^5.1.1",
