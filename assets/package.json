@@ -141,7 +141,7 @@
     "datatables.net-scroller-dt": "^3.1.1",
     "datatables.net-select-bs5": "^4.0.1",
     "datatables.net-select-dt": "^4.0.1",
-    "jszip": "^3.10.0",
+    "jszip": "^3.10.2",
     "lucide": "^1.47.0",
     "pdfmake": "^0.3.11"
   },
@@ -205,7 +205,7 @@
     "datatables.net-select-bs5": "^4.0.1",
     "datatables.net-select-dt": "^4.0.1",
     "jsdom": "^30.0.1",
-    "jszip": "^3.10.0",
+    "jszip": "^3.10.2",
     "lucide": "^1.47.0",
     "pdfmake": "^0.3.11",
     "vitest": "^4.1.11"
