@@ -53,6 +53,18 @@ requests answered HTTP 500 in an application that did not already have it. The b
 `symfony/serializer`, so `composer update` installs it and FrameworkBundle enables it on its own.
 An application that configures its own serializer needs no change.
 
+### Bulk actions skip identifiers outside the table scope
+
+An explicit bulk selection loaded its entities with `findBy()`, which ignored the table's scope: a
+forged identifier belonging to another tenant reached the handler as long as the row existed, unless
+the action had a per-row permission resolver. The bundle now keeps only the identifiers the table's
+permanent scope (`customizeQueryBuilder()`, without search or filters) contains. The others are not
+loaded and are counted in `skipped`, so the handler and `BulkActionContext` see a smaller batch.
+
+Tables without `customizeQueryBuilder()` are unaffected. A custom data provider can opt in by
+implementing `ScopedIdentifierProviderInterface`; without it, and for API Platform backed tables,
+the previous behavior stays and the handler must scope itself.
+
 ## v1.1 → v1.2
 
 ### Row identifiers are sent as strings

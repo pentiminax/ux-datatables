@@ -247,6 +247,12 @@ Keep both layers in place:
 A firewall rule alone would let any authenticated admin-area user delete _any_ row reachable through
 the table; the voter is what scopes that down to the rows they're actually allowed to touch.
 
+Bulk actions add a second boundary: the identifiers of an explicit selection are filtered through
+the table's permanent scope (`customizeQueryBuilder()`), so a forged identifier belonging to another
+tenant never reaches the handler even when the action has no per-row permission. Single-row
+mutations (delete, boolean toggle, edit form) still rely on the `DT_DELETE_ROW` and `DT_EDIT_ROW`
+voters, which deny by default. See [Bulk actions](/features/bulk-actions/#table-scope).
+
 Custom actions keep their own route authorization and CSRF boundary. `Action::setPermission()` only
 decides whether the button is rendered by the bundle, so custom action routes still need
 `#[IsGranted]`, CSRF validation, or equivalent checks. Direct API Platform endpoints follow the

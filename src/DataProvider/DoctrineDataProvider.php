@@ -9,6 +9,7 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\Contracts\ScopedIdentifierProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
@@ -16,8 +17,10 @@ use Pentiminax\UX\DataTables\Query\CollectionJoinDetector;
 use Pentiminax\UX\DataTables\Query\DoctrineSortDirection;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
-class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectingDataProviderInterface, StreamingDataProviderInterface
+class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectingDataProviderInterface, ScopedIdentifierProviderInterface, StreamingDataProviderInterface
 {
+    private const int IN_SCOPE_CHUNK_SIZE = 500;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly string $entityClass,
@@ -231,6 +234,49 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         [$qb, $alias, $identifier] = $this->buildIdentifierScopedQuery($request, $field);
 
         return $this->normalizeIdentifiers($this->scopedIdentifiers($qb, $alias, $identifier));
+    }
+
+    /**
+     * Asks the database which of $ids the permanent scope (customizeQueryBuilder() alone, the same
+     * query recordsTotal counts) contains.
+     *
+     * Interactive search, ordering and filters are left out on purpose: a row the user filtered
+     * away is still theirs to act on, while a row outside the permanent scope never was.
+     */
+    public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+    {
+        $metadata = $this->em->getClassMetadata($this->entityClass);
+
+        if (!$metadata->hasField($field) && !\in_array($field, $metadata->getIdentifier(), true)) {
+            throw new \LogicException(\sprintf('"%s" is not a mapped field of "%s", so identifiers cannot be checked against the table scope.', $field, $this->entityClass));
+        }
+
+        $inScope = [];
+
+        foreach (array_chunk($ids, self::IN_SCOPE_CHUNK_SIZE) as $chunk) {
+            $qb = $this->em
+                ->createQueryBuilder()
+                ->select('e')
+                ->from($this->entityClass, 'e');
+
+            if ($this->configureBaseQueryBuilder) {
+                $qb = ($this->configureBaseQueryBuilder)($qb, $request);
+            }
+
+            $found = (clone $qb)
+                ->select("DISTINCT e.$field")
+                ->resetDQLPart('orderBy')
+                ->andWhere($qb->expr()->in("e.$field", ':ux_datatables_scope_ids'))
+                ->setParameter('ux_datatables_scope_ids', $chunk)
+                ->getQuery()
+                ->getSingleColumnResult();
+
+            foreach ($this->normalizeIdentifiers($found) as $id) {
+                $inScope[(string) $id] = true;
+            }
+        }
+
+        return array_values(array_filter($ids, static fn (int|string $id): bool => isset($inScope[(string) $id])));
     }
 
     /**

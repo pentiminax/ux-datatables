@@ -9,6 +9,7 @@ use Doctrine\Persistence\ObjectManager;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\Contracts\ScopedIdentifierProviderInterface;
 use Pentiminax\UX\DataTables\Exception\InvalidBulkSelectionException;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
@@ -64,6 +65,8 @@ final class BulkActionRunner
             throw InvalidBulkSelectionException::emptySelection();
         }
 
+        $inScopeIds = $this->keepIdentifiersInScope($table, $selection, $request, $identifier, $ids);
+
         $context = new BulkActionContext(
             entityClass: $entityClass,
             dataTableClass: $table->dataTableClass,
@@ -71,9 +74,10 @@ final class BulkActionRunner
             objectManager: $manager,
             selectedCount: \count($ids),
         );
+        $context->recordSkipped(\count($ids) - \count($inScopeIds));
 
         $records = new BulkRecords(
-            entities: fn (): \Generator => $this->walk($manager, $entityClass, $identifier, $ids, $action, $context),
+            entities: fn (): \Generator => $this->walk($manager, $entityClass, $identifier, $inScopeIds, $action, $context),
             selectedCount: \count($ids),
         );
 
@@ -133,6 +137,42 @@ final class BulkActionRunner
 
             $this->flusher->flush($manager);
         }
+    }
+
+    /**
+     * An explicit selection is whatever ids the browser chose to send, so a forged id would reach
+     * the handler as long as the entity exists. Keeping only the ids the table's permanent scope
+     * (customizeQueryBuilder()) contains gives it the same boundary "select all matching" already
+     * has, because that path collects its ids through the table's own query.
+     *
+     * A provider that cannot answer keeps the ids as they are: the handler has to scope itself.
+     *
+     * @param list<int|string> $ids
+     *
+     * @return list<int|string>
+     */
+    private function keepIdentifiersInScope(
+        ResolvedDataTable $table,
+        BulkSelection $selection,
+        Request $request,
+        string $identifier,
+        array $ids,
+    ): array {
+        if ($selection->allMatching) {
+            return $ids;
+        }
+
+        $this->hydrateRequest($request, $selection->query);
+        $table->table->handleRequest($request);
+
+        $dataTableRequest = $table->table->getRequest();
+        $provider         = $table->table->getDataProvider();
+
+        if (null === $dataTableRequest || !$provider instanceof ScopedIdentifierProviderInterface) {
+            return $ids;
+        }
+
+        return $provider->filterIdentifiersInScope($dataTableRequest->withoutPagination(), $ids, $identifier);
     }
 
     private function isGranted(BulkAction $action, object $entity, string $dataTableClass): bool
