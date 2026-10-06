@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Mutation;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -75,6 +76,70 @@ final class EntityLocatorTest extends TestCase
 
         $this->expectException(EntityNotFoundException::class);
         (new EntityLocator($registry))->locate(EntityLocatorFixture::class, null);
+    }
+
+    #[Test]
+    public function it_looks_up_by_a_mapped_non_identifier_field(): void
+    {
+        $entity     = new EntityLocatorFixture();
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->expects($this->never())->method('find');
+        $repository->expects($this->once())->method('findOneBy')->with(['sku' => '100'])->willReturn($entity);
+
+        $metadata = $this->createStub(ClassMetadata::class);
+        $metadata->method('getIdentifierFieldNames')->willReturn(['id']);
+        $metadata->method('hasField')->willReturnCallback(static fn (string $field): bool => 'sku' === $field);
+        $metadata->method('hasAssociation')->willReturn(false);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('getRepository')->with(EntityLocatorFixture::class)->willReturn($repository);
+        $manager->method('getClassMetadata')->with(EntityLocatorFixture::class)->willReturn($metadata);
+
+        $context = (new EntityLocator($this->registryFor($manager)))->locate(EntityLocatorFixture::class, '100', 'sku');
+
+        $this->assertSame($entity, $context->entity);
+    }
+
+    #[Test]
+    public function it_uses_find_when_the_field_is_the_single_identifier(): void
+    {
+        $entity     = new EntityLocatorFixture();
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->expects($this->once())->method('find')->with('42')->willReturn($entity);
+        $repository->expects($this->never())->method('findOneBy');
+
+        $metadata = $this->createStub(ClassMetadata::class);
+        $metadata->method('getIdentifierFieldNames')->willReturn(['id']);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('getRepository')->with(EntityLocatorFixture::class)->willReturn($repository);
+        $manager->method('getClassMetadata')->with(EntityLocatorFixture::class)->willReturn($metadata);
+
+        $context = (new EntityLocator($this->registryFor($manager)))->locate(EntityLocatorFixture::class, '42', 'id');
+
+        $this->assertSame($entity, $context->entity);
+    }
+
+    #[Test]
+    public function it_falls_back_to_find_for_an_unmapped_id_field_name(): void
+    {
+        $entity     = new EntityLocatorFixture();
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->expects($this->once())->method('find')->with('uuid-1')->willReturn($entity);
+        $repository->expects($this->never())->method('findOneBy');
+
+        $metadata = $this->createStub(ClassMetadata::class);
+        $metadata->method('getIdentifierFieldNames')->willReturn(['uuid']);
+        $metadata->method('hasField')->willReturn(false);
+        $metadata->method('hasAssociation')->willReturn(false);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('getRepository')->with(EntityLocatorFixture::class)->willReturn($repository);
+        $manager->method('getClassMetadata')->with(EntityLocatorFixture::class)->willReturn($metadata);
+
+        $context = (new EntityLocator($this->registryFor($manager)))->locate(EntityLocatorFixture::class, 'uuid-1', 'id');
+
+        $this->assertSame($entity, $context->entity);
     }
 
     private function managerFinding(int|string $id, ?object $entity): EntityManagerInterface

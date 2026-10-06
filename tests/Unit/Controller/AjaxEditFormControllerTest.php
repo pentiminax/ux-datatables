@@ -108,7 +108,9 @@ final class AjaxEditFormControllerTest extends TestCase
             ->method('getRepository')
             ->with(AjaxEditFormControllerFixture::class)
             ->willReturn($repository);
-        $entityManager->expects($this->never())->method('getClassMetadata');
+        $entityManager->method('getClassMetadata')
+            ->with(AjaxEditFormControllerFixture::class)
+            ->willReturn($this->primaryKeyMetadata(['id']));
 
         [$formFactory, $renderer, $templateResolver] = $this->createUnusedFormCollaborators();
 
@@ -259,22 +261,29 @@ final class AjaxEditFormControllerTest extends TestCase
             ->with('42')
             ->willReturn($entity);
 
-        $classMetadata = $this->createMock(ClassMetadata::class);
-        $classMetadata->expects($this->once())
-            ->method('getIdentifierFieldNames')
-            ->willReturn([]);
-
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->expects($this->once())
             ->method('getRepository')
             ->with(AjaxEditFormControllerFixture::class)
             ->willReturn($repository);
-        $entityManager->expects($this->once())
-            ->method('getClassMetadata')
+        $entityManager->method('getClassMetadata')
             ->with(AjaxEditFormControllerFixture::class)
-            ->willReturn($classMetadata);
+            ->willReturn($this->primaryKeyMetadata([]));
 
         return $entityManager;
+    }
+
+    /**
+     * @param list<string> $identifierFieldNames
+     */
+    private function primaryKeyMetadata(array $identifierFieldNames): ClassMetadata
+    {
+        $classMetadata = $this->createStub(ClassMetadata::class);
+        $classMetadata->method('getIdentifierFieldNames')->willReturn($identifierFieldNames);
+        $classMetadata->method('hasField')->willReturn(false);
+        $classMetadata->method('hasAssociation')->willReturn(false);
+
+        return $classMetadata;
     }
 }
 

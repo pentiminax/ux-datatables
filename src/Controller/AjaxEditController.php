@@ -32,6 +32,7 @@ final class AjaxEditController
             field: $context->field,
             value: $payload->newValue,
             dataTableClass: $context->dataTableClass,
+            idField: $context->idField,
         );
 
         return new Response($payload->newValue ? '1' : '0');

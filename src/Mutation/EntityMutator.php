@@ -34,7 +34,7 @@ final class EntityMutator
      */
     public function delete(string $entityClass, int|string $id, string $dataTableClass, Action $action): void
     {
-        $context = $this->locator->locate($entityClass, $id);
+        $context = $this->locator->locate($entityClass, $id, $action->getIdField());
 
         if (!$this->permissionChecker->canDeleteRow($context->entity)) {
             throw new MutationNotAllowedException();
@@ -62,9 +62,15 @@ final class EntityMutator
      * @throws MutationPersistenceException
      * @throws PropertyNotWritableException
      */
-    public function setProperty(string $entityClass, int|string $id, string $field, bool $value, string $dataTableClass): void
-    {
-        $context = $this->locator->locate($entityClass, $id);
+    public function setProperty(
+        string $entityClass,
+        int|string $id,
+        string $field,
+        bool $value,
+        string $dataTableClass,
+        ?string $idField = null,
+    ): void {
+        $context = $this->locator->locate($entityClass, $id, $idField);
 
         if (!$this->permissionChecker->canEditRow($context->entity)) {
             throw new MutationNotAllowedException();

@@ -40,7 +40,7 @@ final readonly class DetailRowService
         }
 
         try {
-            $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
+            $context = $this->locator->locate($dataTable->requireEntityClass(), $id, $action->getIdField());
         } catch (EntityNotFoundException) {
             return AjaxActionResult::notFound();
         }

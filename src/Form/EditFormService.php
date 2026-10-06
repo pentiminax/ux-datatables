@@ -44,7 +44,7 @@ final class EditFormService
         }
 
         try {
-            $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
+            $context = $this->locator->locate($dataTable->requireEntityClass(), $id, $action->getIdField());
         } catch (EntityNotFoundException) {
             return AjaxActionResult::notFound();
         }
@@ -73,7 +73,7 @@ final class EditFormService
         }
 
         try {
-            $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
+            $context = $this->locator->locate($dataTable->requireEntityClass(), $id, $action->getIdField());
         } catch (EntityNotFoundException) {
             return AjaxActionResult::notFound();
         }

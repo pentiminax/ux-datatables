@@ -40,6 +40,7 @@ final readonly class BooleanMutationContextResolver
                 entityClass: $column->getEntityClass() ?? $resolved->requireEntityClass(),
                 dataTableClass: $resolved->dataTableClass,
                 field: $field,
+                idField: $this->resolveIdField($column),
             );
         }
 
@@ -55,5 +56,12 @@ final readonly class BooleanMutationContextResolver
         }
 
         return '';
+    }
+
+    private function resolveIdField(BooleanColumn $column): string
+    {
+        $idField = $column->getCustomOption(BooleanColumn::OPTION_TOGGLE_ID_FIELD);
+
+        return \is_string($idField) && '' !== $idField ? $idField : 'id';
     }
 }

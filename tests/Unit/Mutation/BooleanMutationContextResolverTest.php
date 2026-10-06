@@ -59,6 +59,15 @@ final class BooleanMutationContextResolverTest extends TestCase
         $this->assertSame($expectedEntityClass, $context->entityClass);
         $this->assertSame($dataTableClass, $context->dataTableClass);
         $this->assertSame($field, $context->field);
+        $this->assertSame('id', $context->idField);
+    }
+
+    #[Test]
+    public function it_carries_the_toggle_ajax_id_field_into_the_mutation_context(): void
+    {
+        $context = $this->resolve(ToggleIdFieldDataTableFixture::class, 'enabled');
+
+        $this->assertSame('sku', $context->idField);
     }
 
     #[Test]
@@ -263,6 +272,17 @@ final class PermissionGatedBooleanDataTableFixture extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield BooleanColumn::new('enabled')->setPermission('ROLE_ADMIN')->renderAsSwitch();
+    }
+}
+
+#[AsDataTable(entityClass: BooleanMutationEntityFixture::class)]
+final class ToggleIdFieldDataTableFixture extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        yield BooleanColumn::new('enabled')
+            ->renderAsSwitch()
+            ->setToggleAjax(idField: 'sku');
     }
 }
 

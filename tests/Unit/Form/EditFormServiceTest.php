@@ -454,7 +454,9 @@ final class EditFormServiceTest extends TestCase
             ->method('getRepository')
             ->with(EditFormServiceFixture::class)
             ->willReturn($repository);
-        $entityManager->expects($this->never())->method('getClassMetadata');
+        $entityManager->method('getClassMetadata')
+            ->with(EditFormServiceFixture::class)
+            ->willReturn($this->primaryKeyMetadata(['id']));
         $entityManager->expects($this->never())->method('flush');
 
         return $entityManager;
@@ -468,29 +470,35 @@ final class EditFormServiceTest extends TestCase
             ->with($id)
             ->willReturn($entity);
 
-        $classMetadata = $this->createMock(ClassMetadata::class);
-        $classMetadata->expects($this->once())
-            ->method('getIdentifierFieldNames')
-            ->willReturn([]);
-
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->expects($this->once())
             ->method('getRepository')
             ->with(EditFormServiceFixture::class)
             ->willReturn($repository);
-        $entityManager->expects($this->once())
-            ->method('getClassMetadata')
+        $entityManager->method('getClassMetadata')
             ->with(EditFormServiceFixture::class)
-            ->willReturn($classMetadata);
+            ->willReturn($this->primaryKeyMetadata([]));
 
         return $entityManager;
+    }
+
+    /**
+     * @param list<string> $identifierFieldNames
+     */
+    private function primaryKeyMetadata(array $identifierFieldNames): ClassMetadata
+    {
+        $classMetadata = $this->createStub(ClassMetadata::class);
+        $classMetadata->method('getIdentifierFieldNames')->willReturn($identifierFieldNames);
+        $classMetadata->method('hasField')->willReturn(false);
+        $classMetadata->method('hasAssociation')->willReturn(false);
+
+        return $classMetadata;
     }
 
     private function createRegistry(EntityManagerInterface $entityManager): ManagerRegistry
     {
         $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->once())
-            ->method('getManagerForClass')
+        $registry->method('getManagerForClass')
             ->with(EditFormServiceFixture::class)
             ->willReturn($entityManager);
 

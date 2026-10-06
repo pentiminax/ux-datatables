@@ -243,6 +243,39 @@ final class EntityMutatorTest extends TestCase
     }
 
     #[Test]
+    public function delete_looks_rows_up_by_the_action_id_field_not_the_primary_key(): void
+    {
+        $entity = new EntityMutatorFixture();
+
+        $repository = $this->createMock(EntityRepository::class);
+        $repository->expects($this->never())->method('find');
+        $repository->expects($this->once())->method('findOneBy')->with(['sku' => '100'])->willReturn($entity);
+
+        $metadata = $this->createStub(ClassMetadata::class);
+        $metadata->method('getIdentifierFieldNames')->willReturn(['id']);
+        $metadata->method('hasField')->willReturnCallback(
+            static fn (string $name): bool => \in_array($name, ['enabled', 'sku'], true)
+        );
+        $metadata->method('hasAssociation')->willReturn(false);
+        $metadata->method('getTypeOfField')->willReturn(null);
+
+        $manager = $this->createMock(EntityManagerInterface::class);
+        $manager->method('getRepository')->with(EntityMutatorFixture::class)->willReturn($repository);
+        $manager->method('getClassMetadata')->willReturn($metadata);
+        $manager->expects($this->once())->method('remove')->with($entity);
+        $manager->expects($this->once())->method('flush');
+
+        $mutator = $this->mutator($manager, $this->createStub(MercurePublisherInterface::class));
+
+        $mutator->delete(
+            EntityMutatorFixture::class,
+            '100',
+            self::DATA_TABLE_CLASS,
+            Action::delete()->setIdField('sku'),
+        );
+    }
+
+    #[Test]
     public function it_denies_property_write_and_does_not_set_value_or_flush_when_not_granted(): void
     {
         $entity = new EntityMutatorFixture();
@@ -441,7 +474,9 @@ final class EntityMutatorTest extends TestCase
     private function booleanFieldMetadata(string $field): ClassMetadata
     {
         $metadata = $this->createStub(ClassMetadata::class);
+        $metadata->method('getIdentifierFieldNames')->willReturn(['id']);
         $metadata->method('hasField')->willReturnCallback(static fn (string $name): bool => $name === $field);
+        $metadata->method('hasAssociation')->willReturn(false);
         $metadata->method('getTypeOfField')->willReturnCallback(static fn (string $name): ?string => $name === $field ? 'boolean' : null);
 
         return $metadata;

@@ -108,7 +108,9 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ->method('getRepository')
             ->with(AjaxEditFormSubmitControllerFixture::class)
             ->willReturn($repository);
-        $entityManager->expects($this->never())->method('getClassMetadata');
+        $entityManager->method('getClassMetadata')
+            ->with(AjaxEditFormSubmitControllerFixture::class)
+            ->willReturn($this->primaryKeyMetadata(['id']));
         $entityManager->expects($this->never())->method('flush');
 
         $formFactory = $this->createMock(FormFactoryInterface::class);
@@ -349,8 +351,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
     private function createRegistry(EntityManagerInterface $entityManager): ManagerRegistry
     {
         $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->once())
-            ->method('getManagerForClass')
+        $registry->method('getManagerForClass')
             ->with(AjaxEditFormSubmitControllerFixture::class)
             ->willReturn($entityManager);
 
@@ -365,22 +366,29 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             ->with(42)
             ->willReturn($entity);
 
-        $classMetadata = $this->createMock(ClassMetadata::class);
-        $classMetadata->expects($this->once())
-            ->method('getIdentifierFieldNames')
-            ->willReturn([]);
-
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->expects($this->once())
             ->method('getRepository')
             ->with(AjaxEditFormSubmitControllerFixture::class)
             ->willReturn($repository);
-        $entityManager->expects($this->once())
-            ->method('getClassMetadata')
+        $entityManager->method('getClassMetadata')
             ->with(AjaxEditFormSubmitControllerFixture::class)
-            ->willReturn($classMetadata);
+            ->willReturn($this->primaryKeyMetadata([]));
 
         return $entityManager;
+    }
+
+    /**
+     * @param list<string> $identifierFieldNames
+     */
+    private function primaryKeyMetadata(array $identifierFieldNames): ClassMetadata
+    {
+        $classMetadata = $this->createStub(ClassMetadata::class);
+        $classMetadata->method('getIdentifierFieldNames')->willReturn($identifierFieldNames);
+        $classMetadata->method('hasField')->willReturn(false);
+        $classMetadata->method('hasAssociation')->willReturn(false);
+
+        return $classMetadata;
     }
 
     /**

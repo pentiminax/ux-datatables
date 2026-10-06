@@ -14,6 +14,7 @@ final readonly class BooleanMutationContext
         public string $entityClass,
         public string $dataTableClass,
         public string $field,
+        public ?string $idField = null,
     ) {
     }
 }
