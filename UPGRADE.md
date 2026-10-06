@@ -88,7 +88,8 @@ the action had a per-row permission resolver. The bundle now keeps only the iden
 permanent scope (`customizeQueryBuilder()`, without search or filters) contains. The others are not
 loaded and are counted in `skipped`, so the handler and `BulkActionContext` see a smaller batch.
 
-Tables without `customizeQueryBuilder()` are unaffected. The browser now sends the displayed
+Tables without `customizeQueryBuilder()` are unaffected, except that an identifier the field type
+refuses (a malformed UUID) is now counted as skipped. The browser now sends the displayed
 DataTables parameters with an explicit selection too, so a `customizeQueryBuilder()` that scopes on
 forwarded query parameters sees the same values as it does for a data request. A custom data provider can opt in by
 implementing `ScopedIdentifierProviderInterface`; without it, and for API Platform backed tables,
