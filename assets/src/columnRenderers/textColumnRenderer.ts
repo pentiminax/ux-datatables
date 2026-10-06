@@ -1,7 +1,17 @@
 import { escapeHtml } from '../functions/htmlUtils.js'
-import type { ColumnRenderer } from './types.js'
+import { type ColumnRenderer, isFormatted } from './types.js'
 
 const PLAIN_TEXT_TYPES = new Set(['string', 'string-utf8'])
+
+function hasTypedRenderer(column: Record<string, any>): boolean {
+    const options = column.customOptions ?? {}
+
+    return (
+        true === options.isMoney ||
+        true === options.renderAsSwitch ||
+        (typeof options.choices === 'object' && options.choices !== null)
+    )
+}
 
 /**
  * DataTables inserts Ajax cell values as HTML. A TextColumn is type `string` /
@@ -12,7 +22,9 @@ const PLAIN_TEXT_TYPES = new Set(['string', 'string-utf8'])
  */
 export const textColumnRenderer: ColumnRenderer = {
     matches(column: Record<string, any>): boolean {
-        return PLAIN_TEXT_TYPES.has(column?.type)
+        return (
+            PLAIN_TEXT_TYPES.has(column?.type) || (isFormatted(column) && hasTypedRenderer(column))
+        )
     },
 
     configure(column: Record<string, any>): void {

@@ -1,6 +1,7 @@
 import type { ColumnStyleAdapter } from '../columnStyles/ColumnStyleAdapter.js'
 import { escapeHtml, parseBooleanValue } from '../functions/htmlUtils.js'
 import type { BooleanCustomOptions, BooleanSwitchRowData, ColumnRenderer } from './types.js'
+import { isFormatted } from './types.js'
 
 type BooleanSwitchRow = BooleanSwitchRowData & Record<string, unknown>
 
@@ -11,7 +12,7 @@ export function createBooleanColumnRenderer(
 ): ColumnRenderer {
     return {
         matches(column: Record<string, any>): boolean {
-            return true === column?.customOptions?.renderAsSwitch
+            return true === column?.customOptions?.renderAsSwitch && !isFormatted(column)
         },
 
         configure(column: Record<string, any>): void {

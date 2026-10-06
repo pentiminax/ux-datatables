@@ -54,6 +54,9 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     /** @var (\Closure(QueryBuilder, string, string, string): (string|null))|null */
     protected ?\Closure $searchPredicate = null;
 
+    /** @var (\Closure(mixed, mixed): mixed)|null */
+    protected ?\Closure $valueFormatter = null;
+
     /**
      * Convenient factory helper used by concrete columns to set their type.
      *
@@ -478,6 +481,31 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     public function hasSearchPredicate(): bool
     {
         return null !== $this->searchPredicate;
+    }
+
+    /**
+     * Transforms the cell value on the server, before it reaches the browser or an export file.
+     *
+     * The closure receives the value after normalization (dates already formatted, enums reduced to
+     * their backing value) and the source item, the same one actions receive. A text cell escapes
+     * what the closure returns unless html() is set, so markup must be escaped by the closure.
+     * Ordering and searching keep working on the field. The closure is never serialized.
+     *
+     * @param \Closure(mixed $value, mixed $row): mixed $formatter
+     */
+    public function formatValueUsing(\Closure $formatter): static
+    {
+        $this->valueFormatter = $formatter;
+
+        return $this->setCustomOption('formatted', true);
+    }
+
+    /**
+     * @return (\Closure(mixed $value, mixed $row): mixed)|null
+     */
+    public function getValueFormatter(): ?\Closure
+    {
+        return $this->valueFormatter;
     }
 
     public function buildSearchPredicate(

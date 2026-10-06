@@ -1,5 +1,6 @@
 import { escapeHtml } from '../functions/htmlUtils.js'
 import type { ColumnRenderer, MoneyCustomOptions } from './types.js'
+import { isFormatted } from './types.js'
 
 function normalizeMoneyValue(
     data: unknown,
@@ -30,7 +31,7 @@ function resolveCurrency(value: unknown): string {
 
 export const moneyColumnRenderer: ColumnRenderer = {
     matches(column: Record<string, any>): boolean {
-        return true === column?.customOptions?.isMoney
+        return true === column?.customOptions?.isMoney && !isFormatted(column)
     },
 
     configure(column: Record<string, any>): void {
