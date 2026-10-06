@@ -8,7 +8,7 @@ export interface RowActionOutcome {
     response?: Response
 }
 
-export interface RunRowActionOptions {
+export interface RunRowActionOptions<T extends RowActionOutcome> {
     element: HTMLElement
     root: HTMLElement
     actionType: string
@@ -16,7 +16,7 @@ export interface RunRowActionOptions {
     labels: RowActionLabels
     reportSuccess?: boolean
     dispatch: (name: string, detail: Record<string, unknown>) => Event
-    run: () => Promise<RowActionOutcome>
+    run: () => Promise<T>
 }
 
 const STATUS_ATTRIBUTE = 'data-ux-datatables-row-action-status'
@@ -26,9 +26,10 @@ const VISUALLY_HIDDEN =
 /**
  * Runs a built-in row action with its feedback: one request at a time per control, a cancelable
  * `action:success` / `action:error` event shared with custom Ajax actions, and an accessible
- * message when nothing cancels the error event. Resolves to whether the action succeeded.
+ * message when nothing cancels the error event. Resolves to the outcome `run` returned, or null
+ * when the control was busy or `run` threw.
  */
-export async function runRowAction({
+export async function runRowAction<T extends RowActionOutcome>({
     element,
     root,
     actionType,
@@ -37,9 +38,9 @@ export async function runRowAction({
     reportSuccess = true,
     dispatch,
     run,
-}: RunRowActionOptions): Promise<boolean> {
+}: RunRowActionOptions<T>): Promise<T | null> {
     if (element.getAttribute('aria-busy') === 'true') {
-        return false
+        return null
     }
 
     setBusy(element, true)
@@ -52,23 +53,25 @@ export async function runRowAction({
                 dispatch('action:success', { actionType, id, response: outcome.response })
             }
 
-            return true
+            return outcome
         }
 
         reportFailure(root, labels, dispatch, { actionType, id, response: outcome.response })
+
+        return outcome
     } catch (error) {
         reportFailure(root, labels, dispatch, { actionType, id, error })
     } finally {
         setBusy(element, false)
     }
 
-    return false
+    return null
 }
 
 function reportFailure(
     root: HTMLElement,
     labels: RowActionLabels,
-    dispatch: RunRowActionOptions['dispatch'],
+    dispatch: RunRowActionOptions<RowActionOutcome>['dispatch'],
     detail: { actionType: string; id: string; response?: Response; error?: unknown }
 ): void {
     const event = dispatch('action:error', detail)
