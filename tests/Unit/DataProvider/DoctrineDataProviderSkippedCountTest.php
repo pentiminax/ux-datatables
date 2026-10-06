@@ -118,6 +118,31 @@ final class DoctrineDataProviderSkippedCountTest extends TestCase
         $this->assertSame(2, $this->countStatements());
     }
 
+    #[Test]
+    public function it_keeps_both_counts_when_numeric_strings_differ_only_loosely(): void
+    {
+        $bind = static fn (string $value): \Closure => static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->andWhere('e.name = :name')
+            ->setParameter('name', $value);
+
+        $result = $this->provider($bind('1'), $bind('01'))->fetchData($this->request());
+
+        $this->assertSame(2, $this->countStatements());
+        $this->assertSame(0, $result->recordsFiltered);
+    }
+
+    #[Test]
+    public function it_keeps_both_counts_when_only_the_full_grouped_query_is_limited(): void
+    {
+        $grouped = static fn (QueryBuilder $qb): QueryBuilder => $qb->groupBy('e.id');
+        $limited = static fn (QueryBuilder $qb): QueryBuilder => $qb->groupBy('e.id')->setMaxResults(1);
+
+        $result = $this->provider($limited, $grouped)->fetchData($this->request());
+
+        $this->assertSame(3, $result->recordsTotal);
+        $this->assertSame(1, $result->recordsFiltered);
+    }
+
     /**
      * @param (callable(QueryBuilder):QueryBuilder)|null $configureQueryBuilder
      * @param (callable(QueryBuilder):QueryBuilder)|null $configureBaseQueryBuilder

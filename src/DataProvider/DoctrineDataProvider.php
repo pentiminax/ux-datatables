@@ -575,28 +575,57 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      * need a subquery over the identifiers instead.
      */
     /**
-     * Identical DQL and parameters count the same rows, so the second COUNT of a draw can be skipped.
+     * Identical DQL, window and parameters count the same rows, so the second COUNT of a draw can be skipped.
      */
     private function isSameCountQuery(QueryBuilder $base, QueryBuilder $filtered): bool
     {
         $base     = (clone $base)->resetDQLPart('orderBy');
         $filtered = (clone $filtered)->resetDQLPart('orderBy');
 
-        return $base->getDQL() === $filtered->getDQL()
-            && $this->parameterValues($base) == $this->parameterValues($filtered);
+        return $base->getDQL()         === $filtered->getDQL()
+            && $base->getFirstResult() === $filtered->getFirstResult()
+            && $base->getMaxResults()  === $filtered->getMaxResults()
+            && $this->sameParameters($base, $filtered);
     }
 
     /**
-     * @return array<string, mixed>
+     * Scalars are compared strictly (a loose comparison equates '01' and '1', which a string column
+     * does not); objects fall back to equality since both builders rebuild their own instances.
      */
-    private function parameterValues(QueryBuilder $qb): array
+    private function sameParameters(QueryBuilder $a, QueryBuilder $b): bool
     {
-        $values = [];
-        foreach ($qb->getParameters() as $parameter) {
-            $values[$parameter->getName()] = $parameter->getValue();
+        $left  = $this->parametersByName($a);
+        $right = $this->parametersByName($b);
+
+        if (\count($left) !== \count($right)) {
+            return false;
         }
 
-        return $values;
+        foreach ($left as $name => [$value, $type]) {
+            if (!isset($right[$name]) || $right[$name][1] !== $type) {
+                return false;
+            }
+
+            $other = $right[$name][0];
+            if (\is_object($value) || \is_object($other) ? $value != $other : $value !== $other) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array<string, array{mixed, mixed}>
+     */
+    private function parametersByName(QueryBuilder $qb): array
+    {
+        $parameters = [];
+        foreach ($qb->getParameters() as $parameter) {
+            $parameters[(string) $parameter->getName()] = [$parameter->getValue(), $parameter->getType()];
+        }
+
+        return $parameters;
     }
 
     private function count(QueryBuilder $qb, string $alias): int
