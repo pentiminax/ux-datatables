@@ -1,4 +1,5 @@
 import { escapeHtml } from '../functions/htmlUtils.js';
+import { isFormatted } from './types.js';
 function normalizeMoneyValue(data, storedAsCents, decimals) {
     if (data === null || data === undefined || data === '') {
         return null;
@@ -19,7 +20,7 @@ function resolveCurrency(value) {
 }
 export const moneyColumnRenderer = {
     matches(column) {
-        return true === column?.customOptions?.isMoney;
+        return true === column?.customOptions?.isMoney && !isFormatted(column);
     },
     configure(column) {
         const customOptions = (column.customOptions ?? {});

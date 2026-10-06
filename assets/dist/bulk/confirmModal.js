@@ -1,6 +1,6 @@
 import { resolveModalAdapter } from '../modal/resolveModalAdapter.js';
 const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
-export async function confirmBulkAction(request) {
+export async function confirmAction(request) {
     const modal = await resolveModalAdapter(request.adapterKey ?? null, request.framework);
     if (!modal) {
         return confirm(request.message);
@@ -27,6 +27,7 @@ export async function confirmBulkAction(request) {
         });
     });
 }
+export const confirmBulkAction = confirmAction;
 function buildHtml(request) {
     const message = escapeHtml(request.message);
     const confirmLabel = escapeHtml(request.confirmLabel);
