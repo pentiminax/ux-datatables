@@ -94,10 +94,6 @@ final class AttributeFilterReaderTest extends TestCase
         $this->assertSame('Published', $filter->jsonSerialize()['trueLabel']);
     }
 
-    /**
-     * The ternary default is IS NULL / IS NOT NULL, which on a boolean field matches every row for
-     * "true" and none for "false". A filter guessed from a bool compares the value instead.
-     */
     #[Test]
     public function it_compares_the_value_of_a_filter_guessed_from_a_bool(): void
     {
@@ -120,15 +116,18 @@ final class AttributeFilterReaderTest extends TestCase
         $this->assertFilterProduces($filter, 'true', ['e.verifiedAt IS NOT NULL'], [], 'datetime');
     }
 
-    /**
-     * Naming the class is how someone asks for what that class does, even on a bool.
-     */
     #[Test]
-    public function it_leaves_an_explicit_ternary_filter_on_a_bool_alone(): void
+    public function it_compares_the_value_of_an_explicit_ternary_filter_on_a_bool(): void
     {
         $filter = $this->reader->readFilters(ExplicitBoolTernaryFixture::class)[0];
 
-        $this->assertFilterProduces($filter, 'false', ['e.confirmed IS  NULL'], [], 'boolean');
+        $this->assertFilterProduces(
+            $filter,
+            'false',
+            ['e.confirmed = :filter_confirmed_false'],
+            ['filter_confirmed_false' => false],
+            'boolean',
+        );
     }
 
     #[Test]
