@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus'
 import { installBulkActionBar } from './bulk/BulkActionBar.js'
+import { confirmAction } from './bulk/confirmModal.js'
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js'
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js'
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
@@ -9,7 +10,7 @@ import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js'
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js'
 import { relativeDateColumnRenderer } from './columnRenderers/relativeDateColumnRenderer.js'
 import { textColumnRenderer } from './columnRenderers/textColumnRenderer.js'
-import type { ColumnRenderer } from './columnRenderers/types.js'
+import { type ColumnRenderer, isFormatted } from './columnRenderers/types.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js'
 import {
@@ -38,6 +39,7 @@ import {
 } from './functions/lucideIcons.js'
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
+import { runRowAction } from './functions/rowActionFeedback.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
 import { shiftOrderForSelectColumn } from './functions/shiftOrderForSelectColumn.js'
 import { submitEditForm } from './functions/submitEditForm.js'
@@ -108,6 +110,7 @@ export default class extends Controller {
     private eventSource: EventSource | null = null
     private highlighter: UpdateHighlighter | null = null
     private framework: StyleFramework = 'dt'
+    private confirmingActions = new WeakSet<HTMLElement>()
     private popstateHandler: (() => void) | null = null
 
     /**
@@ -460,7 +463,7 @@ export default class extends Controller {
         ]
 
         payload.columns.forEach((column: any): void => {
-            for (const renderer of columnRenderers) {
+            for (const renderer of isFormatted(column) ? [textColumnRenderer] : columnRenderers) {
                 if (renderer.matches(column)) {
                     renderer.configure(column)
                 }
@@ -534,12 +537,45 @@ export default class extends Controller {
                 const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : ''
                 const confirmMessage = actionButton.getAttribute('data-confirm')
 
-                if (confirmMessage && !confirm(confirmMessage)) {
-                    e.preventDefault()
-                    return
-                }
-
                 const ajaxMethod = actionButton.getAttribute('data-ajax-method')
+                const handledHere =
+                    !!ajaxMethod ||
+                    (['DETAIL', 'DELETE', 'EDIT'].includes(actionType ?? '') && !!dataTable && !!id)
+
+                if (confirmMessage) {
+                    // A link without a handler here keeps its native navigation, which only a
+                    // synchronous confirm() can gate; everything this controller runs asks through
+                    // the table's modal adapter, like the bulk actions do.
+                    if (handledHere) {
+                        e.preventDefault()
+                    }
+
+                    if (this.confirmingActions.has(actionButton)) {
+                        return
+                    }
+
+                    this.confirmingActions.add(actionButton)
+
+                    let confirmed: boolean
+                    try {
+                        confirmed = handledHere
+                            ? await confirmAction({
+                                  message: confirmMessage,
+                                  confirmLabel: payload.actionLabels?.confirm ?? 'Confirm',
+                                  cancelLabel: payload.actionLabels?.cancel ?? 'Cancel',
+                                  framework: this.framework,
+                                  adapterKey: payload.editModal?.adapter ?? null,
+                              })
+                            : confirm(confirmMessage)
+                    } finally {
+                        this.confirmingActions.delete(actionButton)
+                    }
+
+                    if (!confirmed) {
+                        e.preventDefault()
+                        return
+                    }
+                }
 
                 if (ajaxMethod) {
                     e.preventDefault()
@@ -564,23 +600,37 @@ export default class extends Controller {
                         return
                     }
 
-                    const result = await fetchDetailRow({ dataTable, id })
+                    await this.runRowAction(actionButton, 'DETAIL', id, payload, async () => {
+                        const result = await fetchDetailRow({ dataTable, id })
 
-                    if (result.success) {
-                        row.child(result.html).show()
-                        actionButton.classList.add('expanded')
-                    }
+                        if (result.success) {
+                            row.child(result.html).show()
+                            actionButton.classList.add('expanded')
+                        }
+
+                        return { ok: result.success, response: result.response }
+                    })
                 }
 
                 if (actionType === 'DELETE' && dataTable && id) {
                     e.preventDefault()
-                    const response = await deleteEntity({
-                        dataTable,
+                    const deleted = await this.runRowAction(
+                        actionButton,
+                        'DELETE',
                         id,
-                        csrfToken: this.getCsrfToken(payload),
-                    })
+                        payload,
+                        async () => {
+                            const response = await deleteEntity({
+                                dataTable,
+                                id,
+                                csrfToken: this.getCsrfToken(payload),
+                            })
 
-                    if (response.ok) {
+                            return { ok: response.ok, response }
+                        }
+                    )
+
+                    if (deleted) {
                         this.table?.ajax?.reload(null, false)
                     }
                 }
@@ -594,23 +644,52 @@ export default class extends Controller {
                     )
                     if (!modal) return
 
-                    const result = await fetchEditForm({ dataTable, id })
+                    let formHtml = ''
+                    const loaded = await this.runRowAction(
+                        actionButton,
+                        'EDIT',
+                        id,
+                        payload,
+                        async () => {
+                            const result = await fetchEditForm({ dataTable, id })
+                            formHtml = result.html
 
-                    if (result.success) {
-                        await modal.show(result.html, {
+                            return { ok: result.success, response: result.response }
+                        },
+                        false
+                    )
+
+                    if (loaded) {
+                        await modal.show(formHtml, {
                             onSubmit: async (formData) => {
-                                const submitResult = await submitEditForm({
-                                    dataTable,
-                                    id,
-                                    formData,
-                                    csrfToken: this.getCsrfToken(payload),
-                                })
+                                const saved: {
+                                    result?: Awaited<ReturnType<typeof submitEditForm>>
+                                } = {}
 
-                                if (submitResult.success) {
+                                await this.runRowAction(
+                                    actionButton,
+                                    'EDIT',
+                                    id,
+                                    payload,
+                                    async () => {
+                                        const result = await submitEditForm({
+                                            dataTable,
+                                            id,
+                                            formData,
+                                            csrfToken: this.getCsrfToken(payload),
+                                        })
+
+                                        saved.result = result
+
+                                        return { ok: result.success, response: result.response }
+                                    }
+                                )
+
+                                if (saved.result?.success) {
                                     await modal.hide()
                                     this.table?.ajax?.reload(null, false)
-                                } else if (submitResult.html) {
-                                    modal.replaceBody(submitResult.html)
+                                } else if (saved.result?.html) {
+                                    modal.replaceBody(saved.result.html)
                                 }
                             },
                         })
@@ -618,6 +697,26 @@ export default class extends Controller {
                 }
             }
         )
+    }
+
+    private runRowAction(
+        element: HTMLElement,
+        actionType: string,
+        id: string,
+        payload: Record<string, any>,
+        run: () => Promise<{ ok: boolean; response?: Response }>,
+        reportSuccess = true
+    ): Promise<boolean> {
+        return runRowAction({
+            reportSuccess,
+            element,
+            root: this.element as HTMLElement,
+            actionType,
+            id,
+            labels: payload.actionLabels ?? {},
+            dispatch: (name, detail) => this.dispatchEvent(name, detail),
+            run,
+        })
     }
 
     private async executeAjaxAction(
@@ -682,9 +781,7 @@ export default class extends Controller {
 
             const previousState = !target.checked
 
-            target.disabled = true
-
-            try {
+            const toggled = await this.runRowAction(target, 'TOGGLE', id, payload, async () => {
                 const response = await toggleBooleanValue({
                     url: url ?? this.getBooleanToggleUrl(),
                     id,
@@ -695,15 +792,11 @@ export default class extends Controller {
                     csrfToken: this.getCsrfToken(payload),
                 })
 
-                if (!response.ok) {
-                    target.checked = previousState
-                    console.error(`Boolean switch update failed with status ${response.status}`)
-                }
-            } catch (error) {
+                return { ok: response.ok, response }
+            })
+
+            if (!toggled) {
                 target.checked = previousState
-                console.error('Boolean switch update failed', error)
-            } finally {
-                target.disabled = false
             }
         })
     }
@@ -729,7 +822,7 @@ export default class extends Controller {
     }
 
     private dispatchEvent(name: string, payload: any) {
-        this.dispatch(name, {
+        return this.dispatch(name, {
             detail: payload,
             prefix: 'datatables',
         })

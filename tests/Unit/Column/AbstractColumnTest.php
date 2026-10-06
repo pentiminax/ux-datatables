@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Column;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -234,5 +235,16 @@ final class AbstractColumnTest extends TestCase
 
         $factory = $class->getMethod('createWithType');
         $this->assertStringContainsString('@internal', (string) $factory->getDocComment());
+    }
+
+    #[Test]
+    public function format_value_using_flags_the_column_without_serializing_the_closure(): void
+    {
+        $column = TextColumn::new('customer')->formatValueUsing(static fn (mixed $value): string => 'x');
+
+        $this->assertInstanceOf(\Closure::class, $column->getValueFormatter());
+        $this->assertTrue($column->jsonSerialize()['customOptions']['formatted']);
+        $this->assertStringNotContainsString('Closure', json_encode($column, \JSON_THROW_ON_ERROR));
+        $this->assertNull(TextColumn::new('plain')->getValueFormatter());
     }
 }

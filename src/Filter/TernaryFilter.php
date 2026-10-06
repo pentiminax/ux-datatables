@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Filter;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Three-state filter (true / false / blank).
  *
- * By default the true state matches "field IS NOT NULL" and the false state
- * "field IS NULL". Provide explicit scalar values via trueValue()/falseValue()
- * to compare against a concrete value (e.g. a boolean column) instead.
+ * On a boolean field the true and false states compare the column with true and false. On any
+ * other field the true state matches "field IS NOT NULL" and the false state "field IS NULL".
+ * Call nullable() to keep the NULL checks on a boolean field, or values() to compare the field
+ * with concrete values.
  */
 final class TernaryFilter extends AbstractFilter
 {
@@ -25,6 +27,8 @@ final class TernaryFilter extends AbstractFilter
     private mixed $falseValue = null;
 
     private bool $usesValues = false;
+
+    private bool $nullable = false;
 
     public function trueLabel(string $label): static
     {
@@ -48,6 +52,16 @@ final class TernaryFilter extends AbstractFilter
         $this->trueValue  = $trueValue;
         $this->falseValue = $falseValue;
         $this->usesValues = true;
+
+        return $this;
+    }
+
+    /**
+     * Keep the NULL checks ("has a value" / "has no value"), even on a boolean field.
+     */
+    public function nullable(bool $nullable = true): static
+    {
+        $this->nullable = $nullable;
 
         return $this;
     }
@@ -91,14 +105,25 @@ final class TernaryFilter extends AbstractFilter
         }
 
         if ($this->usesValues) {
-            $param = $this->parameterName($state ? 'true' : 'false');
-            $qb->andWhere(\sprintf('%s = :%s', $expr, $param));
-            $qb->setParameter($param, $state ? $this->trueValue : $this->falseValue);
+            $this->compareWith($qb, $expr, $state, $state ? $this->trueValue : $this->falseValue);
+
+            return;
+        }
+
+        if (!$this->nullable && null !== RelationFieldResolver::resolveBooleanFieldType($qb, $this->resolvedField())) {
+            $this->compareWith($qb, $expr, $state, $state);
 
             return;
         }
 
         $qb->andWhere(\sprintf('%s IS %s NULL', $expr, $state ? 'NOT' : ''));
+    }
+
+    private function compareWith(QueryBuilder $qb, string $expr, bool $state, mixed $value): void
+    {
+        $param = $this->parameterName($state ? 'true' : 'false');
+        $qb->andWhere(\sprintf('%s = :%s', $expr, $param));
+        $qb->setParameter($param, $value);
     }
 
     private function normalizeState(mixed $value): ?bool

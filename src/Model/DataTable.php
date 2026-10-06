@@ -55,6 +55,9 @@ class DataTable
     /** @var array<string, string>|null */
     private ?array $preparedBulkActionLabels = null;
 
+    /** @var array<string, string>|null */
+    private ?array $preparedActionLabels = null;
+
     private ?string $bulkActionsUrl = null;
 
     private bool $selectionForBulkActions = false;
@@ -130,6 +133,10 @@ class DataTable
             ];
 
             $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
+        }
+
+        if (null !== $this->preparedActionLabels) {
+            $options['actionLabels'] = $this->preparedActionLabels;
         }
 
         unset($options['showHeaderResetButton']);
@@ -783,6 +790,18 @@ class DataTable
     public function isSelectionForBulkActions(): bool
     {
         return $this->selectionForBulkActions;
+    }
+
+    /**
+     * @param array<string, string> $labels
+     *
+     * @internal set by the RenderingPreparer once the translator has run
+     */
+    public function setPreparedActionLabels(array $labels): static
+    {
+        $this->preparedActionLabels = $labels;
+
+        return $this;
     }
 
     /**

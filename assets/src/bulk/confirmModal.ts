@@ -19,7 +19,7 @@ export interface ConfirmRequest {
  * `#ux-datatables-edit-form` for their submit button to fire. A dedicated confirm contract on
  * ModalAdapter would drop this, but it would break every custom adapter.
  */
-export async function confirmBulkAction(request: ConfirmRequest): Promise<boolean> {
+export async function confirmAction(request: ConfirmRequest): Promise<boolean> {
     const modal = await resolveModalAdapter(request.adapterKey ?? null, request.framework)
 
     if (!modal) {
@@ -43,16 +43,30 @@ export async function confirmBulkAction(request: ConfirmRequest): Promise<boolea
             resolve(value)
         }
 
-        void modal.show(buildHtml(request), {
-            onSubmit: async () => {
-                await answer(true, modal)
-            },
-            onCancel: () => {
-                void answer(false, modal)
-            },
-        })
+        void modal
+            .show(buildHtml(request), {
+                onSubmit: async () => {
+                    await answer(true, modal)
+                },
+                onCancel: () => {
+                    void answer(false, modal)
+                },
+            })
+            .then(() => {
+                // An adapter that cannot display this markup (a <dialog> adapter handed Bootstrap
+                // markup) returns without calling either handler; asking natively beats hanging.
+                if (!answered && !modal.isOpen()) {
+                    answered = true
+                    resolve(confirm(request.message))
+                }
+            })
     })
 }
+
+/**
+ * @deprecated since v1.2.0, use confirmAction(). It will be removed in v2.0.
+ */
+export const confirmBulkAction = confirmAction
 
 function buildHtml(request: ConfirmRequest): string {
     const message = escapeHtml(request.message)

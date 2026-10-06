@@ -48,6 +48,8 @@ final class Button implements \JsonSerializable
 
     private ?ExportFormat $exportFormat = null;
 
+    private bool $rawValues = false;
+
     private function __construct(
         private readonly ButtonType $type,
     ) {
@@ -250,6 +252,23 @@ final class Button implements \JsonSerializable
         $this->options['exportOptions'] = $exportOptions;
 
         return $this;
+    }
+
+    /**
+     * Server-side exports write what the table displays: Money as a number in currency units, Choice
+     * labels, translated Yes/No and translated headings. Pass true to write the mapped values as they
+     * are instead, for a file a machine reads.
+     */
+    public function rawValues(bool $raw = true): self
+    {
+        $this->rawValues = $raw;
+
+        return $this;
+    }
+
+    public function usesRawValues(): bool
+    {
+        return $this->rawValues;
     }
 
     public function option(string $name, mixed $value): self

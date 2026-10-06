@@ -10,6 +10,7 @@ type SubmitEditFormPayload = {
 type SubmitEditFormResponse = {
     success: boolean
     html?: string
+    response: Response
 }
 
 export async function submitEditForm(
@@ -25,5 +26,7 @@ export async function submitEditForm(
         }),
     })
 
-    return response.json()
+    const body = await response.json().catch(() => ({ success: false }))
+
+    return { ...body, response }
 }

@@ -50,4 +50,37 @@ describe('textColumnRenderer', () => {
 
         expect(column.render).toBe(existing)
     })
+
+    it.each([
+        ['money', { isMoney: true }],
+        ['switch', { renderAsSwitch: true }],
+        ['choice', { choices: { draft: 'Draft' } }],
+        ['plain number or boolean', {}],
+    ])('takes over a %s column formatted on the server and escapes it', (_name, options) => {
+        const column: Record<string, any> = {
+            type: 'num',
+            customOptions: { ...options, formatted: true },
+        }
+
+        expect(textColumnRenderer.matches(column)).toBe(true)
+
+        textColumnRenderer.configure(column)
+
+        expect(column.render('<b>€ 12.50</b>', 'display')).toBe('&lt;b&gt;€ 12.50&lt;/b&gt;')
+    })
+
+    it('leaves a typed column without a formatter to its own renderer', () => {
+        expect(textColumnRenderer.matches({ type: 'num', customOptions: { isMoney: true } })).toBe(
+            false
+        )
+    })
+
+    it.each(['html', 'html-utf8', 'html-num', 'html-num-fmt'])(
+        'leaves a formatted %s column to render its own markup',
+        (type) => {
+            expect(textColumnRenderer.matches({ type, customOptions: { formatted: true } })).toBe(
+                false
+            )
+        }
+    )
 })

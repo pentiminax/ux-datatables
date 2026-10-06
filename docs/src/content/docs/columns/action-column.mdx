@@ -362,6 +362,36 @@ ActionType::Edit;   // value: EDIT
 ActionType::Custom; // value: CUSTOM (used by Action::new())
 ```
 
+## Feedback and Confirmation
+
+The built-in delete, detail, edit, and boolean switch actions report their result like Ajax actions
+do. Each dispatches `datatables:action:success` or `datatables:action:error` on the table element,
+with an `actionType` (`DELETE`, `DETAIL`, `EDIT`, or `TOGGLE`), the row `id`, and the `response` or
+`error`, so one listener covers every action:
+
+```javascript
+document.addEventListener('datatables:action:error', (event) => {
+  const { actionType, id, response } = event.detail
+
+  showToast(`${actionType} failed for row ${id} (${response?.status ?? 'network error'})`)
+})
+```
+
+When nothing cancels the error event, the table writes a translated message (a `403` gets "You are
+not allowed to do this.") into a visually hidden `aria-live="polite"` region, so screen readers
+announce it. Call `event.preventDefault()` to show your own message instead. The messages live in
+the `action.row.*` keys of the `DataTables` translation domain.
+
+For `EDIT`, `action:success` means the edit was saved; loading the form only fires `action:error`
+when it fails.
+
+The control is disabled and marked `aria-busy` while its request runs, so a double click sends one
+request. A failed boolean switch goes back to its previous state.
+
+`confirm()` on an action asks through the table's modal adapter (Bootstrap or `<dialog>`), exactly
+as bulk actions do, and falls back to the native `window.confirm()` when no adapter resolves. A
+link action keeps the native dialog, because only a synchronous one can stop its navigation.
+
 ## Column Position & Alignment
 
 By default, the action column is appended **after** the data columns. You can move it,

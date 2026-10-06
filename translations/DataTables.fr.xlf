@@ -58,6 +58,30 @@
                 <source>bulk.bar.failed</source>
                 <target>L'action groupée n'a pas pu aboutir.</target>
             </trans-unit>
+            <trans-unit id="export.boolean.true">
+                <source>export.boolean.true</source>
+                <target>Oui</target>
+            </trans-unit>
+            <trans-unit id="export.boolean.false">
+                <source>export.boolean.false</source>
+                <target>Non</target>
+            </trans-unit>
+            <trans-unit id="action.row.failed">
+                <source>action.row.failed</source>
+                <target>L'action n'a pas pu aboutir.</target>
+            </trans-unit>
+            <trans-unit id="action.row.forbidden">
+                <source>action.row.forbidden</source>
+                <target>Vous n'êtes pas autorisé à effectuer cette action.</target>
+            </trans-unit>
+            <trans-unit id="action.row.confirm">
+                <source>action.row.confirm</source>
+                <target>Confirmer</target>
+            </trans-unit>
+            <trans-unit id="action.row.cancel">
+                <source>action.row.cancel</source>
+                <target>Annuler</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

@@ -6,6 +6,7 @@ type FetchEditFormPayload = {
 type FetchEditFormResponse = {
     success: boolean
     html: string
+    response: Response
 }
 
 export async function fetchEditForm(payload: FetchEditFormPayload): Promise<FetchEditFormResponse> {
@@ -18,5 +19,7 @@ export async function fetchEditForm(payload: FetchEditFormPayload): Promise<Fetc
         body: JSON.stringify({ dataTable: payload.dataTable, id: payload.id }),
     })
 
-    return response.json()
+    const body = await response.json().catch(() => ({ success: false, html: '' }))
+
+    return { ...body, response }
 }

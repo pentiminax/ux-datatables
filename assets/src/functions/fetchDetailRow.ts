@@ -6,6 +6,7 @@ type FetchDetailRowPayload = {
 type FetchDetailRowResponse = {
     success: boolean
     html: string
+    response: Response
 }
 
 export async function fetchDetailRow(
@@ -20,5 +21,7 @@ export async function fetchDetailRow(
         body: JSON.stringify({ dataTable: payload.dataTable, id: payload.id }),
     })
 
-    return response.json()
+    const body = await response.json().catch(() => ({ success: false, html: '' }))
+
+    return { ...body, response }
 }
