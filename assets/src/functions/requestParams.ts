@@ -79,10 +79,7 @@ export function installRequestParams(
     return handle
 }
 
-/**
- * A callback may mutate the params, return a replacement object, or return a serialized string
- * that goes on the wire as is.
- */
+/** The callback may mutate the params, return a replacement object, or a string sent as is. */
 function callUserData(
     data: RequestParams,
     userData: (data: RequestParams, settings: unknown) => unknown,
@@ -93,7 +90,7 @@ function callUserData(
     return typeof returned === 'string' || isRecord(returned) ? returned : data
 }
 
-/** A JSON string is what was actually sent, so it is remembered over the params behind it. */
+/** A JSON string is what went on the wire, so it is remembered over the params behind it. */
 function parseJsonRecord(sent: string): RequestParams | null {
     try {
         const parsed: unknown = JSON.parse(sent)

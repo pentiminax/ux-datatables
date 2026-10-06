@@ -1,7 +1,4 @@
-/**
- * A column formatted on the server carries a display string, not the raw value a typed renderer
- * expects, so the controller gives it the escaped text renderer alone.
- */
+/** A server-formatted column carries a display string, so only the text renderer applies. */
 export function isFormatted(column: Record<string, any>): boolean {
     return true === column?.customOptions?.formatted
 }
