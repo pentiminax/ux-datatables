@@ -15,7 +15,9 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
+use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Exception\InvalidQueryIntentException;
+use Pentiminax\UX\DataTables\Query\Intent\ColumnReadReference;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -29,8 +31,20 @@ use PHPUnit\Framework\TestCase;
  * @internal
  */
 #[CoversClass(DefaultDataTableQueryIntentFactory::class)]
+#[CoversClass(DataTableQueryIntent::class)]
 final class DefaultDataTableQueryIntentFactoryTest extends TestCase
 {
+    #[Test]
+    public function order_criteria_falls_back_to_the_single_order_pair_of_a_hand_built_intent(): void
+    {
+        $column = new ColumnReadReference('name', 'name', ColumnType::STRING, true, true, true);
+        $intent = static fn (?ColumnReadReference $order, ?string $dir): DataTableQueryIntent => new DataTableQueryIntent(null, 0, null, [], null, $order, $dir, [], []);
+
+        $this->assertSame([], $intent(null, null)->orderCriteria());
+        $this->assertSame([['column' => $column, 'dir' => 'asc']], $intent($column, null)->orderCriteria());
+        $this->assertSame([['column' => $column, 'dir' => 'desc']], $intent($column, 'desc')->orderCriteria());
+    }
+
     /**
      * @return iterable<string, array{ColumnInterface, list<Order>, ?string}>
      */
