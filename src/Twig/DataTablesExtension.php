@@ -69,8 +69,8 @@ class DataTablesExtension extends AbstractExtension
 
         $controllers = [];
 
-        if ($dataTable->getDataController()) {
-            $controllers[$dataTable->getDataController()] = [];
+        if (\is_string($attributes['data-controller'] ?? null) && '' !== $attributes['data-controller']) {
+            $controllers[$attributes['data-controller']] = [];
         }
 
         $options            = $dataTable->getOptions();

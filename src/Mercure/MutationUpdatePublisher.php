@@ -22,9 +22,10 @@ final class MutationUpdatePublisher
         ?string $dataTableClass,
         array $data,
     ): void {
-        $topics = $topicResolver->resolve($entityClass, $dataTableClass);
+        $config = $topicResolver->resolveConfig($entityClass, $dataTableClass);
+        $topics = $config?->topics ?? [];
 
-        if (!$topicResolver->isPrivate($entityClass, $dataTableClass)) {
+        if (!$config?->withCredentials) {
             $publisher->publish($topics, $data);
 
             return;

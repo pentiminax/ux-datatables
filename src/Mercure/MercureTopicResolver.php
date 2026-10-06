@@ -48,11 +48,6 @@ class MercureTopicResolver
         return $this->resolveConfig($entityClass, $dataTableClass)?->topics ?? [];
     }
 
-    public function isPrivate(string $entityClass, ?string $dataTableClass = null): bool
-    {
-        return $this->resolveConfig($entityClass, $dataTableClass)?->withCredentials ?? false;
-    }
-
     public function warnPublishedPublicly(object $publisher): void
     {
         if (isset($this->warnedPublishers[$publisher::class])) {
