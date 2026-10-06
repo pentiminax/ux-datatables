@@ -191,6 +191,14 @@ new DataTable(
   ]}
 />
 
+## Public API
+
+The methods documented here are the supported configuration surface. A few public methods exist only
+because the runtime calls them while preparing a render, such as `setPreparedFilterLabels()`,
+`markTemplateColumnsRendered()`, or `setDataTableClass()`. They carry an `@internal` tag in their
+PHPDoc and are excluded from the backward-compatibility promise: do not call them from your tables,
+because they can change or move in any release.
+
 ## Example
 
 ```php

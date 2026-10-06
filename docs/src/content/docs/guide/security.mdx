@@ -247,18 +247,49 @@ Keep both layers in place:
 A firewall rule alone would let any authenticated admin-area user delete _any_ row reachable through
 the table; the voter is what scopes that down to the rows they're actually allowed to touch.
 
-Bulk actions add a second boundary: the identifiers of an explicit selection are filtered through
-the table's permanent scope (`customizeQueryBuilder()`), so a forged identifier belonging to another
-tenant never reaches the handler even when the action has no per-row permission. Single-row
-mutations (delete, boolean toggle, edit form) still rely on the `DT_DELETE_ROW` and `DT_EDIT_ROW`
-voters, which deny by default. See [Bulk actions](/features/bulk-actions/#table-scope).
-
 Custom actions keep their own route authorization and CSRF boundary. `Action::setPermission()` only
 decides whether the button is rendered by the bundle, so custom action routes still need
 `#[IsGranted]`, CSRF validation, or equivalent checks. Direct API Platform endpoints follow the
 same rule: secure those API routes with API Platform and Symfony Security. PHP row voters in this
 bundle can only protect rows processed by the bundle backend; they cannot protect rows returned
 directly by API Platform or another controller.
+
+## Scoping
+
+`customizeQueryBuilder()` defines the permanent scope of a server-side table. Know exactly what that
+scope covers:
+
+<Table
+  headers={['Operation', 'Scoped by customizeQueryBuilder()?']}
+  rows={[
+    ['Reading rows (paging, search, order, filters)', 'Yes'],
+    [
+      'Bulk "select all matching"',
+      'Built-in Doctrine provider: yes. A custom provider implementing IdentifierCollectingDataProviderInterface must enforce the scope itself; any other provider rejects select-all',
+    ],
+    [
+      'Bulk explicit selection, built-in Doctrine provider',
+      'Yes: identifiers outside the scope are skipped',
+    ],
+    [
+      'Bulk explicit selection, custom provider without ScopedIdentifierProviderInterface or API Platform table',
+      'No: the handler receives every identifier that exists',
+    ],
+    [
+      'Single-row delete, boolean toggle, edit form',
+      'No: delete needs DT_DELETE_ROW, the toggle DT_EDIT_ROW, the edit form DT_EDIT_ROW; delete and the edit form also need DT_EXECUTE_ACTION on the action, and a configured column permission applies to toggles and form fields',
+    ],
+  ]}
+/>
+
+Bulk actions never re-authorize rows on their own: a row is re-checked **only** when the action
+declares a per-row permission (`setPermission($attribute, $subjectResolver)`). See
+[Bulk actions](/features/bulk-actions/#table-scope).
+
+For a multi-tenant table, scope reads on the Security user in `customizeQueryBuilder()` and back
+every row mutation with a voter that compares the row's owner, like the one in
+[Writing a voter](#writing-a-voter). Scope on the Security user rather than on a request parameter:
+request parameters are client-controlled.
 
 ## Request bounds
 
@@ -281,5 +312,6 @@ See [`max_page_length`](/guide/configuration/#max_page_length) to change the bou
 ## Related
 
 - [Securing Ajax Routes](/getting-started/security/)
+- [Bulk actions](/features/bulk-actions/)
 - [Action Column](/columns/action-column/)
 - [Actions, CSRF, and voters recipe](/recipes/actions-csrf-voter/)

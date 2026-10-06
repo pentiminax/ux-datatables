@@ -26,14 +26,14 @@ final class TernaryFilter extends AbstractFilter
 
     private bool $usesValues = false;
 
-    public function trueLabel(string $label): self
+    public function trueLabel(string $label): static
     {
         $this->trueLabel = $label;
 
         return $this;
     }
 
-    public function falseLabel(string $label): self
+    public function falseLabel(string $label): static
     {
         $this->falseLabel = $label;
 
@@ -43,7 +43,7 @@ final class TernaryFilter extends AbstractFilter
     /**
      * Compare the field against concrete values instead of NULL checks.
      */
-    public function values(mixed $trueValue, mixed $falseValue): self
+    public function values(mixed $trueValue, mixed $falseValue): static
     {
         $this->trueValue  = $trueValue;
         $this->falseValue = $falseValue;

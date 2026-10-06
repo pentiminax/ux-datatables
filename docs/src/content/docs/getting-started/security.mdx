@@ -125,19 +125,15 @@ session-backed delete and toggle endpoints.
 
 ## Authorizing tables, actions, and rows
 
-`access_control` protects the _route_ — it decides who may call `/datatables/ajax/*` at all. It does
-not know anything about the specific table, action, or row a request targets. The bundle closes that
-gap by calling Symfony authorization before rendering a table, executing an action, reading private
-row details, or mutating anything.
-
-That second layer has its own guide: [Authorization and Voters](/guide/security/) covers the
-`Permission::DT_*` attributes, the row permission matrix, and how to write the voters your tables
-need.
+`access_control` protects the _route_: it decides who may call `/datatables/ajax/*` at all. It knows
+nothing about the table, action, or row a request targets. That second layer is covered in
+[Authorization and Voters](/guide/security/): the `Permission::DT_*` attributes, the voters your
+tables need, per-row permissions, and what `customizeQueryBuilder()` does and does not scope.
 
 <Aside type="caution">
-  With a firewall active, Symfony denies any attribute no voter grants. If your tables use the edit
-  modal, delete, or collapsible detail rows, they need voters for `Permission::DT_EDIT_ROW`,
-  `Permission::DT_DELETE_ROW`, and `Permission::DT_VIEW_ROW_DETAILS` — otherwise those endpoints
+  With a firewall active, Symfony denies any attribute no voter grants. Tables that use the edit
+  modal, delete, or collapsible detail rows need voters for `Permission::DT_EDIT_ROW`,
+  `Permission::DT_DELETE_ROW`, and `Permission::DT_VIEW_ROW_DETAILS`, otherwise those endpoints
   answer `403` for everyone.
 </Aside>
 
