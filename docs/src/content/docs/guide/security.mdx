@@ -263,7 +263,10 @@ scope covers:
   headers={['Operation', 'Scoped by customizeQueryBuilder()?']}
   rows={[
     ['Reading rows (paging, search, order, filters)', 'Yes'],
-    ['Bulk "select all matching"', 'Yes'],
+    [
+      'Bulk "select all matching"',
+      'Yes, with a provider that collects identifiers (the built-in Doctrine provider); other providers reject select-all',
+    ],
     [
       'Bulk explicit selection, built-in Doctrine provider',
       'Yes: identifiers outside the scope are skipped',
@@ -274,7 +277,7 @@ scope covers:
     ],
     [
       'Single-row delete, boolean toggle, edit form',
-      'No: only the DT_DELETE_ROW and DT_EDIT_ROW voters protect them',
+      'No: they need the DT_DELETE_ROW or DT_EDIT_ROW voter, plus DT_EXECUTE_ACTION on the action and any column permission',
     ],
   ]}
 />
