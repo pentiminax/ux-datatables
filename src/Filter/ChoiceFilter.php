@@ -48,7 +48,7 @@ final class ChoiceFilter extends AbstractFilter
      *
      * @param array<string|int, string|int>|list<\BackedEnum>|class-string<\BackedEnum>|class-string $options
      */
-    public function options(array|string $options): self
+    public function options(array|string $options): static
     {
         $this->translatableCases = [];
         $this->entityClass       = null;
@@ -99,7 +99,7 @@ final class ChoiceFilter extends AbstractFilter
         array $orderBy = [],
         array $criteria = [],
         ?\Closure $queryBuilder = null,
-    ): self {
+    ): static {
         $this->translatableCases  = [];
         $this->options            = [];
         $this->entityClass        = $class;
@@ -157,8 +157,10 @@ final class ChoiceFilter extends AbstractFilter
      * Set resolved choices [value => label].
      *
      * @param array<string, string> $options
+     *
+     * @internal called by the FilterEntityOptionsResolver while preparing a render
      */
-    public function setResolvedOptions(array $options): self
+    public function setResolvedOptions(array $options): static
     {
         $this->translatableCases = [];
         $this->options           = $options;
@@ -166,7 +168,7 @@ final class ChoiceFilter extends AbstractFilter
         return $this;
     }
 
-    public function multiple(bool $multiple = true): self
+    public function multiple(bool $multiple = true): static
     {
         $this->multiple = $multiple;
 
