@@ -20,6 +20,7 @@ use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -66,7 +67,7 @@ final class AjaxDeleteControllerTest extends TestCase
             ->with(['/server/deletable-entity-fixtures/{id}'], ['type' => 'delete', 'id' => '12']);
 
         $topicResolver = $this->createStub(MercureTopicResolver::class);
-        $topicResolver->method('resolve')->willReturn(['/server/deletable-entity-fixtures/{id}']);
+        $topicResolver->method('resolveConfig')->willReturn(new MercureConfig(['/server/deletable-entity-fixtures/{id}']));
 
         $mutator = new EntityMutator(new EntityLocator($registry), $this->createStub(PropertyAccessorInterface::class), $publisher, new AuthorizationChecker(new TestAuthorizationChecker()), $topicResolver, new MutationFlusher());
 
