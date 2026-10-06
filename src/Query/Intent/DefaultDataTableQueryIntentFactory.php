@@ -30,8 +30,8 @@ final class DefaultDataTableQueryIntentFactory
      */
     public function create(DataTableRequest $request, array $columns): DataTableQueryIntent
     {
-        $references               = $this->buildReferences($columns);
-        [$orderColumn, $orderDir] = $this->buildOrder($request, $references);
+        $references = $this->buildReferences($columns);
+        $orders     = $this->buildOrders($request, $references);
 
         return new DataTableQueryIntent(
             draw: $request->draw,
@@ -39,10 +39,11 @@ final class DefaultDataTableQueryIntentFactory
             limit: $request->length > 0 ? $request->length : null,
             columns: array_values($references),
             globalSearch: $this->buildGlobalSearch($request, $references),
-            orderColumn: $orderColumn,
-            orderDir: $orderDir,
+            orderColumn: $orders[0]['column'] ?? null,
+            orderDir: $orders[0]['dir']       ?? null,
             columnSearches: $this->buildColumnSearches($request, $references),
             columnControls: $this->buildColumnControls($request, $references),
+            orders: $orders,
         );
     }
 
@@ -110,24 +111,26 @@ final class DefaultDataTableQueryIntentFactory
     /**
      * @param array<int, ColumnReadReference> $references
      *
-     * @return array{0: ?ColumnReadReference, 1: ?string}
+     * @return list<array{column: ColumnReadReference, dir: 'asc'|'desc'}>
      */
-    private function buildOrder(DataTableRequest $request, array $references): array
+    private function buildOrders(DataTableRequest $request, array $references): array
     {
-        if (1 !== \count($request->order)) {
-            return [null, null];
+        $orders = [];
+
+        foreach ($request->order as $order) {
+            $reference = $this->referenceByName($references, $order->name);
+
+            if (null === $reference || !$reference->orderable || isset($orders[$reference->name])) {
+                continue;
+            }
+
+            $orders[$reference->name] = [
+                'column' => $reference,
+                'dir'    => 'desc' === strtolower(trim($order->dir)) ? 'desc' : 'asc',
+            ];
         }
 
-        $order     = $request->order[0];
-        $reference = $this->referenceByName($references, $order->name);
-
-        if (null === $reference || !$reference->orderable) {
-            return [null, null];
-        }
-
-        $orderDir = 'desc' === strtolower(trim($order->dir)) ? 'desc' : 'asc';
-
-        return [$reference, $orderDir];
+        return array_values($orders);
     }
 
     /**
