@@ -1,5 +1,4 @@
 /**
- * @deprecated since v1.1.1: `installFilterBar()` from `./filters.js` registers the feature. This
- * path is kept for deep imports of `dist/functions/filterFeature.js` and will be removed in v2.0.
+ * @deprecated since 1.2, use installFilterBar() from './filters.js' instead. Removed in 2.0.
  */
 export { registerFilterFeature } from './filters.js'
