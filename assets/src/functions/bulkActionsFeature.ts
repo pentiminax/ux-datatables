@@ -1,6 +1,5 @@
 /**
- * @deprecated since v1.1.1: `installBulkActionBar()` from `../bulk/BulkActionBar.js` registers the
- * feature. This path is kept for deep imports of `dist/functions/bulkActionsFeature.js` and will be
- * removed in v2.0.
+ * @deprecated since 1.2, use installBulkActionBar() from '../bulk/BulkActionBar.js' instead.
+ * Removed in 2.0.
  */
 export { registerBulkActionsFeature } from '../bulk/BulkActionBar.js'

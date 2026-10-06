@@ -1,3 +1,5 @@
+import { JSON_HEADERS, postRowRequest } from './postRowRequest.js'
+
 type FetchEditFormPayload = {
     dataTable: string
     id: string
@@ -9,17 +11,9 @@ type FetchEditFormResponse = {
     response: Response
 }
 
-export async function fetchEditForm(payload: FetchEditFormPayload): Promise<FetchEditFormResponse> {
-    const response = await fetch('/datatables/ajax/edit-form/view', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: JSON.stringify({ dataTable: payload.dataTable, id: payload.id }),
+export function fetchEditForm(payload: FetchEditFormPayload): Promise<FetchEditFormResponse> {
+    return postRowRequest('/datatables/ajax/edit-form/view', JSON_HEADERS, payload, {
+        success: false,
+        html: '',
     })
-
-    const body = await response.json().catch(() => ({ success: false, html: '' }))
-
-    return { ...body, response }
 }

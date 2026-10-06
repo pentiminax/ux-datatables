@@ -31,29 +31,9 @@ final class OrderFilter implements QueryFilterInterface
 {
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
-        foreach ($this->orders($context) as $order) {
+        foreach ($context->intent->orderCriteria() as $order) {
             $this->applyOrder($qb, $context, $order['column'], $order['dir']);
         }
-    }
-
-    /**
-     * An intent built by third-party code may only carry the single orderColumn / orderDir pair.
-     *
-     * @return list<array{column: ColumnReadReference, dir: 'asc'|'desc'}>
-     */
-    private function orders(QueryFilterContext $context): array
-    {
-        $intent = $context->intent;
-
-        if ([] !== $intent->orders) {
-            return $intent->orders;
-        }
-
-        if (null === $intent->orderColumn || null === $intent->orderDir) {
-            return [];
-        }
-
-        return [['column' => $intent->orderColumn, 'dir' => 'desc' === $intent->orderDir ? 'desc' : 'asc']];
     }
 
     private function applyOrder(QueryBuilder $qb, QueryFilterContext $context, ColumnReadReference $orderColumn, string $orderDir): void

@@ -1,13 +1,8 @@
-export async function fetchEditForm(payload) {
-    const response = await fetch('/datatables/ajax/edit-form/view', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-        body: JSON.stringify({ dataTable: payload.dataTable, id: payload.id }),
+import { JSON_HEADERS, postRowRequest } from './postRowRequest.js';
+export function fetchEditForm(payload) {
+    return postRowRequest('/datatables/ajax/edit-form/view', JSON_HEADERS, payload, {
+        success: false,
+        html: '',
     });
-    const body = await response.json().catch(() => ({ success: false, html: '' }));
-    return { ...body, response };
 }
 //# sourceMappingURL=fetchEditForm.js.map

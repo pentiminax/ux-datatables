@@ -116,14 +116,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * LIMIT/OFFSET count SQL rows. A query joining a collection-valued association returns each
-     * root once per joined row, so the database would cut pages by joined rows and the hydrator
-     * would then collapse the repeated roots: pages come back short, overlap, and some roots are
-     * never shown. Such a query pages distinct root identifiers instead, then loads that page.
-     * Any other query keeps its own LIMIT/OFFSET and costs no extra query.
-     *
-     * A GROUP BY query already yields one row per root, and a composite identifier cannot be
-     * listed in a single IN, so both keep the plain path.
+     * A to-many join makes LIMIT/OFFSET page joined rows, so such a query pages distinct root
+     * identifiers first. GROUP BY and composite identifiers keep the plain path.
      *
      * @return list<mixed>
      */
@@ -158,8 +152,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
 
         // The identifier query returns raw column values and the entities carry hydrated ones;
         // converting the entity side back to what the column holds makes the two comparable.
-        $positions = array_flip(array_map($this->databaseKey(...), $ids));
-        $position  = fn (mixed $item): int => $positions[$this->databaseKey($this->toDatabaseValue($type, $metadata->getFieldValue($this->rootEntity($item), $identifier)))] ?? \PHP_INT_MAX;
+        $positions = array_flip(array_map(strval(...), $ids));
+        $position  = fn (mixed $item): int => $positions[(string) $this->toDatabaseValue($type, $metadata->getFieldValue($this->rootEntity($item), $identifier))] ?? \PHP_INT_MAX;
 
         usort($items, static fn (mixed $left, mixed $right): int => $position($left) <=> $position($right));
 
@@ -243,11 +237,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * Asks the database which of $ids the permanent scope (customizeQueryBuilder() alone, the same
-     * query recordsTotal counts) contains.
-     *
-     * Interactive search, ordering and filters are left out on purpose: a row the user filtered
-     * away is still theirs to act on, while a row outside the permanent scope never was.
+     * Which of $ids the permanent scope (customizeQueryBuilder() alone) contains; search and
+     * filters are left out, since a filtered-away row is still the user's to act on.
      */
     public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
     {
@@ -265,7 +256,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             $value = $this->toDatabaseValue($type, $id);
 
             if (null !== $value) {
-                $databaseValues[$this->databaseKey($value)] = $value;
+                $databaseValues[(string) $value] = $value;
             }
         }
 
@@ -301,7 +292,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
                 $value  = \is_object($column) ? $this->toDatabaseValue($type, $column) : $column;
 
                 if (null !== $value) {
-                    $inScope[$this->databaseKey($value)] = true;
+                    $inScope[(string) $value] = true;
                 }
             }
         }
@@ -309,7 +300,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         return array_values(array_filter($ids, function (int|string $id) use ($type, $inScope): bool {
             $value = $this->toDatabaseValue($type, $id);
 
-            return null !== $value && isset($inScope[$this->databaseKey($value)]);
+            return null !== $value && isset($inScope[(string) $value]);
         }));
     }
 
@@ -321,12 +312,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * The value as the database stores it, which is what an IN list is compared with.
-     *
-     * A Doctrine type may store an identifier differently from the string the browser sends (a
-     * binary UUID, a prefixed key), so the browser's value, the hydrated PHP value and the raw
-     * column value only compare equal once they go through the same conversion. A value the type
-     * refuses cannot name a row, so it comes back as null.
+     * The value as the database stores it, so browser, hydrated and raw values compare equal; null
+     * when the type refuses it.
      */
     private function toDatabaseValue(?Type $type, mixed $value): mixed
     {
@@ -339,11 +326,6 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         } catch (ConversionException) {
             return null;
         }
-    }
-
-    private function databaseKey(mixed $databaseValue): string
-    {
-        return (string) $databaseValue;
     }
 
     private function arrayBindingType(?Type $type): ArrayParameterType|int
@@ -406,9 +388,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * Rows that tie on the user's sort key come back in any order the database likes, so with
-     * LIMIT/OFFSET one row can land on two pages while another is never shown. Unordered and grouped
-     * queries are left alone: there is nothing to break ties of, or no row identifier to order on.
+     * Rows tying on the sort key would otherwise repeat or vanish across pages. Unordered and
+     * grouped queries are left alone.
      */
     private function breakPageTiesByIdentifier(QueryBuilder $qb, string $alias): void
     {
@@ -490,7 +471,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         // merge the distinct VARCHAR keys "01" and "1" into one and make a row unreachable.
         $unique = [];
         foreach ($ids as $id) {
-            $unique[$this->databaseKey($id)] ??= $id;
+            $unique[(string) $id] ??= $id;
         }
 
         return array_values($unique);
@@ -604,21 +585,6 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * A permanent GROUP BY/HAVING added by customizeQueryBuilder() (e.g. grouping by a related
-     * entity and using HAVING to filter groups by an aggregate condition) already collapses the
-     * dataset into one row per qualifying group. Re-selecting COUNT(DISTINCT $alias) on top of
-     * that GROUP BY still returns one count per group, so getSingleScalarResult() throws
-     * NonUniqueResultException once there is more than one group. In that case the number of
-     * groups the query already yields IS the correct total, so the count is the row count of the
-     * query's own result instead of a re-selected aggregate.
-     *
-     * A to-many join (searchable or permanent) would inflate a plain COUNT($alias) by row
-     * multiplication when there's no GROUP BY; COUNT(DISTINCT $alias) counts distinct root
-     * entities instead. This assumes a single-column primary key (Doctrine resolves
-     * COUNT(DISTINCT $alias) to the first identifier column); entities with composite keys would
-     * need a subquery over the identifiers instead.
-     */
-    /**
      * Identical DQL, window and parameters count the same rows, so the second COUNT of a draw can be skipped.
      */
     private function isSameCountQuery(QueryBuilder $base, QueryBuilder $filtered): bool
@@ -672,6 +638,10 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         return $parameters;
     }
 
+    /**
+     * Counts distinct roots (single-column primary key only); a permanent GROUP BY counts its own
+     * result rows instead.
+     */
     private function count(QueryBuilder $qb, string $alias): int
     {
         $qb = (clone $qb)->resetDQLPart('orderBy');
