@@ -605,6 +605,33 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
+    public function it_translates_the_row_action_labels_only_for_a_table_with_row_actions(): void
+    {
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnCallback(static fn (string $id): string => 'tr:'.$id);
+
+        $preparer = new RenderingPreparer(translator: $translator);
+
+        $withActions = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->add(ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::delete())));
+        $withoutActions = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->add(TextColumn::new('name'));
+
+        $preparer->prepare($withActions, null);
+        $preparer->prepare($withoutActions, null);
+
+        $this->assertSame([
+            'failed'    => 'tr:action.row.failed',
+            'forbidden' => 'tr:action.row.forbidden',
+            'confirm'   => 'tr:action.row.confirm',
+            'cancel'    => 'tr:action.row.cancel',
+        ], $withActions->getOptions()['actionLabels']);
+        $this->assertArrayNotHasKey('actionLabels', $withoutActions->getOptions());
+    }
+
+    #[Test]
     public function it_translates_the_labels_of_choice_columns(): void
     {
         $translator = $this->createStub(TranslatorInterface::class);

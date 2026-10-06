@@ -36,8 +36,16 @@ Every change below can affect an application. Each links to its migration hint.
   [details](#ordered-server-side-pages-break-ties-on-the-identifier).
 
 Additive changes need no migration: `ChoiceColumn` translates `TranslatableInterface` enum labels,
-`AbstractColumn::formatValueUsing()` formats a cell value on the server, and `RouteLoader` no longer
-implements the `RouteLoaderInterface` that Symfony 8.2 deprecates.
+`AbstractColumn::formatValueUsing()` formats a cell value on the server, built-in row actions
+(delete, detail, edit, boolean switch) dispatch `datatables:action:success` and
+`datatables:action:error` and announce failures, and `RouteLoader` no longer implements the
+`RouteLoaderInterface` that Symfony 8.2 deprecates.
+
+An action `confirm()` on a delete, detail, edit, or Ajax action now asks through the table's modal
+adapter (the one `editModal` selects, Bootstrap or `<dialog>` by default) instead of the browser's
+native dialog, as bulk actions already do. The native `window.confirm()` remains the fallback when
+no adapter resolves, and link actions keep it. Code that stubbed `window.confirm` in tests of a
+delete button must now answer through the adapter instead.
 
 No API is deprecated in v1.2.0.
 
