@@ -214,9 +214,11 @@ TextColumn::new('customer')
 ```
 
 The closure receives the value after normalization (dates already formatted, enums reduced to their
-backing value) and the source item, the same one actions receive. Ordering and searching keep
-working on the field, and the closure is never serialized to the browser. The API is fluent only:
-`#[DataTableColumn]` cannot hold a closure.
+backing value) and the source item, the same one actions receive. The closure is never serialized
+to the browser. The API is fluent only: `#[DataTableColumn]` cannot hold a closure.
+
+On a `serverSide()` table, ordering and searching keep working on the field. A client-side table
+only holds the formatted value, so the browser orders and searches that text instead.
 
 The returned value is still a cell value. A text column escapes it unless `html()` is set, in which
 case the closure must escape any untrusted input itself. On a `MoneyColumn`, `BooleanColumn` or
