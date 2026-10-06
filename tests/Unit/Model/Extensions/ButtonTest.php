@@ -262,4 +262,15 @@ final class ButtonTest extends TestCase
             ],
         ], json_decode(json_encode($colVis), true));
     }
+
+    #[Test]
+    public function server_side_exports_format_values_unless_raw_values_are_requested(): void
+    {
+        $button = Button::csv(serverSide: true);
+
+        $this->assertFalse($button->usesRawValues());
+        $this->assertTrue($button->rawValues()->usesRawValues());
+        $this->assertFalse($button->rawValues(false)->usesRawValues());
+        $this->assertArrayNotHasKey('rawValues', $button->jsonSerialize());
+    }
 }
