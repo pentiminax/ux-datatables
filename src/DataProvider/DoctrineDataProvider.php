@@ -79,7 +79,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             $qb = ($this->configureQueryBuilder)($qb, $request);
         }
 
-        $filteredCount = $this->count($qb, $alias);
+        $filteredCount = $this->isSameCountQuery($baseQb, $qb) ? $recordsTotal : $this->count($qb, $alias);
 
         if ($request->start > 0) {
             $qb->setFirstResult($request->start);
@@ -574,6 +574,60 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      * COUNT(DISTINCT $alias) to the first identifier column); entities with composite keys would
      * need a subquery over the identifiers instead.
      */
+    /**
+     * Identical DQL, window and parameters count the same rows, so the second COUNT of a draw can be skipped.
+     */
+    private function isSameCountQuery(QueryBuilder $base, QueryBuilder $filtered): bool
+    {
+        $base     = (clone $base)->resetDQLPart('orderBy');
+        $filtered = (clone $filtered)->resetDQLPart('orderBy');
+
+        return $base->getDQL()         === $filtered->getDQL()
+            && $base->getFirstResult() === $filtered->getFirstResult()
+            && $base->getMaxResults()  === $filtered->getMaxResults()
+            && $this->sameParameters($base, $filtered);
+    }
+
+    /**
+     * Scalars are compared strictly (a loose comparison equates '01' and '1', which a string column
+     * does not); objects fall back to equality since both builders rebuild their own instances.
+     */
+    private function sameParameters(QueryBuilder $a, QueryBuilder $b): bool
+    {
+        $left  = $this->parametersByName($a);
+        $right = $this->parametersByName($b);
+
+        if (\count($left) !== \count($right)) {
+            return false;
+        }
+
+        foreach ($left as $name => [$value, $type]) {
+            if (!isset($right[$name]) || $right[$name][1] !== $type) {
+                return false;
+            }
+
+            $other = $right[$name][0];
+            if (\is_object($value) || \is_object($other) ? $value != $other : $value !== $other) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array<string, array{mixed, mixed}>
+     */
+    private function parametersByName(QueryBuilder $qb): array
+    {
+        $parameters = [];
+        foreach ($qb->getParameters() as $parameter) {
+            $parameters[(string) $parameter->getName()] = [$parameter->getValue(), $parameter->getType()];
+        }
+
+        return $parameters;
+    }
+
     private function count(QueryBuilder $qb, string $alias): int
     {
         $qb = (clone $qb)->resetDQLPart('orderBy');
