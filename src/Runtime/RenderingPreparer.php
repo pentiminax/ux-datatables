@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
@@ -45,6 +46,19 @@ final class RenderingPreparer
         'failed'              => 'bulk.bar.failed',
     ];
 
+    /**
+     * Messages and confirmation buttons of the built-in row actions (delete, toggle, detail, edit),
+     * translated server-side like the bulk bar's.
+     *
+     * @var array<string, string>
+     */
+    private const array ACTION_LABEL_KEYS = [
+        'failed'    => 'action.row.failed',
+        'forbidden' => 'action.row.forbidden',
+        'confirm'   => 'action.row.confirm',
+        'cancel'    => 'action.row.cancel',
+    ];
+
     public function __construct(
         private readonly ?ApiResourceCollectionUrlResolver $urlResolver = null,
         private readonly ?MercureConfigResolver $mercureResolver = null,
@@ -78,6 +92,7 @@ final class RenderingPreparer
 
         $this->configureExportUrl($table);
         $this->configureBulkActions($table);
+        $this->configureActionLabels($table);
         $this->configureForwardedQueryParameters($table);
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
@@ -260,6 +275,31 @@ final class RenderingPreparer
         }
 
         $table->setPreparedBulkActionLabels($labels);
+    }
+
+    private function configureActionLabels(DataTable $table): void
+    {
+        if (null === $this->translator || !$this->hasRowActions($table)) {
+            return;
+        }
+
+        $labels = [];
+        foreach (self::ACTION_LABEL_KEYS as $name => $key) {
+            $labels[$name] = $this->translator->trans($key, domain: FilterLabels::DOMAIN);
+        }
+
+        $table->setPreparedActionLabels($labels);
+    }
+
+    private function hasRowActions(DataTable $table): bool
+    {
+        foreach ($table->getColumns() as $column) {
+            if ($column instanceof ActionsProvidingColumnInterface || ($column instanceof BooleanColumn && $column->isRenderedAsSwitch())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function configureForwardedQueryParameters(DataTable $table): void

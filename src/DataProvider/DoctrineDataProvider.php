@@ -79,6 +79,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             $qb = ($this->configureQueryBuilder)($qb, $request);
         }
 
+        $this->breakPageTiesByIdentifier($qb, $alias);
+
         $filteredCount = $this->isSameCountQuery($baseQb, $qb) ? $recordsTotal : $this->count($qb, $alias);
 
         if ($request->start > 0) {
@@ -398,9 +400,51 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             ? $field
             : $metadata->getSingleIdentifierFieldName();
 
-        $qb->addOrderBy("$alias.$identifier", DoctrineSortDirection::from('asc'));
+        $this->appendIdentifierTieBreaker($qb, $alias, [$identifier]);
 
         return [$qb, $alias, $identifier];
+    }
+
+    /**
+     * Rows that tie on the user's sort key come back in any order the database likes, so with
+     * LIMIT/OFFSET one row can land on two pages while another is never shown. Unordered and grouped
+     * queries are left alone: there is nothing to break ties of, or no row identifier to order on.
+     */
+    private function breakPageTiesByIdentifier(QueryBuilder $qb, string $alias): void
+    {
+        if ([] === $qb->getDQLPart('orderBy') || [] !== $qb->getDQLPart('groupBy')) {
+            return;
+        }
+
+        $metadata = $this->em->getClassMetadata($this->entityClass);
+
+        $identifiers = $metadata->getIdentifierFieldNames();
+        if ([] === $identifiers || array_filter($identifiers, static fn (string $name): bool => !$metadata->hasField($name))) {
+            return;
+        }
+
+        $this->appendIdentifierTieBreaker($qb, $alias, $identifiers);
+    }
+
+    /**
+     * @param list<string> $identifiers
+     */
+    private function appendIdentifierTieBreaker(QueryBuilder $qb, string $alias, array $identifiers): void
+    {
+        $ordered = array_map(
+            static fn (mixed $order): string => (string) $order,
+            $qb->getDQLPart('orderBy'),
+        );
+
+        foreach ($identifiers as $identifier) {
+            foreach ($ordered as $order) {
+                if (str_starts_with($order, "$alias.$identifier ")) {
+                    continue 2;
+                }
+            }
+
+            $qb->addOrderBy("$alias.$identifier", DoctrineSortDirection::from('asc'));
+        }
     }
 
     /**

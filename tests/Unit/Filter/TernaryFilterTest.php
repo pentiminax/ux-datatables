@@ -65,16 +65,56 @@ final class TernaryFilterTest extends TestCase
      */
     #[Test]
     #[DataProvider('provideStates')]
-    public function it_applies_a_condition_per_state(TernaryFilter $filter, string $state, array $expectedWhere, array $expectedParams): void
+    public function it_applies_a_condition_per_state(TernaryFilter $filter, string $state, array $expectedWhere, array $expectedParams, string $fieldType = 'datetime'): void
     {
-        $this->assertFilterProduces($filter, $state, $expectedWhere, $expectedParams);
+        $this->assertFilterProduces($filter, $state, $expectedWhere, $expectedParams, $fieldType);
     }
 
     /**
-     * @return iterable<string, array{TernaryFilter, string, list<string>, array<string, mixed>}>
+     * @return iterable<string, array{TernaryFilter, string, list<string>, array<string, mixed>, 4?: string}>
      */
     public static function provideStates(): iterable
     {
+        yield 'boolean field, true state' => [
+            TernaryFilter::new('active'),
+            'true',
+            ['e.active = :filter_active_true'],
+            ['filter_active_true' => true],
+            'boolean',
+        ];
+
+        yield 'boolean field, false state' => [
+            TernaryFilter::new('active'),
+            'false',
+            ['e.active = :filter_active_false'],
+            ['filter_active_false' => false],
+            'boolean',
+        ];
+
+        yield 'nullable boolean field keeps the NULL checks' => [
+            TernaryFilter::new('active')->nullable(),
+            'false',
+            ['e.active IS  NULL'],
+            [],
+            'boolean',
+        ];
+
+        yield 'explicit values win on a boolean field' => [
+            TernaryFilter::new('active')->values('Y', 'N'),
+            'false',
+            ['e.active = :filter_active_false'],
+            ['filter_active_false' => 'N'],
+            'boolean',
+        ];
+
+        yield 'string field keeps the NULL checks' => [
+            TernaryFilter::new('note'),
+            'true',
+            ['e.note IS NOT NULL'],
+            [],
+            'string',
+        ];
+
         yield 'nullable field, true state' => [
             TernaryFilter::new('verified')->field('emailVerifiedAt'),
             'true',

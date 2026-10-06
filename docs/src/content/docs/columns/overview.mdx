@@ -196,6 +196,36 @@ this.element.addEventListener('datatables:pre-connect', (event) => {
 })
 ```
 
+### Formatting Values on the Server
+
+`formatValueUsing()` transforms a cell value on the server, before it reaches the browser or an
+export file:
+
+```php
+use Pentiminax\UX\DataTables\Column\TextColumn;
+
+TextColumn::new('customer')
+    ->setField('customer.lastName')
+    ->formatValueUsing(static fn (?string $value, Order $order): string => \sprintf(
+        '%s %s.',
+        $order->getCustomer()->getFirstName(),
+        mb_substr($value ?? '', 0, 1),
+    ));
+```
+
+The closure receives the value after normalization (dates already formatted, enums reduced to their
+backing value) and the source item, the same one actions receive. Ordering and searching keep
+working on the field, and the closure is never serialized to the browser. The API is fluent only:
+`#[DataTableColumn]` cannot hold a closure.
+
+The returned value is still a cell value. A text column escapes it unless `html()` is set, in which
+case the closure must escape any untrusted input itself. On a `MoneyColumn`, `BooleanColumn` or
+`ChoiceColumn`, the formatted string replaces the typed rendering and is shown as escaped text.
+
+Reach for `TemplateColumn` when a cell needs a Twig template (it is not exportable by default), and
+for `mapRow()` only when the whole row needs reshaping, because it replaces the default mapper for
+every column.
+
 ### Export
 
 ```php

@@ -3,7 +3,7 @@ import { renderLucideIcon } from '../functions/lucideIcons.js'
 import { createPopover, type Popover } from '../functions/popover.js'
 import { runBulkAction } from '../functions/runBulkAction.js'
 import type { StyleFramework } from '../types/styleFramework.js'
-import { confirmBulkAction } from './confirmModal.js'
+import { confirmAction } from './confirmModal.js'
 import { type SelectionSnapshot, SelectionStore } from './selectionStore.js'
 
 export interface BulkActionDefinition {
@@ -293,7 +293,7 @@ export class BulkActionBar {
         }
 
         if (action.confirm) {
-            const confirmed = await confirmBulkAction({
+            const confirmed = await confirmAction({
                 message: action.confirm.replace('{count}', String(snapshot.count)),
                 confirmLabel: action.confirmButton ?? this.labels.confirm ?? 'Confirm',
                 cancelLabel: this.labels.cancel ?? 'Cancel',

@@ -7,6 +7,7 @@ export async function fetchDetailRow(payload) {
         },
         body: JSON.stringify({ dataTable: payload.dataTable, id: payload.id }),
     });
-    return response.json();
+    const body = await response.json().catch(() => ({ success: false, html: '' }));
+    return { ...body, response };
 }
 //# sourceMappingURL=fetchDetailRow.js.map

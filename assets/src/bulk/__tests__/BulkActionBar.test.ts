@@ -1,11 +1,11 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadLucideIcons } from '../../functions/lucideIcons.js'
 import { BulkActionBar, hasBulkActions } from '../BulkActionBar.js'
-import { confirmBulkAction } from '../confirmModal.js'
+import { confirmAction } from '../confirmModal.js'
 import { FakeApi } from './fakeApi.js'
 
 vi.mock('../confirmModal.js', () => ({
-    confirmBulkAction: vi.fn(async () => true),
+    confirmAction: vi.fn(async () => true),
 }))
 
 function payload(overrides: Record<string, any> = {}): Record<string, any> {
@@ -289,9 +289,9 @@ describe('BulkActionBar', () => {
 
         item(h).click()
 
-        await vi.waitFor(() => expect(confirmBulkAction).toHaveBeenCalled())
+        await vi.waitFor(() => expect(confirmAction).toHaveBeenCalled())
 
-        expect(vi.mocked(confirmBulkAction).mock.calls[0][0]).toMatchObject({
+        expect(vi.mocked(confirmAction).mock.calls[0][0]).toMatchObject({
             message: 'Approve 1 rows?',
             adapterKey: 'bs5',
         })
