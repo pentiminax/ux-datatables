@@ -25,6 +25,9 @@ optional API Platform column discovery, and optional Mercure updates.
 - Do not assume a table token authenticates or authorizes a user. Applications must protect the
   bundle's Ajax routes with their Symfony Security configuration.
 - Add dependencies only when the task explicitly requires them.
+- Look for an existing helper before writing one, and share it instead of keeping private copies
+  (for example `RowIdNormalizer`, `EnumChoices`, `ColumnTranslator`, `isRecord()` in
+  `assets/src/functions/htmlUtils.ts`, `postRowRequest.ts`).
 
 ### Do Not Edit Directly
 
@@ -89,7 +92,10 @@ attributes, Ajax routes, Twig functions, serialized frontend options, and publis
 imports.
 
 - Prefer additive, backward-compatible changes.
-- Deprecate an existing path before removing it, and document its replacement.
+- Deprecate an existing path before removing it, and document its replacement. Tag it
+  `@deprecated since X.Y, use Z instead. Removed in 2.0.` in PHP and TypeScript, where X.Y is the
+  first release that ships the deprecation (check the last tag with `git show <tag>:<path>`), and
+  keep the deprecated export covered by a test until 2.0.
 - Do not expose internal runtime objects or implementation details through user configuration.
 - Keep fluent configuration consistent: static `new()` factories where established and chainable
   methods returning `static`.
@@ -173,7 +179,8 @@ snake_case PHPUnit method names.
 - Start exception messages with a capital letter and end them with a period.
 - Prefer clear, self-explanatory code over long explanatory comments: make the behavior obvious
   through names and structure, and keep a comment only for a non-obvious constraint or decision.
-  Do not use comments as section separators.
+  Do not use comments as section separators. Keep docblocks to a line or two, and mark internal
+  methods with a bare `@internal` instead of naming their callers, which go stale.
 - Keep properties before methods, then order methods public, protected, and private.
 - Use PHPDoc for useful generic, iterable, array-shape, or behavioral information; avoid repeating
   native type declarations.
