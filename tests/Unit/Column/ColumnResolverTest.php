@@ -372,7 +372,7 @@ final class ColumnResolverTest extends TestCase
         $value    = (object) ['name' => 'secret', 'role' => 'admin'];
         $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
 
-        $columns  = [
+        $columns = [
             TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'),
             TextColumn::new('name', 'Name'),
         ];
