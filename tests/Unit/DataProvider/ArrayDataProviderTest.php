@@ -169,6 +169,26 @@ final class ArrayDataProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_orders_rows_by_several_columns_and_keeps_source_order_on_ties(): void
+    {
+        $rows = [
+            ['id' => 1, 'name' => 'Alice', 'score' => 10],
+            ['id' => 2, 'name' => 'Bob', 'score' => 30],
+            ['id' => 3, 'name' => 'Alice', 'score' => 20],
+            ['id' => 4, 'name' => 'Bob', 'score' => 30],
+            ['id' => 5, 'name' => 'Alice', 'score' => 20],
+        ];
+
+        $result = (new ArrayDataProvider($rows, new CountingRowMapper(), self::columns()))->fetchData(self::request(
+            start: 0,
+            length: 10,
+            order: [new Order(1, 'asc', 'name'), new Order(2, 'desc', 'score')],
+        ));
+
+        $this->assertSame([3, 5, 1, 2, 4], array_column(iterator_to_array($result->data), 'id'));
+    }
+
+    #[Test]
     public function it_applies_the_global_search_on_globally_searchable_columns_only(): void
     {
         $columns    = self::columns();

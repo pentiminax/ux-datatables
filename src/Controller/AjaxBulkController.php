@@ -19,8 +19,8 @@ use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
  * Runs one bulk action over the rows the browser reported as selected.
  *
  * The table is derived from its signed action token, never from a client-supplied class name, and
- * the static permission is checked before any entity is loaded. Every selected entity is
- * re-authorized individually inside {@see BulkActionRunner}.
+ * the static permission is checked before any entity is loaded. {@see BulkActionRunner} keeps only
+ * the identifiers the table's scope contains and re-authorizes each entity it loads.
  */
 final class AjaxBulkController
 {

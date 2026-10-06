@@ -227,10 +227,42 @@ final class OrderBulkVoter extends Voter
 
 <Aside type="caution">
   The selection is client-side data: the browser sends row identifiers, and nothing else vouches for
-  them. The endpoint re-authorizes every entity it loads, but it is still an Ajax route of your
-  application — protect it with your own `security.firewalls` configuration, like every other one.
-  See [Securing Ajax Routes](/ux-datatables/getting-started/security/).
+  them. The endpoint keeps only the identifiers your table's own scope contains (see [Table
+  scope](#table-scope)) and re-authorizes each entity it loads when the action declares a per-row
+  permission resolver. It is still an Ajax route of your application — protect it with your own
+  `security.firewalls` configuration, like every other one. See [Securing Ajax
+  Routes](/ux-datatables/getting-started/security/).
 </Aside>
+
+### Table scope
+
+An explicit selection is checked against the table's permanent scope, which is what
+`customizeQueryBuilder()` builds, before any entity is loaded. Identifiers outside it never reach
+the handler and are counted as skipped. Interactive search, ordering, and filters do not apply: a
+row the user filtered away is still theirs to act on.
+
+This is what makes a tenant-scoped table safe against forged identifiers, with or without a per-row
+resolver:
+
+```php
+protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $request): QueryBuilder
+{
+    return $qb
+        ->andWhere('e.owner = :owner')
+        ->setParameter('owner', $this->security->getUser());
+}
+```
+
+"Select all matching" resolves its identifiers through the same query, so both selection modes share
+one boundary. Scope on the Security user rather than on a request parameter: request parameters are
+client-controlled, so they are a convenience, not a boundary.
+
+A data provider you build yourself in `createDataProvider()` must receive the scope through its
+`configureBaseQueryBuilder` argument; without it the check covers the whole entity table.
+
+A custom data provider that does not implement `ScopedIdentifierProviderInterface`, and an API
+Platform backed table, keep the previous behavior: the handler receives every identifier that
+exists, and must scope itself.
 
 ## Ajax Endpoints
 
