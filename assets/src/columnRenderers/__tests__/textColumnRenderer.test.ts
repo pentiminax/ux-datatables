@@ -75,9 +75,12 @@ describe('textColumnRenderer', () => {
         )
     })
 
-    it('leaves a formatted html() column to render its own markup', () => {
-        expect(
-            textColumnRenderer.matches({ type: 'html', customOptions: { formatted: true } })
-        ).toBe(false)
-    })
+    it.each(['html', 'html-utf8', 'html-num', 'html-num-fmt'])(
+        'leaves a formatted %s column to render its own markup',
+        (type) => {
+            expect(textColumnRenderer.matches({ type, customOptions: { formatted: true } })).toBe(
+                false
+            )
+        }
+    )
 })

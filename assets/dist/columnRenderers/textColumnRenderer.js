@@ -1,7 +1,7 @@
 import { escapeHtml } from '../functions/htmlUtils.js';
 import { isFormatted } from './types.js';
 const PLAIN_TEXT_TYPES = new Set(['string', 'string-utf8']);
-const HTML_TYPES = new Set(['html', 'html-utf8']);
+const HTML_TYPES = new Set(['html', 'html-utf8', 'html-num', 'html-num-fmt']);
 function isFormattedText(column) {
     if (!isFormatted(column)) {
         return false;
