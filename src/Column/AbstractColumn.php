@@ -489,7 +489,8 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
      * The closure receives the value after normalization (dates already formatted, enums reduced to
      * their backing value) and the source item, the same one actions receive. A text cell escapes
      * what the closure returns unless html() is set, so markup must be escaped by the closure.
-     * Ordering and searching keep working on the field. The closure is never serialized.
+     * A server-side table still orders and searches on the field; a client-side one on the
+     * formatted value. The closure is never serialized.
      *
      * @param \Closure(mixed $value, mixed $row): mixed $formatter
      */
