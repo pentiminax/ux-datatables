@@ -18,6 +18,25 @@ vi.mock('../src/functions/toggleBooleanValue.js', () => ({
     toggleBooleanValue: vi.fn(async () => new Response(null, { status: 200 })),
 }))
 
+vi.mock('../src/functions/fetchEditForm.js', () => ({
+    fetchEditForm: vi.fn(async () => ({
+        success: true,
+        html: '<form></form>',
+        response: new Response(null, { status: 200 }),
+    })),
+}))
+
+vi.mock('../src/functions/submitEditForm.js', () => ({
+    submitEditForm: vi.fn(async () => ({
+        success: true,
+        response: new Response(null, { status: 200 }),
+    })),
+}))
+
+vi.mock('../src/modal/resolveModalAdapter.js', () => ({
+    resolveModalAdapter: vi.fn(),
+}))
+
 vi.mock('../src/bulk/confirmModal.js', () => ({
     confirmAction: vi.fn(async () => true),
 }))
@@ -25,6 +44,9 @@ vi.mock('../src/bulk/confirmModal.js', () => ({
 import { confirmAction } from '../src/bulk/confirmModal.js'
 import DatatableController from '../src/controller.js'
 import { deleteEntity } from '../src/functions/deleteEntity.js'
+import { fetchEditForm } from '../src/functions/fetchEditForm.js'
+import { submitEditForm } from '../src/functions/submitEditForm.js'
+import { resolveModalAdapter } from '../src/modal/resolveModalAdapter.js'
 import { toggleBooleanValue } from '../src/functions/toggleBooleanValue.js'
 
 const STATUS_SELECTOR = '[data-ux-datatables-row-action-status]'
@@ -32,13 +54,16 @@ const STATUS_SELECTOR = '[data-ux-datatables-row-action-status]'
 describe('built-in row actions', () => {
     let application: Application
     let reload: ReturnType<typeof vi.fn>
+    let payloads: Array<Record<string, any>>
 
     beforeEach(async () => {
         reload = vi.fn()
+        payloads = []
         const initialized = new WeakSet<Element>()
         const built = new WeakMap<Element, object>()
 
-        function MockDataTable(this: void, element: Element) {
+        function MockDataTable(this: void, element: Element, payload: Record<string, any>) {
+            payloads.push(payload)
             initialized.add(element)
             const container = document.createElement('div')
             container.className = 'dt-container'
@@ -215,6 +240,122 @@ describe('built-in row actions', () => {
 
         expect(confirmAction).toHaveBeenCalledTimes(1)
         expect(deleteEntity).toHaveBeenCalledTimes(1)
+    })
+
+    it('opens one confirmation when the button is clicked twice before it answers', async () => {
+        let answer: (value: boolean) => void = () => {}
+        vi.mocked(confirmAction).mockReturnValueOnce(
+            new Promise<boolean>((resolve) => {
+                answer = resolve
+            })
+        )
+        const table = await mountTable()
+        const button = actionButton(table, 'DELETE', 'Delete this row?')
+
+        button.click()
+        button.click()
+        await settle()
+
+        answer(true)
+        await settle()
+
+        expect(confirmAction).toHaveBeenCalledTimes(1)
+        expect(deleteEntity).toHaveBeenCalledTimes(1)
+    })
+
+    it('hands a formatted relative date to the text renderer alone', async () => {
+        await mountTable({
+            columns: [
+                {
+                    data: 'when',
+                    type: 'date',
+                    customOptions: { relative: true, formatted: true },
+                },
+            ],
+        })
+
+        const render = payloads[0].columns[0].render
+
+        expect(render('2026-01-01', 'display')).toBe('2026-01-01')
+        expect(render('<b>x</b>', 'display')).toBe('&lt;b&gt;x&lt;/b&gt;')
+    })
+
+    describe('inline edit', () => {
+        let handlers: { onSubmit: (formData: Record<string, unknown>) => Promise<void> }
+        const modal = {
+            show: vi.fn(async (_html: string, given: typeof handlers) => {
+                handlers = given
+            }),
+            hide: vi.fn(async () => {}),
+            replaceBody: vi.fn(),
+            isOpen: vi.fn(() => true),
+        }
+
+        beforeEach(() => {
+            vi.mocked(resolveModalAdapter).mockResolvedValue(modal as never)
+        })
+
+        it('reports the load of the form only when it fails', async () => {
+            const table = await mountTable()
+            const success = collectEvents(table, 'datatables:action:success')
+
+            actionButton(table, 'EDIT').click()
+            await settle()
+
+            expect(modal.show).toHaveBeenCalledTimes(1)
+            expect(success).toHaveLength(0)
+
+            vi.mocked(fetchEditForm).mockResolvedValueOnce({
+                success: false,
+                html: '',
+                response: new Response(null, { status: 403 }),
+            })
+            const errors = collectEvents(table, 'datatables:action:error')
+
+            actionButton(table, 'EDIT').click()
+            await settle()
+
+            expect(modal.show).toHaveBeenCalledTimes(1)
+            expect(errors[0].detail.response.status).toBe(403)
+            expect(
+                table.closest('.dt-container')?.querySelector(STATUS_SELECTOR)?.textContent
+            ).toBe('You are not allowed to do this.')
+        })
+
+        it('reports a saved edit and reloads the table', async () => {
+            const table = await mountTable()
+            const success = collectEvents(table, 'datatables:action:success')
+
+            actionButton(table, 'EDIT').click()
+            await settle()
+            await handlers.onSubmit({ name: 'Ada' })
+            await settle()
+
+            expect(success).toHaveLength(1)
+            expect(success[0].detail).toMatchObject({ actionType: 'EDIT', id: '42' })
+            expect(modal.hide).toHaveBeenCalled()
+            expect(reload).toHaveBeenCalledTimes(1)
+        })
+
+        it('reports a failed save and keeps the modal open on the returned form', async () => {
+            vi.mocked(submitEditForm).mockResolvedValueOnce({
+                success: false,
+                html: '<p>Invalid</p>',
+                response: new Response(null, { status: 422 }),
+            })
+            const table = await mountTable()
+            const errors = collectEvents(table, 'datatables:action:error')
+
+            actionButton(table, 'EDIT').click()
+            await settle()
+            await handlers.onSubmit({ name: '' })
+            await settle()
+
+            expect(errors).toHaveLength(1)
+            expect(errors[0].detail.response.status).toBe(422)
+            expect(modal.replaceBody).toHaveBeenCalledWith('<p>Invalid</p>')
+            expect(modal.hide).not.toHaveBeenCalled()
+        })
     })
 
     it('keeps the native confirm for a link the controller does not run', async () => {

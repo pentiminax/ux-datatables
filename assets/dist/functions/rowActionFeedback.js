@@ -1,6 +1,6 @@
 const STATUS_ATTRIBUTE = 'data-ux-datatables-row-action-status';
 const VISUALLY_HIDDEN = 'position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0';
-export async function runRowAction({ element, root, actionType, id, labels, dispatch, run, }) {
+export async function runRowAction({ element, root, actionType, id, labels, reportSuccess = true, dispatch, run, }) {
     if (element.getAttribute('aria-busy') === 'true') {
         return false;
     }
@@ -8,7 +8,9 @@ export async function runRowAction({ element, root, actionType, id, labels, disp
     try {
         const outcome = await run();
         if (outcome.ok) {
-            dispatch('action:success', { actionType, id, response: outcome.response });
+            if (reportSuccess) {
+                dispatch('action:success', { actionType, id, response: outcome.response });
+            }
             return true;
         }
         reportFailure(root, labels, dispatch, { actionType, id, response: outcome.response });
