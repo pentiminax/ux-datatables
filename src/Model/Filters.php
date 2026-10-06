@@ -30,7 +30,7 @@ final class Filters implements \JsonSerializable
         ?string $reset = null,
         ?string $apply = null,
         ?string $all = null,
-    ): self {
+    ): static {
         $this->labels = new FilterLabels($title, $reset, $apply, $all);
 
         return $this;
@@ -48,7 +48,7 @@ final class Filters implements \JsonSerializable
     /**
      * Toggle display of the reset button directly in the table header next to the filter toggle button.
      */
-    public function showHeaderResetButton(bool $show = true): self
+    public function showHeaderResetButton(bool $show = true): static
     {
         $this->showHeaderResetButton = $show;
 
@@ -60,14 +60,14 @@ final class Filters implements \JsonSerializable
         return $this->showHeaderResetButton;
     }
 
-    public function add(FilterInterface $filter): self
+    public function add(FilterInterface $filter): static
     {
         $this->filters[$filter->getName()] = $filter;
 
         return $this;
     }
 
-    public function remove(string $name): self
+    public function remove(string $name): static
     {
         unset($this->filters[$name]);
 
