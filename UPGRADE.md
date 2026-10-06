@@ -26,6 +26,8 @@ Every change below can affect an application. Each links to its migration hint.
 - Server-side pages stay complete when a to-many association is joined, at the cost of one extra
   query per draw:
   [details](#server-side-pages-stay-complete-when-a-to-many-association-is-joined).
+- Mercure updates of tables that subscribe with credentials are published as private:
+  [details](#mercure-updates-of-private-tables-are-published-as-private).
 
 Additive changes need no migration: `ChoiceColumn` translates `TranslatableInterface` enum labels,
 and `RouteLoader` no longer implements the `RouteLoaderInterface` that Symfony 8.2 deprecates.
@@ -112,6 +114,23 @@ extra query per draw, which lists the distinct identifiers of every matching roo
 page: on a very large result set, prefer a correlated subquery over a collection join. Tables
 without a collection join are unchanged. A `GROUP BY` query and an
 entity with a composite identifier keep the previous query.
+
+### Mercure updates of private tables are published as private
+
+When a table's Mercure config has `withCredentials` (set explicitly or mapped from API Platform's
+`mercure: ['private' => true]`), mutation, edit, and bulk action updates are now published with
+`private: true`. Subscribers whose JWT does not authorize the topic stop receiving them. Give them
+a subscriber JWT with access to the topic, which `withCredentials` already requires.
+
+`MercurePublisherInterface` is unchanged. A custom publisher keeps receiving `publish()` and logs a
+warning for private tables; implement the new `PrivateUpdatePublisherInterface::publishPrivate()`
+to publish privately.
+
+### `render_datatable()` honors an `id` attribute
+
+`render_datatable(table, {id: 'orders-open'})` now replaces the default id instead of emitting a
+second, ignored `id` attribute. Attributes passed to one render no longer persist on the shared
+table instance and leak into later renders.
 
 ### Row identifiers are sent as strings
 

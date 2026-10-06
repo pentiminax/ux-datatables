@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
+use Pentiminax\UX\DataTables\Mercure\MutationUpdatePublisher;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
@@ -100,7 +101,7 @@ final class EditFormService
 
         $this->flusher->flush($context->manager);
 
-        $this->publisher->publish($this->topicResolver->resolve($dataTable->requireEntityClass(), $dataTable->dataTableClass), [
+        MutationUpdatePublisher::publish($this->publisher, $this->topicResolver, $dataTable->requireEntityClass(), $dataTable->dataTableClass, [
             'type' => 'edit',
             'id'   => $id,
         ]);
