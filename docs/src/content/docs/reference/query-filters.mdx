@@ -59,18 +59,18 @@ filters from colliding on the same column.
 The intent is provider-neutral: no Doctrine classes, no DQL, no aliases, no raw DataTables request
 indexes. It is what lets a non-Doctrine provider consume the same criteria.
 
-| Field            | Type                                                      | Description                                        |
-| ---------------- | --------------------------------------------------------- | -------------------------------------------------- |
-| `draw`           | `?int`                                                    | The request's draw counter, echoed in the response |
-| `offset`         | `int`                                                     | First row to return                                |
-| `limit`          | `?int`                                                    | Page length; `null` means unpaginated              |
-| `columns`        | `list<ColumnReadReference>`                               | Requested columns, in request order                |
-| `globalSearch`   | `?string`                                                 | Trimmed global search term, `null` when empty      |
-| `orderColumn`    | `?ColumnReadReference`                                    | First column to order by                           |
-| `orderDir`       | `'asc'\|'desc'\|null`                                     | Direction of the first criterion                   |
-| `orders`         | `list<array{column: ColumnReadReference, dir: 'asc'\|'desc'}>` | Every ordering criterion, in request order    |
-| `columnSearches` | `list<array{column: ColumnReadReference, value: string}>` | Per-column search box terms                        |
-| `columnControls` | `list<ColumnControlIntent>`                               | ColumnControl scalar and list criteria             |
+| Field            | Type                                                           | Description                                        |
+| ---------------- | -------------------------------------------------------------- | -------------------------------------------------- |
+| `draw`           | `?int`                                                         | The request's draw counter, echoed in the response |
+| `offset`         | `int`                                                          | First row to return                                |
+| `limit`          | `?int`                                                         | Page length; `null` means unpaginated              |
+| `columns`        | `list<ColumnReadReference>`                                    | Requested columns, in request order                |
+| `globalSearch`   | `?string`                                                      | Trimmed global search term, `null` when empty      |
+| `orderColumn`    | `?ColumnReadReference`                                         | First column to order by                           |
+| `orderDir`       | `'asc'\|'desc'\|null`                                          | Direction of the first criterion                   |
+| `orders`         | `list<array{column: ColumnReadReference, dir: 'asc'\|'desc'}>` | Every ordering criterion, in request order         |
+| `columnSearches` | `list<array{column: ColumnReadReference, value: string}>`      | Per-column search box terms                        |
+| `columnControls` | `list<ColumnControlIntent>`                                    | ColumnControl scalar and list criteria             |
 
 Shift-clicking a second header, or declaring `order([[1, 'asc'], [2, 'desc']])`, sends several
 criteria. Unknown, non-orderable, and repeated columns are dropped. `orderColumn` and `orderDir` keep
