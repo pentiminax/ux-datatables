@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Export;
 
+use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
@@ -15,12 +16,14 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class ExportService
 {
     public function __construct(
         private readonly ExporterRegistry $exporters,
         private readonly ColumnResolver $columnResolver = new ColumnResolver(),
+        private readonly ?TranslatorInterface $translator = null,
     ) {
     }
 
@@ -41,9 +44,17 @@ final class ExportService
         $button = $this->resolveButton($table, $this->exportKeyFromRequest($request));
         $format = $button->getExportFormat() ?? ExportFormat::CSV;
 
-        $exporter = $this->exporters->get($format);
-        $columns  = $this->exportableColumns($table);
-        $rows     = $this->iterateRows($table);
+        $exporter  = $this->exporters->get($format);
+        $columns   = $this->exportableColumns($table);
+        $rows      = $this->iterateRows($table);
+        $formatter = new ExportValueFormatter($this->translator);
+
+        if (!$button->usesRawValues()) {
+            $this->translateLabels($columns);
+            $this->applyExportHeadings($formatter, $columns);
+            $rows = $this->formatRows($formatter, $columns, $rows);
+        }
+
         $filename = ExportFilename::resolve($button->getFilename(), $table::class, $format);
 
         return new StreamedResponse(
@@ -57,6 +68,50 @@ final class ExportService
                 ),
             ],
         );
+    }
+
+    /**
+     * @param list<ColumnInterface> $columns
+     */
+    private function translateLabels(array $columns): void
+    {
+        if (null === $this->translator) {
+            return;
+        }
+
+        foreach ($columns as $column) {
+            $title = $column->getTitle();
+            if (null !== $title) {
+                $column->setTitle($this->translator->trans($title));
+            }
+
+            if ($column instanceof ChoiceColumn) {
+                $column->translateLabels($this->translator);
+            }
+        }
+    }
+
+    /**
+     * @param list<ColumnInterface> $columns
+     */
+    private function applyExportHeadings(ExportValueFormatter $formatter, array $columns): void
+    {
+        foreach ($columns as $column) {
+            $column->setTitle($formatter->heading($column, $column->getTitle() ?? $column->getName()));
+        }
+    }
+
+    /**
+     * @param list<ColumnInterface>          $columns
+     * @param iterable<array<string, mixed>> $rows
+     *
+     * @return \Generator<array<string, mixed>>
+     */
+    private function formatRows(ExportValueFormatter $formatter, array $columns, iterable $rows): \Generator
+    {
+        foreach ($rows as $row) {
+            yield $formatter->formatRow($columns, $row);
+        }
     }
 
     private function resolveButton(AbstractDataTable $table, ?string $exportKey): Button

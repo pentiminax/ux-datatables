@@ -28,9 +28,16 @@ Every change below can affect an application. Each links to its migration hint.
   [details](#server-side-pages-stay-complete-when-a-to-many-association-is-joined).
 - Mercure updates of tables that subscribe with credentials are published as private:
   [details](#mercure-updates-of-private-tables-are-published-as-private).
+- A `TernaryFilter` on a boolean field compares the value instead of checking for `NULL`:
+  [details](#ternaryfilter-compares-boolean-fields-by-value).
+- Server-side exports write what the table displays, with translated headings:
+  [details](#server-side-exports-write-what-the-table-displays).
+- Ordered server-side pages break ties on the identifier:
+  [details](#ordered-server-side-pages-break-ties-on-the-identifier).
 
 Additive changes need no migration: `ChoiceColumn` translates `TranslatableInterface` enum labels,
-and `RouteLoader` no longer implements the `RouteLoaderInterface` that Symfony 8.2 deprecates.
+`AbstractColumn::formatValueUsing()` formats a cell value on the server, and `RouteLoader` no longer
+implements the `RouteLoaderInterface` that Symfony 8.2 deprecates.
 
 No API is deprecated in v1.2.0.
 
@@ -125,6 +132,50 @@ a subscriber JWT with access to the topic, which `withCredentials` already requi
 `MercurePublisherInterface` is unchanged. A custom publisher keeps receiving `publish()` and logs a
 warning for private tables; implement the new `PrivateUpdatePublisherInterface::publishPrivate()`
 to publish privately.
+
+### `TernaryFilter` compares boolean fields by value
+
+On a Doctrine `boolean` field, `TernaryFilter` used to check `IS NOT NULL` / `IS NULL` unless
+`values(true, false)` was called, so "Yes" matched every row and "No" none on a column that cannot
+hold `NULL`. It now compares the field with `true` and `false` by itself, as a filter guessed from a
+`bool` property already did. Other field types keep the `NULL` checks.
+
+If you relied on the `NULL` semantics of a nullable boolean ("has a value" / "has no value"), add
+`nullable()`:
+
+```php
+TernaryFilter::new('consent')->nullable();
+```
+
+`values()` still wins over both. Remove the `values(true, false)` workaround if you added one; it is
+harmless but no longer needed.
+
+### Server-side exports write what the table displays
+
+`Button::csv(serverSide: true)` and `Button::excel(serverSide: true)` wrote the mapped row values,
+while the browser formats some columns itself. The file now matches the table:
+
+| Column | Before | Now |
+|---|---|---|
+| `MoneyColumn` stored as cents | `2500` | `25` as a number (so XLSX keeps a numeric cell) |
+| `MoneyColumn` heading | `Price` | `Price (EUR)` |
+| `ChoiceColumn` | `draft` | `Draft` (the label, translated) |
+| `BooleanColumn` | `1` / `0` | `Yes` / `No`, translated |
+| Column title `order.total` | `order.total` | `Total`, translated with the request locale |
+
+A column configured with `formatValueUsing()` is written as its formatter returned it. To keep the
+previous output for a file a machine reads, call `rawValues()` on the button:
+
+```php
+Button::csv(serverSide: true)->rawValues();
+```
+
+### Ordered server-side pages break ties on the identifier
+
+When a server-side table is ordered, the row identifier is now appended to the `ORDER BY`, so rows
+that share the sorted value keep one order from page to page instead of repeating or disappearing.
+The visible order only changes among rows that tie on the sort key, which was undefined before.
+Unordered and `GROUP BY` queries are untouched.
 
 ### `render_datatable()` honors an `id` attribute
 
