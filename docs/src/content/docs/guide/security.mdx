@@ -265,7 +265,7 @@ scope covers:
     ['Reading rows (paging, search, order, filters)', 'Yes'],
     [
       'Bulk "select all matching"',
-      'Yes, with a provider that collects identifiers (the built-in Doctrine provider); other providers reject select-all',
+      'Built-in Doctrine provider: yes. A custom provider implementing IdentifierCollectingDataProviderInterface must enforce the scope itself; any other provider rejects select-all',
     ],
     [
       'Bulk explicit selection, built-in Doctrine provider',
@@ -277,7 +277,7 @@ scope covers:
     ],
     [
       'Single-row delete, boolean toggle, edit form',
-      'No: they need the DT_DELETE_ROW or DT_EDIT_ROW voter, plus DT_EXECUTE_ACTION on the action and any column permission',
+      'No: delete needs DT_DELETE_ROW, the toggle DT_EDIT_ROW, the edit form DT_EDIT_ROW; delete and the edit form also need DT_EXECUTE_ACTION on the action, and a configured column permission applies to toggles and form fields',
     ],
   ]}
 />
