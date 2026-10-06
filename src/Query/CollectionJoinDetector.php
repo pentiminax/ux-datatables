@@ -9,13 +9,9 @@ use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 
 /**
- * Tells whether a query multiplies its root rows through a collection-valued association.
- *
- * LIMIT/OFFSET count SQL rows, so a query joining a to-many association paginates joined rows
- * rather than root entities. Joins are followed through their aliases (`e` -> `tags` ->
- * `tags_group`), and any join that cannot be traced back to a mapped association -- an entity
- * class joined with WITH, an alias the query never declared -- is treated as multiplying: a
- * wrongly paginated page is worse than one extra query.
+ * Tells whether a query multiplies its root rows through a to-many association, which makes
+ * LIMIT/OFFSET page joined rows instead of roots. A join that cannot be traced back to a mapped
+ * association counts as multiplying: a wrong page is worse than one extra query.
  */
 final class CollectionJoinDetector
 {

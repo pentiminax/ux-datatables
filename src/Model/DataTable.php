@@ -516,7 +516,7 @@ class DataTable
     }
 
     /**
-     * @internal called by the RenderingPreparer while preparing a render
+     * @internal
      */
     public function setMercureConfig(MercureConfig $config): static
     {
@@ -718,7 +718,7 @@ class DataTable
     /**
      * @param array<string, string> $labels
      *
-     * @internal called by the RenderingPreparer while preparing a render
+     * @internal
      */
     public function setPreparedFilterLabels(array $labels): static
     {
@@ -785,7 +785,7 @@ class DataTable
     /**
      * Whether the Select extension exists only because the table declares bulk actions.
      *
-     * @internal read by the DataTablesExtension while rendering
+     * @internal
      */
     public function isSelectionForBulkActions(): bool
     {
@@ -795,7 +795,7 @@ class DataTable
     /**
      * @param array<string, string> $labels
      *
-     * @internal set by the RenderingPreparer once the translator has run
+     * @internal
      */
     public function setPreparedActionLabels(array $labels): static
     {
@@ -1209,7 +1209,7 @@ class DataTable
     }
 
     /**
-     * @internal called by AbstractDataTable and DataTableRuntime once template columns are rendered
+     * @internal
      */
     public function markTemplateColumnsRendered(bool $rendered = true): static
     {
@@ -1219,7 +1219,7 @@ class DataTable
     }
 
     /**
-     * @internal read by AbstractDataTable while mapping rows
+     * @internal
      */
     public function areTemplateColumnsRendered(): bool
     {
@@ -1232,7 +1232,7 @@ class DataTable
     }
 
     /**
-     * @internal called by AbstractDataTable when it builds its table
+     * @internal
      */
     public function setDataTableClass(string $fqcn): static
     {
@@ -1242,7 +1242,7 @@ class DataTable
     }
 
     /**
-     * @internal read by the runtime and the RenderingPreparer to resolve the registered table
+     * @internal
      */
     public function getDataTableClass(): ?string
     {
