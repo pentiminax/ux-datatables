@@ -49,7 +49,7 @@ page:
     columns:
         title: 'Column types'
         intro: 'Every built-in column type in one table, from money and images to icons, relative dates, and a Twig template.'
-        try: 'Each column formats its own value. “Price band” is computed in PHP from the price, yet sorting still follows the price.'
+        try: 'Each column formats its own value. “Price band” is computed in PHP from the price.'
     filters:
         title: 'Filters'
         intro: 'A filter bar above the table, applied as Doctrine conditions: text, choices, date range, yes/no, and a custom query.'

@@ -196,7 +196,12 @@ final class InteractionTest extends DataTableTestCase
     {
         $token = $this->dataTableRegistry()->getToken(ExportProductsDataTable::class);
 
-        $this->client->request('GET', '/datatables/ajax/export', ['table' => $token, 'exportKey' => $exportKey]);
+        $this->client->request('POST', '/datatables/ajax/export?table='.$token, [
+            'draw'      => 1,
+            'start'     => 0,
+            'length'    => 0,
+            'exportKey' => $exportKey,
+        ]);
         self::assertResponseIsSuccessful();
 
         return (string) $this->client->getInternalResponse()->getContent();
