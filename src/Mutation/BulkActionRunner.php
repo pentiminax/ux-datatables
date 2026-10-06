@@ -141,12 +141,8 @@ final class BulkActionRunner
     }
 
     /**
-     * An explicit selection is whatever ids the browser chose to send, so a forged id would reach
-     * the handler as long as the entity exists. Keeping only the ids the table's permanent scope
-     * (customizeQueryBuilder()) contains gives it the same boundary "select all matching" already
-     * has, because that path collects its ids through the table's own query.
-     *
-     * A provider that cannot answer keeps the ids as they are: the handler has to scope itself.
+     * Keeps only the ids the permanent scope contains, so a forged id never reaches the handler.
+     * A provider that cannot answer keeps the ids as they are.
      *
      * @param list<int|string> $ids
      *

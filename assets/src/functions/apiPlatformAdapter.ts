@@ -1,3 +1,5 @@
+import { isRecord } from './htmlUtils.js'
+
 interface DataTableServerSideOrder {
     column: number
     dir: 'asc' | 'desc' | string
@@ -106,10 +108,6 @@ function resolveRowIdField(highlight: unknown): string | null {
     const idField = highlight.idField
 
     return 'string' === typeof idField && '' !== idField ? idField : DEFAULT_ROW_ID_FIELD
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /**

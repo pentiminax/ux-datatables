@@ -6,8 +6,8 @@ export interface BulkActionsLayoutEntry {
 }
 
 /**
- * @deprecated since v1.1.1: `installBulkActionBar()` from `../bulk/BulkActionBar.js` places the
- * bar. Kept for deep imports of `dist/functions/bulkActionsLayout.js`; it will be removed in v2.0.
+ * @deprecated since 1.2, use installBulkActionBar() from '../bulk/BulkActionBar.js' instead.
+ * Removed in 2.0.
  */
 export function applyBulkActionsLayout(
     payload: Record<string, any>,

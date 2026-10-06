@@ -91,6 +91,18 @@ describe('filter bar values', () => {
         expect(params['createdAt[strictly_before]']).toBe('0051-01-01')
     })
 
+    it('keeps a five-digit year for the upper bound past 9999-12-31', () => {
+        const adapter = new ApiPlatformAdapter([{ name: 'email' }])
+
+        const params = adapter.buildRequestParams({
+            start: 0,
+            length: 25,
+            filters: { createdAt: { to: '9999-12-31' } },
+        })
+
+        expect(params['createdAt[strictly_before]']).toBe('10000-01-01')
+    })
+
     it('keeps a time-bearing range upper bound as inclusive before', () => {
         const adapter = new ApiPlatformAdapter([{ name: 'email' }])
 

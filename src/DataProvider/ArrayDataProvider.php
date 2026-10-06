@@ -209,7 +209,7 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
      */
     private function sort(array &$items, DataTableQueryIntent $intent): void
     {
-        $orders = $this->orders($intent);
+        $orders = $intent->orderCriteria();
 
         if ([] === $orders) {
             return;
@@ -226,22 +226,6 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
 
             return 0;
         });
-    }
-
-    /**
-     * @return list<array{column: ColumnReadReference, dir: 'asc'|'desc'}>
-     */
-    private function orders(DataTableQueryIntent $intent): array
-    {
-        if ([] !== $intent->orders) {
-            return $intent->orders;
-        }
-
-        if (null === $intent->orderColumn) {
-            return [];
-        }
-
-        return [['column' => $intent->orderColumn, 'dir' => 'desc' === $intent->orderDir ? 'desc' : 'asc']];
     }
 
     private function compare(object $left, object $right, ColumnReadReference $column, bool $descending): int

@@ -33,4 +33,22 @@ final readonly class DataTableQueryIntent
         public array $orders = [],
     ) {
     }
+
+    /**
+     * An intent built by third-party code may only carry the single orderColumn / orderDir pair.
+     *
+     * @return list<array{column: ColumnReadReference, dir: 'asc'|'desc'}>
+     */
+    public function orderCriteria(): array
+    {
+        if ([] !== $this->orders) {
+            return $this->orders;
+        }
+
+        if (null === $this->orderColumn) {
+            return [];
+        }
+
+        return [['column' => $this->orderColumn, 'dir' => 'desc' === $this->orderDir ? 'desc' : 'asc']];
+    }
 }

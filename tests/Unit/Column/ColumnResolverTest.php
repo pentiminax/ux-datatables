@@ -279,11 +279,11 @@ final class ColumnResolverTest extends TestCase
      */
     #[Test]
     #[DataProvider('provideDeniedColumnValueRemovals')]
-    public function remove_denied_column_values_drops_unauthorized_keys_only(array $row, array $columns, array $expected): void
+    public function removing_denied_column_paths_drops_unauthorized_keys_only(array $row, array $columns, array $expected): void
     {
         $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
 
-        $this->assertSame($expected, $resolver->removeDeniedColumnValues($row, $columns));
+        $this->assertSame($expected, $resolver->removePaths($row, $resolver->deniedColumnPaths($columns)));
     }
 
     /**
@@ -367,18 +367,16 @@ final class ColumnResolverTest extends TestCase
     }
 
     #[Test]
-    public function remove_denied_column_values_does_not_mutate_nested_objects(): void
+    public function removing_denied_column_paths_does_not_mutate_nested_objects(): void
     {
         $value    = (object) ['name' => 'secret', 'role' => 'admin'];
         $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
 
-        $filtered = $resolver->removeDeniedColumnValues(
-            ['value' => $value, 'name' => 'Ada'],
-            [
-                TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'),
-                TextColumn::new('name', 'Name'),
-            ],
-        );
+        $columns = [
+            TextColumn::new('value.name', 'Name')->setPermission('ROLE_HR'),
+            TextColumn::new('name', 'Name'),
+        ];
+        $filtered = $resolver->removePaths(['value' => $value, 'name' => 'Ada'], $resolver->deniedColumnPaths($columns));
 
         $this->assertSame(['value' => ['role' => 'admin'], 'name' => 'Ada'], $filtered);
         $this->assertSame('secret', $value->name);

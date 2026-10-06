@@ -1,6 +1,4 @@
-function isPlainRecord(value) {
-    return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
+import { isRecord } from './htmlUtils.js';
 export function installRequestParams(payload, options = {}) {
     let last = {};
     const handle = { current: () => last };
@@ -15,12 +13,12 @@ export function installRequestParams(payload, options = {}) {
         };
         return handle;
     }
-    if (!isPlainRecord(payload.ajax)) {
+    if (!isRecord(payload.ajax)) {
         return handle;
     }
     const userData = payload.ajax.data;
     payload.ajax.data = (data, settings) => {
-        if (isPlainRecord(userData)) {
+        if (isRecord(userData)) {
             Object.assign(data, userData);
         }
         if (options.filters) {
@@ -42,12 +40,12 @@ export function installRequestParams(payload, options = {}) {
 }
 function callUserData(data, userData, settings) {
     const returned = userData(data, settings);
-    return typeof returned === 'string' || isPlainRecord(returned) ? returned : data;
+    return typeof returned === 'string' || isRecord(returned) ? returned : data;
 }
 function parseJsonRecord(sent) {
     try {
         const parsed = JSON.parse(sent);
-        return isPlainRecord(parsed) ? parsed : null;
+        return isRecord(parsed) ? parsed : null;
     }
     catch {
         return null;

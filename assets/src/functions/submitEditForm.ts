@@ -1,4 +1,5 @@
 import { createMutationHeaders } from './createMutationHeaders.js'
+import { postRowRequest } from './postRowRequest.js'
 
 type SubmitEditFormPayload = {
     dataTable: string
@@ -13,20 +14,10 @@ type SubmitEditFormResponse = {
     response: Response
 }
 
-export async function submitEditForm(
-    payload: SubmitEditFormPayload
-): Promise<SubmitEditFormResponse> {
-    const response = await fetch('/datatables/ajax/edit-form', {
-        method: 'POST',
-        headers: createMutationHeaders(payload.csrfToken),
-        body: JSON.stringify({
-            dataTable: payload.dataTable,
-            id: payload.id,
-            formData: payload.formData,
-        }),
+export function submitEditForm(payload: SubmitEditFormPayload): Promise<SubmitEditFormResponse> {
+    const { csrfToken, ...body } = payload
+
+    return postRowRequest('/datatables/ajax/edit-form', createMutationHeaders(csrfToken), body, {
+        success: false,
     })
-
-    const body = await response.json().catch(() => ({ success: false }))
-
-    return { ...body, response }
 }

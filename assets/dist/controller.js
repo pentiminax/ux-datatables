@@ -29,8 +29,8 @@ import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { applyLocalLanguage } from './functions/localLanguage.js';
 import { hasLucideIcons, hasLucideIconsInActions, loadLucideIcons, } from './functions/lucideIcons.js';
 import { installRequestParams } from './functions/requestParams.js';
-import { runAjaxAction } from './functions/runAjaxAction.js';
 import { runRowAction } from './functions/rowActionFeedback.js';
+import { runAjaxAction } from './functions/runAjaxAction.js';
 import { applyServerExportUrls } from './functions/serverExport.js';
 import { shiftOrderForSelectColumn } from './functions/shiftOrderForSelectColumn.js';
 import { submitEditForm } from './functions/submitEditForm.js';
@@ -401,7 +401,7 @@ class default_1 extends Controller {
                     });
                     return { ok: response.ok, response };
                 });
-                if (deleted) {
+                if (deleted?.ok) {
                     this.table?.ajax?.reload(null, false);
                 }
             }
@@ -411,32 +411,28 @@ class default_1 extends Controller {
                 const modal = await resolveModalAdapter(modalConfig.adapter ?? null, this.framework);
                 if (!modal)
                     return;
-                let formHtml = '';
                 const loaded = await this.runRowAction(actionButton, 'EDIT', id, payload, async () => {
                     const result = await fetchEditForm({ dataTable, id });
-                    formHtml = result.html;
-                    return { ok: result.success, response: result.response };
+                    return { ok: result.success, ...result };
                 }, false);
-                if (loaded) {
-                    await modal.show(formHtml, {
+                if (loaded?.ok) {
+                    await modal.show(loaded.html, {
                         onSubmit: async (formData) => {
-                            const saved = {};
-                            await this.runRowAction(actionButton, 'EDIT', id, payload, async () => {
+                            const saved = await this.runRowAction(actionButton, 'EDIT', id, payload, async () => {
                                 const result = await submitEditForm({
                                     dataTable,
                                     id,
                                     formData,
                                     csrfToken: this.getCsrfToken(payload),
                                 });
-                                saved.result = result;
-                                return { ok: result.success, response: result.response };
+                                return { ok: result.success, ...result };
                             });
-                            if (saved.result?.success) {
+                            if (saved?.ok) {
                                 await modal.hide();
                                 this.table?.ajax?.reload(null, false);
                             }
-                            else if (saved.result?.html) {
-                                modal.replaceBody(saved.result.html);
+                            else if (saved?.html) {
+                                modal.replaceBody(saved.html);
                             }
                         },
                     });
@@ -513,7 +509,7 @@ class default_1 extends Controller {
                 });
                 return { ok: response.ok, response };
             });
-            if (!toggled) {
+            if (!toggled?.ok) {
                 target.checked = previousState;
             }
         });
