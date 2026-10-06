@@ -175,19 +175,6 @@ final class ColumnResolver
     }
 
     /**
-     * Drop values whose column is not authorized, leaving unrelated extra keys intact.
-     *
-     * @param array<string, mixed> $row
-     * @param ColumnInterface[]    $columns
-     *
-     * @return array<string, mixed>
-     */
-    public function removeDeniedColumnValues(array $row, array $columns): array
-    {
-        return $this->removePaths($row, $this->deniedColumnPaths($columns));
-    }
-
-    /**
      * Row keys and read paths of the columns the current user may not see.
      *
      * @param ColumnInterface[] $columns
