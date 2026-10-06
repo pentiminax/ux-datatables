@@ -73,6 +73,39 @@ final class RowProcessingPipelineTest extends TestCase
     }
 
     #[Test]
+    public function it_checks_static_column_permissions_once_for_every_mapped_row(): void
+    {
+        $checks  = 0;
+        $checker = $this->createStub(AuthorizationCheckerInterface::class);
+        $checker->method('isGranted')->willReturnCallback(
+            static function (mixed $attribute) use (&$checks): bool {
+                ++$checks;
+
+                return 'ROLE_HR' !== $attribute;
+            }
+        );
+
+        $pipeline = new RowProcessingPipeline(
+            baseMapper: static fn (array $row): array => $row,
+            columns: [
+                TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR'),
+                TextColumn::new('name', 'Name'),
+            ],
+            columnResolver: new ColumnResolver(permissionChecker: new AuthorizationChecker($checker)),
+        );
+
+        for ($id = 1; $id <= 50; ++$id) {
+            $this->assertSame(['name' => 'Ada'], $pipeline->map(['salary' => $id, 'name' => 'Ada']));
+        }
+
+        $checksForOneRow = $checks;
+        $pipeline->map(['salary' => 51, 'name' => 'Ada']);
+
+        $this->assertSame($checksForOneRow, $checks);
+        $this->assertLessThanOrEqual(2, $checks);
+    }
+
+    #[Test]
     public function it_strips_denied_nested_dotted_paths_from_array_rows(): void
     {
         $checker = $this->createStub(AuthorizationCheckerInterface::class);
