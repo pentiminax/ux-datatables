@@ -279,15 +279,20 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
                 $qb = ($this->configureBaseQueryBuilder)($qb, $request);
             }
 
-            $rows = (clone $qb)
+            $scoped = (clone $qb)
                 ->select("DISTINCT $expression")
                 ->resetDQLPart('orderBy')
                 ->setFirstResult(null)
                 ->setMaxResults(null)
                 ->andWhere($qb->expr()->in($expression, ':ux_datatables_scope_ids'))
-                ->setParameter('ux_datatables_scope_ids', $chunk, $this->arrayBindingType($type))
-                ->getQuery()
-                ->getScalarResult();
+                ->setParameter('ux_datatables_scope_ids', $chunk, $this->arrayBindingType($type));
+
+            // A HAVING may name a computed alias, which only exists while its SELECT part does.
+            foreach ($this->orderDependentSelectParts($qb, 'e') as $part) {
+                $scoped->addSelect($part);
+            }
+
+            $rows = $scoped->getQuery()->getScalarResult();
 
             foreach ($rows as $row) {
                 $column = reset($row);
@@ -339,7 +344,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         return (string) $databaseValue;
     }
 
-    private function arrayBindingType(?Type $type): ArrayParameterType
+    private function arrayBindingType(?Type $type): ArrayParameterType|int
     {
         return match ($type?->getBindingType()) {
             ParameterType::INTEGER => ArrayParameterType::INTEGER,
@@ -437,7 +442,14 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             ? $idQb->getQuery()->getSingleColumnResult()
             : $this->identifiersFromScalarResult($idQb);
 
-        return array_values(array_unique($ids, \SORT_REGULAR));
+        // Compared as exact strings: SORT_REGULAR compares numeric strings as numbers, which would
+        // merge the distinct VARCHAR keys "01" and "1" into one and make a row unreachable.
+        $unique = [];
+        foreach ($ids as $id) {
+            $unique[$this->databaseKey($id)] ??= $id;
+        }
+
+        return array_values($unique);
     }
 
     /**

@@ -101,6 +101,24 @@ final class DoctrineDataProviderScopedIdentifiersTest extends TestCase
     }
 
     #[Test]
+    public function it_keeps_the_computed_alias_a_having_of_the_scope_depends_on(): void
+    {
+        $first = $this->em->find(CountCustomer::class, 1);
+        $first->addTag(new CountTag(1, 'a'));
+        $first->addTag(new CountTag(2, 'b'));
+        $this->em->find(CountCustomer::class, 2)->addTag(new CountTag(3, 'c'));
+        $this->em->flush();
+        $this->em->clear();
+
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->addSelect('(SELECT COUNT(t.id) FROM '.CountTag::class.' t WHERE t.customer = e) AS HIDDEN tagCount')
+            ->groupBy('e.id')
+            ->having('tagCount > 1'));
+
+        $this->assertSame([1], $provider->filterIdentifiersInScope($this->request(), [1, 2, 3], 'id'));
+    }
+
+    #[Test]
     public function it_counts_a_root_once_when_the_scope_joins_a_collection(): void
     {
         $customer = $this->em->find(CountCustomer::class, 1);

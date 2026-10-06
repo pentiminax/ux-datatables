@@ -190,7 +190,7 @@ final class BulkActionRunner
         string $identifier,
     ): array {
         if (!$selection->allMatching) {
-            return array_values(array_unique($selection->ids, \SORT_REGULAR));
+            return array_values(array_unique($selection->ids));
         }
 
         $bulkActions = $table->table->getConfiguredDataTable()->getBulkActions();
