@@ -196,7 +196,8 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
         $result           = $provider->fetchData($this->request(2, 2));
 
         $this->assertSame([3, 4], $this->ids($result->data));
-        $this->assertCount(3, $this->selectStatements());
+        // one shared COUNT (the base and full queries are identical), page
+        $this->assertCount(2, $this->selectStatements());
     }
 
     #[Test]
