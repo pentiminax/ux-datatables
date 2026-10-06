@@ -8,7 +8,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
-use Pentiminax\UX\DataTables\Column\ChoiceColumn;
+use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
@@ -482,14 +482,7 @@ final class RenderingPreparer
             return;
         }
 
-        foreach ($table->getColumns() as $column) {
-            $title = $column->getTitle();
-            $column->setTitle($this->translator->trans($title));
-
-            if ($column instanceof ChoiceColumn) {
-                $column->translateLabels($this->translator);
-            }
-        }
+        ColumnTranslator::translate($table->getColumns(), $this->translator);
     }
 
     private function translateFilterLabels(DataTable $table): void
