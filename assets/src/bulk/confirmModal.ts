@@ -64,7 +64,7 @@ export async function confirmAction(request: ConfirmRequest): Promise<boolean> {
 }
 
 /**
- * @deprecated since v1.2.0, use confirmAction(). It will be removed in v2.0.
+ * @deprecated since 1.2, use confirmAction() instead. Removed in 2.0.
  */
 export const confirmBulkAction = confirmAction
 
