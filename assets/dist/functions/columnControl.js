@@ -1,6 +1,4 @@
-function isRecord(value) {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
+import { isRecord } from './htmlUtils.js';
 function resolveTarget(value) {
     if (typeof value === 'string') {
         return value;
