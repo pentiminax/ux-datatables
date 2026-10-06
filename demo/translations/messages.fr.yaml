@@ -49,7 +49,7 @@ page:
     columns:
         title: 'Types de colonnes'
         intro: 'Tous les types de colonnes fournis dans une seule table : montants, images, icônes, dates relatives et template Twig.'
-        try: 'Chaque colonne formate sa valeur. « Tranche de prix » est calculée en PHP à partir du prix, mais le tri suit toujours le prix.'
+        try: 'Chaque colonne formate sa valeur. « Tranche de prix » est calculée en PHP à partir du prix.'
     filters:
         title: 'Filtres'
         intro: 'Une barre de filtres appliqués comme conditions Doctrine : texte, choix, plage de dates, oui/non et requête personnalisée.'
