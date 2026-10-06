@@ -1,3 +1,11 @@
+/**
+ * A column formatted on the server carries a display string, not the raw value a typed renderer
+ * expects, so the controller gives it the escaped text renderer alone.
+ */
+export function isFormatted(column: Record<string, any>): boolean {
+    return true === column?.customOptions?.formatted
+}
+
 export interface ColumnRenderer {
     matches(column: Record<string, any>): boolean
 

@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Export;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Column\MoneyColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
@@ -31,6 +33,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * @internal
@@ -57,6 +60,40 @@ final class ExportServiceTest extends TestCase
             ['email' => 'a@example.com', 'secret' => 'hidden', 'name' => 'Ada'],
             ['email' => 'b@example.com', 'secret' => 'hidden', 'name' => 'Bob'],
         ], $csv->rows);
+    }
+
+    #[Test]
+    public function it_writes_what_the_table_displays_and_translates_the_headings(): void
+    {
+        $csv        = new RecordingExporter();
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnCallback(
+            static fn (string $id): string => ['order.total' => 'Total', 'export.boolean.true' => 'Yes'][$id] ?? $id,
+        );
+
+        $this->send((new ExportService(new ExporterRegistry([$csv]), translator: $translator))
+            ->export($this->priceTable(Button::csv(serverSide: true)), $this->exportRequest()));
+
+        $this->assertSame(['Total (EUR)', 'active'], array_map(
+            static fn (ColumnInterface $column): ?string => $column->getTitle(),
+            $csv->columns,
+        ));
+        $this->assertSame([['price' => 25.0, 'active' => 'Yes']], $csv->rows);
+    }
+
+    #[Test]
+    public function it_writes_the_mapped_values_when_raw_values_are_requested(): void
+    {
+        $csv = new RecordingExporter();
+
+        $this->send((new ExportService(new ExporterRegistry([$csv])))
+            ->export($this->priceTable(Button::csv(serverSide: true)->rawValues()), $this->exportRequest()));
+
+        $this->assertSame([['price' => 2500, 'active' => true]], $csv->rows);
+        $this->assertSame(['order.total', 'active'], array_map(
+            static fn (ColumnInterface $column): ?string => $column->getTitle(),
+            $csv->columns,
+        ));
     }
 
     #[Test]
@@ -288,6 +325,20 @@ final class ExportServiceTest extends TestCase
         $service->export($this->table(), $this->exportRequest());
     }
 
+    #[Test]
+    public function it_leaves_the_table_columns_untouched_so_a_second_export_starts_clean(): void
+    {
+        $csv   = new RecordingExporter();
+        $table = $this->priceTable(Button::csv(serverSide: true));
+
+        $service = new ExportService(new ExporterRegistry([$csv]));
+        $this->send($service->export($table, $this->exportRequest()));
+        $this->send($service->export($table, $this->exportRequest()));
+
+        $this->assertSame('order.total (EUR)', $csv->columns[0]->getTitle());
+        $this->assertSame('order.total', array_values($table->getConfiguredDataTable()->getColumns())[0]->getTitle());
+    }
+
     private function service(): ExportService
     {
         return new ExportService(new ExporterRegistry([new RecordingExporter()]));
@@ -317,6 +368,23 @@ final class ExportServiceTest extends TestCase
                 Button::csv(serverSide: true)->filename('users'),
             ]),
             dataProvider: $this->provider(),
+        );
+    }
+
+    private function priceTable(Button $button): ConfigurableDataTable
+    {
+        return new ConfigurableDataTable(
+            [MoneyColumn::new('price', 'order.total'), BooleanColumn::new('active')],
+            configureTable: static fn (DataTable $table): DataTable => $table->buttons([$button]),
+            dataProvider: new ArrayDataProvider(
+                [['price' => 2500, 'active' => true]],
+                new class implements RowMapperInterface {
+                    public function map(mixed $row): array
+                    {
+                        return (array) $row;
+                    }
+                },
+            ),
         );
     }
 

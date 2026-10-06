@@ -38,6 +38,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsApiPlatformProviderFactory;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Unit\Column\TestStatus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -82,6 +83,19 @@ final class DataTableRuntimeFactoryTest extends TestCase
             'active'                           => true,
             '__ux_datatables_boolean_switches' => ['active' => '42'],
         ], $mapper->map(new DataTableRuntimeFactoryBooleanSwitchFixture(42)));
+    }
+
+    #[Test]
+    public function create_row_mapper_formats_values_after_normalization(): void
+    {
+        $factory    = new DataTableRuntimeFactory();
+        $baseMapper = static fn (mixed $row): array => ['status' => TestStatus::Active];
+
+        $mapper = $factory->createRowMapper($baseMapper, [
+            TextColumn::new('status')->formatValueUsing(static fn (string $value): string => strtoupper($value)),
+        ]);
+
+        $this->assertSame(['status' => 'ACTIVE'], $mapper->map(new \stdClass()));
     }
 
     #[Test]

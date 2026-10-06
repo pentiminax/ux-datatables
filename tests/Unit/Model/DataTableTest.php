@@ -902,4 +902,16 @@ final class DataTableTest extends TestCase
 
         $this->assertFalse($table->isSelectionForBulkActions());
     }
+
+    #[Test]
+    public function it_emits_the_prepared_action_labels_only_once_they_are_set(): void
+    {
+        $table = new DataTable('test');
+
+        $this->assertArrayNotHasKey('actionLabels', $table->getOptions());
+
+        $table->setPreparedActionLabels(['failed' => 'Failed']);
+
+        $this->assertSame(['failed' => 'Failed'], $table->getOptions()['actionLabels']);
+    }
 }
