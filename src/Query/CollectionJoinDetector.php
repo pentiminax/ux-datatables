@@ -9,9 +9,8 @@ use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
 
 /**
- * Tells whether a query multiplies its root rows through a to-many association, which makes
- * LIMIT/OFFSET page joined rows instead of roots. A join that cannot be traced back to a mapped
- * association counts as multiplying: a wrong page is worse than one extra query.
+ * Whether a query multiplies its root rows through a to-many association. An untraceable join
+ * counts as multiplying: a wrong page is worse than one extra query.
  */
 final class CollectionJoinDetector
 {
