@@ -119,7 +119,7 @@ final class AttributeFilterReader
         /** @var AbstractFilter $filter */
         $filter = $filterClass::new($name);
 
-        $this->configureFromDeclaredType($filter, $target->type, null === $attribute->type);
+        $this->configureFromDeclaredType($filter, $target->type);
 
         $this->optionApplier->apply($filter, $attribute->options);
 
@@ -148,24 +148,12 @@ final class AttributeFilterReader
      * produces a filter that runs without filtering anything right. An explicit option still wins,
      * since the applier runs afterwards.
      *
-     * A ternary filter defaults to IS NULL / IS NOT NULL, which on a boolean field matches every row
-     * for "true" and none for "false". A choice filter left without options renders an empty select.
-     *
-     * Only the guessed ternary gets its states: values() flips what the query means and no option can
-     * undo it, so a filter someone typed out by hand keeps the class default. Filling a choice
-     * filter's options is additive either way, and an explicit "options" entry still wins.
-     *
-     * @param bool $guessed Whether the filter class was guessed rather than named by the attribute
+     * A choice filter left without options renders an empty select. Filling its options is additive,
+     * and an explicit "options" entry still wins.
      */
-    private function configureFromDeclaredType(AbstractFilter $filter, ?\ReflectionNamedType $type, bool $guessed): void
+    private function configureFromDeclaredType(AbstractFilter $filter, ?\ReflectionNamedType $type): void
     {
         if (null === $type) {
-            return;
-        }
-
-        if ($guessed && $filter instanceof TernaryFilter && 'bool' === $type->getName()) {
-            $filter->values(true, false);
-
             return;
         }
 
