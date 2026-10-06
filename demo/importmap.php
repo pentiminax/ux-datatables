@@ -135,4 +135,5 @@ return [
     'highlight.js/lib/core' => ['version' => '11.12.0'],
     'highlight.js/lib/languages/php' => ['version' => '11.12.0'],
     'highlight.js/lib/languages/twig' => ['version' => '11.12.0'],
+    'highlight.js/lib/languages/javascript' => ['version' => '11.12.0'],
 ];

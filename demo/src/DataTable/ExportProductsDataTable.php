@@ -31,11 +31,13 @@ final class ExportProductsDataTable extends AbstractDataTable
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table
+            ->serverSide()
             ->pageLength(10)
             ->buttons([
                 Button::copy(),
-                Button::csv()->filename('products'),
-                Button::excel()->filename('products'),
+                Button::csv(serverSide: true)->filename('products'),
+                Button::csv(serverSide: true)->rawValues()->exportKey('raw')->text('CSV (raw)')->filename('products-raw'),
+                Button::excel(serverSide: true)->filename('products'),
                 Button::pdf(),
                 Button::print(),
             ]);

@@ -49,7 +49,7 @@ page:
     columns:
         title: 'Column types'
         intro: 'Every built-in column type in one table, from money and images to icons, relative dates, and a Twig template.'
-        try: 'Each column formats its own value: compare the raw entity with what you see.'
+        try: 'Each column formats its own value. “Price band” is computed in PHP from the price, yet sorting still follows the price.'
     filters:
         title: 'Filters'
         intro: 'A filter bar above the table, applied as Doctrine conditions: text, choices, date range, yes/no, and a custom query.'
@@ -61,15 +61,15 @@ page:
     actions:
         title: 'Actions and edit modal'
         intro: 'Expandable detail rows, an edit form generated from the entity, a guarded delete, and an inline switch.'
-        try: 'Edit a product and save. Delete only shows on archived products.'
+        try: 'Edit a product and save. Delete only shows on archived products; the line under the table reports each result.'
     bulk_actions:
         title: 'Bulk actions'
         intro: 'Select rows across pages and run a server-side action on all of them, with confirmation and feedback.'
         try: 'Select a few orders and mark them as shipped: only paid orders change, the others are reported as skipped.'
     export:
         title: 'Export'
-        intro: 'Copy, CSV, Excel, PDF, and print buttons. Columns can opt out of exports.'
-        try: 'Export to Excel: the Supplier column stays out of the file.'
+        intro: 'Copy, CSV, Excel, PDF, and print buttons. Server-side exports stream every filtered row and write what the table displays.'
+        try: 'Compare CSV and CSV (raw): euros and category labels against cents and stored values. The Supplier column stays out of both.'
     layout:
         title: 'Scrolling and fixed columns'
         intro: 'Virtual scrolling through 10,000 server-side rows with the first column pinned while you scroll sideways.'
@@ -83,6 +83,7 @@ page:
 Product: 'Product'
 Category: 'Category'
 Price: 'Price'
+'Price band': 'Price band'
 Stock: 'Stock'
 Status: 'Status'
 Featured: 'Featured'
@@ -145,3 +146,9 @@ enum:
         shipped: 'Shipped'
         delivered: 'Delivered'
         cancelled: 'Cancelled'
+
+actions:
+    status:
+        success: '{type} #{id} done.'
+        failed: '{type} #{id} failed. Try again.'
+        forbidden: 'You are not allowed to run {type} on #{id}.'

@@ -93,8 +93,12 @@ final readonly class DemoExtension
     {
         return [
             'name'     => basename($path),
-            'language' => str_ends_with($path, '.twig') ? 'twig' : 'php',
-            'code'     => rtrim((string) file_get_contents($path)),
+            'language' => match (true) {
+                str_ends_with($path, '.twig') => 'twig',
+                str_ends_with($path, '.js')   => 'javascript',
+                default                       => 'php',
+            },
+            'code' => rtrim((string) file_get_contents($path)),
         ];
     }
 
