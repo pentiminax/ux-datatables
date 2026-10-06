@@ -17,6 +17,12 @@ final class RowProcessingPipeline implements RowMapperInterface
     /** @var RowStageInterface[] */
     private array $stages = [];
 
+    /** @var ColumnInterface[]|null */
+    private ?array $visibleColumns = null;
+
+    /** @var list<string>|null */
+    private ?array $deniedPaths = null;
+
     /**
      * @param ColumnInterface[]     $columns
      * @param \Closure(mixed):array $baseMapper
@@ -41,11 +47,10 @@ final class RowProcessingPipeline implements RowMapperInterface
 
     public function map(mixed $row): array
     {
-        $visibleColumns = $this->columnResolver->filterStaticPermissions($this->columns, $this->dataTableClass);
-        $mappedRow      = $this->columnResolver->removeDeniedColumnValues(
-            ($this->baseMapper)($row),
-            $this->columns,
-        );
+        // Static permissions do not depend on the row. Safe to memoize because a pipeline is built per request.
+        $visibleColumns = $this->visibleColumns ??= $this->columnResolver->filterStaticPermissions($this->columns, $this->dataTableClass);
+        $deniedPaths    = $this->deniedPaths    ??= $this->columnResolver->deniedColumnPaths($this->columns, $this->dataTableClass);
+        $mappedRow      = $this->columnResolver->removePaths(($this->baseMapper)($row), $deniedPaths);
 
         foreach ($this->stages as $stage) {
             $mappedRow = $stage->process($mappedRow, $row, $visibleColumns);
