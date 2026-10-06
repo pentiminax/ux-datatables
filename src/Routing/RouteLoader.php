@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Routing;
 
-use Symfony\Bundle\FrameworkBundle\Routing\RouteLoaderInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
-final class RouteLoader implements RouteLoaderInterface
+final class RouteLoader
 {
     public function loadRoutes(): RouteCollection
     {
