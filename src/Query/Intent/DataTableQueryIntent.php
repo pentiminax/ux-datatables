@@ -14,10 +14,11 @@ namespace Pentiminax\UX\DataTables\Query\Intent;
 final readonly class DataTableQueryIntent
 {
     /**
-     * @param list<ColumnReadReference>                               $columns
-     * @param 'asc'|'desc'|null                                       $orderDir
-     * @param list<array{column: ColumnReadReference, value: string}> $columnSearches
-     * @param list<ColumnControlIntent>                               $columnControls
+     * @param list<ColumnReadReference>                                   $columns
+     * @param 'asc'|'desc'|null                                           $orderDir
+     * @param list<array{column: ColumnReadReference, value: string}>     $columnSearches
+     * @param list<ColumnControlIntent>                                   $columnControls
+     * @param list<array{column: ColumnReadReference, dir: 'asc'|'desc'}> $orders         every ordering criterion in request order; $orderColumn / $orderDir mirror the first
      */
     public function __construct(
         public ?int $draw,
@@ -29,6 +30,7 @@ final readonly class DataTableQueryIntent
         public ?string $orderDir,
         public array $columnSearches,
         public array $columnControls,
+        public array $orders = [],
     ) {
     }
 }

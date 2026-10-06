@@ -12,8 +12,10 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxBulkController;
 use Pentiminax\UX\DataTables\Controller\AjaxBulkQueryDto;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\Exception\InvalidBulkSelectionException;
 use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
@@ -28,6 +30,7 @@ use Pentiminax\UX\DataTables\Mutation\BulkActionRunner;
 use Pentiminax\UX\DataTables\Mutation\BulkRecords;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
+use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
@@ -352,6 +355,11 @@ class BulkEntityFixtureDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');
+    }
+
+    protected function createDataProvider(): ?DataProviderInterface
+    {
+        return new ArrayDataProvider([], new DefaultRowMapper([]));
     }
 
     public function configureBulkActions(BulkActions $actions): BulkActions
