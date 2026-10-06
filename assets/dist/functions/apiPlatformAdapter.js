@@ -1,3 +1,4 @@
+import { isRecord } from './htmlUtils.js';
 export function resolveColumnDataKey(column) {
     if (column.customOptions?.templatePath) {
         return column.data ?? column.name;
@@ -32,9 +33,6 @@ function resolveRowIdField(highlight) {
     }
     const idField = highlight.idField;
     return 'string' === typeof idField && '' !== idField ? idField : DEFAULT_ROW_ID_FIELD;
-}
-function isRecord(value) {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 function nextDayDateOnly(value) {
     const match = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(value);

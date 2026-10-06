@@ -38,8 +38,8 @@ import {
     loadLucideIcons,
 } from './functions/lucideIcons.js'
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
+import { type RowActionOutcome, runRowAction } from './functions/rowActionFeedback.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
-import { runRowAction } from './functions/rowActionFeedback.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
 import { shiftOrderForSelectColumn } from './functions/shiftOrderForSelectColumn.js'
 import { submitEditForm } from './functions/submitEditForm.js'
@@ -147,12 +147,11 @@ export default class extends Controller {
         document.addEventListener('turbo:before-cache', this.onTurboBeforeCache)
 
         if (this.isDataTableInitialized) {
-            // The table survived the cycle, so downstream code that was torn down with the previous
-            // controller instance needs a signal to bind again. `connect` stays a build-only event.
+            // `connect` stays a build-only event, so downstream code needs this one to bind again.
             if (this.table) {
                 this.dispatchEvent('reconnect', { table: this.table })
                 this.bindPopstate(isUrlStateEnabled(this.viewValue))
-                // disconnect() closed the EventSource; the table is still live, so subscribe again.
+                // disconnect() closed the EventSource.
                 await this.initMercure(this.viewValue)
             }
 
@@ -230,9 +229,8 @@ export default class extends Controller {
         applyServerExportUrls(payload)
         applyCustomButtonActions(payload)
 
-        // A concurrent connect may have built the table while this one awaited: a detach + reattach
-        // re-enters connect on the same instance, and a second Stimulus application runs its own
-        // controller on the same node. Nothing is awaited between this check and the constructor.
+        // A concurrent connect may have built the table while this one awaited. Nothing is awaited
+        // between this check and the constructor.
         if (this.adoptLiveTable(DataTable)) {
             return
         }
@@ -292,7 +290,7 @@ export default class extends Controller {
     }
 
     private bindPopstate(cfg: UrlStateConfig | null | false): void {
-        // A detached controller never gets another disconnect() to remove the listener.
+        // A detached controller never gets a disconnect() to remove the listener.
         if (!cfg || this.popstateHandler || !this.element.isConnected) {
             return
         }
@@ -487,8 +485,7 @@ export default class extends Controller {
 
         const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
 
-        // The element may have been detached, or a concurrent connect may have subscribed, while
-        // the modules loaded; disconnect() could not close a socket that did not exist yet.
+        // Detached or subscribed while the modules loaded: disconnect() had no socket to close.
         if (!this.element.isConnected || this.eventSource) {
             return
         }
@@ -543,9 +540,7 @@ export default class extends Controller {
                     (['DETAIL', 'DELETE', 'EDIT'].includes(actionType ?? '') && !!dataTable && !!id)
 
                 if (confirmMessage) {
-                    // A link without a handler here keeps its native navigation, which only a
-                    // synchronous confirm() can gate; everything this controller runs asks through
-                    // the table's modal adapter, like the bulk actions do.
+                    // A link left to native navigation can only be gated by a synchronous confirm().
                     if (handledHere) {
                         e.preventDefault()
                     }
@@ -630,7 +625,7 @@ export default class extends Controller {
                         }
                     )
 
-                    if (deleted) {
+                    if (deleted?.ok) {
                         this.table?.ajax?.reload(null, false)
                     }
                 }
@@ -644,7 +639,6 @@ export default class extends Controller {
                     )
                     if (!modal) return
 
-                    let formHtml = ''
                     const loaded = await this.runRowAction(
                         actionButton,
                         'EDIT',
@@ -652,21 +646,16 @@ export default class extends Controller {
                         payload,
                         async () => {
                             const result = await fetchEditForm({ dataTable, id })
-                            formHtml = result.html
 
-                            return { ok: result.success, response: result.response }
+                            return { ok: result.success, ...result }
                         },
                         false
                     )
 
-                    if (loaded) {
-                        await modal.show(formHtml, {
+                    if (loaded?.ok) {
+                        await modal.show(loaded.html, {
                             onSubmit: async (formData) => {
-                                const saved: {
-                                    result?: Awaited<ReturnType<typeof submitEditForm>>
-                                } = {}
-
-                                await this.runRowAction(
+                                const saved = await this.runRowAction(
                                     actionButton,
                                     'EDIT',
                                     id,
@@ -679,17 +668,15 @@ export default class extends Controller {
                                             csrfToken: this.getCsrfToken(payload),
                                         })
 
-                                        saved.result = result
-
-                                        return { ok: result.success, response: result.response }
+                                        return { ok: result.success, ...result }
                                     }
                                 )
 
-                                if (saved.result?.success) {
+                                if (saved?.ok) {
                                     await modal.hide()
                                     this.table?.ajax?.reload(null, false)
-                                } else if (saved.result?.html) {
-                                    modal.replaceBody(saved.result.html)
+                                } else if (saved?.html) {
+                                    modal.replaceBody(saved.html)
                                 }
                             },
                         })
@@ -699,14 +686,14 @@ export default class extends Controller {
         )
     }
 
-    private runRowAction(
+    private runRowAction<T extends RowActionOutcome>(
         element: HTMLElement,
         actionType: string,
         id: string,
         payload: Record<string, any>,
-        run: () => Promise<{ ok: boolean; response?: Response }>,
+        run: () => Promise<T>,
         reportSuccess = true
-    ): Promise<boolean> {
+    ): Promise<T | null> {
         return runRowAction({
             reportSuccess,
             element,
@@ -795,7 +782,7 @@ export default class extends Controller {
                 return { ok: response.ok, response }
             })
 
-            if (!toggled) {
+            if (!toggled?.ok) {
                 target.checked = previousState
             }
         })

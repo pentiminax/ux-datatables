@@ -6,10 +6,7 @@ export interface FilterLayoutEntry {
 }
 
 /**
- * Integrate the filter popover into the DataTables `layout` option.
- *
- * @deprecated since v1.1.1: `installFilterBar()` from `./filters.js` places the popover. Kept for
- * deep imports of `dist/functions/filterLayout.js`; it will be removed in v2.0.
+ * @deprecated since 1.2, use installFilterBar() from './filters.js' instead. Removed in 2.0.
  */
 export function applyFilterLayout(payload: Record<string, any>, instance: FilterBar): void {
     applyFeatureLayout(

@@ -1,8 +1,6 @@
-type ColumnControlTarget = number | string
+import { isRecord } from './htmlUtils.js'
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
+type ColumnControlTarget = number | string
 
 function resolveTarget(value: unknown): ColumnControlTarget | null {
     if (typeof value === 'string') {

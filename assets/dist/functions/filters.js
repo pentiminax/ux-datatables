@@ -1,9 +1,7 @@
 import { applyFeatureLayout } from './featureLayout.js';
+import { isRecord } from './htmlUtils.js';
 import { createPopover } from './popover.js';
 const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
-function isPlainRecord(value) {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 function isBootstrap(framework) {
     return BOOTSTRAP_FRAMEWORKS.includes(framework);
 }
@@ -28,7 +26,7 @@ function normalizeValue(value) {
             .map(String);
         return items.length === 0 ? null : items;
     }
-    if (!isPlainRecord(value))
+    if (!isRecord(value))
         return null;
     const from = isFilledString(value.from) ? value.from : undefined;
     const to = isFilledString(value.to) ? value.to : undefined;
@@ -104,7 +102,7 @@ export class FilterBar {
         return out;
     }
     restoreValues(values) {
-        if (!isPlainRecord(values)) {
+        if (!isRecord(values)) {
             return;
         }
         const definitionsByName = new Map(this.definitions.map((def) => [def.name, def]));
@@ -161,7 +159,7 @@ export class FilterBar {
                 return null;
             }
             case 'dateRange':
-                return isPlainRecord(value) ? value : null;
+                return isRecord(value) ? value : null;
             default:
                 return typeof value === 'string' ? value : null;
         }
