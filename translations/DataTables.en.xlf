@@ -66,6 +66,22 @@
                 <source>export.boolean.false</source>
                 <target>No</target>
             </trans-unit>
+            <trans-unit id="action.row.failed">
+                <source>action.row.failed</source>
+                <target>The action could not be completed.</target>
+            </trans-unit>
+            <trans-unit id="action.row.forbidden">
+                <source>action.row.forbidden</source>
+                <target>You are not allowed to do this.</target>
+            </trans-unit>
+            <trans-unit id="action.row.confirm">
+                <source>action.row.confirm</source>
+                <target>Confirm</target>
+            </trans-unit>
+            <trans-unit id="action.row.cancel">
+                <source>action.row.cancel</source>
+                <target>Cancel</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>
