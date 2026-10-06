@@ -15,6 +15,11 @@ final class PrefixedIdType extends Type
 {
     public const string NAME = 'dt_prefixed_id';
 
+    public function getName(): string
+    {
+        return self::NAME;
+    }
+
     public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
     {
         return $platform->getStringTypeDeclarationSQL($column);

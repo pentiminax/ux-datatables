@@ -13,6 +13,8 @@ use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\StringKeyItem;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\StringKeyOwner;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -195,6 +197,44 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
 
         $this->assertSame([3, 4], $this->ids($result->data));
         $this->assertCount(3, $this->selectStatements());
+    }
+
+    #[Test]
+    public function it_keeps_distinct_text_keys_that_compare_equal_as_numbers(): void
+    {
+        $em = $this->createEntityManager(StringKeyOwner::class, StringKeyItem::class);
+
+        $itemId = 1;
+        foreach (['1', '01', '001'] as $key) {
+            $owner = new StringKeyOwner($key);
+            $owner->addItem(new StringKeyItem($itemId++));
+            $owner->addItem(new StringKeyItem($itemId++));
+            $em->persist($owner);
+        }
+
+        $em->flush();
+        $em->clear();
+
+        $provider = new DoctrineDataProvider(
+            em: $em,
+            entityClass: StringKeyOwner::class,
+            rowMapper: new class implements RowMapperInterface {
+                public function map(mixed $row): array
+                {
+                    return ['id' => $row->id];
+                }
+            },
+            configureQueryBuilder: static fn (QueryBuilder $qb): QueryBuilder => $qb
+                ->leftJoin('e.items', 'i')
+                ->orderBy('e.id', 'ASC'),
+        );
+
+        $pages = [];
+        foreach ([0, 2] as $start) {
+            $pages[] = $this->ids($provider->fetchData($this->request($start, 2))->data);
+        }
+
+        $this->assertSame([['001', '01'], ['1']], $pages);
     }
 
     private function provider(?callable $configureQueryBuilder): DoctrineDataProvider
