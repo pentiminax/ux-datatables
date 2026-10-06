@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Filter;
 
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Model\EnumChoices;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -55,9 +56,7 @@ final class ChoiceFilter extends AbstractFilter
 
         if (\is_string($options)) {
             if (is_a($options, \BackedEnum::class, true)) {
-                $this->options = $this->normalizeEnumOptions($options::cases());
-
-                return $this;
+                return $this->setEnumOptions($options::cases());
             }
 
             if (class_exists($options)) {
@@ -67,10 +66,8 @@ final class ChoiceFilter extends AbstractFilter
             throw new \InvalidArgumentException(\sprintf('"%s" is neither a BackedEnum class nor a valid entity class.', $options));
         }
 
-        if ($this->isBackedEnumList($options)) {
-            $this->options = $this->normalizeEnumOptions($options);
-
-            return $this;
+        if (EnumChoices::isList($options)) {
+            return $this->setEnumOptions($options);
         }
 
         $map = [];
@@ -224,22 +221,13 @@ final class ChoiceFilter extends AbstractFilter
 
     /**
      * @param list<\BackedEnum> $cases
-     *
-     * @return array<string, string>
      */
-    private function normalizeEnumOptions(array $cases): array
+    private function setEnumOptions(array $cases): static
     {
-        $map = [];
-        foreach ($cases as $case) {
-            $value       = (string) $case->value;
-            $map[$value] = $this->resolveEnumLabel($case);
+        $this->options           = EnumChoices::labels($cases);
+        $this->translatableCases = EnumChoices::translatableCases($cases);
 
-            if ($case instanceof TranslatableInterface) {
-                $this->translatableCases[$value] = $case;
-            }
-        }
-
-        return $map;
+        return $this;
     }
 
     /**
@@ -256,36 +244,5 @@ final class ChoiceFilter extends AbstractFilter
         foreach ($this->translatableCases as $value => $case) {
             $this->options[$value] = $case->trans($translator, $locale);
         }
-    }
-
-    private function resolveEnumLabel(\BackedEnum $case): string
-    {
-        if (method_exists($case, 'getLabel')) {
-            return (string) $case->getLabel();
-        }
-
-        if (method_exists($case, 'label')) {
-            return (string) $case->label();
-        }
-
-        return $case->name;
-    }
-
-    /**
-     * @param array<mixed> $options
-     */
-    private function isBackedEnumList(array $options): bool
-    {
-        if ([] === $options || !array_is_list($options)) {
-            return false;
-        }
-
-        foreach ($options as $option) {
-            if (!$option instanceof \BackedEnum) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

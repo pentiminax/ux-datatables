@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Column;
 
 use Pentiminax\UX\DataTables\Enum\ColumnType;
+use Pentiminax\UX\DataTables\Model\EnumChoices;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -56,15 +57,11 @@ class ChoiceColumn extends AbstractColumn
                 throw new \InvalidArgumentException(\sprintf('"%s" is not a BackedEnum class.', $choices));
             }
 
-            $this->setCustomOption(self::OPTION_CHOICES, $this->normalizeBackedEnumChoices($choices::cases()));
-
-            return $this;
+            return $this->setEnumChoices($choices::cases());
         }
 
-        if ($this->isBackedEnumList($choices)) {
-            $this->setCustomOption(self::OPTION_CHOICES, $this->normalizeBackedEnumChoices($choices));
-
-            return $this;
+        if (EnumChoices::isList($choices)) {
+            return $this->setEnumChoices($choices);
         }
 
         $this->setCustomOption(self::OPTION_CHOICES, $this->normalizeArrayChoices($choices));
@@ -150,54 +147,13 @@ class ChoiceColumn extends AbstractColumn
     }
 
     /**
-     * @param list<\BackedEnum> $choices
-     *
-     * @return array<string, string>
+     * @param list<\BackedEnum> $cases
      */
-    private function normalizeBackedEnumChoices(array $choices): array
+    private function setEnumChoices(array $cases): static
     {
-        $map = [];
+        $this->translatableCases = EnumChoices::translatableCases($cases);
 
-        foreach ($choices as $case) {
-            $map[(string) $case->value] = $this->resolveEnumLabel($case);
-
-            if ($case instanceof TranslatableInterface) {
-                $this->translatableCases[(string) $case->value] = $case;
-            }
-        }
-
-        return $map;
-    }
-
-    private function resolveEnumLabel(\BackedEnum $case): string
-    {
-        if (method_exists($case, 'getLabel')) {
-            return (string) $case->getLabel();
-        }
-
-        if (method_exists($case, 'label')) {
-            return (string) $case->label();
-        }
-
-        return $case->name;
-    }
-
-    /**
-     * @param array<mixed> $choices
-     */
-    private function isBackedEnumList(array $choices): bool
-    {
-        if ([] === $choices || !array_is_list($choices)) {
-            return false;
-        }
-
-        foreach ($choices as $choice) {
-            if (!$choice instanceof \BackedEnum) {
-                return false;
-            }
-        }
-
-        return true;
+        return $this->setCustomOption(self::OPTION_CHOICES, EnumChoices::labels($cases));
     }
 
     private function assertValidBadgeType(string $badgeType, string $message): void
