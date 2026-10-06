@@ -10,7 +10,7 @@ import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js'
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js'
 import { relativeDateColumnRenderer } from './columnRenderers/relativeDateColumnRenderer.js'
 import { textColumnRenderer } from './columnRenderers/textColumnRenderer.js'
-import type { ColumnRenderer } from './columnRenderers/types.js'
+import { type ColumnRenderer, isFormatted } from './columnRenderers/types.js'
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js'
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js'
 import {
@@ -110,6 +110,7 @@ export default class extends Controller {
     private eventSource: EventSource | null = null
     private highlighter: UpdateHighlighter | null = null
     private framework: StyleFramework = 'dt'
+    private confirmingActions = new WeakSet<HTMLElement>()
     private popstateHandler: (() => void) | null = null
 
     /**
@@ -462,7 +463,7 @@ export default class extends Controller {
         ]
 
         payload.columns.forEach((column: any): void => {
-            for (const renderer of columnRenderers) {
+            for (const renderer of isFormatted(column) ? [textColumnRenderer] : columnRenderers) {
                 if (renderer.matches(column)) {
                     renderer.configure(column)
                 }
@@ -549,15 +550,26 @@ export default class extends Controller {
                         e.preventDefault()
                     }
 
-                    const confirmed = handledHere
-                        ? await confirmAction({
-                              message: confirmMessage,
-                              confirmLabel: payload.actionLabels?.confirm ?? 'Confirm',
-                              cancelLabel: payload.actionLabels?.cancel ?? 'Cancel',
-                              framework: this.framework,
-                              adapterKey: payload.editModal?.adapter ?? null,
-                          })
-                        : confirm(confirmMessage)
+                    if (this.confirmingActions.has(actionButton)) {
+                        return
+                    }
+
+                    this.confirmingActions.add(actionButton)
+
+                    let confirmed: boolean
+                    try {
+                        confirmed = handledHere
+                            ? await confirmAction({
+                                  message: confirmMessage,
+                                  confirmLabel: payload.actionLabels?.confirm ?? 'Confirm',
+                                  cancelLabel: payload.actionLabels?.cancel ?? 'Cancel',
+                                  framework: this.framework,
+                                  adapterKey: payload.editModal?.adapter ?? null,
+                              })
+                            : confirm(confirmMessage)
+                    } finally {
+                        this.confirmingActions.delete(actionButton)
+                    }
 
                     if (!confirmed) {
                         e.preventDefault()
@@ -596,7 +608,7 @@ export default class extends Controller {
                             actionButton.classList.add('expanded')
                         }
 
-                        return { ok: result.success }
+                        return { ok: result.success, response: result.response }
                     })
                 }
 
@@ -642,25 +654,42 @@ export default class extends Controller {
                             const result = await fetchEditForm({ dataTable, id })
                             formHtml = result.html
 
-                            return { ok: result.success }
-                        }
+                            return { ok: result.success, response: result.response }
+                        },
+                        false
                     )
 
                     if (loaded) {
                         await modal.show(formHtml, {
                             onSubmit: async (formData) => {
-                                const submitResult = await submitEditForm({
-                                    dataTable,
-                                    id,
-                                    formData,
-                                    csrfToken: this.getCsrfToken(payload),
-                                })
+                                const saved: {
+                                    result?: Awaited<ReturnType<typeof submitEditForm>>
+                                } = {}
 
-                                if (submitResult.success) {
+                                await this.runRowAction(
+                                    actionButton,
+                                    'EDIT',
+                                    id,
+                                    payload,
+                                    async () => {
+                                        const result = await submitEditForm({
+                                            dataTable,
+                                            id,
+                                            formData,
+                                            csrfToken: this.getCsrfToken(payload),
+                                        })
+
+                                        saved.result = result
+
+                                        return { ok: result.success, response: result.response }
+                                    }
+                                )
+
+                                if (saved.result?.success) {
                                     await modal.hide()
                                     this.table?.ajax?.reload(null, false)
-                                } else if (submitResult.html) {
-                                    modal.replaceBody(submitResult.html)
+                                } else if (saved.result?.html) {
+                                    modal.replaceBody(saved.result.html)
                                 }
                             },
                         })
@@ -675,9 +704,11 @@ export default class extends Controller {
         actionType: string,
         id: string,
         payload: Record<string, any>,
-        run: () => Promise<{ ok: boolean; response?: Response }>
+        run: () => Promise<{ ok: boolean; response?: Response }>,
+        reportSuccess = true
     ): Promise<boolean> {
         return runRowAction({
+            reportSuccess,
             element,
             root: this.element as HTMLElement,
             actionType,

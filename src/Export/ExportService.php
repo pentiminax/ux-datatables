@@ -50,6 +50,7 @@ final class ExportService
         $formatter = new ExportValueFormatter($this->translator);
 
         if (!$button->usesRawValues()) {
+            $columns = array_map(static fn (ColumnInterface $column): ColumnInterface => clone $column, $columns);
             $this->translateLabels($columns);
             $this->applyExportHeadings($formatter, $columns);
             $rows = $this->formatRows($formatter, $columns, $rows);

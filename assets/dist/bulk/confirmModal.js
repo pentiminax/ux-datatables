@@ -17,13 +17,20 @@ export async function confirmAction(request) {
             }
             resolve(value);
         };
-        void modal.show(buildHtml(request), {
+        void modal
+            .show(buildHtml(request), {
             onSubmit: async () => {
                 await answer(true, modal);
             },
             onCancel: () => {
                 void answer(false, modal);
             },
+        })
+            .then(() => {
+            if (!answered && !modal.isOpen()) {
+                answered = true;
+                resolve(confirm(request.message));
+            }
         });
     });
 }

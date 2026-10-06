@@ -117,4 +117,20 @@ final class ExportValueFormatterTest extends TestCase
         $this->assertSame('€ 25.00', $row['price']);
         $this->assertSame('Price', $formatter->heading($column, 'Price'));
     }
+
+    #[Test]
+    public function it_reads_a_switch_cell_the_way_the_switch_renders_it(): void
+    {
+        $formatter = new ExportValueFormatter();
+        $on        = BooleanColumn::new('active')->renderAsSwitch(true);
+        $off       = BooleanColumn::new('archived')->renderAsSwitch();
+
+        $row = $formatter->formatRow([$on, $off, BooleanColumn::new('maybe')->renderAsSwitch()], [
+            'active'   => null,
+            'archived' => '',
+            'maybe'    => 'perhaps',
+        ]);
+
+        $this->assertSame(['active' => 'Yes', 'archived' => 'No', 'maybe' => 'No'], $row);
+    }
 }

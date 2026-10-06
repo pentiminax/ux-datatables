@@ -33,6 +33,7 @@ describe('confirmAction', () => {
             }),
             hide: vi.fn(async () => {}),
             replaceBody: vi.fn(),
+            isOpen: vi.fn(() => true),
         }
         vi.mocked(resolveModalAdapter).mockResolvedValue(modal as never)
 
@@ -50,11 +51,26 @@ describe('confirmAction', () => {
             }),
             hide: vi.fn(async () => {}),
             replaceBody: vi.fn(),
+            isOpen: vi.fn(() => true),
         }
         vi.mocked(resolveModalAdapter).mockResolvedValue(modal as never)
 
         await expect(confirmAction(request)).resolves.toBe(false)
         expect(modal.hide).not.toHaveBeenCalled()
+    })
+
+    it('asks natively when the adapter could not display the confirmation', async () => {
+        const modal = {
+            show: vi.fn(async () => {}),
+            hide: vi.fn(async () => {}),
+            replaceBody: vi.fn(),
+            isOpen: vi.fn(() => false),
+        }
+        vi.mocked(resolveModalAdapter).mockResolvedValue(modal as never)
+        const nativeConfirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+        await expect(confirmAction(request)).resolves.toBe(true)
+        expect(nativeConfirm).toHaveBeenCalledWith(request.message)
     })
 
     it('keeps the deprecated bulk alias', () => {

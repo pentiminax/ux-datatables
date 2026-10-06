@@ -55,6 +55,7 @@ describe('textColumnRenderer', () => {
         ['money', { isMoney: true }],
         ['switch', { renderAsSwitch: true }],
         ['choice', { choices: { draft: 'Draft' } }],
+        ['plain number or boolean', {}],
     ])('takes over a %s column formatted on the server and escapes it', (_name, options) => {
         const column: Record<string, any> = {
             type: 'num',
@@ -72,5 +73,11 @@ describe('textColumnRenderer', () => {
         expect(textColumnRenderer.matches({ type: 'num', customOptions: { isMoney: true } })).toBe(
             false
         )
+    })
+
+    it('leaves a formatted html() column to render its own markup', () => {
+        expect(
+            textColumnRenderer.matches({ type: 'html', customOptions: { formatted: true } })
+        ).toBe(false)
     })
 })

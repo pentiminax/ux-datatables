@@ -14,6 +14,7 @@ export interface RunRowActionOptions {
     actionType: string
     id: string
     labels: RowActionLabels
+    reportSuccess?: boolean
     dispatch: (name: string, detail: Record<string, unknown>) => Event
     run: () => Promise<RowActionOutcome>
 }
@@ -33,6 +34,7 @@ export async function runRowAction({
     actionType,
     id,
     labels,
+    reportSuccess = true,
     dispatch,
     run,
 }: RunRowActionOptions): Promise<boolean> {
@@ -46,7 +48,9 @@ export async function runRowAction({
         const outcome = await run()
 
         if (outcome.ok) {
-            dispatch('action:success', { actionType, id, response: outcome.response })
+            if (reportSuccess) {
+                dispatch('action:success', { actionType, id, response: outcome.response })
+            }
 
             return true
         }

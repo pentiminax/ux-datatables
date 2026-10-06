@@ -43,14 +43,23 @@ export async function confirmAction(request: ConfirmRequest): Promise<boolean> {
             resolve(value)
         }
 
-        void modal.show(buildHtml(request), {
-            onSubmit: async () => {
-                await answer(true, modal)
-            },
-            onCancel: () => {
-                void answer(false, modal)
-            },
-        })
+        void modal
+            .show(buildHtml(request), {
+                onSubmit: async () => {
+                    await answer(true, modal)
+                },
+                onCancel: () => {
+                    void answer(false, modal)
+                },
+            })
+            .then(() => {
+                // An adapter that cannot display this markup (a <dialog> adapter handed Bootstrap
+                // markup) returns without calling either handler; asking natively beats hanging.
+                if (!answered && !modal.isOpen()) {
+                    answered = true
+                    resolve(confirm(request.message))
+                }
+            })
     })
 }
 

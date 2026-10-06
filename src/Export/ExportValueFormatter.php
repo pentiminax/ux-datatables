@@ -59,6 +59,10 @@ final class ExportValueFormatter
 
     private function formatValue(ColumnInterface $column, mixed $value): mixed
     {
+        if ($column instanceof BooleanColumn && $column->isRenderedAsSwitch()) {
+            return $this->booleanLabel($this->switchState($column, $value));
+        }
+
         if (null === $value || '' === $value) {
             return $value;
         }
@@ -96,6 +100,26 @@ final class ExportValueFormatter
             return $value;
         }
 
+        return $this->booleanLabel($state);
+    }
+
+    /**
+     * Reads the cell the way the switch renderer does: an empty cell shows the default state, and
+     * any value the renderer cannot read as true shows as off.
+     */
+    private function switchState(BooleanColumn $column, mixed $value): bool
+    {
+        return match (true) {
+            null === $value || '' === $value     => $column->getDefaultState(),
+            \is_bool($value)                     => $value,
+            \is_int($value) || \is_float($value) => 0 !== $value,
+            \is_string($value)                   => \in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'y', 'on'], true),
+            default                              => false,
+        };
+    }
+
+    private function booleanLabel(bool $state): string
+    {
         $key = $state ? 'export.boolean.true' : 'export.boolean.false';
 
         return $this->translator?->trans($key, domain: FilterLabels::DOMAIN) ?? ($state ? 'Yes' : 'No');
