@@ -23,6 +23,7 @@ use Pentiminax\UX\DataTables\RowMapper\Stage\BooleanSwitchMetadataStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\IconColumnResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\RowIdStage;
+use Pentiminax\UX\DataTables\RowMapper\Stage\ValueFormattingStage;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 final class DataTableRuntimeFactory
@@ -63,6 +64,7 @@ final class DataTableRuntimeFactory
             $dataTableClass,
         ))
             ->add(new NormalizationStage())
+            ->add(new ValueFormattingStage())
             ->add(new IconColumnResolutionStage())
             ->add(new BooleanSwitchMetadataStage());
 

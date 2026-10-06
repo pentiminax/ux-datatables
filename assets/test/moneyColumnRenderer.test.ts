@@ -6,6 +6,12 @@ describe('moneyColumnRenderer', () => {
         expect(moneyColumnRenderer.matches({ customOptions: { isMoney: true } })).toBe(true)
     })
 
+    it('does not match a money column formatted on the server', () => {
+        expect(
+            moneyColumnRenderer.matches({ customOptions: { isMoney: true, formatted: true } })
+        ).toBe(false)
+    })
+
     it('does not match plain columns', () => {
         expect(moneyColumnRenderer.matches({ customOptions: { isMoney: false } })).toBe(false)
         expect(moneyColumnRenderer.matches({ data: 'price' })).toBe(false)
