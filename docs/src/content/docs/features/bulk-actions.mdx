@@ -227,9 +227,11 @@ final class OrderBulkVoter extends Voter
 
 <Aside type="caution">
   The selection is client-side data: the browser sends row identifiers, and nothing else vouches for
-  them. The endpoint keeps only the identifiers your table's own scope contains (see [Table
-  scope](#table-scope)), but it re-authorizes the entities it loads **only** when the action
-  declares a per-row permission resolver. Declare one for every destructive bulk action. See
+  them. With the built-in Doctrine provider, the endpoint keeps only the identifiers your table's
+  own scope contains (see [Table scope](#table-scope)); a custom provider without
+  `ScopedIdentifierProviderInterface` and an API Platform table do not filter an explicit selection
+  that way. The endpoint re-authorizes the entities it loads **only** when the action declares a
+  per-row permission resolver, so declare one for every destructive bulk action. See
   [Scoping](/ux-datatables/guide/security/#scoping). The endpoint is still an Ajax route of your
   application: protect it with your own `security.firewalls` configuration, like every other one
   ([Securing Ajax Routes](/ux-datatables/getting-started/security/)).
