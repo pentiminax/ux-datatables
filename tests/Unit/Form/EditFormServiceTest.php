@@ -22,6 +22,7 @@ use Pentiminax\UX\DataTables\Form\EditFormService;
 use Pentiminax\UX\DataTables\Form\EditModalRenderer;
 use Pentiminax\UX\DataTables\Form\EditModalRenderRequest;
 use Pentiminax\UX\DataTables\Form\EditModalTemplateResolver;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
@@ -503,7 +504,7 @@ final class EditFormServiceTest extends TestCase
     private function topicResolverReturning(array $topics): MercureTopicResolver
     {
         $topicResolver = $this->createStub(MercureTopicResolver::class);
-        $topicResolver->method('resolve')->willReturn($topics);
+        $topicResolver->method('resolveConfig')->willReturn(new MercureConfig($topics));
 
         return $topicResolver;
     }
