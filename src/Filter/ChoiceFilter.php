@@ -155,7 +155,7 @@ final class ChoiceFilter extends AbstractFilter
      *
      * @param array<string, string> $options
      *
-     * @internal called by the FilterEntityOptionsResolver while preparing a render
+     * @internal
      */
     public function setResolvedOptions(array $options): static
     {

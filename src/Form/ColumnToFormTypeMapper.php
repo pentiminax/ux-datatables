@@ -24,9 +24,8 @@ use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
 final class ColumnToFormTypeMapper
 {
     /**
-     * MoneyType converts through floats, which hold integers exactly up to 2^53. Eight decimals
-     * (satoshis) keeps every realistic stored amount under that, so a value the user leaves alone
-     * saves back unchanged; more decimals would round the stored integer silently.
+     * MoneyType converts through floats, exact for integers up to 2^53: more than eight decimals
+     * would round the stored integer silently.
      */
     private const int MAX_MONEY_FORM_DECIMALS = 8;
 
@@ -135,9 +134,8 @@ final class ColumnToFormTypeMapper
     }
 
     /**
-     * A column stored in cents is edited in whole currency units: the form divides the stored
-     * integer for display and multiplies it back on submit, so 2500 opens as 25.00 and typing 25
-     * saves 2500 rather than 25 cents.
+     * A column stored in cents is edited in currency units: 2500 opens as 25.00 and typing 25 saves
+     * 2500.
      *
      * @param array<string, mixed> $customOptions
      *
