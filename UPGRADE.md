@@ -88,7 +88,9 @@ the action had a per-row permission resolver. The bundle now keeps only the iden
 permanent scope (`customizeQueryBuilder()`, without search or filters) contains. The others are not
 loaded and are counted in `skipped`, so the handler and `BulkActionContext` see a smaller batch.
 
-Tables without `customizeQueryBuilder()` are unaffected. A custom data provider can opt in by
+Tables without `customizeQueryBuilder()` are unaffected. The browser now sends the displayed
+DataTables parameters with an explicit selection too, so a `customizeQueryBuilder()` that scopes on
+forwarded query parameters sees the same values as it does for a data request. A custom data provider can opt in by
 implementing `ScopedIdentifierProviderInterface`; without it, and for API Platform backed tables,
 the previous behavior stays and the handler must scope itself.
 
@@ -105,7 +107,9 @@ Every criterion is now applied in request order. `DataTableQueryIntent` gains an
 A query joining a collection-valued association (a searchable `tags.label` column, a filter, or a
 `leftJoin()` in `customizeQueryBuilder()`) paginated joined SQL rows, so pages came back short,
 overlapped, and hid some rows. Such a table now pages distinct root identifiers, which costs one
-extra query per draw. Tables without a collection join are unchanged. A `GROUP BY` query and an
+extra query per draw, which lists the distinct identifiers of every matching root before taking the
+page: on a very large result set, prefer a correlated subquery over a collection join. Tables
+without a collection join are unchanged. A `GROUP BY` query and an
 entity with a composite identifier keep the previous query.
 
 ### Row identifiers are sent as strings

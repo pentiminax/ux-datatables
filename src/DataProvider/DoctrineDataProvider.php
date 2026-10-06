@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\DataProvider;
 
+use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Types\ConversionException;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
@@ -127,6 +132,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         if (
             [] !== $qb->getDQLPart('groupBy')
             || $metadata->isIdentifierComposite
+            || !$metadata->hasField($metadata->getSingleIdentifierFieldName())
             || !CollectionJoinDetector::joinsCollection($qb, $this->em, $alias, $this->entityClass)
         ) {
             return array_values($qb->getQuery()->getResult());
@@ -139,25 +145,23 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             return [];
         }
 
+        $type  = $this->fieldType($metadata, $identifier);
         $items = (clone $qb)
             ->setFirstResult(null)
             ->setMaxResults(null)
             ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_page_ids'))
-            ->setParameter('ux_datatables_page_ids', $ids)
+            ->setParameter('ux_datatables_page_ids', $ids, $this->arrayBindingType($type))
             ->getQuery()
             ->getResult();
 
-        $positions = array_flip(array_map($this->identifierKey(...), $ids));
+        // The identifier query returns raw column values and the entities carry hydrated ones;
+        // converting the entity side back to what the column holds makes the two comparable.
+        $positions = array_flip(array_map($this->databaseKey(...), $ids));
+        $position  = fn (mixed $item): int => $positions[$this->databaseKey($this->toDatabaseValue($type, $metadata->getFieldValue($this->rootEntity($item), $identifier)))] ?? \PHP_INT_MAX;
 
-        usort($items, fn (mixed $left, mixed $right): int => $positions[$this->identifierKey($metadata->getFieldValue($this->rootEntity($left), $identifier))]
-            <=> $positions[$this->identifierKey($metadata->getFieldValue($this->rootEntity($right), $identifier))]);
+        usort($items, static fn (mixed $left, mixed $right): int => $position($left) <=> $position($right));
 
         return $items;
-    }
-
-    private function identifierKey(mixed $identifier): string
-    {
-        return (string) ($identifier instanceof \BackedEnum ? $identifier->value : $identifier);
     }
 
     /**
@@ -251,9 +255,21 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             throw new \LogicException(\sprintf('"%s" is not a mapped field of "%s", so identifiers cannot be checked against the table scope.', $field, $this->entityClass));
         }
 
+        $type       = $this->fieldType($metadata, $field);
+        $expression = $metadata->hasField($field) ? "e.$field" : "IDENTITY(e.$field)";
+
+        $databaseValues = [];
+        foreach ($ids as $id) {
+            $value = $this->toDatabaseValue($type, $id);
+
+            if (null !== $value) {
+                $databaseValues[$this->databaseKey($value)] = $value;
+            }
+        }
+
         $inScope = [];
 
-        foreach (array_chunk($ids, self::IN_SCOPE_CHUNK_SIZE) as $chunk) {
+        foreach (array_chunk(array_values($databaseValues), self::IN_SCOPE_CHUNK_SIZE) as $chunk) {
             $qb = $this->em
                 ->createQueryBuilder()
                 ->select('e')
@@ -263,20 +279,74 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
                 $qb = ($this->configureBaseQueryBuilder)($qb, $request);
             }
 
-            $found = (clone $qb)
-                ->select("DISTINCT e.$field")
+            $rows = (clone $qb)
+                ->select("DISTINCT $expression")
                 ->resetDQLPart('orderBy')
-                ->andWhere($qb->expr()->in("e.$field", ':ux_datatables_scope_ids'))
-                ->setParameter('ux_datatables_scope_ids', $chunk)
+                ->setFirstResult(null)
+                ->setMaxResults(null)
+                ->andWhere($qb->expr()->in($expression, ':ux_datatables_scope_ids'))
+                ->setParameter('ux_datatables_scope_ids', $chunk, $this->arrayBindingType($type))
                 ->getQuery()
-                ->getSingleColumnResult();
+                ->getScalarResult();
 
-            foreach ($this->normalizeIdentifiers($found) as $id) {
-                $inScope[(string) $id] = true;
+            foreach ($rows as $row) {
+                $column = reset($row);
+                $value  = \is_object($column) ? $this->toDatabaseValue($type, $column) : $column;
+
+                if (null !== $value) {
+                    $inScope[$this->databaseKey($value)] = true;
+                }
             }
         }
 
-        return array_values(array_filter($ids, static fn (int|string $id): bool => isset($inScope[(string) $id])));
+        return array_values(array_filter($ids, function (int|string $id) use ($type, $inScope): bool {
+            $value = $this->toDatabaseValue($type, $id);
+
+            return null !== $value && isset($inScope[$this->databaseKey($value)]);
+        }));
+    }
+
+    private function fieldType(ClassMetadata $metadata, string $field): ?Type
+    {
+        $name = $metadata->getTypeOfField($field);
+
+        return null === $name ? null : Type::getType($name);
+    }
+
+    /**
+     * The value as the database stores it, which is what an IN list is compared with.
+     *
+     * A Doctrine type may store an identifier differently from the string the browser sends (a
+     * binary UUID, a prefixed key), so the browser's value, the hydrated PHP value and the raw
+     * column value only compare equal once they go through the same conversion. A value the type
+     * refuses cannot name a row, so it comes back as null.
+     */
+    private function toDatabaseValue(?Type $type, mixed $value): mixed
+    {
+        if (null === $type) {
+            return $value;
+        }
+
+        try {
+            return $type->convertToDatabaseValue($value, $this->em->getConnection()->getDatabasePlatform());
+        } catch (ConversionException) {
+            return null;
+        }
+    }
+
+    private function databaseKey(mixed $databaseValue): string
+    {
+        return (string) $databaseValue;
+    }
+
+    private function arrayBindingType(?Type $type): ArrayParameterType
+    {
+        return match ($type?->getBindingType()) {
+            ParameterType::INTEGER => ArrayParameterType::INTEGER,
+            ParameterType::BINARY  => ArrayParameterType::BINARY,
+            ParameterType::ASCII   => ArrayParameterType::ASCII,
+            default                => ArrayParameterType::STRING,
+        };
     }
 
     /**
