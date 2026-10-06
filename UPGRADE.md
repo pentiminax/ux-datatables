@@ -3,7 +3,34 @@
 Each section covers one version bump. When you skip versions, apply every section between your
 current version and the target, oldest first.
 
-## Next release
+## v1.1 → v1.2
+
+### Behavior changes
+
+Every change below can affect an application. Each links to its migration hint.
+
+- Row identifiers are sent as strings (Mercure listeners, decorated controllers):
+  [details](#row-identifiers-are-sent-as-strings).
+- The default language follows the request locale:
+  [details](#the-table-language-follows-the-request-locale).
+- `buttons()` and the bulk actions bar keep the default content of their layout slot:
+  [details](#buttons-and-bulk-actions-keep-the-default-content-of-their-slot).
+- Numeric initial `order()` indexes ignore the selection checkbox column:
+  [details](#initial-order-indexes-ignore-the-selection-column).
+- Money columns are edited in currency units, and the display scale is `10^decimals`:
+  [details](#money-columns-are-edited-in-currency-units).
+- `symfony/serializer` is required: [details](#symfonyserializer-is-required).
+- Bulk actions skip identifiers outside the table scope:
+  [details](#bulk-actions-skip-identifiers-outside-the-table-scope).
+- Multi-column ordering is applied: [details](#multi-column-ordering-is-applied).
+- Server-side pages stay complete when a to-many association is joined, at the cost of one extra
+  query per draw:
+  [details](#server-side-pages-stay-complete-when-a-to-many-association-is-joined).
+
+Additive changes need no migration: `ChoiceColumn` translates `TranslatableInterface` enum labels,
+and `RouteLoader` no longer implements the `RouteLoaderInterface` that Symfony 8.2 deprecates.
+
+No API is deprecated in v1.2.0.
 
 ### The table language follows the request locale
 
@@ -65,7 +92,21 @@ Tables without `customizeQueryBuilder()` are unaffected. A custom data provider 
 implementing `ScopedIdentifierProviderInterface`; without it, and for API Platform backed tables,
 the previous behavior stays and the handler must scope itself.
 
-## v1.1 → v1.2
+### Multi-column ordering is applied
+
+A request carrying several `order[]` entries (a shift-click on a second header, or an initial
+`order([[1, 'asc'], [2, 'desc']])`) removed every `ORDER BY`, so rows came back in database order.
+Every criterion is now applied in request order. `DataTableQueryIntent` gains an `orders` list;
+`orderColumn` and `orderDir` mirror the first criterion instead of being `null`, so a custom
+`QueryFilterInterface` reading them keeps working but now sees a value for a multi-column sort.
+
+### Server-side pages stay complete when a to-many association is joined
+
+A query joining a collection-valued association (a searchable `tags.label` column, a filter, or a
+`leftJoin()` in `customizeQueryBuilder()`) paginated joined SQL rows, so pages came back short,
+overlapped, and hid some rows. Such a table now pages distinct root identifiers, which costs one
+extra query per draw. Tables without a collection join are unchanged. A `GROUP BY` query and an
+entity with a composite identifier keep the previous query.
 
 ### Row identifiers are sent as strings
 
