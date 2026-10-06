@@ -1,13 +1,15 @@
 import type { ColumnStyleAdapter } from '../columnStyles/ColumnStyleAdapter.js'
 import { escapeHtml } from '../functions/htmlUtils.js'
 import type { ChoiceCustomOptions, ColumnRenderer } from './types.js'
+import { isFormatted } from './types.js'
 
 export function createChoiceColumnRenderer(style: ColumnStyleAdapter): ColumnRenderer {
     return {
         matches(column: Record<string, any>): boolean {
             return (
                 typeof column?.customOptions?.choices === 'object' &&
-                column.customOptions.choices !== null
+                column.customOptions.choices !== null &&
+                !isFormatted(column)
             )
         },
 
