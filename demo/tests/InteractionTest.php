@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests;
 
 use App\DataTable\BulkOrdersDataTable;
+use App\DataTable\ColumnsDataTable;
+use App\DataTable\ExportProductsDataTable;
 use App\DataTable\ProductActionsDataTable;
 use App\Demo\DemoSeeder;
 use App\Entity\Order;
@@ -129,6 +131,35 @@ final class InteractionTest extends DataTableTestCase
         self::assertSame(OrderStatus::Delivered, $this->reload($delivered)->status);
     }
 
+    public function test_server_side_csv_writes_what_the_table_displays(): void
+    {
+        $csv = $this->export('csv');
+
+        self::assertStringContainsString('Price (EUR)', $csv);
+        self::assertStringNotContainsString('Supplier', $csv);
+    }
+
+    public function test_raw_csv_keeps_the_stored_values(): void
+    {
+        $csv = $this->export('raw');
+
+        self::assertStringContainsString('Price', $csv);
+        self::assertStringNotContainsString('Price (EUR)', $csv);
+    }
+
+    public function test_price_band_is_formatted_on_the_server(): void
+    {
+        $crawler = $this->client->request('GET', '/en/columns');
+
+        $view = $this->dataTableView($crawler, ColumnsDataTable::class);
+
+        self::assertNotEmpty($view->rows());
+
+        foreach ($view->rows() as $row) {
+            self::assertContains($row['priceBand'], ['€', '€€', '€€€']);
+        }
+    }
+
     public function test_reset_button_restores_the_seeded_data(): void
     {
         $archived = $this->product(ProductStatus::Archived);
@@ -159,6 +190,16 @@ final class InteractionTest extends DataTableTestCase
             ],
             content: json_encode(['dataTable' => $this->dataTableRegistry()->getActionToken($table)] + $payload, \JSON_THROW_ON_ERROR),
         );
+    }
+
+    private function export(string $exportKey): string
+    {
+        $token = $this->dataTableRegistry()->getToken(ExportProductsDataTable::class);
+
+        $this->client->request('GET', '/datatables/ajax/export', ['table' => $token, 'exportKey' => $exportKey]);
+        self::assertResponseIsSuccessful();
+
+        return (string) $this->client->getInternalResponse()->getContent();
     }
 
     private function product(ProductStatus $status): Product

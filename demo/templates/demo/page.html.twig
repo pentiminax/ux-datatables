@@ -6,9 +6,19 @@
 
     <p class="try">{{ ('page.' ~ page.route ~ '.try')|trans }}</p>
 
-    <div class="table-frame">
-        {{ render_datatable(table) }}
-    </div>
+    {% if page.route == 'actions' %}
+        <div class="table-frame" data-controller="action-status"
+             data-action-status-success-value="{{ 'actions.status.success'|trans }}"
+             data-action-status-failed-value="{{ 'actions.status.failed'|trans }}"
+             data-action-status-forbidden-value="{{ 'actions.status.forbidden'|trans }}">
+            {{ render_datatable(table) }}
+            <p class="action-status" role="status" data-action-status-target="message" hidden></p>
+        </div>
+    {% else %}
+        <div class="table-frame">
+            {{ render_datatable(table) }}
+        </div>
+    {% endif %}
 
     <h2 class="section-title">{{ 'code.title'|trans }}</h2>
     {{ include('demo/_code.html.twig') }}
