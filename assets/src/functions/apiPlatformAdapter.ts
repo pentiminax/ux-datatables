@@ -1,3 +1,5 @@
+import { isRecord } from './htmlUtils.js'
+
 interface DataTableServerSideOrder {
     column: number
     dir: 'asc' | 'desc' | string
@@ -108,10 +110,6 @@ function resolveRowIdField(highlight: unknown): string | null {
     return 'string' === typeof idField && '' !== idField ? idField : DEFAULT_ROW_ID_FIELD
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
 /**
  * Next calendar day for a date-only HTML bound (`YYYY-MM-DD` / `YYYY/MM/DD`).
  * Returns null for time-bearing values so callers keep inclusive `before`.
@@ -138,11 +136,7 @@ function nextDayDateOnly(value: string): string | null {
 
     date.setUTCDate(date.getUTCDate() + 1)
 
-    const nextYear = String(date.getUTCFullYear()).padStart(4, '0')
-    const nextMonth = String(date.getUTCMonth() + 1).padStart(2, '0')
-    const nextDay = String(date.getUTCDate()).padStart(2, '0')
-
-    return `${nextYear}-${nextMonth}-${nextDay}`
+    return date.toISOString().slice(0, 10)
 }
 
 export class ApiPlatformAdapter {
