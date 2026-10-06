@@ -9,6 +9,7 @@ export async function submitEditForm(payload) {
             formData: payload.formData,
         }),
     });
-    return response.json();
+    const body = await response.json().catch(() => ({ success: false }));
+    return { ...body, response };
 }
 //# sourceMappingURL=submitEditForm.js.map

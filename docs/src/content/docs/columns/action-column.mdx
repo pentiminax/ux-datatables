@@ -382,6 +382,9 @@ not allowed to do this.") into a visually hidden `aria-live="polite"` region, so
 announce it. Call `event.preventDefault()` to show your own message instead. The messages live in
 the `action.row.*` keys of the `DataTables` translation domain.
 
+For `EDIT`, `action:success` means the edit was saved; loading the form only fires `action:error`
+when it fails.
+
 The control is disabled and marked `aria-busy` while its request runs, so a double click sends one
 request. A failed boolean switch goes back to its previous state.
 

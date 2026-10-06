@@ -10,6 +10,7 @@ import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js';
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js';
 import { relativeDateColumnRenderer } from './columnRenderers/relativeDateColumnRenderer.js';
 import { textColumnRenderer } from './columnRenderers/textColumnRenderer.js';
+import { isFormatted } from './columnRenderers/types.js';
 import { urlColumnRenderer } from './columnRenderers/urlColumnRenderer.js';
 import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdapter.js';
 import { ApiPlatformAdapter, isApiPlatformAdapterEnabled, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
@@ -72,6 +73,7 @@ class default_1 extends Controller {
         this.eventSource = null;
         this.highlighter = null;
         this.framework = 'dt';
+        this.confirmingActions = new WeakSet();
         this.popstateHandler = null;
         this.onTurboBeforeCache = () => {
             this.table?.destroy();
@@ -282,7 +284,7 @@ class default_1 extends Controller {
             textColumnRenderer,
         ];
         payload.columns.forEach((column) => {
-            for (const renderer of columnRenderers) {
+            for (const renderer of isFormatted(column) ? [textColumnRenderer] : columnRenderers) {
                 if (renderer.matches(column)) {
                     renderer.configure(column);
                 }
@@ -339,15 +341,25 @@ class default_1 extends Controller {
                 if (handledHere) {
                     e.preventDefault();
                 }
-                const confirmed = handledHere
-                    ? await confirmAction({
-                        message: confirmMessage,
-                        confirmLabel: payload.actionLabels?.confirm ?? 'Confirm',
-                        cancelLabel: payload.actionLabels?.cancel ?? 'Cancel',
-                        framework: this.framework,
-                        adapterKey: payload.editModal?.adapter ?? null,
-                    })
-                    : confirm(confirmMessage);
+                if (this.confirmingActions.has(actionButton)) {
+                    return;
+                }
+                this.confirmingActions.add(actionButton);
+                let confirmed;
+                try {
+                    confirmed = handledHere
+                        ? await confirmAction({
+                            message: confirmMessage,
+                            confirmLabel: payload.actionLabels?.confirm ?? 'Confirm',
+                            cancelLabel: payload.actionLabels?.cancel ?? 'Cancel',
+                            framework: this.framework,
+                            adapterKey: payload.editModal?.adapter ?? null,
+                        })
+                        : confirm(confirmMessage);
+                }
+                finally {
+                    this.confirmingActions.delete(actionButton);
+                }
                 if (!confirmed) {
                     e.preventDefault();
                     return;
@@ -376,7 +388,7 @@ class default_1 extends Controller {
                         row.child(result.html).show();
                         actionButton.classList.add('expanded');
                     }
-                    return { ok: result.success };
+                    return { ok: result.success, response: result.response };
                 });
             }
             if (actionType === 'DELETE' && dataTable && id) {
@@ -403,23 +415,28 @@ class default_1 extends Controller {
                 const loaded = await this.runRowAction(actionButton, 'EDIT', id, payload, async () => {
                     const result = await fetchEditForm({ dataTable, id });
                     formHtml = result.html;
-                    return { ok: result.success };
-                });
+                    return { ok: result.success, response: result.response };
+                }, false);
                 if (loaded) {
                     await modal.show(formHtml, {
                         onSubmit: async (formData) => {
-                            const submitResult = await submitEditForm({
-                                dataTable,
-                                id,
-                                formData,
-                                csrfToken: this.getCsrfToken(payload),
+                            const saved = {};
+                            await this.runRowAction(actionButton, 'EDIT', id, payload, async () => {
+                                const result = await submitEditForm({
+                                    dataTable,
+                                    id,
+                                    formData,
+                                    csrfToken: this.getCsrfToken(payload),
+                                });
+                                saved.result = result;
+                                return { ok: result.success, response: result.response };
                             });
-                            if (submitResult.success) {
+                            if (saved.result?.success) {
                                 await modal.hide();
                                 this.table?.ajax?.reload(null, false);
                             }
-                            else if (submitResult.html) {
-                                modal.replaceBody(submitResult.html);
+                            else if (saved.result?.html) {
+                                modal.replaceBody(saved.result.html);
                             }
                         },
                     });
@@ -427,8 +444,9 @@ class default_1 extends Controller {
             }
         });
     }
-    runRowAction(element, actionType, id, payload, run) {
+    runRowAction(element, actionType, id, payload, run, reportSuccess = true) {
         return runRowAction({
+            reportSuccess,
             element,
             root: this.element,
             actionType,

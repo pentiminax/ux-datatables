@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
@@ -295,7 +294,7 @@ final class RenderingPreparer
     private function hasRowActions(DataTable $table): bool
     {
         foreach ($table->getColumns() as $column) {
-            if ($column instanceof ActionColumn || ($column instanceof BooleanColumn && $column->isRenderedAsSwitch())) {
+            if ($column instanceof ActionsProvidingColumnInterface || ($column instanceof BooleanColumn && $column->isRenderedAsSwitch())) {
                 return true;
             }
         }

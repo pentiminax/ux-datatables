@@ -7,11 +7,14 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Runtime;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceMercureMetadataResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
+use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
+use Pentiminax\UX\DataTables\Enum\ColumnType;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
@@ -629,6 +632,33 @@ final class RenderingPreparerTest extends TestCase
             'cancel'    => 'tr:action.row.cancel',
         ], $withActions->getOptions()['actionLabels']);
         $this->assertArrayNotHasKey('actionLabels', $withoutActions->getOptions());
+    }
+
+    #[Test]
+    public function it_translates_the_row_action_labels_of_a_custom_column_providing_actions(): void
+    {
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnCallback(static fn (string $id): string => 'tr:'.$id);
+
+        $column = new class('custom') extends AbstractColumn implements ActionsProvidingColumnInterface {
+            public function __construct(string $name)
+            {
+                $this->type  = ColumnType::HTML;
+                $this->name  = $name;
+                $this->title = 'Custom';
+            }
+
+            public function getActions(): ?Actions
+            {
+                return (new Actions())->add(Action::delete());
+            }
+        };
+
+        $table = (new DataTable('Test'))->setDataTableClass(self::TABLE_CLASS)->add($column);
+
+        (new RenderingPreparer(translator: $translator))->prepare($table, null);
+
+        $this->assertSame('tr:action.row.failed', $table->getOptions()['actionLabels']['failed']);
     }
 
     #[Test]

@@ -1,9 +1,8 @@
 import { escapeHtml, parseBooleanValue } from '../functions/htmlUtils.js';
-import { isFormatted } from './types.js';
 export function createBooleanColumnRenderer(toggleUrl, mutationsEnabled = true, style) {
     return {
         matches(column) {
-            return true === column?.customOptions?.renderAsSwitch && !isFormatted(column);
+            return true === column?.customOptions?.renderAsSwitch;
         },
         configure(column) {
             const customOptions = (column.customOptions ?? {});
