@@ -292,7 +292,18 @@ The export reuses the request's current search, order, and filters, and ignores 
 **Columns** use the same `setExportable(false)` flag as client-side export (and
 `#[DataTableColumn(options: ['exportable' => false])]`). Action columns, template columns, and
 hidden columns (`setVisible(false)`) are already excluded. Order in the file is `configureColumns()`
-order, and headers are column titles.
+order, and headers are column titles, translated with the request locale.
+
+**Values** match what the table displays. A `MoneyColumn` is written as a number in currency units
+(so `2500` cents becomes `25`, and a spreadsheet can sum it) with the currency in the heading
+(`Price (EUR)`), a `ChoiceColumn` as its label, and a `BooleanColumn` as a translated Yes/No
+(`export.boolean.true` and `export.boolean.false` in the `DataTables` domain). A column formatted
+with `formatValueUsing()` is written as that formatter returned it. For a file a machine reads, call
+`rawValues()` to write the mapped values and untranslated headings as they are:
+
+```php
+Button::csv(serverSide: true)->rawValues();
+```
 
 A `TemplateColumn` renders markup for the browser, so it stays out of an export unless
 `setExportable(true)` opts it back in — its rendered HTML is then stripped to text and its
