@@ -149,6 +149,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.mercure.topic_resolver', MercureTopicResolver::class)
         ->arg(0, service(MercureConfigResolver::class)->nullOnInvalid())
         ->arg(1, tagged_locator('datatables.data_table'))
+        ->arg(2, service('logger')->nullOnInvalid())
         ->private();
 
     $services->alias(MercureTopicResolver::class, 'datatables.mercure.topic_resolver')

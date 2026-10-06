@@ -107,6 +107,16 @@ final class BookDataTable extends AbstractDataTable
 auto-resolver, so on its own it subscribes to the bundle's internal `/datatables/.../{id}` fallback
 topic, which API Platform never publishes to. Pass the topics explicitly with that call.
 
+### Published Updates Are Private Too
+
+A table that subscribes with `withCredentials: true` also publishes its mutation and bulk action
+updates as private, so a hub never delivers them to anonymous subscribers. Subscribers need the
+JWT cookie described below, which `withCredentials` already requires.
+
+A custom `MercurePublisherInterface` implementation keeps receiving `publish()` calls. Implement
+`PrivateUpdatePublisherInterface::publishPrivate()` as well to publish private updates; without it
+the bundle logs a warning and publishes publicly.
+
 ### What The Application Still Has To Do
 
 The bundle sets no cookie and mints no token — both belong to `symfony/mercure-bundle`. The

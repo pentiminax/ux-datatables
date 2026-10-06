@@ -17,6 +17,7 @@ use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Exception\InvalidBulkSelectionException;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\BulkAction;
@@ -366,7 +367,7 @@ final class BulkActionRunnerTest extends TestCase
             ->with(['/customers'], ['type' => 'bulk', 'action' => 'touch', 'processed' => 3]);
 
         $topicResolver = $this->createStub(MercureTopicResolver::class);
-        $topicResolver->method('resolve')->willReturn(['/customers']);
+        $topicResolver->method('resolveConfig')->willReturn(new MercureConfig(['/customers']));
 
         $action = BulkAction::new('touch')->chunk(1)->handler(static function (BulkRecords $records): void {
             foreach ($records as $ignored) {

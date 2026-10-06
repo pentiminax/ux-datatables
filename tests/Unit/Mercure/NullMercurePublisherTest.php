@@ -22,5 +22,6 @@ final class NullMercurePublisherTest extends TestCase
 
         $this->assertSame('', $publisher->publish('/topic/1', ['type' => 'edit', 'id' => 1]));
         $this->assertSame('', $publisher->publish([]));
+        $this->assertSame('', $publisher->publishPrivate('/topic/1', ['type' => 'edit', 'id' => 1]));
     }
 }

@@ -18,6 +18,7 @@ use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
+use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
@@ -70,9 +71,9 @@ final class EntityMutatorTest extends TestCase
         // is what the injected topic resolver returns for this table.
         $topicResolver = $this->createMock(MercureTopicResolver::class);
         $topicResolver->expects($this->once())
-            ->method('resolve')
+            ->method('resolveConfig')
             ->with(EntityMutatorFixture::class, self::DATA_TABLE_CLASS)
-            ->willReturn(self::RESOLVED_TOPICS);
+            ->willReturn(new MercureConfig(self::RESOLVED_TOPICS));
 
         $publisher = $this->createMock(MercurePublisherInterface::class);
         $publisher->expects($this->once())
@@ -421,7 +422,7 @@ final class EntityMutatorTest extends TestCase
     private function topicResolverReturning(array $topics): MercureTopicResolver
     {
         $topicResolver = $this->createStub(MercureTopicResolver::class);
-        $topicResolver->method('resolve')->willReturn($topics);
+        $topicResolver->method('resolveConfig')->willReturn(new MercureConfig($topics));
 
         return $topicResolver;
     }

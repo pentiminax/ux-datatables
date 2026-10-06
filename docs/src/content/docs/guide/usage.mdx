@@ -85,7 +85,14 @@ Pass HTML attributes as a second argument:
 }) }}
 ```
 
-The table `id` attribute always comes from the short name of the table class, for example `id="UsersDataTable"`. Do not pass a separate `id` through `render_datatable()`.
+The table `id` defaults to the short name of the table class, for example `id="UsersDataTable"`. Pass an `id` attribute to override it, which is required to render the same table twice on a page:
+
+```twig
+{{ render_datatable(ordersTable, {id: 'orders-open'}) }}
+{{ render_datatable(ordersTable, {id: 'orders-closed'}) }}
+```
+
+Attributes passed to one `render_datatable()` call apply to that render only.
 
 ## Extending the Default Behavior
 
@@ -250,8 +257,9 @@ public function index(UsersDataTable $usersTable, OrdersDataTable $ordersTable):
 ```
 
 <Aside type="caution">
-  Each table must have a unique ID. The ID is the short name of the table class, so two tables
-  rendered on the same page must not share a class name.
+  Each table must have a unique ID. The default ID is the short name of the table class, so two
+  tables rendered on the same page must not share a class name. Pass an `id` attribute to
+  `render_datatable()` to tell them apart.
 </Aside>
 
 ## Best Practices
