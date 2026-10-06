@@ -184,11 +184,24 @@ final class ColumnResolver
      */
     public function removeDeniedColumnValues(array $row, array $columns): array
     {
+        return $this->removePaths($row, $this->deniedColumnPaths($columns));
+    }
+
+    /**
+     * Row keys and read paths of the columns the current user may not see.
+     *
+     * @param ColumnInterface[] $columns
+     *
+     * @return list<string>
+     */
+    public function deniedColumnPaths(array $columns, ?string $dataTableClass = null): array
+    {
         $visibleNames = [];
-        foreach ($this->filterStaticPermissions($columns) as $column) {
+        foreach ($this->filterStaticPermissions($columns, $dataTableClass) as $column) {
             $visibleNames[$column->getName()] = true;
         }
 
+        $paths = [];
         foreach ($columns as $column) {
             if (isset($visibleNames[$column->getName()])) {
                 continue;
@@ -199,12 +212,27 @@ final class ColumnResolver
                 continue;
             }
 
-            $this->unsetRowPath($row, $key);
+            $paths[] = $key;
 
             $readPath = ColumnKeyResolver::readPath($column, $key);
             if ($readPath !== $key) {
-                $this->unsetRowPath($row, $readPath);
+                $paths[] = $readPath;
             }
+        }
+
+        return $paths;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param list<string>         $paths
+     *
+     * @return array<string, mixed>
+     */
+    public function removePaths(array $row, array $paths): array
+    {
+        foreach ($paths as $path) {
+            $this->unsetRowPath($row, $path);
         }
 
         return $row;
