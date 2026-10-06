@@ -58,6 +58,14 @@
                 <source>bulk.bar.failed</source>
                 <target>L'action groupée n'a pas pu aboutir.</target>
             </trans-unit>
+            <trans-unit id="export.boolean.true">
+                <source>export.boolean.true</source>
+                <target>Oui</target>
+            </trans-unit>
+            <trans-unit id="export.boolean.false">
+                <source>export.boolean.false</source>
+                <target>Non</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

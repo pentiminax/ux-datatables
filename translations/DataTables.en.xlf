@@ -58,6 +58,14 @@
                 <source>bulk.bar.failed</source>
                 <target>The bulk action could not be completed.</target>
             </trans-unit>
+            <trans-unit id="export.boolean.true">
+                <source>export.boolean.true</source>
+                <target>Yes</target>
+            </trans-unit>
+            <trans-unit id="export.boolean.false">
+                <source>export.boolean.false</source>
+                <target>No</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>
