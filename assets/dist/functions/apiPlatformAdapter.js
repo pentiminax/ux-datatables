@@ -50,7 +50,10 @@ function nextDayDateOnly(value) {
         return null;
     }
     date.setUTCDate(date.getUTCDate() + 1);
-    return date.toISOString().slice(0, 10);
+    const nextYear = String(date.getUTCFullYear()).padStart(4, '0');
+    const nextMonth = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const nextDay = String(date.getUTCDate()).padStart(2, '0');
+    return `${nextYear}-${nextMonth}-${nextDay}`;
 }
 export class ApiPlatformAdapter {
     constructor(columns) {
