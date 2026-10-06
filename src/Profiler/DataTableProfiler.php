@@ -41,7 +41,7 @@ final class DataTableProfiler
         $options = $table->getOptions();
 
         $this->renderedTables[] = [
-            'id'                       => $table->getId(),
+            'id'                       => $context['id'] ?? $table->getId(),
             'class'                    => $class,
             'entityClass'              => $context['entityClass'] ?? null,
             'serverSide'               => $table->isServerSide(),

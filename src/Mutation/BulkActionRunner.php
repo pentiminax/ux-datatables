@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\Contracts\ScopedIdentifierProviderInterface;
 use Pentiminax\UX\DataTables\Exception\InvalidBulkSelectionException;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
+use Pentiminax\UX\DataTables\Mercure\MutationUpdatePublisher;
 use Pentiminax\UX\DataTables\Model\BulkAction;
 use Pentiminax\UX\DataTables\RowMapper\RowIdField;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
@@ -283,7 +284,7 @@ final class BulkActionRunner
             return;
         }
 
-        $this->publisher->publish($this->topicResolver->resolve($entityClass, $dataTableClass), [
+        MutationUpdatePublisher::publish($this->publisher, $this->topicResolver, $entityClass, $dataTableClass, [
             'type'      => 'bulk',
             'action'    => $action->getName(),
             'processed' => $processed,

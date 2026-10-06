@@ -111,6 +111,43 @@ final class DataTablesExtensionTest extends TestCase
     }
 
     #[Test]
+    public function it_replaces_the_default_id_with_a_custom_one_exactly_once(): void
+    {
+        $table = $this->inlineTable([TextColumn::new('name')]);
+
+        $rendered = $this->container->get('test.datatables.twig_extension')->renderDataTable($table, ['id' => 'orders-open']);
+
+        $this->assertSame(1, substr_count($rendered, ' id="'));
+        $this->assertStringStartsWith('<table id="orders-open" ', $rendered);
+    }
+
+    #[Test]
+    public function it_renders_the_same_table_twice_with_different_ids_without_leaking_attributes(): void
+    {
+        $table = $this->inlineTable([TextColumn::new('name')]);
+
+        $first  = $this->renderTableElement($table, ['id' => 'orders-open', 'class' => 'first']);
+        $second = $this->renderTableElement($table, ['id' => 'orders-closed']);
+        $third  = $this->renderTableElement($table);
+
+        $this->assertSame('orders-open', $first->getAttribute('id'));
+        $this->assertSame('first', $first->getAttribute('class'));
+        $this->assertSame('orders-closed', $second->getAttribute('id'));
+        $this->assertSame('', $second->getAttribute('class'));
+        $this->assertSame('ConfigurableDataTable', $third->getAttribute('id'));
+    }
+
+    #[Test]
+    public function it_escapes_a_custom_id(): void
+    {
+        $table = $this->inlineTable([TextColumn::new('name')]);
+
+        $rendered = $this->container->get('test.datatables.twig_extension')->renderDataTable($table, ['id' => 'a"b<c']);
+
+        $this->assertStringStartsWith('<table id="a&quot;b&lt;c" ', $rendered);
+    }
+
+    #[Test]
     public function it_exposes_edit_modal_overrides(): void
     {
         $table = new ConfigurableDataTable(
