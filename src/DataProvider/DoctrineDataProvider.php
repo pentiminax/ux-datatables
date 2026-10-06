@@ -79,7 +79,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             $qb = ($this->configureQueryBuilder)($qb, $request);
         }
 
-        $filteredCount = $this->count($qb, $alias);
+        $filteredCount = $this->isSameCountQuery($baseQb, $qb) ? $recordsTotal : $this->count($qb, $alias);
 
         if ($request->start > 0) {
             $qb->setFirstResult($request->start);
@@ -574,6 +574,31 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      * COUNT(DISTINCT $alias) to the first identifier column); entities with composite keys would
      * need a subquery over the identifiers instead.
      */
+    /**
+     * Identical DQL and parameters count the same rows, so the second COUNT of a draw can be skipped.
+     */
+    private function isSameCountQuery(QueryBuilder $base, QueryBuilder $filtered): bool
+    {
+        $base     = (clone $base)->resetDQLPart('orderBy');
+        $filtered = (clone $filtered)->resetDQLPart('orderBy');
+
+        return $base->getDQL() === $filtered->getDQL()
+            && $this->parameterValues($base) == $this->parameterValues($filtered);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function parameterValues(QueryBuilder $qb): array
+    {
+        $values = [];
+        foreach ($qb->getParameters() as $parameter) {
+            $values[$parameter->getName()] = $parameter->getValue();
+        }
+
+        return $values;
+    }
+
     private function count(QueryBuilder $qb, string $alias): int
     {
         $qb = (clone $qb)->resetDQLPart('orderBy');
