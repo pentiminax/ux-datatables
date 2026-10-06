@@ -1,3 +1,4 @@
+import { isRecord } from './htmlUtils.js';
 export function resolveColumnDataKey(column) {
     if (column.customOptions?.templatePath) {
         return column.data ?? column.name;
@@ -33,9 +34,6 @@ function resolveRowIdField(highlight) {
     const idField = highlight.idField;
     return 'string' === typeof idField && '' !== idField ? idField : DEFAULT_ROW_ID_FIELD;
 }
-function isRecord(value) {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 function nextDayDateOnly(value) {
     const match = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(value);
     if (!match) {
@@ -52,10 +50,7 @@ function nextDayDateOnly(value) {
         return null;
     }
     date.setUTCDate(date.getUTCDate() + 1);
-    const nextYear = String(date.getUTCFullYear()).padStart(4, '0');
-    const nextMonth = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const nextDay = String(date.getUTCDate()).padStart(2, '0');
-    return `${nextYear}-${nextMonth}-${nextDay}`;
+    return date.toISOString().slice(0, 10);
 }
 export class ApiPlatformAdapter {
     constructor(columns) {
