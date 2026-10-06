@@ -66,10 +66,15 @@ indexes. It is what lets a non-Doctrine provider consume the same criteria.
 | `limit`          | `?int`                                                    | Page length; `null` means unpaginated              |
 | `columns`        | `list<ColumnReadReference>`                               | Requested columns, in request order                |
 | `globalSearch`   | `?string`                                                 | Trimmed global search term, `null` when empty      |
-| `orderColumn`    | `?ColumnReadReference`                                    | Column to order by                                 |
-| `orderDir`       | `'asc'\|'desc'\|null`                                     | Order direction                                    |
+| `orderColumn`    | `?ColumnReadReference`                                    | First column to order by                           |
+| `orderDir`       | `'asc'\|'desc'\|null`                                     | Direction of the first criterion                   |
+| `orders`         | `list<array{column: ColumnReadReference, dir: 'asc'\|'desc'}>` | Every ordering criterion, in request order    |
 | `columnSearches` | `list<array{column: ColumnReadReference, value: string}>` | Per-column search box terms                        |
 | `columnControls` | `list<ColumnControlIntent>`                               | ColumnControl scalar and list criteria             |
+
+Shift-clicking a second header, or declaring `order([[1, 'asc'], [2, 'desc']])`, sends several
+criteria. Unknown, non-orderable, and repeated columns are dropped. `orderColumn` and `orderDir` keep
+mirroring the first remaining criterion, so a custom filter that only reads them keeps working.
 
 A `ColumnReadReference` carries the column's `name`, its `fieldPath`, and whether it is
 `globalSearchable` — enough to know what to read without knowing how to read it. The Doctrine-only
@@ -83,7 +88,7 @@ parameter-index scope between each:
 
 | #   | Filter                      | What it applies                                                                          |
 | --- | --------------------------- | ---------------------------------------------------------------------------------------- |
-| 1   | `OrderFilter`               | `orderColumn` / `orderDir`, using the column's order expression when it defines one      |
+| 1   | `OrderFilter`               | `orders`, one `ORDER BY` each, using the column's order expression when it defines one   |
 | 2   | `GlobalSearchFilter`        | `globalSearch`, one predicate per globally searchable column, combined with `OR`         |
 | 3   | `ColumnSearchFilter`        | `columnSearches`, one AND condition each, via the registry's `contains` strategy         |
 | 4   | `ColumnControlSearchFilter` | `columnControls`: list criteria as typed `IN` branches, scalar criteria via the registry |

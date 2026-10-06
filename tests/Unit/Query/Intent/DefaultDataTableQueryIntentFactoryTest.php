@@ -42,10 +42,10 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
             'desc',
         ];
 
-        yield 'multiple orders' => [
+        yield 'the same column requested twice keeps its first direction' => [
             TextColumn::new('name', 'Name')->setField('name'),
             [new Order(0, 'asc', 'name'), new Order(0, 'desc', 'name')],
-            null,
+            'asc',
         ];
 
         yield 'unknown column name' => [
@@ -171,6 +171,50 @@ final class DefaultDataTableQueryIntentFactoryTest extends TestCase
         self::assertNotNull($intent->orderColumn);
         self::assertSame($column->getName(), $intent->orderColumn->name);
         self::assertSame($expectedDirection, $intent->orderDir);
+    }
+
+    #[Test]
+    public function it_builds_every_order_criterion_in_request_order(): void
+    {
+        $city = TextColumn::new('city', 'City')->setField('city');
+        $name = TextColumn::new('name', 'Name')->setField('name');
+        $age  = NumberColumn::new('age', 'Age')->setField('age');
+
+        $request = new DataTableRequest(1, $this->requestColumns($city), order: [
+            new Order(1, 'asc', 'city'),
+            new Order(2, 'DESC', 'age'),
+            new Order(0, 'asc', 'name'),
+        ]);
+
+        $intent = $this->intent($request, $name, $city, $age);
+
+        self::assertSame(
+            [['city', 'asc'], ['age', 'desc'], ['name', 'asc']],
+            array_map(static fn (array $order): array => [$order['column']->name, $order['dir']], $intent->orders),
+        );
+        self::assertSame('city', $intent->orderColumn?->name);
+        self::assertSame('asc', $intent->orderDir);
+    }
+
+    #[Test]
+    public function it_skips_unknown_and_non_orderable_columns_among_several_criteria(): void
+    {
+        $name   = TextColumn::new('name', 'Name')->setField('name');
+        $secret = TextColumn::new('secret', 'Secret')->setField('secret')->setOrderable(false);
+        $city   = TextColumn::new('city', 'City')->setField('city');
+
+        $request = new DataTableRequest(1, $this->requestColumns($name), order: [
+            new Order(1, 'asc', 'secret'),
+            new Order(9, 'asc', 'column_9'),
+            new Order(2, 'desc', 'city'),
+            new Order(0, 'asc', 'name'),
+        ]);
+
+        $intent = $this->intent($request, $name, $secret, $city);
+
+        self::assertSame(['city', 'name'], array_map(static fn (array $order): string => $order['column']->name, $intent->orders));
+        self::assertSame('city', $intent->orderColumn?->name);
+        self::assertSame('desc', $intent->orderDir);
     }
 
     #[Test]

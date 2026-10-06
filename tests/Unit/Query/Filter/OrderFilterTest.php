@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\Query\DoctrineSortDirection;
 use Pentiminax\UX\DataTables\Query\Filter\OrderFilter;
+use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsQueryFilterContext;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -117,6 +118,67 @@ final class OrderFilterTest extends TestCase
         $request        = new DataTableRequest(1, $requestColumns, order: $order);
 
         (new OrderFilter())->apply($qb, $this->context($request, $columns));
+    }
+
+    #[Test]
+    public function it_applies_every_order_criterion_in_request_order(): void
+    {
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+
+        $calls = [];
+        $qb->expects($this->exactly(3))->method('addOrderBy')->willReturnCallback(function (string $sort, mixed $order) use (&$calls, $qb): QueryBuilder {
+            $calls[] = [$sort, $order];
+
+            return $qb;
+        });
+
+        $columns = [
+            TextColumn::new('city', 'City')->setField('city'),
+            TextColumn::new('invoiceCount', 'Invoices')->setOrderExpression('invoiceCount'),
+            TextColumn::new('name', 'Name')->setField('name'),
+        ];
+
+        $request = new DataTableRequest(
+            1,
+            new Columns(['city' => new Column('city', 'city', true, true)]),
+            order: [new Order(0, 'asc', 'city'), new Order(1, 'desc', 'invoiceCount'), new Order(2, 'asc', 'name')],
+        );
+
+        (new OrderFilter())->apply($qb, $this->context($request, $columns));
+
+        $this->assertEquals([
+            ['e.city', DoctrineSortDirection::from('asc')],
+            ['invoiceCount', DoctrineSortDirection::from('desc')],
+            ['e.name', DoctrineSortDirection::from('asc')],
+        ], $calls);
+    }
+
+    #[Test]
+    public function it_falls_back_to_the_single_order_column_when_an_intent_carries_no_orders(): void
+    {
+        $column = TextColumn::new('name', 'Name')->setField('name');
+        $intent = $this->orderedContext($column, 'desc')->intent;
+
+        $legacyIntent = new DataTableQueryIntent(
+            draw: $intent->draw,
+            offset: $intent->offset,
+            limit: $intent->limit,
+            columns: $intent->columns,
+            globalSearch: null,
+            orderColumn: $intent->orderColumn,
+            orderDir: $intent->orderDir,
+            columnSearches: [],
+            columnControls: [],
+        );
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+        $qb->expects($this->once())
+            ->method('addOrderBy')
+            ->with('e.name', DoctrineSortDirection::from('desc'));
+
+        (new OrderFilter())->apply($qb, new QueryFilterContext($legacyIntent, ['name' => $column], 'e'));
     }
 
     #[Test]
