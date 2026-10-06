@@ -41,7 +41,7 @@ sorting, searching, and paging in the browser as long as `serverSide(true)` is n
     [
       '`setData()`',
       'You have domain objects and want the `AbstractDataTable` row pipeline',
-      'Runs `mapRow()`, template rendering, and typed action resolution',
+      'Reads each column from the object, formats values, renders templates, and resolves typed actions',
     ],
     [
       '`ajax()`',
@@ -141,19 +141,11 @@ final class UsersDataTable extends AbstractDataTable
 {
     public function configureColumns(): iterable
     {
-        yield TextColumn::new('fullName', 'Name');
+        yield TextColumn::new('fullName', 'Name')
+            ->setField('lastName')
+            ->formatValueUsing(static fn (?string $lastName, User $user): string => $user->getFirstName().' '.$lastName);
         yield EmailColumn::new('email', 'Email');
         yield TextColumn::new('role', 'Role');
-    }
-
-    protected function mapRow(mixed $row): array
-    {
-        /** @var User $row */
-        return [
-            'fullName' => $row->getFirstName().' '.$row->getLastName(),
-            'email' => $row->getEmail(),
-            'role' => $row->getRole()->value,
-        ];
     }
 
     public function configureActions(Actions $actions): Actions
@@ -192,7 +184,9 @@ final class UserController extends AbstractController
 
 `setData()` is the right choice when you need:
 
-- `mapRow()` to turn domain objects into arrays
+- columns that read their own property, with `formatValueUsing()` for a computed cell
+- `mapRow()` only when the whole row needs reshaping, such as a DTO or a row with no matching
+  property
 - template columns to render before the payload is exposed to the browser
 - typed action closures such as `static fn (User $user) => ...`
 
