@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
+use Pentiminax\UX\DataTables\Query\CollectionJoinDetector;
 use Pentiminax\UX\DataTables\Query\DoctrineSortDirection;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
@@ -80,7 +81,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             $qb->setMaxResults($request->length);
         }
 
-        $items         = array_values($qb->getQuery()->getResult());
+        $items         = $this->fetchPage($qb, $alias);
         $pageProjector = $this->pageProjector;
         $projectedRaw  = null !== $pageProjector ? ($pageProjector)($items) : null;
         $projected     = null === $projectedRaw ? null : array_values($projectedRaw);
@@ -102,6 +103,58 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             recordsFiltered: $filteredCount,
             data: $rows
         );
+    }
+
+    /**
+     * LIMIT/OFFSET count SQL rows. A query joining a collection-valued association returns each
+     * root once per joined row, so the database would cut pages by joined rows and the hydrator
+     * would then collapse the repeated roots: pages come back short, overlap, and some roots are
+     * never shown. Such a query pages distinct root identifiers instead, then loads that page.
+     * Any other query keeps its own LIMIT/OFFSET and costs no extra query.
+     *
+     * A GROUP BY query already yields one row per root, and a composite identifier cannot be
+     * listed in a single IN, so both keep the plain path.
+     *
+     * @return list<mixed>
+     */
+    private function fetchPage(QueryBuilder $qb, string $alias): array
+    {
+        $metadata = $this->em->getClassMetadata($this->entityClass);
+
+        if (
+            [] !== $qb->getDQLPart('groupBy')
+            || $metadata->isIdentifierComposite
+            || !CollectionJoinDetector::joinsCollection($qb, $this->em, $alias, $this->entityClass)
+        ) {
+            return array_values($qb->getQuery()->getResult());
+        }
+
+        $identifier = $metadata->getSingleIdentifierFieldName();
+        $ids        = $this->scopedIdentifiers($qb, $alias, $identifier);
+
+        if ([] === $ids) {
+            return [];
+        }
+
+        $items = (clone $qb)
+            ->setFirstResult(null)
+            ->setMaxResults(null)
+            ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_page_ids'))
+            ->setParameter('ux_datatables_page_ids', $ids)
+            ->getQuery()
+            ->getResult();
+
+        $positions = array_flip(array_map($this->identifierKey(...), $ids));
+
+        usort($items, fn (mixed $left, mixed $right): int => $positions[$this->identifierKey($metadata->getFieldValue($this->rootEntity($left), $identifier))]
+            <=> $positions[$this->identifierKey($metadata->getFieldValue($this->rootEntity($right), $identifier))]);
+
+        return $items;
+    }
+
+    private function identifierKey(mixed $identifier): string
+    {
+        return (string) ($identifier instanceof \BackedEnum ? $identifier->value : $identifier);
     }
 
     /**
