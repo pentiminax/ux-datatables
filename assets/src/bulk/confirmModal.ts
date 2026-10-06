@@ -19,7 +19,7 @@ export interface ConfirmRequest {
  * `#ux-datatables-edit-form` for their submit button to fire. A dedicated confirm contract on
  * ModalAdapter would drop this, but it would break every custom adapter.
  */
-export async function confirmBulkAction(request: ConfirmRequest): Promise<boolean> {
+export async function confirmAction(request: ConfirmRequest): Promise<boolean> {
     const modal = await resolveModalAdapter(request.adapterKey ?? null, request.framework)
 
     if (!modal) {
@@ -53,6 +53,11 @@ export async function confirmBulkAction(request: ConfirmRequest): Promise<boolea
         })
     })
 }
+
+/**
+ * @deprecated since v1.2.0, use confirmAction(). It will be removed in v2.0.
+ */
+export const confirmBulkAction = confirmAction
 
 function buildHtml(request: ConfirmRequest): string {
     const message = escapeHtml(request.message)
