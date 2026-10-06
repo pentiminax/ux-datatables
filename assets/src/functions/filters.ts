@@ -1,5 +1,6 @@
 import type { StyleFramework } from '../types/styleFramework.js'
 import { applyFeatureLayout } from './featureLayout.js'
+import { isRecord } from './htmlUtils.js'
 import { createPopover, type Popover } from './popover.js'
 
 export type FilterType = 'text' | 'select' | 'ternary' | 'dateRange' | 'checkbox'
@@ -38,10 +39,6 @@ interface FilterControl {
 
 const BOOTSTRAP_FRAMEWORKS: StyleFramework[] = ['bs', 'bs4', 'bs5']
 
-function isPlainRecord(value: unknown): value is Record<string, any> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
 function isBootstrap(framework: StyleFramework): boolean {
     return BOOTSTRAP_FRAMEWORKS.includes(framework)
 }
@@ -74,7 +71,7 @@ function normalizeValue(value: unknown): FilterValue | null {
             .map(String)
         return items.length === 0 ? null : items
     }
-    if (!isPlainRecord(value)) return null
+    if (!isRecord(value)) return null
 
     const from = isFilledString(value.from) ? value.from : undefined
     const to = isFilledString(value.to) ? value.to : undefined
@@ -177,7 +174,7 @@ export class FilterBar {
      * Restore previously saved filter values (e.g. from stateSave).
      */
     restoreValues(values: unknown): void {
-        if (!isPlainRecord(values)) {
+        if (!isRecord(values)) {
             return
         }
 
@@ -244,7 +241,7 @@ export class FilterBar {
                 return null
             }
             case 'dateRange':
-                return isPlainRecord(value) ? value : null
+                return isRecord(value) ? value : null
             default:
                 return typeof value === 'string' ? value : null
         }

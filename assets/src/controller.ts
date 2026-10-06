@@ -38,8 +38,8 @@ import {
     loadLucideIcons,
 } from './functions/lucideIcons.js'
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
+import { type RowActionOutcome, runRowAction } from './functions/rowActionFeedback.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
-import { runRowAction } from './functions/rowActionFeedback.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
 import { shiftOrderForSelectColumn } from './functions/shiftOrderForSelectColumn.js'
 import { submitEditForm } from './functions/submitEditForm.js'
@@ -630,7 +630,7 @@ export default class extends Controller {
                         }
                     )
 
-                    if (deleted) {
+                    if (deleted?.ok) {
                         this.table?.ajax?.reload(null, false)
                     }
                 }
@@ -644,7 +644,6 @@ export default class extends Controller {
                     )
                     if (!modal) return
 
-                    let formHtml = ''
                     const loaded = await this.runRowAction(
                         actionButton,
                         'EDIT',
@@ -652,21 +651,16 @@ export default class extends Controller {
                         payload,
                         async () => {
                             const result = await fetchEditForm({ dataTable, id })
-                            formHtml = result.html
 
-                            return { ok: result.success, response: result.response }
+                            return { ok: result.success, ...result }
                         },
                         false
                     )
 
-                    if (loaded) {
-                        await modal.show(formHtml, {
+                    if (loaded?.ok) {
+                        await modal.show(loaded.html, {
                             onSubmit: async (formData) => {
-                                const saved: {
-                                    result?: Awaited<ReturnType<typeof submitEditForm>>
-                                } = {}
-
-                                await this.runRowAction(
+                                const saved = await this.runRowAction(
                                     actionButton,
                                     'EDIT',
                                     id,
@@ -679,17 +673,15 @@ export default class extends Controller {
                                             csrfToken: this.getCsrfToken(payload),
                                         })
 
-                                        saved.result = result
-
-                                        return { ok: result.success, response: result.response }
+                                        return { ok: result.success, ...result }
                                     }
                                 )
 
-                                if (saved.result?.success) {
+                                if (saved?.ok) {
                                     await modal.hide()
                                     this.table?.ajax?.reload(null, false)
-                                } else if (saved.result?.html) {
-                                    modal.replaceBody(saved.result.html)
+                                } else if (saved?.html) {
+                                    modal.replaceBody(saved.html)
                                 }
                             },
                         })
@@ -699,14 +691,14 @@ export default class extends Controller {
         )
     }
 
-    private runRowAction(
+    private runRowAction<T extends RowActionOutcome>(
         element: HTMLElement,
         actionType: string,
         id: string,
         payload: Record<string, any>,
-        run: () => Promise<{ ok: boolean; response?: Response }>,
+        run: () => Promise<T>,
         reportSuccess = true
-    ): Promise<boolean> {
+    ): Promise<T | null> {
         return runRowAction({
             reportSuccess,
             element,
@@ -795,7 +787,7 @@ export default class extends Controller {
                 return { ok: response.ok, response }
             })
 
-            if (!toggled) {
+            if (!toggled?.ok) {
                 target.checked = previousState
             }
         })
