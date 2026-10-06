@@ -51,6 +51,24 @@ final class MercureUpdatePublisherTest extends TestCase
     }
 
     #[Test]
+    public function it_publishes_private_updates_only_through_publish_private(): void
+    {
+        $privacy = [];
+        $hub     = $this->createMock(HubInterface::class);
+        $hub->method('publish')->willReturnCallback(static function (Update $update) use (&$privacy): string {
+            $privacy[] = $update->isPrivate();
+
+            return 'urn:uuid:1';
+        });
+
+        $publisher = new MercureUpdatePublisher($hub);
+        $publisher->publish('/topic', ['type' => 'edit']);
+        $publisher->publishPrivate('/topic', ['type' => 'edit']);
+
+        $this->assertSame([false, true], $privacy);
+    }
+
+    #[Test]
     public function it_does_not_publish_when_topics_is_an_empty_array(): void
     {
         $hub = $this->createMock(HubInterface::class);
