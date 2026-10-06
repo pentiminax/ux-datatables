@@ -141,11 +141,9 @@ final class RenderingPreparer
     }
 
     /**
-     * The browser reads a serialized `apiPlatform` flag as "query the collection yourself", which a
-     * table opted in through `apiPlatform()` but left without a collection URL cannot do.
-     *
-     * Withdrawn last: earlier, the table would resolve as ClientHydrated or ServerSide and read
-     * its rows around the collection's authorization.
+     * The browser reads the `apiPlatform` flag as "query the collection yourself", which a table
+     * without a collection URL cannot do. Withdrawn last: earlier, the table would resolve as
+     * ClientHydrated or ServerSide and read its rows around the collection's authorization.
      */
     private function withdrawUnreadApiPlatformOptIn(DataTable $table, ?AsDataTable $asDataTable): void
     {
