@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Mutation;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Events;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -243,6 +244,117 @@ final class BulkActionRunnerTest extends TestCase
         }
 
         $this->assertFalse($handled);
+    }
+
+    #[Test]
+    public function it_keeps_a_forged_identifier_outside_the_table_scope_away_from_the_handler(): void
+    {
+        $seen   = [];
+        $action = BulkAction::new('touch')->handler(function (BulkRecords $records) use (&$seen): void {
+            foreach ($records as $customer) {
+                $seen[] = $customer->name;
+            }
+        });
+
+        $table = $this->resolved($action, scope: static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->andWhere('e.name <> :hidden')
+            ->setParameter('hidden', 'Delta'));
+
+        $result = $this->runner()->run($table, $action, new BulkSelection(ids: [1, 4, 3, 99]), new Request());
+
+        $this->assertSame(['Alpha', 'Gamma'], $seen);
+        $this->assertSame(2, $result->processed);
+        $this->assertSame(2, $result->skipped);
+    }
+
+    #[Test]
+    public function it_applies_the_table_scope_to_ids_sent_as_strings(): void
+    {
+        $seen   = [];
+        $action = BulkAction::new('touch')->handler(function (BulkRecords $records) use (&$seen): void {
+            foreach ($records as $customer) {
+                $seen[] = $customer->name;
+            }
+        });
+
+        $table = $this->resolved($action, scope: static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->andWhere('e.name <> :hidden')
+            ->setParameter('hidden', 'Delta'));
+
+        $result = $this->runner()->run($table, $action, new BulkSelection(ids: ['2', '4']), new Request());
+
+        $this->assertSame(['Beta'], $seen);
+        $this->assertSame(1, $result->skipped);
+    }
+
+    #[Test]
+    public function it_checks_the_scope_against_the_configured_identifier_field(): void
+    {
+        $seen   = [];
+        $action = BulkAction::new('touch')->handler(function (BulkRecords $records) use (&$seen): void {
+            foreach ($records as $customer) {
+                $seen[] = $customer->name;
+            }
+        });
+
+        $table = $this->resolved($action, scope: static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->andWhere('e.name <> :hidden')
+            ->setParameter('hidden', 'Delta'));
+        $table->table->getConfiguredDataTable()->getBulkActions()?->setIdField('name');
+
+        $result = $this->runner()->run($table, $action, new BulkSelection(ids: ['Beta', 'Delta']), new Request());
+
+        $this->assertSame(['Beta'], $seen);
+        $this->assertSame(1, $result->skipped);
+    }
+
+    #[Test]
+    public function it_reports_every_selected_row_as_skipped_when_none_is_in_scope(): void
+    {
+        $handled = false;
+        $action  = BulkAction::new('touch')->handler(function (BulkRecords $records) use (&$handled): void {
+            foreach ($records as $ignored) {
+                $handled = true;
+            }
+        });
+
+        $table = $this->resolved($action, scope: static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->andWhere('e.name = :only')
+            ->setParameter('only', 'Alpha'));
+
+        $result = $this->runner()->run($table, $action, new BulkSelection(ids: [2, 3]), new Request());
+
+        $this->assertFalse($handled);
+        $this->assertSame(0, $result->processed);
+        $this->assertSame(2, $result->skipped);
+    }
+
+    #[Test]
+    public function it_keeps_the_explicit_selection_when_the_provider_cannot_check_the_scope(): void
+    {
+        $provider = new class implements DataProviderInterface {
+            public function fetchData(DataTableRequest $request): DataTableResult
+            {
+                return new DataTableResult(0, 0, []);
+            }
+        };
+
+        $seen   = [];
+        $action = BulkAction::new('touch')->handler(function (BulkRecords $records) use (&$seen): void {
+            foreach ($records as $customer) {
+                $seen[] = $customer->name;
+            }
+        });
+
+        $result = $this->runner()->run(
+            $this->resolved($action, provider: $provider),
+            $action,
+            new BulkSelection(ids: [1, 4]),
+            new Request(),
+        );
+
+        $this->assertSame(['Alpha', 'Delta'], $seen);
+        $this->assertSame(0, $result->skipped);
     }
 
     #[Test]
@@ -747,13 +859,16 @@ final class BulkActionRunnerTest extends TestCase
         bool $currentPageOnly = false,
         ?DataProviderInterface $provider = null,
         ?string $idField = null,
+        ?callable $scope = null,
     ): ResolvedDataTable {
         $table = new ConfigurableDataTable(
             columnsConfig: [TextColumn::new('id'), TextColumn::new('name')],
             configureTable: static fn (DataTable $table): DataTable => $table->serverSide(),
-            dataProvider: $provider ?? ($withProvider ? new DoctrineDataProvider(
+            dataProvider: $provider ?? ($withProvider || null !== $scope ? new DoctrineDataProvider(
                 em: $this->em,
                 entityClass: CountCustomer::class,
+                configureBaseQueryBuilder: $scope,
+                configureQueryBuilder: $scope,
                 rowMapper: new class implements \Pentiminax\UX\DataTables\Contracts\RowMapperInterface {
                     public function map(mixed $row): array
                     {

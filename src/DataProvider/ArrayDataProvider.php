@@ -209,30 +209,57 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
      */
     private function sort(array &$items, DataTableQueryIntent $intent): void
     {
-        $column = $intent->orderColumn;
+        $orders = $this->orders($intent);
 
-        if (null === $column) {
+        if ([] === $orders) {
             return;
         }
 
-        $descending = 'desc' === $intent->orderDir;
+        usort($items, function (object $left, object $right) use ($orders): int {
+            foreach ($orders as $order) {
+                $comparison = $this->compare($left, $right, $order['column'], 'desc' === $order['dir']);
 
-        usort($items, function (object $left, object $right) use ($column, $descending): int {
-            $leftValue  = $this->readValue($left, $column);
-            $rightValue = $this->readValue($right, $column);
-
-            // Rows without a value sort last in both directions rather than flooding the
-            // first page of a descending sort.
-            if (null === $leftValue || null === $rightValue) {
-                return (null === $leftValue ? 1 : 0) <=> (null === $rightValue ? 1 : 0);
+                if (0 !== $comparison) {
+                    return $comparison;
+                }
             }
 
-            $comparison = \is_string($leftValue) && \is_string($rightValue)
-                ? strnatcasecmp($leftValue, $rightValue)
-                : $leftValue <=> $rightValue;
-
-            return $descending ? -$comparison : $comparison;
+            return 0;
         });
+    }
+
+    /**
+     * @return list<array{column: ColumnReadReference, dir: 'asc'|'desc'}>
+     */
+    private function orders(DataTableQueryIntent $intent): array
+    {
+        if ([] !== $intent->orders) {
+            return $intent->orders;
+        }
+
+        if (null === $intent->orderColumn) {
+            return [];
+        }
+
+        return [['column' => $intent->orderColumn, 'dir' => 'desc' === $intent->orderDir ? 'desc' : 'asc']];
+    }
+
+    private function compare(object $left, object $right, ColumnReadReference $column, bool $descending): int
+    {
+        $leftValue  = $this->readValue($left, $column);
+        $rightValue = $this->readValue($right, $column);
+
+        // Rows without a value sort last in both directions rather than flooding the
+        // first page of a descending sort.
+        if (null === $leftValue || null === $rightValue) {
+            return (null === $leftValue ? 1 : 0) <=> (null === $rightValue ? 1 : 0);
+        }
+
+        $comparison = \is_string($leftValue) && \is_string($rightValue)
+            ? strnatcasecmp($leftValue, $rightValue)
+            : $leftValue <=> $rightValue;
+
+        return $descending ? -$comparison : $comparison;
     }
 
     /**

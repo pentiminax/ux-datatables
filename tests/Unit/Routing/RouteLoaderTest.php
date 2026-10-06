@@ -50,6 +50,19 @@ final class RouteLoaderTest extends TestCase
     }
 
     #[Test]
+    public function it_does_not_implement_the_deprecated_route_loader_marker_interface(): void
+    {
+        $this->assertSame([], class_implements(RouteLoader::class));
+    }
+
+    #[Test]
+    public function it_is_registered_with_the_route_loader_tag(): void
+    {
+        $this->assertTrue($this->container->has('datatables.route_loader'));
+        $this->assertInstanceOf(RouteLoader::class, $this->container->get('datatables.route_loader'));
+    }
+
+    #[Test]
     public function it_does_not_load_the_removed_edit_by_id_route(): void
     {
         $this->assertNull((new RouteLoader())->loadRoutes()->get('ux_datatables_ajax_edit_by_id'));

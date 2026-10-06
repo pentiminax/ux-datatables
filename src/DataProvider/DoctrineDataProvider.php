@@ -4,19 +4,28 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\DataProvider;
 
+use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Types\ConversionException;
+use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\Contracts\ScopedIdentifierProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
+use Pentiminax\UX\DataTables\Query\CollectionJoinDetector;
 use Pentiminax\UX\DataTables\Query\DoctrineSortDirection;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
-class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectingDataProviderInterface, StreamingDataProviderInterface
+class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectingDataProviderInterface, ScopedIdentifierProviderInterface, StreamingDataProviderInterface
 {
+    private const int IN_SCOPE_CHUNK_SIZE = 500;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly string $entityClass,
@@ -80,7 +89,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             $qb->setMaxResults($request->length);
         }
 
-        $items         = array_values($qb->getQuery()->getResult());
+        $items         = $this->fetchPage($qb, $alias);
         $pageProjector = $this->pageProjector;
         $projectedRaw  = null !== $pageProjector ? ($pageProjector)($items) : null;
         $projected     = null === $projectedRaw ? null : array_values($projectedRaw);
@@ -102,6 +111,57 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             recordsFiltered: $filteredCount,
             data: $rows
         );
+    }
+
+    /**
+     * LIMIT/OFFSET count SQL rows. A query joining a collection-valued association returns each
+     * root once per joined row, so the database would cut pages by joined rows and the hydrator
+     * would then collapse the repeated roots: pages come back short, overlap, and some roots are
+     * never shown. Such a query pages distinct root identifiers instead, then loads that page.
+     * Any other query keeps its own LIMIT/OFFSET and costs no extra query.
+     *
+     * A GROUP BY query already yields one row per root, and a composite identifier cannot be
+     * listed in a single IN, so both keep the plain path.
+     *
+     * @return list<mixed>
+     */
+    private function fetchPage(QueryBuilder $qb, string $alias): array
+    {
+        $metadata = $this->em->getClassMetadata($this->entityClass);
+
+        if (
+            [] !== $qb->getDQLPart('groupBy')
+            || $metadata->isIdentifierComposite
+            || !$metadata->hasField($metadata->getSingleIdentifierFieldName())
+            || !CollectionJoinDetector::joinsCollection($qb, $this->em, $alias, $this->entityClass)
+        ) {
+            return array_values($qb->getQuery()->getResult());
+        }
+
+        $identifier = $metadata->getSingleIdentifierFieldName();
+        $ids        = $this->scopedIdentifiers($qb, $alias, $identifier);
+
+        if ([] === $ids) {
+            return [];
+        }
+
+        $type  = $this->fieldType($metadata, $identifier);
+        $items = (clone $qb)
+            ->setFirstResult(null)
+            ->setMaxResults(null)
+            ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_page_ids'))
+            ->setParameter('ux_datatables_page_ids', $ids, $this->arrayBindingType($type))
+            ->getQuery()
+            ->getResult();
+
+        // The identifier query returns raw column values and the entities carry hydrated ones;
+        // converting the entity side back to what the column holds makes the two comparable.
+        $positions = array_flip(array_map($this->databaseKey(...), $ids));
+        $position  = fn (mixed $item): int => $positions[$this->databaseKey($this->toDatabaseValue($type, $metadata->getFieldValue($this->rootEntity($item), $identifier)))] ?? \PHP_INT_MAX;
+
+        usort($items, static fn (mixed $left, mixed $right): int => $position($left) <=> $position($right));
+
+        return $items;
     }
 
     /**
@@ -178,6 +238,120 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         [$qb, $alias, $identifier] = $this->buildIdentifierScopedQuery($request, $field);
 
         return $this->normalizeIdentifiers($this->scopedIdentifiers($qb, $alias, $identifier));
+    }
+
+    /**
+     * Asks the database which of $ids the permanent scope (customizeQueryBuilder() alone, the same
+     * query recordsTotal counts) contains.
+     *
+     * Interactive search, ordering and filters are left out on purpose: a row the user filtered
+     * away is still theirs to act on, while a row outside the permanent scope never was.
+     */
+    public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+    {
+        $metadata = $this->em->getClassMetadata($this->entityClass);
+
+        if (!$metadata->hasField($field) && !\in_array($field, $metadata->getIdentifier(), true)) {
+            throw new \LogicException(\sprintf('"%s" is not a mapped field of "%s", so identifiers cannot be checked against the table scope.', $field, $this->entityClass));
+        }
+
+        $type       = $this->fieldType($metadata, $field);
+        $expression = $metadata->hasField($field) ? "e.$field" : "IDENTITY(e.$field)";
+
+        $databaseValues = [];
+        foreach ($ids as $id) {
+            $value = $this->toDatabaseValue($type, $id);
+
+            if (null !== $value) {
+                $databaseValues[$this->databaseKey($value)] = $value;
+            }
+        }
+
+        $inScope = [];
+
+        foreach (array_chunk(array_values($databaseValues), self::IN_SCOPE_CHUNK_SIZE) as $chunk) {
+            $qb = $this->em
+                ->createQueryBuilder()
+                ->select('e')
+                ->from($this->entityClass, 'e');
+
+            if ($this->configureBaseQueryBuilder) {
+                $qb = ($this->configureBaseQueryBuilder)($qb, $request);
+            }
+
+            $scoped = (clone $qb)
+                ->select("DISTINCT $expression")
+                ->resetDQLPart('orderBy')
+                ->setFirstResult(null)
+                ->setMaxResults(null)
+                ->andWhere($qb->expr()->in($expression, ':ux_datatables_scope_ids'))
+                ->setParameter('ux_datatables_scope_ids', $chunk, $this->arrayBindingType($type));
+
+            // A HAVING may name a computed alias, which only exists while its SELECT part does.
+            foreach ($this->orderDependentSelectParts($qb, 'e') as $part) {
+                $scoped->addSelect($part);
+            }
+
+            $rows = $scoped->getQuery()->getScalarResult();
+
+            foreach ($rows as $row) {
+                $column = reset($row);
+                $value  = \is_object($column) ? $this->toDatabaseValue($type, $column) : $column;
+
+                if (null !== $value) {
+                    $inScope[$this->databaseKey($value)] = true;
+                }
+            }
+        }
+
+        return array_values(array_filter($ids, function (int|string $id) use ($type, $inScope): bool {
+            $value = $this->toDatabaseValue($type, $id);
+
+            return null !== $value && isset($inScope[$this->databaseKey($value)]);
+        }));
+    }
+
+    private function fieldType(ClassMetadata $metadata, string $field): ?Type
+    {
+        $name = $metadata->getTypeOfField($field);
+
+        return null === $name ? null : Type::getType($name);
+    }
+
+    /**
+     * The value as the database stores it, which is what an IN list is compared with.
+     *
+     * A Doctrine type may store an identifier differently from the string the browser sends (a
+     * binary UUID, a prefixed key), so the browser's value, the hydrated PHP value and the raw
+     * column value only compare equal once they go through the same conversion. A value the type
+     * refuses cannot name a row, so it comes back as null.
+     */
+    private function toDatabaseValue(?Type $type, mixed $value): mixed
+    {
+        if (null === $type) {
+            return $value;
+        }
+
+        try {
+            return $type->convertToDatabaseValue($value, $this->em->getConnection()->getDatabasePlatform());
+        } catch (ConversionException) {
+            return null;
+        }
+    }
+
+    private function databaseKey(mixed $databaseValue): string
+    {
+        return (string) $databaseValue;
+    }
+
+    private function arrayBindingType(?Type $type): ArrayParameterType|int
+    {
+        return match ($type?->getBindingType()) {
+            ParameterType::INTEGER => ArrayParameterType::INTEGER,
+            ParameterType::BINARY  => ArrayParameterType::BINARY,
+            ParameterType::ASCII   => ArrayParameterType::ASCII,
+            default                => ArrayParameterType::STRING,
+        };
     }
 
     /**
@@ -268,7 +442,14 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             ? $idQb->getQuery()->getSingleColumnResult()
             : $this->identifiersFromScalarResult($idQb);
 
-        return array_values(array_unique($ids, \SORT_REGULAR));
+        // Compared as exact strings: SORT_REGULAR compares numeric strings as numbers, which would
+        // merge the distinct VARCHAR keys "01" and "1" into one and make a row unreachable.
+        $unique = [];
+        foreach ($ids as $id) {
+            $unique[$this->databaseKey($id)] ??= $id;
+        }
+
+        return array_values($unique);
     }
 
     /**

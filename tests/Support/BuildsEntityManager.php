@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Support;
 
+use Doctrine\DBAL\Driver\Middleware;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,10 +25,21 @@ trait BuildsEntityManager
      */
     protected function createEntityManager(string ...$entityClasses): EntityManagerInterface
     {
+        return $this->createEntityManagerWithMiddlewares([], ...$entityClasses);
+    }
+
+    /**
+     * @param list<Middleware> $middlewares      DBAL middlewares wrapping the connection's driver
+     * @param class-string     ...$entityClasses the entities whose schema is created
+     */
+    protected function createEntityManagerWithMiddlewares(array $middlewares, string ...$entityClasses): EntityManagerInterface
+    {
         $config = ORMSetup::createAttributeMetadataConfiguration(
             paths: [__DIR__.'/../Fixtures/Count'],
             isDevMode: true,
         );
+
+        $config->setMiddlewares($middlewares);
 
         if (\PHP_VERSION_ID >= 80400) {
             $config->enableNativeLazyObjects(true);

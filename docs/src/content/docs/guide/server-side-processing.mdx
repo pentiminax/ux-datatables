@@ -261,8 +261,13 @@ protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $req
 ```
 
 Prefer a **correlated scalar subquery** (as above) over a `leftJoin` + `groupBy`: joining a
-to-many relation inflates the counts (cartesian product) and changes pagination. A scalar subquery
-keeps one row per root entity, so `LIMIT`/`OFFSET` paginate correctly.
+to-many relation inflates the counts (cartesian product). A scalar subquery keeps one row per root
+entity and needs no extra query.
+
+When a query does join a to-many association — a searchable `tags.label` column, a filter, or a
+`leftJoin()` in `customizeQueryBuilder()` — the provider pages distinct root identifiers instead of
+joined rows, at the cost of one extra query per draw that lists every matching root identifier. Pages stay full
+and never overlap; on a very large result set, a correlated subquery stays cheaper.
 
 <Aside type="note">
   `setOrderExpression()` only affects ordering. Search resolves the column's field independently —

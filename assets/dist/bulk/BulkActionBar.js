@@ -171,7 +171,7 @@ export class BulkActionBar {
                 ids: snapshot.ids,
                 allMatching: snapshot.allMatching,
                 deselectedIds: snapshot.deselectedIds,
-                query: snapshot.allMatching ? this.currentParams() : {},
+                query: this.currentParams(),
                 csrfToken: this.csrfToken,
             });
             this.dispatch(result.success ? 'bulk:success' : 'bulk:error', {
