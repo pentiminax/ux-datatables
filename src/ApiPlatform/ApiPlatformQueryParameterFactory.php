@@ -136,10 +136,8 @@ class ApiPlatformQueryParameterFactory
     }
 
     /**
-     * A {from, to} filter maps onto API Platform's DateFilter bounds.
-     *
-     * A date-only `to` becomes `strictly_before` the next day: the inclusive `before` is midnight
-     * of that day and would drop its later timestamps.
+     * A {from, to} filter maps onto DateFilter bounds; a date-only `to` becomes `strictly_before`
+     * the next day, since the inclusive `before` is midnight and would drop that day.
      *
      * @param array<string, string|array<int|string, string>> $parameters
      * @param array<array-key, mixed>                         $value

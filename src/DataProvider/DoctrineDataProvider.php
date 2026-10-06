@@ -116,10 +116,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * LIMIT/OFFSET count SQL rows, so a query joining a to-many association would cut pages by
-     * joined rows and the hydrator would then collapse the repeated roots. Such a query pages
-     * distinct root identifiers first, then loads that page. GROUP BY and composite identifiers
-     * keep the plain path.
+     * A to-many join makes LIMIT/OFFSET page joined rows, so such a query pages distinct root
+     * identifiers first. GROUP BY and composite identifiers keep the plain path.
      *
      * @return list<mixed>
      */
@@ -239,9 +237,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * Which of $ids the permanent scope (customizeQueryBuilder() alone, as recordsTotal counts it)
-     * contains. Search, ordering and filters are left out: a row the user filtered away is still
-     * theirs to act on.
+     * Which of $ids the permanent scope (customizeQueryBuilder() alone) contains; search and
+     * filters are left out, since a filtered-away row is still the user's to act on.
      */
     public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
     {
@@ -315,8 +312,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * The value as the database stores it (binary UUID, prefixed key), so the browser's value, the
-     * hydrated value and the raw column compare equal. A value the type refuses comes back null.
+     * The value as the database stores it, so browser, hydrated and raw values compare equal; null
+     * when the type refuses it.
      */
     private function toDatabaseValue(?Type $type, mixed $value): mixed
     {
@@ -391,8 +388,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * Rows tying on the sort key come back in any order, so with LIMIT/OFFSET one could land on two
-     * pages and another on none. Unordered and grouped queries are left alone.
+     * Rows tying on the sort key would otherwise repeat or vanish across pages. Unordered and
+     * grouped queries are left alone.
      */
     private function breakPageTiesByIdentifier(QueryBuilder $qb, string $alias): void
     {
@@ -642,9 +639,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * With a permanent GROUP BY the query's own row count is the total, since a COUNT(DISTINCT)
-     * on top would return one count per group. Otherwise COUNT(DISTINCT $alias) counts roots
-     * once even when a to-many join multiplies rows; it assumes a single-column primary key.
+     * Counts distinct roots (single-column primary key only); a permanent GROUP BY counts its own
+     * result rows instead.
      */
     private function count(QueryBuilder $qb, string $alias): int
     {
