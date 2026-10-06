@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Export;
 
-use Pentiminax\UX\DataTables\Column\ChoiceColumn;
+use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
@@ -51,7 +51,10 @@ final class ExportService
 
         if (!$button->usesRawValues()) {
             $columns = array_map(static fn (ColumnInterface $column): ColumnInterface => clone $column, $columns);
-            $this->translateLabels($columns);
+            if (null !== $this->translator) {
+                ColumnTranslator::translate($columns, $this->translator);
+            }
+
             $this->applyExportHeadings($formatter, $columns);
             $rows = $this->formatRows($formatter, $columns, $rows);
         }
@@ -69,27 +72,6 @@ final class ExportService
                 ),
             ],
         );
-    }
-
-    /**
-     * @param list<ColumnInterface> $columns
-     */
-    private function translateLabels(array $columns): void
-    {
-        if (null === $this->translator) {
-            return;
-        }
-
-        foreach ($columns as $column) {
-            $title = $column->getTitle();
-            if (null !== $title) {
-                $column->setTitle($this->translator->trans($title));
-            }
-
-            if ($column instanceof ChoiceColumn) {
-                $column->translateLabels($this->translator);
-            }
-        }
     }
 
     /**
