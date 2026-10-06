@@ -325,6 +325,20 @@ final class ExportServiceTest extends TestCase
         $service->export($this->table(), $this->exportRequest());
     }
 
+    #[Test]
+    public function it_leaves_the_table_columns_untouched_so_a_second_export_starts_clean(): void
+    {
+        $csv   = new RecordingExporter();
+        $table = $this->priceTable(Button::csv(serverSide: true));
+
+        $service = new ExportService(new ExporterRegistry([$csv]));
+        $this->send($service->export($table, $this->exportRequest()));
+        $this->send($service->export($table, $this->exportRequest()));
+
+        $this->assertSame('order.total (EUR)', $csv->columns[0]->getTitle());
+        $this->assertSame('order.total', array_values($table->getConfiguredDataTable()->getColumns())[0]->getTitle());
+    }
+
     private function service(): ExportService
     {
         return new ExportService(new ExporterRegistry([new RecordingExporter()]));
@@ -402,20 +416,6 @@ final class ExportServiceTest extends TestCase
             'length'    => 25,
             'exportKey' => $exportKey,
         ]);
-    }
-
-    #[Test]
-    public function it_leaves_the_table_columns_untouched_so_a_second_export_starts_clean(): void
-    {
-        $csv   = new RecordingExporter();
-        $table = $this->priceTable(Button::csv(serverSide: true));
-
-        $service = new ExportService(new ExporterRegistry([$csv]));
-        $this->send($service->export($table, $this->exportRequest()));
-        $this->send($service->export($table, $this->exportRequest()));
-
-        $this->assertSame('order.total (EUR)', $csv->columns[0]->getTitle());
-        $this->assertSame('order.total', array_values($table->getConfiguredDataTable()->getColumns())[0]->getTitle());
     }
 }
 
