@@ -15,13 +15,9 @@ function isFormattedText(column: Record<string, any>): boolean {
 }
 
 /**
- * DataTables inserts Ajax cell values as HTML. A TextColumn is type `string` /
- * `string-utf8`, which only changes sort and search — display still interpolates
- * markup — so user-controlled text would execute unless it is escaped here.
- *
- * `html()` / `html-utf8` columns opt into markup and are left alone. A column formatted on the
- * server carries a display string whatever its type, so it is escaped here too, and the controller
- * hands it to no other renderer.
+ * DataTables inserts Ajax cell values as HTML and the `string` type only affects sort and search,
+ * so the text is escaped here. `html()` columns opt into markup; server-formatted columns are
+ * escaped whatever their type.
  */
 export const textColumnRenderer: ColumnRenderer = {
     matches(column: Record<string, any>): boolean {

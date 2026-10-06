@@ -147,12 +147,11 @@ export default class extends Controller {
         document.addEventListener('turbo:before-cache', this.onTurboBeforeCache)
 
         if (this.isDataTableInitialized) {
-            // The table survived the cycle, so downstream code that was torn down with the previous
-            // controller instance needs a signal to bind again. `connect` stays a build-only event.
+            // `connect` stays a build-only event, so downstream code needs this one to bind again.
             if (this.table) {
                 this.dispatchEvent('reconnect', { table: this.table })
                 this.bindPopstate(isUrlStateEnabled(this.viewValue))
-                // disconnect() closed the EventSource; the table is still live, so subscribe again.
+                // disconnect() closed the EventSource.
                 await this.initMercure(this.viewValue)
             }
 
@@ -230,9 +229,8 @@ export default class extends Controller {
         applyServerExportUrls(payload)
         applyCustomButtonActions(payload)
 
-        // A concurrent connect may have built the table while this one awaited: a detach + reattach
-        // re-enters connect on the same instance, and a second Stimulus application runs its own
-        // controller on the same node. Nothing is awaited between this check and the constructor.
+        // A concurrent connect may have built the table while this one awaited. Nothing is awaited
+        // between this check and the constructor.
         if (this.adoptLiveTable(DataTable)) {
             return
         }
@@ -292,7 +290,7 @@ export default class extends Controller {
     }
 
     private bindPopstate(cfg: UrlStateConfig | null | false): void {
-        // A detached controller never gets another disconnect() to remove the listener.
+        // A detached controller never gets a disconnect() to remove the listener.
         if (!cfg || this.popstateHandler || !this.element.isConnected) {
             return
         }
@@ -487,8 +485,7 @@ export default class extends Controller {
 
         const { createMercureSubscription } = await import('./functions/mercureSubscription.js')
 
-        // The element may have been detached, or a concurrent connect may have subscribed, while
-        // the modules loaded; disconnect() could not close a socket that did not exist yet.
+        // Detached or subscribed while the modules loaded: disconnect() had no socket to close.
         if (!this.element.isConnected || this.eventSource) {
             return
         }
@@ -543,9 +540,7 @@ export default class extends Controller {
                     (['DETAIL', 'DELETE', 'EDIT'].includes(actionType ?? '') && !!dataTable && !!id)
 
                 if (confirmMessage) {
-                    // A link without a handler here keeps its native navigation, which only a
-                    // synchronous confirm() can gate; everything this controller runs asks through
-                    // the table's modal adapter, like the bulk actions do.
+                    // A link left to native navigation can only be gated by a synchronous confirm().
                     if (handledHere) {
                         e.preventDefault()
                     }
