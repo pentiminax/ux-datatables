@@ -254,8 +254,11 @@ protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $req
 ```
 
 "Select all matching" resolves its identifiers through the same query, so both selection modes share
-one boundary. Scope on the Security user rather than on a request parameter: the explicit selection
-sends no DataTables request, so a scope that reads one sees it empty.
+one boundary. Scope on the Security user rather than on a request parameter: request parameters are
+client-controlled, so they are a convenience, not a boundary.
+
+A data provider you build yourself in `createDataProvider()` must receive the scope through its
+`configureBaseQueryBuilder` argument; without it the check covers the whole entity table.
 
 A custom data provider that does not implement `ScopedIdentifierProviderInterface`, and an API
 Platform backed table, keep the previous behavior: the handler receives every identifier that
