@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Exception\MutationPersistenceException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
+use Pentiminax\UX\DataTables\Mercure\MutationUpdatePublisher;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Symfony\Component\PropertyAccess\PropertyAccessorInterface;
@@ -47,7 +48,7 @@ final class EntityMutator
         $context->manager->remove($context->entity);
         $this->flusher->flush($context->manager);
 
-        $this->publisher->publish($this->topicResolver->resolve($entityClass, $dataTableClass), [
+        MutationUpdatePublisher::publish($this->publisher, $this->topicResolver, $entityClass, $dataTableClass, [
             'type' => 'delete',
             'id'   => (string) $id,
         ]);
@@ -83,7 +84,7 @@ final class EntityMutator
         $this->propertyAccessor->setValue($context->entity, $field, $value);
         $this->flusher->flush($context->manager);
 
-        $this->publisher->publish($this->topicResolver->resolve($entityClass, $dataTableClass), [
+        MutationUpdatePublisher::publish($this->publisher, $this->topicResolver, $entityClass, $dataTableClass, [
             'type'  => 'edit',
             'id'    => (string) $id,
             'field' => $field,

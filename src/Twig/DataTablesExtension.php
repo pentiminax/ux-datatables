@@ -63,12 +63,14 @@ class DataTablesExtension extends AbstractExtension
         $originalColumns = array_values($dataTable->getColumns());
         $columns         = $this->columnResolver->filterStaticPermissions($originalColumns, $dataTableClass);
 
-        $dataTable->setAttributes(array_merge($dataTable->getAttributes(), $attributes));
+        $attributes = array_merge($dataTable->getAttributes(), $attributes);
+        $id         = \is_string($attributes['id'] ?? null) && '' !== $attributes['id'] ? $attributes['id'] : $dataTable->getId();
+        unset($attributes['id']);
 
         $controllers = [];
 
-        if ($dataTable->getDataController()) {
-            $controllers[$dataTable->getDataController()] = [];
+        if (\is_string($attributes['data-controller'] ?? null) && '' !== $attributes['data-controller']) {
+            $controllers[$attributes['data-controller']] = [];
         }
 
         $options            = $dataTable->getOptions();
@@ -110,7 +112,7 @@ class DataTablesExtension extends AbstractExtension
             $stimulusAttributes->addController($name, $controllerValues);
         }
 
-        foreach ($dataTable->getAttributes() as $name => $value) {
+        foreach ($attributes as $name => $value) {
             if ('data-controller' === $name) {
                 continue;
             }
@@ -123,12 +125,13 @@ class DataTablesExtension extends AbstractExtension
         }
 
         $this->profiler?->collectRenderedTable($dataTableClass, $dataTable, [
+            'id'              => $id,
             'entityClass'     => $table->getEntityClass(),
             'originalColumns' => $originalColumns,
             'allowedColumns'  => $columns,
         ]);
 
-        return \sprintf('<table id="%s" %s></table>', $dataTable->getId(), $stimulusAttributes);
+        return \sprintf('<table id="%s" %s></table>', htmlspecialchars($id, \ENT_QUOTES | \ENT_HTML5, 'UTF-8'), $stimulusAttributes);
     }
 
     /**
