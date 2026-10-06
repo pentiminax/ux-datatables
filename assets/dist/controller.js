@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import { installBulkActionBar } from './bulk/BulkActionBar.js';
+import { confirmAction } from './bulk/confirmModal.js';
 import { createActionColumnRenderer } from './columnRenderers/actionColumnRenderer.js';
 import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRenderer.js';
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
@@ -28,6 +29,7 @@ import { applyLocalLanguage } from './functions/localLanguage.js';
 import { hasLucideIcons, hasLucideIconsInActions, loadLucideIcons, } from './functions/lucideIcons.js';
 import { installRequestParams } from './functions/requestParams.js';
 import { runAjaxAction } from './functions/runAjaxAction.js';
+import { runRowAction } from './functions/rowActionFeedback.js';
 import { applyServerExportUrls } from './functions/serverExport.js';
 import { shiftOrderForSelectColumn } from './functions/shiftOrderForSelectColumn.js';
 import { submitEditForm } from './functions/submitEditForm.js';
@@ -330,11 +332,27 @@ class default_1 extends Controller {
             const id = actionButton.getAttribute('data-id');
             const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : '';
             const confirmMessage = actionButton.getAttribute('data-confirm');
-            if (confirmMessage && !confirm(confirmMessage)) {
-                e.preventDefault();
-                return;
-            }
             const ajaxMethod = actionButton.getAttribute('data-ajax-method');
+            const handledHere = !!ajaxMethod ||
+                (['DETAIL', 'DELETE', 'EDIT'].includes(actionType ?? '') && !!dataTable && !!id);
+            if (confirmMessage) {
+                if (handledHere) {
+                    e.preventDefault();
+                }
+                const confirmed = handledHere
+                    ? await confirmAction({
+                        message: confirmMessage,
+                        confirmLabel: payload.actionLabels?.confirm ?? 'Confirm',
+                        cancelLabel: payload.actionLabels?.cancel ?? 'Cancel',
+                        framework: this.framework,
+                        adapterKey: payload.editModal?.adapter ?? null,
+                    })
+                    : confirm(confirmMessage);
+                if (!confirmed) {
+                    e.preventDefault();
+                    return;
+                }
+            }
             if (ajaxMethod) {
                 e.preventDefault();
                 await this.executeAjaxAction(actionButton, ajaxMethod, payload);
@@ -352,20 +370,26 @@ class default_1 extends Controller {
                     actionButton.classList.remove('expanded');
                     return;
                 }
-                const result = await fetchDetailRow({ dataTable, id });
-                if (result.success) {
-                    row.child(result.html).show();
-                    actionButton.classList.add('expanded');
-                }
+                await this.runRowAction(actionButton, 'DETAIL', id, payload, async () => {
+                    const result = await fetchDetailRow({ dataTable, id });
+                    if (result.success) {
+                        row.child(result.html).show();
+                        actionButton.classList.add('expanded');
+                    }
+                    return { ok: result.success };
+                });
             }
             if (actionType === 'DELETE' && dataTable && id) {
                 e.preventDefault();
-                const response = await deleteEntity({
-                    dataTable,
-                    id,
-                    csrfToken: this.getCsrfToken(payload),
+                const deleted = await this.runRowAction(actionButton, 'DELETE', id, payload, async () => {
+                    const response = await deleteEntity({
+                        dataTable,
+                        id,
+                        csrfToken: this.getCsrfToken(payload),
+                    });
+                    return { ok: response.ok, response };
                 });
-                if (response.ok) {
+                if (deleted) {
                     this.table?.ajax?.reload(null, false);
                 }
             }
@@ -375,9 +399,14 @@ class default_1 extends Controller {
                 const modal = await resolveModalAdapter(modalConfig.adapter ?? null, this.framework);
                 if (!modal)
                     return;
-                const result = await fetchEditForm({ dataTable, id });
-                if (result.success) {
-                    await modal.show(result.html, {
+                let formHtml = '';
+                const loaded = await this.runRowAction(actionButton, 'EDIT', id, payload, async () => {
+                    const result = await fetchEditForm({ dataTable, id });
+                    formHtml = result.html;
+                    return { ok: result.success };
+                });
+                if (loaded) {
+                    await modal.show(formHtml, {
                         onSubmit: async (formData) => {
                             const submitResult = await submitEditForm({
                                 dataTable,
@@ -396,6 +425,17 @@ class default_1 extends Controller {
                     });
                 }
             }
+        });
+    }
+    runRowAction(element, actionType, id, payload, run) {
+        return runRowAction({
+            element,
+            root: this.element,
+            actionType,
+            id,
+            labels: payload.actionLabels ?? {},
+            dispatch: (name, detail) => this.dispatchEvent(name, detail),
+            run,
         });
     }
     async executeAjaxAction(button, method, payload) {
@@ -443,8 +483,7 @@ class default_1 extends Controller {
                 return;
             }
             const previousState = !target.checked;
-            target.disabled = true;
-            try {
+            const toggled = await this.runRowAction(target, 'TOGGLE', id, payload, async () => {
                 const response = await toggleBooleanValue({
                     url: url ?? this.getBooleanToggleUrl(),
                     id,
@@ -454,17 +493,10 @@ class default_1 extends Controller {
                     dataTable,
                     csrfToken: this.getCsrfToken(payload),
                 });
-                if (!response.ok) {
-                    target.checked = previousState;
-                    console.error(`Boolean switch update failed with status ${response.status}`);
-                }
-            }
-            catch (error) {
+                return { ok: response.ok, response };
+            });
+            if (!toggled) {
                 target.checked = previousState;
-                console.error('Boolean switch update failed', error);
-            }
-            finally {
-                target.disabled = false;
             }
         });
     }
@@ -487,7 +519,7 @@ class default_1 extends Controller {
         });
     }
     dispatchEvent(name, payload) {
-        this.dispatch(name, {
+        return this.dispatch(name, {
             detail: payload,
             prefix: 'datatables',
         });

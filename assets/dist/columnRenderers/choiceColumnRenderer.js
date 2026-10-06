@@ -1,9 +1,11 @@
 import { escapeHtml } from '../functions/htmlUtils.js';
+import { isFormatted } from './types.js';
 export function createChoiceColumnRenderer(style) {
     return {
         matches(column) {
             return (typeof column?.customOptions?.choices === 'object' &&
-                column.customOptions.choices !== null);
+                column.customOptions.choices !== null &&
+                !isFormatted(column));
         },
         configure(column) {
             const customOptions = (column.customOptions ?? {});
