@@ -2,7 +2,7 @@ import { applyFeatureLayout } from '../functions/featureLayout.js';
 import { renderLucideIcon } from '../functions/lucideIcons.js';
 import { createPopover } from '../functions/popover.js';
 import { runBulkAction } from '../functions/runBulkAction.js';
-import { confirmBulkAction } from './confirmModal.js';
+import { confirmAction } from './confirmModal.js';
 import { SelectionStore } from './selectionStore.js';
 const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
 const KEBAB_ICON = '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" class="dt-bulk-trigger__icon">' +
@@ -148,7 +148,7 @@ export class BulkActionBar {
             return;
         }
         if (action.confirm) {
-            const confirmed = await confirmBulkAction({
+            const confirmed = await confirmAction({
                 message: action.confirm.replace('{count}', String(snapshot.count)),
                 confirmLabel: action.confirmButton ?? this.labels.confirm ?? 'Confirm',
                 cancelLabel: this.labels.cancel ?? 'Cancel',
