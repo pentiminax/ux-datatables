@@ -221,8 +221,9 @@ On a `serverSide()` table, ordering and searching keep working on the field. A c
 only holds the formatted value, so the browser orders and searches that text instead.
 
 The returned value is still a cell value. A text column escapes it unless `html()` is set, in which
-case the closure must escape any untrusted input itself. On a `MoneyColumn`, `BooleanColumn` or
-`ChoiceColumn`, the formatted string replaces the typed rendering and is shown as escaped text.
+case the closure must escape any untrusted input itself. On a `MoneyColumn`, `BooleanColumn`,
+`ChoiceColumn`, `EmailColumn`, `UrlColumn`, `IconColumn` or `ImageColumn`, the formatted string
+replaces the typed rendering and is shown as escaped text.
 
 Reach for `TemplateColumn` when a cell needs a Twig template (it is not exportable by default), and
 for `mapRow()` only when the whole row needs reshaping, because it replaces the default mapper for

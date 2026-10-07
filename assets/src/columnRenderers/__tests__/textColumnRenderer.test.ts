@@ -52,22 +52,29 @@ describe('textColumnRenderer', () => {
     })
 
     it.each([
-        ['money', { isMoney: true }],
-        ['switch', { renderAsSwitch: true }],
-        ['choice', { choices: { draft: 'Draft' } }],
-        ['plain number or boolean', {}],
-    ])('takes over a %s column formatted on the server and escapes it', (_name, options) => {
-        const column: Record<string, any> = {
-            type: 'num',
-            customOptions: { ...options, formatted: true },
+        ['money', 'num', { isMoney: true }],
+        ['switch', 'num', { renderAsSwitch: true }],
+        ['choice', 'html', { choices: { draft: 'Draft' } }],
+        ['email', 'html', { isEmail: true }],
+        ['url', 'html', { isUrl: true }],
+        ['icon', 'html', { isIcon: true }],
+        ['image', 'html', { isImage: true }],
+        ['plain number or boolean', 'num', {}],
+    ])(
+        'takes over a %s column formatted on the server and escapes it',
+        (_name, type, options) => {
+            const column: Record<string, any> = {
+                type,
+                customOptions: { ...options, formatted: true },
+            }
+
+            expect(textColumnRenderer.matches(column)).toBe(true)
+
+            textColumnRenderer.configure(column)
+
+            expect(column.render('<b>€ 12.50</b>', 'display')).toBe('&lt;b&gt;€ 12.50&lt;/b&gt;')
         }
-
-        expect(textColumnRenderer.matches(column)).toBe(true)
-
-        textColumnRenderer.configure(column)
-
-        expect(column.render('<b>€ 12.50</b>', 'display')).toBe('&lt;b&gt;€ 12.50&lt;/b&gt;')
-    })
+    )
 
     it('leaves a typed column without a formatter to its own renderer', () => {
         expect(textColumnRenderer.matches({ type: 'num', customOptions: { isMoney: true } })).toBe(
@@ -76,7 +83,7 @@ describe('textColumnRenderer', () => {
     })
 
     it.each(['html', 'html-utf8', 'html-num', 'html-num-fmt'])(
-        'leaves a formatted %s column to render its own markup',
+        'leaves a formatted %s column that opted into html() to render its own markup',
         (type) => {
             expect(textColumnRenderer.matches({ type, customOptions: { formatted: true } })).toBe(
                 false
