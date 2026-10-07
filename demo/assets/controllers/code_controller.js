@@ -1,10 +1,12 @@
 import { Controller } from '@hotwired/stimulus'
 import hljs from 'highlight.js/lib/core'
 import php from 'highlight.js/lib/languages/php'
+import javascript from 'highlight.js/lib/languages/javascript'
 import twig from 'highlight.js/lib/languages/twig'
 
 hljs.registerLanguage('php', php)
 hljs.registerLanguage('twig', twig)
+hljs.registerLanguage('javascript', javascript)
 
 export default class extends Controller {
     static targets = ['tab', 'panel']

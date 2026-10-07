@@ -49,7 +49,7 @@ page:
     columns:
         title: 'Types de colonnes'
         intro: 'Tous les types de colonnes fournis dans une seule table : montants, images, icônes, dates relatives et template Twig.'
-        try: 'Chaque colonne formate sa valeur : comparez l’entité brute avec l’affichage.'
+        try: 'Chaque colonne formate sa valeur. « Tranche de prix » est calculée en PHP à partir du prix.'
     filters:
         title: 'Filtres'
         intro: 'Une barre de filtres appliqués comme conditions Doctrine : texte, choix, plage de dates, oui/non et requête personnalisée.'
@@ -61,15 +61,15 @@ page:
     actions:
         title: 'Actions et modale d’édition'
         intro: 'Lignes de détail dépliables, formulaire d’édition généré depuis l’entité, suppression conditionnelle et interrupteur en ligne.'
-        try: 'Modifiez un produit et enregistrez. La suppression n’apparaît que sur les produits archivés.'
+        try: 'Modifiez un produit et enregistrez. La suppression n’apparaît que sur les produits archivés ; la ligne sous la table indique chaque résultat.'
     bulk_actions:
         title: 'Actions groupées'
         intro: 'Sélectionnez des lignes sur plusieurs pages et lancez une action serveur sur toutes, avec confirmation et retour.'
         try: 'Sélectionnez quelques commandes et marquez-les comme expédiées : seules les commandes payées changent, les autres sont signalées comme ignorées.'
     export:
         title: 'Export'
-        intro: 'Boutons copier, CSV, Excel, PDF et impression. Une colonne peut être exclue des exports.'
-        try: 'Exportez en Excel : la colonne Fournisseur reste hors du fichier.'
+        intro: 'Boutons copier, CSV, Excel, PDF et impression. Les exports côté serveur diffusent toutes les lignes filtrées et écrivent ce que la table affiche.'
+        try: 'Comparez CSV et CSV (raw) : euros et libellés de catégorie contre centimes et valeurs stockées. La colonne Fournisseur reste hors des deux.'
     layout:
         title: 'Défilement et colonnes figées'
         intro: 'Défilement virtuel de 10 000 lignes côté serveur, avec la première colonne figée pendant le défilement horizontal.'
@@ -83,6 +83,7 @@ page:
 Product: 'Produit'
 Category: 'Catégorie'
 Price: 'Prix'
+'Price band': 'Tranche de prix'
 Stock: 'Stock'
 Status: 'Statut'
 Featured: 'Mis en avant'
@@ -145,3 +146,9 @@ enum:
         shipped: 'Expédiée'
         delivered: 'Livrée'
         cancelled: 'Annulée'
+
+actions:
+    status:
+        success: '{type} #{id} : terminé.'
+        failed: '{type} #{id} a échoué. Réessayez.'
+        forbidden: 'Vous n’avez pas le droit d’exécuter {type} sur #{id}.'

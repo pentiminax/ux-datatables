@@ -33,6 +33,13 @@ final class ColumnsDataTable extends AbstractDataTable
         yield TextColumn::new('name', 'Product');
         yield ChoiceColumn::new('category', 'Category')->setChoices(Category::class);
         yield MoneyColumn::new('price', 'Price')->currency('EUR')->storedAsCents();
+        yield TextColumn::new('priceBand', 'Price band')
+            ->setField('price')
+            ->formatValueUsing(static fn (int $cents): string => match (true) {
+                $cents < 2000  => '€',
+                $cents < 10000 => '€€',
+                default        => '€€€',
+            });
         yield IconColumn::new('stockIcon', 'In stock')
             ->setField('stock')
             ->icon(static fn (int $stock): Icon => $stock > 0 ? Icon::PackageCheck : Icon::PackageX)
