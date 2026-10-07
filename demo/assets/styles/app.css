@@ -555,6 +555,12 @@ svg.filled {
     overflow-x: auto;
 }
 
+.action-status {
+    margin: var(--space-3) 0 0;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+}
+
 .section-title {
     margin: var(--space-16) 0 0;
     padding-top: var(--space-6);
