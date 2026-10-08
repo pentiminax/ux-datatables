@@ -190,10 +190,23 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      * set: holding every row to project them together would defeat the streaming this method
      * exists for. See {@see \Pentiminax\UX\DataTables\Model\AbstractDataTable::projectPage()}
      * for what that means for a projector.
+     *
+     * A composite identifier cannot be selected as a single column, so that export pages the
+     * query itself in chunks, matching {@see self::fetchPage()}.
      */
     public function iterateRows(DataTableRequest $request): iterable
     {
-        [$qb, $alias, $identifier] = $this->buildIdentifierScopedQuery($request);
+        $built = $this->buildIdentifierScopedQuery($request);
+        if (null === $built) {
+            yield from $this->iterateRowsByOffset($this->configuredQuery($request));
+
+            return;
+        }
+
+        [$qb, $alias, $identifier] = $built;
+        $metadata                  = $this->em->getClassMetadata($this->entityClass);
+        $expression                = $this->identifierExpression($metadata, $alias, $identifier);
+        $type                      = $this->fieldType($metadata, $identifier);
 
         $ids = $this->scopedIdentifiers($qb, $alias, $identifier);
 
@@ -201,8 +214,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             $pageQb = (clone $qb)
                 ->setFirstResult(null)
                 ->setMaxResults(null)
-                ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_export_ids'))
-                ->setParameter('ux_datatables_export_ids', $chunk);
+                ->andWhere($qb->expr()->in($expression, ':ux_datatables_export_ids'))
+                ->setParameter('ux_datatables_export_ids', $chunk, $this->arrayBindingType($type));
 
             $items = array_map($this->rootEntity(...), $pageQb->getQuery()->getResult());
 
@@ -231,7 +244,12 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      */
     public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
     {
-        [$qb, $alias, $identifier] = $this->buildIdentifierScopedQuery($request, $field);
+        $built = $this->buildIdentifierScopedQuery($request, $field);
+        if (null === $built) {
+            throw new \LogicException(\sprintf('Cannot collect identifiers for "%s" because the entity has a composite identifier. Set BulkActions::setIdField() to a single mapped field.', $this->entityClass));
+        }
+
+        [$qb, $alias, $identifier] = $built;
 
         return $this->normalizeIdentifiers($this->scopedIdentifiers($qb, $alias, $identifier));
     }
@@ -249,7 +267,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         }
 
         $type       = $this->fieldType($metadata, $field);
-        $expression = $metadata->hasField($field) ? "e.$field" : "IDENTITY(e.$field)";
+        $expression = $this->identifierExpression($metadata, 'e', $field);
 
         $databaseValues = [];
         foreach ($ids as $id) {
@@ -363,9 +381,24 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * @return array{0: QueryBuilder, 1: string, 2: string}
+     * @return array{0: QueryBuilder, 1: string, 2: string}|null
      */
-    private function buildIdentifierScopedQuery(DataTableRequest $request, ?string $field = null): array
+    private function buildIdentifierScopedQuery(DataTableRequest $request, ?string $field = null): ?array
+    {
+        $alias      = 'e';
+        $qb         = $this->configuredQuery($request);
+        $metadata   = $this->em->getClassMetadata($this->entityClass);
+        $identifier = $this->scalarIdentifierField($metadata, $field);
+        if (null === $identifier) {
+            return null;
+        }
+
+        $this->appendIdentifierTieBreaker($qb, $alias, [$identifier]);
+
+        return [$qb, $alias, $identifier];
+    }
+
+    private function configuredQuery(DataTableRequest $request): QueryBuilder
     {
         $alias = 'e';
         $qb    = $this->em
@@ -377,14 +410,78 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             $qb = ($this->configureQueryBuilder)($qb, $request);
         }
 
-        $metadata   = $this->em->getClassMetadata($this->entityClass);
-        $identifier = null !== $field && $metadata->hasField($field)
-            ? $field
-            : $metadata->getSingleIdentifierFieldName();
+        return $qb;
+    }
 
-        $this->appendIdentifierTieBreaker($qb, $alias, [$identifier]);
+    /**
+     * A composite primary key has no single column to walk. An explicit mapped $field still wins.
+     */
+    private function scalarIdentifierField(ClassMetadata $metadata, ?string $field): ?string
+    {
+        if (null !== $field && $metadata->hasField($field)) {
+            return $field;
+        }
 
-        return [$qb, $alias, $identifier];
+        if ($metadata->isIdentifierComposite) {
+            return null;
+        }
+
+        return $metadata->getSingleIdentifierFieldName();
+    }
+
+    private function identifierExpression(ClassMetadata $metadata, string $alias, string $field): string
+    {
+        return $metadata->hasField($field) ? "$alias.$field" : "IDENTITY($alias.$field)";
+    }
+
+    /**
+     * Composite identifiers cannot use the id-first walk, so the export pages the same query
+     * fetchPage() would. Identifier columns are appended so ties cannot skip or duplicate a row
+     * across chunks.
+     */
+    private function iterateRowsByOffset(QueryBuilder $qb): iterable
+    {
+        $alias    = 'e';
+        $metadata = $this->em->getClassMetadata($this->entityClass);
+        $this->appendIdentifierTieBreaker($qb, $alias, $metadata->getIdentifierFieldNames());
+
+        $windowStart = $qb->getFirstResult() ?? 0;
+        $windowSize  = $qb->getMaxResults();
+        $chunkSize   = max(1, $this->exportChunkSize);
+        $offset      = $windowStart;
+        $remaining   = $windowSize;
+
+        while (true) {
+            $limit = null === $remaining ? $chunkSize : min($chunkSize, $remaining);
+            if (0 === $limit) {
+                break;
+            }
+
+            $items = array_map(
+                $this->rootEntity(...),
+                (clone $qb)
+                    ->setFirstResult($offset)
+                    ->setMaxResults($limit)
+                    ->getQuery()
+                    ->getResult(),
+            );
+
+            if ([] === $items) {
+                break;
+            }
+
+            yield from $this->mapChunk($items);
+            $this->releaseChunk($items);
+
+            $count = \count($items);
+            $offset += $count;
+            if (null !== $remaining) {
+                $remaining -= $count;
+            }
+            if ($count < $limit) {
+                break;
+            }
+        }
     }
 
     /**
@@ -453,8 +550,14 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      */
     private function collectExportIdentifiers(QueryBuilder $qb, string $alias, string $identifier): array
     {
+        $expression = $this->identifierExpression(
+            $this->em->getClassMetadata($this->entityClass),
+            $alias,
+            $identifier,
+        );
+
         $idQb = (clone $qb)
-            ->select("$alias.$identifier")
+            ->select($expression)
             ->setFirstResult(null)
             ->setMaxResults(null);
 

@@ -78,6 +78,21 @@ final class DoctrineDataProviderConvertedIdentifierTest extends TestCase
     }
 
     #[Test]
+    public function it_exports_converted_ids_when_a_collection_is_joined(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->leftJoin('e.items', 'i')
+            ->orderBy('e.name', 'ASC'));
+
+        $exported = array_column(
+            iterator_to_array($provider->iterateRows($this->request(0, 10)), false),
+            'id',
+        );
+
+        $this->assertSame(['a', 'b', 'c', 'd', 'e', 'f'], $exported);
+    }
+
+    #[Test]
     public function it_pages_converted_ids_in_order_when_a_collection_is_joined(): void
     {
         $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb

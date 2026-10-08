@@ -11,7 +11,10 @@ use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\AssociationIdOwner;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\AssociationIdProfile;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountLine;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CustomerListDto;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
@@ -367,6 +370,113 @@ final class DoctrineDataProviderIterateRowsTest extends TestCase
         $this->assertSame([['id' => 2]], $exported);
     }
 
+    /**
+     * fetchPage() already keeps the plain LIMIT path for a composite key. The identifier walk
+     * used getSingleIdentifierFieldName(), which throws, so a server-side CSV/Excel export of
+     * that same table aborted after the download headers were sent.
+     */
+    #[Test]
+    public function it_exports_every_row_of_a_composite_identifier_entity(): void
+    {
+        $em = $this->createEntityManager(CountLine::class);
+        $em->persist(new CountLine(1, 1, 'Alpha'));
+        $em->persist(new CountLine(1, 2, 'Beta'));
+        $em->persist(new CountLine(2, 1, 'Gamma'));
+        $em->flush();
+        $em->clear();
+
+        $exported = iterator_to_array(
+            $this->countLineProvider($em, exportChunkSize: 1)->iterateRows($this->request()),
+            false,
+        );
+
+        $this->assertSame([
+            ['orderId' => 1, 'lineNo' => 1, 'name' => 'Alpha'],
+            ['orderId' => 1, 'lineNo' => 2, 'name' => 'Beta'],
+            ['orderId' => 2, 'lineNo' => 1, 'name' => 'Gamma'],
+        ], $exported);
+    }
+
+    #[Test]
+    public function it_exports_every_composite_row_once_when_the_ordering_column_has_ties(): void
+    {
+        $em = $this->createEntityManager(CountLine::class);
+        $em->persist(new CountLine(1, 1, 'Same'));
+        $em->persist(new CountLine(1, 2, 'Same'));
+        $em->persist(new CountLine(2, 1, 'Same'));
+        $em->flush();
+        $em->clear();
+
+        $provider = $this->countLineProvider(
+            $em,
+            configureQueryBuilder: static fn (QueryBuilder $qb): QueryBuilder => $qb->addOrderBy('e.name', 'ASC'),
+            exportChunkSize: 1,
+        );
+
+        $this->assertSame(
+            [
+                ['orderId' => 1, 'lineNo' => 1, 'name' => 'Same'],
+                ['orderId' => 1, 'lineNo' => 2, 'name' => 'Same'],
+                ['orderId' => 2, 'lineNo' => 1, 'name' => 'Same'],
+            ],
+            iterator_to_array($provider->iterateRows($this->request()), false),
+        );
+    }
+
+    /**
+     * SELECT e.owner is not a scalar path. IDENTITY(e.owner) is the same expression
+     * filterIdentifiersInScope() already uses for an association identifier.
+     */
+    #[Test]
+    public function it_exports_an_association_identifier_entity(): void
+    {
+        $em    = $this->createEntityManager(AssociationIdOwner::class, AssociationIdProfile::class);
+        $alice = new AssociationIdOwner(1, 'Alice');
+        $bob   = new AssociationIdOwner(2, 'Bob');
+        $em->persist($alice);
+        $em->persist($bob);
+        $em->persist(new AssociationIdProfile($alice, 'bio-1'));
+        $em->persist(new AssociationIdProfile($bob, 'bio-2'));
+        $em->flush();
+        $em->clear();
+
+        $provider = new DoctrineDataProvider(
+            em: $em,
+            entityClass: AssociationIdProfile::class,
+            rowMapper: new class implements RowMapperInterface {
+                public function map(mixed $row): array
+                {
+                    $profile = $row instanceof RowContext ? $row->item : $row;
+
+                    return ['owner' => $profile->owner->id, 'bio' => $profile->bio];
+                }
+            },
+            exportChunkSize: 1,
+        );
+
+        $this->assertSame(
+            [
+                ['owner' => 1, 'bio' => 'bio-1'],
+                ['owner' => 2, 'bio' => 'bio-2'],
+            ],
+            iterator_to_array($provider->iterateRows($this->request()), false),
+        );
+        $this->assertSame([1, 2], $provider->collectIdentifiers($this->request()));
+    }
+
+    #[Test]
+    public function it_refuses_to_collect_a_composite_identifier_as_a_scalar_list(): void
+    {
+        $em = $this->createEntityManager(CountLine::class);
+        $em->persist(new CountLine(1, 1, 'Alpha'));
+        $em->flush();
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('composite identifier');
+
+        $this->countLineProvider($em)->collectIdentifiers($this->request());
+    }
+
     #[Test]
     public function it_normalizes_stringable_identifiers_for_bulk_selection(): void
     {
@@ -415,6 +525,27 @@ final class DoctrineDataProviderIterateRowsTest extends TestCase
                 return ['id' => $row instanceof RowContext ? $row->item->id : $row->id];
             }
         };
+    }
+
+    private function countLineProvider(
+        EntityManagerInterface $em,
+        ?callable $configureQueryBuilder = null,
+        int $exportChunkSize = 250,
+    ): DoctrineDataProvider {
+        return new DoctrineDataProvider(
+            em: $em,
+            entityClass: CountLine::class,
+            rowMapper: new class implements RowMapperInterface {
+                public function map(mixed $row): array
+                {
+                    $line = $row instanceof RowContext ? $row->item : $row;
+
+                    return ['orderId' => $line->orderId, 'lineNo' => $line->lineNo, 'name' => $line->name];
+                }
+            },
+            configureQueryBuilder: $configureQueryBuilder,
+            exportChunkSize: $exportChunkSize,
+        );
     }
 
     private function request(int $length = 10): DataTableRequest
