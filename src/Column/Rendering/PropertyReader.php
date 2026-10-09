@@ -39,15 +39,18 @@ final class PropertyReader
 
     public static function readObjectValue(object $object, string $property): mixed
     {
-        if (\is_callable([$object, $property])) {
-            return $object->$property();
+        // Bare `score()`-style readers and get/is/has accessors must take no required
+        // arguments: `hasRole(string $role)` is common on entities, and calling it while
+        // mapping a `role` column threw ArgumentCountError for every row. `method_exists`
+        // also keeps `__call` from shadowing a public property of the same name.
+        if (self::tryCallZeroArgMethod($object, $property, $value)) {
+            return $value;
         }
 
         $accessor = self::buildAccessorSuffix($property);
         foreach (['get', 'is', 'has'] as $prefix) {
-            $method = $prefix.$accessor;
-            if (\is_callable([$object, $method])) {
-                return $object->$method();
+            if (self::tryCallZeroArgMethod($object, $prefix.$accessor, $value)) {
+                return $value;
             }
         }
 
@@ -59,6 +62,22 @@ final class PropertyReader
         }
 
         return null;
+    }
+
+    private static function tryCallZeroArgMethod(object $object, string $method, mixed &$value): bool
+    {
+        if (!method_exists($object, $method)) {
+            return false;
+        }
+
+        $reflection = new \ReflectionMethod($object, $method);
+        if (!$reflection->isPublic() || $reflection->getNumberOfRequiredParameters() > 0) {
+            return false;
+        }
+
+        $value = $object->$method();
+
+        return true;
     }
 
     private static function buildAccessorSuffix(string $property): string

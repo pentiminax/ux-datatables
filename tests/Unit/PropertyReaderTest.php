@@ -79,6 +79,41 @@ final class PropertyReaderTest extends TestCase
     {
         $this->assertNull(PropertyReader::readPath('scalar', 'foo'));
     }
+
+    #[Test]
+    public function it_reads_a_public_property_when_has_accessor_requires_arguments(): void
+    {
+        $account = new PropertyReaderRequiredHasStub(role: 'admin');
+
+        $this->assertSame('admin', PropertyReader::readPath($account, 'role'));
+        $this->assertSame('admin', PropertyReader::readObjectValue($account, 'role'));
+    }
+
+    #[Test]
+    public function it_skips_collection_predicates_that_require_an_argument(): void
+    {
+        $post = new PropertyReaderCollectionStub();
+
+        $this->assertNull(PropertyReader::readPath($post, 'tag'));
+        $this->assertSame([], PropertyReader::readPath($post, 'tags'));
+    }
+
+    #[Test]
+    public function it_reads_a_public_property_instead_of_dispatching_call(): void
+    {
+        $object = new PropertyReaderMagicStub();
+
+        $this->assertSame('admin', PropertyReader::readPath($object, 'role'));
+        $this->assertSame([], $object->called);
+    }
+
+    #[Test]
+    public function it_keeps_a_null_return_from_a_zero_arg_getter(): void
+    {
+        $object = new PropertyReaderNullableGetterStub();
+
+        $this->assertNull(PropertyReader::readPath($object, 'nickname'));
+    }
 }
 
 final readonly class PropertyReaderStub
@@ -174,5 +209,61 @@ final readonly class PropertyReaderStockStub
     public function getProduct(): PropertyReaderStringableProductStub
     {
         return $this->product;
+    }
+}
+
+final class PropertyReaderRequiredHasStub
+{
+    public function __construct(public string $role)
+    {
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+}
+
+final class PropertyReaderCollectionStub
+{
+    /** @var list<object> */
+    private array $tags = [];
+
+    public function hasTag(object $tag): bool
+    {
+        return \in_array($tag, $this->tags, true);
+    }
+
+    /**
+     * @return list<object>
+     */
+    public function getTags(): array
+    {
+        return $this->tags;
+    }
+}
+
+final class PropertyReaderMagicStub
+{
+    /** @var list<string> */
+    public array $called = [];
+
+    public string $role = 'admin';
+
+    public function __call(string $name, array $arguments): mixed
+    {
+        $this->called[] = $name;
+
+        return 'via_call';
+    }
+}
+
+final class PropertyReaderNullableGetterStub
+{
+    public string $nickname = 'should-not-be-read';
+
+    public function getNickname(): ?string
+    {
+        return null;
     }
 }
