@@ -62,6 +62,15 @@ final class DoctrineDataProviderConvertedIdentifierTest extends TestCase
     }
 
     #[Test]
+    public function it_collects_identifiers_in_the_browser_namespace(): void
+    {
+        $ids = $this->provider()->collectIdentifiers($this->request(0, 10));
+
+        $this->assertSame(['a', 'b', 'c', 'd', 'e', 'f'], $ids);
+        $this->assertCount(6, $this->em->getRepository(ConvertedIdOwner::class)->findBy(['id' => $ids]));
+    }
+
+    #[Test]
     public function it_applies_the_scope_to_converted_ids(): void
     {
         $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb

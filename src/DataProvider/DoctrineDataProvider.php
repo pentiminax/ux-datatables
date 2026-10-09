@@ -227,13 +227,19 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      * primary key. Collecting the primary key instead would hand the repository lookup values from
      * another namespace.
      *
+     * Scalar SQL results stay in the database namespace; convert them before {@see ObjectRepository::findBy()}
+     * and deselection compare against the PHP/browser form {@see RowIdNormalizer} wrote.
+     *
      * @return list<int|string>
      */
     public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
     {
         [$qb, $alias, $identifier] = $this->buildIdentifierScopedQuery($request, $field);
 
-        return $this->normalizeIdentifiers($this->scopedIdentifiers($qb, $alias, $identifier));
+        $metadata = $this->em->getClassMetadata($this->entityClass);
+        $type     = $this->fieldType($metadata, $identifier);
+
+        return $this->normalizeIdentifiers($this->toPhpIdentifiers($type, $this->scopedIdentifiers($qb, $alias, $identifier)));
     }
 
     /**
@@ -326,6 +332,35 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         } catch (ConversionException) {
             return null;
         }
+    }
+
+    /**
+     * @param list<mixed> $ids
+     *
+     * @return list<mixed>
+     */
+    private function toPhpIdentifiers(?Type $type, array $ids): array
+    {
+        if (null === $type) {
+            return $ids;
+        }
+
+        $platform = $this->em->getConnection()->getDatabasePlatform();
+        $phpIds   = [];
+
+        foreach ($ids as $id) {
+            try {
+                $phpId = $type->convertToPHPValue($id, $platform);
+            } catch (ConversionException) {
+                continue;
+            }
+
+            if (null !== $phpId) {
+                $phpIds[] = $phpId;
+            }
+        }
+
+        return $phpIds;
     }
 
     private function arrayBindingType(?Type $type): ArrayParameterType|int
