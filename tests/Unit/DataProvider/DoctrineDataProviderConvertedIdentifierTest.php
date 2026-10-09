@@ -87,6 +87,14 @@ final class DoctrineDataProviderConvertedIdentifierTest extends TestCase
     }
 
     #[Test]
+    public function it_exports_converted_ids_without_double_converting(): void
+    {
+        $rows = iterator_to_array($this->provider()->iterateRows($this->request(0, 10)), false);
+
+        $this->assertSame(['a', 'b', 'c', 'd', 'e', 'f'], array_column($rows, 'id'));
+    }
+
+    #[Test]
     public function it_pages_converted_ids_in_order_when_a_collection_is_joined(): void
     {
         $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
