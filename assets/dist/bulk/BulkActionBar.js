@@ -147,23 +147,23 @@ export class BulkActionBar {
         if (snapshot.count === 0) {
             return;
         }
-        if (action.confirm) {
-            const confirmed = await confirmAction({
-                message: action.confirm.replace('{count}', String(snapshot.count)),
-                confirmLabel: action.confirmButton ?? this.labels.confirm ?? 'Confirm',
-                cancelLabel: this.labels.cancel ?? 'Cancel',
-                framework: this.framework,
-                adapterKey: this.modalAdapterKey,
-            });
-            if (!confirmed) {
-                return;
-            }
-        }
         this.running = true;
         this.trigger.setAttribute('aria-busy', 'true');
         this.trigger.disabled = true;
-        this.dispatch('bulk:start', { action: action.name, selection: snapshot });
         try {
+            if (action.confirm) {
+                const confirmed = await confirmAction({
+                    message: action.confirm.replace('{count}', String(snapshot.count)),
+                    confirmLabel: action.confirmButton ?? this.labels.confirm ?? 'Confirm',
+                    cancelLabel: this.labels.cancel ?? 'Cancel',
+                    framework: this.framework,
+                    adapterKey: this.modalAdapterKey,
+                });
+                if (!confirmed) {
+                    return;
+                }
+            }
+            this.dispatch('bulk:start', { action: action.name, selection: snapshot });
             const result = await runBulkAction({
                 url: this.config.url,
                 dataTable: this.dataTable,
