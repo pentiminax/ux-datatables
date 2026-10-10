@@ -297,6 +297,42 @@ describe('BulkActionBar', () => {
         })
     })
 
+    it('runs one confirmation when the action is clicked again before it answers', async () => {
+        let answer: (value: boolean) => void = () => {}
+        vi.mocked(confirmAction).mockReturnValueOnce(
+            new Promise<boolean>((resolve) => {
+                answer = resolve
+            })
+        )
+        const h = build({
+            bulkActions: {
+                actions: [
+                    { name: 'approve', label: 'Approve', confirm: 'Approve {count} rows?' },
+                    { name: 'reject', label: 'Reject', confirm: 'Reject {count} rows?' },
+                ],
+            },
+        })
+        h.api.emitSelection('select', [0, 1])
+
+        item(h, 'approve').click()
+        await vi.waitFor(() => expect(confirmAction).toHaveBeenCalledTimes(1))
+        expect(trigger(h).disabled).toBe(true)
+        expect(trigger(h).getAttribute('aria-busy')).toBe('true')
+
+        item(h, 'reject').click()
+        await Promise.resolve()
+
+        expect(confirmAction).toHaveBeenCalledTimes(1)
+        expect(fetch).not.toHaveBeenCalled()
+
+        answer(true)
+        await vi.waitFor(() => expect((fetch as any).mock.calls.length).toBe(1))
+
+        expect(JSON.parse((fetch as any).mock.calls[0][1].body)).toMatchObject({
+            action: 'approve',
+        })
+    })
+
     it('keeps the outcome through the reload, then shows the count once the selection changes', async () => {
         const h = build()
         const count = (): string | null | undefined =>
