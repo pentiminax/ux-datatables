@@ -150,7 +150,7 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
     }
 
     #[Test]
-    public function it_limits_the_identifier_query_when_the_order_uses_root_fields_only(): void
+    public function it_limits_the_identifier_query_when_the_order_uses_mapped_fields_only(): void
     {
         $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
             ->leftJoin('e.tags', 't')
@@ -162,7 +162,7 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
         $this->assertSame([4, 3], $ids);
         $this->assertCount(1, array_filter(
             $this->selectStatements(),
-            static fn (string $sql): bool => str_contains($sql, 'DISTINCT') && str_contains($sql, 'LIMIT 2 OFFSET 2') && !str_contains($sql, 'COUNT('),
+            static fn (string $sql): bool => str_contains($sql, 'GROUP BY') && str_contains($sql, 'LIMIT 2 OFFSET 2'),
         ));
     }
 
@@ -188,6 +188,25 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
         $rows = iterator_to_array($provider->fetchData($this->request(0, 3))->data);
 
         $this->assertSame([1, 2, 3], array_column($rows, 'id'));
+    }
+
+    #[Test]
+    public function it_limits_the_identifier_query_when_the_order_follows_a_joined_column(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->leftJoin('e.tags', 't')
+            ->orderBy('t.id', 'DESC'));
+
+        $this->statements = [];
+        $first            = $this->ids($provider->fetchData($this->request(0, 2))->data);
+        $second           = $this->ids($provider->fetchData($this->request(2, 2))->data);
+
+        $this->assertSame([6, 5], $first);
+        $this->assertSame([4, 3], $second);
+        $this->assertCount(2, array_filter(
+            $this->selectStatements(),
+            static fn (string $sql): bool => str_contains($sql, 'GROUP BY') && str_contains($sql, 'MAX(') && str_contains($sql, 'LIMIT 2'),
+        ));
     }
 
     #[Test]

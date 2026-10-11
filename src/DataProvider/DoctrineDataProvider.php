@@ -435,14 +435,15 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      */
     private function scopedIdentifiers(QueryBuilder $qb, string $alias, string $identifier): array
     {
-        $rootOrder = $this->rootFieldOrder($qb, $alias);
         if (
-            null    !== $qb->getMaxResults()
-            && null !== $rootOrder
+            null !== $qb->getMaxResults()
+            && []          === $qb->getDQLPart('groupBy')
+            && null        === $qb->getDQLPart('having')
             && $identifier === $this->em->getClassMetadata($this->entityClass)->getSingleIdentifierFieldName()
             && []          === $this->orderDependentSelectParts($qb, $alias)
+            && null !== ($orders = $this->orderFields($qb, $alias))
         ) {
-            return $this->boundedIdentifiers($qb, $alias, $identifier, $rootOrder);
+            return $this->boundedIdentifiers($qb, $alias, $identifier, $orders);
         }
 
         $ids = $this->collectExportIdentifiers($qb, $alias, $identifier);
@@ -453,45 +454,48 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * Mapped root fields the ORDER BY refers to, or null when it uses anything else (a joined
-     * column, an association, a computed alias) that DISTINCT could not keep one row per root for.
+     * The ORDER BY as [path, direction] pairs, or null when a part is not a mapped field of the
+     * root or of a joined alias (an association, a computed alias) that GROUP BY could not bound.
      *
-     * @return list<string>|null
+     * @return list<array{string, string}>|null
      */
-    private function rootFieldOrder(QueryBuilder $qb, string $alias): ?array
+    private function orderFields(QueryBuilder $qb, string $alias): ?array
     {
-        $metadata = $this->em->getClassMetadata($this->entityClass);
-        $fields   = [];
+        $metadata = CollectionJoinDetector::aliasMetadata($qb, $this->em, $alias, $this->entityClass);
+        $orders   = [];
 
         foreach ($qb->getDQLPart('orderBy') as $order) {
             foreach ($order->getParts() as $part) {
-                if (1 !== preg_match('/^'.preg_quote($alias, '/').'\.(\w+) (?:ASC|DESC)$/i', (string) $part, $matches) || !$metadata->hasField($matches[1])) {
+                if (1 !== preg_match('/^(\w+)\.(\w+) (ASC|DESC)$/i', (string) $part, $matches) || !($metadata[$matches[1]] ?? null)?->hasField($matches[2])) {
                     return null;
                 }
 
-                $fields[] = $matches[1];
+                $orders[] = ["$matches[1].$matches[2]", strtoupper($matches[3])];
             }
         }
 
-        return $fields;
+        return $orders;
     }
 
     /**
-     * Cuts the page in SQL: with only root fields selected, DISTINCT yields one row per root, so
-     * the query's own LIMIT/OFFSET count roots rather than joined rows.
+     * Cuts the page in SQL: grouping by the identifier leaves one row per root, ordered by the
+     * smallest (ASC) or largest (DESC) value of each joined column, as the in-memory slice does.
      *
-     * @param list<string> $orderFields
+     * @param list<array{string, string}> $orders
      *
      * @return list<mixed>
      */
-    private function boundedIdentifiers(QueryBuilder $qb, string $alias, string $identifier, array $orderFields): array
+    private function boundedIdentifiers(QueryBuilder $qb, string $alias, string $identifier, array $orders): array
     {
-        $idQb = (clone $qb)->select("$alias.$identifier")->distinct();
+        $idQb = (clone $qb)
+            ->select("$alias.$identifier")
+            ->groupBy("$alias.$identifier")
+            ->resetDQLPart('orderBy');
 
-        foreach (array_unique($orderFields) as $field) {
-            if ($field !== $identifier) {
-                $idQb->addSelect("$alias.$field");
-            }
+        foreach ($orders as $index => [$path, $direction]) {
+            $idQb
+                ->addSelect(\sprintf('%s(%s) AS HIDDEN ux_datatables_order_%d', 'DESC' === $direction ? 'MAX' : 'MIN', $path, $index))
+                ->addOrderBy("ux_datatables_order_$index", DoctrineSortDirection::from(strtolower($direction)));
         }
 
         return $this->identifiersFromScalarResult($idQb);
