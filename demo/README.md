@@ -9,7 +9,7 @@ runs the code of the branch you have checked out.
 
 ## Requirements
 
-- PHP 8.4+ with the `pdo_sqlite` and `intl` extensions
+- PHP 8.4+ with the `pdo_sqlite`, `intl` and `zip` extensions
 - Composer
 
 No database server, Node.js, or Docker is needed: data lives in SQLite and assets go through
@@ -19,6 +19,7 @@ AssetMapper.
 
 ```bash
 cd demo
+echo "APP_SECRET=$(php -r 'echo bin2hex(random_bytes(16));')" > .env.local
 composer install
 php bin/console app:demo:reset
 php -S 127.0.0.1:8000 -t public
