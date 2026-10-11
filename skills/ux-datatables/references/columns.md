@@ -22,7 +22,7 @@ All columns live in `src/Column/`. Every type is created with the static factory
 
 ## Shared methods (`AbstractColumn`)
 
-Available on every column. `formatValueUsing(fn ($value, $row): string => ...)` formats the cell on the server: the column renders as escaped text, sorts on the displayed string, and server-side exports write the formatted value (`Button::csv()->rawValues()` opts out).
+Available on every column. `formatValueUsing(fn ($value, $row): string => ...)` formats the cell on the server: the column renders as escaped text, and server-side exports write the formatted value (`Button::csv()->rawValues()` opts out). Client-side tables sort on the formatted value; server-side tables still sort on the mapped field or configured order expression.
 
 ```php
 TextColumn::new('email', 'Email')
