@@ -22,6 +22,7 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
@@ -284,6 +285,16 @@ final class ColumnResolverTest extends TestCase
         $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
 
         $this->assertSame($expected, $resolver->removePaths($row, $resolver->deniedColumnPaths($columns)));
+    }
+
+    #[Test]
+    #[IgnoreDeprecations]
+    public function the_deprecated_denied_value_removal_still_delegates_to_the_path_helpers(): void
+    {
+        $resolver = $this->createResolverWithPermissions([['ROLE_HR', null, false]]);
+        $columns  = [TextColumn::new('salary', 'Salary')->setPermission('ROLE_HR'), TextColumn::new('name', 'Name')];
+
+        $this->assertSame(['name' => 'Ada'], $resolver->removeDeniedColumnValues(['salary' => 1, 'name' => 'Ada'], $columns));
     }
 
     /**

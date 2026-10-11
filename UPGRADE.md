@@ -47,7 +47,15 @@ native dialog, as bulk actions already do. The native `window.confirm()` remains
 no adapter resolves, and link actions keep it. Code that stubbed `window.confirm` in tests of a
 delete button must now answer through the adapter instead.
 
-No API is deprecated in v1.2.0.
+### Deprecated APIs
+
+Everything below keeps working and is removed in v2.0.
+
+- `ColumnResolver::removeDeniedColumnValues()`: use `deniedColumnPaths()` and `removePaths()`.
+- The frontend modules `dist/functions/filterFeature.js`, `filterLayout.js`, `bulkActionsFeature.js`
+  and `bulkActionsLayout.js`: the controller wires both bars itself, so deep imports are no longer
+  needed. They are not part of the package entry point.
+- `confirmBulkAction()` from `dist/bulk/confirmModal.js`: use `confirmAction()`.
 
 ### The table language follows the request locale
 
@@ -208,13 +216,6 @@ change. Update custom code that compares these ids strictly to numbers, such as 
 using `update.id === 42` or a decorated controller that requires an `int` id.
 
 ## v1.1 → v1.1.1
-
-### Deprecated frontend feature modules
-
-The filter bar and the bulk action bar each have one install entry point now. Deep imports of
-`dist/functions/filterFeature.js`, `filterLayout.js`, `bulkActionsFeature.js` and
-`bulkActionsLayout.js` keep working but are deprecated and will be removed in v2.0. They are not
-part of the package entry point; the controller wires both bars itself.
 
 ### `TextColumn` HTML-escapes display
 

@@ -14,6 +14,9 @@ export const textColumnRenderer = {
         return PLAIN_TEXT_TYPES.has(column?.type) || isFormattedText(column);
     },
     configure(column) {
+        if (isFormatted(column)) {
+            delete column.type;
+        }
         if (typeof column.render === 'function') {
             return;
         }

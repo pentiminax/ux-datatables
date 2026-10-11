@@ -25,6 +25,11 @@ export const textColumnRenderer: ColumnRenderer = {
     },
 
     configure(column: Record<string, any>): void {
+        if (isFormatted(column)) {
+            // The declared type describes the raw value; DataTables must detect it from the displayed text.
+            delete column.type
+        }
+
         if (typeof column.render === 'function') {
             return
         }

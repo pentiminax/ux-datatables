@@ -212,6 +212,21 @@ final class ColumnResolver
 
     /**
      * @param array<string, mixed> $row
+     * @param ColumnInterface[]    $columns
+     *
+     * @return array<string, mixed>
+     *
+     * @deprecated since 1.2, use deniedColumnPaths() and removePaths() instead. Removed in 2.0.
+     */
+    public function removeDeniedColumnValues(array $row, array $columns): array
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.2', 'The "%s()" method is deprecated, use "deniedColumnPaths()" and "removePaths()" instead.', __METHOD__);
+
+        return $this->removePaths($row, $this->deniedColumnPaths($columns));
+    }
+
+    /**
+     * @param array<string, mixed> $row
      * @param list<string>         $paths
      *
      * @return array<string, mixed>

@@ -133,4 +133,15 @@ final class ExportValueFormatterTest extends TestCase
 
         $this->assertSame(['active' => 'Yes', 'archived' => 'No', 'maybe' => 'No'], $row);
     }
+
+    #[Test]
+    public function it_reads_a_zero_switch_cell_as_off_whatever_its_numeric_type(): void
+    {
+        $formatter = new ExportValueFormatter();
+        $columns   = [BooleanColumn::new('int')->renderAsSwitch(), BooleanColumn::new('float')->renderAsSwitch(), BooleanColumn::new('one')->renderAsSwitch()];
+
+        $row = $formatter->formatRow($columns, ['int' => 0, 'float' => 0.0, 'one' => 1.0]);
+
+        $this->assertSame(['int' => 'No', 'float' => 'No', 'one' => 'Yes'], $row);
+    }
 }
