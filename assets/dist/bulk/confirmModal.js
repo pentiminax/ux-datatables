@@ -1,3 +1,4 @@
+import { escapeHtml } from '../functions/htmlUtils.js';
 import { resolveModalAdapter } from '../modal/resolveModalAdapter.js';
 const BOOTSTRAP_FRAMEWORKS = ['bs', 'bs4', 'bs5'];
 export async function confirmAction(request) {
@@ -60,10 +61,5 @@ function buildHtml(request) {
         <button type="button" class="dt-button dt-button-primary" data-ux-datatables-submit>${confirmLabel}</button>
     </div>
 </dialog>`;
-}
-function escapeHtml(value) {
-    const element = document.createElement('span');
-    element.textContent = value;
-    return element.innerHTML;
 }
 //# sourceMappingURL=confirmModal.js.map

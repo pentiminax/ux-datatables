@@ -1,3 +1,4 @@
+import { escapeHtml } from '../functions/htmlUtils.js'
 import type { ModalAdapter } from '../modal/ModalAdapter.js'
 import { resolveModalAdapter } from '../modal/resolveModalAdapter.js'
 import type { StyleFramework } from '../types/styleFramework.js'
@@ -95,11 +96,4 @@ function buildHtml(request: ConfirmRequest): string {
         <button type="button" class="dt-button dt-button-primary" data-ux-datatables-submit>${confirmLabel}</button>
     </div>
 </dialog>`
-}
-
-function escapeHtml(value: string): string {
-    const element = document.createElement('span')
-    element.textContent = value
-
-    return element.innerHTML
 }
