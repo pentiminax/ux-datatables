@@ -46,6 +46,8 @@ jobs:
   demo:
     runs-on: ubuntu-latest
     name: Demo app
+    env:
+      APP_SECRET: ci-only-demo-secret
     defaults:
       run:
         working-directory: demo

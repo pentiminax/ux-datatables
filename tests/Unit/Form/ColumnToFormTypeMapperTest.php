@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Form;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\MoneyColumn;
@@ -53,7 +54,17 @@ final class ColumnToFormTypeMapperTest extends TestCase
 
     public static function mappedColumnProvider(): \Generator
     {
-        yield 'boolean switch' => [
+        yield 'boolean column without switch' => [
+            ['formType' => CheckboxType::class, 'options' => ['label' => 'Active', 'required' => false]],
+            BooleanColumn::new('active', 'Active'),
+        ];
+
+        yield 'boolean column with switch' => [
+            ['formType' => CheckboxType::class, 'options' => ['label' => 'Active', 'required' => false]],
+            BooleanColumn::new('active', 'Active')->renderAsSwitch(),
+        ];
+
+        yield 'boolean switch on text column' => [
             ['formType' => CheckboxType::class, 'options' => ['label' => 'Active', 'required' => false]],
             TextColumn::new('active', 'Active')->setCustomOption('renderAsSwitch', true),
         ];
