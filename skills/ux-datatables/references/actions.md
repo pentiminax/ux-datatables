@@ -143,6 +143,6 @@ public function configureBulkActions(BulkActions $actions): BulkActions
 - Every bulk action must declare a `handler()`; executing an action without one throws a configuration error.
 - `BulkRecords` is lazy and single-pass: `count()` is the **selected** count, `$ctx->processedCount()` / `$ctx->skippedCount()` are the real ones, read after iterating.
 - Per-row permission denials are skipped and counted; they do not abort the run. A handler declines a row on a data rule with `$ctx->skip()`, which moves the entity just handed over from processed to skipped.
-- Built-in row actions (delete, detail, edit, boolean switch) dispatch `datatables:action:success` / `datatables:action:error` on the table element and announce failures; a `confirm()` asks through the table's modal adapter.
+- Built-in row actions handled by the table (delete, collapsible detail, modal edit, boolean switch) dispatch `datatables:action:success` / `datatables:action:error` on the table element and announce failures. Confirmation uses the table's modal adapter for actions handled by the table; detail and edit links keep native browser confirmation.
 - `allMatching` (select every row matching the current filters) needs a provider implementing `IdentifierCollectingDataProviderInterface` — `DoctrineDataProvider` does. Otherwise the endpoint answers `400`.
 - Endpoint: `POST /datatables/ajax/bulk`, token in the body, CSRF in the `X-CSRF-Token` header. A run is **not** one transaction: one flush per chunk.
