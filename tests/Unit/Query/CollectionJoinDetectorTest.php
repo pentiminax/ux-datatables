@@ -36,6 +36,18 @@ final class CollectionJoinDetectorTest extends TestCase
     }
 
     #[Test]
+    public function it_exposes_the_metadata_of_every_resolved_join_alias(): void
+    {
+        $qb = $this->tags()->leftJoin('e.customer', 'c')->leftJoin('c.tags', 'ct');
+
+        $metadata = CollectionJoinDetector::aliasMetadata($qb, $this->em, 'e', CountTag::class);
+
+        $this->assertSame(['e', 'c', 'ct'], array_keys($metadata));
+        $this->assertSame(CountCustomer::class, $metadata['c']->getName());
+        $this->assertSame(CountTag::class, $metadata['ct']->getName());
+    }
+
+    #[Test]
     public function it_reports_no_collection_for_a_single_valued_join(): void
     {
         $this->assertFalse($this->detect($this->tags()->leftJoin('e.customer', 'c')));
@@ -73,6 +85,12 @@ final class CollectionJoinDetectorTest extends TestCase
         $qb = $this->customers()->leftJoin(CountTag::class, 't', 'WITH', 't.customer = e');
 
         $this->assertTrue($this->detect($qb));
+    }
+
+    #[Test]
+    public function it_treats_a_join_on_a_mapped_field_as_multiplying(): void
+    {
+        $this->assertTrue($this->detect($this->tags()->leftJoin('e.label', 'l')));
     }
 
     #[Test]
