@@ -191,6 +191,49 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
     }
 
     #[Test]
+    public function it_pages_distinct_roots_when_the_root_and_the_collection_share_one_select(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->select('e, t')
+            ->leftJoin('e.tags', 't')
+            ->orderBy('e.id', 'ASC'));
+
+        $this->assertSame([1, 2], $this->ids($provider->fetchData($this->request(0, 2))->data));
+        $this->assertSame([3, 4], $this->ids($provider->fetchData($this->request(2, 2))->data));
+    }
+
+    #[Test]
+    public function it_keeps_the_in_memory_slice_when_the_order_follows_an_association(): void
+    {
+        $this->em->clear();
+
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountTag::class,
+            rowMapper: $this->idMapper(),
+            configureQueryBuilder: static fn (QueryBuilder $qb): QueryBuilder => $qb
+                ->leftJoin('e.customer', 'c')
+                ->leftJoin('c.tags', 'ct')
+                ->orderBy('e.customer', 'DESC'),
+        );
+
+        $this->assertCount(3, $this->ids($provider->fetchData($this->request(0, 3))->data));
+    }
+
+    #[Test]
+    public function it_limits_the_identifier_query_of_a_streamed_export_with_its_own_limit(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->leftJoin('e.tags', 't')
+            ->orderBy('e.name', 'ASC')
+            ->setMaxResults(3));
+
+        $rows = iterator_to_array($provider->iterateRows($this->request(0, 0)), false);
+
+        $this->assertSame([1, 2, 3], array_column($rows, 'id'));
+    }
+
+    #[Test]
     public function it_costs_one_extra_query_per_draw_when_a_collection_is_joined(): void
     {
         $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
