@@ -436,7 +436,12 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     private function scopedIdentifiers(QueryBuilder $qb, string $alias, string $identifier): array
     {
         $rootOrder = $this->rootFieldOrder($qb, $alias);
-        if (null !== $qb->getMaxResults() && null !== $rootOrder && [] === $this->orderDependentSelectParts($qb, $alias)) {
+        if (
+            null    !== $qb->getMaxResults()
+            && null !== $rootOrder
+            && $identifier === $this->em->getClassMetadata($this->entityClass)->getSingleIdentifierFieldName()
+            && []          === $this->orderDependentSelectParts($qb, $alias)
+        ) {
             return $this->boundedIdentifiers($qb, $alias, $identifier, $rootOrder);
         }
 
@@ -448,18 +453,19 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * Root fields the ORDER BY refers to, or null when it uses anything else (a joined column, a
-     * computed alias) that DISTINCT could not keep one row per root for.
+     * Mapped root fields the ORDER BY refers to, or null when it uses anything else (a joined
+     * column, an association, a computed alias) that DISTINCT could not keep one row per root for.
      *
      * @return list<string>|null
      */
     private function rootFieldOrder(QueryBuilder $qb, string $alias): ?array
     {
-        $fields = [];
+        $metadata = $this->em->getClassMetadata($this->entityClass);
+        $fields   = [];
 
         foreach ($qb->getDQLPart('orderBy') as $order) {
             foreach ($order->getParts() as $part) {
-                if (1 !== preg_match('/^'.preg_quote($alias, '/').'\.(\w+) (?:ASC|DESC)$/i', (string) $part, $matches)) {
+                if (1 !== preg_match('/^'.preg_quote($alias, '/').'\.(\w+) (?:ASC|DESC)$/i', (string) $part, $matches) || !$metadata->hasField($matches[1])) {
                     return null;
                 }
 
@@ -494,8 +500,14 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     private function selectsRootEntity(QueryBuilder $qb, string $alias): bool
     {
         foreach ($qb->getDQLPart('select') as $select) {
-            if (\in_array($alias, array_map(strval(...), $select->getParts()), true)) {
-                return true;
+            foreach ($select->getParts() as $part) {
+                foreach (explode(',', (string) $part) as $item) {
+                    $item = trim($item);
+
+                    if ($alias === $item || str_starts_with($item, "partial $alias.")) {
+                        return true;
+                    }
+                }
             }
         }
 
