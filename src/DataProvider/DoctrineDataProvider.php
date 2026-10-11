@@ -195,14 +195,15 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     {
         [$qb, $alias, $identifier] = $this->buildIdentifierScopedQuery($request);
 
-        $ids = $this->scopedIdentifiers($qb, $alias, $identifier);
+        $ids  = $this->scopedIdentifiers($qb, $alias, $identifier);
+        $type = $this->fieldType($this->em->getClassMetadata($this->entityClass), $identifier);
 
         foreach (array_chunk($ids, max(1, $this->exportChunkSize)) as $chunk) {
             $pageQb = (clone $qb)
                 ->setFirstResult(null)
                 ->setMaxResults(null)
                 ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_export_ids'))
-                ->setParameter('ux_datatables_export_ids', $chunk);
+                ->setParameter('ux_datatables_export_ids', $chunk, $this->arrayBindingType($type));
 
             $items = array_map($this->rootEntity(...), $pageQb->getQuery()->getResult());
 

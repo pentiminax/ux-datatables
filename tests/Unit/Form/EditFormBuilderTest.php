@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Form;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\MoneyColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -16,6 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -130,6 +132,39 @@ final class EditFormBuilderTest extends TestCase
         $this->assertFalse($form->has('fullName'));
         $this->assertTrue($form->get('id')->isDisabled());
     }
+
+    #[Test]
+    public function a_boolean_column_without_render_as_switch_binds_as_a_checkbox(): void
+    {
+        $entity         = new EditFormBuilderEntity();
+        $entity->active = true;
+
+        $form = (new EditFormBuilder(Forms::createFormFactory(), new ColumnToFormTypeMapper()))
+            ->buildForm($entity, [BooleanColumn::new('active', 'Active')], []);
+
+        $this->assertInstanceOf(CheckboxType::class, $form->get('active')->getConfig()->getType()->getInnerType());
+        $this->assertTrue($form->createView()['active']->vars['checked']);
+
+        $form->submit([]);
+
+        $this->assertTrue($form->isSynchronized());
+        $this->assertFalse($entity->active);
+    }
+
+    #[Test]
+    public function a_checked_boolean_checkbox_sets_the_flag(): void
+    {
+        $entity         = new EditFormBuilderEntity();
+        $entity->active = false;
+
+        $form = (new EditFormBuilder(Forms::createFormFactory(), new ColumnToFormTypeMapper()))
+            ->buildForm($entity, [BooleanColumn::new('active', 'Active')], []);
+
+        $form->submit(['active' => '1']);
+
+        $this->assertTrue($form->isSynchronized());
+        $this->assertTrue($entity->active);
+    }
 }
 
 final class EditFormBuilderEntity
@@ -139,4 +174,6 @@ final class EditFormBuilderEntity
     public string $name = 'Ada';
 
     public int $price = 10;
+
+    public bool $active = false;
 }
