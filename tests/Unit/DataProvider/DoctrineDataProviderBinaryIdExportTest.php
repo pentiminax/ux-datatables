@@ -19,10 +19,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Export reloads each chunk with `WHERE id IN (:ux_datatables_export_ids)`. Without the field's
- * array binding type, a BINARY primary key (uuid_binary and friends) binds as a string and the
- * IN clause matches nothing — the table still pages, but the CSV/Excel stream is empty.
- *
  * @internal
  */
 #[CoversClass(DoctrineDataProvider::class)]

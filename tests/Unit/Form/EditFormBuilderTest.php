@@ -150,6 +150,21 @@ final class EditFormBuilderTest extends TestCase
         $this->assertTrue($form->isSynchronized());
         $this->assertFalse($entity->active);
     }
+
+    #[Test]
+    public function a_checked_boolean_checkbox_sets_the_flag(): void
+    {
+        $entity         = new EditFormBuilderEntity();
+        $entity->active = false;
+
+        $form = (new EditFormBuilder(Forms::createFormFactory(), new ColumnToFormTypeMapper()))
+            ->buildForm($entity, [BooleanColumn::new('active', 'Active')], []);
+
+        $form->submit(['active' => '1']);
+
+        $this->assertTrue($form->isSynchronized());
+        $this->assertTrue($entity->active);
+    }
 }
 
 final class EditFormBuilderEntity
