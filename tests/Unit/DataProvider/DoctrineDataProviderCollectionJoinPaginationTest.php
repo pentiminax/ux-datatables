@@ -210,6 +210,40 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
     }
 
     #[Test]
+    public function it_keeps_the_in_memory_slice_for_two_joined_order_columns(): void
+    {
+        $twoJoined = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->leftJoin('e.tags', 't')
+            ->orderBy('t.label', 'ASC')
+            ->addOrderBy('t.id', 'ASC'));
+
+        $this->statements = [];
+        $all              = [];
+        foreach ([0, 2, 4] as $start) {
+            array_push($all, ...$this->ids($twoJoined->fetchData($this->request($start, 2))->data));
+        }
+
+        $this->assertCount(6, array_unique($all));
+        $this->assertCount(0, array_filter($this->selectStatements(), static fn (string $sql): bool => str_contains($sql, 'GROUP BY')));
+    }
+
+    #[Test]
+    public function it_groups_and_orders_root_fields_without_aggregating_them(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->leftJoin('e.tags', 't')
+            ->orderBy('e.name', 'DESC'));
+
+        $this->statements = [];
+        iterator_to_array($provider->fetchData($this->request(0, 2))->data);
+
+        $this->assertCount(1, array_filter(
+            $this->selectStatements(),
+            static fn (string $sql): bool => str_contains($sql, 'GROUP BY') && !str_contains($sql, 'MAX(') && !str_contains($sql, 'MIN('),
+        ));
+    }
+
+    #[Test]
     public function it_pages_distinct_roots_when_the_root_and_the_collection_share_one_select(): void
     {
         $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb

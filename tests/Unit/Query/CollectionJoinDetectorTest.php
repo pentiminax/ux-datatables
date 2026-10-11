@@ -88,6 +88,12 @@ final class CollectionJoinDetectorTest extends TestCase
     }
 
     #[Test]
+    public function it_treats_a_join_on_a_mapped_field_as_multiplying(): void
+    {
+        $this->assertTrue($this->detect($this->tags()->leftJoin('e.label', 'l')));
+    }
+
+    #[Test]
     public function it_treats_a_join_on_an_undeclared_alias_as_multiplying(): void
     {
         $this->assertTrue($this->detect($this->customers()->leftJoin('ghost.tags', 't')));
