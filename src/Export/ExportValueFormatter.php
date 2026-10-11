@@ -112,7 +112,7 @@ final class ExportValueFormatter
         return match (true) {
             null === $value || '' === $value     => $column->getDefaultState(),
             \is_bool($value)                     => $value,
-            \is_int($value) || \is_float($value) => 0 !== $value,
+            \is_int($value) || \is_float($value) => 0.0 !== (float) $value,
             \is_string($value)                   => \in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'y', 'on'], true),
             default                              => false,
         };

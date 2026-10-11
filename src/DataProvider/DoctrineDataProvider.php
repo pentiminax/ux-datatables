@@ -129,6 +129,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             [] !== $qb->getDQLPart('groupBy')
             || $metadata->isIdentifierComposite
             || !$metadata->hasField($metadata->getSingleIdentifierFieldName())
+            || !$this->selectsRootEntity($qb, $alias)
             || !CollectionJoinDetector::joinsCollection($qb, $this->em, $alias, $this->entityClass)
         ) {
             return array_values($qb->getQuery()->getResult());
@@ -434,11 +435,83 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      */
     private function scopedIdentifiers(QueryBuilder $qb, string $alias, string $identifier): array
     {
+        $rootOrder = $this->rootFieldOrder($qb, $alias);
+        if (
+            null    !== $qb->getMaxResults()
+            && null !== $rootOrder
+            && $identifier === $this->em->getClassMetadata($this->entityClass)->getSingleIdentifierFieldName()
+            && []          === $this->orderDependentSelectParts($qb, $alias)
+        ) {
+            return $this->boundedIdentifiers($qb, $alias, $identifier, $rootOrder);
+        }
+
         $ids = $this->collectExportIdentifiers($qb, $alias, $identifier);
 
         // A LIMIT/OFFSET set by customizeQueryBuilder() caps the result itself; applied here it
         // counts root entities, where the query's own LIMIT would have counted joined SQL rows.
         return \array_slice($ids, $qb->getFirstResult() ?? 0, $qb->getMaxResults());
+    }
+
+    /**
+     * Mapped root fields the ORDER BY refers to, or null when it uses anything else (a joined
+     * column, an association, a computed alias) that DISTINCT could not keep one row per root for.
+     *
+     * @return list<string>|null
+     */
+    private function rootFieldOrder(QueryBuilder $qb, string $alias): ?array
+    {
+        $metadata = $this->em->getClassMetadata($this->entityClass);
+        $fields   = [];
+
+        foreach ($qb->getDQLPart('orderBy') as $order) {
+            foreach ($order->getParts() as $part) {
+                if (1 !== preg_match('/^'.preg_quote($alias, '/').'\.(\w+) (?:ASC|DESC)$/i', (string) $part, $matches) || !$metadata->hasField($matches[1])) {
+                    return null;
+                }
+
+                $fields[] = $matches[1];
+            }
+        }
+
+        return $fields;
+    }
+
+    /**
+     * Cuts the page in SQL: with only root fields selected, DISTINCT yields one row per root, so
+     * the query's own LIMIT/OFFSET count roots rather than joined rows.
+     *
+     * @param list<string> $orderFields
+     *
+     * @return list<mixed>
+     */
+    private function boundedIdentifiers(QueryBuilder $qb, string $alias, string $identifier, array $orderFields): array
+    {
+        $idQb = (clone $qb)->select("$alias.$identifier")->distinct();
+
+        foreach (array_unique($orderFields) as $field) {
+            if ($field !== $identifier) {
+                $idQb->addSelect("$alias.$field");
+            }
+        }
+
+        return $this->identifiersFromScalarResult($idQb);
+    }
+
+    private function selectsRootEntity(QueryBuilder $qb, string $alias): bool
+    {
+        foreach ($qb->getDQLPart('select') as $select) {
+            foreach ($select->getParts() as $part) {
+                foreach (explode(',', (string) $part) as $item) {
+                    $item = trim($item);
+
+                    if ($alias === $item || str_starts_with($item, "partial $alias.")) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

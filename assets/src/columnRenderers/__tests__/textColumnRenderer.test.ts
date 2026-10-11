@@ -69,6 +69,25 @@ describe('textColumnRenderer', () => {
         expect(column.render('<b>€ 12.50</b>', 'display')).toBe('&lt;b&gt;€ 12.50&lt;/b&gt;')
     })
 
+    it('drops the raw value type of a formatted column so it sorts as the text it displays', () => {
+        const column: { type?: string; customOptions: object } = {
+            type: 'num',
+            customOptions: { formatted: true },
+        }
+
+        textColumnRenderer.configure(column)
+
+        expect(column.type).toBeUndefined()
+    })
+
+    it('keeps the type of a column without a formatter', () => {
+        const column = { type: 'string' }
+
+        textColumnRenderer.configure(column)
+
+        expect(column.type).toBe('string')
+    })
+
     it('leaves a typed column without a formatter to its own renderer', () => {
         expect(textColumnRenderer.matches({ type: 'num', customOptions: { isMoney: true } })).toBe(
             false
