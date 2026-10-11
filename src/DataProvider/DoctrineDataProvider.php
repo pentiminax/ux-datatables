@@ -505,6 +505,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     {
         $idQb = (clone $qb)
             ->select("$alias.$identifier")
+            ->distinct(false)
             ->groupBy("$alias.$identifier")
             ->resetDQLPart('orderBy');
 

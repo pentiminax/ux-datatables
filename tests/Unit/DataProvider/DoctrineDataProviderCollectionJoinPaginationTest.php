@@ -244,6 +244,24 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
     }
 
     #[Test]
+    public function it_drops_distinct_from_the_grouped_identifier_query(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->distinct()
+            ->leftJoin('e.tags', 't')
+            ->orderBy('e.name', 'DESC'));
+
+        $this->statements = [];
+        $ids              = $this->ids($provider->fetchData($this->request(0, 2))->data);
+
+        $this->assertSame([6, 5], $ids);
+        $this->assertCount(1, array_filter(
+            $this->selectStatements(),
+            static fn (string $sql): bool => str_contains($sql, 'GROUP BY') && !str_contains($sql, 'DISTINCT'),
+        ));
+    }
+
+    #[Test]
     public function it_pages_distinct_roots_when_the_root_and_the_collection_share_one_select(): void
     {
         $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
