@@ -91,6 +91,7 @@ describe('BulkActionBar', () => {
 
     beforeEach(() => {
         document.body.innerHTML = ''
+        vi.mocked(confirmAction).mockClear()
         vi.stubGlobal(
             'fetch',
             vi
@@ -330,6 +331,33 @@ describe('BulkActionBar', () => {
 
         expect(JSON.parse((fetch as any).mock.calls[0][1].body)).toMatchObject({
             action: 'approve',
+        })
+    })
+
+    it('releases the bar when the confirmation is canceled', async () => {
+        vi.mocked(confirmAction).mockResolvedValueOnce(false)
+        const h = build({
+            bulkActions: {
+                actions: [
+                    { name: 'approve', label: 'Approve', confirm: 'Approve {count} rows?' },
+                    { name: 'reject', label: 'Reject', confirm: 'Reject {count} rows?' },
+                ],
+            },
+        })
+        h.api.emitSelection('select', [0, 1])
+
+        item(h, 'approve').click()
+        await vi.waitFor(() => expect(trigger(h).hasAttribute('aria-busy')).toBe(false))
+
+        expect(fetch).not.toHaveBeenCalled()
+        expect(h.dispatch).not.toHaveBeenCalledWith('bulk:start', expect.anything())
+        expect(trigger(h).disabled).toBe(false)
+
+        item(h, 'reject').click()
+
+        await vi.waitFor(() => expect((fetch as any).mock.calls.length).toBe(1))
+        expect(JSON.parse((fetch as any).mock.calls[0][1].body)).toMatchObject({
+            action: 'reject',
         })
     })
 
