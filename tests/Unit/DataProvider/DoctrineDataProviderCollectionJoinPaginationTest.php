@@ -150,6 +150,47 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
     }
 
     #[Test]
+    public function it_limits_the_identifier_query_when_the_order_uses_root_fields_only(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->leftJoin('e.tags', 't')
+            ->orderBy('e.name', 'DESC'));
+
+        $this->statements = [];
+        $ids              = $this->ids($provider->fetchData($this->request(2, 2))->data);
+
+        $this->assertSame([4, 3], $ids);
+        $this->assertCount(1, array_filter(
+            $this->selectStatements(),
+            static fn (string $sql): bool => str_contains($sql, 'DISTINCT') && str_contains($sql, 'LIMIT 2 OFFSET 2') && !str_contains($sql, 'COUNT('),
+        ));
+    }
+
+    #[Test]
+    public function it_returns_a_scalar_select_page_unchanged_when_a_collection_is_joined(): void
+    {
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountCustomer::class,
+            rowMapper: new class implements RowMapperInterface {
+                public function map(mixed $row): array
+                {
+                    return $row;
+                }
+            },
+            configureQueryBuilder: static fn (QueryBuilder $qb): QueryBuilder => $qb
+                ->select('e.id', 'e.name')
+                ->distinct()
+                ->leftJoin('e.tags', 't')
+                ->orderBy('e.id', 'ASC'),
+        );
+
+        $rows = iterator_to_array($provider->fetchData($this->request(0, 3))->data);
+
+        $this->assertSame([1, 2, 3], array_column($rows, 'id'));
+    }
+
+    #[Test]
     public function it_costs_one_extra_query_per_draw_when_a_collection_is_joined(): void
     {
         $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
