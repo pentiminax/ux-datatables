@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Form;
 
 use Pentiminax\UX\DataTables\Column\ActionColumn;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\MoneyColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -66,7 +67,11 @@ final class ColumnToFormTypeMapper
             ];
         }
 
-        if (!empty($customOptions['renderAsSwitch'])) {
+        // BooleanColumn is typed as DataTables "num" for sorting, so the numeric
+        // fallback below would bind NumberType to a bool property and crash the
+        // edit modal with TransformationFailedException. renderAsSwitch() only
+        // changes the cell chrome; TextColumn can also opt into a switch.
+        if ($column instanceof BooleanColumn || !empty($customOptions['renderAsSwitch'])) {
             return [
                 'formType' => CheckboxType::class,
                 'options'  => $options + ['required' => false],
