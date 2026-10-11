@@ -142,6 +142,7 @@ public function configureBulkActions(BulkActions $actions): BulkActions
 - Declaring one auto-enables `SelectExtension` in `MULTI` style with checkboxes, and forces a `DT_RowId` on every row. A single Doctrine identifier is detected automatically; use `BulkActions::setIdField()` for another source. A configured `SelectStyle::SINGLE` throws.
 - Every bulk action must declare a `handler()`; executing an action without one throws a configuration error.
 - `BulkRecords` is lazy and single-pass: `count()` is the **selected** count, `$ctx->processedCount()` / `$ctx->skippedCount()` are the real ones, read after iterating.
-- Per-row permission denials are skipped and counted; they do not abort the run.
+- Per-row permission denials are skipped and counted; they do not abort the run. A handler declines a row on a data rule with `$ctx->skip()`, which moves the entity just handed over from processed to skipped.
+- Built-in row actions (delete, detail, edit, boolean switch) dispatch `datatables:action:success` / `datatables:action:error` on the table element and announce failures; a `confirm()` asks through the table's modal adapter.
 - `allMatching` (select every row matching the current filters) needs a provider implementing `IdentifierCollectingDataProviderInterface` — `DoctrineDataProvider` does. Otherwise the endpoint answers `400`.
 - Endpoint: `POST /datatables/ajax/bulk`, token in the body, CSRF in the `X-CSRF-Token` header. A run is **not** one transaction: one flush per chunk.

@@ -22,7 +22,7 @@ All columns live in `src/Column/`. Every type is created with the static factory
 
 ## Shared methods (`AbstractColumn`)
 
-Available on every column:
+Available on every column. `formatValueUsing(fn ($value, $row): string => ...)` formats the cell on the server: the column renders as escaped text, sorts on the displayed string, and server-side exports write the formatted value (`Button::csv()->rawValues()` opts out).
 
 ```php
 TextColumn::new('email', 'Email')

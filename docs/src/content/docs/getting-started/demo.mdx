@@ -11,11 +11,12 @@ and Twig call behind it.
 
 ## Start it
 
-You need PHP 8.4+ with `pdo_sqlite`, and Composer. No database server, Node.js, or Docker.
+You need PHP 8.4+ with `pdo_sqlite` and `zip`, and Composer. No database server, Node.js, or Docker.
 
 ```bash
 git clone https://github.com/pentiminax/ux-datatables.git
 cd ux-datatables/demo
+echo "APP_SECRET=$(php -r 'echo bin2hex(random_bytes(16));')" > .env.local
 composer install
 php bin/console app:demo:reset
 php -S 127.0.0.1:8000 -t public
