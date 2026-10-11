@@ -150,7 +150,7 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
     }
 
     #[Test]
-    public function it_limits_the_identifier_query_when_the_order_uses_root_fields_only(): void
+    public function it_limits_the_identifier_query_when_the_order_uses_mapped_fields_only(): void
     {
         $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
             ->leftJoin('e.tags', 't')
@@ -162,7 +162,7 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
         $this->assertSame([4, 3], $ids);
         $this->assertCount(1, array_filter(
             $this->selectStatements(),
-            static fn (string $sql): bool => str_contains($sql, 'DISTINCT') && str_contains($sql, 'LIMIT 2 OFFSET 2') && !str_contains($sql, 'COUNT('),
+            static fn (string $sql): bool => str_contains($sql, 'GROUP BY') && str_contains($sql, 'LIMIT 2 OFFSET 2'),
         ));
     }
 
@@ -188,6 +188,77 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
         $rows = iterator_to_array($provider->fetchData($this->request(0, 3))->data);
 
         $this->assertSame([1, 2, 3], array_column($rows, 'id'));
+    }
+
+    #[Test]
+    public function it_limits_the_identifier_query_when_the_order_follows_a_joined_column(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->leftJoin('e.tags', 't')
+            ->orderBy('t.id', 'DESC'));
+
+        $this->statements = [];
+        $first            = $this->ids($provider->fetchData($this->request(0, 2))->data);
+        $second           = $this->ids($provider->fetchData($this->request(2, 2))->data);
+
+        $this->assertSame([6, 5], $first);
+        $this->assertSame([4, 3], $second);
+        $this->assertCount(2, array_filter(
+            $this->selectStatements(),
+            static fn (string $sql): bool => str_contains($sql, 'GROUP BY') && str_contains($sql, 'MAX(') && str_contains($sql, 'LIMIT 2'),
+        ));
+    }
+
+    #[Test]
+    public function it_keeps_the_in_memory_slice_for_two_joined_order_columns(): void
+    {
+        $twoJoined = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->leftJoin('e.tags', 't')
+            ->orderBy('t.label', 'ASC')
+            ->addOrderBy('t.id', 'ASC'));
+
+        $this->statements = [];
+        $all              = [];
+        foreach ([0, 2, 4] as $start) {
+            array_push($all, ...$this->ids($twoJoined->fetchData($this->request($start, 2))->data));
+        }
+
+        $this->assertCount(6, array_unique($all));
+        $this->assertCount(0, array_filter($this->selectStatements(), static fn (string $sql): bool => str_contains($sql, 'GROUP BY')));
+    }
+
+    #[Test]
+    public function it_groups_and_orders_root_fields_without_aggregating_them(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->leftJoin('e.tags', 't')
+            ->orderBy('e.name', 'DESC'));
+
+        $this->statements = [];
+        iterator_to_array($provider->fetchData($this->request(0, 2))->data);
+
+        $this->assertCount(1, array_filter(
+            $this->selectStatements(),
+            static fn (string $sql): bool => str_contains($sql, 'GROUP BY') && !str_contains($sql, 'MAX(') && !str_contains($sql, 'MIN('),
+        ));
+    }
+
+    #[Test]
+    public function it_drops_distinct_from_the_grouped_identifier_query(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->distinct()
+            ->leftJoin('e.tags', 't')
+            ->orderBy('e.name', 'DESC'));
+
+        $this->statements = [];
+        $ids              = $this->ids($provider->fetchData($this->request(0, 2))->data);
+
+        $this->assertSame([6, 5], $ids);
+        $this->assertCount(1, array_filter(
+            $this->selectStatements(),
+            static fn (string $sql): bool => str_contains($sql, 'GROUP BY') && !str_contains($sql, 'DISTINCT'),
+        ));
     }
 
     #[Test]
