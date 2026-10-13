@@ -145,20 +145,20 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         }
 
         $type  = $this->fieldType($metadata, $identifier);
-        $items = (clone $qb)
+        $items = $this->extractRootEntities((clone $qb)
             ->setFirstResult(null)
             ->setMaxResults(null)
             ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_page_ids'))
             ->setParameter('ux_datatables_page_ids', $ids, $this->arrayBindingType($type))
             ->getQuery()
-            ->getResult();
+            ->getResult());
 
         // The identifier query returns raw column values and the entities carry hydrated ones;
         // converting the entity side back to what the column holds makes the two comparable.
         $positions = array_flip(array_map(strval(...), $ids));
-        $position  = fn (mixed $item): int => $positions[(string) $this->toDatabaseValue($type, $metadata->getFieldValue($this->rootEntity($item), $identifier))] ?? \PHP_INT_MAX;
+        $position  = fn (object $item): int => $positions[(string) $this->toDatabaseValue($type, $metadata->getFieldValue($item, $identifier))] ?? \PHP_INT_MAX;
 
-        usort($items, static fn (mixed $left, mixed $right): int => $position($left) <=> $position($right));
+        usort($items, static fn (object $left, object $right): int => $position($left) <=> $position($right));
 
         return $items;
     }
@@ -208,7 +208,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
                 ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_export_ids'))
                 ->setParameter('ux_datatables_export_ids', $chunk, $this->arrayBindingType($type));
 
-            $items = array_map($this->rootEntity(...), $pageQb->getQuery()->getResult());
+            $items = $this->extractRootEntities($pageQb->getQuery()->getResult());
 
             if ([] === $items) {
                 continue;
@@ -671,20 +671,58 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         }
     }
 
-    private function rootEntity(mixed $item): object
+    /**
+     * Drops non-root objects that entity-class JOIN + addSelect() interleaves into getResult().
+     *
+     * @param list<mixed> $items
+     *
+     * @return list<object>
+     */
+    private function extractRootEntities(array $items): array
     {
-        if (\is_object($item)) {
-            return $item;
+        $roots = [];
+        $seen  = [];
+
+        foreach ($items as $item) {
+            $root = $this->matchRootEntity($item);
+            if (null === $root) {
+                continue;
+            }
+
+            $oid = spl_object_id($root);
+            if (isset($seen[$oid])) {
+                continue;
+            }
+
+            $seen[$oid] = true;
+            $roots[]    = $root;
         }
 
-        if (\is_array($item)) {
-            $candidate = $item['e'] ?? reset($item);
-            if (\is_object($candidate)) {
-                return $candidate;
+        return $roots;
+    }
+
+    private function matchRootEntity(mixed $item): ?object
+    {
+        if (\is_object($item)) {
+            return $item instanceof $this->entityClass ? $item : null;
+        }
+
+        if (!\is_array($item)) {
+            return null;
+        }
+
+        $candidate = $item['e'] ?? null;
+        if (\is_object($candidate) && $candidate instanceof $this->entityClass) {
+            return $candidate;
+        }
+
+        foreach ($item as $value) {
+            if (\is_object($value) && $value instanceof $this->entityClass) {
+                return $value;
             }
         }
 
-        throw new \LogicException('Doctrine CSV export expected a root entity from the chunk query.');
+        return null;
     }
 
     /**

@@ -134,6 +134,33 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
     }
 
     #[Test]
+    public function it_pages_distinct_roots_when_an_entity_class_join_is_selected(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->addSelect('t')
+            ->leftJoin(CountTag::class, 't', 'WITH', 't.customer = e')
+            ->orderBy('e.id', 'ASC'));
+
+        $this->assertSame([1, 2], $this->ids($provider->fetchData($this->request(0, 2))->data));
+        $this->assertSame([3, 4], $this->ids($provider->fetchData($this->request(2, 2))->data));
+        $this->assertSame([5, 6], $this->ids($provider->fetchData($this->request(4, 2))->data));
+    }
+
+    #[Test]
+    public function it_exports_only_root_entities_when_an_entity_class_join_is_selected(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->addSelect('t')
+            ->leftJoin(CountTag::class, 't', 'WITH', 't.customer = e')
+            ->orderBy('e.id', 'ASC'));
+
+        $this->assertSame(
+            [1, 2, 3, 4, 5, 6],
+            array_column(iterator_to_array($provider->iterateRows($this->request(0, 0)), false), 'id'),
+        );
+    }
+
+    #[Test]
     public function it_pages_distinct_roots_when_the_order_follows_a_collection_column(): void
     {
         $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
