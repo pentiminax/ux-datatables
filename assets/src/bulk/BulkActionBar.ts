@@ -34,6 +34,8 @@ export interface BulkActionLabels {
 export interface BulkActionsConfig {
     actions: BulkActionDefinition[]
     selectCurrentPageOnly?: boolean
+    /** Property stamped as DT_RowId on client-side API Platform rows. */
+    idField?: string
     url?: string | null
     labels?: BulkActionLabels
     position?: string

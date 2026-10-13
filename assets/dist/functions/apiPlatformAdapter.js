@@ -27,12 +27,21 @@ function toCount(value) {
 }
 const ROW_ID_KEY = 'DT_RowId';
 const DEFAULT_ROW_ID_FIELD = 'id';
-function resolveRowIdField(highlight) {
-    if (!isRecord(highlight)) {
-        return null;
+function resolveRowIdField(payload) {
+    const highlight = payload.highlight;
+    if (isRecord(highlight)) {
+        const idField = highlight.idField;
+        return 'string' === typeof idField && '' !== idField ? idField : DEFAULT_ROW_ID_FIELD;
     }
-    const idField = highlight.idField;
-    return 'string' === typeof idField && '' !== idField ? idField : DEFAULT_ROW_ID_FIELD;
+    const bulk = payload.bulkActions;
+    if (isRecord(bulk)) {
+        const idField = bulk.idField;
+        return 'string' === typeof idField && '' !== idField ? idField : DEFAULT_ROW_ID_FIELD;
+    }
+    if (payload.rowId === ROW_ID_KEY) {
+        return DEFAULT_ROW_ID_FIELD;
+    }
+    return null;
 }
 function nextDayDateOnly(value) {
     const match = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/.exec(value);
@@ -116,7 +125,7 @@ export class ApiPlatformAdapter {
     }
     configure(payload) {
         const ajaxConfig = payload.ajax;
-        this.rowIdField = resolveRowIdField(payload.highlight);
+        this.rowIdField = resolveRowIdField(payload);
         const originalDataFilter = ajaxConfig.dataFilter;
         payload.serverSide = true;
         payload.columns = this.withDefaultColumnContent(payload.columns);

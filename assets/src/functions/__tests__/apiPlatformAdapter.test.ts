@@ -141,6 +141,79 @@ describe('filter parameter collisions', () => {
     })
 })
 
+describe('DT_RowId on Hydra members', () => {
+    const hydra = JSON.stringify({
+        'hydra:member': [
+            { id: 1, sku: 'SKU-1', title: 'A' },
+            { id: 2, sku: 'SKU-2', title: 'B' },
+        ],
+        'hydra:totalItems': 2,
+    })
+
+    function rowIds(payload: Record<string, unknown>): unknown[] {
+        const adapter = new ApiPlatformAdapter([{ name: 'title', data: 'title' }])
+        adapter.configure(payload)
+        const ajax = payload.ajax as { dataFilter: (raw: string, type: string) => string }
+
+        return JSON.parse(ajax.dataFilter(hydra, 'json')).data.map(
+            (row: { DT_RowId?: string }) => row.DT_RowId
+        )
+    }
+
+    it('stamps DT_RowId from highlight idField', () => {
+        expect(
+            rowIds({
+                apiPlatform: true,
+                ajax: { url: '/api/books' },
+                highlight: { idField: 'id', durationMs: 1200 },
+            })
+        ).toEqual(['1', '2'])
+    })
+
+    it('stamps DT_RowId for bulk actions without highlight', () => {
+        expect(
+            rowIds({
+                apiPlatform: true,
+                ajax: { url: '/api/books' },
+                bulkActions: { actions: [{ name: 'approve' }], idField: 'id' },
+                rowId: 'DT_RowId',
+            })
+        ).toEqual(['1', '2'])
+    })
+
+    it('uses bulkActions.idField when setIdField pointed away from id', () => {
+        expect(
+            rowIds({
+                apiPlatform: true,
+                ajax: { url: '/api/books' },
+                bulkActions: { actions: [{ name: 'approve' }], idField: 'sku' },
+                rowId: 'DT_RowId',
+            })
+        ).toEqual(['SKU-1', 'SKU-2'])
+    })
+
+    it('lets highlight idField win over bulkActions.idField', () => {
+        expect(
+            rowIds({
+                apiPlatform: true,
+                ajax: { url: '/api/books' },
+                highlight: { idField: 'sku' },
+                bulkActions: { actions: [{ name: 'approve' }], idField: 'id' },
+                rowId: 'DT_RowId',
+            })
+        ).toEqual(['SKU-1', 'SKU-2'])
+    })
+
+    it('leaves Hydra members untouched when neither highlight nor bulk needs a row id', () => {
+        expect(
+            rowIds({
+                apiPlatform: true,
+                ajax: { url: '/api/books' },
+            })
+        ).toEqual([undefined, undefined])
+    })
+})
+
 describe('column resolution by name', () => {
     it('resolves order columns by name when the client prepends a select column', () => {
         const adapter = new ApiPlatformAdapter(columns)
