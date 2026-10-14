@@ -214,6 +214,23 @@ describe('column resolution by name', () => {
         })
     })
 
+    it('keeps Next available when Hydra omits totalItems and has no view', () => {
+        const adapter = new ApiPlatformAdapter(columns)
+        adapter.toRequestParams({ start: 0, length: 10, draw: 1 })
+
+        expect(
+            adapter.buildResponse(
+                {
+                    'hydra:member': Array.from({ length: 10 }, (_, index) => ({ id: index })),
+                },
+                1
+            )
+        ).toMatchObject({
+            recordsTotal: 11,
+            recordsFiltered: 11,
+        })
+    })
+
     it('ends paging when Hydra omits totalItems and has no next link', () => {
         const adapter = new ApiPlatformAdapter(columns)
         adapter.toRequestParams({ start: 20, length: 10, draw: 3 })
