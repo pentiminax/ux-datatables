@@ -195,4 +195,75 @@ describe('column resolution by name', () => {
             email: 'admin@example.com',
         })
     })
+
+    it('keeps Next available when Hydra omits totalItems but advertises hydra:next', () => {
+        const adapter = new ApiPlatformAdapter(columns)
+        adapter.toRequestParams({ start: 0, length: 10, draw: 1 })
+
+        expect(
+            adapter.buildResponse(
+                {
+                    'hydra:member': Array.from({ length: 10 }, (_, index) => ({ id: index })),
+                    'hydra:view': { 'hydra:next': '/api/books?page=2' },
+                },
+                1
+            )
+        ).toMatchObject({
+            recordsTotal: 11,
+            recordsFiltered: 11,
+        })
+    })
+
+    it('keeps Next available when Hydra omits totalItems and has no view', () => {
+        const adapter = new ApiPlatformAdapter(columns)
+        adapter.toRequestParams({ start: 0, length: 10, draw: 1 })
+
+        expect(
+            adapter.buildResponse(
+                {
+                    'hydra:member': Array.from({ length: 10 }, (_, index) => ({ id: index })),
+                },
+                1
+            )
+        ).toMatchObject({
+            recordsTotal: 11,
+            recordsFiltered: 11,
+        })
+    })
+
+    it('ends paging when Hydra omits totalItems and has no next link', () => {
+        const adapter = new ApiPlatformAdapter(columns)
+        adapter.toRequestParams({ start: 20, length: 10, draw: 3 })
+
+        expect(
+            adapter.buildResponse(
+                {
+                    'hydra:member': [{ id: 1 }, { id: 2 }, { id: 3 }],
+                    'hydra:view': { 'hydra:first': '/api/books?page=1' },
+                },
+                3
+            )
+        ).toMatchObject({
+            recordsTotal: 23,
+            recordsFiltered: 23,
+        })
+    })
+
+    it('still honors an explicit hydra:totalItems of zero', () => {
+        const adapter = new ApiPlatformAdapter(columns)
+        adapter.toRequestParams({ start: 0, length: 10, draw: 1 })
+
+        expect(
+            adapter.buildResponse(
+                {
+                    'hydra:member': [],
+                    'hydra:totalItems': 0,
+                },
+                1
+            )
+        ).toMatchObject({
+            recordsTotal: 0,
+            recordsFiltered: 0,
+        })
+    })
 })
