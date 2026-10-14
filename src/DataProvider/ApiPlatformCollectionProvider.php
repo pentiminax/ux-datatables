@@ -70,6 +70,12 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
             return new DataTableResult($total, $total, $this->mapRows($this->page($data, $parameters, $request), $this->rowMapper));
         }
 
+        // Partial pagination omits getTotalItems(). Counting only the page in hand made
+        // recordsFiltered equal the page size, so DataTables hid every later page.
+        if ($data instanceof PartialPaginatorInterface) {
+            return $this->fetchPartialData($data, $parameters, $request);
+        }
+
         $items = $this->toList($data);
         $total = \count($items);
 
@@ -107,6 +113,37 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
                 return;
             }
         }
+    }
+
+    /**
+     * Builds a DataTables page from a partial paginator that cannot report the collection size.
+     *
+     * recordsFiltered must stay larger than the current window while a full operation page comes
+     * back, otherwise DataTables disables Next and later rows are unreachable. A short page is
+     * the end of the collection. When the collection length is an exact multiple of the page
+     * size, the client may open one empty trailing page -- the cost of not knowing the total.
+     *
+     * @param array<string, string|array<int|string, string>> $parameters
+     */
+    private function fetchPartialData(PartialPaginatorInterface $paginator, array $parameters, DataTableRequest $request): DataTableResult
+    {
+        $size = (int) $paginator->getItemsPerPage();
+
+        if ($request->length <= 0) {
+            $items = $size > 0
+                ? $this->allPartialPages($paginator, $parameters, $size)
+                : $this->toList($paginator);
+            $total = \count($items);
+
+            return new DataTableResult($total, $total, $this->mapRows($items, $this->rowMapper));
+        }
+
+        [$items, $exhausted] = $this->partialPage($paginator, $parameters, $request, $size);
+        $count               = \count($items);
+        $hasMore             = !$exhausted && $count === $request->length && $count > 0;
+        $total               = $request->start + $count + ($hasMore ? 1 : 0);
+
+        return new DataTableResult($total, $total, $this->mapRows($items, $this->rowMapper));
     }
 
     /**
@@ -157,6 +194,79 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
         }
 
         return \array_slice($items, $offset, $limit);
+    }
+
+    /**
+     * @param array<string, string|array<int|string, string>> $parameters
+     *
+     * @return array{0: list<mixed>, 1: bool} rows for the DataTables window, and whether the
+     *                                        collection ended while filling it
+     */
+    private function partialPage(PartialPaginatorInterface $paginator, array $parameters, DataTableRequest $request, int $size): array
+    {
+        $limit = $request->length;
+
+        if ($size <= 0) {
+            return [$this->toList($paginator), true];
+        }
+
+        $page      = intdiv($request->start, $size) + 1;
+        $offset    = $request->start % $size;
+        $requested = (int) ($parameters['page'] ?? 1);
+
+        if (0 === $offset && $size === $limit && $page === $requested) {
+            $items = $this->toList($paginator);
+
+            return [$items, !$this->hasPageAfter($paginator, $page, \count($items))];
+        }
+
+        $items  = $page === $requested ? $this->toList($paginator) : [];
+        $read   = $page === $requested ? $page : $page - 1;
+        $wanted = $offset + $limit;
+        $ended  = $page === $requested && !$this->hasPageAfter($paginator, $page, \count($items));
+
+        while (\count($items) < $wanted && !$ended) {
+            ++$read;
+            $next  = $this->provide(['page' => (string) $read] + $parameters);
+            $chunk = $this->toList($next);
+            $items = [...$items, ...$chunk];
+            $ended = [] === $chunk || !$this->hasPageAfter($next, $read, \count($chunk));
+        }
+
+        $window = \array_slice($items, $offset, $limit);
+
+        return [$window, $ended || \count($window) < $limit];
+    }
+
+    /**
+     * @param array<string, string|array<int|string, string>> $parameters
+     *
+     * @return list<mixed>
+     */
+    private function allPartialPages(PartialPaginatorInterface $paginator, array $parameters, int $size): array
+    {
+        $items    = $this->toList($paginator);
+        $page     = (int) ($parameters['page'] ?? 1);
+        $returned = \count($items);
+
+        while ($this->hasPageAfter($paginator, $page, $returned)) {
+            ++$page;
+            $next = $this->provide([
+                'page'         => (string) $page,
+                'itemsPerPage' => (string) $size,
+            ] + $parameters);
+            $chunk = $this->toList($next);
+            $items = [...$items, ...$chunk];
+
+            if ([] === $chunk) {
+                break;
+            }
+
+            $paginator = $next instanceof PartialPaginatorInterface ? $next : $paginator;
+            $returned  = \count($chunk);
+        }
+
+        return $items;
     }
 
     /**
