@@ -81,6 +81,18 @@ final class ApiPlatformCollectionProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_keeps_next_available_on_a_later_partial_page(): void
+    {
+        $provider = $this->recordingProvider($this->partialPaginator($this->items(10), itemsPerPage: 10));
+
+        $result = $this->provider($provider)->fetchData($this->request(start: 10, length: 10));
+
+        $this->assertSame(21, $result->recordsTotal);
+        $this->assertSame(21, $result->recordsFiltered);
+        $this->assertCount(10, iterator_to_array($result->data));
+    }
+
+    #[Test]
     public function it_ends_partial_pagination_on_a_short_page(): void
     {
         $provider = $this->recordingProvider($this->partialPaginator($this->items(3), itemsPerPage: 10));
