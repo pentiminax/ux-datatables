@@ -77,7 +77,7 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
                     continue;
                 }
 
-                $this->applyList($qb, $field, $control->values, $context->alias);
+                $this->applyList($qb, $field, $control->values, $context);
 
                 continue;
             }
@@ -89,17 +89,19 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
     /**
      * @param list<mixed> $values
      */
-    private function applyList(QueryBuilder $qb, string $field, array $values, string $alias): void
+    private function applyList(QueryBuilder $qb, string $field, array $values, QueryFilterContext $context): void
     {
         if ([] === $values) {
             return;
         }
 
+        $alias = $context->alias;
+
         // The UUID, date, integer, float, and boolean type lists are pairwise disjoint and
         // resolveFieldType() returns a single Doctrine type, so at most one branch can match.
         $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $field);
         if (null !== $uuidType) {
-            $this->applyUuidList($qb, $field, $values, $alias, $uuidType);
+            $this->applyUuidList($qb, $field, $values, $context, $uuidType);
 
             return;
         }
@@ -110,7 +112,7 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
                 $qb,
                 $field,
                 $values,
-                $alias,
+                $context,
                 $dateType,
                 DateSearchTerm::normalize(...),
             );
@@ -124,7 +126,7 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
                 $qb,
                 $field,
                 $values,
-                $alias,
+                $context,
                 $integerType,
                 static fn (string $value): ?string => NumericSearchTerm::normalize($value, $integerType),
             );
@@ -138,7 +140,7 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
                 $qb,
                 $field,
                 $values,
-                $alias,
+                $context,
                 $floatType,
                 static fn (string $value): ?string => NumericSearchTerm::normalize($value, $floatType),
             );
@@ -152,7 +154,7 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
                 $qb,
                 $field,
                 $values,
-                $alias,
+                $context,
                 $booleanType,
                 BooleanSearchTerm::normalize(...),
             );
@@ -164,9 +166,9 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
         $nonEmptyValues = array_values(array_filter($values, static fn (mixed $value): bool => '' !== $value));
 
         if (\count($nonEmptyValues) === \count($values)) {
-            $paramName = \sprintf(':%s_in', str_replace('.', '_', $field));
+            $paramName = $this->nextListParamName($context);
 
-            $qb->andWhere(\sprintf('%s IN (%s)', $expr, $paramName));
+            $qb->andWhere(\sprintf('%s IN (:%s)', $expr, $paramName));
             $qb->setParameter($paramName, $values);
 
             return;
@@ -178,10 +180,10 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
             return;
         }
 
-        $paramName = \sprintf(':%s_in', str_replace('.', '_', $field));
+        $paramName = $this->nextListParamName($context);
 
         $qb->andWhere($qb->expr()->orX(
-            \sprintf('%s IN (%s)', $expr, $paramName),
+            \sprintf('%s IN (:%s)', $expr, $paramName),
             $qb->expr()->isNull($expr),
         ));
         $qb->setParameter($paramName, $nonEmptyValues);
@@ -195,11 +197,11 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
      *
      * @param list<mixed> $values
      */
-    private function applyUuidList(QueryBuilder $qb, string $field, array $values, string $alias, string $uuidType): void
+    private function applyUuidList(QueryBuilder $qb, string $field, array $values, QueryFilterContext $context, string $uuidType): void
     {
         $conditions = [];
 
-        foreach ($values as $index => $value) {
+        foreach ($values as $value) {
             if (!\is_string($value) && !\is_int($value)) {
                 continue;
             }
@@ -209,8 +211,8 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
                 continue;
             }
 
-            $paramName    = \sprintf('%s_in_%d', str_replace('.', '_', $field), $index);
-            $conditions[] = SearchConditionBuilder::equality($qb, $alias, $field, $identifier, $paramName, $uuidType);
+            $paramName    = $this->nextListParamName($context);
+            $conditions[] = SearchConditionBuilder::equality($qb, $context->alias, $field, $identifier, $paramName, $uuidType);
         }
 
         if ([] === $conditions) {
@@ -236,15 +238,15 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
         QueryBuilder $qb,
         string $field,
         array $values,
-        string $alias,
+        QueryFilterContext $context,
         string $doctrineType,
         callable $normalize,
     ): void {
         $conditions  = [];
         $includeNull = false;
-        $expr        = RelationFieldResolver::resolve($qb, $alias, $field);
+        $expr        = RelationFieldResolver::resolve($qb, $context->alias, $field);
 
-        foreach ($values as $index => $value) {
+        foreach ($values as $value) {
             if ('' === $value) {
                 $includeNull = true;
 
@@ -264,7 +266,7 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
                 continue;
             }
 
-            $paramName    = \sprintf('%s_in_%d', str_replace('.', '_', $field), $index);
+            $paramName    = $this->nextListParamName($context);
             $conditions[] = \sprintf('%s = :%s', $expr, $paramName);
             $qb->setParameter($paramName, $normalized, $doctrineType);
         }
@@ -293,5 +295,13 @@ final class ColumnControlSearchFilter implements QueryFilterInterface
         $search   = new ColumnControlSearch($control->value ?? '', $control->logic, $control->valueType);
 
         $strategy->apply($qb, $column, $search, $context->nextParamIndex(), $context->alias);
+    }
+
+    /**
+     * A name unique for this query, so two list criteria cannot overwrite each other's values.
+     */
+    private function nextListParamName(QueryFilterContext $context): string
+    {
+        return \sprintf('cc_list_%d', $context->nextParamIndex());
     }
 }
