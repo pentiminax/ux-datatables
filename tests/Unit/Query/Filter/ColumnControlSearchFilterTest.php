@@ -9,8 +9,11 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchStrategyInterface;
+use Pentiminax\UX\DataTables\DataTableRequest\Column;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
+use Pentiminax\UX\DataTables\DataTableRequest\Columns;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnControlSearchFilter;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
@@ -103,10 +106,10 @@ final class ColumnControlSearchFilterTest extends TestCase
         $qb = $this->queryBuilderWithFieldType('name', 'string');
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with('e.name IN (:name_in)');
+            ->with('e.name IN (:cc_list_0)');
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with(':name_in', ['acme', 'beta']);
+            ->with('cc_list_0', ['acme', 'beta']);
 
         $this->applyList($qb, TextColumn::new('name')->setField('name'), ['acme', 'beta']);
     }
@@ -131,10 +134,10 @@ final class ColumnControlSearchFilterTest extends TestCase
         $qb->method('expr')->willReturn(new Expr());
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with(new Expr\Orx(['e.name IN (:name_in)', new Expr\Comparison('e.name', 'IS', 'NULL')]));
+            ->with(new Expr\Orx(['e.name IN (:cc_list_0)', new Expr\Comparison('e.name', 'IS', 'NULL')]));
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with(':name_in', ['acme']);
+            ->with('cc_list_0', ['acme']);
 
         $this->applyList($qb, TextColumn::new('name')->setField('name'), ['acme', '']);
     }
@@ -217,39 +220,39 @@ final class ColumnControlSearchFilterTest extends TestCase
         yield 'guid list with padding and junk' => [
             'guid',
             ['  '.self::UUID.'  ', '', '018f2c3e'],
-            [['id_in_0', self::UUID, 'guid']],
-            ['e.id = :id_in_0'],
+            [['cc_list_0', self::UUID, 'guid']],
+            ['e.id = :cc_list_0'],
         ];
 
         yield 'guid list drops a ulid' => [
             'guid',
             [self::UUID, self::ULID],
-            [['id_in_0', self::UUID, 'guid']],
-            ['e.id = :id_in_0'],
+            [['cc_list_0', self::UUID, 'guid']],
+            ['e.id = :cc_list_0'],
         ];
 
         yield 'ulid list' => [
             'ulid',
             [self::ULID],
-            [['id_in_0', self::ULID, 'ulid']],
-            ['e.id = :id_in_0'],
+            [['cc_list_0', self::ULID, 'ulid']],
+            ['e.id = :cc_list_0'],
         ];
 
         yield 'ulid list drops a uuid' => [
             'ulid',
             [self::UUID, self::ULID],
-            [['id_in_1', self::ULID, 'ulid']],
-            ['e.id = :id_in_1'],
+            [['cc_list_0', self::ULID, 'ulid']],
+            ['e.id = :cc_list_0'],
         ];
 
         yield 'binary uuid list of two values' => [
             'uuid_binary',
             [self::UUID, 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'],
             [
-                ['id_in_0', self::UUID, 'uuid_binary'],
-                ['id_in_1', 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', 'uuid_binary'],
+                ['cc_list_0', self::UUID, 'uuid_binary'],
+                ['cc_list_1', 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', 'uuid_binary'],
             ],
-            ['e.id = :id_in_0', 'e.id = :id_in_1'],
+            ['e.id = :cc_list_0', 'e.id = :cc_list_1'],
         ];
     }
 
@@ -303,13 +306,13 @@ final class ColumnControlSearchFilterTest extends TestCase
 
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with(new Expr\Orx(['e.age = :age_in_0', 'e.age = :age_in_1']));
+            ->with(new Expr\Orx(['e.age = :cc_list_0', 'e.age = :cc_list_1']));
 
         $this->applyList($qb, TextColumn::new('age')->setField('age'), ['  42  ', '7']);
 
         $this->assertSame([
-            ['age_in_0', '42', 'integer'],
-            ['age_in_1', '7', 'integer'],
+            ['cc_list_0', '42', 'integer'],
+            ['cc_list_1', '7', 'integer'],
         ], $boundParameters);
     }
 
@@ -320,10 +323,10 @@ final class ColumnControlSearchFilterTest extends TestCase
         $qb->method('expr')->willReturn(new Expr());
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with('price_in_0', '19.99', 'float');
+            ->with('cc_list_0', '19.99', 'float');
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with(new Expr\Orx(['e.price = :price_in_0']));
+            ->with(new Expr\Orx(['e.price = :cc_list_0']));
 
         $this->applyList($qb, TextColumn::new('price')->setField('price'), ['19.99']);
     }
@@ -336,13 +339,13 @@ final class ColumnControlSearchFilterTest extends TestCase
         $qb->expects($this->once())
             ->method('setParameter')
             ->with(
-                'birthDate_in_0',
+                'cc_list_0',
                 $this->callback(static fn (\DateTimeImmutable $value): bool => '2026-08-19' === $value->format('Y-m-d')),
                 'date',
             );
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with(new Expr\Orx(['e.birthDate = :birthDate_in_0']));
+            ->with(new Expr\Orx(['e.birthDate = :cc_list_0']));
 
         $this->applyList($qb, TextColumn::new('birthDate')->setField('birthDate'), ['2026-08-19']);
     }
@@ -354,10 +357,10 @@ final class ColumnControlSearchFilterTest extends TestCase
         $qb->method('expr')->willReturn(new Expr());
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with('active_in_0', true, 'boolean');
+            ->with('cc_list_0', true, 'boolean');
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with(new Expr\Orx(['e.active = :active_in_0']));
+            ->with(new Expr\Orx(['e.active = :cc_list_0']));
 
         $this->applyList($qb, TextColumn::new('active')->setField('active'), ['true']);
     }
@@ -382,10 +385,10 @@ final class ColumnControlSearchFilterTest extends TestCase
         $qb->method('expr')->willReturn(new Expr());
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with('age_in_0', '42', 'integer');
+            ->with('cc_list_0', '42', 'integer');
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with(new Expr\Orx(['e.age = :age_in_0', new Expr\Comparison('e.age', 'IS', 'NULL')]));
+            ->with(new Expr\Orx(['e.age = :cc_list_0', new Expr\Comparison('e.age', 'IS', 'NULL')]));
 
         $this->applyList($qb, TextColumn::new('age')->setField('age'), ['42', '']);
     }
@@ -460,16 +463,55 @@ final class ColumnControlSearchFilterTest extends TestCase
         $this->assertSame([['e.donorProvider', 'dp', null, null]], $this->capturedJoins());
     }
 
+    /**
+     * `customer.name` and `customer_name` used to share `:customer_name_in`, so the later list overwrote the earlier one.
+     */
+    #[Test]
+    #[AllowMockObjectsWithoutExpectations]
+    public function it_binds_distinct_list_parameters_when_field_paths_normalize_to_the_same_name(): void
+    {
+        $qb = $this->joinRecordingQueryBuilder();
+        $qb->method('andWhere')->willReturnSelf();
+
+        $bound = [];
+        $qb->method('setParameter')->willReturnCallback(
+            function (string $name, mixed $value) use (&$bound, $qb): QueryBuilder {
+                $bound[$name] = $value;
+
+                return $qb;
+            }
+        );
+
+        $customer     = TextColumn::new('customer')->setField('customer.name');
+        $customerName = TextColumn::new('customer_name');
+
+        $context = $this->context(
+            new DataTableRequest(1, new Columns([
+                'customer'      => new Column('customer', 'customer', true, true, null, new ColumnControl(list: ['Acme'])),
+                'customer_name' => new Column('customer_name', 'customer_name', true, true, null, new ColumnControl(list: ['Beta'])),
+            ])),
+            [$customer, $customerName],
+        );
+
+        (new ColumnControlSearchFilter(new SearchStrategyRegistry([], $this->createStub(SearchStrategyInterface::class))))
+            ->apply($qb, $context);
+
+        $this->assertSame([
+            'cc_list_0' => ['Acme'],
+            'cc_list_1' => ['Beta'],
+        ], $bound);
+    }
+
     #[Test]
     public function it_applies_an_in_clause_against_the_search_field_override(): void
     {
         $qb = $this->queryBuilderWithFieldType('legalName', 'string');
         $qb->expects($this->once())
             ->method('andWhere')
-            ->with('e.legalName IN (:legalName_in)');
+            ->with('e.legalName IN (:cc_list_0)');
         $qb->expects($this->once())
             ->method('setParameter')
-            ->with(':legalName_in', ['acme']);
+            ->with('cc_list_0', ['acme']);
 
         $this->applyList(
             $qb,
