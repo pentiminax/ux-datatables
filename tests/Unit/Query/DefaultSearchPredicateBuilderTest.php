@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -105,6 +106,36 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
             TextColumn::new('active', 'Active')->setField('active'),
             'boolean',
             'true',
+            false,
+            null,
+            null,
+        ];
+
+        // BooleanColumn is DataTables `num` (isNumber true) so it enters buildNumeric.
+        // "1"/"0" must not become boolean equality: global search ORs that in and keeps
+        // every true/false row alongside the intended text matches.
+        yield 'boolean column with 1 does not coerce to equality' => [
+            BooleanColumn::new('active', 'Active')->setField('active'),
+            'boolean',
+            '1',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'boolean column with 0 does not coerce to equality' => [
+            BooleanColumn::new('active', 'Active')->setField('active'),
+            'boolean',
+            '0',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'number column on a boolean field with a numeric term is skipped' => [
+            NumberColumn::new('active', 'Active')->setField('active'),
+            'boolean',
+            '1',
             false,
             null,
             null,
