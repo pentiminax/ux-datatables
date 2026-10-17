@@ -28,6 +28,10 @@ use Pentiminax\UX\DataTables\Contracts\SearchPredicateBuilderInterface;
  * text column is: the is_numeric() fallback must not emit "<alias>.<field>" for a
  * virtual NumberColumn, which would make Doctrine reject the whole query — including
  * every other column in a global search — when the term happens to be numeric.
+ * The same fallback must not run when the mapped type is known and is not numeric:
+ * {@see \Pentiminax\UX\DataTables\Column\BooleanColumn} uses the DataTables `num` type so
+ * 0/1 sort client-side, and `isNumber()` is therefore true, but binding "1" as equality
+ * on a boolean field ORs every true row into a global search for that digit.
  * For native UUID/ULID columns: exact match when the value is a well-formed identifier of
  * that field's type, null otherwise.
  * For other columns: LIKE %value% when the field supports search filtering, null otherwise. That
@@ -115,6 +119,15 @@ final class DefaultSearchPredicateBuilder implements SearchPredicateBuilderInter
             }
 
             return SearchConditionBuilder::equality($qb, $alias, $field, $normalized, $paramName, $numericType);
+        }
+
+        // Known non-numeric types must not fall through to is_numeric(). BooleanColumn is
+        // ColumnType::NUM, so this branch is the default contains/global-search path for it.
+        if (null    !== RelationFieldResolver::resolveBooleanFieldType($qb, $field)
+            || null !== RelationFieldResolver::resolveDateFieldType($qb, $field)
+            || null !== RelationFieldResolver::resolveUuidFieldType($qb, $field)
+        ) {
+            return null;
         }
 
         if (!is_numeric($value)) {

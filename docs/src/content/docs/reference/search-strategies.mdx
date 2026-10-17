@@ -241,9 +241,10 @@ type:
 
 | Column                       | Condition                                                          |
 | ---------------------------- | ------------------------------------------------------------------ |
-| numeric (or `$forceNumeric`) | exact match when the term is numeric, `null` otherwise             |
+| numeric (or `$forceNumeric`) | exact match when the term binds to the field's integer/float type, `null` otherwise |
 | date                         | `null` — a partial date term has no meaningful `LIKE`              |
 | native UUID / ULID           | exact match when the term is a well-formed identifier of that type |
+| boolean Doctrine field       | `null` — even on `BooleanColumn`, which is DataTables `num` for 0/1 sorting |
 | anything else                | `LOWER(field) LIKE %term%` when the field supports text search     |
 
 `$field` is resolved by the caller through `RelationFieldResolver::resolveSearchField()` before the
@@ -251,6 +252,11 @@ builder is reached, so a `setSearchField()` override and any `addSearchJoin()` a
 effect. A column returning `null` from `buildSearchPredicate()` has no opinion, not "skip me": the
 type dispatch runs. A column implementing only `ColumnInterface` is searched on `getField()` with
 no joins, exactly as before the contract existed.
+
+A mapped boolean, date, or UUID field is skipped on the numeric branch instead of falling
+through to `is_numeric()`. `BooleanColumn` uses the DataTables `num` type so 0/1 sort in the
+browser; without that skip, a global search for `"1"` bound `active = '1'` and kept every true
+row alongside the intended text matches.
 
 `$forceNumeric` lets a caller force numeric handling from an external hint;
 `ContainsSearchStrategy` uses it for ColumnControl's `number` / `numeric` / `num` input types.
