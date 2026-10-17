@@ -14,8 +14,9 @@ use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
  * Resolves dot-notation field paths into valid DQL expressions.
  *
  * For simple fields (no dots), returns "$alias.$field" unchanged.
- * For relation paths like "author.firstName", adds LEFT JOIN clauses
- * to the QueryBuilder and returns the resolved DQL expression.
+ * Embeddable fields (`address.city`) stay on the owning alias: they are mapped
+ * fields, not associations. Relation paths like "author.firstName" add LEFT JOIN
+ * clauses to the QueryBuilder and return the resolved DQL expression.
  */
 final class RelationFieldResolver
 {
@@ -105,8 +106,12 @@ final class RelationFieldResolver
      *
      * Examples:
      *   resolve($qb, 'e', 'name')                → 'e.name'
+     *   resolve($qb, 'e', 'address.city')         → 'e.address.city' (embeddable field, no join)
      *   resolve($qb, 'e', 'author.firstName')     → 'author.firstName'  (joins e.author as author)
      *   resolve($qb, 'e', 'author.address.city')  → 'author_address.city' (joins e.author, author.address)
+     *
+     * Embeddable properties are fields of the owning class (`address.city`), not associations.
+     * DQL uses that dotted path with no JOIN; joining `e.address` makes Doctrine reject the query.
      */
     public static function resolve(QueryBuilder $qb, string $rootAlias, string $fieldPath): string
     {
@@ -115,32 +120,56 @@ final class RelationFieldResolver
         }
 
         $segments        = explode('.', $fieldPath);
-        $leafField       = array_pop($segments);
         $currentAlias    = $rootAlias;
         $existingAliases = self::getExistingJoinAliases($qb);
         $aliasesByJoin   = self::getExistingJoinAliasesByJoin($qb);
+        $metadata        = self::rootMetadata($qb);
 
-        foreach ($segments as $segment) {
-            $join = \sprintf('%s.%s', $currentAlias, $segment);
+        while ([] !== $segments) {
+            $remaining = implode('.', $segments);
+            if (null !== $metadata && $metadata->hasField($remaining)) {
+                return \sprintf('%s.%s', $currentAlias, $remaining);
+            }
+
+            if (1 === \count($segments)) {
+                return \sprintf('%s.%s', $currentAlias, $segments[0]);
+            }
+
+            $segment = array_shift($segments);
+            $join    = \sprintf('%s.%s', $currentAlias, $segment);
 
             if (isset($aliasesByJoin[$join])) {
                 $currentAlias = $aliasesByJoin[$join];
+            } else {
+                $joinAlias = $currentAlias === $rootAlias ? $segment : \sprintf('%s_%s', $currentAlias, $segment);
+
+                if (!isset($existingAliases[$joinAlias])) {
+                    $qb->leftJoin($join, $joinAlias);
+                    $existingAliases[$joinAlias] = true;
+                    $aliasesByJoin[$join]        = $joinAlias;
+                }
+
+                $currentAlias = $joinAlias;
+            }
+
+            if (null === $metadata) {
+                continue;
+            }
+
+            if ($metadata->hasAssociation($segment)) {
+                try {
+                    $metadata = $qb->getEntityManager()->getClassMetadata($metadata->getAssociationTargetClass($segment));
+                } catch (MappingException) {
+                    $metadata = null;
+                }
 
                 continue;
             }
 
-            $joinAlias = $currentAlias === $rootAlias ? $segment : \sprintf('%s_%s', $currentAlias, $segment);
-
-            if (!isset($existingAliases[$joinAlias])) {
-                $qb->leftJoin($join, $joinAlias);
-                $existingAliases[$joinAlias] = true;
-                $aliasesByJoin[$join]        = $joinAlias;
-            }
-
-            $currentAlias = $joinAlias;
+            $metadata = null;
         }
 
-        return \sprintf('%s.%s', $currentAlias, $leafField);
+        return \sprintf('%s.%s', $currentAlias, implode('.', $segments));
     }
 
     /**
@@ -338,27 +367,26 @@ final class RelationFieldResolver
 
         $em       = $qb->getEntityManager();
         $segments = explode('.', $fieldPath);
-        $field    = array_pop($segments);
 
-        foreach ($segments as $segment) {
-            if (!$metadata->hasAssociation($segment)) {
+        while ([] !== $segments) {
+            $remaining = implode('.', $segments);
+            if ($metadata->hasField($remaining)) {
+                return $metadata->getFieldMapping($remaining)->type;
+            }
+
+            $segment = array_shift($segments);
+            if ([] === $segments || !$metadata->hasAssociation($segment)) {
                 return null;
             }
 
-            $target = $metadata->getAssociationTargetClass($segment);
-
             try {
-                $metadata = $em->getClassMetadata($target);
+                $metadata = $em->getClassMetadata($metadata->getAssociationTargetClass($segment));
             } catch (MappingException) {
                 return null;
             }
         }
 
-        if (!$metadata->hasField($field)) {
-            return null;
-        }
-
-        return $metadata->getFieldMapping($field)->type;
+        return null;
     }
 
     /**
@@ -395,7 +423,7 @@ final class RelationFieldResolver
     {
         $rootEntities = $qb->getRootEntities();
 
-        if ([] === $rootEntities) {
+        if (!\is_array($rootEntities) || [] === $rootEntities) {
             return null;
         }
 
