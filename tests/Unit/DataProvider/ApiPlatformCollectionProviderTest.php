@@ -93,6 +93,38 @@ final class ApiPlatformCollectionProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_keeps_next_available_when_the_operation_page_is_larger_than_the_requested_length(): void
+    {
+        // The operation serves 30 rows per page, so 25 rows come back as a short page, yet rows 11..25
+        // lie inside the collection read and must still be reachable through Next.
+        $provider = $this->recordingProvider($this->partialPaginator($this->items(25), itemsPerPage: 30));
+
+        $result = $this->provider($provider)->fetchData($this->request(length: 10));
+
+        $this->assertCount(10, iterator_to_array($result->data));
+        $this->assertSame(11, $result->recordsFiltered);
+    }
+
+    #[Test]
+    public function it_serves_the_tail_of_a_larger_operation_page_when_the_request_starts_inside_it(): void
+    {
+        // start=20 with length=10 asks for page 3, but the operation serves 30 rows per page, so rows
+        // 20..24 live on page 1 and the provider reads that page again after the initial call.
+        $provider = new RecordingProvider([
+            $this->partialPaginator($this->items(5, 20), itemsPerPage: 10),
+            $this->partialPaginator($this->items(25), itemsPerPage: 30),
+        ]);
+
+        $result = $this->provider($provider)->fetchData($this->request(start: 20, length: 10));
+        $rows   = iterator_to_array($result->data, false);
+
+        $this->assertCount(5, $rows);
+        $this->assertSame('Book 20', $rows[0]['title']);
+        $this->assertSame(25, $result->recordsTotal);
+        $this->assertSame(25, $result->recordsFiltered);
+    }
+
+    #[Test]
     public function it_ends_partial_pagination_on_a_short_page(): void
     {
         $provider = $this->recordingProvider($this->partialPaginator($this->items(3), itemsPerPage: 10));
