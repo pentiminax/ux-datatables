@@ -141,6 +141,42 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
             null,
         ];
 
+        yield 'date field with a numeric term is skipped' => [
+            TextColumn::new('at', 'At')->setField('at'),
+            'datetime_immutable',
+            '2024',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'date field with a forced numeric term is skipped' => [
+            TextColumn::new('at', 'At')->setField('at'),
+            'datetime_immutable',
+            '2024',
+            true,
+            null,
+            null,
+        ];
+
+        yield 'uuid field with a numeric term is skipped' => [
+            NumberColumn::new('id', 'ID')->setField('id'),
+            'uuid',
+            '123',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'uuid field with a forced numeric term is skipped' => [
+            NumberColumn::new('id', 'ID')->setField('id'),
+            'uuid',
+            '123',
+            true,
+            null,
+            null,
+        ];
+
         yield 'guid field with uuid value' => [
             TextColumn::new('id', 'ID')->setField('id'),
             'guid',

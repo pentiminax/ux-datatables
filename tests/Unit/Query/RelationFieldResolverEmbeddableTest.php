@@ -145,4 +145,24 @@ final class RelationFieldResolverEmbeddableTest extends TestCase
         $this->assertSame(3, $result->recordsFiltered);
         $this->assertSame(['Lyon', 'Nantes'], array_column($rows, 'city'));
     }
+
+    #[Test]
+    public function it_reuses_an_association_join_already_on_the_query_builder(): void
+    {
+        $qb = $this->em->createQueryBuilder()
+            ->select('e')
+            ->from(NestedEmbeddableOwner::class, 'e')
+            ->leftJoin('e.partner', 'p');
+
+        $this->assertSame('p.address.city', RelationFieldResolver::resolve($qb, 'e', 'partner.address.city'));
+        $this->assertCount(1, $qb->getDQLPart('join')['e']);
+    }
+
+    #[Test]
+    public function it_reports_no_type_for_an_unmapped_embeddable_property(): void
+    {
+        $qb = $this->em->createQueryBuilder()->select('e')->from(EmbeddedAddressOwner::class, 'e');
+
+        $this->assertNull(RelationFieldResolver::resolveIntegerFieldType($qb, 'address.missing'));
+    }
 }
