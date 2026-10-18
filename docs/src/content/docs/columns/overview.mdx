@@ -128,8 +128,10 @@ TextColumn::new('donorProviderName', 'Donor')
 ```
 
 The path uses the same dot-notation as `setField()`, so a relation path is resolved through a
-`LEFT JOIN`. Use `addSearchJoin()` when you need the alias yourself, a `WITH` condition, or the
-relation is already joined under a custom alias in `customizeQueryBuilder()`:
+`LEFT JOIN`. An embeddable field (`address.city`) stays on the owning alias: it is a mapped
+field, not an association, and joining it makes Doctrine reject the query. Use `addSearchJoin()`
+when you need the alias yourself, a `WITH` condition, or the relation is already joined under a
+custom alias in `customizeQueryBuilder()`:
 
 ```php
 TextColumn::new('donorProviderName', 'Donor')
