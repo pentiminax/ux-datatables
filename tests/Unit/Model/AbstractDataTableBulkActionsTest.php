@@ -159,6 +159,14 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     }
 
     #[Test]
+    public function it_sends_the_resolved_row_id_field_on_the_bulk_actions_payload(): void
+    {
+        $table = $this->table()->getDataTable()->setBulkRowIdField('sku');
+
+        $this->assertSame('sku', $table->getOptions()['bulkActions']['idField']);
+    }
+
+    #[Test]
     public function it_gives_every_client_side_row_an_identifier(): void
     {
         $table = $this->table();

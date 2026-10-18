@@ -195,6 +195,14 @@ abstract class AbstractDataTable
         $this->hydrateClientSideData();
         $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable);
 
+        if ($this->table->hasBulkActions()) {
+            $this->table->setBulkRowIdField($this->infrastructure()->runtimeFactory->resolveRowIdField(
+                null,
+                $this->table->getBulkActions()?->getIdField(),
+                $this->asDataTable?->entityClass,
+            ));
+        }
+
         $this->renderingPrepared = true;
     }
 

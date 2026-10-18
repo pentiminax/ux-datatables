@@ -124,6 +124,25 @@ final class DataTableRuntimeFactoryTest extends TestCase
     }
 
     #[Test]
+    public function resolve_row_id_field_remaps_the_default_bulk_id_onto_the_doctrine_identifier(): void
+    {
+        $metadata = $this->createStub(ClassMetadata::class);
+        $metadata->method('getIdentifier')->willReturn(['sku']);
+
+        $em = $this->createStub(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->willReturn($metadata);
+
+        $registry = $this->createStub(ManagerRegistry::class);
+        $registry->method('getManagerForClass')->willReturn($em);
+
+        $this->assertSame('sku', (new DataTableRuntimeFactory(doctrine: $registry))->resolveRowIdField(
+            null,
+            'id',
+            DataTableRuntimeFactoryUuidFixture::class,
+        ));
+    }
+
+    #[Test]
     #[DataProvider('manualProviderCases')]
     public function create_runtime_returns_the_manual_data_provider(?DataProviderInterface $manualProvider): void
     {
