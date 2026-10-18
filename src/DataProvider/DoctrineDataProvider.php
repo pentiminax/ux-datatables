@@ -144,8 +144,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             return [];
         }
 
-        $type  = $this->fieldType($metadata, $identifier);
-        $items = $this->extractRootEntities((clone $qb)
+        $type = $this->fieldType($metadata, $identifier);
+        $rows = $this->rootRows((clone $qb)
             ->setFirstResult(null)
             ->setMaxResults(null)
             ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_page_ids'))
@@ -156,11 +156,11 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         // The identifier query returns raw column values and the entities carry hydrated ones;
         // converting the entity side back to what the column holds makes the two comparable.
         $positions = array_flip(array_map(strval(...), $ids));
-        $position  = fn (object $item): int => $positions[(string) $this->toDatabaseValue($type, $metadata->getFieldValue($item, $identifier))] ?? \PHP_INT_MAX;
+        $position  = fn (array $row): int => $positions[(string) $this->toDatabaseValue($type, $metadata->getFieldValue($row[0], $identifier))] ?? \PHP_INT_MAX;
 
-        usort($items, static fn (object $left, object $right): int => $position($left) <=> $position($right));
+        usort($rows, static fn (array $left, array $right): int => $position($left) <=> $position($right));
 
-        return $items;
+        return array_column($rows, 1);
     }
 
     /**
@@ -208,7 +208,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
                 ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_export_ids'))
                 ->setParameter('ux_datatables_export_ids', $chunk, $this->arrayBindingType($type));
 
-            $items = $this->extractRootEntities($pageQb->getQuery()->getResult());
+            $items = array_column($this->rootRows($pageQb->getQuery()->getResult()), 0);
 
             if ([] === $items) {
                 continue;
@@ -677,33 +677,25 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * Drops non-root objects that entity-class JOIN + addSelect() interleaves into getResult().
+     * Pairs each distinct root entity with the first result row holding it, dropping the joined
+     * entities an entity-class JOIN with addSelect() interleaves into getResult().
      *
      * @param list<mixed> $items
      *
-     * @return list<object>
+     * @return list<array{object, mixed}>
      */
-    private function extractRootEntities(array $items): array
+    private function rootRows(array $items): array
     {
-        $roots = [];
-        $seen  = [];
+        $rows = [];
 
         foreach ($items as $item) {
             $root = $this->matchRootEntity($item);
-            if (null === $root) {
-                continue;
+            if (null !== $root) {
+                $rows[spl_object_id($root)] ??= [$root, $item];
             }
-
-            $oid = spl_object_id($root);
-            if (isset($seen[$oid])) {
-                continue;
-            }
-
-            $seen[$oid] = true;
-            $roots[]    = $root;
         }
 
-        return $roots;
+        return array_values($rows);
     }
 
     private function matchRootEntity(mixed $item): ?object

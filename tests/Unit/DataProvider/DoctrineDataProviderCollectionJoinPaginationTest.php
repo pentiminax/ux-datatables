@@ -147,6 +147,30 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
     }
 
     #[Test]
+    public function it_keeps_selected_scalars_beside_the_root_when_a_collection_is_joined(): void
+    {
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountCustomer::class,
+            rowMapper: new class implements RowMapperInterface {
+                public function map(mixed $row): array
+                {
+                    return ['id' => $row[0]->id, 'displayName' => $row['displayName']];
+                }
+            },
+            configureQueryBuilder: static fn (QueryBuilder $qb): QueryBuilder => $qb
+                ->addSelect('e.name AS displayName')
+                ->leftJoin('e.tags', 't')
+                ->orderBy('e.id', 'ASC'),
+        );
+
+        $rows = iterator_to_array($provider->fetchData($this->request(0, 2))->data, false);
+
+        $this->assertSame([1, 2], array_column($rows, 'id'));
+        $this->assertNotContains(null, array_column($rows, 'displayName'));
+    }
+
+    #[Test]
     public function it_exports_only_root_entities_when_an_entity_class_join_is_selected(): void
     {
         $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
