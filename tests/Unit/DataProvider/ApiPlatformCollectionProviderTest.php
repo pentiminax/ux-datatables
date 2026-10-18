@@ -67,6 +67,95 @@ final class ApiPlatformCollectionProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_keeps_next_available_when_partial_pagination_omits_the_collection_size(): void
+    {
+        // A full PartialPaginator page used to set recordsFiltered to the page size alone, so
+        // DataTables hid every later page even though the collection continued.
+        $provider = $this->recordingProvider($this->partialPaginator($this->items(10), itemsPerPage: 10));
+
+        $result = $this->provider($provider)->fetchData($this->request(length: 10));
+
+        $this->assertSame(11, $result->recordsTotal);
+        $this->assertSame(11, $result->recordsFiltered);
+        $this->assertCount(10, iterator_to_array($result->data));
+    }
+
+    #[Test]
+    public function it_keeps_next_available_on_a_later_partial_page(): void
+    {
+        $provider = $this->recordingProvider($this->partialPaginator($this->items(10), itemsPerPage: 10));
+
+        $result = $this->provider($provider)->fetchData($this->request(start: 10, length: 10));
+
+        $this->assertSame(21, $result->recordsTotal);
+        $this->assertSame(21, $result->recordsFiltered);
+        $this->assertCount(10, iterator_to_array($result->data));
+    }
+
+    #[Test]
+    public function it_keeps_next_available_when_the_operation_page_is_larger_than_the_requested_length(): void
+    {
+        // The operation serves 30 rows per page, so 25 rows come back as a short page, yet rows 11..25
+        // lie inside the collection read and must still be reachable through Next.
+        $provider = $this->recordingProvider($this->partialPaginator($this->items(25), itemsPerPage: 30));
+
+        $result = $this->provider($provider)->fetchData($this->request(length: 10));
+
+        $this->assertCount(10, iterator_to_array($result->data));
+        $this->assertSame(11, $result->recordsFiltered);
+    }
+
+    #[Test]
+    public function it_serves_the_tail_of_a_larger_operation_page_when_the_request_starts_inside_it(): void
+    {
+        // start=20 with length=10 asks for page 3, but the operation serves 30 rows per page, so rows
+        // 20..24 live on page 1 and the provider reads that page again after the initial call.
+        $provider = new RecordingProvider([
+            $this->partialPaginator($this->items(5, 20), itemsPerPage: 10),
+            $this->partialPaginator($this->items(25), itemsPerPage: 30),
+        ]);
+
+        $result = $this->provider($provider)->fetchData($this->request(start: 20, length: 10));
+        $rows   = iterator_to_array($result->data, false);
+
+        $this->assertCount(5, $rows);
+        $this->assertSame('Book 20', $rows[0]['title']);
+        $this->assertSame(25, $result->recordsTotal);
+        $this->assertSame(25, $result->recordsFiltered);
+    }
+
+    #[Test]
+    public function it_ends_partial_pagination_on_a_short_page(): void
+    {
+        $provider = $this->recordingProvider($this->partialPaginator($this->items(3), itemsPerPage: 10));
+
+        $result = $this->provider($provider)->fetchData($this->request(start: 20, length: 10));
+
+        $this->assertSame(23, $result->recordsTotal);
+        $this->assertSame(23, $result->recordsFiltered);
+        $this->assertCount(3, iterator_to_array($result->data));
+    }
+
+    #[Test]
+    public function it_walks_every_partial_page_when_the_request_asks_for_the_whole_collection(): void
+    {
+        $provider = new RecordingProvider([
+            $this->partialPaginator($this->items(2), itemsPerPage: 2),
+            $this->partialPaginator($this->items(2, 2), itemsPerPage: 2),
+            $this->partialPaginator($this->items(1, 4), itemsPerPage: 2),
+        ]);
+
+        $result = $this->provider($provider)->fetchData($this->request(length: -1));
+        $rows   = iterator_to_array($result->data, false);
+
+        $this->assertCount(5, $rows);
+        $this->assertSame(5, $result->recordsTotal);
+        $this->assertSame(5, $result->recordsFiltered);
+        $this->assertSame('Book 0', $rows[0]['title']);
+        $this->assertSame('Book 4', $rows[4]['title']);
+    }
+
+    #[Test]
     public function it_counts_the_rows_when_the_operation_returns_no_paginator(): void
     {
         $provider = $this->recordingProvider($this->items(3));
