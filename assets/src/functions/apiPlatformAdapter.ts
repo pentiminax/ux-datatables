@@ -61,6 +61,8 @@ interface HydraCollectionResponse {
     member?: unknown[]
     'hydra:totalItems'?: number
     totalItems?: number
+    'hydra:view'?: unknown
+    view?: unknown
 }
 
 interface DataTableServerSideResponse {
@@ -171,6 +173,8 @@ export class ApiPlatformAdapter {
      */
     private rowIdField: string | null = null
     private draw = 0
+    private lastStart = 0
+    private lastLength = 10
 
     constructor(columns: ColumnConfig[]) {
         this.columns = columns
@@ -236,12 +240,12 @@ export class ApiPlatformAdapter {
     }
 
     buildResponse(json: HydraCollectionResponse, draw: number): DataTableServerSideResponse {
-        const totalItems = toCount(json['hydra:totalItems'] ?? json.totalItems ?? 0)
         const data = Array.isArray(json['hydra:member'])
             ? json['hydra:member']
             : Array.isArray(json.member)
               ? json.member
               : []
+        const totalItems = this.resolveTotalItems(json, data.length)
 
         return {
             draw,
@@ -249,6 +253,29 @@ export class ApiPlatformAdapter {
             recordsFiltered: totalItems,
             data: this.withRowIds(data),
         }
+    }
+
+    /**
+     * Partial Hydra collections omit `hydra:totalItems`. Counting only the members on the page
+     * (or defaulting the missing total to 0) made DataTables hide every later page.
+     */
+    private resolveTotalItems(json: HydraCollectionResponse, memberCount: number): number {
+        const explicit = json['hydra:totalItems'] ?? json.totalItems
+        if (undefined !== explicit && null !== explicit) {
+            return toCount(explicit)
+        }
+
+        const view = json['hydra:view'] ?? json.view
+        if (isRecord(view)) {
+            const next = view['hydra:next'] ?? view.next
+            const hasNext = 'string' === typeof next && '' !== next
+
+            return this.lastStart + memberCount + (hasNext ? 1 : 0)
+        }
+
+        const fullPage = memberCount >= this.lastLength && this.lastLength > 0
+
+        return this.lastStart + memberCount + (fullPage ? 1 : 0)
     }
 
     /**
@@ -449,6 +476,8 @@ export class ApiPlatformAdapter {
     /** Rewrite the DataTables params into the Hydra query, remembering the draw to echo back. */
     toRequestParams(params: DataTableServerSideParams): Record<string, string> {
         this.draw = this.toDraw(params.draw)
+        this.lastStart = toNonNegativeInt(params.start)
+        this.lastLength = toPositiveLength(params.length)
 
         return this.buildRequestParams(params)
     }

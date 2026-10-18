@@ -552,12 +552,17 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      * needed to evaluate ORDER BY, and selecting them would make getSingleColumnResult() throw
      * {@see \Doctrine\ORM\Exception\MultipleSelectorsFoundException}.
      *
+     * DISTINCT is cleared: a customizer calling distinct() would otherwise emit
+     * `SELECT DISTINCT id ... ORDER BY <other column>`, which PostgreSQL rejects. Duplicate
+     * joined rows are uniquified in PHP below, so the SQL DISTINCT is not needed.
+     *
      * @return list<mixed>
      */
     private function collectExportIdentifiers(QueryBuilder $qb, string $alias, string $identifier): array
     {
         $idQb = (clone $qb)
             ->select("$alias.$identifier")
+            ->distinct(false)
             ->setFirstResult(null)
             ->setMaxResults(null);
 

@@ -37,8 +37,9 @@ final class MakerAppKernel extends Kernel
 
             $container->loadFromExtension('mercure', [
                 'hubs' => ['default' => [
-                    'url' => 'http://localhost:3000/.well-known/mercure',
-                    'jwt' => [
+                    'url'              => 'http://localhost:3000/.well-known/mercure',
+                    'protocol_version' => '0.x',
+                    'jwt'              => [
                         'secret'  => 'jwt_secret',
                         'publish' => '*',
                     ],

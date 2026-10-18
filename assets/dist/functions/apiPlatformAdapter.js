@@ -68,6 +68,8 @@ export class ApiPlatformAdapter {
     constructor(columns) {
         this.rowIdField = null;
         this.draw = 0;
+        this.lastStart = 0;
+        this.lastLength = 10;
         this.columns = columns;
     }
     buildRequestParams(params) {
@@ -110,18 +112,32 @@ export class ApiPlatformAdapter {
         return result;
     }
     buildResponse(json, draw) {
-        const totalItems = toCount(json['hydra:totalItems'] ?? json.totalItems ?? 0);
         const data = Array.isArray(json['hydra:member'])
             ? json['hydra:member']
             : Array.isArray(json.member)
                 ? json.member
                 : [];
+        const totalItems = this.resolveTotalItems(json, data.length);
         return {
             draw,
             recordsTotal: totalItems,
             recordsFiltered: totalItems,
             data: this.withRowIds(data),
         };
+    }
+    resolveTotalItems(json, memberCount) {
+        const explicit = json['hydra:totalItems'] ?? json.totalItems;
+        if (undefined !== explicit && null !== explicit) {
+            return toCount(explicit);
+        }
+        const view = json['hydra:view'] ?? json.view;
+        if (isRecord(view)) {
+            const next = view['hydra:next'] ?? view.next;
+            const hasNext = 'string' === typeof next && '' !== next;
+            return this.lastStart + memberCount + (hasNext ? 1 : 0);
+        }
+        const fullPage = memberCount >= this.lastLength && this.lastLength > 0;
+        return this.lastStart + memberCount + (fullPage ? 1 : 0);
     }
     configure(payload) {
         const ajaxConfig = payload.ajax;
@@ -252,6 +268,8 @@ export class ApiPlatformAdapter {
     }
     toRequestParams(params) {
         this.draw = this.toDraw(params.draw);
+        this.lastStart = toNonNegativeInt(params.start);
+        this.lastLength = toPositiveLength(params.length);
         return this.buildRequestParams(params);
     }
     toDraw(value) {

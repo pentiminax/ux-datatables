@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Query;
 
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -106,6 +107,72 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
             'boolean',
             'true',
             false,
+            null,
+            null,
+        ];
+
+        // BooleanColumn is DataTables `num` (isNumber true) so it enters buildNumeric.
+        // "1"/"0" must not become boolean equality: global search ORs that in and keeps
+        // every true/false row alongside the intended text matches.
+        yield 'boolean column with 1 does not coerce to equality' => [
+            BooleanColumn::new('active', 'Active')->setField('active'),
+            'boolean',
+            '1',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'boolean column with 0 does not coerce to equality' => [
+            BooleanColumn::new('active', 'Active')->setField('active'),
+            'boolean',
+            '0',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'number column on a boolean field with a numeric term is skipped' => [
+            NumberColumn::new('active', 'Active')->setField('active'),
+            'boolean',
+            '1',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'date field with a numeric term is skipped' => [
+            TextColumn::new('at', 'At')->setField('at'),
+            'datetime_immutable',
+            '2024',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'date field with a forced numeric term is skipped' => [
+            TextColumn::new('at', 'At')->setField('at'),
+            'datetime_immutable',
+            '2024',
+            true,
+            null,
+            null,
+        ];
+
+        yield 'uuid field with a numeric term is skipped' => [
+            NumberColumn::new('id', 'ID')->setField('id'),
+            'uuid',
+            '123',
+            false,
+            null,
+            null,
+        ];
+
+        yield 'uuid field with a forced numeric term is skipped' => [
+            NumberColumn::new('id', 'ID')->setField('id'),
+            'uuid',
+            '123',
+            true,
             null,
             null,
         ];

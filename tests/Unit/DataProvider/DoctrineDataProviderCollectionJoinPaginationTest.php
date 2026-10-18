@@ -289,6 +289,53 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
     }
 
     #[Test]
+    public function it_drops_distinct_from_the_export_identifier_query(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->distinct()
+            ->leftJoin('e.tags', 't')
+            ->orderBy('e.name', 'ASC'));
+
+        $this->statements = [];
+        $rows             = iterator_to_array($provider->iterateRows($this->request(0, 0)), false);
+
+        $this->assertSame([1, 2, 3, 4, 5, 6], array_column($rows, 'id'));
+
+        $identifierSql = array_values(array_filter(
+            $this->selectStatements(),
+            static fn (string $sql): bool => str_contains($sql, 'ORDER BY') && !str_contains($sql, 'WHERE'),
+        ));
+
+        $this->assertCount(1, $identifierSql);
+        $this->assertStringNotContainsString('DISTINCT', $identifierSql[0]);
+    }
+
+    #[Test]
+    public function it_drops_distinct_from_the_in_memory_identifier_query(): void
+    {
+        $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->distinct()
+            ->leftJoin('e.tags', 't')
+            ->orderBy('t.label', 'ASC')
+            ->addOrderBy('t.id', 'ASC'));
+
+        $this->statements = [];
+        $ids              = $this->ids($provider->fetchData($this->request(0, 2))->data);
+
+        $this->assertCount(2, $ids);
+
+        $identifierSql = array_values(array_filter(
+            $this->selectStatements(),
+            static fn (string $sql): bool => str_contains($sql, 'ORDER BY')
+                && !str_contains($sql, 'WHERE')
+                && !str_contains($sql, 'GROUP BY'),
+        ));
+
+        $this->assertCount(1, $identifierSql);
+        $this->assertStringNotContainsString('DISTINCT', $identifierSql[0]);
+    }
+
+    #[Test]
     public function it_pages_distinct_roots_when_the_root_and_the_collection_share_one_select(): void
     {
         $provider = $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb

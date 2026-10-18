@@ -9,6 +9,7 @@ use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\Mapping\FieldMapping;
 use Doctrine\ORM\Query\Expr;
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
@@ -236,6 +237,53 @@ final class GlobalSearchFilterTest extends TestCase
         $context = $this->context($request, [
             TextColumn::new('name', 'Name')->setField('name'),
             NumberColumn::new('invoiceCount', 'Invoices'),
+        ]);
+
+        $this->filter()->apply($qb, $context);
+    }
+
+    /**
+     * BooleanColumn is DataTables `num`, so contains/global search used to bind "1" as
+     * equality on the boolean field and OR every true row into the result.
+     */
+    #[Test]
+    public function it_does_not_match_every_true_row_when_a_boolean_column_shares_a_numeric_term(): void
+    {
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('hasAssociation')->willReturn(false);
+        $metadata->method('hasField')->willReturnCallback(
+            static fn (string $field): bool => \in_array($field, ['name', 'active'], true),
+        );
+        $metadata->method('getFieldMapping')->willReturnCallback(
+            static fn (string $field): FieldMapping => new FieldMapping(
+                'active' === $field ? 'boolean' : 'string',
+                $field,
+                $field,
+            ),
+        );
+
+        $em = $this->createStub(EntityManagerInterface::class);
+        $em->method('getClassMetadata')->willReturn($metadata);
+
+        $qb = $this->createMock(QueryBuilder::class);
+        $qb->method('getDQLPart')->willReturn([]);
+        $qb->method('getRootEntities')->willReturn(['App\\Entity\\Project']);
+        $qb->method('getEntityManager')->willReturn($em);
+
+        $expr = $this->createMock(Expr::class);
+        $expr->expects($this->once())
+            ->method('orX')
+            ->with("LOWER(e.name) LIKE :search_param_0 ESCAPE '!'")
+            ->willReturn(new Expr\Orx(["LOWER(e.name) LIKE :search_param_0 ESCAPE '!'"]));
+
+        $qb->method('expr')->willReturn($expr);
+        $qb->expects($this->once())->method('andWhere')->willReturn($qb);
+        $qb->expects($this->once())->method('setParameter')->with('search_param_0', '%1%');
+
+        $request = new DataTableRequest(1, new Columns([]), search: new Search('1', false));
+        $context = $this->context($request, [
+            TextColumn::new('name', 'Name')->setField('name'),
+            BooleanColumn::new('active', 'Active')->setField('active'),
         ]);
 
         $this->filter()->apply($qb, $context);
