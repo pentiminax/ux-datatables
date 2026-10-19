@@ -140,8 +140,30 @@ final class AbstractDataTableBulkActionsTest extends TestCase
         $this->assertSame(HighlightConfig::ROW_ID_KEY, $options['rowId']);
         $this->assertSame(['approve'], array_column($options['bulkActions']['actions'], 'name'));
         $this->assertFalse($options['bulkActions']['selectCurrentPageOnly']);
+        $this->assertSame('id', $options['bulkActions']['idField']);
         $this->assertSame('topEnd', $options['bulkActions']['position']);
         $this->assertContains(Feature::BULK_ACTIONS->value, $this->flatten((array) $options['layout']['topEnd']));
+    }
+
+    #[Test]
+    public function it_exposes_set_id_field_on_the_bulk_actions_payload(): void
+    {
+        $options = (new ConfigurableDataTable(
+            [TextColumn::new('id'), TextColumn::new('title')],
+            bulkActions: static fn (BulkActions $actions): BulkActions => $actions
+                ->add(BulkAction::new('approve'))
+                ->setIdField('sku'),
+        ))->getDataTable()->getOptions();
+
+        $this->assertSame('sku', $options['bulkActions']['idField']);
+    }
+
+    #[Test]
+    public function it_sends_the_resolved_row_id_field_on_the_bulk_actions_payload(): void
+    {
+        $table = $this->table()->getDataTable()->setBulkRowIdField('sku');
+
+        $this->assertSame('sku', $table->getOptions()['bulkActions']['idField']);
     }
 
     #[Test]

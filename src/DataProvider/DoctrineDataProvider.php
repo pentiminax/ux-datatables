@@ -144,23 +144,23 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             return [];
         }
 
-        $type  = $this->fieldType($metadata, $identifier);
-        $items = (clone $qb)
+        $type = $this->fieldType($metadata, $identifier);
+        $rows = $this->rootRows((clone $qb)
             ->setFirstResult(null)
             ->setMaxResults(null)
             ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_page_ids'))
             ->setParameter('ux_datatables_page_ids', $ids, $this->arrayBindingType($type))
             ->getQuery()
-            ->getResult();
+            ->getResult());
 
         // The identifier query returns raw column values and the entities carry hydrated ones;
         // converting the entity side back to what the column holds makes the two comparable.
         $positions = array_flip(array_map(strval(...), $ids));
-        $position  = fn (mixed $item): int => $positions[(string) $this->toDatabaseValue($type, $metadata->getFieldValue($this->rootEntity($item), $identifier))] ?? \PHP_INT_MAX;
+        $position  = fn (array $row): int => $positions[(string) $this->toDatabaseValue($type, $metadata->getFieldValue($row[0], $identifier))] ?? \PHP_INT_MAX;
 
-        usort($items, static fn (mixed $left, mixed $right): int => $position($left) <=> $position($right));
+        usort($rows, static fn (array $left, array $right): int => $position($left) <=> $position($right));
 
-        return $items;
+        return array_column($rows, 1);
     }
 
     /**
@@ -208,7 +208,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
                 ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_export_ids'))
                 ->setParameter('ux_datatables_export_ids', $chunk, $this->arrayBindingType($type));
 
-            $items = array_map($this->rootEntity(...), $pageQb->getQuery()->getResult());
+            $items = array_column($this->rootRows($pageQb->getQuery()->getResult()), 0);
 
             if ([] === $items) {
                 continue;
@@ -676,20 +676,50 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         }
     }
 
-    private function rootEntity(mixed $item): object
+    /**
+     * Pairs each distinct root entity with the first result row holding it, dropping the joined
+     * entities an entity-class JOIN with addSelect() interleaves into getResult().
+     *
+     * @param list<mixed> $items
+     *
+     * @return list<array{object, mixed}>
+     */
+    private function rootRows(array $items): array
     {
-        if (\is_object($item)) {
-            return $item;
-        }
+        $rows = [];
 
-        if (\is_array($item)) {
-            $candidate = $item['e'] ?? reset($item);
-            if (\is_object($candidate)) {
-                return $candidate;
+        foreach ($items as $item) {
+            $root = $this->matchRootEntity($item);
+            if (null !== $root) {
+                $rows[spl_object_id($root)] ??= [$root, $item];
             }
         }
 
-        throw new \LogicException('Doctrine CSV export expected a root entity from the chunk query.');
+        return array_values($rows);
+    }
+
+    private function matchRootEntity(mixed $item): ?object
+    {
+        if (\is_object($item)) {
+            return $item instanceof $this->entityClass ? $item : null;
+        }
+
+        if (!\is_array($item)) {
+            return null;
+        }
+
+        $candidate = $item['e'] ?? null;
+        if (\is_object($candidate) && $candidate instanceof $this->entityClass) {
+            return $candidate;
+        }
+
+        foreach ($item as $value) {
+            if (\is_object($value) && $value instanceof $this->entityClass) {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     /**

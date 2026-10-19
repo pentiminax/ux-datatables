@@ -60,6 +60,8 @@ class DataTable
 
     private ?string $bulkActionsUrl = null;
 
+    private ?string $bulkRowIdField = null;
+
     private bool $selectionForBulkActions = false;
 
     /** @var array<string, string>|null */
@@ -127,9 +129,12 @@ class DataTable
             $options['bulkActions'] = [
                 'actions'               => $this->bulkActions->jsonSerialize(),
                 'selectCurrentPageOnly' => $this->bulkActions->isSelectCurrentPageOnly(),
-                'url'                   => $this->bulkActionsUrl,
-                'labels'                => $this->preparedBulkActionLabels ?? [],
-                'position'              => $this->bulkActions->getPosition(),
+                // Client-side API Platform rows skip RowIdStage; the Stimulus adapter reads this
+                // to stamp DT_RowId from the same field setIdField() / Doctrine remapping chose.
+                'idField'  => $this->bulkRowIdField ?? $this->bulkActions->getIdField(),
+                'url'      => $this->bulkActionsUrl,
+                'labels'   => $this->preparedBulkActionLabels ?? [],
+                'position' => $this->bulkActions->getPosition(),
             ];
 
             $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
@@ -812,6 +817,16 @@ class DataTable
     public function setPreparedBulkActionLabels(array $labels): static
     {
         $this->preparedBulkActionLabels = $labels;
+
+        return $this;
+    }
+
+    /**
+     * @internal
+     */
+    public function setBulkRowIdField(?string $field): static
+    {
+        $this->bulkRowIdField = $field;
 
         return $this;
     }

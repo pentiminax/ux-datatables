@@ -102,14 +102,33 @@ const ROW_ID_KEY = 'DT_RowId'
 
 const DEFAULT_ROW_ID_FIELD = 'id'
 
-function resolveRowIdField(highlight: unknown): string | null {
-    if (!isRecord(highlight)) {
-        return null
+/**
+ * Which Hydra member property becomes `DT_RowId`.
+ *
+ * Highlight wins when present (same precedence as PHP `RowIdField`). Bulk actions also force the
+ * DataTables `rowId` option to `DT_RowId`, so Hydra rows need that key even without highlight —
+ * otherwise SelectionStore reads empty ids and page-scoped bulk POSTs nothing.
+ */
+function resolveRowIdField(payload: Record<string, unknown>): string | null {
+    const highlight = payload.highlight
+    if (isRecord(highlight)) {
+        const idField = highlight.idField
+
+        return 'string' === typeof idField && '' !== idField ? idField : DEFAULT_ROW_ID_FIELD
     }
 
-    const idField = highlight.idField
+    const bulk = payload.bulkActions
+    if (isRecord(bulk)) {
+        const idField = bulk.idField
 
-    return 'string' === typeof idField && '' !== idField ? idField : DEFAULT_ROW_ID_FIELD
+        return 'string' === typeof idField && '' !== idField ? idField : DEFAULT_ROW_ID_FIELD
+    }
+
+    if (payload.rowId === ROW_ID_KEY) {
+        return DEFAULT_ROW_ID_FIELD
+    }
+
+    return null
 }
 
 /**
@@ -149,8 +168,8 @@ export class ApiPlatformAdapter {
     private readonly columns: ReadonlyArray<ColumnConfig>
 
     /**
-     * Hydra members never go through the PHP row mapper, so the row id the update highlight and the
-     * DataTables `rowId` option read is added here instead of by `RowIdStage`.
+     * Hydra members never go through the PHP row mapper, so the row id bulk selection, the update
+     * highlight, and the DataTables `rowId` option read is stamped here instead of by `RowIdStage`.
      */
     private rowIdField: string | null = null
     private draw = 0
@@ -266,7 +285,7 @@ export class ApiPlatformAdapter {
      */
     configure(payload: Record<string, unknown>): void {
         const ajaxConfig = payload.ajax as Record<string, unknown>
-        this.rowIdField = resolveRowIdField(payload.highlight)
+        this.rowIdField = resolveRowIdField(payload)
         const originalDataFilter = ajaxConfig.dataFilter
 
         payload.serverSide = true
