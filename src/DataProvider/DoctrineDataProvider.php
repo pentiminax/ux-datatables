@@ -145,20 +145,18 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         }
 
         $type = $this->fieldType($metadata, $identifier);
-        $rows = $this->rootRows((clone $qb)
-            ->setFirstResult(null)
-            ->setMaxResults(null)
-            ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_page_ids'))
-            ->setParameter('ux_datatables_page_ids', $ids, $this->arrayBindingType($type))
-            ->getQuery()
-            ->getResult());
-
-        // The identifier query returns raw column values and the entities carry hydrated ones;
-        // converting the entity side back to what the column holds makes the two comparable.
-        $positions = array_flip(array_map(strval(...), $ids));
-        $position  = fn (array $row): int => $positions[(string) $this->toDatabaseValue($type, $metadata->getFieldValue($row[0], $identifier))] ?? \PHP_INT_MAX;
-
-        usort($rows, static fn (array $left, array $right): int => $position($left) <=> $position($right));
+        $rows = $this->rowsForIdentifiers(
+            $this->rootRows((clone $qb)
+                ->setFirstResult(null)
+                ->setMaxResults(null)
+                ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_page_ids'))
+                ->setParameter('ux_datatables_page_ids', $ids, $this->arrayBindingType($type))
+                ->getQuery()
+                ->getResult()),
+            $ids,
+            $metadata,
+            $identifier,
+        );
 
         return array_column($rows, 1);
     }
@@ -198,8 +196,9 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     {
         [$qb, $alias, $identifier] = $this->buildIdentifierScopedQuery($request);
 
-        $ids  = $this->scopedIdentifiers($qb, $alias, $identifier);
-        $type = $this->fieldType($this->em->getClassMetadata($this->entityClass), $identifier);
+        $metadata = $this->em->getClassMetadata($this->entityClass);
+        $ids      = $this->scopedIdentifiers($qb, $alias, $identifier);
+        $type     = $this->fieldType($metadata, $identifier);
 
         foreach (array_chunk($ids, max(1, $this->exportChunkSize)) as $chunk) {
             $pageQb = (clone $qb)
@@ -208,7 +207,12 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
                 ->andWhere($qb->expr()->in("$alias.$identifier", ':ux_datatables_export_ids'))
                 ->setParameter('ux_datatables_export_ids', $chunk, $this->arrayBindingType($type));
 
-            $items = array_column($this->rootRows($pageQb->getQuery()->getResult()), 0);
+            $items = array_column($this->rowsForIdentifiers(
+                $this->rootRows($pageQb->getQuery()->getResult()),
+                $chunk,
+                $metadata,
+                $identifier,
+            ), 0);
 
             if ([] === $items) {
                 continue;
@@ -677,8 +681,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
     }
 
     /**
-     * Pairs each distinct root entity with the first result row holding it, dropping the joined
-     * entities an entity-class JOIN with addSelect() interleaves into getResult().
+     * Pairs each distinct root with the first result row holding it. Same-class joined
+     * entities still match; {@see self::rowsForIdentifiers()} drops those whose id is not in the page.
      *
      * @param list<mixed> $items
      *
@@ -696,6 +700,34 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         }
 
         return array_values($rows);
+    }
+
+    /**
+     * Keeps only roots whose identifier is in $ids (converted to the column value) and restores that order.
+     *
+     * @param list<array{object, mixed}> $rows
+     * @param list<mixed>                $ids
+     *
+     * @return list<array{object, mixed}>
+     */
+    private function rowsForIdentifiers(array $rows, array $ids, ClassMetadata $metadata, string $identifier): array
+    {
+        $type      = $this->fieldType($metadata, $identifier);
+        $positions = array_flip(array_map(strval(...), $ids));
+        $ordered   = [];
+
+        foreach ($rows as $row) {
+            $key = (string) $this->toDatabaseValue($type, $metadata->getFieldValue($row[0], $identifier));
+            if (!isset($positions[$key]) || isset($ordered[$positions[$key]])) {
+                continue;
+            }
+
+            $ordered[$positions[$key]] = $row;
+        }
+
+        ksort($ordered);
+
+        return array_values($ordered);
     }
 
     private function matchRootEntity(mixed $item): ?object
