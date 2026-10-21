@@ -8,6 +8,23 @@ type AjaxApi = {
     }
 }
 
+/**
+ * Reads the DataTables-protocol params of the last Ajax request (paging, search, filters,
+ * columns) before any transport rewrite. Same snapshot bulk select-all replays.
+ */
+export type ProtocolParamsProvider = () => Record<string, unknown>
+
+type ServerExportConfig = Record<string, unknown> & {
+    url?: string
+    exportKey?: string
+    format?: string
+    /**
+     * Set by {@link applyServerExportUrls} when the controller installed request params.
+     * Preferred over `ajax.params()`, which holds the wire format after a transport rewrite.
+     */
+    protocolParams?: ProtocolParamsProvider
+}
+
 export function flattenFormValues(
     data: unknown,
     prefix = '',
@@ -47,7 +64,10 @@ export function flattenFormValues(
     return acc
 }
 
-export function applyServerExportUrls(payload: Record<string, unknown>): void {
+export function applyServerExportUrls(
+    payload: Record<string, unknown>,
+    protocolParams?: ProtocolParamsProvider
+): void {
     const url = payload.exportUrl
     if (typeof url !== 'string' || url === '') {
         return
@@ -57,17 +77,21 @@ export function applyServerExportUrls(payload: Record<string, unknown>): void {
     if (typeof layout === 'object' && layout !== null && !Array.isArray(layout)) {
         const record = layout as Record<string, unknown>
         for (const position of Object.keys(record)) {
-            stampExportUrl(record[position], url)
+            stampExportUrl(record[position], url, protocolParams)
         }
     }
 
     delete payload.exportUrl
 }
 
-function stampExportUrl(value: unknown, url: string): void {
+function stampExportUrl(
+    value: unknown,
+    url: string,
+    protocolParams: ProtocolParamsProvider | undefined
+): void {
     if (Array.isArray(value)) {
         for (const item of value) {
-            stampExportUrl(item, url)
+            stampExportUrl(item, url, protocolParams)
         }
 
         return
@@ -77,16 +101,41 @@ function stampExportUrl(value: unknown, url: string): void {
         return
     }
 
-    const record = value as Record<string, unknown>
+    const record = value as ServerExportConfig
     if (record.action === SERVER_EXPORT_ACTION && typeof record.url !== 'string') {
         record.url = url
+        if (protocolParams) {
+            record.protocolParams = protocolParams
+        }
     }
 
     for (const key of ['buttons', 'postfixButtons', 'prefixButtons'] as const) {
         if (Array.isArray(record[key])) {
-            stampExportUrl(record[key], url)
+            stampExportUrl(record[key], url, protocolParams)
         }
     }
+}
+
+/**
+ * The last Ajax params in DataTables protocol form. Falls back to `ajax.params()` only when the
+ * controller never installed a request-params handle (no filters, bulk, or API Platform transport).
+ */
+export function resolveExportParams(
+    dt: unknown,
+    config: ServerExportConfig
+): Record<string, unknown> {
+    if (typeof config.protocolParams === 'function') {
+        return config.protocolParams()
+    }
+
+    const ajax = (dt as AjaxApi).ajax
+    if (typeof ajax?.params === 'function') {
+        const wire = ajax.params()
+
+        return wire !== null && typeof wire === 'object' && !Array.isArray(wire) ? wire : {}
+    }
+
+    return {}
 }
 
 export function runServerExport(
@@ -95,14 +144,19 @@ export function runServerExport(
     _node: HTMLElement,
     config: Record<string, unknown>
 ): void {
-    const ajax = (dt as AjaxApi).ajax
-    if (typeof ajax?.params !== 'function') {
+    const exportConfig = config as ServerExportConfig
+    const protocol = resolveExportParams(dt, exportConfig)
+
+    if (
+        typeof exportConfig.protocolParams !== 'function' &&
+        typeof (dt as AjaxApi).ajax?.params !== 'function'
+    ) {
         console.error('Server-side export requires an Ajax DataTable.')
 
         return
     }
 
-    const url = typeof config.url === 'string' ? config.url : ''
+    const url = typeof exportConfig.url === 'string' ? exportConfig.url : ''
     if (url === '') {
         console.error('Server-side export is missing an export URL.')
 
@@ -110,11 +164,11 @@ export function runServerExport(
     }
 
     const params: Record<string, unknown> = {
-        ...ajax.params(),
+        ...protocol,
         start: 0,
         length: 0,
-        exportKey: typeof config.exportKey === 'string' ? config.exportKey : 'csv',
-        format: typeof config.format === 'string' ? config.format : 'csv',
+        exportKey: typeof exportConfig.exportKey === 'string' ? exportConfig.exportKey : 'csv',
+        format: typeof exportConfig.format === 'string' ? exportConfig.format : 'csv',
     }
 
     const form = document.createElement('form')

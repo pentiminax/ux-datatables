@@ -226,7 +226,14 @@ export default class extends Controller {
 
         await applyLocalLanguage(payload)
 
-        applyServerExportUrls(payload)
+        // When installRequestParams owns the Ajax data hook, prefer its protocol snapshot over
+        // ajax.params(): after an API Platform transport (or a JSON-string ajax.data callback)
+        // the wire snapshot is not DataTables protocol, and the PHP export endpoint would drop
+        // search/filters. Tables without that hook keep DataTables' own ajax.params().
+        applyServerExportUrls(
+            payload,
+            requestParams ? () => requestParams.current() : undefined
+        )
         applyCustomButtonActions(payload)
 
         // A concurrent connect may have built the table while this one awaited. Nothing is awaited
