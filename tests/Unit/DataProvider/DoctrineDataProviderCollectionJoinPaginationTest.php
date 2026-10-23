@@ -147,6 +147,16 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
     }
 
     #[Test]
+    public function it_pages_distinct_roots_when_a_same_class_entity_join_is_selected(): void
+    {
+        $provider = $this->sameClassJoinProvider();
+
+        $this->assertSame([1, 2], $this->ids($provider->fetchData($this->request(0, 2))->data));
+        $this->assertSame([3, 4], $this->ids($provider->fetchData($this->request(2, 2))->data));
+        $this->assertSame([5, 6], $this->ids($provider->fetchData($this->request(4, 2))->data));
+    }
+
+    #[Test]
     public function it_keeps_selected_scalars_beside_the_root_when_a_collection_is_joined(): void
     {
         $provider = new DoctrineDataProvider(
@@ -177,6 +187,26 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
             ->addSelect('t')
             ->leftJoin(CountTag::class, 't', 'WITH', 't.customer = e')
             ->orderBy('e.id', 'ASC'));
+
+        $this->assertSame(
+            [1, 2, 3, 4, 5, 6],
+            array_column(iterator_to_array($provider->iterateRows($this->request(0, 0)), false), 'id'),
+        );
+    }
+
+    #[Test]
+    public function it_exports_only_root_entities_when_a_same_class_entity_join_is_selected(): void
+    {
+        $provider = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountCustomer::class,
+            rowMapper: $this->idMapper(),
+            configureQueryBuilder: static fn (QueryBuilder $qb): QueryBuilder => $qb
+                ->addSelect('other')
+                ->leftJoin(CountCustomer::class, 'other', 'WITH', 'other.id = e.id + 1')
+                ->orderBy('e.id', 'ASC'),
+            exportChunkSize: 2,
+        );
 
         $this->assertSame(
             [1, 2, 3, 4, 5, 6],
@@ -499,6 +529,18 @@ final class DoctrineDataProviderCollectionJoinPaginationTest extends TestCase
             rowMapper: $this->idMapper(),
             configureQueryBuilder: $configureQueryBuilder,
         );
+    }
+
+    /**
+     * Each customer hydrates the next one by id (`other.id = e.id + 1`). The joined
+     * instance is the same class as the root, so instanceof filtering cannot drop it.
+     */
+    private function sameClassJoinProvider(): DoctrineDataProvider
+    {
+        return $this->provider(static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->addSelect('other')
+            ->leftJoin(CountCustomer::class, 'other', 'WITH', 'other.id = e.id + 1')
+            ->orderBy('e.id', 'ASC'));
     }
 
     private function idMapper(): RowMapperInterface
