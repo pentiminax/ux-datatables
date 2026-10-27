@@ -24,7 +24,7 @@ export function flattenFormValues(data, prefix = '', acc = []) {
     }
     return acc;
 }
-export function applyServerExportUrls(payload) {
+export function applyServerExportUrls(payload, protocolParams) {
     const url = payload.exportUrl;
     if (typeof url !== 'string' || url === '') {
         return;
@@ -33,15 +33,15 @@ export function applyServerExportUrls(payload) {
     if (typeof layout === 'object' && layout !== null && !Array.isArray(layout)) {
         const record = layout;
         for (const position of Object.keys(record)) {
-            stampExportUrl(record[position], url);
+            stampExportUrl(record[position], url, protocolParams);
         }
     }
     delete payload.exportUrl;
 }
-function stampExportUrl(value, url) {
+function stampExportUrl(value, url, protocolParams) {
     if (Array.isArray(value)) {
         for (const item of value) {
-            stampExportUrl(item, url);
+            stampExportUrl(item, url, protocolParams);
         }
         return;
     }
@@ -51,30 +51,46 @@ function stampExportUrl(value, url) {
     const record = value;
     if (record.action === SERVER_EXPORT_ACTION && typeof record.url !== 'string') {
         record.url = url;
+        if (protocolParams) {
+            record.protocolParams = protocolParams;
+        }
     }
     for (const key of ['buttons', 'postfixButtons', 'prefixButtons']) {
         if (Array.isArray(record[key])) {
-            stampExportUrl(record[key], url);
+            stampExportUrl(record[key], url, protocolParams);
         }
     }
 }
-export function runServerExport(_e, dt, _node, config) {
+export function resolveExportParams(dt, config) {
+    if (typeof config.protocolParams === 'function') {
+        return config.protocolParams();
+    }
     const ajax = dt.ajax;
-    if (typeof ajax?.params !== 'function') {
+    if (typeof ajax?.params === 'function') {
+        const wire = ajax.params();
+        return wire !== null && typeof wire === 'object' && !Array.isArray(wire) ? wire : {};
+    }
+    return {};
+}
+export function runServerExport(_e, dt, _node, config) {
+    const exportConfig = config;
+    const protocol = resolveExportParams(dt, exportConfig);
+    if (typeof exportConfig.protocolParams !== 'function' &&
+        typeof dt.ajax?.params !== 'function') {
         console.error('Server-side export requires an Ajax DataTable.');
         return;
     }
-    const url = typeof config.url === 'string' ? config.url : '';
+    const url = typeof exportConfig.url === 'string' ? exportConfig.url : '';
     if (url === '') {
         console.error('Server-side export is missing an export URL.');
         return;
     }
     const params = {
-        ...ajax.params(),
+        ...protocol,
         start: 0,
         length: 0,
-        exportKey: typeof config.exportKey === 'string' ? config.exportKey : 'csv',
-        format: typeof config.format === 'string' ? config.format : 'csv',
+        exportKey: typeof exportConfig.exportKey === 'string' ? exportConfig.exportKey : 'csv',
+        format: typeof exportConfig.format === 'string' ? exportConfig.format : 'csv',
     };
     const form = document.createElement('form');
     form.method = 'POST';

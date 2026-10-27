@@ -140,7 +140,7 @@ class default_1 extends Controller {
             });
         }
         await applyLocalLanguage(payload);
-        applyServerExportUrls(payload);
+        applyServerExportUrls(payload, requestParams ? () => requestParams.current() : undefined);
         applyCustomButtonActions(payload);
         if (this.adoptLiveTable(DataTable)) {
             return;

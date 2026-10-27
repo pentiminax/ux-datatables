@@ -3,6 +3,7 @@ import { buttonActions } from '../buttonActionRegistry.js'
 import {
     applyServerExportUrls,
     flattenFormValues,
+    resolveExportParams,
     runServerExport,
     SERVER_EXPORT_ACTION,
 } from '../serverExport.js'
@@ -76,6 +77,129 @@ describe('serverExport', () => {
         expect(buttons[0].url).toBe('/datatables/ajax/export?table=abc')
         expect(buttons[1].url).toBeUndefined()
         expect(payload.exportUrl).toBeUndefined()
+    })
+
+    it('stamps protocolParams onto server export buttons when provided', () => {
+        const protocolParams = () => ({ search: { value: 'ada' } })
+        const payload = {
+            exportUrl: '/datatables/ajax/export?table=abc',
+            layout: {
+                topStart: {
+                    buttons: [{ action: SERVER_EXPORT_ACTION, exportKey: 'csv' }],
+                },
+            },
+        }
+
+        applyServerExportUrls(payload, protocolParams)
+
+        const buttons = payload.layout.topStart.buttons as Record<string, unknown>[]
+        expect(buttons[0].protocolParams).toBe(protocolParams)
+    })
+
+    it('prefers protocolParams over ajax.params() Hydra wire format', () => {
+        const protocol = {
+            draw: 4,
+            start: 10,
+            length: 25,
+            search: { value: 'ada' },
+            filters: { status: 'draft' },
+            columns: [{ data: 'title', name: 'title', search: { value: '' } }],
+        }
+
+        expect(
+            resolveExportParams(
+                {
+                    ajax: {
+                        params: () => ({
+                            page: '1',
+                            itemsPerPage: '25',
+                            q: 'ada',
+                            status: 'draft',
+                        }),
+                    },
+                },
+                { protocolParams: () => protocol }
+            )
+        ).toEqual(protocol)
+    })
+
+    it('falls back to ajax.params() when protocolParams was not stamped', () => {
+        const wire = { draw: 2, search: { value: 'ada' } }
+
+        expect(
+            resolveExportParams(
+                {
+                    ajax: {
+                        params: () => wire,
+                    },
+                },
+                {}
+            )
+        ).toBe(wire)
+    })
+
+    it('posts protocol search and filters rather than Hydra wire keys', () => {
+        const submitted: { action: string; method: string; fields: Record<string, string> } = {
+            action: '',
+            method: '',
+            fields: {},
+        }
+
+        const originalCreate = document.createElement.bind(document)
+        vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+            const el = originalCreate(tag)
+            if (tag === 'form') {
+                el.submit = () => {
+                    submitted.action = (el as HTMLFormElement).action
+                    submitted.method = (el as HTMLFormElement).method
+                    submitted.fields = Object.fromEntries(
+                        [...el.querySelectorAll('input')].map((input) => [input.name, input.value])
+                    )
+                }
+            }
+
+            return el
+        })
+
+        runServerExport(
+            new Event('click'),
+            {
+                ajax: {
+                    params: () => ({
+                        page: '2',
+                        itemsPerPage: '25',
+                        q: 'should-not-export',
+                        status: 'should-not-export',
+                    }),
+                },
+            },
+            document.createElement('button'),
+            {
+                url: 'https://example.test/datatables/ajax/export?table=abc',
+                exportKey: 'xlsx',
+                format: 'xlsx',
+                protocolParams: () => ({
+                    draw: 3,
+                    start: 10,
+                    length: 25,
+                    search: { value: 'ada' },
+                    filters: { status: 'draft' },
+                }),
+            }
+        )
+
+        expect(submitted.method.toLowerCase()).toBe('post')
+        expect(submitted.action).toContain('/datatables/ajax/export')
+        expect(submitted.fields.draw).toBe('3')
+        expect(submitted.fields.start).toBe('0')
+        expect(submitted.fields.length).toBe('0')
+        expect(submitted.fields.exportKey).toBe('xlsx')
+        expect(submitted.fields.format).toBe('xlsx')
+        expect(submitted.fields['search[value]']).toBe('ada')
+        expect(submitted.fields['filters[status]']).toBe('draft')
+        expect(submitted.fields.q).toBeUndefined()
+        expect(submitted.fields.page).toBeUndefined()
+        expect(submitted.fields.status).toBeUndefined()
     })
 
     it('posts start 0, length 0, exportKey and format via a hidden form', () => {
