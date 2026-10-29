@@ -48,13 +48,13 @@ final class MercureUpdatePublisher implements MercurePublisherInterface, Private
             return '';
         }
 
-        $update = new Update(
-            topics: $topics,
-            data: json_encode($data),
-            private: $private,
-        );
-
         try {
+            $update = new Update(
+                topics: $topics,
+                data: json_encode($data, \JSON_THROW_ON_ERROR),
+                private: $private,
+            );
+
             return $this->hub->publish($update);
         } catch (\Throwable $exception) {
             $this->logPublishFailure($topics, $data, $exception);
