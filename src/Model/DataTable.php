@@ -31,6 +31,10 @@ use Symfony\Component\ExpressionLanguage\Expression;
 
 class DataTable
 {
+    public const int MIN_POLL_INTERVAL = 2;
+
+    public const int MAX_POLL_INTERVAL = 86400;
+
     /**
      * The slots DataTables 2 fills when `layout` does not mention them.
      */
@@ -68,8 +72,6 @@ class DataTable
     private ?array $preparedFilterLabels = null;
 
     private bool $templateColumnsRendered = false;
-
-    public const int MIN_POLL_INTERVAL = 2;
 
     private ?MercureConfig $mercureConfig = null;
 
@@ -433,7 +435,7 @@ class DataTable
      *
      * Needs a server-side or Ajax table. Use Mercure instead when updates can be pushed.
      *
-     * @param string|int $interval Seconds, or a duration such as '10s', '1m' or '1h'; at least 2 seconds
+     * @param string|int $interval Seconds, or a duration such as '10s', '1m' or '1h'; from 2 seconds to 24 hours
      *
      * @throws \InvalidArgumentException when the interval is malformed or below the minimum
      */
@@ -443,6 +445,10 @@ class DataTable
 
         if ($seconds < self::MIN_POLL_INTERVAL) {
             throw new \InvalidArgumentException(\sprintf('The polling interval must be at least %d seconds.', self::MIN_POLL_INTERVAL));
+        }
+
+        if ($seconds > self::MAX_POLL_INTERVAL) {
+            throw new \InvalidArgumentException(\sprintf('The polling interval must be at most %d seconds.', self::MAX_POLL_INTERVAL));
         }
 
         $this->options->set('pollInterval', $seconds);
@@ -1292,19 +1298,6 @@ class DataTable
      * Whether a layout position already renders the buttons container, either as the whole slot or
      * as one entry of a feature list.
      */
-    private static function parsePollInterval(string|int $interval): int
-    {
-        if (\is_int($interval)) {
-            return $interval;
-        }
-
-        if (1 !== preg_match('/^(\d+)([smh]?)$/', trim($interval), $matches)) {
-            throw new \InvalidArgumentException(\sprintf('The polling interval "%s" is invalid, use seconds or a duration such as "10s", "1m" or "1h".', $interval));
-        }
-
-        return (int) $matches[1] * ['' => 1, 's' => 1, 'm' => 60, 'h' => 3600][$matches[2]];
-    }
-
     private function slotDeclaresButtons(mixed $slot): bool
     {
         if ($this->isButtonsFeature($slot)) {
@@ -1417,5 +1410,22 @@ class DataTable
         }
 
         return $value;
+    }
+
+    private static function parsePollInterval(string|int $interval): int
+    {
+        if (\is_int($interval)) {
+            return $interval;
+        }
+
+        if (1 !== preg_match('/^(\d+)([smh]?)$/', trim($interval), $matches)) {
+            throw new \InvalidArgumentException(\sprintf('The polling interval "%s" is invalid, use seconds or a duration such as "10s", "1m" or "1h".', $interval));
+        }
+
+        if (\strlen($matches[1]) > 9) {
+            throw new \InvalidArgumentException(\sprintf('The polling interval must be at most %d seconds.', self::MAX_POLL_INTERVAL));
+        }
+
+        return (int) $matches[1] * ['' => 1, 's' => 1, 'm' => 60, 'h' => 3600][$matches[2]];
     }
 }

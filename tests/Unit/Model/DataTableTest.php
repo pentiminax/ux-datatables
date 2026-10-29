@@ -926,6 +926,7 @@ final class DataTableTest extends TestCase
         yield 'minutes' => ['1m', 60];
         yield 'hours' => ['1h', 3600];
         yield 'minimum' => ['2s', 2];
+        yield 'maximum' => ['24h', 86400];
     }
 
     #[Test]
@@ -951,6 +952,9 @@ final class DataTableTest extends TestCase
         yield 'below minimum' => ['1s', 'The polling interval must be at least 2 seconds.'];
         yield 'zero' => [0, 'The polling interval must be at least 2 seconds.'];
         yield 'negative int' => [-5, 'The polling interval must be at least 2 seconds.'];
+        yield 'above maximum' => ['25h', 'The polling interval must be at most 86400 seconds.'];
+        yield 'above maximum int' => [86401, 'The polling interval must be at most 86400 seconds.'];
+        yield 'float overflow' => ['99999999999999999999h', 'The polling interval must be at most 86400 seconds.'];
         yield 'unknown unit' => ['5d', 'The polling interval "5d" is invalid, use seconds or a duration such as "10s", "1m" or "1h".'];
         yield 'empty' => ['', 'The polling interval "" is invalid, use seconds or a duration such as "10s", "1m" or "1h".'];
     }

@@ -94,7 +94,7 @@ final class RenderingPreparerTest extends TestCase
         $table = (new DataTable('Test'))->poll('10s');
 
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('Polling requires a server-side or Ajax table, but "Test" embeds its rows.');
+        $this->expectExceptionMessage('Polling requires an Ajax source, but "Test" has no ajax option once prepared.');
 
         (new RenderingPreparer())->prepare($table, null);
     }

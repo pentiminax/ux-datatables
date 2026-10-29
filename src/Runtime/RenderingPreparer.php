@@ -119,7 +119,7 @@ final class RenderingPreparer
             return;
         }
 
-        throw new \LogicException(\sprintf('Polling requires a server-side or Ajax table, but "%s" embeds its rows.', $table->getId()));
+        throw new \LogicException(\sprintf('Polling requires an Ajax source, but "%s" has no ajax option once prepared.', $table->getId()));
     }
 
     /**
