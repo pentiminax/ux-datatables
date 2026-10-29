@@ -26,10 +26,10 @@ import { installFilterBar } from './functions/filters.js';
 import { isHighlightEnabled } from './functions/highlightUpdates.js';
 import { isDataTableClone } from './functions/isDataTableClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
-import { applyLocalLanguage } from './functions/localLanguage.js';
 import { hasLucideIcons, hasLucideIconsInActions, loadLucideIcons, } from './functions/lucideIcons.js';
 import { installRequestParams } from './functions/requestParams.js';
 import { runRowAction } from './functions/rowActionFeedback.js';
+import { applyTableLanguage, bindRowFeatures } from './functions/rowFeatures.js';
 import { runAjaxAction } from './functions/runAjaxAction.js';
 import { applyServerExportUrls } from './functions/serverExport.js';
 import { shiftOrderForSelectColumn } from './functions/shiftOrderForSelectColumn.js';
@@ -122,7 +122,8 @@ class default_1 extends Controller {
         }
         this.configureColumns(payload);
         if (hasLucideIcons(payload.columns) ||
-            hasLucideIconsInActions(payload.bulkActions?.actions)) {
+            hasLucideIconsInActions(payload.bulkActions?.actions) ||
+            typeof payload.emptyState?.icon === 'string') {
             await loadLucideIcons();
         }
         const urlStateCfg = isUrlStateEnabled(payload);
@@ -140,7 +141,7 @@ class default_1 extends Controller {
                     : undefined,
             });
         }
-        await applyLocalLanguage(payload);
+        await applyTableLanguage(payload);
         applyServerExportUrls(payload, requestParams ? () => requestParams.current() : undefined);
         applyCustomButtonActions(payload);
         if (this.adoptLiveTable(DataTable)) {
@@ -159,6 +160,7 @@ class default_1 extends Controller {
         bindImagePlaceholder(this.element);
         this.bindActionHandler(payload);
         this.bindBooleanToggleHandler(payload);
+        bindRowFeatures(payload, this.element, () => this.table, filterBar);
         this.isDataTableInitialized = true;
         await this.startMercure(payload);
     }

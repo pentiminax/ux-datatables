@@ -33,6 +33,12 @@ Everything below keeps working and is removed in v2.0.
 - Placing `Feature::SEARCH_BUILDER` in a layout without the SearchBuilder extension: call
   `searchBuilder()` or `addExtension(new SearchBuilderExtension())`. It throws in 2.0.
 
+### New: empty state, row class and clickable rows
+
+`DataTable::emptyState()`, `rowClass()` and `recordUrl()` are additive; tables that do not call them
+render exactly as before. Run `composer update` and rebuild your assets. See
+[Empty State and Row Presentation](docs/src/content/docs/features/row-presentation.mdx).
+
 ## v1.1 → v1.2
 
 ### Behavior changes
