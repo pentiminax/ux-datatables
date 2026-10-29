@@ -11,11 +11,20 @@ function inputClass(framework) {
 function selectClass(framework) {
     return isBootstrap(framework) ? 'form-select' : 'dt-filter-input';
 }
+function optionEntries(options) {
+    if (Array.isArray(options)) {
+        return options.filter((pair) => Array.isArray(pair) && typeof pair[0] === 'string' && typeof pair[1] === 'string');
+    }
+    return Object.entries(options ?? {});
+}
 export function hasFilters(payload) {
     return Array.isArray(payload?.filters) && payload.filters.length > 0;
 }
 const RANGE_KEYS = ['from', 'to', 'min', 'max'];
 const DECIMAL_NUMBER = /^[+-]?(\d+(\.\d*)?|\.\d+)$/;
+function plainDecimal(value) {
+    return DECIMAL_NUMBER.test(value.trim()) ? value.trim() : '';
+}
 function isFilledString(value) {
     return typeof value === 'string' && value.trim() !== '';
 }
@@ -129,7 +138,7 @@ export class FilterBar {
     validateValueForDefinition(definition, value) {
         switch (definition.type) {
             case 'select': {
-                const validKeys = new Set(Object.keys(definition.options ?? {}));
+                const validKeys = new Set(optionEntries(definition.options).map(([key]) => key));
                 if (definition.multiple === true) {
                     if (Array.isArray(value)) {
                         const filtered = value.filter((v) => validKeys.has(v));
@@ -305,7 +314,7 @@ export class FilterBar {
             empty.textContent = definition.placeholder ?? this.labels.all ?? 'All';
             select.appendChild(empty);
         }
-        for (const [value, optLabel] of Object.entries(definition.options ?? {})) {
+        for (const [value, optLabel] of optionEntries(definition.options)) {
             const option = document.createElement('option');
             option.value = value;
             option.textContent = optLabel;
@@ -419,7 +428,7 @@ export class FilterBar {
         wrapper.appendChild(group);
         return {
             definition,
-            getValue: () => ({ min: min.value, max: max.value }),
+            getValue: () => ({ min: plainDecimal(min.value), max: plainDecimal(max.value) }),
             setValue: (value) => {
                 const range = isRecord(value) && !Array.isArray(value) ? value : {};
                 min.value = typeof range.min === 'string' ? range.min : '';
