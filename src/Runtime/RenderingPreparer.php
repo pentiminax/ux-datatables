@@ -9,9 +9,11 @@ use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
@@ -71,6 +73,7 @@ final class RenderingPreparer
         private readonly ?RequestStack $requestStack = null,
         private readonly ?SearchListOptionsResolver $searchListOptionsResolver = null,
         private readonly ?FilterEntityOptionsResolver $filterEntityOptionsResolver = null,
+        private readonly ?ColumnResolver $columnResolver = null,
     ) {
     }
 
@@ -107,14 +110,16 @@ final class RenderingPreparer
 
     private function assertNoSummaries(DataTable $table): void
     {
-        foreach ($this->summarizedColumns($table) as $column) {
+        foreach ($this->summarizedColumns($table->getColumns()) as $column) {
             throw new \LogicException(\sprintf('The column "%s" declares a summary, but API Platform tables cannot aggregate every matching row. Remove summarize() or read the table through Doctrine.', $column->getName()));
         }
     }
 
     private function configureSummaryLabels(DataTable $table): void
     {
-        if (null === $this->translator || [] === $this->summarizedColumns($table)) {
+        $columns = $this->columnResolver?->filterStaticPermissions($table->getColumns(), $table->getDataTableClass()) ?? $table->getColumns();
+
+        if (null === $this->translator || [] === $this->summarizedColumns($columns)) {
             return;
         }
 
@@ -127,12 +132,14 @@ final class RenderingPreparer
     }
 
     /**
+     * @param ColumnInterface[] $columns
+     *
      * @return list<AbstractColumn>
      */
-    private function summarizedColumns(DataTable $table): array
+    private function summarizedColumns(array $columns): array
     {
         return array_values(array_filter(
-            $table->getColumns(),
+            $columns,
             static fn (mixed $column): bool => $column instanceof AbstractColumn && [] !== $column->getSummarizers(),
         ));
     }
