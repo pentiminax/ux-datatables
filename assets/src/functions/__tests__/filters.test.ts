@@ -132,6 +132,85 @@ describe('FilterBar', () => {
         expect(bar.collectValues()).toEqual({ createdAt: { from: '2024-01-01' } })
     })
 
+    it('renders a number range as two number inputs with translated placeholders', () => {
+        const { bar } = makeBar([
+            {
+                name: 'price',
+                type: 'numberRange',
+                label: 'Price',
+                minPlaceholder: 'Au moins',
+                maxPlaceholder: 'Au plus',
+            },
+        ])
+        const wrapper = bar.render(vi.fn())
+        const inputs = wrapper.querySelectorAll<HTMLInputElement>(
+            '.dt-filter-range input[type="number"]'
+        )
+
+        expect(inputs).toHaveLength(2)
+        expect(inputs[0].name).toBe('filters[price][min]')
+        expect(inputs[1].name).toBe('filters[price][max]')
+        expect(inputs[0].placeholder).toBe('Au moins')
+        expect(inputs[1].placeholder).toBe('Au plus')
+        expect(inputs[0].getAttribute('aria-label')).toBe('Price (Au moins)')
+    })
+
+    it('falls back to English Min and Max placeholders', () => {
+        const { bar } = makeBar([{ name: 'price', type: 'numberRange' }])
+        const inputs = bar
+            .render(vi.fn())
+            .querySelectorAll<HTMLInputElement>('.dt-filter-range input')
+
+        expect([inputs[0].placeholder, inputs[1].placeholder]).toEqual(['Min', 'Max'])
+    })
+
+    it('applies a number range with only the provided bounds, keeping zero', () => {
+        const { bar } = makeBar([{ name: 'price', type: 'numberRange' }])
+        const wrapper = bar.render(vi.fn())
+        const inputs = wrapper.querySelectorAll<HTMLInputElement>('input[type="number"]')
+
+        inputs[0].value = '0'
+        clickApply(wrapper)
+        expect(bar.collectValues()).toEqual({ price: { min: '0' } })
+
+        inputs[0].value = ''
+        inputs[1].value = '12.5'
+        clickApply(wrapper)
+        expect(bar.collectValues()).toEqual({ price: { max: '12.5' } })
+
+        inputs[1].value = ''
+        clickApply(wrapper)
+        expect(bar.collectValues()).toEqual({})
+    })
+
+    it('restores a saved number range and drops non-numeric bounds', () => {
+        const { bar } = makeBar([{ name: 'price', type: 'numberRange' }])
+        const wrapper = bar.render(vi.fn())
+
+        bar.restoreValues({ price: { min: '5', max: '1e9; DROP' } })
+
+        expect(bar.collectValues()).toEqual({ price: { min: '5' } })
+        const inputs = wrapper.querySelectorAll<HTMLInputElement>('input[type="number"]')
+        expect([inputs[0].value, inputs[1].value]).toEqual(['5', ''])
+
+        bar.restoreValues({ price: { min: 'abc', from: '2024-01-01' } })
+        expect(bar.collectValues()).toEqual({})
+        expect(inputs[0].value).toBe('')
+    })
+
+    it('resets a number range', () => {
+        const { bar } = makeBar([{ name: 'price', type: 'numberRange' }])
+        const wrapper = bar.render(vi.fn())
+        const inputs = wrapper.querySelectorAll<HTMLInputElement>('input[type="number"]')
+        inputs[0].value = '3'
+        clickApply(wrapper)
+
+        clickReset(wrapper)
+
+        expect(inputs[0].value).toBe('')
+        expect(bar.collectValues()).toEqual({})
+    })
+
     it('clears controls and applied values on reset', () => {
         const reload = vi.fn()
         const { bar } = makeBar([{ name: 'status', type: 'select', options: { a: 'A' } }])

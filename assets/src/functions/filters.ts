@@ -3,7 +3,7 @@ import { applyFeatureLayout } from './featureLayout.js'
 import { isRecord } from './htmlUtils.js'
 import { createPopover, type Popover } from './popover.js'
 
-export type FilterType = 'text' | 'select' | 'ternary' | 'dateRange' | 'checkbox'
+export type FilterType = 'text' | 'select' | 'ternary' | 'dateRange' | 'numberRange' | 'checkbox'
 
 export interface FilterDefinition {
     name: string
@@ -14,9 +14,13 @@ export interface FilterDefinition {
     multiple?: boolean
     trueLabel?: string
     falseLabel?: string
+    minPlaceholder?: string
+    maxPlaceholder?: string
 }
 
-export type FilterValue = string | string[] | { from?: string; to?: string }
+export type RangeValue = { from?: string; to?: string; min?: string; max?: string }
+
+export type FilterValue = string | string[] | RangeValue
 
 /**
  * Optional overrides for the filter bar chrome strings. Sourced from the PHP
@@ -55,6 +59,10 @@ export function hasFilters(payload: Record<string, any>): boolean {
     return Array.isArray(payload?.filters) && payload.filters.length > 0
 }
 
+const RANGE_KEYS = ['from', 'to', 'min', 'max'] as const
+
+const DECIMAL_NUMBER = /^[+-]?(\d+(\.\d*)?|\.\d+)$/
+
 function isFilledString(value: unknown): value is string {
     return typeof value === 'string' && value.trim() !== ''
 }
@@ -73,14 +81,12 @@ function normalizeValue(value: unknown): FilterValue | null {
     }
     if (!isRecord(value)) return null
 
-    const from = isFilledString(value.from) ? value.from : undefined
-    const to = isFilledString(value.to) ? value.to : undefined
-    if (from === undefined && to === undefined) return null
-
-    const range: { from?: string; to?: string } = {}
-    if (from !== undefined) range.from = from
-    if (to !== undefined) range.to = to
-    return range
+    const range: RangeValue = {}
+    for (const key of RANGE_KEYS) {
+        const bound = value[key]
+        if (isFilledString(bound)) range[key] = bound
+    }
+    return Object.keys(range).length === 0 ? null : range
 }
 
 const FUNNEL_ICON =
@@ -242,6 +248,18 @@ export class FilterBar {
             }
             case 'dateRange':
                 return isRecord(value) ? value : null
+            case 'numberRange': {
+                if (!isRecord(value) || Array.isArray(value)) return null
+                const record: RangeValue = value
+                const range: RangeValue = {}
+                for (const key of ['min', 'max'] as const) {
+                    const bound = record[key]
+                    if (typeof bound === 'string' && DECIMAL_NUMBER.test(bound.trim())) {
+                        range[key] = bound.trim()
+                    }
+                }
+                return Object.keys(range).length === 0 ? null : range
+            }
             default:
                 return typeof value === 'string' ? value : null
         }
@@ -368,6 +386,8 @@ export class FilterBar {
                 return this.buildTernary(definition, wrapper)
             case 'dateRange':
                 return this.buildDateRange(definition, wrapper)
+            case 'numberRange':
+                return this.buildNumberRange(definition, wrapper)
             default:
                 return this.buildText(definition, wrapper)
         }
@@ -505,6 +525,44 @@ export class FilterBar {
             reset: () => {
                 from.value = ''
                 to.value = ''
+            },
+        }
+    }
+
+    private buildNumberRange(definition: FilterDefinition, wrapper: HTMLElement): FilterControl {
+        const group = document.createElement('div')
+        group.className = isBootstrap(this.framework)
+            ? 'dt-filter-range d-flex gap-1'
+            : 'dt-filter-range'
+
+        const label = definition.label ?? definition.name
+        const buildInput = (bound: 'min' | 'max', fallback: string, placeholder?: string) => {
+            const input = document.createElement('input')
+            input.type = 'number'
+            input.step = 'any'
+            input.className = inputClass(this.framework)
+            input.name = `filters[${definition.name}][${bound}]`
+            input.placeholder = placeholder ?? fallback
+            input.setAttribute('aria-label', `${label} (${input.placeholder})`)
+            group.appendChild(input)
+            return input
+        }
+
+        const min = buildInput('min', 'Min', definition.minPlaceholder)
+        const max = buildInput('max', 'Max', definition.maxPlaceholder)
+        wrapper.appendChild(group)
+
+        return {
+            definition,
+            getValue: () => ({ min: min.value, max: max.value }),
+            setValue: (value: FilterValue | null) => {
+                const range: RangeValue = isRecord(value) && !Array.isArray(value) ? value : {}
+                min.value = typeof range.min === 'string' ? range.min : ''
+                max.value = typeof range.max === 'string' ? range.max : ''
+            },
+            reset: () => {
+                min.value = ''
+                max.value = ''
             },
         }
     }
