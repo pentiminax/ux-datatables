@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
@@ -31,6 +32,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\Model\Filters;
+use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
@@ -192,6 +194,20 @@ final class RenderingPreparerTest extends TestCase
 
         $this->assertSame(['type' => 'GET', 'url' => '/api/products'], $table->getOption('ajax'));
         $this->assertTrue($table->getOption('apiPlatform'));
+    }
+
+    #[Test]
+    public function it_rejects_summaries_on_an_api_platform_table(): void
+    {
+        $urlResolver = $this->createStub(ApiResourceCollectionUrlResolver::class);
+        $urlResolver->method('resolveCollectionUrl')->willReturn('/api/products');
+
+        $table = (new DataTable('Test'))->columns([NumberColumn::new('price')->summarize(new Sum())]);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('The column "price" declares a summary, but API Platform tables cannot aggregate');
+
+        (new RenderingPreparer(urlResolver: $urlResolver))->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
     }
 
     public static function provideApiPlatformOptIns(): iterable
@@ -653,6 +669,34 @@ final class RenderingPreparerTest extends TestCase
             'cancel'    => 'tr:action.row.cancel',
         ], $withActions->getOptions()['actionLabels']);
         $this->assertArrayNotHasKey('actionLabels', $withoutActions->getOptions());
+    }
+
+    #[Test]
+    public function it_translates_the_summary_labels_only_for_a_table_with_summaries(): void
+    {
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnCallback(static fn (string $id): string => 'tr:'.$id);
+
+        $preparer = new RenderingPreparer(translator: $translator);
+
+        $summarized = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->add(NumberColumn::new('price')->summarize(new Sum()));
+        $plain = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->add(TextColumn::new('name'));
+
+        $preparer->prepare($summarized, null);
+        $preparer->prepare($plain, null);
+
+        $this->assertSame([
+            'sum'   => 'tr:summary.sum',
+            'avg'   => 'tr:summary.avg',
+            'min'   => 'tr:summary.min',
+            'max'   => 'tr:summary.max',
+            'count' => 'tr:summary.count',
+        ], $summarized->getOptions()['summaryLabels']);
+        $this->assertArrayNotHasKey('summaryLabels', $plain->getOptions());
     }
 
     #[Test]

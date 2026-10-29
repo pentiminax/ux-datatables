@@ -64,6 +64,9 @@ class DataTable
     /** @var array<string, string>|null */
     private ?array $preparedActionLabels = null;
 
+    /** @var array<string, string>|null */
+    private ?array $preparedSummaryLabels = null;
+
     private ?string $bulkActionsUrl = null;
 
     private ?string $bulkRowIdField = null;
@@ -166,6 +169,10 @@ class DataTable
 
         if (null !== $this->preparedActionLabels) {
             $options['actionLabels'] = $this->preparedActionLabels;
+        }
+
+        if (null !== $this->preparedSummaryLabels) {
+            $options['summaryLabels'] = $this->preparedSummaryLabels;
         }
 
         unset($options['showHeaderResetButton']);
@@ -947,6 +954,18 @@ class DataTable
     public function setPreparedActionLabels(array $labels): static
     {
         $this->preparedActionLabels = $labels;
+
+        return $this;
+    }
+
+    /**
+     * @param array<string, string> $labels default footer label by summary type
+     *
+     * @internal
+     */
+    public function setPreparedSummaryLabels(array $labels): static
+    {
+        $this->preparedSummaryLabels = $labels;
 
         return $this;
     }

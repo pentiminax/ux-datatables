@@ -7,10 +7,13 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
@@ -18,6 +21,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
+use Pentiminax\UX\DataTables\Model\Summary\SummaryType;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -80,6 +84,7 @@ final class RenderingPreparer
         private readonly ?RequestStack $requestStack = null,
         private readonly ?SearchListOptionsResolver $searchListOptionsResolver = null,
         private readonly ?FilterEntityOptionsResolver $filterEntityOptionsResolver = null,
+        private readonly ?ColumnResolver $columnResolver = null,
     ) {
     }
 
@@ -94,6 +99,7 @@ final class RenderingPreparer
         $mode = $this->resolveDataSourceMode($table, $asDataTable);
 
         if (DataSourceMode::ApiPlatform === $mode) {
+            $this->assertNoSummaries($table);
             $this->configureApiPlatform($table, $asDataTable);
         }
 
@@ -104,6 +110,7 @@ final class RenderingPreparer
         $this->configureExportUrl($table);
         $this->configureBulkActions($table);
         $this->configureActionLabels($table);
+        $this->configureSummaryLabels($table);
         $this->configureEmptyStateLabels($table);
         $this->configureForwardedQueryParameters($table);
         $this->configureEditModal($table, $asDataTable);
@@ -111,6 +118,42 @@ final class RenderingPreparer
         $this->resolveFilterEntityOptions($table);
         $this->translateFilterLabels($table);
         ($this->searchListOptionsResolver ?? new SearchListOptionsResolver($this->translator))->prepare($table);
+    }
+
+    private function assertNoSummaries(DataTable $table): void
+    {
+        foreach ($this->summarizedColumns($table->getColumns()) as $column) {
+            throw new \LogicException(\sprintf('The column "%s" declares a summary, but API Platform tables cannot aggregate every matching row. Remove summarize() or read the table through Doctrine.', $column->getName()));
+        }
+    }
+
+    private function configureSummaryLabels(DataTable $table): void
+    {
+        $columns = $this->columnResolver?->filterStaticPermissions($table->getColumns(), $table->getDataTableClass()) ?? $table->getColumns();
+
+        if (null === $this->translator || [] === $this->summarizedColumns($columns)) {
+            return;
+        }
+
+        $labels = [];
+        foreach (SummaryType::cases() as $type) {
+            $labels[$type->value] = $this->translator->trans('summary.'.$type->value, domain: FilterLabels::DOMAIN);
+        }
+
+        $table->setPreparedSummaryLabels($labels);
+    }
+
+    /**
+     * @param ColumnInterface[] $columns
+     *
+     * @return list<AbstractColumn>
+     */
+    private function summarizedColumns(array $columns): array
+    {
+        return array_values(array_filter(
+            $columns,
+            static fn (mixed $column): bool => $column instanceof AbstractColumn && [] !== $column->getSummarizers(),
+        ));
     }
 
     private function resolveFilterEntityOptions(DataTable $table): void

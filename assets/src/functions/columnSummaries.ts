@@ -1,0 +1,184 @@
+export type SummaryType = 'sum' | 'avg' | 'min' | 'max' | 'count'
+
+interface SummaryDefinition {
+    type: SummaryType
+    label?: string
+}
+
+interface SummaryColumn {
+    name?: string
+    summaries?: SummaryDefinition[]
+    customOptions?: { isMoney?: boolean }
+    render?: (data: unknown, type: string) => unknown
+}
+
+const DEFAULT_LABELS: Record<SummaryType, string> = {
+    sum: 'Total',
+    avg: 'Average',
+    min: 'Minimum',
+    max: 'Maximum',
+    count: 'Count',
+}
+
+export function hasSummaries(payload: Record<string, any>): boolean {
+    return (
+        Array.isArray(payload?.columns) &&
+        payload.columns.some((column: SummaryColumn) => (column?.summaries?.length ?? 0) > 0)
+    )
+}
+
+/** Mirrors SummaryType::aggregate() in PHP: null is ignored, Count counts every non-null value. */
+export function aggregate(type: SummaryType, values: unknown[]): number | null {
+    const present = values.filter((value) => value !== null && value !== undefined)
+
+    if (type === 'count') {
+        return present.length
+    }
+
+    const numbers = present
+        .filter(
+            (value) =>
+                typeof value === 'number' || (typeof value === 'string' && value.trim() !== '')
+        )
+        .map(Number)
+        .filter(Number.isFinite)
+
+    if (numbers.length === 0) {
+        return null
+    }
+
+    const sum = numbers.reduce((total, n) => total + n, 0)
+
+    switch (type) {
+        case 'sum':
+            return sum
+        case 'avg':
+            return sum / numbers.length
+        case 'min':
+            return Math.min(...numbers)
+        default:
+            return Math.max(...numbers)
+    }
+}
+
+function format(column: SummaryColumn, type: SummaryType, value: number | string | null): string {
+    if (value === null || value === undefined) {
+        return ''
+    }
+
+    if (column.customOptions?.isMoney && type !== 'count' && typeof column.render === 'function') {
+        return String(column.render(value, 'display'))
+    }
+
+    return typeof value === 'number'
+        ? new Intl.NumberFormat(navigator.language).format(value)
+        : value
+}
+
+function fill(
+    cell: Element | null,
+    column: SummaryColumn,
+    values: Partial<Record<SummaryType, number | string | null>>,
+    labels: Record<string, string>
+): void {
+    if (!cell) {
+        return
+    }
+
+    cell.replaceChildren()
+
+    for (const { type, label } of column.summaries ?? []) {
+        const line = document.createElement('div')
+        line.className = 'dt-summary'
+
+        const name = document.createElement('span')
+        name.className = 'dt-summary__label'
+        name.textContent = label ?? labels[type] ?? DEFAULT_LABELS[type]
+
+        const value = document.createElement('span')
+        value.className = 'dt-summary__value'
+        value.textContent = format(column, type, values[type] ?? null)
+
+        line.append(name, ' ', value)
+        cell.append(line)
+    }
+}
+
+/** Must run before DataTables initializes: it only registers a footer present at that moment. */
+export function ensureSummaryFooter(tableElement: HTMLElement, payload: Record<string, any>): void {
+    const columnCount: number = payload.columns.length
+    const existing = tableElement.querySelector('tfoot')
+
+    if (existing) {
+        const cells = existing.querySelectorAll('tr:first-child > *').length
+        if (cells !== columnCount) {
+            console.warn(
+                `Column summaries need one footer cell per column (${columnCount}), but the existing <tfoot> has ${cells}; summaries are not shown.`
+            )
+        }
+
+        return
+    }
+
+    const row = document.createElement('tr')
+    for (let index = 0; index < columnCount; index++) {
+        const cell = document.createElement('th')
+        cell.scope = 'col'
+        row.append(cell)
+    }
+
+    const footer = document.createElement('tfoot')
+    footer.append(row)
+    tableElement.append(footer)
+}
+
+/**
+ * Renders summary totals in the table footer: from `json.summaries` on server-side tables (every
+ * matching row, computed by the server), from the searched rows on client-side ones.
+ */
+export function installColumnSummaries(table: any, payload: Record<string, any>): void {
+    const columns: SummaryColumn[] = payload.columns
+    const labels: Record<string, string> = payload.summaryLabels ?? {}
+
+    columns.forEach((column, index) => {
+        if (column.summaries?.length) {
+            fill(table.column(index).footer(), column, {}, labels)
+        }
+    })
+
+    if (payload.serverSide) {
+        table.on('xhr.dt', (_event: unknown, _settings: unknown, json: any) => {
+            columns.forEach((column, index) => {
+                if (column.summaries?.length) {
+                    fill(
+                        table.column(index).footer(),
+                        column,
+                        json?.summaries?.[column.name ?? ''] ?? {},
+                        labels
+                    )
+                }
+            })
+        })
+
+        return
+    }
+
+    const update = (): void => {
+        columns.forEach((column, index) => {
+            if (!column.summaries?.length) {
+                return
+            }
+
+            const rows: unknown[] = table.column(index, { search: 'applied' }).data().toArray()
+            const values: Partial<Record<SummaryType, number | string | null>> = {}
+            for (const { type } of column.summaries) {
+                values[type] = aggregate(type, rows)
+            }
+
+            fill(table.column(index).footer(), column, values, labels)
+        })
+    }
+
+    table.on('draw.dt', update)
+    update()
+}

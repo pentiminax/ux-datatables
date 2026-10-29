@@ -172,7 +172,7 @@ final class DataTableRuntimeFactory
             pageProjector: $pageProjector,
             configureBaseQueryBuilder: $configureBaseQueryBuilder,
             apiPlatform: $apiPlatform,
-            columns: $columns,
+            columns: array_values($this->columnResolver()->filterStaticPermissions($columns, $dataTableClass)),
             dataTableClass: $dataTableClass,
         );
     }

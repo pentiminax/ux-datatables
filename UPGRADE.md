@@ -42,6 +42,13 @@ JavaScript before the controller connects. Intervals outside 2 seconds to 24 hou
 - `FilterTypeMapper::mapType()` ignores its second argument, the filter name. It is deprecated since
   1.3 and removed in 2.0.
 
+### New: column summaries
+
+- Column summaries are additive: a table without `summarize()` is unchanged. A table that uses
+  `summarize()` cannot be read through API Platform (rendering throws a `LogicException`), and a
+  custom `DataProviderInterface` supplies figures through the new optional `summaries` argument of
+  `DataTableResult`. See [Column Summaries](docs/src/content/docs/features/column-summaries.mdx).
+
 ### New: empty state, row class and clickable rows
 
 `DataTable::emptyState()`, `rowClass()` and `recordUrl()` are additive; tables that do not call them
