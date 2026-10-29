@@ -18,6 +18,14 @@
                 <source>filter.bar.all</source>
                 <target>All</target>
             </trans-unit>
+            <trans-unit id="filter.number.min">
+                <source>filter.number.min</source>
+                <target>Min</target>
+            </trans-unit>
+            <trans-unit id="filter.number.max">
+                <source>filter.number.max</source>
+                <target>Max</target>
+            </trans-unit>
             <trans-unit id="bulk.bar.trigger">
                 <source>bulk.bar.trigger</source>
                 <target>Bulk actions</target>

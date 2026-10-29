@@ -112,7 +112,7 @@ final class AttributeFilterReader
             throw new \InvalidArgumentException(\sprintf('A "%s" attribute declared on a class must carry a name, since no member gives it one.', DataTableFilter::class));
         }
 
-        $filterClass = $attribute->type ?? $this->filterTypeMapper->mapType($target->type, $name);
+        $filterClass = $attribute->type ?? $this->filterTypeMapper->mapType($target->type);
 
         $this->assertBuildable($filterClass, $name);
 
