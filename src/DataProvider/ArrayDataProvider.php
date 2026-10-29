@@ -76,6 +76,10 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
             throw new BadRequestHttpException('ColumnControl searches are not supported by ArrayDataProvider. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.');
         }
 
+        if (null !== $intent->searchBuilder) {
+            throw new BadRequestHttpException('SearchBuilder criteria are not supported by ArrayDataProvider. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.');
+        }
+
         if ($this->hasActiveFilters($request)) {
             throw new \LogicException('ArrayDataProvider does not support configured Filters. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.');
         }

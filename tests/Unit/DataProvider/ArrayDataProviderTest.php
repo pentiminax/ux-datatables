@@ -389,6 +389,23 @@ final class ArrayDataProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_a_request_that_carries_search_builder_criteria(): void
+    {
+        $request = new DataTableRequest(
+            draw: 1,
+            columns: new Columns([]),
+            start: 0,
+            length: 10,
+            searchBuilder: ['logic' => 'AND', 'criteria' => [['column' => 'name', 'condition' => '=', 'type' => 'string', 'values' => ['Alice']]]],
+        );
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('SearchBuilder criteria are not supported by ArrayDataProvider.');
+
+        (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData($request);
+    }
+
+    #[Test]
     public function it_throws_when_the_request_carries_configured_filters(): void
     {
         $request = self::request(start: 0, length: 10, filters: ['status' => 'active']);
