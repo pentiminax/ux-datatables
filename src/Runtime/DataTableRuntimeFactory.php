@@ -132,7 +132,7 @@ final class DataTableRuntimeFactory
                 // RenderingPreparer, which never runs on an Ajax request, so reading the option
                 // alone sent every attribute-declared table down the Doctrine path.
                 apiPlatform: true === $table->getOption('apiPlatform') || true === $asDataTable?->apiPlatform,
-                columns: array_values($this->columnResolver()->filterStaticPermissions($columns, $table->getDataTableClass())),
+                columns: array_values($columns),
                 dataTableClass: $table->getDataTableClass(),
             ),
             maxPageLength: $this->maxPageLength,
@@ -163,7 +163,7 @@ final class DataTableRuntimeFactory
             pageProjector: $pageProjector,
             configureBaseQueryBuilder: $configureBaseQueryBuilder,
             apiPlatform: $apiPlatform,
-            columns: $columns,
+            columns: array_values($this->columnResolver()->filterStaticPermissions($columns, $dataTableClass)),
             dataTableClass: $dataTableClass,
         );
     }
