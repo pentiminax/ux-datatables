@@ -152,7 +152,7 @@ export default class extends Controller {
                 this.dispatchEvent('reconnect', { table: this.table })
                 this.bindPopstate(isUrlStateEnabled(this.viewValue))
                 // disconnect() closed the EventSource.
-                await this.initMercure(this.viewValue)
+                await this.startMercure(this.viewValue)
             }
 
             return
@@ -257,11 +257,12 @@ export default class extends Controller {
             this.bindPopstate(urlStateCfg)
         }
 
-        await this.initMercure(payload)
         this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
 
         this.isDataTableInitialized = true
+
+        await this.startMercure(payload)
     }
 
     disconnect() {
@@ -480,6 +481,14 @@ export default class extends Controller {
                 ...column,
                 data: resolveColumnDataKey(column),
             }))
+        }
+    }
+
+    private async startMercure(payload: Record<string, any>): Promise<void> {
+        try {
+            await this.initMercure(payload)
+        } catch (error) {
+            console.error('UX DataTables: unable to start the Mercure subscription.', error)
         }
     }
 
