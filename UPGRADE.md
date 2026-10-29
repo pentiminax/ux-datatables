@@ -49,6 +49,13 @@ JavaScript before the controller connects. Intervals outside 2 seconds to 24 hou
   custom `DataProviderInterface` supplies figures through the new optional `summaries` argument of
   `DataTableResult`. See [Column Summaries](docs/src/content/docs/features/column-summaries.mdx).
 
+### Deprecated APIs
+
+Everything below keeps working and is removed in v2.0.
+
+- Placing `Feature::SEARCH_BUILDER` in a layout without the SearchBuilder extension: call
+  `searchBuilder()` or `addExtension(new SearchBuilderExtension())`. It throws in 2.0.
+
 ### New: empty state, row class and clickable rows
 
 `DataTable::emptyState()`, `rowClass()` and `recordUrl()` are additive; tables that do not call them

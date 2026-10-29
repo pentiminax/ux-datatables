@@ -69,7 +69,7 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
             return;
         }
 
-        [$bindValue, $bindType] = $this->resolveBindValue($qb, $fieldPath, $search->value);
+        [$bindValue, $bindType] = self::resolveBindValue($qb, $fieldPath, $search->value);
 
         if (null === $bindValue) {
             return;
@@ -114,9 +114,11 @@ final class ComparisonSearchStrategy implements SearchStrategyInterface
      * columns is already skipped above; this normalizes UUID, date, numeric, and boolean
      * values so a garbage term is a no-match instead of a driver error or a coerced 0.
      *
+     * @internal
+     *
      * @return array{0: string|\DateTimeImmutable|bool|null, 1: ?string}
      */
-    private function resolveBindValue(QueryBuilder $qb, string $fieldPath, string $rawValue): array
+    public static function resolveBindValue(QueryBuilder $qb, string $fieldPath, string $rawValue): array
     {
         $uuidType = RelationFieldResolver::resolveUuidFieldType($qb, $fieldPath);
         if (null !== $uuidType) {

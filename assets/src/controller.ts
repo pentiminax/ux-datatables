@@ -79,6 +79,7 @@ const EXTENSION_MAP: Record<string, string> = {
     keys: 'keyTable',
     rowGroup: 'rowGroup',
     scroller: 'scroller',
+    searchBuilder: 'searchBuilder',
 }
 
 /**

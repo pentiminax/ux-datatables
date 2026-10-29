@@ -51,6 +51,7 @@ const EXTENSION_MAP = {
     keys: 'keyTable',
     rowGroup: 'rowGroup',
     scroller: 'scroller',
+    searchBuilder: 'searchBuilder',
 };
 const GENERATED_MARKUP_SELECTOR = [
     '.dt-layout-row',

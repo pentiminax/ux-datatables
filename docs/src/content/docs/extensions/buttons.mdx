@@ -181,6 +181,22 @@ whether any search (global or per-column) is currently active, and defaults to t
 search" (localized). `ButtonsExtension::withCcSearchClearButton()` is the fluent-collection
 shortcut.
 
+## Column And Page Length Utilities
+
+```php
+use Pentiminax\UX\DataTables\Model\Extensions\Button;
+
+Button::colVisGroup(show: [0, 1], hide: [2, 3])->text('Summary view');
+Button::colVisRestore();
+Button::pageLength();
+Button::spacer();
+```
+
+`colVisGroup()` shows and hides column selectors in one click, `colVisRestore()` returns every
+column to its initial visibility, `pageLength()` builds a page length control from the table's
+`lengthMenu`, and `spacer()` adds visual grouping between buttons. Without options, the last three
+serialize as bare button names.
+
 ## Grouping Buttons In A Dropdown
 
 `Button::collection(array $buttons)` builds a dropdown that groups other buttons together, using

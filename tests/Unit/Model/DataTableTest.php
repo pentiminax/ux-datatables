@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Enum\SearchBuilderLogic;
 use Pentiminax\UX\DataTables\Enum\SelectItemType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Enum\StyleFramework;
@@ -25,6 +26,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\RowGroupExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\SearchBuilderExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
@@ -121,6 +123,48 @@ final class DataTableTest extends TestCase
             'bottomStart' => null,
             'bottomEnd'   => 'paging',
         ], $table->getOptions()['layout']);
+    }
+
+    #[Test]
+    public function search_builder_places_its_feature_in_the_requested_layout_slot(): void
+    {
+        $table = (new DataTable('testTable'))->searchBuilder();
+
+        $this->assertSame('searchBuilder', $table->getOptions()['layout']['top1']);
+        $this->assertArrayHasKey('searchBuilder', $table->getExtensions());
+    }
+
+    #[Test]
+    public function a_layout_slot_for_search_builder_without_the_extension_is_deprecated(): void
+    {
+        $table = (new DataTable('testTable'))->layout(['top1' => Feature::SEARCH_BUILDER]);
+
+        $messages = [];
+        set_error_handler(static function (int $level, string $message) use (&$messages): bool {
+            $messages[] = $message;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            $options = $table->getOptions();
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertSame('searchBuilder', $options['layout']['top1']);
+        $this->assertCount(1, $messages);
+        $this->assertStringContainsString('Since pentiminax/ux-datatables 1.3: Placing the "searchBuilder" feature', $messages[0]);
+    }
+
+    #[Test]
+    public function a_search_builder_layout_slot_is_accepted_when_the_extension_is_added_separately(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout(['top1' => [Feature::SEARCH, Feature::SEARCH_BUILDER]])
+            ->addExtension(new SearchBuilderExtension());
+
+        $this->assertSame(['search', 'searchBuilder'], $table->getOptions()['layout']['top1']);
     }
 
     #[Test]
@@ -765,6 +809,18 @@ final class DataTableTest extends TestCase
             ),
             'scroller',
             new ScrollerExtension(boundaryScale: 0.75, displayBuffer: 20, rowHeight: 42, serverWait: 400),
+        ];
+
+        yield 'searchBuilder defaults' => [
+            static fn (DataTable $table): DataTable => $table->searchBuilder(),
+            'searchBuilder',
+            new SearchBuilderExtension(),
+        ];
+
+        yield 'searchBuilder configured' => [
+            static fn (DataTable $table): DataTable => $table->searchBuilder(columns: [1, 2], depthLimit: 2, logic: SearchBuilderLogic::Or),
+            'searchBuilder',
+            new SearchBuilderExtension(columns: [1, 2], depthLimit: 2, logic: SearchBuilderLogic::Or),
         ];
 
         yield 'colReorder defaults' => [

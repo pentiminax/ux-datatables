@@ -39,6 +39,9 @@ $dataTable->select(
 );
 ```
 
+`SelectStyle` offers `SINGLE`, `MULTI`, `OS` (desktop-style: click selects, Ctrl/Cmd toggles, Shift
+selects a range) and `MULTI_SHIFT` (`multi+shift`: click toggles, Shift selects a range).
+
 `select()` covers every option; build the extension yourself with
 `addExtension(new SelectExtension(...))` when you need to hold on to the instance.
 

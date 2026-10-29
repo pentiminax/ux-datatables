@@ -130,6 +130,16 @@ to specific header row indexes (multi-row headers); `order` sets the initial col
 indexes in their new positions). Both default to `null` (every row / document order) and are
 omitted from the payload unless set.
 
+## SearchBuilder — user-built grouped conditions
+
+```php
+$dataTable->searchBuilder(columns: '*', depthLimit: null, logic: SearchBuilderLogic::And, position: 'top1');
+```
+
+Registers `SearchBuilderExtension` and places the `searchBuilder` layout feature. Server-side
+requests are validated strictly (known conditions, depth 5, 50 nodes); an invalid payload disables
+the filter. `filterChanged` is not configurable from PHP.
+
 ## Responsive — collapse columns on small screens
 
 ```php
