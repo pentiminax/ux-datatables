@@ -51,8 +51,7 @@ describe('columnSummaries', () => {
         const element = document.createElement('table')
         element.innerHTML = '<tfoot><tr><td id="mine"></td><td></td></tr></tfoot>'
 
-        ensureSummaryFooter(element, { columns })
-
+        expect(ensureSummaryFooter(element, { columns })).toBe(true)
         expect(element.querySelectorAll('tfoot')).toHaveLength(1)
         expect(element.querySelector('#mine')).not.toBeNull()
     })
@@ -150,8 +149,7 @@ describe('columnSummaries', () => {
         const element = document.createElement('table')
         element.innerHTML = '<tfoot><tr><td></td></tr></tfoot>'
 
-        ensureSummaryFooter(element, { columns })
-
+        expect(ensureSummaryFooter(element, { columns })).toBe(false)
         expect(warn).toHaveBeenCalledOnce()
         warn.mockRestore()
     })

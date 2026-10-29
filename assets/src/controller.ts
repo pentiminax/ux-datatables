@@ -252,9 +252,8 @@ export default class extends Controller {
             return
         }
 
-        if (hasSummaries(payload)) {
-            ensureSummaryFooter(this.element as HTMLElement, payload)
-        }
+        const showSummaries =
+            hasSummaries(payload) && ensureSummaryFooter(this.element as HTMLElement, payload)
 
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
 
@@ -264,7 +263,7 @@ export default class extends Controller {
             applyThemeSearchPlaceholder(themedContainer)
         }
 
-        if (hasSummaries(payload)) {
+        if (showSummaries) {
             installColumnSummaries(this.table, payload)
         }
 

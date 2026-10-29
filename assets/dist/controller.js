@@ -151,15 +151,13 @@ class default_1 extends Controller {
         if (this.adoptLiveTable(DataTable)) {
             return;
         }
-        if (hasSummaries(payload)) {
-            ensureSummaryFooter(this.element, payload);
-        }
+        const showSummaries = hasSummaries(payload) && ensureSummaryFooter(this.element, payload);
         this.table = new DataTable(this.element, payload);
         const themedContainer = this.element.closest('.dt-container');
         if (themedContainer && detectTheme() !== null) {
             applyThemeSearchPlaceholder(themedContainer);
         }
-        if (hasSummaries(payload)) {
+        if (showSummaries) {
             installColumnSummaries(this.table, payload);
         }
         this.dispatchEvent('connect', { table: this.table });

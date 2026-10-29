@@ -69,8 +69,9 @@ export function ensureSummaryFooter(tableElement, payload) {
         const cells = existing.querySelectorAll('tr:first-child > *').length;
         if (cells !== columnCount) {
             console.warn(`Column summaries need one footer cell per column (${columnCount}), but the existing <tfoot> has ${cells}; summaries are not shown.`);
+            return false;
         }
-        return;
+        return true;
     }
     const row = document.createElement('tr');
     for (let index = 0; index < columnCount; index++) {
@@ -81,6 +82,7 @@ export function ensureSummaryFooter(tableElement, payload) {
     const footer = document.createElement('tfoot');
     footer.append(row);
     tableElement.append(footer);
+    return true;
 }
 export function installColumnSummaries(table, payload) {
     const columns = payload.columns;

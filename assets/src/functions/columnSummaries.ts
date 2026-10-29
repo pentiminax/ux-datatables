@@ -104,8 +104,14 @@ function fill(
     }
 }
 
-/** Must run before DataTables initializes: it only registers a footer present at that moment. */
-export function ensureSummaryFooter(tableElement: HTMLElement, payload: Record<string, any>): void {
+/**
+ * Must run before DataTables initializes: it only registers a footer present at that moment.
+ * Returns false when an existing footer cannot hold the summaries.
+ */
+export function ensureSummaryFooter(
+    tableElement: HTMLElement,
+    payload: Record<string, any>
+): boolean {
     const columnCount: number = payload.columns.length
     const existing = tableElement.querySelector('tfoot')
 
@@ -115,9 +121,11 @@ export function ensureSummaryFooter(tableElement: HTMLElement, payload: Record<s
             console.warn(
                 `Column summaries need one footer cell per column (${columnCount}), but the existing <tfoot> has ${cells}; summaries are not shown.`
             )
+
+            return false
         }
 
-        return
+        return true
     }
 
     const row = document.createElement('tr')
@@ -130,6 +138,8 @@ export function ensureSummaryFooter(tableElement: HTMLElement, payload: Record<s
     const footer = document.createElement('tfoot')
     footer.append(row)
     tableElement.append(footer)
+
+    return true
 }
 
 /**
