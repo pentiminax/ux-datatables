@@ -129,10 +129,8 @@ const extensionStyleLoaders: Record<ExtensionName, Record<StyleFramework, Loader
     searchBuilder: {
         dt: () => import('datatables.net-searchbuilder-dt/css/searchBuilder.dataTables.min.css'),
         bs: () => import('datatables.net-searchbuilder-bs/css/searchBuilder.bootstrap.min.css'),
-        bs4: () =>
-            import('datatables.net-searchbuilder-bs4/css/searchBuilder.bootstrap4.min.css'),
-        bs5: () =>
-            import('datatables.net-searchbuilder-bs5/css/searchBuilder.bootstrap5.min.css'),
+        bs4: () => import('datatables.net-searchbuilder-bs4/css/searchBuilder.bootstrap4.min.css'),
+        bs5: () => import('datatables.net-searchbuilder-bs5/css/searchBuilder.bootstrap5.min.css'),
     },
     select: {
         dt: () => import('datatables.net-select-dt/css/select.dataTables.min.css'),
