@@ -494,7 +494,7 @@ edit/delete buttons in the trailing `actions` column.
 
 ## Inline Edit (Modal)
 
-`Action::edit()` opens a configured edit modal with an auto-generated Symfony Form. See the dedicated [Edit Modal](/ux-datatables/reference/edit-modal/) page for full documentation: template overrides, column-to-form mapping, primary key handling, and examples.
+`Action::edit()` opens a configured edit modal with an auto-generated Symfony Form. See the dedicated [Edit Modal](/reference/edit-modal/) page for full documentation: template overrides, column-to-form mapping, primary key handling, and examples.
 
 ## Ajax Endpoints
 
@@ -561,7 +561,7 @@ Access is checked before the template renders. The endpoint always requires
 a configured permission — there is no fallback. If the action also declares a `setPermission()`, that
 permission is checked in addition: a per-row resolver receives the located entity (never a raw array
 row, even if the table's provider hydrates arrays elsewhere — see
-[`Action::setPermission()`](/ux-datatables/guide/security/) for the full contract), and a
+[`Action::setPermission()`](/guide/security/) for the full contract), and a
 static permission is evaluated as-is. An action the user cannot see is an action they cannot fetch.
 
 <Aside type="note">
@@ -569,13 +569,13 @@ static permission is evaluated as-is. An action the user cannot see is an action
   action to resolve; it answers `400` when Twig is unavailable, `403` when the collapsible detail
   action is missing or permission denies, and `404` when the entity no longer exists. Like every
   bundle Ajax route, it must still be protected by your own `security.firewalls` configuration — see
-  [Securing Ajax Routes](/ux-datatables/getting-started/security/).
+  [Securing Ajax Routes](/getting-started/security/).
 </Aside>
 
 ## Related
 
-- [Edit Modal](/ux-datatables/reference/edit-modal/)
-- [Securing Ajax Routes](/ux-datatables/getting-started/security/)
-- [Authorization and Voters](/ux-datatables/guide/security/)
-- [Recipe: Actions with CSRF and voter](/ux-datatables/recipes/actions-csrf-voter/)
-- [Columns Overview](/ux-datatables/columns/overview/)
+- [Edit Modal](/reference/edit-modal/)
+- [Securing Ajax Routes](/getting-started/security/)
+- [Authorization and Voters](/guide/security/)
+- [Recipe: Actions with CSRF and voter](/recipes/actions-csrf-voter/)
+- [Columns Overview](/columns/overview/)

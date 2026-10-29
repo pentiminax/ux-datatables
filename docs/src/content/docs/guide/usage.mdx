@@ -60,7 +60,7 @@ class HomeController extends AbstractController
 ```
 
 When the rows only become available in the controller, keep `configureDataTable()` for the options
-and call [`setData()`](/ux-datatables/reference/abstract-datatable/) on the injected table instead.
+and call [`setData()`](/reference/abstract-datatable/) on the injected table instead.
 
 All options and data are passed as-is to DataTables. Refer to the [DataTables documentation](https://datatables.net/manual/) for available client-side options.
 
@@ -184,13 +184,13 @@ Then attach your controller in Twig:
 />
 
 The `bulk:*` events only fire on a table that declares
-[bulk actions](/ux-datatables/features/bulk-actions/).
+[bulk actions](/features/bulk-actions/).
 
 `pre-connect` fires before extension plugins (like ColumnControl) have loaded, so `DataTable.ext`
 and extension-specific registries such as `DataTable.ColumnControl.content` aren't populated yet.
 Use `pre-init` instead when you need one of those to exist — for example, registering a custom
 ColumnControl content type. See
-[Custom Content Types](/ux-datatables/extensions/column-control/#custom-content-types).
+[Custom Content Types](/extensions/column-control/#custom-content-types).
 
 ### Surviving the Reconnect Cycle
 

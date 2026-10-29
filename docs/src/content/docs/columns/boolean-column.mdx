@@ -7,7 +7,7 @@ navTitle: Boolean
 
 `BooleanColumn` renders a `true`/`false` (or `1`/`0`) field as text by default. When combined with `renderAsSwitch()`, the cell becomes an interactive toggle switch and toggling it sends an AJAX request to update the field server-side.
 
-Switch markup is produced by a frontend [column style adapter](/ux-datatables/guide/styling/#column-chrome-badges--switches): a Bootstrap 5 form switch when a Bootstrap DataTables stylesheet is detected, or a Tailwind toggle otherwise (including the default `dt` theme).
+Switch markup is produced by a frontend [column style adapter](/guide/styling/#column-chrome-badges--switches): a Bootstrap 5 form switch when a Bootstrap DataTables stylesheet is detected, or a Tailwind toggle otherwise (including the default `dt` theme).
 
 ## Basic Usage
 
@@ -17,7 +17,7 @@ use Pentiminax\UX\DataTables\Column\BooleanColumn;
 BooleanColumn::new('active', 'Status');
 ```
 
-Renders the raw boolean value as text. Not interactive. For a read-only check or cross, use [`IconColumn::boolean()`](/ux-datatables/columns/icon-column/#boolean-mode).
+Renders the raw boolean value as text. Not interactive. For a read-only check or cross, use [`IconColumn::boolean()`](/columns/icon-column/#boolean-mode).
 
 ## Interactive Toggle Switch
 

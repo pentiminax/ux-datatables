@@ -34,6 +34,26 @@ Use this guide as a fast decision tree.
     ['Export actions', '`ButtonsExtension`', 'CSV/Excel/PDF/Print support'],
     ['Row selection workflows', '`SelectExtension`', 'Built-in selection modes'],
     [
+      'Live refresh of a server-side table',
+      '[`poll()`](/features/polling/) for outside or continuous changes, [Mercure](/integrations/mercure/) when your app knows what changed',
+      'Polling needs no hub; Mercure pushes only on change',
+    ],
+    [
+      'Totals in the footer',
+      '[`summarize()`](/features/column-summaries/)',
+      'Covers every matching row, not only the page',
+    ],
+    [
+      'Users build their own search',
+      '[SearchBuilder](/extensions/search-builder/)',
+      'Grouped conditions without custom filter code',
+    ],
+    [
+      'Custom empty table or clickable rows',
+      '[Row presentation](/features/row-presentation/)',
+      'Empty state, row classes, and row links',
+    ],
+    [
       'Horizontal-heavy table',
       '`ResponsiveExtension` or `FixedColumnsExtension`',
       'Better readability on small viewports',
@@ -43,13 +63,15 @@ Use this guide as a fast decision tree.
 
 ## Recommended Defaults
 
-- Start with `/guide/usage/`.
-- Move to `/reference/abstract-datatable/` once table logic grows.
+- Start with [Usage](/guide/usage/).
+- Move to [AbstractDataTable](/reference/abstract-datatable/) once table logic grows.
 - Enable server-side mode early for high-cardinality entities.
 - Add extensions incrementally and test interactions.
 
 ## Related Pages
 
-- [/ux-datatables/guide/usage/](/ux-datatables/guide/usage/)
-- [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)
-- [/ux-datatables/extensions/](/ux-datatables/extensions/)
+- [Usage](/guide/usage/)
+- [Server-Side Processing](/guide/server-side-processing/)
+- [Extensions Overview](/extensions/)
+- [Introduction](/getting-started/introduction/)
+- [Run the Demo](/getting-started/demo/)

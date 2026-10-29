@@ -293,7 +293,7 @@ CheckboxFilter::new('vip')->query(
 
 `#[DataTableFilter]` declares the same filters without writing `configureFilters()`. It goes on a
 property, a getter, or the table class, and its signature matches
-[`#[DataTableColumn]`](/ux-datatables/reference/attributes/#datatablecolumn) exactly.
+[`#[DataTableColumn]`](/reference/attributes/#datatablecolumn) exactly.
 
 ```php
 use App\Enum\Status;
@@ -499,7 +499,7 @@ protected function configureFilters(Filters $filters): Filters
 
 The first setting found wins: `Filters::showHeaderResetButton()`, then
 `DataTable::showHeaderResetButton()`, then the `data_tables.options.showHeaderResetButton`
-[configuration](/ux-datatables/guide/configuration/#showheaderresetbutton) key. The button is off
+[configuration](/guide/configuration/#showheaderresetbutton) key. The button is off
 otherwise.
 
 ## Remembering applied filters

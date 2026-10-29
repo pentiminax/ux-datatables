@@ -235,17 +235,17 @@ column's Doctrine type, or a type `LIKE` cannot be used on. That column is then 
 the `OR`.
 
 `DefaultSearchPredicateBuilder` consults a `SearchableColumnInterface` column's own
-[`buildSearchPredicate()`](/ux-datatables/columns/overview/#searching-with-a-custom-predicate)
+[`buildSearchPredicate()`](/columns/overview/#searching-with-a-custom-predicate)
 first and returns its condition verbatim when it gives one. Otherwise it dispatches on the column
 type:
 
-| Column                       | Condition                                                          |
-| ---------------------------- | ------------------------------------------------------------------ |
+| Column                       | Condition                                                                           |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
 | numeric (or `$forceNumeric`) | exact match when the term binds to the field's integer/float type, `null` otherwise |
-| date                         | `null` — a partial date term has no meaningful `LIKE`              |
-| native UUID / ULID           | exact match when the term is a well-formed identifier of that type |
-| boolean Doctrine field       | `null` — even on `BooleanColumn`, which is DataTables `num` for 0/1 sorting |
-| anything else                | `LOWER(field) LIKE %term%` when the field supports text search     |
+| date                         | `null` — a partial date term has no meaningful `LIKE`                               |
+| native UUID / ULID           | exact match when the term is a well-formed identifier of that type                  |
+| boolean Doctrine field       | `null` — even on `BooleanColumn`, which is DataTables `num` for 0/1 sorting         |
+| anything else                | `LOWER(field) LIKE %term%` when the field supports text search                      |
 
 `$field` is resolved by the caller through `RelationFieldResolver::resolveSearchField()` before the
 builder is reached, so a `setSearchField()` override and any `addSearchJoin()` are already in
@@ -289,7 +289,7 @@ prevents a driver error.
 
 ## See Also
 
-- [Query Filters](/ux-datatables/reference/query-filters/)
-- [AbstractDataTable](/ux-datatables/reference/abstract-datatable/)
-- [ColumnControl](/ux-datatables/extensions/column-control/)
-- [Server-Side Processing](/ux-datatables/guide/server-side-processing/)
+- [Query Filters](/reference/query-filters/)
+- [AbstractDataTable](/reference/abstract-datatable/)
+- [ColumnControl](/extensions/column-control/)
+- [Server-Side Processing](/guide/server-side-processing/)

@@ -210,7 +210,7 @@ Override it per table with `$table->paging(...)`, or disable pagination entirely
 ### stateSave
 
 Persist each table's state (page, ordering, search, page length, and the applied
-[filters](/ux-datatables/reference/filters/#remembering-applied-filters)) in the browser. Both keys
+[filters](/reference/filters/#remembering-applied-filters)) in the browser. Both keys
 are optional and absent by default.
 
 ```yaml
@@ -233,7 +233,7 @@ data_tables:
 ```
 
 A table overrides it with `$table->showHeaderResetButton()` or `$filters->showHeaderResetButton()`;
-see [Reset button in the header](/ux-datatables/reference/filters/#reset-button-in-the-header).
+see [Reset button in the header](/reference/filters/#reset-button-in-the-header).
 
 ## Table Attributes
 
@@ -286,7 +286,7 @@ extensions:
     # style: multi  # Multiple row selection
 ```
 
-A table that declares [bulk actions](/ux-datatables/features/bulk-actions/) does not use this
+A table that declares [bulk actions](/features/bulk-actions/) does not use this
 default: it gets a multi-row selection with checkboxes instead. Only a Select extension the table
 configures itself replaces that one.
 

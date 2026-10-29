@@ -96,11 +96,11 @@ parameter-index scope between each:
 Filters 2–4 delegate condition building to the search strategy registry and the search predicate
 builder, which is why overriding `createSearchStrategyRegistry()` or
 `createSearchPredicateBuilder()` changes what they produce. See
-[Search Strategies](/ux-datatables/reference/search-strategies/).
+[Search Strategies](/reference/search-strategies/).
 
 The user-facing filters declared in `configureFilters()` are applied afterwards, outside this
 chain: each reads its own value from `filters[name]` in the request and is skipped when that value
-is empty. See [Filters](/ux-datatables/reference/filters/).
+is empty. See [Filters](/reference/filters/).
 
 ## Adding a condition of your own
 
@@ -158,9 +158,9 @@ final class InvoiceDataTable extends AbstractDataTable
   A scoping condition like this is authorization, so it belongs in `customizeQueryBuilder()`, which
   is evaluated per request. Reading the security token from a `configure*()` method would bind the
   container-shared table instance to whoever initialized it first — see the [purity
-  contract](/ux-datatables/reference/abstract-datatable/#configuration-methods-must-be-pure).
-  Scoping the query is also not a substitute for protecting the Ajax route itself; see [Securing
-  Ajax Routes](/ux-datatables/getting-started/security/).
+  contract](/reference/abstract-datatable/#configuration-methods-must-be-pure). Scoping the query is
+  also not a substitute for protecting the Ajax route itself; see [Securing Ajax
+  Routes](/getting-started/security/).
 </Aside>
 
 To share that condition across several tables, extract it into a service and call it from each
@@ -202,8 +202,8 @@ final readonly class OwnOrganizationScope
 
 ## See Also
 
-- [Search Strategies](/ux-datatables/reference/search-strategies/)
-- [AbstractDataTable](/ux-datatables/reference/abstract-datatable/)
-- [DataTableRequest](/ux-datatables/reference/datatable-request/)
-- [Filters](/ux-datatables/reference/filters/)
-- [Securing Ajax Routes](/ux-datatables/getting-started/security/)
+- [Search Strategies](/reference/search-strategies/)
+- [AbstractDataTable](/reference/abstract-datatable/)
+- [DataTableRequest](/reference/datatable-request/)
+- [Filters](/reference/filters/)
+- [Securing Ajax Routes](/getting-started/security/)

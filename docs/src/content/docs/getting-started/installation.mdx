@@ -102,7 +102,7 @@ The bundle ships with the DataTables default theme enabled. Check your `assets/c
 
 The bundle supports 4 CSS frameworks (Bootstrap 5, Bootstrap 4, Bootstrap 3, and the default DataTables theme). The Stimulus controller automatically detects which stylesheet is loaded and applies the matching integration.
 
-See [Styling](../../guide/styling/) for the full setup guide.
+See [Styling](/guide/styling/) for the full setup guide.
 
 ## Optional Dependencies
 
@@ -118,14 +118,15 @@ See [Styling](../../guide/styling/) for the full setup guide.
 />
 
 <Aside type="danger" title="Secure the Ajax routes before production">
-  The Symfony Flex recipe imports the `/datatables/ajax/*` routes in `config/routes/data_tables.yaml`;
-  without Flex, import `@PentiminaxDataTablesBundle/config/routes.php` yourself. The table token
-  they use identifies **which** table is requested, not **who** is requesting it, so it is not a
-  substitute for authentication. Protect these routes with your application's
-  `security.access_control` to match the pages that render your tables. See
-  [Securing Ajax Routes](../security/).
+  The Symfony Flex recipe imports the `/datatables/ajax/*` routes in
+  `config/routes/data_tables.yaml`; without Flex, import
+  `@PentiminaxDataTablesBundle/config/routes.php` yourself. The table token they use identifies
+  **which** table is requested, not **who** is requesting it, so it is not a substitute for
+  authentication. Protect these routes with your application's `security.access_control` to match
+  the pages that render your tables. See [Securing Ajax Routes](/getting-started/security/).
 </Aside>
 
 <Aside type="tip">
-  You're all set! Continue to the [Quick Start](../quick-start/) guide to create your first table.
+  You're all set! Continue to the [Quick Start](/getting-started/quick-start/) guide to create your
+  first table.
 </Aside>
