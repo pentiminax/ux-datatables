@@ -47,6 +47,12 @@ const extensionLoaders = {
         bs4: () => import('datatables.net-scroller-bs4'),
         bs5: () => import('datatables.net-scroller-bs5'),
     },
+    searchBuilder: {
+        dt: () => import('datatables.net-searchbuilder-dt'),
+        bs: () => import('datatables.net-searchbuilder-bs'),
+        bs4: () => import('datatables.net-searchbuilder-bs4'),
+        bs5: () => import('datatables.net-searchbuilder-bs5'),
+    },
     select: {
         dt: () => import('datatables.net-select-dt'),
         bs: () => import('datatables.net-select-bs'),
@@ -102,6 +108,12 @@ const extensionStyleLoaders = {
         bs: () => import('datatables.net-scroller-bs/css/scroller.bootstrap.min.css'),
         bs4: () => import('datatables.net-scroller-bs4/css/scroller.bootstrap4.min.css'),
         bs5: () => import('datatables.net-scroller-bs5/css/scroller.bootstrap5.min.css'),
+    },
+    searchBuilder: {
+        dt: () => import('datatables.net-searchbuilder-dt/css/searchBuilder.dataTables.min.css'),
+        bs: () => import('datatables.net-searchbuilder-bs/css/searchBuilder.bootstrap.min.css'),
+        bs4: () => import('datatables.net-searchbuilder-bs4/css/searchBuilder.bootstrap4.min.css'),
+        bs5: () => import('datatables.net-searchbuilder-bs5/css/searchBuilder.bootstrap5.min.css'),
     },
     select: {
         dt: () => import('datatables.net-select-dt/css/select.dataTables.min.css'),
