@@ -195,6 +195,10 @@ bound parameters. It works on integer, float and decimal fields. A bound that is
 number (letters, exponents such as `1e3`, `INF`) is ignored rather than failing the request, so the
 other bound still applies. Zero is a valid bound.
 
+Bounds are bound as decimal strings with the column's Doctrine type, so decimal precision is kept.
+On an integer column a fractional bound is rounded inward (`min` 2.5 matches from 3, `max` 2.5 up to
+2), and a bound beyond the column's range is ignored.
+
 ```php
 use Pentiminax\UX\DataTables\Filter\NumberRangeFilter;
 
@@ -251,7 +255,18 @@ EntityFilter::new('category')
 
 The filter name or `field()` must be the association on the table entity (`category`), or a path to
 one (`author.company`). The entity needs a single-column identifier. With a string `optionLabel()`
-that is a mapped field, the options are ordered by it unless `optionsQuery()` orders them.
+that is a mapped field, the options are ordered by it unless `optionsQuery()` orders them, and the
+filter bar keeps that order.
+
+Identifiers are normalized and bound with the Doctrine type of the target identifier. Integer and
+UUID/ULID identifiers are checked first: a submitted value that does not fit the type is ignored,
+as are the other values of a list that fail. Identifiers of any other type are bound as strings.
+
+<Aside type="caution">
+  A property path through an association in `optionLabel()` (such as `company.name`) loads that
+  association for each listed entity, which costs one query per option. Join it in `optionsQuery()`
+  with `$qb->addSelect('c')->leftJoin('e.company', 'c')` instead.
+</Aside>
 
 <Aside type="caution">
   The option list is a convenience, not authorization. Any identifier can be sent to the Ajax route,

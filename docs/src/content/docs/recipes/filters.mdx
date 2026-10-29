@@ -50,7 +50,9 @@ public function configureFilters(Filters $filters): Filters
                 ->label('Category')
                 ->entity(Category::class)
                 ->optionLabel('name')
-                ->optionsQuery(static fn (QueryBuilder $qb): QueryBuilder => $qb->andWhere('e.archived = false'))
+                ->optionsQuery(static function (QueryBuilder $qb): void {
+                    $qb->andWhere('e.archived = false');
+                })
                 ->multiple()
         );
 }
