@@ -347,7 +347,8 @@ export class ApiPlatformAdapter {
 
     /**
      * Filter bar values are flattened into API Platform's query shape: scalars become `name=value`,
-     * multi-selects `name[0]=value`, and date ranges `name[after]` / `name[before]`. Left as the
+     * multi-selects `name[0]=value`, date ranges `name[after]` / `name[before]`, and number ranges
+     * `name[gte]` / `name[lte]`. Left as the
      * nested `filters` object they were silently dropped by API Platform.
      */
     private appendFilters(result: Record<string, string>, filters: unknown): void {
@@ -398,6 +399,16 @@ export class ApiPlatformAdapter {
                     this.setFilterParam(result, `${name}[strictly_before]`, exclusiveTo)
                 } else {
                     this.setFilterParam(result, `${name}[before]`, toBound)
+                }
+            }
+
+            for (const [key, operator] of [
+                ['min', 'gte'],
+                ['max', 'lte'],
+            ] as const) {
+                const bound = value[key]
+                if ('string' === typeof bound && '' !== bound.trim()) {
+                    this.setFilterParam(result, `${name}[${operator}]`, bound.trim())
                 }
             }
         }
