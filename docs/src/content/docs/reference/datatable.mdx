@@ -64,6 +64,10 @@ new DataTable(
       '`mercure(array $topics = [], bool $withCredentials = false, ?int $debounceMs = null)`',
       'Enable Mercure live updates with one or many topics',
     ],
+    [
+      '`poll(string|int $interval)`',
+      "Reload the Ajax source every N seconds (`30`, `'10s'`, `'1m'`); minimum 2 seconds",
+    ],
   ]}
 />
 

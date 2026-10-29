@@ -1577,3 +1577,11 @@ What changed:
   `payload`, `data`, `column`, or `entity`
 - `payload` is newly reserved; rename such a parameter to something else
 - any other key still passes through untouched, `item` included
+
+## v1.2 → v1.3
+
+### New: `DataTable::poll()`
+
+`poll()` is additive: no existing table changes. A table that calls it must fetch its rows over
+Ajax (server-side, `ajax()`, or API Platform); otherwise rendering throws a `LogicException`.
+Intervals below 2 seconds throw an `InvalidArgumentException`. See the polling page in the docs.
