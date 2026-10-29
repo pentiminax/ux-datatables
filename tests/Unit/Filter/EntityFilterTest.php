@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Filter;
 
+use Doctrine\ORM\Decorator\EntityManagerDecorator;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
@@ -178,6 +180,31 @@ final class EntityFilterTest extends TestCase
         $this->expectExceptionMessage('has no entity class');
 
         $this->resolve(EntityFilter::new('customer'));
+    }
+
+    #[Test]
+    public function it_rejects_an_identifier_that_does_not_convert_to_a_string(): void
+    {
+        $metadata = $this->createStub(ClassMetadata::class);
+        $metadata->method('hasField')->willReturn(false);
+        $metadata->method('getIdentifierValues')->willReturn(['id' => new \stdClass()]);
+
+        $this->em = new class($this->em, $metadata) extends EntityManagerDecorator {
+            public function __construct(EntityManagerInterface $wrapped, private readonly ClassMetadata $metadata)
+            {
+                parent::__construct($wrapped);
+            }
+
+            public function getClassMetadata(string $className): ClassMetadata
+            {
+                return $this->metadata;
+            }
+        };
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('needs an identifier on "'.CountCustomer::class.'" that converts to a string.');
+
+        $this->resolve(EntityFilter::new('customer')->entity(CountCustomer::class));
     }
 
     #[Test]

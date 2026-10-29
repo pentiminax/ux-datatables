@@ -82,7 +82,11 @@ final readonly class FilterEntityOptionsResolver
                 throw new \LogicException(\sprintf('The entity filter "%s" needs a single-column identifier on "%s".', $filter->getName(), $entityClass));
             }
 
-            $value                    = reset($identifier);
+            $value = reset($identifier);
+            if (!\is_scalar($value) && !$value instanceof \Stringable) {
+                throw new \LogicException(\sprintf('The entity filter "%s" needs an identifier on "%s" that converts to a string.', $filter->getName(), $entityClass));
+            }
+
             $options[(string) $value] = $this->resolveLabel($entity, $label, $value);
         }
 
