@@ -218,6 +218,15 @@ export class ApiPlatformAdapter {
                     this.setFilterParam(result, `${name}[before]`, toBound);
                 }
             }
+            for (const [key, operator] of [
+                ['min', 'gte'],
+                ['max', 'lte'],
+            ]) {
+                const bound = value[key];
+                if ('string' === typeof bound && '' !== bound.trim()) {
+                    this.setFilterParam(result, `${name}[${operator}]`, bound.trim());
+                }
+            }
         }
     }
     setFilterParam(result, key, value) {
