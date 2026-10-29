@@ -58,7 +58,7 @@ export function startPolling(
     }
 
     table.on('preXhr.dt', onRequestStart)
-    table.on('xhr.dt error.dt', onRequestEnd)
+    table.on('xhr.dt', onRequestEnd)
     document.addEventListener('visibilitychange', onVisibilityChange)
     const timer = setInterval(tick, intervalMs)
 
@@ -66,6 +66,45 @@ export function startPolling(
         clearInterval(timer)
         document.removeEventListener('visibilitychange', onVisibilityChange)
         table.off('preXhr.dt', onRequestStart)
-        table.off('xhr.dt error.dt', onRequestEnd)
+        table.off('xhr.dt', onRequestEnd)
     }
+}
+
+let hasWarnedPollingWithMercure = false
+
+interface EnsurePollingOptions {
+    table: PollingTable | null
+    payload: Record<string, any>
+    element: HTMLElement
+    mercureEnabled: boolean
+}
+
+/**
+ * Starts polling unless it already runs, the element is detached or the table has no Ajax source.
+ * Returns the function that stops it, or null when nothing runs.
+ */
+export function ensurePolling(
+    current: (() => void) | null,
+    { table, payload, element, mercureEnabled }: EnsurePollingOptions
+): (() => void) | null {
+    if (current) {
+        return current
+    }
+
+    if (!element.isConnected || !table?.ajax || !isPollingEnabled(payload)) {
+        return null
+    }
+
+    if (mercureEnabled && !hasWarnedPollingWithMercure) {
+        hasWarnedPollingWithMercure = true
+        console.warn(
+            '[ux-datatables] poll() and mercure() are both enabled: Mercure already pushes updates, so polling adds redundant requests.'
+        )
+    }
+
+    return startPolling(
+        table,
+        payload.pollInterval,
+        element.closest<HTMLElement>('.dt-container') ?? element
+    )
 }

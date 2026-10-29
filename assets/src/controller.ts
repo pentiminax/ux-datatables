@@ -30,7 +30,6 @@ import { fetchEditForm } from './functions/fetchEditForm.js'
 import { installFilterBar } from './functions/filters.js'
 import { isHighlightEnabled, type UpdateHighlighter } from './functions/highlightUpdates.js'
 import { isDataTableClone } from './functions/isDataTableClone.js'
-import { isPollingEnabled, startPolling } from './functions/polling.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
 import { applyLocalLanguage } from './functions/localLanguage.js'
 import {
@@ -38,6 +37,7 @@ import {
     hasLucideIconsInActions,
     loadLucideIcons,
 } from './functions/lucideIcons.js'
+import { ensurePolling } from './functions/polling.js'
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
 import { type RowActionOutcome, runRowAction } from './functions/rowActionFeedback.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
@@ -153,9 +153,9 @@ export default class extends Controller {
             if (this.table) {
                 this.dispatchEvent('reconnect', { table: this.table })
                 this.bindPopstate(isUrlStateEnabled(this.viewValue))
+                this.initPolling(this.viewValue)
                 // disconnect() closed the EventSource.
                 await this.startMercure(this.viewValue)
-                this.initPolling(this.viewValue)
             }
 
             return
@@ -526,22 +526,12 @@ export default class extends Controller {
     }
 
     private initPolling(payload: Record<string, any>): void {
-        if (this.stopPolling || !this.table?.ajax || !isPollingEnabled(payload)) {
-            return
-        }
-
-        if (this.isMercureEnabled(payload) && !hasWarnedPollingWithMercure) {
-            hasWarnedPollingWithMercure = true
-            console.warn(
-                '[ux-datatables] poll() and mercure() are both enabled: Mercure already pushes updates, so polling adds redundant requests.'
-            )
-        }
-
-        this.stopPolling = startPolling(
-            this.table,
-            payload.pollInterval,
-            (this.element as HTMLElement).closest('.dt-container') ?? (this.element as HTMLElement)
-        )
+        this.stopPolling = ensurePolling(this.stopPolling, {
+            table: this.table,
+            payload,
+            element: this.element as HTMLElement,
+            mercureEnabled: this.isMercureEnabled(payload),
+        })
     }
 
     private async initHighlighter(payload: Record<string, any>): Promise<void> {
@@ -893,8 +883,6 @@ export default class extends Controller {
         return []
     }
 }
-
-let hasWarnedPollingWithMercure = false
 
 type DataTableWithAjax = {
     ajax?: {

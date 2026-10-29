@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { isPollingEnabled, startPolling } from '../polling.js'
+import { ensurePolling, isPollingEnabled, startPolling } from '../polling.js'
 
 function createTable() {
     const handlers = new Map<string, Array<() => void>>()
@@ -133,7 +133,7 @@ describe('startPolling', () => {
         startPolling(table, 5, document.body)
 
         fire('preXhr.dt')
-        fire('error.dt')
+        fire('xhr.dt')
         vi.advanceTimersByTime(5000)
 
         expect(reload).toHaveBeenCalledTimes(1)
@@ -159,5 +159,91 @@ describe('isPollingEnabled', () => {
         expect(isPollingEnabled({ pollInterval: 0 })).toBe(false)
         expect(isPollingEnabled({ pollInterval: '10' })).toBe(false)
         expect(isPollingEnabled({})).toBe(false)
+    })
+})
+
+describe('ensurePolling', () => {
+    const payload = { pollInterval: 5 }
+
+    beforeEach(() => {
+        vi.useFakeTimers()
+        setVisibility('visible')
+        document.body.innerHTML = '<table id="t"></table>'
+    })
+
+    afterEach(() => {
+        vi.useRealTimers()
+        document.body.innerHTML = ''
+    })
+
+    function options(table: ReturnType<typeof createTable>['table'] | null, mercure = false) {
+        return {
+            table,
+            payload,
+            element: document.getElementById('t') as HTMLElement,
+            mercureEnabled: mercure,
+        }
+    }
+
+    it('starts after connect and stops on disconnect', () => {
+        const { table, reload } = createTable()
+        const stop = ensurePolling(null, options(table))
+
+        vi.advanceTimersByTime(5000)
+        expect(reload).toHaveBeenCalledTimes(1)
+
+        stop?.()
+        vi.advanceTimersByTime(10000)
+        expect(reload).toHaveBeenCalledTimes(1)
+    })
+
+    it('restarts on reconnect once stopped', () => {
+        const { table, reload } = createTable()
+        ensurePolling(null, options(table))?.()
+
+        ensurePolling(null, options(table))
+        vi.advanceTimersByTime(5000)
+
+        expect(reload).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not start a second timer while one runs', () => {
+        const { table, reload } = createTable()
+        const first = ensurePolling(null, options(table))
+        const second = ensurePolling(first, options(table))
+
+        vi.advanceTimersByTime(5000)
+
+        expect(second).toBe(first)
+        expect(reload).toHaveBeenCalledTimes(1)
+        expect(vi.getTimerCount()).toBe(1)
+    })
+
+    it('does not start on a detached element', () => {
+        const { table } = createTable()
+        const opts = options(table)
+        opts.element.remove()
+
+        expect(ensurePolling(null, opts)).toBeNull()
+        expect(vi.getTimerCount()).toBe(0)
+    })
+
+    it('does not start without an Ajax source or a poll interval', () => {
+        const { table } = createTable()
+
+        expect(ensurePolling(null, options({ ...table, ajax: undefined }))).toBeNull()
+        expect(ensurePolling(null, { ...options(table), payload: {} })).toBeNull()
+        expect(ensurePolling(null, options(null))).toBeNull()
+    })
+
+    it('warns about Mercure only once', () => {
+        const { table } = createTable()
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+        ensurePolling(null, options(table, true))?.()
+        ensurePolling(null, options(table, true))?.()
+
+        expect(warn).toHaveBeenCalledTimes(1)
+        warn.mockRestore()
     })
 })
