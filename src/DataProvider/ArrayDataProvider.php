@@ -57,6 +57,16 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
 
     public function fetchData(DataTableRequest $request): DataTableResult
     {
+        return $this->query($request, true);
+    }
+
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->query($request->withoutPagination(), false)->data;
+    }
+
+    private function query(DataTableRequest $request, bool $summarize): DataTableResult
+    {
         $intent = $this->intentFactory->create($request, $this->columns);
 
         // A ColumnControl criterion reaches this from the query string, so an unsupported one is a
@@ -92,13 +102,8 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
             recordsTotal: $recordsTotal,
             recordsFiltered: \count($matched),
             data: $this->mapRows($this->slice($matched, $request)),
-            summaries: $this->summarize($matched),
+            summaries: $summarize ? $this->summarize($matched) : null,
         );
-    }
-
-    public function iterateRows(DataTableRequest $request): iterable
-    {
-        return $this->fetchData($request->withoutPagination())->data;
     }
 
     /**
