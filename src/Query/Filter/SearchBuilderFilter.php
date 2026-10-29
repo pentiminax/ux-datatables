@@ -6,52 +6,59 @@ namespace Pentiminax\UX\DataTables\Query\Filter;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
+use Pentiminax\UX\DataTables\Query\DateSearchTerm;
 use Pentiminax\UX\DataTables\Query\LikeValueEscaper;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Query\Strategy\ComparisonSearchStrategy;
 
 /**
- * Applies the validated SearchBuilder tree as one AND-composed predicate.
+ * Applies the SearchBuilder tree as one AND-composed predicate.
  *
- * A criterion on an unknown, non-searchable or unmapped column, or one whose value cannot be
- * bound to the field type, is left out rather than crashing the Ajax request. Left out means
- * "no constraint": inside an OR group that widens the match, as it does for an incomplete
- * criterion in the SearchBuilder UI.
+ * A tree naming an unknown or non-searchable column is ignored whole. A criterion whose value or
+ * field cannot be queried matches nothing, and negated conditions keep NULL rows as the browser does.
  */
 final class SearchBuilderFilter implements QueryFilterInterface
 {
-    private const array OPERATORS = ['=' => '=', '!=' => '!=', '<' => '<', '<=' => '<=', '>=' => '>=', '>' => '>'];
+    private const string NO_MATCH = '1 = 0';
+
+    private const array OPERATORS = ['=' => '=', '<' => '<', '<=' => '<=', '>=' => '>=', '>' => '>'];
 
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
         $tree = $context->intent->searchBuilder;
-        if (null === $tree) {
+        if (null === $tree || !$this->resolvable($tree, $context)) {
             return;
         }
 
-        $predicate = $this->group($qb, $context, $tree);
-        if (null !== $predicate) {
-            $qb->andWhere($predicate);
-        }
+        $qb->andWhere($this->group($qb, $context, $tree));
     }
 
     /**
      * @param array<string, mixed> $group
      */
-    private function group(QueryBuilder $qb, QueryFilterContext $context, array $group): ?string
+    private function resolvable(array $group, QueryFilterContext $context): bool
     {
-        $parts = [];
         foreach ($group['criteria'] as $node) {
-            $part = isset($node['criteria']) ? $this->group($qb, $context, $node) : $this->criterion($qb, $context, $node);
-            if (null !== $part) {
-                $parts[] = $part;
+            $known = isset($node['criteria']) ? $this->resolvable($node, $context) : null !== $this->column($context, $node['column']);
+            if (!$known) {
+                return false;
             }
         }
 
-        if ([] === $parts) {
-            return null;
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $group
+     */
+    private function group(QueryBuilder $qb, QueryFilterContext $context, array $group): string
+    {
+        $parts = [];
+        foreach ($group['criteria'] as $node) {
+            $parts[] = isset($node['criteria']) ? $this->group($qb, $context, $node) : $this->criterion($qb, $context, $node);
         }
 
         return '('.implode('OR' === $group['logic'] ? ' OR ' : ' AND ', $parts).')';
@@ -60,95 +67,127 @@ final class SearchBuilderFilter implements QueryFilterInterface
     /**
      * @param array<string, mixed> $node
      */
-    private function criterion(QueryBuilder $qb, QueryFilterContext $context, array $node): ?string
+    private function criterion(QueryBuilder $qb, QueryFilterContext $context, array $node): string
     {
         $column = $this->column($context, $node['column']);
         if (null === $column) {
-            return null;
+            return self::NO_MATCH;
         }
 
         RelationFieldResolver::applySearchJoins($qb, $column);
 
         $path = RelationFieldResolver::resolveSearchField($column);
         if (null === $path || !RelationFieldResolver::supportsSearchFiltering($qb, $path)) {
-            return null;
+            return self::NO_MATCH;
         }
 
-        $field     = RelationFieldResolver::resolve($qb, $context->alias, $path);
-        $condition = $node['condition'];
-        $values    = $node['values'];
-        $text      = RelationFieldResolver::supportsTextSearch($qb, $path);
+        $field   = RelationFieldResolver::resolve($qb, $context->alias, $path);
+        $negated = str_starts_with($node['condition'], '!');
+        $base    = $negated ? substr($node['condition'], 1) : $node['condition'];
 
-        if ('null' === $condition || '!null' === $condition) {
-            $isNull = $text && !$column->isNumber() && !$column->isDate()
-                ? \sprintf("(%s IS NULL OR %s = '')", $field, $field)
-                : \sprintf('%s IS NULL', $field);
-
-            return 'null' === $condition ? $isNull : \sprintf('NOT %s', $isNull);
+        if ('null' === $base) {
+            return $this->nullness($qb, $column, $path, $field, $negated);
         }
 
-        if (str_contains($condition, 'between')) {
-            return $this->between($qb, $context, $path, $field, $values, str_starts_with($condition, '!'));
+        $positive = $this->positive($qb, $context, $column, $path, $field, $base, $node['values']);
+        if (null === $positive) {
+            return self::NO_MATCH;
         }
 
-        if (isset(self::OPERATORS[$condition])) {
-            [$value, $type] = ComparisonSearchStrategy::resolveBindValue($qb, $path, $values[0]);
-            if (null === $value) {
-                return null;
-            }
+        return $negated ? \sprintf('(%s IS NULL OR NOT (%s))', $field, $positive) : $positive;
+    }
 
-            return $this->bind($qb, $context, $field, self::OPERATORS[$condition], $value, $type);
-        }
+    private function nullness(QueryBuilder $qb, ColumnInterface $column, string $path, string $field, bool $negated): string
+    {
+        $isNull = RelationFieldResolver::supportsTextSearch($qb, $path) && !$column->isNumber() && !$column->isDate()
+            ? \sprintf("(%s IS NULL OR %s = '')", $field, $field)
+            : \sprintf('%s IS NULL', $field);
 
-        if (!$text) {
-            return null;
-        }
-
-        $negated = str_starts_with($condition, '!');
-        $kind    = ltrim($condition, '!');
-        $needle  = LikeValueEscaper::escape(mb_strtolower($values[0]));
-        $pattern = match ($kind) {
-            'starts' => $needle.'%',
-            'ends'   => '%'.$needle,
-            default  => '%'.$needle.'%',
-        };
-
-        $param = $this->param($context);
-        $qb->setParameter($param, $pattern);
-
-        return \sprintf("LOWER(%s) %s :%s ESCAPE '%s'", $field, $negated ? 'NOT LIKE' : 'LIKE', $param, LikeValueEscaper::ESCAPE_CHARACTER);
+        return $negated ? \sprintf('NOT %s', $isNull) : $isNull;
     }
 
     /**
      * @param list<string> $values
      */
-    private function between(QueryBuilder $qb, QueryFilterContext $context, string $path, string $field, array $values, bool $negated): ?string
+    private function positive(QueryBuilder $qb, QueryFilterContext $context, ColumnInterface $column, string $path, string $field, string $base, array $values): ?string
     {
-        [$low, $type] = ComparisonSearchStrategy::resolveBindValue($qb, $path, $values[0]);
-        [$high]       = ComparisonSearchStrategy::resolveBindValue($qb, $path, $values[1]);
-        if (null === $low || null === $high) {
+        $dateType = RelationFieldResolver::resolveDateFieldType($qb, $path);
+        if (null !== $dateType && ('between' === $base || isset(self::OPERATORS[$base]))) {
+            return $this->dateRange($qb, $context, $field, $dateType, $base, $values);
+        }
+
+        if ('between' === $base) {
+            [$low, $type] = ComparisonSearchStrategy::resolveBindValue($qb, $path, $values[0]);
+            [$high]       = ComparisonSearchStrategy::resolveBindValue($qb, $path, $values[1]);
+            if (null === $low || null === $high) {
+                return null;
+            }
+            if ($low > $high) {
+                [$low, $high] = [$high, $low];
+            }
+
+            return \sprintf('%s BETWEEN %s AND %s', $field, $this->bind($qb, $context, $low, $type), $this->bind($qb, $context, $high, $type));
+        }
+
+        if (isset(self::OPERATORS[$base])) {
+            [$value, $type] = ComparisonSearchStrategy::resolveBindValue($qb, $path, $values[0]);
+
+            return null === $value ? null : \sprintf('%s %s %s', $field, self::OPERATORS[$base], $this->bind($qb, $context, $value, $type));
+        }
+
+        if (!RelationFieldResolver::supportsTextSearch($qb, $path)) {
             return null;
         }
 
-        $lowParam  = $this->param($context);
-        $highParam = $this->param($context);
-        $qb->setParameter($lowParam, $low, $type);
-        $qb->setParameter($highParam, $high, $type);
+        $normalize = !$column instanceof NormalizedSearchColumnInterface || $column->isSearchNormalized();
+        $needle    = LikeValueEscaper::escape($normalize ? mb_strtolower($values[0]) : $values[0]);
+        $pattern   = match ($base) {
+            'starts' => $needle.'%',
+            'ends'   => '%'.$needle,
+            default  => '%'.$needle.'%',
+        };
 
-        return \sprintf('%s %sBETWEEN :%s AND :%s', $field, $negated ? 'NOT ' : '', $lowParam, $highParam);
+        return \sprintf("%s LIKE %s ESCAPE '%s'", $normalize ? \sprintf('LOWER(%s)', $field) : $field, $this->bind($qb, $context, $pattern, null), LikeValueEscaper::ESCAPE_CHARACTER);
     }
 
-    private function bind(QueryBuilder $qb, QueryFilterContext $context, string $field, string $operator, mixed $value, ?string $type): string
+    /**
+     * Dates compare by whole day, so a datetime field matches a date typed without a time.
+     *
+     * @param list<string> $values
+     */
+    private function dateRange(QueryBuilder $qb, QueryFilterContext $context, string $field, string $type, string $base, array $values): ?string
     {
-        $param = $this->param($context);
+        $days = [];
+        foreach ('between' === $base ? [$values[0], $values[1]] : [$values[0]] as $value) {
+            $date = DateSearchTerm::normalize($value);
+            if (null === $date) {
+                return null;
+            }
+            $days[] = $date->setTime(0, 0);
+        }
+
+        if (isset($days[1]) && $days[0] > $days[1]) {
+            $days = array_reverse($days);
+        }
+
+        $start = $days[0];
+        $end   = ($days[1] ?? $days[0])->modify('+1 day');
+
+        return match ($base) {
+            '<'     => \sprintf('%s < %s', $field, $this->bind($qb, $context, $start, $type)),
+            '>'     => \sprintf('%s >= %s', $field, $this->bind($qb, $context, $end, $type)),
+            '<='    => \sprintf('%s < %s', $field, $this->bind($qb, $context, $end, $type)),
+            '>='    => \sprintf('%s >= %s', $field, $this->bind($qb, $context, $start, $type)),
+            default => \sprintf('(%s >= %s AND %s < %s)', $field, $this->bind($qb, $context, $start, $type), $field, $this->bind($qb, $context, $end, $type)),
+        };
+    }
+
+    private function bind(QueryBuilder $qb, QueryFilterContext $context, mixed $value, ?string $type): string
+    {
+        $param = \sprintf('search_builder_param_%d', $context->nextParamIndex());
         $qb->setParameter($param, $value, $type);
 
-        return \sprintf('%s %s :%s', $field, $operator, $param);
-    }
-
-    private function param(QueryFilterContext $context): string
-    {
-        return \sprintf('search_builder_param_%d', $context->nextParamIndex());
+        return ':'.$param;
     }
 
     /**
