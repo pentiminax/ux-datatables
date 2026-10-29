@@ -26,6 +26,13 @@ with a 500.
 
 Anything else in `order[][dir]` sorts ascending instead of reaching the query pipeline.
 
+### New: column summaries
+
+- Column summaries are additive: a table without `summarize()` is unchanged. A table that uses
+  `summarize()` cannot be read through API Platform (rendering throws a `LogicException`), and a
+  custom `DataProviderInterface` supplies figures through the new optional `summaries` argument of
+  `DataTableResult`. See [Column Summaries](docs/src/content/docs/features/column-summaries.mdx).
+
 ## v1.1 → v1.2
 
 ### Behavior changes

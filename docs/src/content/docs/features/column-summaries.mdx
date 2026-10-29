@@ -1,0 +1,84 @@
+---
+title: Column Summaries
+description: Show totals, averages, minimums, maximums, and counts in the table footer
+order: 35
+navTitle: Column Summaries
+---
+
+A column can show a figure in the table footer with `summarize()`. The summary covers every row
+matching the current search and filters, not only the visible page.
+
+## Declaring Summaries
+
+```php
+use App\Entity\Order;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\DateColumn;
+use Pentiminax\UX\DataTables\Column\MoneyColumn;
+use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Summary\Average;
+use Pentiminax\UX\DataTables\Model\Summary\Count;
+use Pentiminax\UX\DataTables\Model\Summary\Max;
+use Pentiminax\UX\DataTables\Model\Summary\Min;
+use Pentiminax\UX\DataTables\Model\Summary\Sum;
+
+#[AsDataTable(Order::class)]
+final class OrdersDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->serverSide();
+    }
+
+    public function configureColumns(): iterable
+    {
+        yield TextColumn::new('reference', 'Reference')->summarize(Count::new('Orders'));
+        yield MoneyColumn::new('total', 'Total')
+            ->currency('EUR')
+            ->summarize(Sum::new('Revenue'), Average::new());
+        yield DateColumn::new('createdAt', 'Created')->summarize(Min::new('First'), Max::new('Last'));
+    }
+}
+```
+
+| Summarizer | Result | Column |
+| --- | --- | --- |
+| `Sum` | Total of the values | Numeric |
+| `Average` | Mean of the values | Numeric |
+| `Min` / `Max` | Smallest and largest value | Any |
+| `Count` | Number of non-empty values | Any |
+
+Each summarizer takes an optional label (`Sum::new('Revenue')`). Without one, the translated default
+is used (`summary.sum`, `summary.avg`, and so on, in the `DataTables` domain). A column holds one
+summarizer per type.
+
+Null and empty values are ignored, as SQL does. `MoneyColumn` figures are formatted like the cells
+of the column. `summarize()` throws an `InvalidArgumentException` for a `TemplateColumn` or
+`ActionColumn`, and for `Sum` or `Average` on a non-numeric column.
+
+## How It Is Computed
+
+- **Server-side Doctrine tables** run one extra aggregate query built from the same query as the
+  rows (`customizeQueryBuilder()` scope, search, and filters) without pagination or ordering. The
+  response gains a `summaries` key only when a column declares a summary. The query matches the
+  root entities first, so a to-many join or a search on a collection never inflates a total.
+- **Client-side tables** compute in the browser from the rows matching the current search.
+- **`ArrayDataProvider`** aggregates in memory.
+- **API Platform tables** cannot aggregate: rendering throws a `LogicException` when a column
+  declares a summary.
+- **Custom providers** return the figures through the `summaries` argument of `DataTableResult`,
+  shaped `['columnName' => ['sum' => 120, 'count' => 4]]`.
+
+The summarized column must map a Doctrine field (or a relation path such as `region.quota`).
+A virtual column assembled in `mapRow()` raises a `LogicException` on the first request.
+A `HAVING` clause in `customizeQueryBuilder()` that names a computed `HIDDEN` alias is not carried
+into the aggregate query.
+
+## Footer Markup and Styling
+
+The bundle creates the `<tfoot>` when the table has none, with one `th scope="col"` cell per
+column, and leaves columns without a summary empty. Labels and values are inserted as text.
+Style it with the `--dt-summary-surface`, `--dt-summary-border`, `--dt-summary-text`, and
+`--dt-summary-text-muted` CSS variables, which follow the filter palette and its dark mode.
