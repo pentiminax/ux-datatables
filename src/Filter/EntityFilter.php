@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Filter;
 
+use Doctrine\ORM\Mapping\MappingException;
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Query\NumericSearchTerm;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
+use Pentiminax\UX\DataTables\Query\UuidSearchTerm;
 
 /**
  * Filters rows by a Doctrine association, offering a fixed list of the target entities.
@@ -12,6 +16,9 @@ use Doctrine\ORM\QueryBuilder;
  * The options are loaded server-side when the table renders, through the same select control as
  * {@see ChoiceFilter}. The filter field names the association (e.g. "category"), and the submitted
  * identifiers are compared through bound parameters: `=` for one value, `IN` for several.
+ *
+ * Numeric and UUID/ULID identifiers are normalized and bound with their Doctrine type, and a
+ * submitted value that does not fit the identifier type is ignored.
  *
  * The option list is a convenience, not authorization: any identifier can be submitted to the Ajax
  * route, so scope the rows themselves in the data provider or the table query.
@@ -139,6 +146,24 @@ final class EntityFilter extends AbstractFilter
         ];
     }
 
+    protected function choiceBindingType(QueryBuilder $qb): ?string
+    {
+        $type = $this->identifierType($qb);
+
+        if (null === $type || !(RelationFieldResolver::isNumericType($type) || RelationFieldResolver::isUuidType($type))) {
+            return null;
+        }
+
+        return $type;
+    }
+
+    protected function normalizeChoiceValue(string $value, string $doctrineType): ?string
+    {
+        return RelationFieldResolver::isUuidType($doctrineType)
+            ? UuidSearchTerm::normalize($value, $doctrineType)
+            : NumericSearchTerm::normalize($value, $doctrineType);
+    }
+
     protected function getType(): string
     {
         return 'select';
@@ -147,5 +172,34 @@ final class EntityFilter extends AbstractFilter
     protected function doApply(QueryBuilder $qb, mixed $value, string $alias): void
     {
         $this->applyChoice($qb, $value, $alias, $this->multiple);
+    }
+
+    /**
+     * Doctrine type of the identifier of the entity the filter field points at, null when the
+     * field is not a plain association chain.
+     */
+    private function identifierType(QueryBuilder $qb): ?string
+    {
+        $roots = $qb->getRootEntities();
+        if ([] === $roots) {
+            return null;
+        }
+
+        try {
+            $em       = $qb->getEntityManager();
+            $metadata = $em->getClassMetadata($roots[0]);
+
+            foreach (explode('.', $this->resolvedField()) as $segment) {
+                if (!$metadata->hasAssociation($segment)) {
+                    return null;
+                }
+
+                $metadata = $em->getClassMetadata($metadata->getAssociationTargetClass($segment));
+            }
+
+            return $metadata->getFieldMapping($metadata->getSingleIdentifierFieldName())->type;
+        } catch (MappingException) {
+            return null;
+        }
     }
 }

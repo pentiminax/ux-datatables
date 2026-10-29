@@ -299,6 +299,16 @@ final class RelationFieldResolver
         return self::resolveListedFieldType($qb, $fieldPath, self::UUID_FIELD_TYPES);
     }
 
+    public static function isUuidType(string $doctrineType): bool
+    {
+        return \in_array($doctrineType, self::UUID_FIELD_TYPES, true);
+    }
+
+    public static function isNumericType(string $doctrineType): bool
+    {
+        return \in_array($doctrineType, [...self::INTEGER_FIELD_TYPES, ...self::FLOAT_FIELD_TYPES], true);
+    }
+
     /**
      * Returns the Doctrine type of a date/time field path, or null when the field is not one.
      *
