@@ -115,7 +115,7 @@ class DataTable
         $options            = $this->options->getOptions();
         $options['columns'] = $this->getColumnDefinitions();
 
-        $this->assertSearchBuilderLayoutHasExtension($options);
+        $this->deprecateSearchBuilderLayoutWithoutExtension($options);
         $this->addButtonsToLayout($options);
         $this->applyPagingFeatureToLayout($options);
 
@@ -1345,7 +1345,7 @@ class DataTable
     /**
      * @param array<string, mixed> $options
      */
-    private function assertSearchBuilderLayoutHasExtension(array $options): void
+    private function deprecateSearchBuilderLayoutWithoutExtension(array $options): void
     {
         if (isset($this->extensions->all()[Feature::SEARCH_BUILDER->value])) {
             return;
@@ -1355,7 +1355,7 @@ class DataTable
             return;
         }
 
-        throw new \LogicException('The layout places the "searchBuilder" feature but the SearchBuilder extension is not registered. Call searchBuilder() or addExtension(new SearchBuilderExtension()).');
+        trigger_deprecation('pentiminax/ux-datatables', '1.3', 'Placing the "searchBuilder" feature in the layout without the SearchBuilder extension is deprecated and throws in 2.0, call searchBuilder() or addExtension(new SearchBuilderExtension()).');
     }
 
     private function layoutDeclares(mixed $value, Feature $feature): bool

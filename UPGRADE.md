@@ -26,6 +26,13 @@ with a 500.
 
 Anything else in `order[][dir]` sorts ascending instead of reaching the query pipeline.
 
+### Deprecated APIs
+
+Everything below keeps working and is removed in v2.0.
+
+- Placing `Feature::SEARCH_BUILDER` in a layout without the SearchBuilder extension: call
+  `searchBuilder()` or `addExtension(new SearchBuilderExtension())`. It throws in 2.0.
+
 ## v1.1 → v1.2
 
 ### Behavior changes
@@ -45,8 +52,6 @@ Every change below can affect an application. Each links to its migration hint.
 - `symfony/serializer` is required: [details](#symfonyserializer-is-required).
 - Bulk actions skip identifiers outside the table scope:
   [details](#bulk-actions-skip-identifiers-outside-the-table-scope).
-- A layout that places `Feature::SEARCH_BUILDER` without the SearchBuilder extension throws when the
-  table renders: call `searchBuilder()` or `addExtension(new SearchBuilderExtension())`.
 - Multi-column ordering is applied: [details](#multi-column-ordering-is-applied).
 - Server-side pages stay complete when a to-many association is joined, at the cost of one extra
   query per draw:
