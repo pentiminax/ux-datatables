@@ -1,0 +1,111 @@
+const DEFAULT_LABELS = {
+    sum: 'Total',
+    avg: 'Average',
+    min: 'Minimum',
+    max: 'Maximum',
+    count: 'Count',
+};
+export function hasSummaries(payload) {
+    return (Array.isArray(payload?.columns) &&
+        payload.columns.some((column) => (column?.summaries?.length ?? 0) > 0));
+}
+export function aggregate(type, values) {
+    const present = values.filter((value) => value !== null && value !== undefined && value !== '');
+    if (type === 'count') {
+        return present.length;
+    }
+    const numbers = present.map(Number).filter(Number.isFinite);
+    switch (type) {
+        case 'sum':
+            return present.length === 0 ? null : numbers.reduce((total, n) => total + n, 0);
+        case 'avg':
+            return numbers.length === 0 ? null : numbers.reduce((t, n) => t + n, 0) / numbers.length;
+        default: {
+            if (present.length === 0) {
+                return null;
+            }
+            const pool = numbers.length === present.length ? numbers : present.map(String);
+            const sorted = [...pool].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+            return sorted[type === 'min' ? 0 : sorted.length - 1];
+        }
+    }
+}
+function format(column, type, value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    if (column.customOptions?.isMoney && type !== 'count' && typeof column.render === 'function') {
+        return String(column.render(value, 'display'));
+    }
+    return typeof value === 'number'
+        ? new Intl.NumberFormat(navigator.language).format(value)
+        : value;
+}
+function fill(cell, column, values, labels) {
+    if (!cell) {
+        return;
+    }
+    cell.replaceChildren();
+    for (const { type, label } of column.summaries ?? []) {
+        const line = document.createElement('div');
+        line.className = 'dt-summary';
+        const name = document.createElement('span');
+        name.className = 'dt-summary__label';
+        name.textContent = label ?? labels[type] ?? DEFAULT_LABELS[type];
+        const value = document.createElement('span');
+        value.className = 'dt-summary__value';
+        value.textContent = format(column, type, values[type] ?? null);
+        line.append(name, ' ', value);
+        cell.append(line);
+    }
+}
+export function ensureSummaryFooter(tableElement, payload) {
+    if (tableElement.querySelector('tfoot')) {
+        return;
+    }
+    const columnCount = payload.columns.length;
+    const row = document.createElement('tr');
+    for (let index = 0; index < columnCount; index++) {
+        const cell = document.createElement('th');
+        cell.scope = 'col';
+        row.append(cell);
+    }
+    const footer = document.createElement('tfoot');
+    footer.append(row);
+    tableElement.append(footer);
+}
+export function installColumnSummaries(table, payload) {
+    const columns = payload.columns;
+    const labels = payload.summaryLabels ?? {};
+    columns.forEach((column, index) => {
+        if (column.summaries?.length) {
+            fill(table.column(index).footer(), column, {}, labels);
+        }
+    });
+    if (payload.serverSide) {
+        table.on('xhr.dt', (_event, _settings, json) => {
+            columns.forEach((column, index) => {
+                if (column.summaries?.length) {
+                    fill(table.column(index).footer(), column, json?.summaries?.[column.name ?? ''] ?? {}, labels);
+                }
+            });
+        });
+        return;
+    }
+    const update = () => {
+        columns.forEach((column, index) => {
+            if (!column.summaries?.length) {
+                return;
+            }
+            const rows = table.column(index, { search: 'applied' }).data().toArray();
+            const values = {};
+            for (const { type } of column.summaries) {
+                values[type] = aggregate(type, rows);
+            }
+            fill(table.column(index).footer(), column, values, labels);
+        });
+    };
+    table.on('draw.dt', update);
+    update();
+}
+//# sourceMappingURL=columnSummaries.js.map

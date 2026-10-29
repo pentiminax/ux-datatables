@@ -459,3 +459,34 @@ table.dataTable td.dt-cell-updated {
 .dt-bulk-confirm__message {
     margin: 0;
 }
+
+/* Column summaries borrow the filter palette, which already flips in dark mode; reassign these
+   to restyle the footer alone. */
+:root {
+    --dt-summary-surface: var(--dt-filters-surface-muted);
+    --dt-summary-border: var(--dt-filters-border);
+    --dt-summary-text: var(--dt-filters-text);
+    --dt-summary-text-muted: var(--dt-filters-text-muted);
+}
+
+table.dataTable > tfoot > tr > th {
+    background: var(--dt-summary-surface);
+    border-top: 1px solid var(--dt-summary-border);
+    color: var(--dt-summary-text);
+    font-weight: 400;
+}
+
+.dt-summary {
+    display: flex;
+    gap: 0.5em;
+    justify-content: space-between;
+}
+
+.dt-summary__label {
+    color: var(--dt-summary-text-muted);
+}
+
+.dt-summary__value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}

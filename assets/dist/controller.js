@@ -16,6 +16,7 @@ import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdap
 import { ApiPlatformAdapter, isApiPlatformAdapterEnabled, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js';
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
+import { ensureSummaryFooter, hasSummaries, installColumnSummaries, } from './functions/columnSummaries.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
 import { detectTheme } from './functions/detectTheme.js';
@@ -145,10 +146,16 @@ class default_1 extends Controller {
         if (this.adoptLiveTable(DataTable)) {
             return;
         }
+        if (hasSummaries(payload)) {
+            ensureSummaryFooter(this.element, payload);
+        }
         this.table = new DataTable(this.element, payload);
         const themedContainer = this.element.closest('.dt-container');
         if (themedContainer && detectTheme() !== null) {
             applyThemeSearchPlaceholder(themedContainer);
+        }
+        if (hasSummaries(payload)) {
+            installColumnSummaries(this.table, payload);
         }
         this.dispatchEvent('connect', { table: this.table });
         if (urlStateCfg && this.table) {
