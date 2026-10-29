@@ -44,6 +44,7 @@ final class DefaultDataTableQueryIntentFactory
             columnSearches: $this->buildColumnSearches($request, $references),
             columnControls: $this->buildColumnControls($request, $references),
             orders: $orders,
+            searchBuilder: $request->searchBuilder,
         );
     }
 

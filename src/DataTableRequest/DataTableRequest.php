@@ -20,6 +20,9 @@ final readonly class DataTableRequest
 
         /** @var array<string, mixed> User-facing filter values keyed by filter name. */
         public array $filters = [],
+
+        /** @var array{logic: string, criteria: list<array<string, mixed>>}|null Validated SearchBuilder tree. */
+        public ?array $searchBuilder = null,
     ) {
     }
 
@@ -45,6 +48,7 @@ final readonly class DataTableRequest
             search: Search::fromRequest($request),
             order: $orders,
             filters: $bag->all('filters'),
+            searchBuilder: SearchBuilderCriteria::parse($bag->all()['searchBuilder'] ?? null),
         );
     }
 
@@ -85,6 +89,7 @@ final readonly class DataTableRequest
             search: $this->search,
             order: $this->order,
             filters: $this->filters,
+            searchBuilder: $this->searchBuilder,
         );
     }
 
@@ -101,6 +106,7 @@ final readonly class DataTableRequest
             search: $this->search,
             order: $this->order,
             filters: $this->filters,
+            searchBuilder: $this->searchBuilder,
         );
     }
 

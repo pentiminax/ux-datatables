@@ -1,0 +1,70 @@
+---
+title: SearchBuilder Extension
+description: Let users compose grouped search conditions
+order: 85
+navTitle: SearchBuilder
+---
+
+## When To Use
+
+Use SearchBuilder when users need to combine several conditions, such as "age over 50 and city is
+Paris, or name starts with Al", without a dedicated filter form.
+
+## Minimal Example
+
+```php
+$dataTable->searchBuilder();
+```
+
+`searchBuilder()` registers the extension and adds the `searchBuilder` feature to the `top1` layout
+row. Pass `position: 'topStart'` to place it elsewhere, or declare `Feature::SEARCH_BUILDER` in
+`layout()` yourself and register the extension with
+`addExtension(new SearchBuilderExtension())`. A layout that places the feature without the
+extension throws a `LogicException` when the table renders.
+
+## Advanced Example
+
+```php
+use Pentiminax\UX\DataTables\Enum\SearchBuilderLogic;
+
+$dataTable->searchBuilder(
+    columns: [1, 2, 3],
+    depthLimit: 2,
+    logic: SearchBuilderLogic::Or,
+    preDefined: [
+        'criteria' => [['data' => 'Age', 'condition' => '>', 'value' => [50]]],
+        'logic' => 'AND',
+    ],
+);
+```
+
+Only options that differ from the DataTables defaults reach the browser. `filterChanged` is a
+JavaScript callback and cannot be configured from PHP.
+
+## Server-Side Processing
+
+On server-side tables the bundle reads the `searchBuilder` request parameter and ANDs the result
+with the other filters. Conditions supported: `=`, `!=`, `<`, `<=`, `>=`, `>`, `between`,
+`!between`, `null`, `!null`, `starts`, `!starts`, `contains`, `!contains`, `ends` and `!ends`.
+
+The parameter is validated strictly. An unknown logic or condition, a malformed node, more than 5
+nesting levels or 50 nodes, or more than 2 values per criterion discards the whole SearchBuilder
+filter. Incomplete criteria (a blank value) are skipped, as in the browser.
+
+- Criteria match a column through its `data` key and apply only to searchable columns mapped to a
+  Doctrine field; others are ignored, which widens the match inside an `OR` group.
+- Values that cannot be bound to the field type (for example text for an integer column) are
+  ignored instead of raising a database error.
+- `LIKE` conditions are case-insensitive and escape `%` and `_`.
+- Select-based conditions fall back to text inputs, and custom conditions are not supported.
+
+## Frequent Pitfalls
+
+- Expecting `array` conditions (`without`) to work server-side.
+- Hiding a column from the table but leaving it searchable: it still appears in the builder
+  unless you restrict `columns`.
+
+## Cross Links
+
+- [/ux-datatables/extensions/column-control/](/ux-datatables/extensions/column-control/)
+- [/ux-datatables/guide/server-side-processing/](/ux-datatables/guide/server-side-processing/)

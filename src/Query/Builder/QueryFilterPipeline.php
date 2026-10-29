@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Query\Filter\ColumnControlSearchFilter;
 use Pentiminax\UX\DataTables\Query\Filter\ColumnSearchFilter;
 use Pentiminax\UX\DataTables\Query\Filter\GlobalSearchFilter;
 use Pentiminax\UX\DataTables\Query\Filter\OrderFilter;
+use Pentiminax\UX\DataTables\Query\Filter\SearchBuilderFilter;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\Strategy\SearchStrategyRegistry;
@@ -60,6 +61,7 @@ final class QueryFilterPipeline
             new GlobalSearchFilter($predicateBuilder),
             new ColumnSearchFilter($registry),
             new ColumnControlSearchFilter($registry),
+            new SearchBuilderFilter(),
         ];
 
         foreach ($queryFilters as $queryFilter) {
