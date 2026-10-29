@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\DataTableRequest;
 
-use Pentiminax\UX\DataTables\DataTableRequest\SearchBuilderCriteria;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\DataTableRequest\SearchBuilderCriteria;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;

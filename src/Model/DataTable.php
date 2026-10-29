@@ -1104,16 +1104,13 @@ class DataTable
     /**
      * Register the SearchBuilder extension and place it in the layout in one call.
      *
-     * Server-side tables apply the criteria to Doctrine-backed columns that are searchable.
-     *
-     * @param string|list<int>                   $columns     '*' for every column, or the column indexes the builder offers
+     * @param string|list<int>                   $columns     '*' or the column indexes the builder offers
      * @param array<string, array<string, null>> $conditions  conditions to disable per column type
+     * @param SearchBuilderLogic                 $logic       logic joining the top-level criteria
      * @param array<string, mixed>|null          $preDefined  criteria applied on load
-     * @param string                             $position    DataTables layout position (e.g. 'top1', 'topStart')
+     * @param string                             $position    layout position, for example 'top1' or 'topStart'
      * @param int|null                           $depthLimit  maximum group nesting depth
-     * @param bool                               $enterSearch only search when the user presses Enter
-     * @param bool                               $greyscale   render the builder in greyscale
-     * @param bool                               $liveSearch  search while the user types
+     * @param bool                               $enterSearch search only when the user presses Enter
      */
     public function searchBuilder(
         string|array $columns = '*',

@@ -17,12 +17,12 @@ use PHPUnit\Framework\TestCase;
 final class SearchBuilderExtensionTest extends TestCase
 {
     #[Test]
-    public function it_serializes_only_the_columns_by_default(): void
+    public function it_serializes_an_empty_payload_by_default(): void
     {
         $extension = new SearchBuilderExtension();
 
         $this->assertSame('searchBuilder', $extension->getKey());
-        $this->assertSame(['columns' => '*'], $extension->jsonSerialize());
+        $this->assertSame([], $extension->jsonSerialize());
     }
 
     #[Test]

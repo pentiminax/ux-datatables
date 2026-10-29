@@ -13,14 +13,28 @@ Paris, or name starts with Al", without a dedicated filter form.
 ## Minimal Example
 
 ```php
-$dataTable->searchBuilder();
+namespace App\DataTable;
+
+use App\Entity\Employee;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+#[AsDataTable(Employee::class)]
+final class EmployeeDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->searchBuilder();
+    }
+}
 ```
 
 `searchBuilder()` registers the extension and adds the `searchBuilder` feature to the `top1` layout
 row. Pass `position: 'topStart'` to place it elsewhere, or declare `Feature::SEARCH_BUILDER` in
 `layout()` yourself and register the extension with
 `addExtension(new SearchBuilderExtension())`. A layout that places the feature without the
-extension throws a `LogicException` when the table renders.
+extension is deprecated since 1.3 and throws in 2.0.
 
 ## Advanced Example
 
@@ -38,7 +52,8 @@ $dataTable->searchBuilder(
 );
 ```
 
-Only options that differ from the DataTables defaults reach the browser. `filterChanged` is a
+Only options that differ from the DataTables defaults reach the browser (an empty payload for
+`searchBuilder()` without arguments). `filterChanged` is a
 JavaScript callback and cannot be configured from PHP.
 
 ## Server-Side Processing
@@ -51,10 +66,13 @@ The parameter is validated strictly. An unknown logic or condition, a malformed 
 nesting levels or 50 nodes, or more than 2 values per criterion discards the whole SearchBuilder
 filter. Incomplete criteria (a blank value) are skipped, as in the browser.
 
-- Criteria match a column through its `data` key and apply only to searchable columns mapped to a
-  Doctrine field; others are ignored, which widens the match inside an `OR` group.
-- Values that cannot be bound to the field type (for example text for an integer column) are
-  ignored instead of raising a database error.
+- `columns` only limits what the browser offers. The server accepts any searchable column, so call
+  `setSearchable(false)` on a column to block it. A request naming an unknown or non-searchable
+  column is ignored as a whole.
+- A criterion whose value cannot be bound to the field type (for example text for an integer
+  column, or `2.5` for an integer) matches nothing instead of raising a database error.
+- Dates compare by whole day, and negated conditions keep rows where the field is `NULL`.
+- `ArrayDataProvider` and API Platform server-side tables ignore SearchBuilder without an error.
 - `LIKE` conditions are case-insensitive and escape `%` and `_`.
 - Select-based conditions fall back to text inputs, and custom conditions are not supported.
 

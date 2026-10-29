@@ -15,7 +15,7 @@ use Pentiminax\UX\DataTables\Enum\SearchBuilderLogic;
 class SearchBuilderExtension implements ExtensionInterface
 {
     /**
-     * @param string|list<int>                   $columns     '*' for every column, or the column indexes the builder offers
+     * @param string|list<int>                   $columns     '*' or the column indexes the builder offers
      * @param array<string, array<string, null>> $conditions  conditions to disable per column type, e.g.
      *                                                        ['num' => ['!=' => null]]
      * @param int|null                           $depthLimit  maximum group nesting depth, or null for no limit
@@ -46,7 +46,7 @@ class SearchBuilderExtension implements ExtensionInterface
     public function jsonSerialize(): array
     {
         return array_filter([
-            'columns'     => $this->columns,
+            'columns'     => '*' === $this->columns ? null : $this->columns,
             'conditions'  => [] !== $this->conditions ? $this->conditions : null,
             'depthLimit'  => $this->depthLimit,
             'enterSearch' => $this->enterSearch ?: null,
