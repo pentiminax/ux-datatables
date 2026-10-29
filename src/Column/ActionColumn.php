@@ -13,6 +13,11 @@ class ActionColumn extends AbstractColumn implements ActionsProvidingColumnInter
 {
     private ?Actions $actions = null;
 
+    protected function isSummarizable(): bool
+    {
+        return false;
+    }
+
     public static function fromActions(string $name, string $title, Actions $actions): static
     {
         $instance = new static(
