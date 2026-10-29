@@ -27,30 +27,37 @@ export function hasSummaries(payload: Record<string, any>): boolean {
     )
 }
 
-/** Mirrors SummaryType::aggregate() in PHP: null and empty values are ignored. */
-export function aggregate(type: SummaryType, values: unknown[]): number | string | null {
-    const present = values.filter((value) => value !== null && value !== undefined && value !== '')
+/** Mirrors SummaryType::aggregate() in PHP: null is ignored, Count counts every non-null value. */
+export function aggregate(type: SummaryType, values: unknown[]): number | null {
+    const present = values.filter((value) => value !== null && value !== undefined)
 
     if (type === 'count') {
         return present.length
     }
 
-    const numbers = present.map(Number).filter(Number.isFinite)
+    const numbers = present
+        .filter(
+            (value) =>
+                typeof value === 'number' || (typeof value === 'string' && value.trim() !== '')
+        )
+        .map(Number)
+        .filter(Number.isFinite)
+
+    if (numbers.length === 0) {
+        return null
+    }
+
+    const sum = numbers.reduce((total, n) => total + n, 0)
 
     switch (type) {
         case 'sum':
-            return present.length === 0 ? null : numbers.reduce((total, n) => total + n, 0)
+            return sum
         case 'avg':
-            return numbers.length === 0 ? null : numbers.reduce((t, n) => t + n, 0) / numbers.length
-        default: {
-            if (present.length === 0) {
-                return null
-            }
-            const pool = numbers.length === present.length ? numbers : present.map(String)
-            const sorted = [...pool].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
-
-            return sorted[type === 'min' ? 0 : sorted.length - 1]
-        }
+            return sum / numbers.length
+        case 'min':
+            return Math.min(...numbers)
+        default:
+            return Math.max(...numbers)
     }
 }
 
@@ -99,11 +106,19 @@ function fill(
 
 /** Must run before DataTables initializes: it only registers a footer present at that moment. */
 export function ensureSummaryFooter(tableElement: HTMLElement, payload: Record<string, any>): void {
-    if (tableElement.querySelector('tfoot')) {
+    const columnCount: number = payload.columns.length
+    const existing = tableElement.querySelector('tfoot')
+
+    if (existing) {
+        const cells = existing.querySelectorAll('tr:first-child > *').length
+        if (cells !== columnCount) {
+            console.warn(
+                `Column summaries need one footer cell per column (${columnCount}), but the existing <tfoot> has ${cells}; summaries are not shown.`
+            )
+        }
+
         return
     }
-
-    const columnCount: number = payload.columns.length
 
     const row = document.createElement('tr')
     for (let index = 0; index < columnCount; index++) {

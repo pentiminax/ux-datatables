@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
     aggregate,
     ensureSummaryFooter,
@@ -137,8 +137,22 @@ describe('columnSummaries', () => {
         expect(aggregate('sum', [1, '2', null, ''])).toBe(3)
         expect(aggregate('avg', [2, 4])).toBe(3)
         expect(aggregate('min', [3, 1, 2])).toBe(1)
-        expect(aggregate('max', ['b', 'a'])).toBe('b')
-        expect(aggregate('count', [1, null, ''])).toBe(1)
+        expect(aggregate('max', [3, 1, 2])).toBe(3)
         expect(aggregate('sum', [])).toBeNull()
+    })
+
+    it('counts every non-null value, empty strings included', () => {
+        expect(aggregate('count', [1, null, '', 0, undefined])).toBe(3)
+    })
+
+    it('warns when an existing footer has the wrong number of cells', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+        const element = document.createElement('table')
+        element.innerHTML = '<tfoot><tr><td></td></tr></tfoot>'
+
+        ensureSummaryFooter(element, { columns })
+
+        expect(warn).toHaveBeenCalledOnce()
+        warn.mockRestore()
     })
 })

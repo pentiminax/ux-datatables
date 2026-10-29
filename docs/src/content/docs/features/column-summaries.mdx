@@ -15,6 +15,7 @@ use App\Entity\Order;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\MoneyColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
@@ -38,7 +39,8 @@ final class OrdersDataTable extends AbstractDataTable
         yield MoneyColumn::new('total', 'Total')
             ->currency('EUR')
             ->summarize(Sum::new('Revenue'), Average::new());
-        yield DateColumn::new('createdAt', 'Created')->summarize(Min::new('First'), Max::new('Last'));
+        yield NumberColumn::new('items', 'Items')->summarize(Min::new('Smallest'), Max::new('Largest'));
+        yield DateColumn::new('createdAt', 'Created')->summarize(Count::new('Dated'));
     }
 }
 ```
@@ -47,16 +49,17 @@ final class OrdersDataTable extends AbstractDataTable
 | --- | --- | --- |
 | `Sum` | Total of the values | Numeric |
 | `Average` | Mean of the values | Numeric |
-| `Min` / `Max` | Smallest and largest value | Any |
-| `Count` | Number of non-empty values | Any |
+| `Min` / `Max` | Smallest and largest value | Numeric |
+| `Count` | Number of non-null values (empty strings included) | Any |
 
 Each summarizer takes an optional label (`Sum::new('Revenue')`). Without one, the translated default
 is used (`summary.sum`, `summary.avg`, and so on, in the `DataTables` domain). A column holds one
 summarizer per type.
 
-Null and empty values are ignored, as SQL does. `MoneyColumn` figures are formatted like the cells
+Null values are ignored, as SQL does. `MoneyColumn` figures are formatted like the cells
 of the column. `summarize()` throws an `InvalidArgumentException` for a `TemplateColumn` or
-`ActionColumn`, and for `Sum` or `Average` on a non-numeric column.
+`ActionColumn`, and for `Sum`, `Average`, `Min` or `Max` on a non-numeric column (dates included:
+they are formatted differently in SQL, PHP and the browser, so only `Count` applies).
 
 ## How It Is Computed
 
@@ -72,9 +75,15 @@ of the column. `summarize()` throws an `InvalidArgumentException` for a `Templat
   shaped `['columnName' => ['sum' => 120, 'count' => 4]]`.
 
 The summarized column must map a Doctrine field (or a relation path such as `region.quota`).
-A virtual column assembled in `mapRow()` raises a `LogicException` on the first request.
-A `HAVING` clause in `customizeQueryBuilder()` that names a computed `HIDDEN` alias is not carried
-into the aggregate query.
+A virtual column assembled in `mapRow()`, or a path crossing a to-many association such as
+`notes.text`, raises a `LogicException` on the first request, as does an entity with a composite
+identifier. A scope with a `HAVING` clause binds the matching identifiers as one list, so keep such
+scopes to a moderate number of rows.
+
+Sums of `DECIMAL` columns are returned as floats, so very large totals or many decimals can lose
+precision; format them with `MoneyColumn` or round in your own provider.
+
+Summaries never include a column the user may not see (`setPermission()`).
 
 ## Footer Markup and Styling
 
