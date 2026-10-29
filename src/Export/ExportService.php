@@ -69,9 +69,15 @@ final class ExportService
                 'Content-Disposition' => HeaderUtils::makeDisposition(
                     HeaderUtils::DISPOSITION_ATTACHMENT,
                     $filename,
+                    self::asciiFallback($filename),
                 ),
             ],
         );
+    }
+
+    private static function asciiFallback(string $filename): string
+    {
+        return (string) preg_replace('/[^\x20-\x7e]|[%\/\\\\]/', '_', $filename);
     }
 
     /**
