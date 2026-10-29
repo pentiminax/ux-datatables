@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
 use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\ConfigDefaultsDataTable;
+use Pentiminax\UX\DataTables\Tests\Fixtures\StateSaveDefaultsConfigurator;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\MercureBundle\MercureBundle;
 use Symfony\Bundle\TwigBundle\TwigBundle;
@@ -64,6 +65,10 @@ final class ConfigDefaultsAppKernel extends Kernel
                     ],
                 ],
             ]);
+
+            $container
+                ->register('test.datatables.state_save_defaults', StateSaveDefaultsConfigurator::class)
+                ->setAutoconfigured(true);
 
             $container
                 ->register('test.datatables.config_defaults', ConfigDefaultsDataTable::class)

@@ -307,6 +307,53 @@ public function configureDataTable(DataTable $table): DataTable
 }
 ```
 
+## Global Defaults in PHP
+
+Implement `DataTableDefaultsConfiguratorInterface` to configure every table in one place. The
+service is autoconfigured; use the `datatables.defaults_configurator` tag `priority` to order several
+of them. Defaults apply in this order, and each layer overrides the previous one: the
+`data_tables` YAML, then the configurators, then the table's own `configureDataTable()`.
+
+```php
+namespace App\DataTable;
+
+use Pentiminax\UX\DataTables\Contracts\DataTableDefaultsConfiguratorInterface;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+final class AppDataTableDefaults implements DataTableDefaultsConfiguratorInterface
+{
+    public function configure(DataTable $table): void
+    {
+        $table->stateSave(true)->pageLength(25);
+    }
+}
+```
+
+Configurators only receive the `DataTable`. They cannot change Ajax routes, tokens, or the table
+purpose validation, and no configuration key can disable those checks.
+
+## Validation
+
+- `extensions.select.style` and `extensions.buttons` only accept the values of the `SelectStyle`
+  and `ButtonType` enums.
+- When both are set, `options.pageLength` must be one of the `options.lengthMenu` entries.
+- `edit_modal.default_title` defaults to the bundle's own `edit_modal.default_title` key, translated
+  from the `DataTables` domain. Any other value is passed to your modal template, which translates
+  it in the `messages` domain.
+
+## Environment Variables
+
+```yaml
+data_tables:
+  max_page_length: '%env(int:DATATABLES_MAX_PAGE_LENGTH)%'
+  options:
+    stateSave: '%env(bool:DATATABLES_STATE_SAVE)%'
+
+parameters:
+  env(DATATABLES_MAX_PAGE_LENGTH): '1000'
+  env(DATATABLES_STATE_SAVE): 'false'
+```
+
 ## Environment-Specific Configuration
 
 Use Symfony's configuration system for different environments:

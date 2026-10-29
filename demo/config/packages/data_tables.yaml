@@ -1,0 +1,15 @@
+data_tables:
+    max_page_length: '%env(int:DATATABLES_MAX_PAGE_LENGTH)%'
+    options:
+        stateSave: '%env(bool:DATATABLES_STATE_SAVE)%'
+        lengthMenu: [10, 25, 50]
+        pageLength: 25
+    extensions:
+        select:
+            style: multi
+    edit_modal:
+        default_title: edit_modal.default_title
+
+parameters:
+    env(DATATABLES_MAX_PAGE_LENGTH): '1000'
+    env(DATATABLES_STATE_SAVE): 'false'

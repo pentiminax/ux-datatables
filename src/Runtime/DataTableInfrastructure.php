@@ -25,6 +25,7 @@ final class DataTableInfrastructure
         public readonly ?DataTableProfiler $profiler = null,
         public readonly AsDataTableResolver $asDataTableResolver = new AsDataTableResolver(),
         public readonly AttributeFilterReader $attributeFilterReader = new AttributeFilterReader(),
+        public readonly iterable $defaultsConfigurators = [],
     ) {
     }
 
@@ -40,6 +41,7 @@ final class DataTableInfrastructure
         ?DataTableProfiler $profiler = null,
         ?AsDataTableResolver $asDataTableResolver = null,
         ?AttributeFilterReader $attributeFilterReader = null,
+        iterable $defaultsConfigurators = [],
     ): self {
         $queryFilterPipeline ??= new QueryFilterPipeline($queryIntentFactory ?? new DefaultDataTableQueryIntentFactory());
 
@@ -54,14 +56,22 @@ final class DataTableInfrastructure
             profiler: $profiler,
             asDataTableResolver: $asDataTableResolver     ?? new AsDataTableResolver(),
             attributeFilterReader: $attributeFilterReader ?? new AttributeFilterReader(),
+            defaultsConfigurators: $defaultsConfigurators,
         );
     }
 
     /**
-     * Stamps the bundle-wide `data_tables` defaults onto every table it creates.
+     * Stamps the bundle-wide `data_tables` defaults, then the global defaults configurators, onto
+     * every table it creates. The table's own configureDataTable() runs afterwards and wins.
      */
     public function createDataTable(string $id): DataTable
     {
-        return new DataTable($id, $this->options, $this->attributes, $this->extensions);
+        $table = new DataTable($id, $this->options, $this->attributes, $this->extensions);
+
+        foreach ($this->defaultsConfigurators as $configurator) {
+            $configurator->configure($table);
+        }
+
+        return $table;
     }
 }

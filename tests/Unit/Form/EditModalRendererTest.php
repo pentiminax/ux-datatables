@@ -12,6 +12,7 @@ use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormView;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
 
 /**
@@ -59,6 +60,33 @@ final class EditModalRendererTest extends TestCase
         };
 
         $this->assertSame($expectedHtml, $html);
+    }
+
+    #[Test]
+    #[TestWith([EditModalRenderer::DEFAULT_TITLE, 'Modifier'])]
+    #[TestWith(['app.edit_title', 'app.edit_title'])]
+    public function it_translates_only_the_bundle_default_title(string $configured, string $expectedTitle): void
+    {
+        $form = $this->createStub(FormInterface::class);
+        $form->method('createView')->willReturn(new FormView());
+
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnCallback(
+            static fn (string $id, array $parameters, ?string $domain) => 'DataTables' === $domain ? 'Modifier' : $id
+        );
+
+        $twig = $this->createMock(Environment::class);
+        $twig->expects($this->once())
+            ->method('render')
+            ->with('modal.html.twig', $this->callback(static fn (array $context): bool => $expectedTitle === $context['title']))
+            ->willReturn('');
+
+        (new EditModalRenderer($twig, $configured, $translator))->render(new EditModalRenderRequest(
+            form: $form,
+            entity: new \stdClass(),
+            templatePath: 'modal.html.twig',
+            bodyTemplatePath: 'body.html.twig',
+        ));
     }
 
     #[Test]

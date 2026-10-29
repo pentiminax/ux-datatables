@@ -122,6 +122,10 @@
                 <source>empty.resetFilters</source>
                 <target>Reset filters</target>
             </trans-unit>
+            <trans-unit id="edit_modal.default_title">
+                <source>edit_modal.default_title</source>
+                <target>Edit</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>
