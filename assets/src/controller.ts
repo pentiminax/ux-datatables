@@ -36,7 +36,6 @@ import { installFilterBar } from './functions/filters.js'
 import { isHighlightEnabled, type UpdateHighlighter } from './functions/highlightUpdates.js'
 import { isDataTableClone } from './functions/isDataTableClone.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
-import { applyLocalLanguage } from './functions/localLanguage.js'
 import {
     hasLucideIcons,
     hasLucideIconsInActions,
@@ -44,6 +43,7 @@ import {
 } from './functions/lucideIcons.js'
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
 import { type RowActionOutcome, runRowAction } from './functions/rowActionFeedback.js'
+import { applyTableLanguage, bindRowFeatures } from './functions/rowFeatures.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
 import { shiftOrderForSelectColumn } from './functions/shiftOrderForSelectColumn.js'
@@ -199,7 +199,8 @@ export default class extends Controller {
 
         if (
             hasLucideIcons(payload.columns) ||
-            hasLucideIconsInActions(payload.bulkActions?.actions)
+            hasLucideIconsInActions(payload.bulkActions?.actions) ||
+            typeof payload.emptyState?.icon === 'string'
         ) {
             await loadLucideIcons()
         }
@@ -229,7 +230,7 @@ export default class extends Controller {
             })
         }
 
-        await applyLocalLanguage(payload)
+        await applyTableLanguage(payload)
 
         // When installRequestParams owns the Ajax data hook, prefer its protocol snapshot over
         // ajax.params(): after an API Platform transport (or a JSON-string ajax.data callback)
@@ -273,6 +274,8 @@ export default class extends Controller {
         bindImagePlaceholder(this.element as HTMLElement)
         this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
+
+        bindRowFeatures(payload, this.element as HTMLElement, () => this.table, filterBar)
 
         this.isDataTableInitialized = true
 

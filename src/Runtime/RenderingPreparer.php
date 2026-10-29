@@ -63,6 +63,17 @@ final class RenderingPreparer
         'cancel'    => 'action.row.cancel',
     ];
 
+    /**
+     * Built-in strings of the empty state, translated server-side like the bulk bar's.
+     *
+     * @var array<string, string>
+     */
+    private const array EMPTY_STATE_LABEL_KEYS = [
+        'noResults'     => 'empty.noResults',
+        'noResultsHint' => 'empty.noResultsHint',
+        'resetFilters'  => 'empty.resetFilters',
+    ];
+
     public function __construct(
         private readonly ?ApiResourceCollectionUrlResolver $urlResolver = null,
         private readonly ?MercureConfigResolver $mercureResolver = null,
@@ -100,6 +111,7 @@ final class RenderingPreparer
         $this->configureBulkActions($table);
         $this->configureActionLabels($table);
         $this->configureSummaryLabels($table);
+        $this->configureEmptyStateLabels($table);
         $this->configureForwardedQueryParameters($table);
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
@@ -329,6 +341,20 @@ final class RenderingPreparer
         }
 
         $table->setPreparedActionLabels($labels);
+    }
+
+    private function configureEmptyStateLabels(DataTable $table): void
+    {
+        if (null === $this->translator || !$table->hasEmptyState()) {
+            return;
+        }
+
+        $labels = [];
+        foreach (self::EMPTY_STATE_LABEL_KEYS as $name => $key) {
+            $labels[$name] = $this->translator->trans($key, domain: FilterLabels::DOMAIN);
+        }
+
+        $table->setPreparedEmptyStateLabels($labels);
     }
 
     private function hasRowActions(DataTable $table): bool

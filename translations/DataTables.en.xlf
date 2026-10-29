@@ -102,6 +102,18 @@
                 <source>summary.count</source>
                 <target>Count</target>
             </trans-unit>
+            <trans-unit id="empty.noResults">
+                <source>empty.noResults</source>
+                <target>No results found</target>
+            </trans-unit>
+            <trans-unit id="empty.noResultsHint">
+                <source>empty.noResultsHint</source>
+                <target>Try a different search or adjust the filters.</target>
+            </trans-unit>
+            <trans-unit id="empty.resetFilters">
+                <source>empty.resetFilters</source>
+                <target>Reset filters</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>
