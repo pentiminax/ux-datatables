@@ -34,6 +34,12 @@ Anything else in `order[][dir]` sorts ascending instead of reaching the query pi
 JavaScript before the controller connects. Intervals outside 2 seconds to 24 hours throw an
 `InvalidArgumentException`. See the polling page in the docs.
 
+### New: empty state, row class and clickable rows
+
+`DataTable::emptyState()`, `rowClass()` and `recordUrl()` are additive; tables that do not call them
+render exactly as before. Run `composer update` and rebuild your assets. See
+[Empty State and Row Presentation](docs/src/content/docs/features/row-presentation.mdx).
+
 ## v1.1 → v1.2
 
 ### Behavior changes
