@@ -157,6 +157,10 @@ final class DataTableRuntime
             'data'            => iterator_to_array($data->data),
         ];
 
+        if ([] !== ($data->summaries ?? [])) {
+            $payload['summaries'] = $data->summaries;
+        }
+
         $searchListOptions = $this->searchListOptionsResolver->resolve($this->table, $this->columns, $this->request);
         if (null !== $searchListOptions) {
             $payload['columnControl'] = $searchListOptions;

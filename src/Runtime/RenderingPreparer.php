@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
@@ -83,6 +84,7 @@ final class RenderingPreparer
         $mode = $this->resolveDataSourceMode($table, $asDataTable);
 
         if (DataSourceMode::ApiPlatform === $mode) {
+            $this->assertNoSummaries($table);
             $this->configureApiPlatform($table, $asDataTable);
         }
 
@@ -99,6 +101,15 @@ final class RenderingPreparer
         $this->resolveFilterEntityOptions($table);
         $this->translateFilterLabels($table);
         ($this->searchListOptionsResolver ?? new SearchListOptionsResolver($this->translator))->prepare($table);
+    }
+
+    private function assertNoSummaries(DataTable $table): void
+    {
+        foreach ($table->getColumns() as $column) {
+            if ($column instanceof AbstractColumn && [] !== $column->getSummarizers()) {
+                throw new \LogicException(\sprintf('The column "%s" declares a summary, but API Platform tables cannot aggregate every matching row. Remove summarize() or read the table through Doctrine.', $column->getName()));
+            }
+        }
     }
 
     private function resolveFilterEntityOptions(DataTable $table): void

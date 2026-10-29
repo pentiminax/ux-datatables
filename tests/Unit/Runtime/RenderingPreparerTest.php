@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\ChoiceColumn;
+use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
@@ -31,6 +32,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\Model\Filters;
+use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
@@ -171,6 +173,20 @@ final class RenderingPreparerTest extends TestCase
 
         $this->assertSame(['type' => 'GET', 'url' => '/api/products'], $table->getOption('ajax'));
         $this->assertTrue($table->getOption('apiPlatform'));
+    }
+
+    #[Test]
+    public function it_rejects_summaries_on_an_api_platform_table(): void
+    {
+        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
+        $urlResolver->method('resolveCollectionUrl')->willReturn('/api/products');
+
+        $table = (new DataTable('Test'))->columns([NumberColumn::new('price')->summarize(new Sum())]);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('The column "price" declares a summary, but API Platform tables cannot aggregate');
+
+        (new RenderingPreparer(urlResolver: $urlResolver))->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
     }
 
     public static function provideApiPlatformOptIns(): iterable

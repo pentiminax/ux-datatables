@@ -8,9 +8,12 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Types\ConversionException;
 use Doctrine\DBAL\Types\Type;
+use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -18,8 +21,10 @@ use Pentiminax\UX\DataTables\Contracts\ScopedIdentifierProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
+use Pentiminax\UX\DataTables\Model\Summary\SummaryType;
 use Pentiminax\UX\DataTables\Query\CollectionJoinDetector;
 use Pentiminax\UX\DataTables\Query\DoctrineSortDirection;
+use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
 class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectingDataProviderInterface, ScopedIdentifierProviderInterface, StreamingDataProviderInterface
@@ -54,6 +59,12 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
          */
         private $configureBaseQueryBuilder = null,
         private readonly int $exportChunkSize = 250,
+        /**
+         * Columns whose summarizers feed {@see DataTableResult::$summaries}.
+         *
+         * @var list<ColumnInterface>
+         */
+        private readonly array $columns = [],
     ) {
     }
 
@@ -85,6 +96,8 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
 
         $filteredCount = $this->isSameCountQuery($baseQb, $qb) ? $recordsTotal : $this->count($qb, $alias);
 
+        $summaries = $this->summarize($qb, $alias);
+
         if ($request->start > 0) {
             $qb->setFirstResult($request->start);
         }
@@ -113,8 +126,88 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         return new DataTableResult(
             recordsTotal: $recordsTotal,
             recordsFiltered: $filteredCount,
-            data: $rows
+            data: $rows,
+            summaries: $summaries,
         );
+    }
+
+    /**
+     * Aggregates over every row the filtered query matches, ignoring its pagination and order.
+     *
+     * The aggregate reads the entity again through `id IN (matching root ids)`: aggregating the
+     * filtered query itself would count a root once per joined row of a to-many join (a search
+     * on `tags.label`) and inflate every sum. Only the summarized fields join the outer query.
+     *
+     * @return array<string, array<string, int|float|string|null>>|null summaries by column name
+     */
+    private function summarize(QueryBuilder $qb, string $alias): ?array
+    {
+        $summarized = array_values(array_filter(
+            $this->columns,
+            static fn (ColumnInterface $column): bool => $column instanceof AbstractColumn && [] !== $column->getSummarizers(),
+        ));
+
+        if ([] === $summarized) {
+            return null;
+        }
+
+        $identifier = $this->em->getClassMetadata($this->entityClass)->getSingleIdentifierFieldName();
+        $matching   = (clone $qb)
+            ->select("$alias.$identifier")
+            ->distinct(false)
+            ->resetDQLPart('orderBy')
+            ->setFirstResult(null)
+            ->setMaxResults(null);
+
+        $resolved = $this->em->createQueryBuilder()->from($this->entityClass, 'ux_summary');
+        $plan     = [];
+
+        foreach ($summarized as $column) {
+            $field = $column->getField();
+
+            if (null === $field || (!str_contains($field, '.') && !RelationFieldResolver::supportsSearchFiltering($resolved, $field))) {
+                throw new \LogicException(\sprintf('The column "%s" cannot be summarized on the server because "%s" is not a mapped field of "%s".', $column->getName(), $field, $this->entityClass));
+            }
+
+            $expression = RelationFieldResolver::resolve($resolved, 'ux_summary', $field);
+
+            foreach ($column->getSummarizers() as $summarizer) {
+                $plan['ux_summary_value_'.\count($plan)] = [$column, $summarizer->getType(), $expression];
+            }
+        }
+
+        // The resolver's joins are replayed under prefixed aliases: the scope may own `region` already.
+        $outer   = $this->em->createQueryBuilder()->from($this->entityClass, 'ux_summary');
+        $renamed = [];
+        foreach ($resolved->getDQLPart('join') as $joins) {
+            foreach ($joins as $join) {
+                [$parent, $association]     = explode('.', $join->getJoin(), 2);
+                $renamed[$join->getAlias()] = 'ux_summary_join_'.$join->getAlias();
+                $outer->leftJoin(($renamed[$parent] ?? $parent).'.'.$association, $renamed[$join->getAlias()]);
+            }
+        }
+
+        foreach ($plan as $select => [, $type, $expression]) {
+            [$owner, $path] = explode('.', $expression, 2);
+            $outer->addSelect($type->toDql(($renamed[$owner] ?? $owner).'.'.$path)." AS $select");
+        }
+
+        $outer
+            ->where($outer->expr()->in("ux_summary.$identifier", $matching->getDQL()))
+            ->setParameters($matching->getParameters());
+
+        $row       = $outer->getQuery()->getSingleResult(AbstractQuery::HYDRATE_SCALAR);
+        $summaries = [];
+
+        foreach ($plan as $select => [$column, $type]) {
+            $value = $row[$select];
+
+            $summaries[$column->getName()][$type->value] = is_numeric($value) && (SummaryType::Min !== $type && SummaryType::Max !== $type || $column->isNumber())
+                ? $value + 0
+                : $value;
+        }
+
+        return $summaries;
     }
 
     /**
@@ -175,7 +268,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      * status, a date) leaves ties whose relative order the database is free to change between
      * two queries, which would let a row be exported twice or not at all.
      *
-     * A computed column ordered through {@see \Pentiminax\UX\DataTables\Contracts\ColumnInterface::getOrderExpression()}
+     * A computed column ordered through {@see ColumnInterface::getOrderExpression()}
      * lives as a HIDDEN SELECT alias. The identifier query keeps those extra SELECT parts so
      * `ORDER BY invoiceCount` stays valid; dropping them made Doctrine reject the export after
      * download headers were already sent.

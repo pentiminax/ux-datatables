@@ -165,6 +165,30 @@ final class DataTableRuntimeTest extends TestCase
     }
 
     #[Test]
+    public function it_adds_summaries_to_the_json_response_only_when_the_provider_returns_some(): void
+    {
+        $responseFor = function (?array $summaries): array {
+            $runtime = $this->createRuntime(new class($summaries) implements DataProviderInterface {
+                public function __construct(private readonly ?array $summaries)
+                {
+                }
+
+                public function fetchData(DataTableRequest $request): DataTableResult
+                {
+                    return new DataTableResult(1, 1, [['total' => 5]], $this->summaries);
+                }
+            });
+            $runtime->handleRequest(new Request(query: ['draw' => 2]));
+
+            return json_decode((string) $runtime->getResponse()->getContent(), true);
+        };
+
+        $this->assertSame(['total' => ['sum' => 5]], $responseFor(['total' => ['sum' => 5]])['summaries']);
+        $this->assertArrayNotHasKey('summaries', $responseFor(null));
+        $this->assertArrayNotHasKey('summaries', $responseFor([]));
+    }
+
+    #[Test]
     #[DataProvider('showAllLengthMenus')]
     public function it_bounds_the_request_length_from_the_table_length_menu(array $lengthMenu): void
     {

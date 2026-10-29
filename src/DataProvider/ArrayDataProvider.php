@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\DataProvider;
 
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
@@ -91,12 +92,40 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
             recordsTotal: $recordsTotal,
             recordsFiltered: \count($matched),
             data: $this->mapRows($this->slice($matched, $request)),
+            summaries: $this->summarize($matched),
         );
     }
 
     public function iterateRows(DataTableRequest $request): iterable
     {
         return $this->fetchData($request->withoutPagination())->data;
+    }
+
+    /**
+     * @param list<object> $items
+     *
+     * @return array<string, array<string, int|float|string|null>>|null
+     */
+    private function summarize(array $items): ?array
+    {
+        $summaries = [];
+
+        foreach ($this->columns as $column) {
+            if (!$column instanceof AbstractColumn) {
+                continue;
+            }
+
+            $values = [] === $column->getSummarizers() ? [] : array_map(
+                static fn (object $item): mixed => PropertyReader::readPath($item, $column->getField() ?? $column->getName()),
+                $items,
+            );
+
+            foreach ($column->getSummarizers() as $summarizer) {
+                $summaries[$column->getName()][$summarizer->getType()->value] = $summarizer->getType()->aggregate($values);
+            }
+        }
+
+        return [] === $summaries ? null : $summaries;
     }
 
     /**

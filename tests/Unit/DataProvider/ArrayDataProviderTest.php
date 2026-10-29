@@ -20,6 +20,8 @@ use Pentiminax\UX\DataTables\DataTableRequest\Search;
 use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Model\Filters;
+use Pentiminax\UX\DataTables\Model\Summary\Max;
+use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -462,6 +464,26 @@ final class ArrayDataProviderTest extends TestCase
             ['id' => 3, 'name' => 'alicia', 'score' => null],
             ['id' => 4, 'name' => null, 'score' => 20],
         ];
+    }
+
+    #[Test]
+    public function it_summarizes_every_matching_row_in_memory(): void
+    {
+        $rows    = [['name' => 'Alice', 'score' => 10], ['name' => 'Alina', 'score' => 20], ['name' => 'Bob', 'score' => 40]];
+        $columns = [TextColumn::new('name'), NumberColumn::new('score')->summarize(new Sum(), new Max())];
+        $request = self::request(start: 0, length: 1, search: new Search('ali', false));
+
+        $result = (new ArrayDataProvider($rows, new CountingRowMapper(), $columns))->fetchData($request);
+
+        $this->assertSame(['score' => ['sum' => 30, 'max' => 20]], $result->summaries);
+    }
+
+    #[Test]
+    public function it_reports_no_summaries_when_no_column_declares_one(): void
+    {
+        $result = (new ArrayDataProvider([['id' => 1]], new CountingRowMapper(), self::columns()))->fetchData(self::request(start: 0, length: 10));
+
+        $this->assertNull($result->summaries);
     }
 
     /**
