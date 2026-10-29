@@ -51,6 +51,14 @@ export function createMercureSubscription(config, onMessage) {
             debounceTimer = null;
         }, debounceMs);
     };
+    const close = eventSource.close.bind(eventSource);
+    eventSource.close = () => {
+        if (debounceTimer !== null) {
+            clearTimeout(debounceTimer);
+            debounceTimer = null;
+        }
+        close();
+    };
     return eventSource;
 }
 //# sourceMappingURL=mercureSubscription.js.map

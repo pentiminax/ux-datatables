@@ -6,7 +6,7 @@ import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRend
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js';
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js';
 import { createIconColumnRenderer } from './columnRenderers/iconColumnRenderer.js';
-import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js';
+import { bindImagePlaceholder, imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js';
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js';
 import { relativeDateColumnRenderer } from './columnRenderers/relativeDateColumnRenderer.js';
 import { textColumnRenderer } from './columnRenderers/textColumnRenderer.js';
@@ -92,7 +92,7 @@ class default_1 extends Controller {
             if (this.table) {
                 this.dispatchEvent('reconnect', { table: this.table });
                 this.bindPopstate(isUrlStateEnabled(this.viewValue));
-                await this.initMercure(this.viewValue);
+                await this.startMercure(this.viewValue);
             }
             return;
         }
@@ -155,10 +155,11 @@ class default_1 extends Controller {
             this.table.on('draw.dt', () => writeUrlState(urlStateCfg, this.table));
             this.bindPopstate(urlStateCfg);
         }
-        await this.initMercure(payload);
+        bindImagePlaceholder(this.element);
         this.bindActionHandler(payload);
         this.bindBooleanToggleHandler(payload);
         this.isDataTableInitialized = true;
+        await this.startMercure(payload);
     }
     disconnect() {
         document.removeEventListener('turbo:before-cache', this.onTurboBeforeCache);
@@ -295,6 +296,14 @@ class default_1 extends Controller {
                 ...column,
                 data: resolveColumnDataKey(column),
             }));
+        }
+    }
+    async startMercure(payload) {
+        try {
+            await this.initMercure(payload);
+        }
+        catch (error) {
+            console.error('UX DataTables: unable to start the Mercure subscription.', error);
         }
     }
     async initMercure(payload) {
