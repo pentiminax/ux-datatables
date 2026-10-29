@@ -19,6 +19,8 @@ describe('isSafeRecordUrl', () => {
         ['users/42', false],
         ['http://', false],
         ['/a\nb', false],
+        ['http://a b', false],
+        ['/a b', false],
         ['', false],
         [null, false],
         [42, false],
@@ -45,7 +47,7 @@ describe('bindRecordClick', () => {
             '<td><a href="/x">link</a></td><td><button>b</button></td>' +
             '<td><input type="checkbox"></td><td class="dt-select">s</td>' +
             '<td><span data-action-type="delete"><i></i></span></td>' +
-            '<td><label>l</label></td></tr>' +
+            '<td><label>l</label></td><td class="dtr-control">r</td><td class="dt-control">c</td></tr>' +
             '<tr data-record-url="javascript:alert(1)"><td class="evil">Eve</td></tr>' +
             '<tr><td class="none">None</td></tr>' +
             '</tbody>'
@@ -64,14 +66,20 @@ describe('bindRecordClick', () => {
         expect(assign).toHaveBeenCalledWith('/users/1')
     })
 
-    it.each(['a', 'button', 'input', '.dt-select', '[data-action-type] i', 'label'])(
-        'ignores clicks on %s',
-        (selector) => {
-            click(table.querySelector(selector) as Element)
+    it.each([
+        'a',
+        'button',
+        'input',
+        '.dt-select',
+        '[data-action-type] i',
+        'label',
+        '.dtr-control',
+        '.dt-control',
+    ])('ignores clicks on %s', (selector) => {
+        click(table.querySelector(selector) as Element)
 
-            expect(assign).not.toHaveBeenCalled()
-        }
-    )
+        expect(assign).not.toHaveBeenCalled()
+    })
 
     it('refuses an unsafe URL and rows without one', () => {
         click(table.querySelector('.evil') as Element)

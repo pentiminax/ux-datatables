@@ -1,8 +1,8 @@
 // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are what this rejects
-const SAFE_URL =/^(?:\/(?![/\\])|https?:\/\/[^/?#\s]+)[^\u0000-\u001f\u007f\\]*$/i
+const SAFE_URL = /^(?:\/(?![/\\])|https?:\/\/[^/?#\s]+)[^\s\u0000-\u001f\u007f\\]*$/i
 
 const INTERACTIVE =
-    'a, button, input, select, textarea, label, [role="button"], [data-action-type], .dt-select, .select-checkbox'
+    'a, button, input, select, textarea, label, [role="button"], [data-action-type], .dt-select, .select-checkbox, .dtr-control, .dt-control'
 
 /**
  * Accepts only a path starting with a single "/" or an http(s) URL. Mirrors the PHP

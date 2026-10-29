@@ -48,6 +48,8 @@ final class RecordUrlFilterTest extends TestCase
         yield 'newline in path' => ["/a\nb", null];
         yield 'trailing newline' => ["/a\n", null];
         yield 'null byte' => ["/a\0b", null];
+        yield 'space in host' => ['http://a b', null];
+        yield 'space in path' => ['/a b', null];
         yield 'empty' => ['', null];
         yield 'null' => [null, null];
         yield 'not a string' => [42, null];
