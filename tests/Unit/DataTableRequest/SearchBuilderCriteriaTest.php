@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\DataTableRequest;
 
 use Pentiminax\UX\DataTables\DataTableRequest\SearchBuilderCriteria;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @internal
@@ -46,6 +48,42 @@ final class SearchBuilderCriteriaTest extends TestCase
         ]]);
 
         $this->assertCount(1, $tree['criteria']);
+    }
+
+    #[Test]
+    public function it_skips_the_blank_criterion_datatables_sends_for_a_new_row(): void
+    {
+        $tree = SearchBuilderCriteria::parse([
+            'logic'    => 'AND',
+            'criteria' => [
+                ['condition' => '>', 'data' => 'Id', 'origData' => 'id', 'type' => 'num', 'value' => ['2']],
+                ['condition' => 'undefined', 'data' => 'undefined', 'origData' => 'undefined', 'type' => '', 'value' => []],
+            ],
+        ]);
+
+        $this->assertCount(1, $tree['criteria']);
+        $this->assertSame('id', $tree['criteria'][0]['column']);
+    }
+
+    #[Test]
+    public function it_reads_the_parameter_from_the_request(): void
+    {
+        $request = Request::create('/ajax', 'GET', [
+            'draw'          => '1',
+            'searchBuilder' => [
+                'logic'    => 'AND',
+                'criteria' => [
+                    ['condition' => '>', 'origData' => 'id', 'type' => 'num', 'value' => ['2'], 'value1' => '2'],
+                    ['condition' => 'undefined', 'data' => 'undefined', 'origData' => 'undefined', 'type' => ''],
+                ],
+            ],
+        ]);
+
+        $parsed = DataTableRequest::fromRequest($request)->searchBuilder;
+
+        $this->assertCount(1, $parsed['criteria']);
+        $this->assertNull(DataTableRequest::fromRequest(Request::create('/ajax', 'GET', ['searchBuilder' => 'x']))->searchBuilder);
+        $this->assertNull(DataTableRequest::fromRequest(Request::create('/ajax'))->searchBuilder);
     }
 
     #[Test]

@@ -5,15 +5,8 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\DataTableRequest;
 
 /**
- * Strict parser for the `searchBuilder` request parameter.
- *
- * The payload is client controlled, so it is accepted whole or not at all: any unknown logic or
- * condition, a malformed node, or a tree beyond the depth or size limits yields null and no
- * SearchBuilder filter is applied. Criteria that are merely incomplete (a blank value) are
- * dropped, as SearchBuilder itself ignores them.
- *
- * A group is `['logic' => 'AND'|'OR', 'criteria' => list<node>]`; a criterion is
- * `['column' => string, 'condition' => string, 'type' => string, 'values' => list<string>]`.
+ * Strict parser for the `searchBuilder` request parameter: an invalid payload yields null, while
+ * incomplete criteria (blank or "undefined" fields, as DataTables sends for a new row) are skipped.
  */
 final class SearchBuilderCriteria
 {
@@ -95,6 +88,10 @@ final class SearchBuilderCriteria
         $type      = $raw['type']      ?? '';
         $values    = $raw['value']     ?? [];
 
+        if (self::blank($column) || self::blank($condition)) {
+            return false;
+        }
+
         if (!self::text($column) || !\is_string($condition) || !\in_array($condition, self::CONDITIONS, true)
                                  || !\is_string($type) || \strlen($type) > self::MAX_STRING || !\is_array($values) || \count($values) > 2) {
             return null;
@@ -106,7 +103,7 @@ final class SearchBuilderCriteria
             }
         }
 
-        $values   = array_map(strval(...), array_values($values));
+        $values   = array_map(static fn (mixed $v): string => self::blank((string) $v) ? '' : (string) $v, array_values($values));
         $required = match ($condition) {
             'null', '!null'       => 0,
             'between', '!between' => 2,
@@ -118,6 +115,11 @@ final class SearchBuilderCriteria
         }
 
         return ['column' => $column, 'condition' => $condition, 'type' => $type, 'values' => $values];
+    }
+
+    private static function blank(mixed $value): bool
+    {
+        return null === $value || '' === $value || 'undefined' === $value;
     }
 
     private static function text(mixed $value, bool $allowEmpty = false): bool
