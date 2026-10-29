@@ -47,7 +47,7 @@ JavaScript before the controller connects. Intervals outside 2 seconds to 24 hou
 - Column summaries are additive: a table without `summarize()` is unchanged. A table that uses
   `summarize()` cannot be read through API Platform (rendering throws a `LogicException`), and a
   custom `DataProviderInterface` supplies figures through the new optional `summaries` argument of
-  `DataTableResult`. See [Column Summaries](docs/src/content/docs/features/column-summaries.mdx).
+  `DataTableResult`. See [Column Summaries](https://pentiminax.github.io/ux-datatables/features/column-summaries/).
 
 ### Deprecated APIs
 
@@ -60,7 +60,14 @@ Everything below keeps working and is removed in v2.0.
 
 `DataTable::emptyState()`, `rowClass()` and `recordUrl()` are additive; tables that do not call them
 render exactly as before. Run `composer update` and rebuild your assets. See
-[Empty State and Row Presentation](docs/src/content/docs/features/row-presentation.mdx).
+[Empty State and Row Presentation](https://pentiminax.github.io/ux-datatables/features/row-presentation/).
+
+### New: global table defaults
+
+Implement `DataTableDefaultsConfiguratorInterface` to configure every table in one place. It is
+additive and runs between the `data_tables` YAML and `configureDataTable()`. The YAML config is now
+also validated when the container compiles. See
+[Global Defaults in PHP](https://pentiminax.github.io/ux-datatables/guide/configuration/#global-defaults-in-php).
 
 ## v1.1 → v1.2
 

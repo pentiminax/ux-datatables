@@ -42,7 +42,7 @@ return static function (RoutingConfigurator $routes): void {
   The table token in the request identifies **which** table is requested, not **who** is requesting
   it — it is not a user-authentication mechanism. If a table sits behind a firewall, you must also
   cover the `^/datatables/ajax` routes with a matching `access_control` rule, or the data can be
-  fetched by anyone holding the token. See [Securing Ajax Routes](../../getting-started/security/).
+  fetched by anyone holding the token. See [Securing Ajax Routes](/getting-started/security/).
 </Aside>
 
 Use an explicit `ajax()` URL when the endpoint is not an `AbstractDataTable` service, when you want a
@@ -332,7 +332,7 @@ A predicate must bind its own parameters and **return** the condition rather tha
 
 All three settings affect search only — the rendered value, the row mapping, the form mapping and
 the client payload keep using the column's own field. See
-[Sorting & Searching](/ux-datatables/columns/overview/#sorting--searching) for the full column
+[Sorting & Searching](/columns/overview/#sorting--searching) for the full column
 reference.
 
 ## Best Practices
@@ -347,6 +347,6 @@ reference.
 
 ## Cross Links
 
-- [/ux-datatables/guide/client-side-processing/](/ux-datatables/guide/client-side-processing/)
-- [/ux-datatables/reference/datatable-request/](/ux-datatables/reference/datatable-request/)
-- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)
+- [Client-side Processing](/guide/client-side-processing/)
+- [DataTableRequest](/reference/datatable-request/)
+- [AbstractDataTable](/reference/abstract-datatable/)

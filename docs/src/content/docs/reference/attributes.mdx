@@ -180,7 +180,7 @@ final class UserDataTable extends AbstractDataTable
 ```
 
 The attribute describes the shape, it does not build it: rows are still hydrated as `User`, so
-[`projectPage()`](/ux-datatables/reference/data-providers-row-mappers/#page-projection) is what turns
+[`projectPage()`](/reference/data-providers-row-mappers/#page-projection) is what turns
 them into `UserRow`. Actions, URLs and permission checks keep receiving the source entity.
 
 A `dataClass` Doctrine does not map is fine. An `entityClass` it does not map is not: automatic
@@ -345,7 +345,7 @@ a `DateRangeFilter`, an `int` or a `float` a `NumberRangeFilter`, and anything e
 
 Filters resolve down their own chain, `configureFilters()` first, then the table class, then the
 data class. The full reference, including the guessed types and the `values` alias, lives on the
-[filters page](/ux-datatables/reference/filters/#declaring-filters-with-an-attribute).
+[filters page](/reference/filters/#declaring-filters-with-an-attribute).
 
 ## `#[Column]`
 
@@ -377,6 +377,6 @@ placed on, which the new name resolves.
 
 ## Cross Links
 
-- [/ux-datatables/reference/abstract-datatable/](/ux-datatables/reference/abstract-datatable/)
-- [/ux-datatables/columns/overview/](/ux-datatables/columns/overview/)
-- [/ux-datatables/reference/filters/](/ux-datatables/reference/filters/)
+- [AbstractDataTable](/reference/abstract-datatable/)
+- [Columns Overview](/columns/overview/)
+- [Filters](/reference/filters/)

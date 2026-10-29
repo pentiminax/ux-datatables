@@ -28,18 +28,21 @@ The first argument is the data key (must match your `mapRow()` output), the seco
 <Table
   headers={['Column', 'Use when…']}
   rows={[
-    ['[TextColumn](./text-column/)', 'Plain text or HTML values'],
-    ['[NumberColumn](./number-column/)', 'Integers and floats'],
-    ['[MoneyColumn](./money-column/)', 'Currency amounts (ISO 4217, cents storage)'],
-    ['[DateColumn](./date-column/)', 'Date/datetime strings'],
-    ['[BooleanColumn](./boolean-column/)', 'True/false toggles with optional AJAX switch'],
-    ['[ChoiceColumn](./choice-column/)', 'Finite value sets (statuses, enum variants)'],
-    ['[EmailColumn](./email-column/)', 'Email addresses as clickable mailto links'],
-    ['[ImageColumn](./image-column/)', 'Image URLs rendered as `<img>` thumbnails'],
-    ['[IconColumn](./icon-column/)', 'A Lucide icon representing a status, boolean, or enum'],
-    ['[UrlColumn](./url-column/)', 'Arbitrary links from raw URLs, routes, or callables'],
-    ['[TemplateColumn](./template-column/)', 'Custom server-side Twig rendering'],
-    ['[ActionColumn](./action-column/)', 'Row action buttons (edit, delete, detail)'],
+    ['[TextColumn](/columns/text-column/)', 'Plain text or HTML values'],
+    ['[NumberColumn](/columns/number-column/)', 'Integers and floats'],
+    ['[MoneyColumn](/columns/money-column/)', 'Currency amounts (ISO 4217, cents storage)'],
+    ['[DateColumn](/columns/date-column/)', 'Date/datetime strings'],
+    ['[BooleanColumn](/columns/boolean-column/)', 'True/false toggles with optional AJAX switch'],
+    ['[ChoiceColumn](/columns/choice-column/)', 'Finite value sets (statuses, enum variants)'],
+    ['[EmailColumn](/columns/email-column/)', 'Email addresses as clickable mailto links'],
+    ['[ImageColumn](/columns/image-column/)', 'Image URLs rendered as `<img>` thumbnails'],
+    [
+      '[IconColumn](/columns/icon-column/)',
+      'A Lucide icon representing a status, boolean, or enum',
+    ],
+    ['[UrlColumn](/columns/url-column/)', 'Arbitrary links from raw URLs, routes, or callables'],
+    ['[TemplateColumn](/columns/template-column/)', 'Custom server-side Twig rendering'],
+    ['[ActionColumn](/columns/action-column/)', 'Row action buttons (edit, delete, detail)'],
   ]}
 />
 
@@ -109,7 +112,7 @@ NumberColumn::new('invoiceCount', 'Invoices')
     ->disableGlobalSearch();
 ```
 
-See [Sorting computed columns](/ux-datatables/guide/server-side-processing/#sorting-computed-columns)
+See [Sorting computed columns](/guide/server-side-processing/#sorting-computed-columns)
 for the matching `customizeQueryBuilder()` setup.
 
 #### Searching on a different field

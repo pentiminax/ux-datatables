@@ -11,7 +11,7 @@ and Twig call behind it.
 
 ## Start it
 
-You need PHP 8.4+ with `pdo_sqlite` and `zip`, and Composer. No database server, Node.js, or Docker.
+The demo app needs PHP 8.4+ (the bundle itself only requires PHP 8.3+) with `pdo_sqlite` and `zip`, plus Composer. No database server, Node.js, or Docker.
 
 ```bash
 git clone https://github.com/pentiminax/ux-datatables.git
@@ -46,5 +46,5 @@ have checked out — a handy way to try a change by hand.
 
 <Aside type="caution">
   The demo has no login and leaves `^/datatables/ajax` public. Your application must protect those
-  routes; see [Securing Ajax Routes](../security/).
+  routes; see [Securing Ajax Routes](/getting-started/security/).
 </Aside>

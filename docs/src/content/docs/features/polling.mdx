@@ -1,7 +1,7 @@
 ---
 title: Polling
 description: Refresh a server-side table at a fixed interval, and when to prefer Mercure
-order: 40
+order: 45
 navTitle: Polling
 ---
 
@@ -61,7 +61,7 @@ The timer stops when the table is removed from the page and restarts when Turbo 
 | Works behind proxies | Everywhere                      | Needs long-lived SSE connections  |
 
 Choose polling for data that changes continuously or from outside your application, such as
-metrics or queue sizes. Choose [Mercure](/ux-datatables/integrations/mercure/) when your application knows when
+metrics or queue sizes. Choose [Mercure](/integrations/mercure/) when your application knows when
 a row changes. Enabling both works, but the table then reloads for every push and every tick, so the
 browser logs a console warning once.
 
