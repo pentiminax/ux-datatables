@@ -178,7 +178,7 @@ final class RenderingPreparerTest extends TestCase
     #[Test]
     public function it_rejects_summaries_on_an_api_platform_table(): void
     {
-        $urlResolver = $this->createMock(ApiResourceCollectionUrlResolver::class);
+        $urlResolver = $this->createStub(ApiResourceCollectionUrlResolver::class);
         $urlResolver->method('resolveCollectionUrl')->willReturn('/api/products');
 
         $table = (new DataTable('Test'))->columns([NumberColumn::new('price')->summarize(new Sum())]);

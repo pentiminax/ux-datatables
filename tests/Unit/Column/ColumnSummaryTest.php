@@ -16,8 +16,10 @@ use Pentiminax\UX\DataTables\Model\Summary\Count;
 use Pentiminax\UX\DataTables\Model\Summary\Max;
 use Pentiminax\UX\DataTables\Model\Summary\Min;
 use Pentiminax\UX\DataTables\Model\Summary\Sum;
+use Pentiminax\UX\DataTables\Model\Summary\Summarizer;
 use Pentiminax\UX\DataTables\Model\Summary\SummaryType;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -57,11 +59,29 @@ final class ColumnSummaryTest extends TestCase
     }
 
     #[Test]
-    public function min_max_and_count_accept_non_numeric_columns(): void
+    public function only_count_accepts_a_non_numeric_column(): void
     {
-        $column = DateColumn::new('createdAt')->summarize(Min::new(), Max::new(), Count::new());
+        $this->assertCount(1, DateColumn::new('createdAt')->summarize(Count::new())->getSummarizers());
+        $this->assertCount(1, TextColumn::new('name')->summarize(Count::new())->getSummarizers());
+    }
 
-        $this->assertCount(3, $column->getSummarizers());
+    #[Test]
+    #[DataProvider('numericOnlySummarizers')]
+    public function min_and_max_on_a_date_column_throw(Summarizer $summarizer): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        DateColumn::new('createdAt')->summarize($summarizer);
+    }
+
+    /**
+     * @return iterable<string, array{Summarizer}>
+     */
+    public static function numericOnlySummarizers(): iterable
+    {
+        yield 'min' => [new Min()];
+        yield 'max' => [new Max()];
+        yield 'average' => [new Average()];
     }
 
     #[Test]
@@ -101,22 +121,19 @@ final class ColumnSummaryTest extends TestCase
     #[Test]
     public function it_aggregates_in_memory_ignoring_nulls(): void
     {
-        $values = [10, '5.5', null, '', 4.5];
+        $values = [10, '5.5', null, 4.5];
 
         $this->assertSame(20.0, SummaryType::Sum->aggregate($values));
         $this->assertEqualsWithDelta(6.6666, SummaryType::Average->aggregate($values), 0.001);
-        $this->assertSame(4.5, SummaryType::Min->aggregate([10, 4.5, null]));
-        $this->assertSame(10, SummaryType::Max->aggregate([10, 4.5, null]));
-        $this->assertSame(3, SummaryType::Count->aggregate($values));
+        $this->assertSame(4.5, SummaryType::Min->aggregate($values));
+        $this->assertSame(10, SummaryType::Max->aggregate($values));
         $this->assertNull(SummaryType::Sum->aggregate([null]));
-        $this->assertSame(0, SummaryType::Count->aggregate([]));
     }
 
     #[Test]
-    public function it_aggregates_dates_as_atom_strings(): void
+    public function count_counts_every_non_null_value(): void
     {
-        $dates = [new \DateTimeImmutable('2025-03-01T00:00:00+00:00'), new \DateTimeImmutable('2024-01-01T00:00:00+00:00')];
-
-        $this->assertSame('2024-01-01T00:00:00+00:00', SummaryType::Min->aggregate($dates));
+        $this->assertSame(3, SummaryType::Count->aggregate(['a', '', 0, null]));
+        $this->assertSame(0, SummaryType::Count->aggregate([]));
     }
 }

@@ -514,13 +514,8 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
     }
 
     /**
-     * Shows totals in the table footer, computed over every row matching the current search and
-     * filters, not just the visible page.
-     *
-     *     MoneyColumn::new('total')->summarize(Sum::new('Revenue'), Average::new());
-     *
-     * Sum and Average need a numeric column. Money columns format the figures like their cells.
-     * A second summarizer of the same type replaces the first.
+     * Shows footer figures over every row matching the search and filters. Only Count accepts a
+     * non-numeric column.
      *
      * @throws \InvalidArgumentException when the column cannot be summarized
      */

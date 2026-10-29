@@ -12,9 +12,13 @@ enum SummaryType: string
     case Max     = 'max';
     case Count   = 'count';
 
+    /**
+     * Only a count makes sense on any column: formatted dates and text order differently in SQL,
+     * PHP and the browser.
+     */
     public function requiresNumericColumn(): bool
     {
-        return self::Sum === $this || self::Average === $this;
+        return self::Count !== $this;
     }
 
     /**
@@ -32,34 +36,31 @@ enum SummaryType: string
     }
 
     /**
-     * Aggregates in memory; null and empty values are ignored, as SQL ignores NULL.
+     * Aggregates in memory. NULL is ignored, as SQL ignores it; Count counts every non-null value.
      *
      * @param list<mixed> $values
      *
      * @internal
      */
-    public function aggregate(array $values): int|float|string|null
+    public function aggregate(array $values): int|float|null
     {
-        $values = array_values(array_filter(
-            array_map(static fn (mixed $value): mixed => $value instanceof \DateTimeInterface ? $value->format(\DATE_ATOM) : $value, $values),
-            static fn (mixed $value): bool => null !== $value && '' !== $value,
-        ));
+        $present = array_filter($values, static fn (mixed $value): bool => null !== $value);
 
         if (self::Count === $this) {
-            return \count($values);
+            return \count($present);
         }
 
-        if ([] === $values) {
+        $numbers = array_map(static fn (mixed $value): int|float => $value + 0, array_values(array_filter($present, is_numeric(...))));
+
+        if ([] === $numbers) {
             return null;
         }
 
-        $numeric = array_filter($values, is_numeric(...));
-
         return match ($this) {
-            self::Sum     => array_sum($numeric),
-            self::Average => [] === $numeric ? null : array_sum($numeric) / \count($numeric),
-            self::Min     => min($values),
-            self::Max     => max($values),
+            self::Sum     => array_sum($numbers),
+            self::Average => array_sum($numbers) / \count($numbers),
+            self::Min     => min($numbers),
+            self::Max     => max($numbers),
         };
     }
 }
