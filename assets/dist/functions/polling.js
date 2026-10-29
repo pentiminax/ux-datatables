@@ -32,14 +32,28 @@ export function startPolling(table, intervalSeconds, container) {
         }
     };
     table.on('preXhr.dt', onRequestStart);
-    table.on('xhr.dt error.dt', onRequestEnd);
+    table.on('xhr.dt', onRequestEnd);
     document.addEventListener('visibilitychange', onVisibilityChange);
     const timer = setInterval(tick, intervalMs);
     return () => {
         clearInterval(timer);
         document.removeEventListener('visibilitychange', onVisibilityChange);
         table.off('preXhr.dt', onRequestStart);
-        table.off('xhr.dt error.dt', onRequestEnd);
+        table.off('xhr.dt', onRequestEnd);
     };
+}
+let hasWarnedPollingWithMercure = false;
+export function ensurePolling(current, { table, payload, element, mercureEnabled }) {
+    if (current) {
+        return current;
+    }
+    if (!element.isConnected || !table?.ajax || !isPollingEnabled(payload)) {
+        return null;
+    }
+    if (mercureEnabled && !hasWarnedPollingWithMercure) {
+        hasWarnedPollingWithMercure = true;
+        console.warn('[ux-datatables] poll() and mercure() are both enabled: Mercure already pushes updates, so polling adds redundant requests.');
+    }
+    return startPolling(table, payload.pollInterval, element.closest('.dt-container') ?? element);
 }
 //# sourceMappingURL=polling.js.map
