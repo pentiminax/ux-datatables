@@ -35,6 +35,7 @@ use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\BulkActionRunner;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
@@ -158,6 +159,11 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.mutation.flusher', MutationFlusher::class)
         ->private();
 
+    $services->set('datatables.mutation.row_scope_guard', RowScopeGuard::class)
+        ->arg(0, service('datatables.mutation.locator'))
+        ->arg(1, service('request_stack')->nullOnInvalid())
+        ->private();
+
     $services->set('datatables.mutation.mutator', EntityMutator::class)
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('property_accessor'))
@@ -194,6 +200,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('datatables.mutation.mutator'))
         ->arg(1, service('datatables.security.mutation_token_validator'))
         ->arg(2, service('datatables.mutation.boolean_context_resolver'))
+        ->arg(3, service('datatables.mutation.row_scope_guard'))
         ->tag('controller.service_arguments')
         ->public();
 
@@ -202,6 +209,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(1, service('datatables.security.mutation_token_validator'))
         ->arg(2, service('datatables.ajax.registry'))
         ->arg(3, service('datatables.security.authorization_checker'))
+        ->arg(4, service('datatables.mutation.row_scope_guard'))
         ->tag('controller.service_arguments')
         ->public();
 
@@ -250,6 +258,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('twig')->nullOnInvalid())
         ->arg(2, service('datatables.security.authorization_checker'))
+        ->arg(3, service('datatables.mutation.row_scope_guard'))
         ->private();
 
     $services->set('datatables.controller.ajax_detail', AjaxDetailController::class)

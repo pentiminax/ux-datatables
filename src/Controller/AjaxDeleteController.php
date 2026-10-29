@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,6 +25,7 @@ final class AjaxDeleteController
         private readonly MutationTokenValidator $tokenValidator,
         private readonly AjaxDataTableRegistry $registry,
         ?AuthorizationChecker $permissionChecker = null,
+        private readonly ?RowScopeGuard $scopeGuard = null,
     ) {
         $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
@@ -38,6 +40,8 @@ final class AjaxDeleteController
         if (null === $action || false === $this->permissionChecker->canExecuteAction($dataTable->dataTableClass, $action)) {
             throw new MutationNotAllowedException();
         }
+
+        $this->scopeGuard?->assertInScope($dataTable, $payload->id);
 
         $this->mutator->delete($dataTable->requireEntityClass(), $payload->id, $dataTable->dataTableClass, $action);
 

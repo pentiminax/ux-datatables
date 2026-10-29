@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Twig\Environment;
 
@@ -19,6 +20,7 @@ final readonly class DetailRowService
         private EntityLocator $locator,
         private ?Environment $twig = null,
         ?AuthorizationChecker $permissionChecker = null,
+        private ?RowScopeGuard $scopeGuard = null,
     ) {
         $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
@@ -40,6 +42,7 @@ final readonly class DetailRowService
         }
 
         try {
+            $this->scopeGuard?->assertInScope($dataTable, $id);
             $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
         } catch (EntityNotFoundException) {
             return AjaxActionResult::notFound();

@@ -48,6 +48,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(5, service('datatables.mercure.topic_resolver'))
         ->arg(6, service('datatables.mutation.flusher'))
         ->arg(7, service('datatables.security.authorization_checker'))
+        ->arg(8, service('datatables.mutation.row_scope_guard'))
         ->private();
 
     $services->set('datatables.controller.ajax_edit_form', AjaxEditFormController::class)
