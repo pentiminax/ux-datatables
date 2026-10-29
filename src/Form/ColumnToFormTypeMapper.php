@@ -255,7 +255,6 @@ final class ColumnToFormTypeMapper
             return false;
         }
 
-        return $this->propertyAccessor->isWritable($entity, $property)
-            || $this->propertyAccessor->isReadable($entity, $property);
+        return $this->propertyAccessor->isWritable($entity, $property);
     }
 }

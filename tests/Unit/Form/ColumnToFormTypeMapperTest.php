@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
+use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Model\Actions;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -28,6 +29,7 @@ use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Forms;
 
 /**
  * @internal
@@ -217,11 +219,22 @@ final class ColumnToFormTypeMapperTest extends TestCase
     }
 
     #[Test]
-    public function column_named_for_a_getter_only_property_is_kept(): void
+    public function column_named_for_a_getter_only_property_is_skipped(): void
     {
-        $mapped = $this->mapper->map(TextColumn::new('slug', 'Slug'), new ColumnToFormTypeMapperEntity());
+        $this->assertNull($this->mapper->map(TextColumn::new('slug', 'Slug'), new ColumnToFormTypeMapperEntity()));
+    }
 
-        $this->assertSame(TextType::class, $mapped['formType']);
+    #[Test]
+    public function submitting_a_form_with_a_getter_only_column_does_not_fail(): void
+    {
+        $entity = new ColumnToFormTypeMapperEntity();
+        $form   = (new EditFormBuilder(Forms::createFormFactory(), $this->mapper))
+            ->buildForm($entity, [TextColumn::new('name', 'Name'), TextColumn::new('slug', 'Slug')]);
+
+        $form->submit(['name' => 'Grace']);
+
+        $this->assertFalse($form->has('slug'));
+        $this->assertSame('Grace', $entity->name);
     }
 }
 
