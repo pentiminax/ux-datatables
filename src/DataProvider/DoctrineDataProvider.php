@@ -21,7 +21,6 @@ use Pentiminax\UX\DataTables\Contracts\ScopedIdentifierProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
-use Pentiminax\UX\DataTables\Model\Summary\SummaryType;
 use Pentiminax\UX\DataTables\Query\CollectionJoinDetector;
 use Pentiminax\UX\DataTables\Query\DoctrineSortDirection;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
@@ -151,7 +150,12 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             return null;
         }
 
-        $identifier = $this->em->getClassMetadata($this->entityClass)->getSingleIdentifierFieldName();
+        $metadata = $this->em->getClassMetadata($this->entityClass);
+        if ($metadata->isIdentifierComposite) {
+            throw new \LogicException(\sprintf('Summaries need a single-column identifier, but "%s" has a composite one.', $this->entityClass));
+        }
+
+        $identifier = $metadata->getSingleIdentifierFieldName();
         $matching   = (clone $qb)
             ->select("$alias.$identifier")
             ->distinct(false)
@@ -170,6 +174,10 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             }
 
             $expression = RelationFieldResolver::resolve($resolved, 'ux_summary', $field);
+
+            if (CollectionJoinDetector::joinsCollection($resolved, $this->em, 'ux_summary', $this->entityClass)) {
+                throw new \LogicException(\sprintf('The column "%s" cannot be summarized because "%s" crosses a to-many association, which would repeat rows in every other summary.', $column->getName(), $field));
+            }
 
             foreach ($column->getSummarizers() as $summarizer) {
                 $plan['ux_summary_value_'.\count($plan)] = [$column, $summarizer->getType(), $expression];
@@ -192,9 +200,17 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             $outer->addSelect($type->toDql(($renamed[$owner] ?? $owner).'.'.$path)." AS $select");
         }
 
-        $outer
-            ->where($outer->expr()->in("ux_summary.$identifier", $matching->getDQL()))
-            ->setParameters($matching->getParameters());
+        if (null === $qb->getDQLPart('having')) {
+            $outer
+                ->where($outer->expr()->in("ux_summary.$identifier", $matching->getDQL()))
+                ->setParameters($matching->getParameters());
+        } else {
+            // shortcut: a HAVING may name a HIDDEN alias a subquery cannot select, so the ids are bound
+            // as one list; upgrade to chunked aggregation if a grouped scope matches tens of thousands of roots.
+            $outer
+                ->where($outer->expr()->in("ux_summary.$identifier", ':ux_summary_ids'))
+                ->setParameter('ux_summary_ids', $this->collectExportIdentifiers($qb, $alias, $identifier), $this->arrayBindingType($this->fieldType($metadata, $identifier)));
+        }
 
         $row       = $outer->getQuery()->getSingleResult(AbstractQuery::HYDRATE_SCALAR);
         $summaries = [];
@@ -202,9 +218,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         foreach ($plan as $select => [$column, $type]) {
             $value = $row[$select];
 
-            $summaries[$column->getName()][$type->value] = is_numeric($value) && (SummaryType::Min !== $type && SummaryType::Max !== $type || $column->isNumber())
-                ? $value + 0
-                : $value;
+            $summaries[$column->getName()][$type->value] = is_numeric($value) ? $value + 0 : $value;
         }
 
         return $summaries;

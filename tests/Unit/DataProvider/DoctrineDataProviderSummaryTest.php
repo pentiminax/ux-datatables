@@ -25,6 +25,7 @@ use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\Query\Strategy\DefaultSearchStrategyRegistry;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountLine;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryNote;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryOrder;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryRegion;
@@ -179,6 +180,66 @@ final class DoctrineDataProviderSummaryTest extends TestCase
         $result = $this->fetch(request: $this->request(search: 'nothing-matches'));
 
         $this->assertSame(['sum' => null, 'avg' => null, 'min' => null, 'max' => null, 'count' => 0], $result->summaries['amount']);
+    }
+
+    #[Test]
+    public function a_summarized_to_many_field_is_rejected(): void
+    {
+        $notes = TextColumn::new('notes')->setField('notes.text')->summarize(new Count());
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('crosses a to-many association');
+
+        $this->fetch(columns: [$this->amountColumn(), $notes]);
+    }
+
+    #[Test]
+    public function a_having_on_a_hidden_alias_still_aggregates_the_matching_roots(): void
+    {
+        $result = $this->fetch(scope: static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->leftJoin('e.notes', 'n')
+            ->addSelect('COUNT(n.id) AS HIDDEN noteCount')
+            ->groupBy('e.id')
+            ->having('noteCount > 0'));
+
+        $this->assertSame(4200, $result->summaries['amount']['sum']);
+        $this->assertSame(4, $result->summaries['amount']['count']);
+    }
+
+    #[Test]
+    public function filter_scope_and_to_many_join_apply_together(): void
+    {
+        $filters = (new Filters())->add(ChoiceFilter::new('status')->options(['Paid' => 'paid']));
+
+        $result = $this->fetch(
+            request: $this->request(filters: ['status' => 'paid']),
+            filters: $filters,
+            scope: static fn (QueryBuilder $qb): QueryBuilder => $qb->leftJoin('e.notes', 'n')->andWhere('e.amount IS NOT NULL'),
+        );
+
+        $this->assertSame(3000, $result->summaries['amount']['sum']);
+        $this->assertSame(2, $result->summaries['amount']['count']);
+    }
+
+    #[Test]
+    public function a_composite_identifier_is_a_clear_error(): void
+    {
+        $em = $this->createEntityManager(CountLine::class);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('composite');
+
+        (new DoctrineDataProvider(
+            em: $em,
+            entityClass: CountLine::class,
+            rowMapper: new class implements RowMapperInterface {
+                public function map(mixed $row): array
+                {
+                    return [];
+                }
+            },
+            columns: [NumberColumn::new('orderId')->setField('orderId')->summarize(new Sum())],
+        ))->fetchData($this->request());
     }
 
     #[Test]
