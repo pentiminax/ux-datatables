@@ -152,12 +152,12 @@ test('every documentation page carries the reading chrome', async () => {
 test('row-group is reachable, not only built', async () => {
   // It shipped as an orphan page: present on disk, absent from the sidebar and
   // skipped by the pager. The navigation is derived from the collection now.
-  const colReorder = await readDistFile('extensions/col-reorder/index.html')
+  const searchBuilder = await readDistFile('extensions/search-builder/index.html')
   const fixedHeader = await readDistFile('extensions/fixed-header/index.html')
 
-  assert.match(colReorder, /pager-next"[^>]*href="[^"]*extensions\/row-group\//)
+  assert.match(searchBuilder, /pager-next"[^>]*href="[^"]*extensions\/row-group\//)
   assert.match(fixedHeader, /pager-prev"[^>]*href="[^"]*extensions\/row-group\//)
-  assert.match(colReorder, /docs-nav[\s\S]*extensions\/row-group\//)
+  assert.match(searchBuilder, /docs-nav[\s\S]*extensions\/row-group\//)
 })
 
 test('headings are anchored', async () => {
