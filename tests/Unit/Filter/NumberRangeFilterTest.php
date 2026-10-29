@@ -118,10 +118,29 @@ final class NumberRangeFilterTest extends TestCase
      */
     public static function provideOutOfRangeIntegerBounds(): iterable
     {
-        yield 'bigint overflow' => ['bigint', ['min' => '9223372036854775808']];
         yield 'integer overflow' => ['integer', ['max' => '2147483648']];
         yield 'integer negative overflow' => ['integer', ['min' => '-2147483649']];
         yield 'smallint overflow with fraction' => ['smallint', ['max' => '32768.5']];
+    }
+
+    /**
+     * @param array<string, string> $value
+     */
+    #[Test]
+    #[DataProvider('provideUnsatisfiableIntegerBounds')]
+    public function it_matches_nothing_for_a_bound_no_integer_can_satisfy(string $fieldType, array $value): void
+    {
+        $this->assertFilterProduces(NumberRangeFilter::new('price'), $value, ['1 = 0'], [], $fieldType);
+    }
+
+    /**
+     * @return iterable<string, array{string, array<string, string>}>
+     */
+    public static function provideUnsatisfiableIntegerBounds(): iterable
+    {
+        yield 'bigint min overflow' => ['bigint', ['min' => '9223372036854775808']];
+        yield 'integer min overflow with valid max' => ['integer', ['min' => '3000000000', 'max' => '5']];
+        yield 'integer max negative overflow' => ['integer', ['max' => '-2147483649']];
     }
 
     #[Test]

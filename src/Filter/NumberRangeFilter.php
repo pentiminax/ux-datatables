@@ -94,6 +94,12 @@ final class NumberRangeFilter extends AbstractFilter
                 continue;
             }
 
+            if (false === $bound) {
+                $qb->andWhere('1 = 0');
+
+                return;
+            }
+
             $expr ??= $this->resolveExpression($qb, $alias);
             if (null === $expr) {
                 return;
@@ -116,12 +122,12 @@ final class NumberRangeFilter extends AbstractFilter
 
     /**
      * Keeps the validated decimal string, so no precision is lost to a PHP float. On an integer
-     * column a fractional bound becomes the equivalent integer comparison (`>= 2.5` is `> 2`), and
-     * a bound outside the column's range is dropped.
+     * column a fractional bound becomes the equivalent integer comparison (`>= 2.5` is `> 2`). A
+     * bound outside the column's range is dropped when every row satisfies it, and false when none can.
      *
-     * @return array{string, string, string|null}|null operator, number, Doctrine type to bind with
+     * @return array{string, string, string|null}|false|null operator, number, Doctrine type to bind with
      */
-    private function normalizeBound(mixed $value, bool $isMin, ?string $integerType, ?string $floatType): ?array
+    private function normalizeBound(mixed $value, bool $isMin, ?string $integerType, ?string $floatType): array|false|null
     {
         $operator = $isMin ? '>=' : '<=';
 
@@ -154,6 +160,10 @@ final class NumberRangeFilter extends AbstractFilter
         $truncated  = ($negative ? '-' : '').('' === $matches['int'] ? '0' : $matches['int']);
         $normalized = NumericSearchTerm::normalize($truncated, $integerType);
 
-        return null === $normalized ? null : [$operator, $normalized, $integerType];
+        if (null === $normalized) {
+            return $isMin !== $negative ? false : null;
+        }
+
+        return [$operator, $normalized, $integerType];
     }
 }

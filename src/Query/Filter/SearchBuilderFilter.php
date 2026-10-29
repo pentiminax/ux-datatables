@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\QueryFilterInterface;
 use Pentiminax\UX\DataTables\Query\DateSearchTerm;
 use Pentiminax\UX\DataTables\Query\LikeValueEscaper;
+use Pentiminax\UX\DataTables\Query\NumericSearchTerm;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Query\Strategy\ComparisonSearchStrategy;
@@ -116,6 +117,15 @@ final class SearchBuilderFilter implements QueryFilterInterface
             return $this->dateRange($qb, $context, $field, $dateType, $base, $values);
         }
 
+        $signs = 'between' === $base ? [$this->overflowSign($qb, $path, $values[0]), $this->overflowSign($qb, $path, $values[1])] : [0, 0];
+        if ([0, 0] !== $signs) {
+            [$low, $high] = 1 === $signs[0] || -1 === $signs[1] ? [$values[1], $values[0]] : $values;
+            $lower        = $this->compare($qb, $context, $path, $field, '>=', $low);
+            $upper        = $this->compare($qb, $context, $path, $field, '<=', $high);
+
+            return null === $lower || null === $upper ? null : \sprintf('(%s AND %s)', $lower, $upper);
+        }
+
         if ('between' === $base) {
             [$low, $type] = ComparisonSearchStrategy::resolveBindValue($qb, $path, $values[0]);
             [$high]       = ComparisonSearchStrategy::resolveBindValue($qb, $path, $values[1]);
@@ -130,9 +140,7 @@ final class SearchBuilderFilter implements QueryFilterInterface
         }
 
         if (isset(self::OPERATORS[$base])) {
-            [$value, $type] = ComparisonSearchStrategy::resolveBindValue($qb, $path, $values[0]);
-
-            return null === $value ? null : \sprintf('%s %s %s', $field, self::OPERATORS[$base], $this->bind($qb, $context, $value, $type));
+            return $this->compare($qb, $context, $path, $field, self::OPERATORS[$base], $values[0]);
         }
 
         if (!RelationFieldResolver::supportsTextSearch($qb, $path)) {
@@ -180,6 +188,33 @@ final class SearchBuilderFilter implements QueryFilterInterface
             '>='    => \sprintf('%s >= %s', $field, $this->bind($qb, $context, $start, $type)),
             default => \sprintf('(%s >= %s AND %s < %s)', $field, $this->bind($qb, $context, $start, $type), $field, $this->bind($qb, $context, $end, $type)),
         };
+    }
+
+    /**
+     * An integer literal beyond the column's range holds for every non-null row or for none.
+     */
+    private function compare(QueryBuilder $qb, QueryFilterContext $context, string $path, string $field, string $operator, string $raw): ?string
+    {
+        [$value, $type] = ComparisonSearchStrategy::resolveBindValue($qb, $path, $raw);
+        if (null !== $value) {
+            return \sprintf('%s %s %s', $field, $operator, $this->bind($qb, $context, $value, $type));
+        }
+
+        $sign = $this->overflowSign($qb, $path, $raw);
+        if (0 === $sign) {
+            return null;
+        }
+
+        $holdsForAll = '=' !== $operator && (1 === $sign) === \in_array($operator, ['<', '<='], true);
+
+        return $holdsForAll ? \sprintf('%s IS NOT NULL', $field) : self::NO_MATCH;
+    }
+
+    private function overflowSign(QueryBuilder $qb, string $path, string $raw): int
+    {
+        $integerType = RelationFieldResolver::resolveIntegerFieldType($qb, $path);
+
+        return null === $integerType ? 0 : NumericSearchTerm::overflowSign($raw, $integerType);
     }
 
     private function bind(QueryBuilder $qb, QueryFilterContext $context, mixed $value, ?string $type): string

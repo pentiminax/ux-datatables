@@ -92,6 +92,13 @@ final class SearchBuilderFilterTest extends TestCase
         yield 'fractional number on an integer matches nothing' => [['criteria' => [$c('id', '>', ['2.5'])]], []];
         yield 'like wildcard is literal' => [['criteria' => [$c('name', 'contains', ['%'])]], []];
         yield 'text condition on a number matches nothing' => [['criteria' => [$c('id', 'contains', ['1'])]], []];
+        yield 'overflowing less than matches every row' => [['criteria' => [$c('id', '<', ['99999999999999999999'])]], self::ALL];
+        yield 'overflowing greater than matches nothing' => [['criteria' => [$c('id', '>', ['99999999999999999999'])]], []];
+        yield 'negative overflow greater than matches every row' => [['criteria' => [$c('id', '>=', ['-99999999999999999999'])]], self::ALL];
+        yield 'overflowing equal matches nothing' => [['criteria' => [$c('id', '=', ['99999999999999999999'])]], []];
+        yield 'between with an overflowing upper bound' => [['criteria' => [$c('id', 'between', ['3', '99999999999999999999'])]], ['Alina', 'Carl']];
+        yield 'reversed between with an overflowing bound' => [['criteria' => [$c('id', 'between', ['99999999999999999999', '3'])]], ['Alina', 'Carl']];
+        yield 'not between with an overflowing upper bound' => [['criteria' => [$c('id', '!between', ['3', '99999999999999999999'])]], ['Alice', 'Bob']];
     }
 
     #[Test]
