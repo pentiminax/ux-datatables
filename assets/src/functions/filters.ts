@@ -322,7 +322,7 @@ export class FilterBar {
         this.reload()
     }
 
-    private resetFilters(): void {
+    resetFilters(): void {
         for (const control of this.controls) {
             control.reset()
         }

@@ -24,6 +24,7 @@ import { normalizeDisabledColumnControls } from './functions/columnControl.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
 import { detectTheme } from './functions/detectTheme.js'
+import { applyEmptyState, bindEmptyStateReset } from './functions/emptyState.js'
 import { ExtensionRegistry } from './functions/extensionRegistry.js'
 import { fetchDetailRow } from './functions/fetchDetailRow.js'
 import { fetchEditForm } from './functions/fetchEditForm.js'
@@ -37,6 +38,7 @@ import {
     hasLucideIconsInActions,
     loadLucideIcons,
 } from './functions/lucideIcons.js'
+import { bindRecordClick } from './functions/recordUrl.js'
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
 import { type RowActionOutcome, runRowAction } from './functions/rowActionFeedback.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
@@ -194,7 +196,8 @@ export default class extends Controller {
 
         if (
             hasLucideIcons(payload.columns) ||
-            hasLucideIconsInActions(payload.bulkActions?.actions)
+            hasLucideIconsInActions(payload.bulkActions?.actions) ||
+            typeof payload.emptyState?.icon === 'string'
         ) {
             await loadLucideIcons()
         }
@@ -225,15 +228,13 @@ export default class extends Controller {
         }
 
         await applyLocalLanguage(payload)
+        applyEmptyState(payload)
 
         // When installRequestParams owns the Ajax data hook, prefer its protocol snapshot over
         // ajax.params(): after an API Platform transport (or a JSON-string ajax.data callback)
         // the wire snapshot is not DataTables protocol, and the PHP export endpoint would drop
         // search/filters. Tables without that hook keep DataTables' own ajax.params().
-        applyServerExportUrls(
-            payload,
-            requestParams ? () => requestParams.current() : undefined
-        )
+        applyServerExportUrls(payload, requestParams ? () => requestParams.current() : undefined)
         applyCustomButtonActions(payload)
 
         // A concurrent connect may have built the table while this one awaited. Nothing is awaited
@@ -260,6 +261,17 @@ export default class extends Controller {
         bindImagePlaceholder(this.element as HTMLElement)
         this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
+
+        if (payload.recordUrl === true) {
+            bindRecordClick(this.element as HTMLElement)
+        }
+
+        if (filterBar && payload.emptyState) {
+            bindEmptyStateReset(this.element as HTMLElement, () => {
+                this.table?.search('')
+                filterBar.resetFilters()
+            })
+        }
 
         this.isDataTableInitialized = true
 

@@ -8,6 +8,7 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Enum\Icon;
 use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Enum\SelectItemType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
@@ -27,6 +28,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\RowGroupExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
+use Pentiminax\UX\DataTables\RowMapper\RecordUrlFilter;
 use Symfony\Component\ExpressionLanguage\Expression;
 
 class DataTable
@@ -84,6 +86,16 @@ class DataTable
     /** @var string[] */
     private array $forwardedQueryParameters = [];
 
+    /** @var array{heading: string, description: ?string, icon: ?string, action: ?array{label: string, url: string}}|null */
+    private ?array $emptyState = null;
+
+    /** @var array<string, string>|null */
+    private ?array $preparedEmptyStateLabels = null;
+
+    private ?\Closure $rowClassResolver = null;
+
+    private ?\Closure $recordUrlResolver = null;
+
     public function __construct(
         private readonly string $id,
         array $options = [],
@@ -138,6 +150,14 @@ class DataTable
             ];
 
             $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
+        }
+
+        if (null !== $this->emptyState) {
+            $options['emptyState'] = $this->emptyState + ['labels' => $this->preparedEmptyStateLabels ?? []];
+        }
+
+        if (null !== $this->recordUrlResolver) {
+            $options['recordUrl'] = true;
         }
 
         if (null !== $this->preparedActionLabels) {
@@ -735,6 +755,98 @@ class DataTable
     public function getFilters(): ?Filters
     {
         return $this->filters;
+    }
+
+    /**
+     * Replace the empty-table message with a heading, a description, an icon and an optional action.
+     *
+     * Texts are escaped by the browser-side renderer. A table filtered down to nothing shows a
+     * built-in "no results" block with a reset button instead.
+     *
+     * @param array{label: string, url: string}|null $action a link shown on an empty table; the URL must be
+     *                                                       a path starting with "/" or an http(s) URL
+     *
+     * @throws \InvalidArgumentException when the action is malformed or its URL is unsafe
+     */
+    public function emptyState(string $heading, ?string $description = null, ?Icon $icon = null, ?array $action = null): static
+    {
+        if (null !== $action) {
+            $label = $action['label'] ?? null;
+            $url   = RecordUrlFilter::filter($action['url'] ?? null);
+
+            if (!\is_string($label) || '' === $label || null === $url) {
+                throw new \InvalidArgumentException('The empty state action needs a label and a URL that is a path starting with "/" or an http(s) URL.');
+            }
+
+            $action = ['label' => $label, 'url' => $url];
+        }
+
+        $this->emptyState = [
+            'heading'     => $heading,
+            'description' => $description,
+            'icon'        => $icon?->value,
+            'action'      => $action,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * @internal
+     */
+    public function hasEmptyState(): bool
+    {
+        return null !== $this->emptyState;
+    }
+
+    /**
+     * @param array<string, string> $labels
+     *
+     * @internal
+     */
+    public function setPreparedEmptyStateLabels(array $labels): static
+    {
+        $this->preparedEmptyStateLabels = $labels;
+
+        return $this;
+    }
+
+    /**
+     * CSS classes for each row, resolved from the source row and emitted as `DT_RowClass`.
+     *
+     * Only class-safe tokens survive; anything else in the returned string is dropped.
+     *
+     * @param callable(mixed):(string|null) $resolver
+     */
+    public function rowClass(callable $resolver): static
+    {
+        $this->rowClassResolver = $resolver(...);
+
+        return $this;
+    }
+
+    /**
+     * URL each row navigates to when clicked, resolved from the source row.
+     *
+     * Only a path starting with "/" or an http(s) URL is kept; null or anything else means no link.
+     *
+     * @param callable(mixed):(string|null) $resolver
+     */
+    public function recordUrl(callable $resolver): static
+    {
+        $this->recordUrlResolver = $resolver(...);
+
+        return $this;
+    }
+
+    public function getRowClassResolver(): ?\Closure
+    {
+        return $this->rowClassResolver;
+    }
+
+    public function getRecordUrlResolver(): ?\Closure
+    {
+        return $this->recordUrlResolver;
     }
 
     /**
