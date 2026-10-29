@@ -45,6 +45,11 @@ final class DataTableRequestTest extends TestCase
         ];
 
         yield 'no ordering at all' => [[], []];
+
+        yield 'direction casing and whitespace are normalized' => [
+            [['column' => 0, 'dir' => ' DESC ']],
+            [new Order(column: 0, dir: 'desc', name: 'id')],
+        ];
     }
 
     #[Test]
