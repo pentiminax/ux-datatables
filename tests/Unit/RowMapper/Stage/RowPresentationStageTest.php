@@ -19,7 +19,7 @@ final class RowPresentationStageTest extends TestCase
 {
     #[Test]
     #[DataProvider('provideClasses')]
-    public function it_emits_only_class_safe_tokens(mixed $returned, ?string $expected): void
+    public function it_normalizes_whitespace_and_duplicates(mixed $returned, ?string $expected): void
     {
         $result = (new RowPresentationStage(rowClass: static fn (): mixed => $returned))->process(['name' => 'A'], ['id' => 1], []);
 
@@ -33,14 +33,20 @@ final class RowPresentationStageTest extends TestCase
     {
         yield 'single' => ['table-danger', 'table-danger'];
         yield 'several' => ["is-late  fw-bold\tdup dup", 'is-late fw-bold dup'];
-        yield 'attribute breakout dropped' => ['ok" onclick="alert(1)', null];
-        yield 'safe token next to breakout' => ['ok onclick="alert(1)', 'ok'];
-        yield 'markup dropped' => ['<script> x', 'x'];
-        yield 'leading digit dropped' => ['1bad good', 'good'];
-        yield 'only unsafe' => ['"><img', null];
+        yield 'tailwind variants' => ['hover:bg-red-50 md:font-bold bg-red-500/10 !font-bold', 'hover:bg-red-50 md:font-bold bg-red-500/10 !font-bold'];
+        yield 'quotes stay inside tokens' => ['ok" onclick="alert(1)', 'ok" onclick="alert(1)'];
         yield 'empty' => ['', null];
         yield 'null' => [null, null];
         yield 'not a string' => [['a'], null];
+    }
+
+    #[Test]
+    public function it_merges_with_a_row_class_already_set_by_map_row(): void
+    {
+        $stage  = new RowPresentationStage(rowClass: static fn (): string => 'late shared');
+        $result = $stage->process(['DT_RowClass' => 'own shared'], ['id' => 1], []);
+
+        $this->assertSame('own shared late', $result['DT_RowClass']);
     }
 
     #[Test]

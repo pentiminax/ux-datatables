@@ -814,7 +814,7 @@ class DataTable
     /**
      * CSS classes for each row, resolved from the source row and emitted as `DT_RowClass`.
      *
-     * Only class-safe tokens survive; anything else in the returned string is dropped.
+     * The string is split on whitespace and merged with a `DT_RowClass` already set by mapRow().
      *
      * @param callable(mixed):(string|null) $resolver
      */

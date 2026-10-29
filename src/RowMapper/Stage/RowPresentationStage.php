@@ -25,7 +25,10 @@ final class RowPresentationStage implements RowStageInterface
     {
         $source = $originalRow instanceof RowContext ? $originalRow->source : $originalRow;
 
-        $classes = null === $this->rowClass ? '' : self::sanitizeClasses(($this->rowClass)($source));
+        $classes = null === $this->rowClass ? '' : self::normalizeClasses(($this->rowClass)($source));
+        if ('' !== $classes && \is_string($mappedRow['DT_RowClass'] ?? null)) {
+            $classes = self::normalizeClasses($mappedRow['DT_RowClass'].' '.$classes);
+        }
         if ('' !== $classes) {
             $mappedRow['DT_RowClass'] = $classes;
         }
@@ -39,15 +42,12 @@ final class RowPresentationStage implements RowStageInterface
         return $mappedRow;
     }
 
-    private static function sanitizeClasses(mixed $classes): string
+    private static function normalizeClasses(mixed $classes): string
     {
         if (!\is_string($classes)) {
             return '';
         }
 
-        $tokens = preg_split('/\s+/', $classes, -1, \PREG_SPLIT_NO_EMPTY) ?: [];
-        $safe   = array_filter($tokens, static fn (string $token): bool => 1 === preg_match('/^-?[_a-zA-Z][_a-zA-Z0-9-]*$/', $token));
-
-        return implode(' ', array_unique($safe));
+        return implode(' ', array_unique(preg_split('/\s+/', $classes, -1, \PREG_SPLIT_NO_EMPTY) ?: []));
     }
 }

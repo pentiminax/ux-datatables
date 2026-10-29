@@ -59,8 +59,9 @@ to put on the `<tr>`. The bundle emits them as DataTables' native `DT_RowClass`.
 ->rowClass(static fn (Invoice $invoice): ?string => $invoice->isOverdue() ? 'table-danger fw-bold' : null)
 ```
 
-Only class-safe tokens (letters, digits, `-` and `_`, not starting with a digit) are kept, so a
-value derived from user input cannot break out of the attribute. Return `null` for no class.
+The string is split on whitespace and de-duplicated, and a class already set in `mapRow()` is kept. Tailwind
+variants such as `hover:bg-red-50` or `bg-red-500/10` work. DataTables adds the tokens through the DOM class
+list, never as raw HTML. Return `null` for no class.
 
 It works for server-side tables, API Platform tables rendered through the bundle's Ajax endpoint,
 and client-side tables filled with `setData()`. A table that reads a Hydra collection directly in
