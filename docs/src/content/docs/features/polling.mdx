@@ -9,6 +9,7 @@ navTitle: Polling
 viewer stays where they were.
 
 ```php
+use App\Entity\Order;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -29,13 +30,14 @@ final class OrdersDataTable extends AbstractDataTable
 ## Intervals
 
 `poll()` accepts a number of seconds (`30`) or a duration string: `'10s'`, `'1m'`, or `'1h'`. The
-minimum is 2 seconds. A shorter or malformed value throws an `InvalidArgumentException`.
+minimum is 2 seconds and the maximum is 24 hours. A value outside that range, or a malformed one, throws an `InvalidArgumentException`.
 
 ## Requirements
 
 Polling needs a table that fetches rows over Ajax: a server-side table, an `ajax()` source, or an
-API Platform table. A table that embeds its rows in the page has nothing to reload, so rendering it
-throws a `LogicException`.
+API Platform table. Rendering a table that has no `ajax` option once the bundle has prepared it
+throws a `LogicException`, because it has nothing to reload. This includes an application that sets
+the Ajax source only from JavaScript before the controller connects: declare the source in PHP.
 
 ## When the Timer Pauses
 
@@ -51,12 +53,12 @@ The timer stops when the table is removed from the page and restarts when Turbo 
 
 ## Polling or Mercure
 
-|                      | Polling                         | Mercure                          |
-| -------------------- | ------------------------------- | -------------------------------- |
-| Setup                | One method call                 | Hub, topics, and publishers      |
-| Freshness            | Up to one interval late         | Near real time                   |
-| Server load          | One request per viewer per tick | One request per change           |
-| Works behind proxies | Everywhere                      | Needs long-lived SSE connections |
+|                      | Polling                         | Mercure                           |
+| -------------------- | ------------------------------- | --------------------------------- |
+| Setup                | One method call                 | Hub, topics, and publishers       |
+| Freshness            | Up to one interval late         | Near real time                    |
+| Server load          | One request per viewer per tick | One request per viewer per change |
+| Works behind proxies | Everywhere                      | Needs long-lived SSE connections  |
 
 Choose polling for data that changes continuously or from outside your application, such as
 metrics or queue sizes. Choose [Mercure](/ux-datatables/integrations/mercure/) when your application knows when
