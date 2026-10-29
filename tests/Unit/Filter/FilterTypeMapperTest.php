@@ -39,6 +39,17 @@ final class FilterTypeMapperTest extends TestCase
         $this->assertSame($expectedFilterClass, (new FilterTypeMapper())->mapType($type));
     }
 
+    /**
+     * @deprecated covers the ignored $name argument kept until 2.0
+     */
+    #[Test]
+    public function it_still_accepts_the_deprecated_name_argument(): void
+    {
+        $type = (new \ReflectionProperty(TypedFixture::class, 'count'))->getType();
+
+        $this->assertSame(NumberRangeFilter::class, (new FilterTypeMapper())->mapType($type, 'count'));
+    }
+
     #[Test]
     public function it_falls_back_to_a_text_filter_without_a_type(): void
     {
