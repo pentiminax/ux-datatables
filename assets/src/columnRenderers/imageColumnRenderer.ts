@@ -1,6 +1,24 @@
 import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js'
 import type { ColumnRenderer, ImageCustomOptions } from './types.js'
 
+export function bindImagePlaceholder(root: HTMLElement): void {
+    // error does not bubble, so listen in the capture phase
+    root.addEventListener(
+        'error',
+        (e: Event): void => {
+            const img = e.target
+            if (!(img instanceof HTMLImageElement) || !img.dataset.placeholder) {
+                return
+            }
+
+            const placeholder = img.dataset.placeholder
+            delete img.dataset.placeholder
+            img.src = placeholder
+        },
+        true
+    )
+}
+
 export const imageColumnRenderer: ColumnRenderer = {
     matches(column: Record<string, any>): boolean {
         return true === column?.customOptions?.isImage
@@ -57,8 +75,7 @@ export const imageColumnRenderer: ColumnRenderer = {
             }
 
             if (placeholder !== null && rawSrc !== null) {
-                const escapedPlaceholder = escapeHtml(placeholder).replace(/'/g, '&#039;')
-                attrs.push(`onerror="this.onerror=null;this.src='${escapedPlaceholder}'"`)
+                attrs.push(`data-placeholder="${escapeHtml(placeholder)}"`)
             }
 
             const img = `<img ${attrs.join(' ')}>`

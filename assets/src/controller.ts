@@ -6,7 +6,7 @@ import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRend
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js'
 import { createIconColumnRenderer } from './columnRenderers/iconColumnRenderer.js'
-import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js'
+import { bindImagePlaceholder, imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js'
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js'
 import { relativeDateColumnRenderer } from './columnRenderers/relativeDateColumnRenderer.js'
 import { textColumnRenderer } from './columnRenderers/textColumnRenderer.js'
@@ -257,6 +257,7 @@ export default class extends Controller {
             this.bindPopstate(urlStateCfg)
         }
 
+        bindImagePlaceholder(this.element as HTMLElement)
         this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
 
