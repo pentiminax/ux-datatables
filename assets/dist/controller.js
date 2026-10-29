@@ -25,6 +25,7 @@ import { fetchEditForm } from './functions/fetchEditForm.js';
 import { installFilterBar } from './functions/filters.js';
 import { isHighlightEnabled } from './functions/highlightUpdates.js';
 import { isDataTableClone } from './functions/isDataTableClone.js';
+import { isPollingEnabled, startPolling } from './functions/polling.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { applyLocalLanguage } from './functions/localLanguage.js';
 import { hasLucideIcons, hasLucideIconsInActions, loadLucideIcons, } from './functions/lucideIcons.js';
@@ -71,6 +72,7 @@ class default_1 extends Controller {
         this.table = null;
         this.isDataTableInitialized = false;
         this.eventSource = null;
+        this.stopPolling = null;
         this.highlighter = null;
         this.framework = 'dt';
         this.confirmingActions = new WeakSet();
@@ -93,6 +95,7 @@ class default_1 extends Controller {
                 this.dispatchEvent('reconnect', { table: this.table });
                 this.bindPopstate(isUrlStateEnabled(this.viewValue));
                 await this.startMercure(this.viewValue);
+                this.initPolling(this.viewValue);
             }
             return;
         }
@@ -159,12 +162,15 @@ class default_1 extends Controller {
         this.bindActionHandler(payload);
         this.bindBooleanToggleHandler(payload);
         this.isDataTableInitialized = true;
+        this.initPolling(payload);
         await this.startMercure(payload);
     }
     disconnect() {
         document.removeEventListener('turbo:before-cache', this.onTurboBeforeCache);
         this.eventSource?.close();
         this.eventSource = null;
+        this.stopPolling?.();
+        this.stopPolling = null;
         this.highlighter?.destroy();
         this.highlighter = null;
         if (this.popstateHandler) {
@@ -180,6 +186,7 @@ class default_1 extends Controller {
         this.table = new DataTable.Api(this.element);
         this.dispatchEvent('reconnect', { table: this.table });
         this.bindPopstate(isUrlStateEnabled(this.viewValue));
+        this.initPolling(this.viewValue);
         return true;
     }
     bindPopstate(cfg) {
@@ -320,6 +327,16 @@ class default_1 extends Controller {
             this.highlighter?.arm();
             this.table?.ajax?.reload(() => this.highlighter?.diff(), false);
         });
+    }
+    initPolling(payload) {
+        if (this.stopPolling || !this.table?.ajax || !isPollingEnabled(payload)) {
+            return;
+        }
+        if (this.isMercureEnabled(payload) && !hasWarnedPollingWithMercure) {
+            hasWarnedPollingWithMercure = true;
+            console.warn('[ux-datatables] poll() and mercure() are both enabled: Mercure already pushes updates, so polling adds redundant requests.');
+        }
+        this.stopPolling = startPolling(this.table, payload.pollInterval, this.element.closest('.dt-container') ?? this.element);
     }
     async initHighlighter(payload) {
         if (!this.table || !isHighlightEnabled(payload)) {
@@ -575,4 +592,5 @@ default_1.values = {
     view: Object,
 };
 export default default_1;
+let hasWarnedPollingWithMercure = false;
 //# sourceMappingURL=controller.js.map
