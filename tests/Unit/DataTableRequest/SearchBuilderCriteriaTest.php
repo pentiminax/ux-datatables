@@ -44,6 +44,7 @@ final class SearchBuilderCriteriaTest extends TestCase
         $tree = SearchBuilderCriteria::parse(['criteria' => [
             ['origData' => 'age', 'condition' => '=', 'value' => ['']],
             ['origData' => 'age', 'condition' => 'between', 'value' => ['1']],
+            ['origData' => 'name', 'condition' => 'contains', 'value' => ['', 'x']],
             ['origData' => 'name', 'condition' => 'contains', 'value' => ['x']],
         ]]);
 

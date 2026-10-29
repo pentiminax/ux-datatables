@@ -110,7 +110,7 @@ final class SearchBuilderCriteria
             default               => 1,
         };
 
-        if (\count(array_filter($values, static fn (string $v): bool => '' !== $v)) < $required || \count($values) < $required) {
+        if (\count(array_filter(\array_slice($values, 0, $required), static fn (string $v): bool => '' !== $v)) < $required) {
             return false;
         }
 
