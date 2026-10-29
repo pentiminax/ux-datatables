@@ -1,0 +1,126 @@
+---
+title: Empty State and Row Presentation
+description: Customize the empty table, style rows from their data, and make rows clickable
+order: 40
+navTitle: Row Presentation
+---
+
+Three `DataTable` methods control how rows and the empty table look. None of them changes the
+payload of a table that does not call them.
+
+## Empty State
+
+`emptyState()` replaces the plain "No data available" message with a heading, an optional
+description, an optional icon and an optional action link.
+
+```php
+use App\Entity\Invoice;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Enum\Icon;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+
+#[AsDataTable(Invoice::class)]
+final class InvoicesDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->serverSide()
+            ->emptyState(
+                heading: 'No invoices yet',
+                description: 'Invoices appear here once you create your first order.',
+                icon: Icon::Inbox,
+                action: ['label' => 'Create an order', 'url' => '/orders/new'],
+            );
+    }
+
+    // configureColumns() ...
+}
+```
+
+The table shows two different blocks:
+
+- **No data at all.** Your heading, description, icon and action.
+- **Search or filters match nothing.** A built-in "No results found" block. When the table has
+  filters, it includes a **Reset filters** button that clears the search box, the filter bar and stored column searches. Inputs rendered by
+  ColumnControl, SearchPanes or SearchBuilder may keep showing their old text until they redraw.
+
+The built-in texts come from the `DataTables` catalog: `empty.noResults`, `empty.noResultsHint` and
+`empty.resetFilters`. The heading, description and action label are plain text, escaped before they
+reach the page; translate them yourself before passing them in. The action URL must be a path
+starting with `/` or an `http(s)` URL; `emptyState()` throws an `InvalidArgumentException` otherwise.
+
+## Conditional Row Class
+
+`rowClass()` receives the source row (the entity for a Doctrine table) and returns the CSS classes
+to put on the `<tr>`. The bundle emits them as DataTables' native `DT_RowClass`.
+
+```php
+->rowClass(static fn (Invoice $invoice): ?string => $invoice->isOverdue() ? 'table-danger fw-bold' : null)
+```
+
+The string is split on whitespace and de-duplicated, and a class already set in `mapRow()` is kept. Tailwind
+variants such as `hover:bg-red-50` or `bg-red-500/10` work. DataTables adds the tokens through the DOM class
+list, never as raw HTML. Return `null` for no class.
+
+It works for server-side tables, API Platform tables rendered through the bundle's Ajax endpoint,
+and client-side tables filled with `setData()`. A table that reads a Hydra collection directly in
+the browser has no PHP row to hand to the callable, so `rowClass()` does not apply there.
+
+## Clickable Rows
+
+`recordUrl()` returns the URL a row navigates to when the user clicks it. The bundle emits it as
+`data-record-url` through `DT_RowAttr`.
+
+```php
+use App\Entity\Invoice;
+use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+
+#[AsDataTable(Invoice::class)]
+final class InvoicesDataTable extends AbstractDataTable
+{
+    public function __construct(private readonly UrlGeneratorInterface $urlGenerator)
+    {
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table
+            ->serverSide()
+            ->recordUrl(fn (Invoice $invoice): string => $this->urlGenerator->generate('app_invoice_show', [
+                'id' => $invoice->getId(),
+            ]));
+    }
+
+    // configureColumns() ...
+}
+```
+
+Only a path starting with a single `/` or an `http(s)` URL is kept. `javascript:`, `data:`,
+`vbscript:`, `//host` and anything else are dropped, so the row has no link. The browser applies
+the same check again before navigating.
+
+Clicks on links, buttons, inputs, selects, textareas, labels, `[role="button"]`, row actions and the
+bulk selection cell keep their own behavior. A Ctrl or Cmd click opens the URL in a new tab, and a
+click that ends a text selection does not navigate.
+
+### Accessibility
+
+The row itself is not focusable and has no link role, so keyboard and screen reader users cannot
+reach the row click. Always keep a real link in one cell, for example a
+[`UrlColumn`](/ux-datatables/columns/url-column/) or a link rendered by a `TemplateColumn`, pointing at the same
+URL.
+
+### Security
+
+The record URL is navigation, not authorization. The target route must enforce its own access
+control, as described in [Securing Ajax Routes](/ux-datatables/getting-started/security/).
+
+## Related
+
+- [Bulk Actions](/ux-datatables/features/bulk-actions/)
+- [Filters](/ux-datatables/guide/filters/)

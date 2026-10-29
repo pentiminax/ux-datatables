@@ -23,6 +23,7 @@ use Pentiminax\UX\DataTables\RowMapper\Stage\BooleanSwitchMetadataStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\IconColumnResolutionStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\NormalizationStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\RowIdStage;
+use Pentiminax\UX\DataTables\RowMapper\Stage\RowPresentationStage;
 use Pentiminax\UX\DataTables\RowMapper\Stage\ValueFormattingStage;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
@@ -53,6 +54,8 @@ final class DataTableRuntimeFactory
         ?HighlightConfig $highlight = null,
         ?string $rowIdField = null,
         ?string $entityClass = null,
+        ?\Closure $rowClass = null,
+        ?\Closure $recordUrl = null,
     ): RowMapperInterface {
         $pipeline = (new RowProcessingPipeline(
             $baseMapper,
@@ -74,6 +77,10 @@ final class DataTableRuntimeFactory
 
         if (null !== $idField) {
             $pipeline->add(new RowIdStage($idField));
+        }
+
+        if (null !== $rowClass || null !== $recordUrl) {
+            $pipeline->add(new RowPresentationStage($rowClass, $recordUrl));
         }
 
         return $pipeline;
@@ -107,6 +114,8 @@ final class DataTableRuntimeFactory
             highlight: $table->getHighlightConfig(),
             rowIdField: $table->hasBulkActions() ? $table->getBulkActions()?->getIdField() : null,
             entityClass: $asDataTable?->entityClass,
+            rowClass: $table->getRowClassResolver(),
+            recordUrl: $table->getRecordUrlResolver(),
         );
 
         // An export writes only the exportable columns, so its mapper is built from them alone:

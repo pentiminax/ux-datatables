@@ -31,7 +31,14 @@ Anything else in `order[][dir]` sorts ascending instead of reaching the query pi
 - New `NumberRangeFilter` and `EntityFilter`. A `#[DataTableFilter]` on an `int` or `float`
   property used to raise while the container compiled; it now builds a `NumberRangeFilter`. Name a
   filter class on the attribute to keep a different one.
-- `FilterTypeMapper::mapType()` no longer takes the filter name.
+- `FilterTypeMapper::mapType()` ignores its second argument, the filter name. It is deprecated since
+  1.3 and removed in 2.0.
+
+### New: empty state, row class and clickable rows
+
+`DataTable::emptyState()`, `rowClass()` and `recordUrl()` are additive; tables that do not call them
+render exactly as before. Run `composer update` and rebuild your assets. See
+[Empty State and Row Presentation](docs/src/content/docs/features/row-presentation.mdx).
 
 ## v1.1 → v1.2
 
