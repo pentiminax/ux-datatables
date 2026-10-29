@@ -21,6 +21,11 @@ import {
 } from './functions/apiPlatformAdapter.js'
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js'
 import { normalizeDisabledColumnControls } from './functions/columnControl.js'
+import {
+    ensureSummaryFooter,
+    hasSummaries,
+    installColumnSummaries,
+} from './functions/columnSummaries.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
 import { detectTheme } from './functions/detectTheme.js'
@@ -230,10 +235,7 @@ export default class extends Controller {
         // ajax.params(): after an API Platform transport (or a JSON-string ajax.data callback)
         // the wire snapshot is not DataTables protocol, and the PHP export endpoint would drop
         // search/filters. Tables without that hook keep DataTables' own ajax.params().
-        applyServerExportUrls(
-            payload,
-            requestParams ? () => requestParams.current() : undefined
-        )
+        applyServerExportUrls(payload, requestParams ? () => requestParams.current() : undefined)
         applyCustomButtonActions(payload)
 
         // A concurrent connect may have built the table while this one awaited. Nothing is awaited
@@ -242,12 +244,20 @@ export default class extends Controller {
             return
         }
 
+        if (hasSummaries(payload)) {
+            ensureSummaryFooter(this.element as HTMLElement, payload)
+        }
+
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
 
         const themedContainer = (this.element as HTMLElement).closest('.dt-container')
 
         if (themedContainer && detectTheme() !== null) {
             applyThemeSearchPlaceholder(themedContainer)
+        }
+
+        if (hasSummaries(payload)) {
+            installColumnSummaries(this.table, payload)
         }
 
         this.dispatchEvent('connect', { table: this.table })
