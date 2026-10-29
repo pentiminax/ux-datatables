@@ -15,8 +15,8 @@ final readonly class Order
 
     public static function fromArray(array $data, Columns $columns): self
     {
-        $columnIndex = (int) ($data['column'] ?? 0);
-        $dir         = $data['dir'] ?? 'asc';
+        $columnIndex = \is_scalar($data['column'] ?? null) ? (int) $data['column'] : 0;
+        $dir         = \in_array($data['dir'] ?? null, ['asc', 'desc'], true) ? $data['dir'] : 'asc';
 
         $column = $columns->getColumnByIndex($columnIndex);
 

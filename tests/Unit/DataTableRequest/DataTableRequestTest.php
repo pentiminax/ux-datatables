@@ -48,6 +48,49 @@ final class DataTableRequestTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('provideMalformedOrderPayloads')]
+    public function it_ignores_malformed_ordering(array $order, array $expected): void
+    {
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest(['order' => $order]));
+
+        $this->assertEquals($expected, $dataTableRequest->order);
+    }
+
+    public static function provideMalformedOrderPayloads(): iterable
+    {
+        yield 'non-array entry is skipped' => [
+            ['x', ['column' => 1, 'dir' => 'desc']],
+            [new Order(column: 1, dir: 'desc', name: 'name')],
+        ];
+
+        yield 'array dir falls back to asc' => [
+            [['column' => 1, 'dir' => ['x']]],
+            [new Order(column: 1, dir: 'asc', name: 'name')],
+        ];
+
+        yield 'unknown dir falls back to asc' => [
+            [['column' => 1, 'dir' => 'sideways']],
+            [new Order(column: 1, dir: 'asc', name: 'name')],
+        ];
+
+        yield 'array column falls back to zero' => [
+            [['column' => ['x'], 'dir' => 'desc']],
+            [new Order(column: 0, dir: 'desc', name: 'id')],
+        ];
+    }
+
+    #[Test]
+    public function it_ignores_a_non_scalar_search_value(): void
+    {
+        $dataTableRequest = DataTableRequest::fromRequest(self::createRequest([
+            'search' => ['value' => ['x'], 'regex' => ['y']],
+        ]));
+
+        $this->assertNull($dataTableRequest->search?->value);
+        $this->assertFalse($dataTableRequest->search->regex);
+    }
+
+    #[Test]
     public function it_parses_all_properties_from_request(): void
     {
         $dataTableRequest = DataTableRequest::fromRequest(self::createRequest([
