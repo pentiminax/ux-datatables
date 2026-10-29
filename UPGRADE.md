@@ -26,6 +26,14 @@ with a 500.
 
 Anything else in `order[][dir]` sorts ascending instead of reaching the query pipeline.
 
+### New: `DataTable::poll()`
+
+`poll()` is additive: no existing table changes. A table that calls it needs an Ajax source
+(server-side, `ajax()`, or API Platform); a table with no `ajax` option once prepared throws a
+`LogicException` at render time. This includes an application that sets the Ajax source only from
+JavaScript before the controller connects. Intervals outside 2 seconds to 24 hours throw an
+`InvalidArgumentException`. See the polling page in the docs.
+
 ## v1.1 → v1.2
 
 ### Behavior changes
@@ -1577,11 +1585,3 @@ What changed:
   `payload`, `data`, `column`, or `entity`
 - `payload` is newly reserved; rename such a parameter to something else
 - any other key still passes through untouched, `item` included
-
-## v1.2 → v1.3
-
-### New: `DataTable::poll()`
-
-`poll()` is additive: no existing table changes. A table that calls it must fetch its rows over
-Ajax (server-side, `ajax()`, or API Platform); otherwise rendering throws a `LogicException`.
-Intervals below 2 seconds throw an `InvalidArgumentException`. See the polling page in the docs.
