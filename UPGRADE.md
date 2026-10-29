@@ -26,6 +26,13 @@ with a 500.
 
 Anything else in `order[][dir]` sorts ascending instead of reaching the query pipeline.
 
+### New filters
+
+- New `NumberRangeFilter` and `EntityFilter`. A `#[DataTableFilter]` on an `int` or `float`
+  property used to raise while the container compiled; it now builds a `NumberRangeFilter`. Name a
+  filter class on the attribute to keep a different one.
+- `FilterTypeMapper::mapType()` no longer takes the filter name.
+
 ## v1.1 → v1.2
 
 ### Behavior changes

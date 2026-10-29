@@ -49,6 +49,22 @@ class User
 ```
 
 The filter class is guessed from the declared type, and a `BackedEnum` brings its own options along.
+An `int` or a `float` gives a number range with optional min and max inputs.
+
+To filter by a Doctrine association, list the target entities with `EntityFilter`:
+
+```php
+use App\Entity\Category;
+use Pentiminax\UX\DataTables\Filter\EntityFilter;
+use Pentiminax\UX\DataTables\Filter\NumberRangeFilter;
+
+$filters
+    ->add(NumberRangeFilter::new('price')->label('Price'))
+    ->add(EntityFilter::new('category')->entity(Category::class)->optionLabel('name'));
+```
+
+The entity list is loaded server-side and capped at 200 options. It is not an authorization
+boundary: restrict the rows themselves in the table query.
 
 ## Pitfalls
 
