@@ -102,6 +102,19 @@ final class MutationServiceWiringTest extends TestCase
         );
     }
 
+    #[Test]
+    public function it_wires_the_row_scope_guard_into_every_single_row_consumer(): void
+    {
+        $guard = $this->container->get('datatables.mutation.row_scope_guard');
+
+        foreach ([
+            'datatables.controller.ajax_delete',
+            'datatables.controller.ajax_edit',
+        ] as $id) {
+            $this->assertSame($guard, $this->readPrivateProperty($this->service($id), 'scopeGuard'), $id);
+        }
+    }
+
     private function readPrivateProperty(object $object, string $property): mixed
     {
         $reflection = new \ReflectionProperty($object, $property);
