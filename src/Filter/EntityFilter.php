@@ -141,7 +141,11 @@ final class EntityFilter extends AbstractFilter
     {
         return [
             ...parent::jsonSerialize(),
-            'options'  => $this->options,
+            'options'  => array_map(
+                static fn (int|string $value, string $label): array => [(string) $value, $label],
+                array_keys($this->options),
+                $this->options,
+            ),
             'multiple' => $this->multiple,
         ];
     }

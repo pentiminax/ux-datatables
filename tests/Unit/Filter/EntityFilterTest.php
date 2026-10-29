@@ -64,7 +64,7 @@ final class EntityFilterTest extends TestCase
             'name'     => 'customer',
             'type'     => 'select',
             'label'    => 'Customer',
-            'options'  => ['2' => 'Alice', '1' => 'Bob', '3' => 'Carol'],
+            'options'  => [['2', 'Alice'], ['1', 'Bob'], ['3', 'Carol']],
             'multiple' => true,
         ], $filter->jsonSerialize());
     }
@@ -133,7 +133,7 @@ final class EntityFilterTest extends TestCase
 
         $this->resolve($filter);
 
-        $this->assertSame(['3' => 'CAROL', '1' => 'BOB'], $filter->jsonSerialize()['options']);
+        $this->assertSame('[["3","CAROL"],["1","BOB"]]', json_encode($filter->jsonSerialize()['options']));
     }
 
     #[Test]

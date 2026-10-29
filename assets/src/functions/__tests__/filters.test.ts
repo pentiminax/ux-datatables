@@ -183,6 +183,18 @@ describe('FilterBar', () => {
         expect(bar.collectValues()).toEqual({})
     })
 
+    it('does not send exponent notation the server would ignore', () => {
+        const { bar } = makeBar([{ name: 'price', type: 'numberRange' }])
+        const wrapper = bar.render(vi.fn())
+        const inputs = wrapper.querySelectorAll<HTMLInputElement>('input[type="number"]')
+
+        inputs[0].value = '1e3'
+        inputs[1].value = '7'
+        clickApply(wrapper)
+
+        expect(bar.collectValues()).toEqual({ price: { max: '7' } })
+    })
+
     it('restores a saved number range and drops non-numeric bounds', () => {
         const { bar } = makeBar([{ name: 'price', type: 'numberRange' }])
         const wrapper = bar.render(vi.fn())
@@ -208,6 +220,30 @@ describe('FilterBar', () => {
         clickReset(wrapper)
 
         expect(inputs[0].value).toBe('')
+        expect(bar.collectValues()).toEqual({})
+    })
+
+    it('keeps the server order of options sent as value and label pairs', () => {
+        const { bar } = makeBar([
+            {
+                name: 'category',
+                type: 'select',
+                options: [
+                    ['10', 'Alpha'],
+                    ['2', 'Beta'],
+                ],
+            },
+        ])
+        const wrapper = bar.render(vi.fn())
+        const values = [...wrapper.querySelectorAll<HTMLOptionElement>('select > option')].map(
+            (o) => o.value
+        )
+
+        expect(values).toEqual(['', '10', '2'])
+
+        bar.restoreValues({ category: '2' })
+        expect(bar.collectValues()).toEqual({ category: '2' })
+        bar.restoreValues({ category: '3' })
         expect(bar.collectValues()).toEqual({})
     })
 
