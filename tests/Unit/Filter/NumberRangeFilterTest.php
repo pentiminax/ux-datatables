@@ -63,34 +63,72 @@ final class NumberRangeFilterTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $value
-     * @param list<string>         $expectedWhere
-     * @param array<string, mixed> $expectedParams
+     * @param array<string, mixed>  $value
+     * @param list<string>          $expectedWhere
+     * @param array<string, string> $expectedParams
      */
     #[Test]
     #[DataProvider('provideBounds')]
-    public function it_applies_the_provided_bounds(array $value, array $expectedWhere, array $expectedParams): void
+    public function it_binds_normalized_strings_with_the_doctrine_type(string $fieldType, array $value, array $expectedWhere, array $expectedParams): void
     {
-        $this->assertFilterProduces(NumberRangeFilter::new('price'), $value, $expectedWhere, $expectedParams, 'integer');
+        $this->assertFilterProduces(NumberRangeFilter::new('price'), $value, $expectedWhere, $expectedParams, $fieldType);
+
+        $this->assertSame(
+            array_fill_keys(array_keys($expectedParams), $fieldType),
+            $this->capturedParamTypes,
+        );
     }
 
     /**
-     * @return iterable<string, array{array<string, mixed>, list<string>, array<string, mixed>}>
+     * @return iterable<string, array{string, array<string, mixed>, list<string>, array<string, string>}>
      */
     public static function provideBounds(): iterable
     {
-        yield 'both bounds' => [
-            ['min' => '10', 'max' => '99.5'],
-            ['e.price >= :filter_price_min', 'e.price <= :filter_price_max'],
-            ['filter_price_min' => 10, 'filter_price_max' => 99.5],
-        ];
+        yield 'integer both bounds' => ['integer', ['min' => '10', 'max' => '99'], ['e.price >= :filter_price_min', 'e.price <= :filter_price_max'], ['filter_price_min' => '10', 'filter_price_max' => '99']];
+        yield 'integer min only' => ['integer', ['min' => '10', 'max' => ''], ['e.price >= :filter_price_min'], ['filter_price_min' => '10']];
+        yield 'integer max only, negative' => ['integer', ['max' => '-3'], ['e.price <= :filter_price_max'], ['filter_price_max' => '-3']];
+        yield 'zero is a bound' => ['integer', ['min' => '0'], ['e.price >= :filter_price_min'], ['filter_price_min' => '0']];
+        yield 'leading zeros and plus sign' => ['smallint', ['min' => '+007'], ['e.price >= :filter_price_min'], ['filter_price_min' => '7']];
+        yield 'integer fractional min rounds up' => ['integer', ['min' => '2.5'], ['e.price > :filter_price_min'], ['filter_price_min' => '2']];
+        yield 'integer fractional max rounds down' => ['integer', ['max' => '2.5'], ['e.price <= :filter_price_max'], ['filter_price_max' => '2']];
+        yield 'integer negative fractional min' => ['integer', ['min' => '-2.5'], ['e.price >= :filter_price_min'], ['filter_price_min' => '-2']];
+        yield 'integer negative fractional max' => ['integer', ['max' => '-2.5'], ['e.price < :filter_price_max'], ['filter_price_max' => '-2']];
+        yield 'integer zero fraction stays inclusive' => ['integer', ['min' => '2.00', 'max' => '3.'], ['e.price >= :filter_price_min', 'e.price <= :filter_price_max'], ['filter_price_min' => '2', 'filter_price_max' => '3']];
+        yield 'integer tiny negative max' => ['integer', ['max' => '-0.5'], ['e.price < :filter_price_max'], ['filter_price_max' => '0']];
+        yield 'float keeps the string' => ['float', ['min' => ' .5 ', 'max' => '0.0000001'], ['e.price >= :filter_price_min', 'e.price <= :filter_price_max'], ['filter_price_min' => '.5', 'filter_price_max' => '0.0000001']];
+        yield 'decimal keeps full precision' => ['decimal', ['min' => '123456789012.3456'], ['e.price >= :filter_price_min'], ['filter_price_min' => '123456789012.3456']];
+        yield 'decimal drops the plus sign' => ['decimal', ['max' => '+9.99'], ['e.price <= :filter_price_max'], ['filter_price_max' => '9.99']];
+        yield 'inverted bounds stay as given' => ['integer', ['min' => '9', 'max' => '1'], ['e.price >= :filter_price_min', 'e.price <= :filter_price_max'], ['filter_price_min' => '9', 'filter_price_max' => '1']];
+        yield 'native numbers' => ['integer', ['min' => 1, 'max' => 2.5], ['e.price >= :filter_price_min', 'e.price <= :filter_price_max'], ['filter_price_min' => '1', 'filter_price_max' => '2']];
+        yield 'integer bigint upper edge' => ['bigint', ['max' => '9223372036854775807'], ['e.price <= :filter_price_max'], ['filter_price_max' => '9223372036854775807']];
+    }
 
-        yield 'min only' => [['min' => '10', 'max' => ''], ['e.price >= :filter_price_min'], ['filter_price_min' => 10]];
-        yield 'max only' => [['max' => '-3'], ['e.price <= :filter_price_max'], ['filter_price_max' => -3]];
-        yield 'zero is a bound' => [['min' => '0'], ['e.price >= :filter_price_min'], ['filter_price_min' => 0]];
-        yield 'padded decimal' => [['min' => ' .5 '], ['e.price >= :filter_price_min'], ['filter_price_min' => 0.5]];
-        yield 'native numbers' => [['min' => 1, 'max' => 2.5], ['e.price >= :filter_price_min', 'e.price <= :filter_price_max'], ['filter_price_min' => 1, 'filter_price_max' => 2.5]];
-        yield 'inverted bounds stay as given' => [['min' => '9', 'max' => '1'], ['e.price >= :filter_price_min', 'e.price <= :filter_price_max'], ['filter_price_min' => 9, 'filter_price_max' => 1]];
+    /**
+     * @param array<string, string> $value
+     */
+    #[Test]
+    #[DataProvider('provideOutOfRangeIntegerBounds')]
+    public function it_drops_a_bound_outside_the_integer_column_range(string $fieldType, array $value): void
+    {
+        $this->assertFilterProduces(NumberRangeFilter::new('price'), $value, [], [], $fieldType);
+    }
+
+    /**
+     * @return iterable<string, array{string, array<string, string>}>
+     */
+    public static function provideOutOfRangeIntegerBounds(): iterable
+    {
+        yield 'bigint overflow' => ['bigint', ['min' => '9223372036854775808']];
+        yield 'integer overflow' => ['integer', ['max' => '2147483648']];
+        yield 'integer negative overflow' => ['integer', ['min' => '-2147483649']];
+        yield 'smallint overflow with fraction' => ['smallint', ['max' => '32768.5']];
+    }
+
+    #[Test]
+    public function it_binds_an_untyped_string_when_the_column_type_is_unknown(): void
+    {
+        $this->assertFilterProduces(NumberRangeFilter::new('price'), ['min' => '3'], ['e.price >= :filter_price_min'], ['filter_price_min' => '3']);
+        $this->assertNull($this->capturedParamTypes['filter_price_min']);
     }
 
     /**
@@ -113,6 +151,7 @@ final class NumberRangeFilterTest extends TestCase
         yield 'empty array' => [[]];
         yield 'empty bounds' => [['min' => '', 'max' => '  ']];
         yield 'text' => [['min' => 'abc', 'max' => '1; DROP TABLE x']];
+        yield 'lone dot and sign' => [['min' => '.', 'max' => '-']];
         yield 'exponent' => [['min' => '1e3']];
         yield 'hexadecimal' => [['min' => '0x1A']];
         yield 'infinity' => [['min' => 'INF', 'max' => 'NAN']];
@@ -128,7 +167,7 @@ final class NumberRangeFilterTest extends TestCase
             NumberRangeFilter::new('price'),
             ['min' => 'abc', 'max' => '5'],
             ['e.price <= :filter_price_max'],
-            ['filter_price_max' => 5],
+            ['filter_price_max' => '5'],
         );
     }
 
@@ -139,7 +178,7 @@ final class NumberRangeFilterTest extends TestCase
             NumberRangeFilter::new('rating')->field('product.rating'),
             ['min' => '3'],
             ['e.product.rating >= :filter_product_rating_min'],
-            ['filter_product_rating_min' => 3],
+            ['filter_product_rating_min' => '3'],
         );
     }
 

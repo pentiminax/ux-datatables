@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Filter;
 
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
+use Pentiminax\UX\DataTables\Query\NumericSearchTerm;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -14,8 +15,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  *
  * The submitted value is an associative array {min?: string, max?: string}. A bound that is not a
  * plain decimal number is skipped instead of failing the Ajax request, like an unparseable date in
- * {@see DateRangeFilter}. Valid bounds bind as PHP numbers, so integer and decimal fields compare
- * numerically.
+ * {@see DateRangeFilter}. Valid bounds bind as normalized decimal strings with the field's Doctrine
+ * type, as {@see NumericSearchTerm} does for column search.
  */
 final class NumberRangeFilter extends AbstractFilter
 {
@@ -74,39 +75,58 @@ final class NumberRangeFilter extends AbstractFilter
             return;
         }
 
-        if (!RelationFieldResolver::supportsSearchFiltering($qb, $this->resolvedField())) {
+        $field = $this->resolvedField();
+        if (!RelationFieldResolver::supportsSearchFiltering($qb, $field)) {
             return;
         }
 
-        $min = $this->normalizeBound($value['min'] ?? null);
-        $max = $this->normalizeBound($value['max'] ?? null);
+        $integerType = RelationFieldResolver::resolveIntegerFieldType($qb, $field);
+        $floatType   = RelationFieldResolver::resolveFloatFieldType($qb, $field);
 
-        if (null === $min && null === $max) {
-            return;
-        }
+        $bounds = [
+            'min' => $this->normalizeBound($value['min'] ?? null, true, $integerType, $floatType),
+            'max' => $this->normalizeBound($value['max'] ?? null, false, $integerType, $floatType),
+        ];
 
-        $expr = $this->resolveExpression($qb, $alias);
-        if (null === $expr) {
-            return;
-        }
+        $expr = null;
+        foreach ($bounds as $name => $bound) {
+            if (null === $bound) {
+                continue;
+            }
 
-        if (null !== $min) {
-            $param = $this->parameterName('min');
-            $qb->andWhere(\sprintf('%s >= :%s', $expr, $param));
-            $qb->setParameter($param, $min);
-        }
+            $expr ??= $this->resolveExpression($qb, $alias);
+            if (null === $expr) {
+                return;
+            }
 
-        if (null !== $max) {
-            $param = $this->parameterName('max');
-            $qb->andWhere(\sprintf('%s <= :%s', $expr, $param));
-            $qb->setParameter($param, $max);
+            [$operator, $number, $type] = $bound;
+            $param                      = $this->parameterName($name);
+
+            $qb->andWhere(\sprintf('%s %s :%s', $expr, $operator, $param));
+
+            if (null === $type) {
+                $qb->setParameter($param, $number);
+
+                continue;
+            }
+
+            $qb->setParameter($param, $number, $type);
         }
     }
 
-    private function normalizeBound(mixed $value): int|float|null
+    /**
+     * Keeps the validated decimal string, so no precision is lost to a PHP float. On an integer
+     * column a fractional bound becomes the equivalent integer comparison (`>= 2.5` is `> 2`), and
+     * a bound outside the column's range is dropped.
+     *
+     * @return array{string, string, string|null}|null operator, number, Doctrine type to bind with
+     */
+    private function normalizeBound(mixed $value, bool $isMin, ?string $integerType, ?string $floatType): ?array
     {
+        $operator = $isMin ? '>=' : '<=';
+
         if (\is_int($value) || \is_float($value)) {
-            return is_finite((float) $value) ? $value : null;
+            $value = (string) $value;
         }
 
         if (!\is_string($value)) {
@@ -115,13 +135,25 @@ final class NumberRangeFilter extends AbstractFilter
 
         $value = trim($value);
 
-        // Plain decimals only: is_numeric() also accepts exponents and leading whitespace forms.
-        if (1 !== preg_match('/^[+-]?(\d+(\.\d*)?|\.\d+)$/', $value)) {
+        // Plain decimals only: is_numeric() also accepts exponents.
+        if (1 !== preg_match('/^(?<sign>[+-]?)(?<int>\d*)(?:\.(?<fraction>\d*))?$/', $value, $matches) || 1 !== preg_match('/\d/', $value)) {
             return null;
         }
 
-        $number = $value + 0;
+        if (null === $integerType) {
+            $normalized = NumericSearchTerm::normalize($value, $floatType ?? 'float');
 
-        return is_finite((float) $number) ? $number : null;
+            return null === $normalized ? null : [$operator, $normalized, $floatType];
+        }
+
+        $negative = '-' === $matches['sign'];
+        if ('' !== rtrim($matches['fraction'] ?? '', '0')) {
+            $operator = $isMin ? ($negative ? '>=' : '>') : ($negative ? '<' : '<=');
+        }
+
+        $truncated  = ($negative ? '-' : '').('' === $matches['int'] ? '0' : $matches['int']);
+        $normalized = NumericSearchTerm::normalize($truncated, $integerType);
+
+        return null === $normalized ? null : [$operator, $normalized, $integerType];
     }
 }
