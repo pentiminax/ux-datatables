@@ -137,7 +137,8 @@ class ApiPlatformQueryParameterFactory
 
     /**
      * A {from, to} filter maps onto DateFilter bounds; a date-only `to` becomes `strictly_before`
-     * the next day, since the inclusive `before` is midnight and would drop that day.
+     * the next day, since the inclusive `before` is midnight and would drop that day. A {min, max}
+     * filter maps onto RangeFilter's `gte` and `lte`.
      *
      * @param array<string, string|array<int|string, string>> $parameters
      * @param array<array-key, mixed>                         $value
@@ -160,6 +161,14 @@ class ApiPlatformQueryParameterFactory
             }
 
             $this->set($parameters, \sprintf('%s[%s]', $name, $bound), $boundary);
+        }
+
+        foreach (['min' => 'gte', 'max' => 'lte'] as $key => $bound) {
+            $boundary = $value[$key] ?? null;
+
+            if (\is_scalar($boundary) && '' !== trim((string) $boundary)) {
+                $this->set($parameters, \sprintf('%s[%s]', $name, $bound), trim((string) $boundary));
+            }
         }
     }
 

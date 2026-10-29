@@ -11,8 +11,19 @@ function inputClass(framework) {
 function selectClass(framework) {
     return isBootstrap(framework) ? 'form-select' : 'dt-filter-input';
 }
+function optionEntries(options) {
+    if (Array.isArray(options)) {
+        return options.filter((pair) => Array.isArray(pair) && typeof pair[0] === 'string' && typeof pair[1] === 'string');
+    }
+    return Object.entries(options ?? {});
+}
 export function hasFilters(payload) {
     return Array.isArray(payload?.filters) && payload.filters.length > 0;
+}
+const RANGE_KEYS = ['from', 'to', 'min', 'max'];
+const DECIMAL_NUMBER = /^[+-]?(\d+(\.\d*)?|\.\d+)$/;
+function plainDecimal(value) {
+    return DECIMAL_NUMBER.test(value.trim()) ? value.trim() : '';
 }
 function isFilledString(value) {
     return typeof value === 'string' && value.trim() !== '';
@@ -28,16 +39,13 @@ function normalizeValue(value) {
     }
     if (!isRecord(value))
         return null;
-    const from = isFilledString(value.from) ? value.from : undefined;
-    const to = isFilledString(value.to) ? value.to : undefined;
-    if (from === undefined && to === undefined)
-        return null;
     const range = {};
-    if (from !== undefined)
-        range.from = from;
-    if (to !== undefined)
-        range.to = to;
-    return range;
+    for (const key of RANGE_KEYS) {
+        const bound = value[key];
+        if (isFilledString(bound))
+            range[key] = bound;
+    }
+    return Object.keys(range).length === 0 ? null : range;
 }
 const FUNNEL_ICON = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" ' +
     'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -130,7 +138,7 @@ export class FilterBar {
     validateValueForDefinition(definition, value) {
         switch (definition.type) {
             case 'select': {
-                const validKeys = new Set(Object.keys(definition.options ?? {}));
+                const validKeys = new Set(optionEntries(definition.options).map(([key]) => key));
                 if (definition.multiple === true) {
                     if (Array.isArray(value)) {
                         const filtered = value.filter((v) => validKeys.has(v));
@@ -160,6 +168,19 @@ export class FilterBar {
             }
             case 'dateRange':
                 return isRecord(value) ? value : null;
+            case 'numberRange': {
+                if (!isRecord(value) || Array.isArray(value))
+                    return null;
+                const record = value;
+                const range = {};
+                for (const key of ['min', 'max']) {
+                    const bound = record[key];
+                    if (typeof bound === 'string' && DECIMAL_NUMBER.test(bound.trim())) {
+                        range[key] = bound.trim();
+                    }
+                }
+                return Object.keys(range).length === 0 ? null : range;
+            }
             default:
                 return typeof value === 'string' ? value : null;
         }
@@ -257,6 +278,8 @@ export class FilterBar {
                 return this.buildTernary(definition, wrapper);
             case 'dateRange':
                 return this.buildDateRange(definition, wrapper);
+            case 'numberRange':
+                return this.buildNumberRange(definition, wrapper);
             default:
                 return this.buildText(definition, wrapper);
         }
@@ -291,7 +314,7 @@ export class FilterBar {
             empty.textContent = definition.placeholder ?? this.labels.all ?? 'All';
             select.appendChild(empty);
         }
-        for (const [value, optLabel] of Object.entries(definition.options ?? {})) {
+        for (const [value, optLabel] of optionEntries(definition.options)) {
             const option = document.createElement('option');
             option.value = value;
             option.textContent = optLabel;
@@ -380,6 +403,40 @@ export class FilterBar {
             reset: () => {
                 from.value = '';
                 to.value = '';
+            },
+        };
+    }
+    buildNumberRange(definition, wrapper) {
+        const group = document.createElement('div');
+        group.className = isBootstrap(this.framework)
+            ? 'dt-filter-range d-flex gap-1'
+            : 'dt-filter-range';
+        const label = definition.label ?? definition.name;
+        const buildInput = (bound, fallback, placeholder) => {
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.step = 'any';
+            input.className = inputClass(this.framework);
+            input.name = `filters[${definition.name}][${bound}]`;
+            input.placeholder = placeholder ?? fallback;
+            input.setAttribute('aria-label', `${label} (${input.placeholder})`);
+            group.appendChild(input);
+            return input;
+        };
+        const min = buildInput('min', 'Min', definition.minPlaceholder);
+        const max = buildInput('max', 'Max', definition.maxPlaceholder);
+        wrapper.appendChild(group);
+        return {
+            definition,
+            getValue: () => ({ min: plainDecimal(min.value), max: plainDecimal(max.value) }),
+            setValue: (value) => {
+                const range = isRecord(value) && !Array.isArray(value) ? value : {};
+                min.value = typeof range.min === 'string' ? range.min : '';
+                max.value = typeof range.max === 'string' ? range.max : '';
+            },
+            reset: () => {
+                min.value = '';
+                max.value = '';
             },
         };
     }

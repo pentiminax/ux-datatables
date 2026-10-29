@@ -15,6 +15,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class ChoiceFilter extends AbstractFilter
 {
+    use AppliesChoiceCondition;
+
     /** @var array<string, string> value => label */
     private array $options = [];
 
@@ -188,35 +190,7 @@ final class ChoiceFilter extends AbstractFilter
 
     protected function doApply(QueryBuilder $qb, mixed $value, string $alias): void
     {
-        $expr = $this->resolveExpression($qb, $alias);
-        if (null === $expr) {
-            return;
-        }
-
-        if ($this->multiple) {
-            $values = array_values(array_filter(
-                \is_array($value) ? $value : [$value],
-                static fn (mixed $item): bool => \is_scalar($item) && '' !== (string) $item,
-            ));
-
-            if ([] === $values) {
-                return;
-            }
-
-            $param = $this->parameterName('in');
-            $qb->andWhere(\sprintf('%s IN (:%s)', $expr, $param));
-            $qb->setParameter($param, $values);
-
-            return;
-        }
-
-        if (\is_array($value) || !\is_scalar($value) || '' === (string) $value) {
-            return;
-        }
-
-        $param = $this->parameterName();
-        $qb->andWhere(\sprintf('%s = :%s', $expr, $param));
-        $qb->setParameter($param, $value);
+        $this->applyChoice($qb, $value, $alias, $this->multiple);
     }
 
     /**

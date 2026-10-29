@@ -34,6 +34,14 @@ Anything else in `order[][dir]` sorts ascending instead of reaching the query pi
 JavaScript before the controller connects. Intervals outside 2 seconds to 24 hours throw an
 `InvalidArgumentException`. See the polling page in the docs.
 
+### New filters
+
+- New `NumberRangeFilter` and `EntityFilter`. A `#[DataTableFilter]` on an `int` or `float`
+  property used to raise while the container compiled; it now builds a `NumberRangeFilter`. Name a
+  filter class on the attribute to keep a different one.
+- `FilterTypeMapper::mapType()` ignores its second argument, the filter name. It is deprecated since
+  1.3 and removed in 2.0.
+
 ### New: empty state, row class and clickable rows
 
 `DataTable::emptyState()`, `rowClass()` and `recordUrl()` are additive; tables that do not call them

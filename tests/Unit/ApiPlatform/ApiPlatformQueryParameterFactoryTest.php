@@ -137,6 +137,20 @@ final class ApiPlatformQueryParameterFactoryTest extends TestCase
     }
 
     #[Test]
+    public function it_maps_a_number_range_onto_gte_and_lte(): void
+    {
+        $parameters = $this->create($this->request(filters: [
+            'price' => ['min' => ' 10 ', 'max' => '99.5'],
+            'stock' => ['min' => '', 'max' => '5'],
+        ]));
+
+        $this->assertSame('10', $parameters['price[gte]']);
+        $this->assertSame('99.5', $parameters['price[lte]']);
+        $this->assertArrayNotHasKey('stock[gte]', $parameters);
+        $this->assertSame('5', $parameters['stock[lte]']);
+    }
+
+    #[Test]
     public function it_keeps_a_time_bearing_range_upper_bound_as_inclusive_before(): void
     {
         $parameters = $this->create($this->request(filters: [

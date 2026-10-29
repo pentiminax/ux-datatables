@@ -4,7 +4,7 @@ Declarative filter popover (server-side Doctrine only). Declare filters in `conf
 
 ```php
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Filter\{CheckboxFilter, DateRangeFilter, ChoiceFilter, TernaryFilter, TextFilter};
+use Pentiminax\UX\DataTables\Filter\{CheckboxFilter, DateRangeFilter, ChoiceFilter, EntityFilter, NumberRangeFilter, TernaryFilter, TextFilter};
 use Pentiminax\UX\DataTables\Model\Filters;
 
 public function configureFilters(Filters $filters): Filters
@@ -36,6 +36,8 @@ public function configureFilters(Filters $filters): Filters
 | `ChoiceFilter` | select (`multiple()` for multi) | `field = value` / `field IN (...)`; `options()` accepts `[label => value]`, enum cases, or enum class-string |
 | `TernaryFilter` | all/true/false select | on a Doctrine `boolean` field compares the value with `true` / `false`; other fields use `field IS [NOT] NULL`. `nullable()` keeps the `NULL` checks on a boolean; `values($true, $false)` compares concrete values |
 | `DateRangeFilter` | two date inputs | `field >= from`; date-only `to` on datetime is `< next midnight`, otherwise `field <= to` (each bound optional) |
+| `NumberRangeFilter` | two number inputs | `field >= min`, `field <= max` (each optional); non-numeric bounds are ignored |
+| `EntityFilter` | select (`multiple()` for multi) | `entity(Class)` lists options server-side (capped by `limit()`, 200 default; `optionsQuery()` scopes them); `association = id` / `IN (...)`; the list is not authorization |
 | `CheckboxFilter` | checkbox | none — requires `query()`, runs only when checked |
 
 ## Flow

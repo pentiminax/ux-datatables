@@ -18,8 +18,9 @@ Doctrine condition server-side.
 ## Quick start
 
 ```php
+use App\Entity\Category;
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Filter\{CheckboxFilter, ChoiceFilter, DateRangeFilter, TernaryFilter, TextFilter};
+use Pentiminax\UX\DataTables\Filter\{CheckboxFilter, ChoiceFilter, DateRangeFilter, EntityFilter, NumberRangeFilter, TernaryFilter, TextFilter};
 use Pentiminax\UX\DataTables\Model\Filters;
 
 public function configureFilters(Filters $filters): Filters
@@ -38,6 +39,13 @@ public function configureFilters(Filters $filters): Filters
     $createdAtFilter = DateRangeFilter::new('createdAt')
         ->label('Created');
 
+    $priceFilter = NumberRangeFilter::new('price')
+        ->label('Price');
+
+    $categoryFilter = EntityFilter::new('category')
+        ->entity(Category::class)
+        ->optionLabel('name');
+
     $vipFilter = CheckboxFilter::new('vip')
         ->label('VIP only')
         ->query(
@@ -49,6 +57,8 @@ public function configureFilters(Filters $filters): Filters
         ->add($statusFilter)
         ->add($verifiedFilter)
         ->add($createdAtFilter)
+        ->add($priceFilter)
+        ->add($categoryFilter)
         ->add($vipFilter);
 }
 ```
@@ -178,6 +188,96 @@ time-bearing `to`, and any `to` on a date column, stay inclusive (`<=`).
 DateRangeFilter::new('createdAt')->label('Created');
 ```
 
+### NumberRangeFilter
+
+Two optional inclusive bounds (`min` / `max`), applied as `field >= min` and `field <= max` with
+bound parameters. It works on integer, float and decimal fields. A bound that is not a plain decimal
+number (letters, exponents such as `1e3`, `INF`) is ignored rather than failing the request, so the
+other bound still applies. Zero is a valid bound.
+
+Bounds are bound as decimal strings with the column's Doctrine type, so decimal precision is kept.
+On an integer column a fractional bound is rounded inward (`min` 2.5 matches from 3, `max` 2.5 up to
+2), and a bound beyond the column's range is ignored.
+
+```php
+use Pentiminax\UX\DataTables\Filter\NumberRangeFilter;
+
+NumberRangeFilter::new('price')
+    ->label('filter.price')
+    ->minPlaceholder('filter.price.min')
+    ->maxPlaceholder('filter.price.max');
+```
+
+Without `minPlaceholder()` and `maxPlaceholder()`, the inputs show the bundle's translated "Min" and
+"Max". A `min` greater than `max` is not corrected: it matches no row.
+
+### EntityFilter
+
+Filters rows by a Doctrine association, offering the target entities as a select. The options are a
+fixed list loaded server-side each time the table renders. The submitted identifiers are compared to
+the association through bound parameters: `=` for one value, `IN (...)` with `multiple()`.
+
+```php
+use App\Entity\Category;
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Filter\EntityFilter;
+
+EntityFilter::new('category')
+    ->label('Category')
+    ->entity(Category::class)
+    ->optionLabel('name')
+    ->optionsQuery(static function (QueryBuilder $qb): void {
+        $qb->andWhere('e.archived = false')->orderBy('e.name', 'ASC');
+    })
+    ->limit(100)
+    ->multiple();
+```
+
+<Table
+  headers={['Method', 'Meaning']}
+  rows={[
+    ['`entity()`', 'Target entity of the association named by the filter (or `field()`).'],
+    [
+      '`optionLabel()`',
+      'Property path or closure giving the label. Defaults like the ChoiceFilter entity labels.',
+    ],
+    [
+      '`optionsQuery()`',
+      'Closure receiving a query builder that selects the entity as `e`. Scope or order the options here.',
+    ],
+    [
+      '`limit()`',
+      'Maximum number of options, 200 by default. Rendering throws a `LengthException` above it.',
+    ],
+    ['`multiple()`', 'Allow several values.'],
+  ]}
+/>
+
+The filter name or `field()` must be the association on the table entity (`category`), or a path to
+one (`author.company`). The entity needs a single-column identifier. With a string `optionLabel()`
+that is a mapped field, the options are ordered by it unless `optionsQuery()` orders them, and the
+filter bar keeps that order.
+
+Identifiers are normalized and bound with the Doctrine type of the target identifier. Integer and
+UUID/ULID identifiers are checked first: a submitted value that does not fit the type is ignored,
+as are the other values of a list that fail. Identifiers of any other type are bound as strings.
+
+<Aside type="caution">
+  A property path through an association in `optionLabel()` (such as `company.name`) loads that
+  association for each listed entity, which costs one query per option. Join it in `optionsQuery()`
+  with `$qb->addSelect('c')->leftJoin('e.company', 'c')` instead.
+</Aside>
+
+<Aside type="caution">
+  The option list is a convenience, not authorization. Any identifier can be sent to the Ajax route,
+  whether or not it is listed. Restrict what a user may see in the table's own query or data
+  provider, and use `optionsQuery()` only to keep the list relevant.
+</Aside>
+
+Reach for `ChoiceFilter::entity()` instead when you need `findBy()` criteria, a custom value
+property, or no cap. `EntityFilter` serializes as a select, so it looks and behaves like a
+`ChoiceFilter` in the filter bar.
+
 ### CheckboxFilter (generic)
 
 A checkbox driven entirely by a `query()` closure, executed only when checked.
@@ -232,15 +332,28 @@ Arguments:
     ['`bool`', '`TernaryFilter`'],
     ['A `BackedEnum`', '`ChoiceFilter`, with its options filled from the enum cases'],
     ['A `DateTimeInterface`', '`DateRangeFilter`'],
-    ['`int` or `float`', 'Rejected: no filter class queries a number'],
+    ['`int` or `float`', '`NumberRangeFilter`'],
     ['Anything else, or no type', '`TextFilter`'],
   ]}
 />
 
-A number is rejected rather than guessed. `TextFilter` is the only fallback and it skips numeric
-Doctrine fields, so the guess would render a control that filters nothing. Name a filter class on
-the attribute, or point the filter at a text field, and the declaration raises while the container
-compiles instead of failing silently on the first request.
+An `EntityFilter` is never guessed, since the entity class cannot be read from a property type.
+Name it on the attribute and pass the entity through the options:
+
+```php
+use App\Entity\Category;
+use Pentiminax\UX\DataTables\Attribute\DataTableFilter;
+use Pentiminax\UX\DataTables\Filter\EntityFilter;
+
+#[DataTableFilter(
+    type: EntityFilter::class,
+    options: ['entity' => Category::class, 'optionLabel' => 'name', 'multiple' => true],
+)]
+private ?Category $category = null;
+```
+
+The `optionsQuery` closure cannot be written in an attribute. Configure that filter in
+`configureFilters()` instead.
 
 A `TernaryFilter` on a boolean column compares the column value, whether it is guessed from a `bool`
 property or named on the attribute, so "true" and "false" each match the rows they name. On any
@@ -366,7 +479,8 @@ DateRangeFilter::new('lastLoginAt')
 ```
 
 `TernaryFilter::trueLabel()` / `falseLabel()` and `ChoiceFilter` options backed
-by a `TranslatableInterface` enum are translated the same way.
+by a `TranslatableInterface` enum are translated the same way, as are the
+`NumberRangeFilter` placeholders.
 
 ## Reset button in the header
 

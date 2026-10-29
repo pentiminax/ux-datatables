@@ -9,8 +9,11 @@ use Pentiminax\UX\DataTables\Filter\AttributeFilterReader;
 use Pentiminax\UX\DataTables\Filter\CheckboxFilter;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\DateRangeFilter;
+use Pentiminax\UX\DataTables\Filter\EntityFilter;
+use Pentiminax\UX\DataTables\Filter\NumberRangeFilter;
 use Pentiminax\UX\DataTables\Filter\TernaryFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
+use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountCustomer;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsFilterQueryBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -197,6 +200,29 @@ final class AttributeFilterReaderTest extends TestCase
     }
 
     #[Test]
+    public function it_guesses_a_number_range_from_an_int_and_a_float(): void
+    {
+        $filters = $this->reader->readFilters(NumberFilterFixture::class);
+
+        $this->assertContainsOnlyInstancesOf(NumberRangeFilter::class, $filters);
+        $this->assertSame(['stock', 'weight'], array_map(static fn ($filter) => $filter->getName(), $filters));
+        $this->assertSame('numberRange', $filters[0]->jsonSerialize()['type']);
+    }
+
+    #[Test]
+    public function it_builds_an_entity_filter_from_its_options(): void
+    {
+        $filter = $this->reader->readFilters(EntityFilterFixture::class)[0];
+
+        $this->assertInstanceOf(EntityFilter::class, $filter);
+        $this->assertSame(CountCustomer::class, $filter->getEntityClass());
+        $this->assertSame('name', $filter->getOptionLabel());
+        $this->assertSame(50, $filter->getLimit());
+        $this->assertTrue($filter->jsonSerialize()['multiple']);
+        $this->assertSame('select', $filter->jsonSerialize()['type']);
+    }
+
+    #[Test]
     public function it_rejects_an_option_no_filter_answers(): void
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -374,4 +400,19 @@ final class ExplicitChoiceOnEnumFixture
 {
     #[DataTableFilter(type: ChoiceFilter::class)]
     public FilterStatus $status = FilterStatus::Active;
+}
+
+final class NumberFilterFixture
+{
+    #[DataTableFilter]
+    public int $stock = 0;
+
+    #[DataTableFilter]
+    public float $weight = 0.0;
+}
+
+final class EntityFilterFixture
+{
+    #[DataTableFilter(type: EntityFilter::class, options: ['entity' => CountCustomer::class, 'optionLabel' => 'name', 'limit' => 50, 'multiple' => true])]
+    public ?CountCustomer $customer = null;
 }
