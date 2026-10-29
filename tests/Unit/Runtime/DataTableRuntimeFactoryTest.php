@@ -347,6 +347,56 @@ final class DataTableRuntimeFactoryTest extends TestCase
         $this->assertNotInstanceOf(ApiPlatformCollectionProvider::class, $runtime->getDataProvider());
     }
 
+    #[Test]
+    public function create_row_mapper_adds_the_presentation_stage_only_when_a_callable_is_set(): void
+    {
+        $factory    = new DataTableRuntimeFactory();
+        $baseMapper = static fn (mixed $row): array => ['id' => $row['id']];
+
+        $plain = $factory->createRowMapper($baseMapper, []);
+        $rich  = $factory->createRowMapper(
+            $baseMapper,
+            [],
+            rowClass: static fn (array $row): string => 'row-'.$row['id'],
+            recordUrl: static fn (array $row): string => '/items/'.$row['id'],
+        );
+
+        $this->assertSame(['id' => 4], $plain->map(['id' => 4]));
+        $this->assertSame([
+            'id'          => 4,
+            'DT_RowClass' => 'row-4',
+            'DT_RowAttr'  => ['data-record-url' => '/items/4'],
+        ], $rich->map(['id' => 4]));
+    }
+
+    #[Test]
+    public function the_export_mapper_does_not_receive_the_presentation_stage(): void
+    {
+        $table = (new DataTable('books'))
+            ->rowClass(static fn (): string => 'late')
+            ->recordUrl(static fn (): string => '/books/1');
+
+        $provider = (new DataTableRuntimeFactory(autoDataProviderFactory: new AutoDataProviderFactory(
+            $this->createStub(EntityManagerInterface::class),
+            $this->buildApiPlatformProviderFactory(),
+        )))->createRuntime(
+            table: $table,
+            columns: [],
+            asDataTable: new AsDataTable(entityClass: \stdClass::class, apiPlatform: true),
+            baseMapper: static fn (): array => ['title' => 'A'],
+            manualDataProviderFactory: static fn (): ?DataProviderInterface => null,
+            configureQueryBuilder: static fn ($qb, $req) => $qb,
+        )->getDataProvider();
+
+        $this->assertInstanceOf(ApiPlatformCollectionProvider::class, $provider);
+
+        $page   = (new \ReflectionProperty($provider, 'rowMapper'))->getValue($provider);
+        $export = (new \ReflectionProperty($provider, 'exportRowMapper'))->getValue($provider);
+
+        $this->assertSame(['DT_RowClass' => 'late', 'DT_RowAttr' => ['data-record-url' => '/books/1']], array_diff_key($page->map(null), ['title' => 1]));
+        $this->assertSame(['title' => 'A'], $export->map(null));
+    }
+
     private function createRuntime(
         ?\Closure $manualDataProviderFactory = null,
         ?AsDataTable $asDataTable = null,

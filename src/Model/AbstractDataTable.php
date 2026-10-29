@@ -485,6 +485,8 @@ abstract class AbstractDataTable
             highlight: $this->table->getHighlightConfig(),
             rowIdField: $this->table->hasBulkActions() ? $this->table->getBulkActions()?->getIdField() : null,
             entityClass: $this->asDataTable?->entityClass,
+            rowClass: $this->table->getRowClassResolver(),
+            recordUrl: $this->table->getRecordUrlResolver(),
         );
     }
 
