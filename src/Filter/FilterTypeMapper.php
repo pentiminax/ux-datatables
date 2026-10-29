@@ -12,14 +12,16 @@ final class FilterTypeMapper
      * CheckboxFilter is never guessed: it has no default condition, so it only works with a query()
      * closure an attribute cannot carry.
      *
-     * @param string $name Unused
+     * @param string $name deprecated since 1.3, ignored and no longer needed. Removed in 2.0.
      *
      * @return class-string<AbstractFilter>
-     *
-     * @deprecated since 1.3, the $name argument is ignored and no longer needed. Removed in 2.0.
      */
     public function mapType(?\ReflectionNamedType $type, string $name = ''): string
     {
+        if ('' !== $name) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.3', 'Passing the $name argument to "%s()" is deprecated and ignored. It is removed in 2.0.', __METHOD__);
+        }
+
         if (null === $type) {
             return TextFilter::class;
         }
