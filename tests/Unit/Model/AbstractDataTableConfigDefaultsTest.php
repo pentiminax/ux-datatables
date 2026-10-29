@@ -63,6 +63,12 @@ final class AbstractDataTableConfigDefaultsTest extends TestCase
         self::assertSame(3, $table->getOption('paging')['buttons']);
     }
 
+    #[Test]
+    public function autoconfigured_defaults_configurators_apply_to_every_table(): void
+    {
+        self::assertTrue($this->configuredDataTable()->getOption('stateSave'));
+    }
+
     private function configuredDataTable(): DataTable
     {
         /** @var AbstractDataTable $dataTable */

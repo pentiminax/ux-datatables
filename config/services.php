@@ -53,6 +53,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use function Symfony\Component\DependencyInjection\Loader\Configurator\inline_service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_locator;
 
 use Symfony\Component\Security\Core\Authorization\AccessDecisionManagerInterface;
@@ -365,6 +366,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(6, param('datatables.extensions'))
         ->arg(7, service('datatables.profiler')->nullOnInvalid())
         ->arg(8, service('datatables.attribute.resolver'))
+        ->arg('$defaultsConfigurators', tagged_iterator('datatables.defaults_configurator'))
         ->private();
 
     $services->alias(DataTableInfrastructure::class, 'datatables.infrastructure')

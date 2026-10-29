@@ -30,6 +30,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.form.edit_modal_renderer', EditModalRenderer::class)
         ->arg(0, service('twig'))
         ->arg(1, param('datatables.edit_modal.default_title'))
+        ->arg(2, service('translator')->nullOnInvalid())
         ->private();
 
     $services->set('datatables.form.edit_modal_template_resolver', EditModalTemplateResolver::class)
