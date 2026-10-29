@@ -7,7 +7,7 @@ navTitle: Filters
 
 ## What / When
 
-Add `configureFilters()` when users need structured filters (text, choice, date range) on a
+Add `configureFilters()` when users need structured filters (text, choice, date range, number range, association) on a
 **server-side** Doctrine table.
 
 ## Minimal Example
@@ -33,11 +33,44 @@ public function configureFilters(Filters $filters): Filters
 }
 ```
 
+## Price range and category
+
+```php
+use App\Entity\Category;
+use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Filter\EntityFilter;
+use Pentiminax\UX\DataTables\Filter\NumberRangeFilter;
+
+public function configureFilters(Filters $filters): Filters
+{
+    return $filters
+        ->add(NumberRangeFilter::new('price')->label('Price'))
+        ->add(
+            EntityFilter::new('category')
+                ->label('Category')
+                ->entity(Category::class)
+                ->optionLabel('name')
+                ->optionsQuery(static function (QueryBuilder $qb): void {
+                    $qb->andWhere('e.archived = false');
+                })
+                ->multiple()
+        );
+}
+```
+
+Leave a bound empty to filter on one side only. The category list is loaded when the table renders
+and fails above 200 entries: narrow it with `optionsQuery()` or raise `limit()`.
+
 ## Pitfalls
 
 <Aside type="caution">
   Filters have no effect on client-side `data()` tables in this version. Enable `serverSide()`
   first.
+</Aside>
+
+<Aside type="caution">
+  The category list is not authorization. Any category identifier can be sent to the Ajax route, so
+  scope the table's rows in its own query.
 </Aside>
 
 ## Related

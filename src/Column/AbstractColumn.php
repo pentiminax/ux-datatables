@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\NormalizedSearchColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\SearchableColumnInterface;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
+use Pentiminax\UX\DataTables\Model\Summary\Summarizer;
 use Symfony\Component\ExpressionLanguage\Expression;
 
 /**
@@ -56,6 +57,9 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
 
     /** @var (\Closure(mixed, mixed): mixed)|null */
     protected ?\Closure $valueFormatter = null;
+
+    /** @var array<string, Summarizer> */
+    protected array $summarizers = [];
 
     /**
      * Convenient factory helper used by concrete columns to set their type.
@@ -509,6 +513,44 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
         return $this->valueFormatter;
     }
 
+    /**
+     * Shows footer figures over every row matching the search and filters. Only Count accepts a
+     * non-numeric column.
+     *
+     * @throws \InvalidArgumentException when the column cannot be summarized
+     */
+    public function summarize(Summarizer ...$summarizers): static
+    {
+        if (!$this->isSummarizable()) {
+            throw new \InvalidArgumentException(\sprintf('The column "%s" cannot be summarized because it renders no data field.', $this->getName()));
+        }
+
+        foreach ($summarizers as $summarizer) {
+            $type = $summarizer->getType();
+
+            if ($type->requiresNumericColumn() && !$this->isNumber()) {
+                throw new \InvalidArgumentException(\sprintf('The "%s" summary requires a numeric column, but "%s" is not numeric.', $type->value, $this->getName()));
+            }
+
+            $this->summarizers[$type->value] = $summarizer;
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return list<Summarizer>
+     */
+    public function getSummarizers(): array
+    {
+        return array_values($this->summarizers);
+    }
+
+    protected function isSummarizable(): bool
+    {
+        return true;
+    }
+
     public function buildSearchPredicate(
         QueryBuilder $qb,
         string $alias,
@@ -581,6 +623,13 @@ abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSe
             'field'              => $this->getField(),
             'customOptions'      => $this->customOptions,
             'responsivePriority' => $this->responsivePriority,
+            'summaries'          => array_map(
+                static fn (Summarizer $summarizer): array => array_filter(
+                    ['type' => $summarizer->getType()->value, 'label' => $summarizer->getLabel()],
+                    static fn (?string $value): bool => null !== $value,
+                ),
+                $this->getSummarizers(),
+            ),
         ], static fn (mixed $value, string $key) => null !== $value && [] !== $value && ('' !== $value || 'defaultContent' === $key), ARRAY_FILTER_USE_BOTH);
 
         if (null !== $this->columnControl) {

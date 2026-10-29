@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Tests\Support\DataTableTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 
 /**
@@ -17,6 +18,21 @@ use PHPUnit\Framework\Attributes\Test;
 #[CoversClass(SelectExtension::class)]
 final class SelectExtensionTest extends DataTableTestCase
 {
+    #[Test]
+    #[DataProvider('upstreamStyles')]
+    public function it_serializes_every_upstream_select_style(SelectStyle $style, string $expected): void
+    {
+        $this->assertSame($expected, (new SelectExtension(style: $style))->jsonSerialize()['style']);
+    }
+
+    public static function upstreamStyles(): iterable
+    {
+        yield 'single' => [SelectStyle::SINGLE, 'single'];
+        yield 'multi' => [SelectStyle::MULTI, 'multi'];
+        yield 'os' => [SelectStyle::OS, 'os'];
+        yield 'multi+shift' => [SelectStyle::MULTI_SHIFT, 'multi+shift'];
+    }
+
     #[Test]
     public function it_serializes_default_options(): void
     {

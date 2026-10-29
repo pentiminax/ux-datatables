@@ -79,6 +79,21 @@ describe('filter bar values', () => {
         })
     })
 
+    it('maps a number range onto gte and lte', () => {
+        const adapter = new ApiPlatformAdapter([{ name: 'email' }])
+
+        const params = adapter.buildRequestParams({
+            start: 0,
+            length: 25,
+            filters: { price: { min: ' 10 ', max: '99.5' }, stock: { min: '', max: '5' } },
+        })
+
+        expect(params['price[gte]']).toBe('10')
+        expect(params['price[lte]']).toBe('99.5')
+        expect(params['stock[gte]']).toBeUndefined()
+        expect(params['stock[lte]']).toBe('5')
+    })
+
     it('keeps the end day for date-only upper bounds before year 100', () => {
         const adapter = new ApiPlatformAdapter([{ name: 'email' }])
 

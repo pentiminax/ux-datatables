@@ -46,6 +46,20 @@ final class NumericSearchTerm
     }
 
     /**
+     * 1 or -1 when $value is an integer literal above or below the range of $doctrineType, 0 otherwise.
+     */
+    public static function overflowSign(string $value, string $doctrineType): int
+    {
+        $value = trim($value);
+
+        if (!isset(self::INTEGER_MAGNITUDES[$doctrineType]) || 1 !== preg_match('/^[+-]?\d+$/', $value) || null !== self::normalize($value, $doctrineType)) {
+            return 0;
+        }
+
+        return str_starts_with($value, '-') ? -1 : 1;
+    }
+
+    /**
      * @param array{string, string} $magnitudes
      */
     private static function normalizeInteger(string $value, array $magnitudes): ?string

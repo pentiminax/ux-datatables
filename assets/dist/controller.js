@@ -16,6 +16,7 @@ import { resolveColumnStyleAdapter } from './columnStyles/resolveColumnStyleAdap
 import { ApiPlatformAdapter, isApiPlatformAdapterEnabled, resolveColumnDataKey, } from './functions/apiPlatformAdapter.js';
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js';
 import { normalizeDisabledColumnControls } from './functions/columnControl.js';
+import { ensureSummaryFooter, hasSummaries, installColumnSummaries, } from './functions/columnSummaries.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
 import { detectTheme } from './functions/detectTheme.js';
@@ -26,10 +27,11 @@ import { installFilterBar } from './functions/filters.js';
 import { isHighlightEnabled } from './functions/highlightUpdates.js';
 import { isDataTableClone } from './functions/isDataTableClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
-import { applyLocalLanguage } from './functions/localLanguage.js';
 import { hasLucideIcons, hasLucideIconsInActions, loadLucideIcons, } from './functions/lucideIcons.js';
+import { ensurePolling } from './functions/polling.js';
 import { installRequestParams } from './functions/requestParams.js';
 import { runRowAction } from './functions/rowActionFeedback.js';
+import { applyTableLanguage, bindRowFeatures } from './functions/rowFeatures.js';
 import { runAjaxAction } from './functions/runAjaxAction.js';
 import { applyServerExportUrls } from './functions/serverExport.js';
 import { shiftOrderForSelectColumn } from './functions/shiftOrderForSelectColumn.js';
@@ -49,6 +51,7 @@ const EXTENSION_MAP = {
     keys: 'keyTable',
     rowGroup: 'rowGroup',
     scroller: 'scroller',
+    searchBuilder: 'searchBuilder',
 };
 const GENERATED_MARKUP_SELECTOR = [
     '.dt-layout-row',
@@ -71,6 +74,7 @@ class default_1 extends Controller {
         this.table = null;
         this.isDataTableInitialized = false;
         this.eventSource = null;
+        this.stopPolling = null;
         this.highlighter = null;
         this.framework = 'dt';
         this.confirmingActions = new WeakSet();
@@ -92,6 +96,7 @@ class default_1 extends Controller {
             if (this.table) {
                 this.dispatchEvent('reconnect', { table: this.table });
                 this.bindPopstate(isUrlStateEnabled(this.viewValue));
+                this.initPolling(this.viewValue);
                 await this.startMercure(this.viewValue);
             }
             return;
@@ -121,7 +126,8 @@ class default_1 extends Controller {
         }
         this.configureColumns(payload);
         if (hasLucideIcons(payload.columns) ||
-            hasLucideIconsInActions(payload.bulkActions?.actions)) {
+            hasLucideIconsInActions(payload.bulkActions?.actions) ||
+            typeof payload.emptyState?.icon === 'string') {
             await loadLucideIcons();
         }
         const urlStateCfg = isUrlStateEnabled(payload);
@@ -139,16 +145,20 @@ class default_1 extends Controller {
                     : undefined,
             });
         }
-        await applyLocalLanguage(payload);
+        await applyTableLanguage(payload);
         applyServerExportUrls(payload, requestParams ? () => requestParams.current() : undefined);
         applyCustomButtonActions(payload);
         if (this.adoptLiveTable(DataTable)) {
             return;
         }
+        const showSummaries = hasSummaries(payload) && ensureSummaryFooter(this.element, payload);
         this.table = new DataTable(this.element, payload);
         const themedContainer = this.element.closest('.dt-container');
         if (themedContainer && detectTheme() !== null) {
             applyThemeSearchPlaceholder(themedContainer);
+        }
+        if (showSummaries) {
+            installColumnSummaries(this.table, payload);
         }
         this.dispatchEvent('connect', { table: this.table });
         if (urlStateCfg && this.table) {
@@ -158,13 +168,17 @@ class default_1 extends Controller {
         bindImagePlaceholder(this.element);
         this.bindActionHandler(payload);
         this.bindBooleanToggleHandler(payload);
+        bindRowFeatures(payload, this.element, () => this.table, filterBar);
         this.isDataTableInitialized = true;
+        this.initPolling(payload);
         await this.startMercure(payload);
     }
     disconnect() {
         document.removeEventListener('turbo:before-cache', this.onTurboBeforeCache);
         this.eventSource?.close();
         this.eventSource = null;
+        this.stopPolling?.();
+        this.stopPolling = null;
         this.highlighter?.destroy();
         this.highlighter = null;
         if (this.popstateHandler) {
@@ -180,6 +194,7 @@ class default_1 extends Controller {
         this.table = new DataTable.Api(this.element);
         this.dispatchEvent('reconnect', { table: this.table });
         this.bindPopstate(isUrlStateEnabled(this.viewValue));
+        this.initPolling(this.viewValue);
         return true;
     }
     bindPopstate(cfg) {
@@ -319,6 +334,14 @@ class default_1 extends Controller {
             this.dispatchEvent('mercure:message', { data: event.data, event });
             this.highlighter?.arm();
             this.table?.ajax?.reload(() => this.highlighter?.diff(), false);
+        });
+    }
+    initPolling(payload) {
+        this.stopPolling = ensurePolling(this.stopPolling, {
+            table: this.table,
+            payload,
+            element: this.element,
+            mercureEnabled: this.isMercureEnabled(payload),
         });
     }
     async initHighlighter(payload) {

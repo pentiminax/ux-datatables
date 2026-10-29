@@ -341,8 +341,7 @@ private Status $status;
 
 The filter class is guessed from the declared type: `bool` gives a `TernaryFilter` comparing the
 column value, a `BackedEnum` a `ChoiceFilter` with its options already filled, a `DateTimeInterface`
-a `DateRangeFilter`, and anything else a `TextFilter`. An `int` or a `float` is rejected instead of
-guessed, since no filter class queries a number.
+a `DateRangeFilter`, an `int` or a `float` a `NumberRangeFilter`, and anything else a `TextFilter`.
 
 Filters resolve down their own chain, `configureFilters()` first, then the table class, then the
 data class. The full reference, including the guessed types and the `values` alias, lives on the

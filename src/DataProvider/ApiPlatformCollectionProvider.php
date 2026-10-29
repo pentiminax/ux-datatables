@@ -289,6 +289,10 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
             throw new BadRequestHttpException('ColumnControl searches are not supported on an API Platform collection. Configure an API Platform filter and a DataTables filter instead.');
         }
 
+        if (null !== $intent->searchBuilder) {
+            throw new BadRequestHttpException('SearchBuilder criteria are not supported on an API Platform collection. Configure an API Platform filter and a DataTables filter instead.');
+        }
+
         return $this->queryParameterFactory->create($intent, $request);
     }
 

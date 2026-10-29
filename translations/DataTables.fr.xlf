@@ -18,6 +18,14 @@
                 <source>filter.bar.all</source>
                 <target>Tous</target>
             </trans-unit>
+            <trans-unit id="filter.number.min">
+                <source>filter.number.min</source>
+                <target>Min</target>
+            </trans-unit>
+            <trans-unit id="filter.number.max">
+                <source>filter.number.max</source>
+                <target>Max</target>
+            </trans-unit>
             <trans-unit id="bulk.bar.trigger">
                 <source>bulk.bar.trigger</source>
                 <target>Actions groupées</target>
@@ -81,6 +89,38 @@
             <trans-unit id="action.row.cancel">
                 <source>action.row.cancel</source>
                 <target>Annuler</target>
+            </trans-unit>
+            <trans-unit id="summary.sum">
+                <source>summary.sum</source>
+                <target>Total</target>
+            </trans-unit>
+            <trans-unit id="summary.avg">
+                <source>summary.avg</source>
+                <target>Moyenne</target>
+            </trans-unit>
+            <trans-unit id="summary.min">
+                <source>summary.min</source>
+                <target>Minimum</target>
+            </trans-unit>
+            <trans-unit id="summary.max">
+                <source>summary.max</source>
+                <target>Maximum</target>
+            </trans-unit>
+            <trans-unit id="summary.count">
+                <source>summary.count</source>
+                <target>Nombre</target>
+            </trans-unit>
+            <trans-unit id="empty.noResults">
+                <source>empty.noResults</source>
+                <target>Aucun résultat</target>
+            </trans-unit>
+            <trans-unit id="empty.noResultsHint">
+                <source>empty.noResultsHint</source>
+                <target>Essayez une autre recherche ou ajustez les filtres.</target>
+            </trans-unit>
+            <trans-unit id="empty.resetFilters">
+                <source>empty.resetFilters</source>
+                <target>Réinitialiser les filtres</target>
             </trans-unit>
         </body>
     </file>

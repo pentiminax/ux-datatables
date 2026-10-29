@@ -325,6 +325,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(6, service('request_stack')->nullOnInvalid())
         ->arg(7, service('datatables.column_control.search_list_options_resolver'))
         ->arg(8, service('datatables.filter.entity_options_resolver')->nullOnInvalid())
+        ->arg(9, service('datatables.column.resolver'))
         ->private();
 
     $services->alias(RenderingPreparer::class, 'datatables.rendering.preparer')

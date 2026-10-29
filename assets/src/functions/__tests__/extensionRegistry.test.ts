@@ -20,6 +20,7 @@ const extensionFamilies = [
     { name: 'responsive', packageKey: 'responsive', fileBase: 'responsive' },
     { name: 'rowGroup', packageKey: 'rowgroup', fileBase: 'rowGroup' },
     { name: 'scroller', packageKey: 'scroller', fileBase: 'scroller' },
+    { name: 'searchBuilder', packageKey: 'searchbuilder', fileBase: 'searchBuilder' },
     { name: 'select', packageKey: 'select', fileBase: 'select' },
 ]
 

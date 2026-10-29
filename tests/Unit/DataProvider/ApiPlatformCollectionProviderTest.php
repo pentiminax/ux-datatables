@@ -410,6 +410,20 @@ final class ApiPlatformCollectionProviderTest extends TestCase
     }
 
     #[Test]
+    public function it_refuses_search_builder_criteria(): void
+    {
+        $provider = $this->recordingProvider($this->paginator($this->items(1), 1));
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('SearchBuilder criteria are not supported on an API Platform collection.');
+
+        $this->provider($provider)->fetchData($this->request(searchBuilder: [
+            'logic'    => 'AND',
+            'criteria' => [['column' => 'title', 'condition' => '=', 'type' => 'string', 'values' => ['Dune']]],
+        ]));
+    }
+
+    #[Test]
     public function it_refuses_a_column_control_criterion(): void
     {
         $provider = $this->recordingProvider($this->paginator($this->items(1), 1));
@@ -659,7 +673,7 @@ final class ApiPlatformCollectionProviderTest extends TestCase
         };
     }
 
-    private function request(int $start = 0, int $length = 10, ?ColumnControl $columnControl = null): DataTableRequest
+    private function request(int $start = 0, int $length = 10, ?ColumnControl $columnControl = null, ?array $searchBuilder = null): DataTableRequest
     {
         return new DataTableRequest(
             draw: 1,
@@ -675,6 +689,7 @@ final class ApiPlatformCollectionProviderTest extends TestCase
             start: $start,
             length: $length,
             search: new Search(value: null, regex: false),
+            searchBuilder: $searchBuilder,
         );
     }
 }

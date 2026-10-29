@@ -64,6 +64,10 @@ new DataTable(
       '`mercure(array $topics = [], bool $withCredentials = false, ?int $debounceMs = null)`',
       'Enable Mercure live updates with one or many topics',
     ],
+    [
+      '`poll(string|int $interval)`',
+      "Reload the Ajax source every N seconds (`30`, `'10s'`, `'1m'`); minimum 2 seconds",
+    ],
   ]}
 />
 
@@ -179,6 +183,7 @@ new DataTable(
       'Add the Scroller extension; pair it with `scrollY()`',
     ],
     ['`colReorder(bool $enable = true, ...)`', 'Add the ColReorder extension'],
+    ['`searchBuilder(string|array $columns = \'*\', ...)`', 'Add the SearchBuilder extension and its layout slot'],
     ['`fixedColumns(int $start = 1, int $end = 0)`', 'Add the FixedColumns extension'],
     [
       '`fixedHeader(bool $header = true, bool $footer = false, ...)`',

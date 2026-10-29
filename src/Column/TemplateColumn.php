@@ -15,6 +15,11 @@ class TemplateColumn extends AbstractColumn implements TemplateAwareColumnInterf
 
     private array $templateParameters = [];
 
+    protected function isSummarizable(): bool
+    {
+        return false;
+    }
+
     public static function new(string $name, string $title = ''): static
     {
         return static::createWithType($name, $title, ColumnType::HTML)

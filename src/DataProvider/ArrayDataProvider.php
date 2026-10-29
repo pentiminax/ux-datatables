@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\DataProvider;
 
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
@@ -56,6 +57,16 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
 
     public function fetchData(DataTableRequest $request): DataTableResult
     {
+        return $this->query($request, true);
+    }
+
+    public function iterateRows(DataTableRequest $request): iterable
+    {
+        return $this->query($request->withoutPagination(), false)->data;
+    }
+
+    private function query(DataTableRequest $request, bool $summarize): DataTableResult
+    {
         $intent = $this->intentFactory->create($request, $this->columns);
 
         // A ColumnControl criterion reaches this from the query string, so an unsupported one is a
@@ -63,6 +74,10 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
         // with HTTP 500.
         if ([] !== $intent->columnControls) {
             throw new BadRequestHttpException('ColumnControl searches are not supported by ArrayDataProvider. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.');
+        }
+
+        if (null !== $intent->searchBuilder) {
+            throw new BadRequestHttpException('SearchBuilder criteria are not supported by ArrayDataProvider. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.');
         }
 
         if ($this->hasActiveFilters($request)) {
@@ -91,12 +106,35 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
             recordsTotal: $recordsTotal,
             recordsFiltered: \count($matched),
             data: $this->mapRows($this->slice($matched, $request)),
+            summaries: $summarize ? $this->summarize($matched) : null,
         );
     }
 
-    public function iterateRows(DataTableRequest $request): iterable
+    /**
+     * @param list<object> $items
+     *
+     * @return array<string, array<string, int|float|string|null>>|null
+     */
+    private function summarize(array $items): ?array
     {
-        return $this->fetchData($request->withoutPagination())->data;
+        $summaries = [];
+
+        foreach ($this->columns as $column) {
+            if (!$column instanceof AbstractColumn) {
+                continue;
+            }
+
+            $values = [] === $column->getSummarizers() ? [] : array_map(
+                static fn (object $item): mixed => PropertyReader::readPath($item, $column->getField() ?? $column->getName()),
+                $items,
+            );
+
+            foreach ($column->getSummarizers() as $summarizer) {
+                $summaries[$column->getName()][$summarizer->getType()->value] = $summarizer->getType()->aggregate($values);
+            }
+        }
+
+        return [] === $summaries ? null : $summaries;
     }
 
     /**

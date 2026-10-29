@@ -77,6 +77,7 @@ final class AutoDataProviderFactory
             exportRowMapper: $exportRowMapper,
             pageProjector: $pageProjector,
             configureBaseQueryBuilder: $configureBaseQueryBuilder,
+            columns: $columns,
         );
     }
 }

@@ -26,6 +26,42 @@ with a 500.
 
 Anything else in `order[][dir]` sorts ascending instead of reaching the query pipeline.
 
+### New: `DataTable::poll()`
+
+`poll()` is additive: no existing table changes. A table that calls it needs an Ajax source
+(server-side, `ajax()`, or API Platform); a table with no `ajax` option once prepared throws a
+`LogicException` at render time. This includes an application that sets the Ajax source only from
+JavaScript before the controller connects. Intervals outside 2 seconds to 24 hours throw an
+`InvalidArgumentException`. See the polling page in the docs.
+
+### New filters
+
+- New `NumberRangeFilter` and `EntityFilter`. A `#[DataTableFilter]` on an `int` or `float`
+  property used to raise while the container compiled; it now builds a `NumberRangeFilter`. Name a
+  filter class on the attribute to keep a different one.
+- `FilterTypeMapper::mapType()` ignores its second argument, the filter name. It is deprecated since
+  1.3 and removed in 2.0.
+
+### New: column summaries
+
+- Column summaries are additive: a table without `summarize()` is unchanged. A table that uses
+  `summarize()` cannot be read through API Platform (rendering throws a `LogicException`), and a
+  custom `DataProviderInterface` supplies figures through the new optional `summaries` argument of
+  `DataTableResult`. See [Column Summaries](docs/src/content/docs/features/column-summaries.mdx).
+
+### Deprecated APIs
+
+Everything below keeps working and is removed in v2.0.
+
+- Placing `Feature::SEARCH_BUILDER` in a layout without the SearchBuilder extension: call
+  `searchBuilder()` or `addExtension(new SearchBuilderExtension())`. It throws in 2.0.
+
+### New: empty state, row class and clickable rows
+
+`DataTable::emptyState()`, `rowClass()` and `recordUrl()` are additive; tables that do not call them
+render exactly as before. Run `composer update` and rebuild your assets. See
+[Empty State and Row Presentation](docs/src/content/docs/features/row-presentation.mdx).
+
 ## v1.1 → v1.2
 
 ### Behavior changes

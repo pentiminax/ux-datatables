@@ -21,6 +21,11 @@ import {
 } from './functions/apiPlatformAdapter.js'
 import { applyCustomButtonActions } from './functions/applyCustomButtonActions.js'
 import { normalizeDisabledColumnControls } from './functions/columnControl.js'
+import {
+    ensureSummaryFooter,
+    hasSummaries,
+    installColumnSummaries,
+} from './functions/columnSummaries.js'
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
 import { detectTheme } from './functions/detectTheme.js'
@@ -31,14 +36,15 @@ import { installFilterBar } from './functions/filters.js'
 import { isHighlightEnabled, type UpdateHighlighter } from './functions/highlightUpdates.js'
 import { isDataTableClone } from './functions/isDataTableClone.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
-import { applyLocalLanguage } from './functions/localLanguage.js'
 import {
     hasLucideIcons,
     hasLucideIconsInActions,
     loadLucideIcons,
 } from './functions/lucideIcons.js'
+import { ensurePolling } from './functions/polling.js'
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
 import { type RowActionOutcome, runRowAction } from './functions/rowActionFeedback.js'
+import { applyTableLanguage, bindRowFeatures } from './functions/rowFeatures.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
 import { shiftOrderForSelectColumn } from './functions/shiftOrderForSelectColumn.js'
@@ -73,6 +79,7 @@ const EXTENSION_MAP: Record<string, string> = {
     keys: 'keyTable',
     rowGroup: 'rowGroup',
     scroller: 'scroller',
+    searchBuilder: 'searchBuilder',
 }
 
 /**
@@ -108,6 +115,7 @@ export default class extends Controller {
     private table: DataTableWithAjax | null = null
     private isDataTableInitialized = false
     private eventSource: EventSource | null = null
+    private stopPolling: (() => void) | null = null
     private highlighter: UpdateHighlighter | null = null
     private framework: StyleFramework = 'dt'
     private confirmingActions = new WeakSet<HTMLElement>()
@@ -151,6 +159,7 @@ export default class extends Controller {
             if (this.table) {
                 this.dispatchEvent('reconnect', { table: this.table })
                 this.bindPopstate(isUrlStateEnabled(this.viewValue))
+                this.initPolling(this.viewValue)
                 // disconnect() closed the EventSource.
                 await this.startMercure(this.viewValue)
             }
@@ -194,7 +203,8 @@ export default class extends Controller {
 
         if (
             hasLucideIcons(payload.columns) ||
-            hasLucideIconsInActions(payload.bulkActions?.actions)
+            hasLucideIconsInActions(payload.bulkActions?.actions) ||
+            typeof payload.emptyState?.icon === 'string'
         ) {
             await loadLucideIcons()
         }
@@ -224,7 +234,7 @@ export default class extends Controller {
             })
         }
 
-        await applyLocalLanguage(payload)
+        await applyTableLanguage(payload)
 
         // When installRequestParams owns the Ajax data hook, prefer its protocol snapshot over
         // ajax.params(): after an API Platform transport (or a JSON-string ajax.data callback)
@@ -242,12 +252,19 @@ export default class extends Controller {
             return
         }
 
+        const showSummaries =
+            hasSummaries(payload) && ensureSummaryFooter(this.element as HTMLElement, payload)
+
         this.table = new DataTable(this.element as HTMLElement, payload) as DataTableWithAjax
 
         const themedContainer = (this.element as HTMLElement).closest('.dt-container')
 
         if (themedContainer && detectTheme() !== null) {
             applyThemeSearchPlaceholder(themedContainer)
+        }
+
+        if (showSummaries) {
+            installColumnSummaries(this.table, payload)
         }
 
         this.dispatchEvent('connect', { table: this.table })
@@ -261,7 +278,11 @@ export default class extends Controller {
         this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
 
+        bindRowFeatures(payload, this.element as HTMLElement, () => this.table, filterBar)
+
         this.isDataTableInitialized = true
+
+        this.initPolling(payload)
 
         await this.startMercure(payload)
     }
@@ -271,6 +292,9 @@ export default class extends Controller {
 
         this.eventSource?.close()
         this.eventSource = null
+
+        this.stopPolling?.()
+        this.stopPolling = null
 
         this.highlighter?.destroy()
         this.highlighter = null
@@ -294,6 +318,7 @@ export default class extends Controller {
         this.table = new DataTable.Api(this.element) as DataTableWithAjax
         this.dispatchEvent('reconnect', { table: this.table })
         this.bindPopstate(isUrlStateEnabled(this.viewValue))
+        this.initPolling(this.viewValue)
 
         return true
     }
@@ -513,6 +538,15 @@ export default class extends Controller {
             // and run from the reload callback so an unrelated draw cannot consume the snapshot.
             this.highlighter?.arm()
             this.table?.ajax?.reload(() => this.highlighter?.diff(), false)
+        })
+    }
+
+    private initPolling(payload: Record<string, any>): void {
+        this.stopPolling = ensurePolling(this.stopPolling, {
+            table: this.table,
+            payload,
+            element: this.element as HTMLElement,
+            mercureEnabled: this.isMercureEnabled(payload),
         })
     }
 

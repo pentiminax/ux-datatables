@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Enum\SearchBuilderLogic;
 use Pentiminax\UX\DataTables\Enum\SelectItemType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Enum\StyleFramework;
@@ -25,6 +26,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\RowGroupExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\SearchBuilderExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
@@ -121,6 +123,48 @@ final class DataTableTest extends TestCase
             'bottomStart' => null,
             'bottomEnd'   => 'paging',
         ], $table->getOptions()['layout']);
+    }
+
+    #[Test]
+    public function search_builder_places_its_feature_in_the_requested_layout_slot(): void
+    {
+        $table = (new DataTable('testTable'))->searchBuilder();
+
+        $this->assertSame('searchBuilder', $table->getOptions()['layout']['top1']);
+        $this->assertArrayHasKey('searchBuilder', $table->getExtensions());
+    }
+
+    #[Test]
+    public function a_layout_slot_for_search_builder_without_the_extension_is_deprecated(): void
+    {
+        $table = (new DataTable('testTable'))->layout(['top1' => Feature::SEARCH_BUILDER]);
+
+        $messages = [];
+        set_error_handler(static function (int $level, string $message) use (&$messages): bool {
+            $messages[] = $message;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            $options = $table->getOptions();
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertSame('searchBuilder', $options['layout']['top1']);
+        $this->assertCount(1, $messages);
+        $this->assertStringContainsString('Since pentiminax/ux-datatables 1.3: Placing the "searchBuilder" feature', $messages[0]);
+    }
+
+    #[Test]
+    public function a_search_builder_layout_slot_is_accepted_when_the_extension_is_added_separately(): void
+    {
+        $table = (new DataTable('testTable'))
+            ->layout(['top1' => [Feature::SEARCH, Feature::SEARCH_BUILDER]])
+            ->addExtension(new SearchBuilderExtension());
+
+        $this->assertSame(['search', 'searchBuilder'], $table->getOptions()['layout']['top1']);
     }
 
     #[Test]
@@ -767,6 +811,18 @@ final class DataTableTest extends TestCase
             new ScrollerExtension(boundaryScale: 0.75, displayBuffer: 20, rowHeight: 42, serverWait: 400),
         ];
 
+        yield 'searchBuilder defaults' => [
+            static fn (DataTable $table): DataTable => $table->searchBuilder(),
+            'searchBuilder',
+            new SearchBuilderExtension(),
+        ];
+
+        yield 'searchBuilder configured' => [
+            static fn (DataTable $table): DataTable => $table->searchBuilder(columns: [1, 2], depthLimit: 2, logic: SearchBuilderLogic::Or),
+            'searchBuilder',
+            new SearchBuilderExtension(columns: [1, 2], depthLimit: 2, logic: SearchBuilderLogic::Or),
+        ];
+
         yield 'colReorder defaults' => [
             static fn (DataTable $table): DataTable => $table->colReorder(),
             'colReorder',
@@ -913,5 +969,59 @@ final class DataTableTest extends TestCase
         $table->setPreparedActionLabels(['failed' => 'Failed']);
 
         $this->assertSame(['failed' => 'Failed'], $table->getOptions()['actionLabels']);
+    }
+
+    /**
+     * @return iterable<string, array{string|int, int}>
+     */
+    public static function validPollIntervals(): iterable
+    {
+        yield 'int seconds' => [5, 5];
+        yield 'numeric string' => ['7', 7];
+        yield 'seconds' => ['10s', 10];
+        yield 'minutes' => ['1m', 60];
+        yield 'hours' => ['1h', 3600];
+        yield 'minimum' => ['2s', 2];
+        yield 'maximum' => ['24h', 86400];
+    }
+
+    #[Test]
+    #[DataProvider('validPollIntervals')]
+    public function it_serializes_the_poll_interval_in_seconds(string|int $interval, int $seconds): void
+    {
+        $table = (new DataTable('test'))->poll($interval);
+
+        $this->assertSame($seconds, $table->getOptions()['pollInterval']);
+    }
+
+    #[Test]
+    public function it_omits_the_poll_interval_by_default(): void
+    {
+        $this->assertArrayNotHasKey('pollInterval', (new DataTable('test'))->getOptions());
+    }
+
+    /**
+     * @return iterable<string, array{string|int, string}>
+     */
+    public static function invalidPollIntervals(): iterable
+    {
+        yield 'below minimum' => ['1s', 'The polling interval must be at least 2 seconds.'];
+        yield 'zero' => [0, 'The polling interval must be at least 2 seconds.'];
+        yield 'negative int' => [-5, 'The polling interval must be at least 2 seconds.'];
+        yield 'above maximum' => ['25h', 'The polling interval must be at most 86400 seconds.'];
+        yield 'above maximum int' => [86401, 'The polling interval must be at most 86400 seconds.'];
+        yield 'float overflow' => ['99999999999999999999h', 'The polling interval must be at most 86400 seconds.'];
+        yield 'unknown unit' => ['5d', 'The polling interval "5d" is invalid, use seconds or a duration such as "10s", "1m" or "1h".'];
+        yield 'empty' => ['', 'The polling interval "" is invalid, use seconds or a duration such as "10s", "1m" or "1h".'];
+    }
+
+    #[Test]
+    #[DataProvider('invalidPollIntervals')]
+    public function it_rejects_an_invalid_poll_interval(string|int $interval, string $message): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        (new DataTable('test'))->poll($interval);
     }
 }

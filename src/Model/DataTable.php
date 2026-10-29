@@ -8,7 +8,9 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Enum\Icon;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Enum\SearchBuilderLogic;
 use Pentiminax\UX\DataTables\Enum\SelectItemType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Enum\StyleFramework;
@@ -25,12 +27,18 @@ use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\RowGroupExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\SearchBuilderExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
+use Pentiminax\UX\DataTables\RowMapper\RecordUrlFilter;
 use Symfony\Component\ExpressionLanguage\Expression;
 
 class DataTable
 {
+    public const int MIN_POLL_INTERVAL = 2;
+
+    public const int MAX_POLL_INTERVAL = 86400;
+
     /**
      * The slots DataTables 2 fills when `layout` does not mention them.
      */
@@ -58,6 +66,9 @@ class DataTable
     /** @var array<string, string>|null */
     private ?array $preparedActionLabels = null;
 
+    /** @var array<string, string>|null */
+    private ?array $preparedSummaryLabels = null;
+
     private ?string $bulkActionsUrl = null;
 
     private ?string $bulkRowIdField = null;
@@ -83,6 +94,16 @@ class DataTable
 
     /** @var string[] */
     private array $forwardedQueryParameters = [];
+
+    /** @var array{heading: string, description: ?string, icon: ?string, action: ?array{label: string, url: string}}|null */
+    private ?array $emptyState = null;
+
+    /** @var array<string, string>|null */
+    private ?array $preparedEmptyStateLabels = null;
+
+    private ?\Closure $rowClassResolver = null;
+
+    private ?\Closure $recordUrlResolver = null;
 
     public function __construct(
         private readonly string $id,
@@ -113,6 +134,7 @@ class DataTable
         $options            = $this->options->getOptions();
         $options['columns'] = $this->getColumnDefinitions();
 
+        $this->deprecateSearchBuilderLayoutWithoutExtension($options);
         $this->addButtonsToLayout($options);
         $this->applyPagingFeatureToLayout($options);
 
@@ -140,8 +162,20 @@ class DataTable
             $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
         }
 
+        if (null !== $this->emptyState) {
+            $options['emptyState'] = $this->emptyState + ['labels' => $this->preparedEmptyStateLabels ?? []];
+        }
+
+        if (null !== $this->recordUrlResolver) {
+            $options['recordUrl'] = true;
+        }
+
         if (null !== $this->preparedActionLabels) {
             $options['actionLabels'] = $this->preparedActionLabels;
+        }
+
+        if (null !== $this->preparedSummaryLabels) {
+            $options['summaryLabels'] = $this->preparedSummaryLabels;
         }
 
         unset($options['showHeaderResetButton']);
@@ -422,6 +456,32 @@ class DataTable
     public function serverSide(bool $serverSide = true): static
     {
         $this->options->set('serverSide', $serverSide);
+
+        return $this;
+    }
+
+    /**
+     * Reload the Ajax source at a fixed interval, keeping paging, search and order.
+     *
+     * Needs a server-side or Ajax table. Use Mercure instead when updates can be pushed.
+     *
+     * @param string|int $interval Seconds, or a duration such as '10s', '1m' or '1h'; from 2 seconds to 24 hours
+     *
+     * @throws \InvalidArgumentException when the interval is malformed or below the minimum
+     */
+    public function poll(string|int $interval): static
+    {
+        $seconds = self::parsePollInterval($interval);
+
+        if ($seconds < self::MIN_POLL_INTERVAL) {
+            throw new \InvalidArgumentException(\sprintf('The polling interval must be at least %d seconds.', self::MIN_POLL_INTERVAL));
+        }
+
+        if ($seconds > self::MAX_POLL_INTERVAL) {
+            throw new \InvalidArgumentException(\sprintf('The polling interval must be at most %d seconds.', self::MAX_POLL_INTERVAL));
+        }
+
+        $this->options->set('pollInterval', $seconds);
 
         return $this;
     }
@@ -738,6 +798,98 @@ class DataTable
     }
 
     /**
+     * Replace the empty-table message with a heading, a description, an icon and an optional action.
+     *
+     * Texts are escaped by the browser-side renderer. A table filtered down to nothing shows a
+     * built-in "no results" block with a reset button instead.
+     *
+     * @param array{label: string, url: string}|null $action a link shown on an empty table; the URL must be
+     *                                                       a path starting with "/" or an http(s) URL
+     *
+     * @throws \InvalidArgumentException when the action is malformed or its URL is unsafe
+     */
+    public function emptyState(string $heading, ?string $description = null, ?Icon $icon = null, ?array $action = null): static
+    {
+        if (null !== $action) {
+            $label = $action['label'] ?? null;
+            $url   = RecordUrlFilter::filter($action['url'] ?? null);
+
+            if (!\is_string($label) || '' === $label || null === $url) {
+                throw new \InvalidArgumentException('The empty state action needs a label and a URL that is a path starting with "/" or an http(s) URL.');
+            }
+
+            $action = ['label' => $label, 'url' => $url];
+        }
+
+        $this->emptyState = [
+            'heading'     => $heading,
+            'description' => $description,
+            'icon'        => $icon?->value,
+            'action'      => $action,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * @internal
+     */
+    public function hasEmptyState(): bool
+    {
+        return null !== $this->emptyState;
+    }
+
+    /**
+     * @param array<string, string> $labels
+     *
+     * @internal
+     */
+    public function setPreparedEmptyStateLabels(array $labels): static
+    {
+        $this->preparedEmptyStateLabels = $labels;
+
+        return $this;
+    }
+
+    /**
+     * CSS classes for each row, resolved from the source row and emitted as `DT_RowClass`.
+     *
+     * The string is split on whitespace and merged with a `DT_RowClass` already set by mapRow().
+     *
+     * @param callable(mixed):(string|null) $resolver
+     */
+    public function rowClass(callable $resolver): static
+    {
+        $this->rowClassResolver = $resolver(...);
+
+        return $this;
+    }
+
+    /**
+     * URL each row navigates to when clicked, resolved from the source row.
+     *
+     * Only a path starting with "/" or an http(s) URL is kept; null or anything else means no link.
+     *
+     * @param callable(mixed):(string|null) $resolver
+     */
+    public function recordUrl(callable $resolver): static
+    {
+        $this->recordUrlResolver = $resolver(...);
+
+        return $this;
+    }
+
+    public function getRowClassResolver(): ?\Closure
+    {
+        return $this->rowClassResolver;
+    }
+
+    public function getRecordUrlResolver(): ?\Closure
+    {
+        return $this->recordUrlResolver;
+    }
+
+    /**
      * Display a reset button in the table header alongside the filter toggle button.
      */
     public function showHeaderResetButton(bool $show = true): static
@@ -805,6 +957,18 @@ class DataTable
     public function setPreparedActionLabels(array $labels): static
     {
         $this->preparedActionLabels = $labels;
+
+        return $this;
+    }
+
+    /**
+     * @param array<string, string> $labels default footer label by summary type
+     *
+     * @internal
+     */
+    public function setPreparedSummaryLabels(array $labels): static
+    {
+        $this->preparedSummaryLabels = $labels;
 
         return $this;
     }
@@ -1099,6 +1263,42 @@ class DataTable
     }
 
     /**
+     * Register the SearchBuilder extension and place it in the layout in one call.
+     *
+     * @param string|list<int>                   $columns     '*' or the column indexes the builder offers
+     * @param array<string, array<string, null>> $conditions  conditions to disable per column type
+     * @param SearchBuilderLogic                 $logic       logic joining the top-level criteria
+     * @param array<string, mixed>|null          $preDefined  criteria applied on load
+     * @param string                             $position    layout position, for example 'top1' or 'topStart'
+     * @param int|null                           $depthLimit  maximum group nesting depth
+     * @param bool                               $enterSearch search only when the user presses Enter
+     */
+    public function searchBuilder(
+        string|array $columns = '*',
+        array $conditions = [],
+        ?int $depthLimit = null,
+        bool $enterSearch = false,
+        bool $greyscale = false,
+        bool $liveSearch = true,
+        SearchBuilderLogic $logic = SearchBuilderLogic::And,
+        ?array $preDefined = null,
+        string $position = 'top1',
+    ): static {
+        $this->extensions->addExtension(new SearchBuilderExtension(
+            columns: $columns,
+            conditions: $conditions,
+            depthLimit: $depthLimit,
+            enterSearch: $enterSearch,
+            greyscale: $greyscale,
+            liveSearch: $liveSearch,
+            logic: $logic,
+            preDefined: $preDefined,
+        ));
+
+        return $this->placeFeature(Feature::SEARCH_BUILDER, $position);
+    }
+
+    /**
      * Add the FixedColumns extension.
      *
      * @param int $start number of columns frozen on the leading edge
@@ -1300,6 +1500,45 @@ class DataTable
         return \is_array($value) && \array_key_exists(Feature::BUTTONS->value, $value);
     }
 
+    /**
+     * @param array<string, mixed> $options
+     */
+    private function deprecateSearchBuilderLayoutWithoutExtension(array $options): void
+    {
+        if (isset($this->extensions->all()[Feature::SEARCH_BUILDER->value])) {
+            return;
+        }
+
+        if (!$this->layoutDeclares($options['layout'] ?? null, Feature::SEARCH_BUILDER)) {
+            return;
+        }
+
+        trigger_deprecation('pentiminax/ux-datatables', '1.3', 'Placing the "searchBuilder" feature in the layout without the SearchBuilder extension is deprecated and throws in 2.0, call searchBuilder() or addExtension(new SearchBuilderExtension()).');
+    }
+
+    private function layoutDeclares(mixed $value, Feature $feature): bool
+    {
+        if ($feature === $value || $feature->value === $value) {
+            return true;
+        }
+
+        if (!\is_array($value)) {
+            return false;
+        }
+
+        if (\array_key_exists($feature->value, $value)) {
+            return true;
+        }
+
+        foreach ($value as $item) {
+            if ($this->layoutDeclares($item, $feature)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function addButtonsToLayout(array &$options): void
     {
         $layout = $options['layout'] ?? [];
@@ -1380,5 +1619,22 @@ class DataTable
         }
 
         return $value;
+    }
+
+    private static function parsePollInterval(string|int $interval): int
+    {
+        if (\is_int($interval)) {
+            return $interval;
+        }
+
+        if (1 !== preg_match('/^(\d+)([smh]?)$/', trim($interval), $matches)) {
+            throw new \InvalidArgumentException(\sprintf('The polling interval "%s" is invalid, use seconds or a duration such as "10s", "1m" or "1h".', $interval));
+        }
+
+        if (\strlen($matches[1]) > 9) {
+            throw new \InvalidArgumentException(\sprintf('The polling interval must be at most %d seconds.', self::MAX_POLL_INTERVAL));
+        }
+
+        return (int) $matches[1] * ['' => 1, 's' => 1, 'm' => 60, 'h' => 3600][$matches[2]];
     }
 }

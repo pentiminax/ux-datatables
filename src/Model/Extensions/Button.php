@@ -29,6 +29,10 @@ final class Button implements \JsonSerializable
         ButtonType::COLLECTION,
         ButtonType::COLUMN_CONTROL_SEARCH_CLEAR,
         ButtonType::COLUMN_VISIBILITY,
+        ButtonType::COLUMN_VISIBILITY_GROUP,
+        ButtonType::COLUMN_VISIBILITY_RESTORE,
+        ButtonType::PAGE_LENGTH,
+        ButtonType::SPACER,
     ];
 
     /**
@@ -41,6 +45,9 @@ final class Button implements \JsonSerializable
     private const BARE_STRING_TYPES = [
         ButtonType::COLUMN_CONTROL_SEARCH_CLEAR,
         ButtonType::COLUMN_VISIBILITY,
+        ButtonType::COLUMN_VISIBILITY_RESTORE,
+        ButtonType::PAGE_LENGTH,
+        ButtonType::SPACER,
     ];
 
     /** @var array<string, mixed> */
@@ -102,6 +109,45 @@ final class Button implements \JsonSerializable
     {
         return self::fromType(ButtonType::COLUMN_VISIBILITY)
             ->text('Column Visibility');
+    }
+
+    /**
+     * Shows and hides several columns at once.
+     *
+     * @param list<int|string> $show column selectors to show
+     * @param list<int|string> $hide column selectors to hide
+     */
+    public static function colVisGroup(array $show = [], array $hide = []): self
+    {
+        $button                  = self::fromType(ButtonType::COLUMN_VISIBILITY_GROUP);
+        $button->options['show'] = $show;
+        $button->options['hide'] = $hide;
+
+        return $button;
+    }
+
+    /**
+     * Restores every column to the visibility it had at initialization.
+     */
+    public static function colVisRestore(): self
+    {
+        return self::fromType(ButtonType::COLUMN_VISIBILITY_RESTORE);
+    }
+
+    /**
+     * A page length control built from the table's `lengthMenu`.
+     */
+    public static function pageLength(): self
+    {
+        return self::fromType(ButtonType::PAGE_LENGTH);
+    }
+
+    /**
+     * Visual separator between buttons.
+     */
+    public static function spacer(): self
+    {
+        return self::fromType(ButtonType::SPACER);
     }
 
     /**

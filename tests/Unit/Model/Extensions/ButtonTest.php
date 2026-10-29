@@ -233,6 +233,22 @@ final class ButtonTest extends TestCase
     }
 
     #[Test]
+    public function it_serializes_the_utility_buttons(): void
+    {
+        $this->assertSame('colvisRestore', Button::colVisRestore()->jsonSerialize());
+        $this->assertSame('pageLength', Button::pageLength()->jsonSerialize());
+        $this->assertSame('spacer', Button::spacer()->jsonSerialize());
+        $this->assertSame(
+            ['extend' => 'colvisGroup', 'show' => [0, 1], 'hide' => [2]],
+            Button::colVisGroup(show: [0, 1], hide: [2])->jsonSerialize(),
+        );
+        $this->assertSame(
+            ['extend' => 'pageLength', 'text' => 'Rows'],
+            Button::pageLength()->text('Rows')->jsonSerialize(),
+        );
+    }
+
+    #[Test]
     public function it_rejects_serializing_a_custom_button_built_without_an_action(): void
     {
         $button = Button::fromType(ButtonType::CUSTOM)->text('Restore order');
