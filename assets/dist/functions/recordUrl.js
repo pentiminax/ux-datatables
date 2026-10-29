@@ -1,5 +1,5 @@
-const SAFE_URL = /^(?:\/(?![/\\])|https?:\/\/[^/?#\s]+)[^\u0000-\u001f\u007f\\]*$/i;
-const INTERACTIVE = 'a, button, input, select, textarea, label, [role="button"], [data-action-type], .dt-select, .select-checkbox';
+const SAFE_URL = /^(?:\/(?![/\\])|https?:\/\/[^/?#\s]+)[^\s\u0000-\u001f\u007f\\]*$/i;
+const INTERACTIVE = 'a, button, input, select, textarea, label, [role="button"], [data-action-type], .dt-select, .select-checkbox, .dtr-control, .dt-control';
 export function isSafeRecordUrl(url) {
     return typeof url === 'string' && SAFE_URL.test(url);
 }

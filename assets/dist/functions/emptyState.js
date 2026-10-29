@@ -1,3 +1,4 @@
+import { hasFilters } from './filters.js';
 import { escapeHtml, isRecord } from './htmlUtils.js';
 import { renderLucideIcon } from './lucideIcons.js';
 import { isSafeRecordUrl } from './recordUrl.js';
@@ -31,11 +32,10 @@ export function applyEmptyState(payload) {
     if (!isRecord(config) || typeof config.heading !== 'string') {
         return;
     }
-    const hasFilters = Array.isArray(payload.filters) && payload.filters.length > 0;
     payload.language = {
         ...(isRecord(payload.language) ? payload.language : {}),
         emptyTable: buildEmptyHtml(config),
-        zeroRecords: buildNoResultsHtml(config, hasFilters),
+        zeroRecords: buildNoResultsHtml(config, hasFilters(payload)),
     };
 }
 export function bindEmptyStateReset(table, reset) {

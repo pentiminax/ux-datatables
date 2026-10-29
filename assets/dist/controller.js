@@ -19,7 +19,6 @@ import { normalizeDisabledColumnControls } from './functions/columnControl.js';
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
 import { detectTheme } from './functions/detectTheme.js';
-import { applyEmptyState, bindEmptyStateReset } from './functions/emptyState.js';
 import { ExtensionRegistry } from './functions/extensionRegistry.js';
 import { fetchDetailRow } from './functions/fetchDetailRow.js';
 import { fetchEditForm } from './functions/fetchEditForm.js';
@@ -27,11 +26,10 @@ import { installFilterBar } from './functions/filters.js';
 import { isHighlightEnabled } from './functions/highlightUpdates.js';
 import { isDataTableClone } from './functions/isDataTableClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
-import { applyLocalLanguage } from './functions/localLanguage.js';
 import { hasLucideIcons, hasLucideIconsInActions, loadLucideIcons, } from './functions/lucideIcons.js';
-import { bindRecordClick } from './functions/recordUrl.js';
 import { installRequestParams } from './functions/requestParams.js';
 import { runRowAction } from './functions/rowActionFeedback.js';
+import { applyTableLanguage, bindRowFeatures } from './functions/rowFeatures.js';
 import { runAjaxAction } from './functions/runAjaxAction.js';
 import { applyServerExportUrls } from './functions/serverExport.js';
 import { shiftOrderForSelectColumn } from './functions/shiftOrderForSelectColumn.js';
@@ -142,8 +140,7 @@ class default_1 extends Controller {
                     : undefined,
             });
         }
-        await applyLocalLanguage(payload);
-        applyEmptyState(payload);
+        await applyTableLanguage(payload);
         applyServerExportUrls(payload, requestParams ? () => requestParams.current() : undefined);
         applyCustomButtonActions(payload);
         if (this.adoptLiveTable(DataTable)) {
@@ -162,15 +159,7 @@ class default_1 extends Controller {
         bindImagePlaceholder(this.element);
         this.bindActionHandler(payload);
         this.bindBooleanToggleHandler(payload);
-        if (payload.recordUrl === true) {
-            bindRecordClick(this.element);
-        }
-        if (filterBar && payload.emptyState) {
-            bindEmptyStateReset(this.element, () => {
-                this.table?.search('');
-                filterBar.resetFilters();
-            });
-        }
+        bindRowFeatures(payload, this.element, () => this.table, filterBar);
         this.isDataTableInitialized = true;
         await this.startMercure(payload);
     }
