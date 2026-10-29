@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\Feature;
 use Pentiminax\UX\DataTables\Enum\Language;
+use Pentiminax\UX\DataTables\Enum\SearchBuilderLogic;
 use Pentiminax\UX\DataTables\Enum\SelectItemType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Enum\StyleFramework;
@@ -25,6 +26,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\KeyTableExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ResponsiveExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\RowGroupExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\ScrollerExtension;
+use Pentiminax\UX\DataTables\Model\Extensions\SearchBuilderExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 use Pentiminax\UX\DataTables\Model\Options\SearchOption;
 use Symfony\Component\ExpressionLanguage\Expression;
@@ -113,6 +115,7 @@ class DataTable
         $options            = $this->options->getOptions();
         $options['columns'] = $this->getColumnDefinitions();
 
+        $this->assertSearchBuilderLayoutHasExtension($options);
         $this->addButtonsToLayout($options);
         $this->applyPagingFeatureToLayout($options);
 
@@ -1099,6 +1102,45 @@ class DataTable
     }
 
     /**
+     * Register the SearchBuilder extension and place it in the layout in one call.
+     *
+     * Server-side tables apply the criteria to Doctrine-backed columns that are searchable.
+     *
+     * @param string|list<int>                   $columns     '*' for every column, or the column indexes the builder offers
+     * @param array<string, array<string, null>> $conditions  conditions to disable per column type
+     * @param array<string, mixed>|null          $preDefined  criteria applied on load
+     * @param string                             $position    DataTables layout position (e.g. 'top1', 'topStart')
+     * @param int|null                           $depthLimit  maximum group nesting depth
+     * @param bool                               $enterSearch only search when the user presses Enter
+     * @param bool                               $greyscale   render the builder in greyscale
+     * @param bool                               $liveSearch  search while the user types
+     */
+    public function searchBuilder(
+        string|array $columns = '*',
+        array $conditions = [],
+        ?int $depthLimit = null,
+        bool $enterSearch = false,
+        bool $greyscale = false,
+        bool $liveSearch = true,
+        SearchBuilderLogic $logic = SearchBuilderLogic::And,
+        ?array $preDefined = null,
+        string $position = 'top1',
+    ): static {
+        $this->extensions->addExtension(new SearchBuilderExtension(
+            columns: $columns,
+            conditions: $conditions,
+            depthLimit: $depthLimit,
+            enterSearch: $enterSearch,
+            greyscale: $greyscale,
+            liveSearch: $liveSearch,
+            logic: $logic,
+            preDefined: $preDefined,
+        ));
+
+        return $this->placeFeature(Feature::SEARCH_BUILDER, $position);
+    }
+
+    /**
      * Add the FixedColumns extension.
      *
      * @param int $start number of columns frozen on the leading edge
@@ -1298,6 +1340,45 @@ class DataTable
         }
 
         return \is_array($value) && \array_key_exists(Feature::BUTTONS->value, $value);
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private function assertSearchBuilderLayoutHasExtension(array $options): void
+    {
+        if (isset($this->extensions->all()[Feature::SEARCH_BUILDER->value])) {
+            return;
+        }
+
+        if (!$this->layoutDeclares($options['layout'] ?? null, Feature::SEARCH_BUILDER)) {
+            return;
+        }
+
+        throw new \LogicException('The layout places the "searchBuilder" feature but the SearchBuilder extension is not registered. Call searchBuilder() or addExtension(new SearchBuilderExtension()).');
+    }
+
+    private function layoutDeclares(mixed $value, Feature $feature): bool
+    {
+        if ($feature === $value || $feature->value === $value) {
+            return true;
+        }
+
+        if (!\is_array($value)) {
+            return false;
+        }
+
+        if (\array_key_exists($feature->value, $value)) {
+            return true;
+        }
+
+        foreach ($value as $item) {
+            if ($this->layoutDeclares($item, $feature)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function addButtonsToLayout(array &$options): void
