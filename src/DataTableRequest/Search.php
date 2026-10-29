@@ -26,12 +26,6 @@ final readonly class Search
 
     public static function fromRequest(Request $request): self
     {
-        $search = RequestInputBag::resolve($request)->all('search');
-        $regex  = isset($search['regex']) && 'true' === $search['regex'];
-
-        return new self(
-            value: $search['value'] ?? null,
-            regex: $regex,
-        );
+        return self::fromArray(RequestInputBag::resolve($request)->all('search'));
     }
 }

@@ -40,6 +40,7 @@ final readonly class BooleanMutationContextResolver
                 entityClass: $column->getEntityClass() ?? $resolved->requireEntityClass(),
                 dataTableClass: $resolved->dataTableClass,
                 field: $field,
+                table: $resolved,
             );
         }
 

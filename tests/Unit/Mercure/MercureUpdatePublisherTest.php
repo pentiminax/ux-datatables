@@ -51,6 +51,20 @@ final class MercureUpdatePublisherTest extends TestCase
     }
 
     #[Test]
+    public function it_logs_and_returns_an_empty_string_when_the_data_cannot_be_encoded(): void
+    {
+        $hub = $this->createMock(HubInterface::class);
+        $hub->expects($this->never())->method('publish');
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())->method('error');
+
+        $publisher = new MercureUpdatePublisher($hub, $logger);
+
+        $this->assertSame('', $publisher->publish('datatables/MyTable', ['id' => "\xB1\x31"]));
+    }
+
+    #[Test]
     public function it_publishes_private_updates_only_through_publish_private(): void
     {
         $privacy = [];

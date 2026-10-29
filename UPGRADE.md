@@ -3,6 +3,29 @@
 Each section covers one version bump. When you skip versions, apply every section between your
 current version and the target, oldest first.
 
+## v1.2 → v1.3
+
+### Single-row actions respect the table scope
+
+With the built-in Doctrine provider, delete, boolean toggle, edit form, and detail row now answer
+`404` for an id that `customizeQueryBuilder()` excludes, the same as bulk actions already did.
+
+What changed:
+
+- the scope query runs on the mutation request, which carries no `forwardQueryParameters()` values;
+  a scope that applies a forwarded parameter unconditionally now excludes every row
+- a toggle on a column that sets another `setEntityClass()` is still unscoped
+- providers without `ScopedIdentifierProviderInterface` keep their current behavior
+
+### Edit forms skip columns without a writable property
+
+A column backed by a getter-only property is no longer a form field. It used to fail the submit
+with a 500.
+
+### Order direction accepts only `asc` and `desc`
+
+Anything else in `order[][dir]` sorts ascending instead of reaching the query pipeline.
+
 ## v1.1 → v1.2
 
 ### Behavior changes

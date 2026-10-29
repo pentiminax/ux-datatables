@@ -17,6 +17,7 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
+use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Symfony\Component\Form\FormInterface;
 
@@ -33,6 +34,7 @@ final class EditFormService
         private readonly MercureTopicResolver $topicResolver,
         private readonly MutationFlusher $flusher,
         ?AuthorizationChecker $permissionChecker = null,
+        private readonly ?RowScopeGuard $scopeGuard = null,
     ) {
         $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
@@ -45,6 +47,7 @@ final class EditFormService
         }
 
         try {
+            $this->scopeGuard?->assertInScope($dataTable, $id);
             $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
         } catch (EntityNotFoundException) {
             return AjaxActionResult::notFound();
@@ -74,6 +77,7 @@ final class EditFormService
         }
 
         try {
+            $this->scopeGuard?->assertInScope($dataTable, $id);
             $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
         } catch (EntityNotFoundException) {
             return AjaxActionResult::notFound();

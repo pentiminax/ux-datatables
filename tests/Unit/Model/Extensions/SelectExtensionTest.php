@@ -34,7 +34,7 @@ final class SelectExtensionTest extends DataTableTestCase
     }
 
     #[Test]
-    public function it_serializes_configured_options_and_omits_the_selector(): void
+    public function it_serializes_configured_options_including_the_selector(): void
     {
         $extension = new SelectExtension(
             style: SelectStyle::MULTI,
@@ -59,6 +59,7 @@ final class SelectExtensionTest extends DataTableTestCase
             'toggleable'     => false,
             'headerCheckbox' => true,
             'withCheckbox'   => true,
+            'selector'       => 'td:first-child',
         ], $extension);
     }
 }

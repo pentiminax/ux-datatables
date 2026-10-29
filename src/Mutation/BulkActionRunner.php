@@ -9,7 +9,6 @@ use Doctrine\Persistence\ObjectManager;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
-use Pentiminax\UX\DataTables\Contracts\ScopedIdentifierProviderInterface;
 use Pentiminax\UX\DataTables\Exception\InvalidBulkSelectionException;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
@@ -160,16 +159,8 @@ final class BulkActionRunner
         }
 
         $this->hydrateRequest($request, $selection->query);
-        $table->table->handleRequest($request);
 
-        $dataTableRequest = $table->table->getRequest();
-        $provider         = $table->table->getDataProvider();
-
-        if (null === $dataTableRequest || !$provider instanceof ScopedIdentifierProviderInterface) {
-            return $ids;
-        }
-
-        return $provider->filterIdentifiersInScope($dataTableRequest->withoutPagination(), $ids, $identifier);
+        return RowScopeGuard::keepInScope($table, $request, $identifier, $ids);
     }
 
     private function isGranted(BulkAction $action, object $entity, string $dataTableClass): bool

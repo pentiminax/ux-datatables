@@ -10,6 +10,8 @@ use Pentiminax\UX\DataTables\Enum\SelectStyle;
 
 final class SelectExtension implements ExtensionInterface
 {
+    private const DEFAULT_SELECTOR = 'td, th';
+
     private bool $headerCheckbox = false;
 
     private bool $withCheckbox = false;
@@ -21,7 +23,7 @@ final class SelectExtension implements ExtensionInterface
         public bool $info = true,
         public SelectItemType $items = SelectItemType::ROW,
         public bool $keys = false,
-        public string $selector = 'td, th',
+        public string $selector = self::DEFAULT_SELECTOR,
         public bool $toggleable = true,
     ) {
     }
@@ -45,7 +47,7 @@ final class SelectExtension implements ExtensionInterface
 
     public function jsonSerialize(): array
     {
-        return [
+        $payload = [
             'blurable'       => $this->blurable,
             'className'      => $this->className,
             'info'           => $this->info,
@@ -56,6 +58,12 @@ final class SelectExtension implements ExtensionInterface
             'headerCheckbox' => $this->headerCheckbox,
             'withCheckbox'   => $this->withCheckbox,
         ];
+
+        if (self::DEFAULT_SELECTOR !== $this->selector) {
+            $payload['selector'] = $this->selector;
+        }
+
+        return $payload;
     }
 
     public function headerCheckbox(bool $headerCheckbox = true): self

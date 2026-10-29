@@ -158,6 +158,25 @@ describe('createMercureSubscription', () => {
 
         vi.useRealTimers()
     })
+
+    it('drops a pending debounced message when the subscription is closed', () => {
+        mockEventSource()
+        const onMessage = vi.fn()
+        vi.useFakeTimers()
+
+        const eventSource = createMercureSubscription(
+            { hubUrl: '/.well-known/mercure', topics: ['/api/books/{id}'] },
+            onMessage
+        )
+
+        eventSource.onmessage?.({ data: 'pending' } as MessageEvent)
+        eventSource.close()
+        vi.advanceTimersByTime(1000)
+
+        expect(onMessage).not.toHaveBeenCalled()
+
+        vi.useRealTimers()
+    })
 })
 
 describe('toUrlPattern', () => {

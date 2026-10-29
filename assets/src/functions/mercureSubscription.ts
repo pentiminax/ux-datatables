@@ -115,5 +115,15 @@ export function createMercureSubscription(
         }, debounceMs)
     }
 
+    const close = eventSource.close.bind(eventSource)
+
+    eventSource.close = () => {
+        if (debounceTimer !== null) {
+            clearTimeout(debounceTimer)
+            debounceTimer = null
+        }
+        close()
+    }
+
     return eventSource
 }

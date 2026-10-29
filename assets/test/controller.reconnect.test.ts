@@ -115,6 +115,30 @@ describe('datatable controller reconnect event', () => {
         expect(openSources).toHaveLength(1)
     })
 
+    it('binds row action handlers and reports the error when Mercure fails to start', async () => {
+        const error = new Error('Invalid hub URL.')
+        vi.mocked(createMercureSubscription).mockImplementation(() => {
+            throw error
+        })
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+        const addListener = vi.spyOn(HTMLTableElement.prototype, 'addEventListener')
+
+        mountTable({
+            ajax: { url: '/datatables/ajax' },
+            mercure: { hubUrl: 'https://hub.example/.well-known/mercure', topics: ['/users'] },
+        })
+
+        await settle()
+
+        expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('Mercure'), error)
+        expect(addListener.mock.calls.filter(([type]) => type === 'click').length).toBeGreaterThan(
+            0
+        )
+
+        consoleError.mockRestore()
+        addListener.mockRestore()
+    })
+
     it('does not dispatch reconnect once the table has been destroyed for a Turbo snapshot', async () => {
         mountTable()
 

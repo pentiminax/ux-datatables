@@ -30,6 +30,10 @@ final readonly class DataTableRequest
 
         $orders = [];
         foreach ($bag->all('order') as $orderData) {
+            if (!\is_array($orderData)) {
+                continue;
+            }
+
             $orders[] = Order::fromArray($orderData, $columns);
         }
 

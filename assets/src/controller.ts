@@ -6,7 +6,7 @@ import { createBooleanColumnRenderer } from './columnRenderers/booleanColumnRend
 import { createChoiceColumnRenderer } from './columnRenderers/choiceColumnRenderer.js'
 import { emailColumnRenderer } from './columnRenderers/emailColumnRenderer.js'
 import { createIconColumnRenderer } from './columnRenderers/iconColumnRenderer.js'
-import { imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js'
+import { bindImagePlaceholder, imageColumnRenderer } from './columnRenderers/imageColumnRenderer.js'
 import { moneyColumnRenderer } from './columnRenderers/moneyColumnRenderer.js'
 import { relativeDateColumnRenderer } from './columnRenderers/relativeDateColumnRenderer.js'
 import { textColumnRenderer } from './columnRenderers/textColumnRenderer.js'
@@ -152,7 +152,7 @@ export default class extends Controller {
                 this.dispatchEvent('reconnect', { table: this.table })
                 this.bindPopstate(isUrlStateEnabled(this.viewValue))
                 // disconnect() closed the EventSource.
-                await this.initMercure(this.viewValue)
+                await this.startMercure(this.viewValue)
             }
 
             return
@@ -257,11 +257,13 @@ export default class extends Controller {
             this.bindPopstate(urlStateCfg)
         }
 
-        await this.initMercure(payload)
+        bindImagePlaceholder(this.element as HTMLElement)
         this.bindActionHandler(payload)
         this.bindBooleanToggleHandler(payload)
 
         this.isDataTableInitialized = true
+
+        await this.startMercure(payload)
     }
 
     disconnect() {
@@ -480,6 +482,14 @@ export default class extends Controller {
                 ...column,
                 data: resolveColumnDataKey(column),
             }))
+        }
+    }
+
+    private async startMercure(payload: Record<string, any>): Promise<void> {
+        try {
+            await this.initMercure(payload)
+        } catch (error) {
+            console.error('UX DataTables: unable to start the Mercure subscription.', error)
         }
     }
 

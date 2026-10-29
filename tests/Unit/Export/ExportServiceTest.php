@@ -27,6 +27,7 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use Pentiminax\UX\DataTables\Tests\Support\RecordingExporter;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
@@ -60,6 +61,34 @@ final class ExportServiceTest extends TestCase
             ['email' => 'a@example.com', 'secret' => 'hidden', 'name' => 'Ada'],
             ['email' => 'b@example.com', 'secret' => 'hidden', 'name' => 'Bob'],
         ], $csv->rows);
+    }
+
+    #[Test]
+    #[DataProvider('dispositions')]
+    public function it_builds_a_valid_content_disposition_for_any_filename(string $filename, string $expected): void
+    {
+        $table = new ConfigurableDataTable(
+            [TextColumn::new('email')],
+            configureTable: static fn (DataTable $table): DataTable => $table->buttons([
+                Button::csv(serverSide: true)->filename($filename),
+            ]),
+            dataProvider: $this->provider(),
+        );
+
+        $response = $this->service()->export($table, $this->exportRequest());
+
+        $this->assertSame($expected, $response->headers->get('Content-Disposition'));
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function dispositions(): iterable
+    {
+        yield 'ascii is unchanged' => ['users', 'attachment; filename=users.csv'];
+        yield 'non-ascii keeps the utf-8 name' => ['résumé', "attachment; filename=r__sum__.csv; filename*=utf-8''r%C3%A9sum%C3%A9.csv"];
+        yield 'percent' => ['100%', "attachment; filename=100_.csv; filename*=utf-8''100%25.csv"];
+        yield 'path separators are stripped' => ['a/b', 'attachment; filename=b.csv'];
     }
 
     #[Test]

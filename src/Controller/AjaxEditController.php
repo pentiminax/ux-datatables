@@ -6,6 +6,7 @@ namespace Pentiminax\UX\DataTables\Controller;
 
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
+use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,6 +18,7 @@ final class AjaxEditController
         private readonly EntityMutator $mutator,
         private readonly MutationTokenValidator $tokenValidator,
         private readonly BooleanMutationContextResolver $contextResolver,
+        private readonly ?RowScopeGuard $scopeGuard = null,
     ) {
     }
 
@@ -25,6 +27,10 @@ final class AjaxEditController
         $this->tokenValidator->validate($request);
 
         $context = $this->contextResolver->resolve($payload->dataTable, $payload->field);
+
+        if (null !== $context->table && $context->entityClass === $context->table->entityClass) {
+            $this->scopeGuard?->assertInScope($context->table, $payload->id);
+        }
 
         $this->mutator->setProperty(
             entityClass: $context->entityClass,

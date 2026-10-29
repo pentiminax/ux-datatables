@@ -276,8 +276,16 @@ scope covers:
       'No: the handler receives every identifier that exists',
     ],
     [
-      'Single-row delete, boolean toggle, edit form',
-      'No: delete needs DT_DELETE_ROW, the toggle DT_EDIT_ROW, the edit form DT_EDIT_ROW; delete and the edit form also need DT_EXECUTE_ACTION on the action, and a configured column permission applies to toggles and form fields',
+      'Single-row delete, boolean toggle on the table entity, edit form, detail row, built-in Doctrine provider',
+      'Yes: an id outside the scope answers 404, like a missing row. The scope runs without the forwarded query parameters, so it must not depend on them',
+    ],
+    [
+      'Boolean toggle on a column of another entity (setEntityClass())',
+      'No: the payload carries only the related id, so the table scope cannot apply',
+    ],
+    [
+      'Single-row permissions',
+      'Not a scope: delete needs DT_DELETE_ROW, the toggle DT_EDIT_ROW, the edit form DT_EDIT_ROW; delete and the edit form also need DT_EXECUTE_ACTION on the action, and a configured column permission applies to toggles and form fields',
     ],
   ]}
 />

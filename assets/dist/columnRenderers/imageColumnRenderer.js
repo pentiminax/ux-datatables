@@ -1,4 +1,15 @@
 import { escapeHtml, isUnsafeUrl } from '../functions/htmlUtils.js';
+export function bindImagePlaceholder(root) {
+    root.addEventListener('error', (e) => {
+        const img = e.target;
+        if (!(img instanceof HTMLImageElement) || !img.dataset.placeholder) {
+            return;
+        }
+        const placeholder = img.dataset.placeholder;
+        delete img.dataset.placeholder;
+        img.src = placeholder;
+    }, true);
+}
 export const imageColumnRenderer = {
     matches(column) {
         return true === column?.customOptions?.isImage;
@@ -40,8 +51,7 @@ export const imageColumnRenderer = {
                 attrs.push('class="rounded-circle rounded-full"');
             }
             if (placeholder !== null && rawSrc !== null) {
-                const escapedPlaceholder = escapeHtml(placeholder).replace(/'/g, '&#039;');
-                attrs.push(`onerror="this.onerror=null;this.src='${escapedPlaceholder}'"`);
+                attrs.push(`data-placeholder="${escapeHtml(placeholder)}"`);
             }
             const img = `<img ${attrs.join(' ')}>`;
             if (clickable) {

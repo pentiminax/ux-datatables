@@ -60,5 +60,40 @@ describe('emailColumnRenderer', () => {
             emailColumnRenderer.configure(column)
             expect(column.render('', 'display', {})).toBe('')
         })
+
+        describe('obfuscate', () => {
+            function renderAnchor(email: string): HTMLAnchorElement {
+                const column: Record<string, any> = {
+                    customOptions: { isEmail: true, obfuscate: true },
+                }
+                emailColumnRenderer.configure(column)
+                const container = document.createElement('div')
+                container.innerHTML = column.render(email, 'display', {})
+
+                return container.querySelector('a') as HTMLAnchorElement
+            }
+
+            it('keeps a valid mailto address after HTML parsing', () => {
+                const anchor = renderAnchor('user@example.com')
+                expect(anchor.getAttribute('href')).toBe('mailto:user@example.com')
+                expect(anchor.textContent).toBe('user@example.com')
+            })
+
+            it('emits entities in the raw href', () => {
+                const column: Record<string, any> = {
+                    customOptions: { isEmail: true, obfuscate: true },
+                }
+                emailColumnRenderer.configure(column)
+                expect(column.render('user@example.com', 'display', {})).toContain(
+                    'href="mailto:user&#64;example&#46;com"'
+                )
+            })
+
+            it('escapes quotes and angle brackets against attribute injection', () => {
+                const anchor = renderAnchor('a"b<c>\'d&e@x.com')
+                expect(anchor.getAttributeNames()).toEqual(['href'])
+                expect(anchor.getAttribute('href')).toBe('mailto:a"b<c>\'d&e@x.com')
+            })
+        })
     })
 })
