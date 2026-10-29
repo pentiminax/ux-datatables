@@ -108,8 +108,18 @@ final class RenderingPreparer
 
     public function prepareAfterDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
     {
+        $this->assertPollingHasAjaxSource($table);
         $this->configureMercure($table, $asDataTable);
         $this->withdrawUnreadApiPlatformOptIn($table, $asDataTable);
+    }
+
+    private function assertPollingHasAjaxSource(DataTable $table): void
+    {
+        if (null === $table->getOption('pollInterval') || null !== $table->getOption('ajax')) {
+            return;
+        }
+
+        throw new \LogicException(\sprintf('Polling requires a server-side or Ajax table, but "%s" embeds its rows.', $table->getId()));
     }
 
     /**

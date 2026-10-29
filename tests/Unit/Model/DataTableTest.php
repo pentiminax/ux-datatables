@@ -914,4 +914,54 @@ final class DataTableTest extends TestCase
 
         $this->assertSame(['failed' => 'Failed'], $table->getOptions()['actionLabels']);
     }
+
+    /**
+     * @return iterable<string, array{string|int, int}>
+     */
+    public static function validPollIntervals(): iterable
+    {
+        yield 'int seconds' => [5, 5];
+        yield 'numeric string' => ['7', 7];
+        yield 'seconds' => ['10s', 10];
+        yield 'minutes' => ['1m', 60];
+        yield 'hours' => ['1h', 3600];
+        yield 'minimum' => ['2s', 2];
+    }
+
+    #[Test]
+    #[DataProvider('validPollIntervals')]
+    public function it_serializes_the_poll_interval_in_seconds(string|int $interval, int $seconds): void
+    {
+        $table = (new DataTable('test'))->poll($interval);
+
+        $this->assertSame($seconds, $table->getOptions()['pollInterval']);
+    }
+
+    #[Test]
+    public function it_omits_the_poll_interval_by_default(): void
+    {
+        $this->assertArrayNotHasKey('pollInterval', (new DataTable('test'))->getOptions());
+    }
+
+    /**
+     * @return iterable<string, array{string|int, string}>
+     */
+    public static function invalidPollIntervals(): iterable
+    {
+        yield 'below minimum' => ['1s', 'The polling interval must be at least 2 seconds.'];
+        yield 'zero' => [0, 'The polling interval must be at least 2 seconds.'];
+        yield 'negative int' => [-5, 'The polling interval must be at least 2 seconds.'];
+        yield 'unknown unit' => ['5d', 'The polling interval "5d" is invalid, use seconds or a duration such as "10s", "1m" or "1h".'];
+        yield 'empty' => ['', 'The polling interval "" is invalid, use seconds or a duration such as "10s", "1m" or "1h".'];
+    }
+
+    #[Test]
+    #[DataProvider('invalidPollIntervals')]
+    public function it_rejects_an_invalid_poll_interval(string|int $interval, string $message): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($message);
+
+        (new DataTable('test'))->poll($interval);
+    }
 }

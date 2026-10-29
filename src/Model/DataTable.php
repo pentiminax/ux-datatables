@@ -69,6 +69,8 @@ class DataTable
 
     private bool $templateColumnsRendered = false;
 
+    public const int MIN_POLL_INTERVAL = 2;
+
     private ?MercureConfig $mercureConfig = null;
 
     private ?HighlightConfig $highlightConfig = null;
@@ -422,6 +424,28 @@ class DataTable
     public function serverSide(bool $serverSide = true): static
     {
         $this->options->set('serverSide', $serverSide);
+
+        return $this;
+    }
+
+    /**
+     * Reload the Ajax source at a fixed interval, keeping paging, search and order.
+     *
+     * Needs a server-side or Ajax table. Use Mercure instead when updates can be pushed.
+     *
+     * @param string|int $interval Seconds, or a duration such as '10s', '1m' or '1h'; at least 2 seconds
+     *
+     * @throws \InvalidArgumentException when the interval is malformed or below the minimum
+     */
+    public function poll(string|int $interval): static
+    {
+        $seconds = self::parsePollInterval($interval);
+
+        if ($seconds < self::MIN_POLL_INTERVAL) {
+            throw new \InvalidArgumentException(\sprintf('The polling interval must be at least %d seconds.', self::MIN_POLL_INTERVAL));
+        }
+
+        $this->options->set('pollInterval', $seconds);
 
         return $this;
     }
@@ -1268,6 +1292,19 @@ class DataTable
      * Whether a layout position already renders the buttons container, either as the whole slot or
      * as one entry of a feature list.
      */
+    private static function parsePollInterval(string|int $interval): int
+    {
+        if (\is_int($interval)) {
+            return $interval;
+        }
+
+        if (1 !== preg_match('/^(\d+)([smh]?)$/', trim($interval), $matches)) {
+            throw new \InvalidArgumentException(\sprintf('The polling interval "%s" is invalid, use seconds or a duration such as "10s", "1m" or "1h".', $interval));
+        }
+
+        return (int) $matches[1] * ['' => 1, 's' => 1, 'm' => 60, 'h' => 3600][$matches[2]];
+    }
+
     private function slotDeclaresButtons(mixed $slot): bool
     {
         if ($this->isButtonsFeature($slot)) {

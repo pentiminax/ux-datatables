@@ -30,6 +30,7 @@ import { fetchEditForm } from './functions/fetchEditForm.js'
 import { installFilterBar } from './functions/filters.js'
 import { isHighlightEnabled, type UpdateHighlighter } from './functions/highlightUpdates.js'
 import { isDataTableClone } from './functions/isDataTableClone.js'
+import { isPollingEnabled, startPolling } from './functions/polling.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
 import { applyLocalLanguage } from './functions/localLanguage.js'
 import {
@@ -108,6 +109,7 @@ export default class extends Controller {
     private table: DataTableWithAjax | null = null
     private isDataTableInitialized = false
     private eventSource: EventSource | null = null
+    private stopPolling: (() => void) | null = null
     private highlighter: UpdateHighlighter | null = null
     private framework: StyleFramework = 'dt'
     private confirmingActions = new WeakSet<HTMLElement>()
@@ -153,6 +155,7 @@ export default class extends Controller {
                 this.bindPopstate(isUrlStateEnabled(this.viewValue))
                 // disconnect() closed the EventSource.
                 await this.startMercure(this.viewValue)
+                this.initPolling(this.viewValue)
             }
 
             return
@@ -263,6 +266,8 @@ export default class extends Controller {
 
         this.isDataTableInitialized = true
 
+        this.initPolling(payload)
+
         await this.startMercure(payload)
     }
 
@@ -271,6 +276,9 @@ export default class extends Controller {
 
         this.eventSource?.close()
         this.eventSource = null
+
+        this.stopPolling?.()
+        this.stopPolling = null
 
         this.highlighter?.destroy()
         this.highlighter = null
@@ -294,6 +302,7 @@ export default class extends Controller {
         this.table = new DataTable.Api(this.element) as DataTableWithAjax
         this.dispatchEvent('reconnect', { table: this.table })
         this.bindPopstate(isUrlStateEnabled(this.viewValue))
+        this.initPolling(this.viewValue)
 
         return true
     }
@@ -514,6 +523,25 @@ export default class extends Controller {
             this.highlighter?.arm()
             this.table?.ajax?.reload(() => this.highlighter?.diff(), false)
         })
+    }
+
+    private initPolling(payload: Record<string, any>): void {
+        if (this.stopPolling || !this.table?.ajax || !isPollingEnabled(payload)) {
+            return
+        }
+
+        if (this.isMercureEnabled(payload) && !hasWarnedPollingWithMercure) {
+            hasWarnedPollingWithMercure = true
+            console.warn(
+                '[ux-datatables] poll() and mercure() are both enabled: Mercure already pushes updates, so polling adds redundant requests.'
+            )
+        }
+
+        this.stopPolling = startPolling(
+            this.table,
+            payload.pollInterval,
+            (this.element as HTMLElement).closest('.dt-container') ?? (this.element as HTMLElement)
+        )
     }
 
     private async initHighlighter(payload: Record<string, any>): Promise<void> {
@@ -865,6 +893,8 @@ export default class extends Controller {
         return []
     }
 }
+
+let hasWarnedPollingWithMercure = false
 
 type DataTableWithAjax = {
     ajax?: {

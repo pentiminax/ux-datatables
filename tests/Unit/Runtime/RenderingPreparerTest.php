@@ -89,6 +89,27 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
+    public function it_rejects_polling_on_a_table_that_embeds_its_rows(): void
+    {
+        $table = (new DataTable('Test'))->poll('10s');
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Polling requires a server-side or Ajax table, but "Test" embeds its rows.');
+
+        (new RenderingPreparer())->prepare($table, null);
+    }
+
+    #[Test]
+    public function it_accepts_polling_on_an_ajax_table(): void
+    {
+        $table = (new DataTable('Test'))->ajax('/rows')->poll('10s');
+
+        (new RenderingPreparer())->prepare($table, null);
+
+        $this->assertSame(10, $table->getOption('pollInterval'));
+    }
+
+    #[Test]
     public function it_prepares_translated_static_search_list_options(): void
     {
         $translator = $this->createStub(TranslatorInterface::class);
