@@ -651,6 +651,34 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
+    public function it_translates_the_summary_labels_only_for_a_table_with_summaries(): void
+    {
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnCallback(static fn (string $id): string => 'tr:'.$id);
+
+        $preparer = new RenderingPreparer(translator: $translator);
+
+        $summarized = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->add(NumberColumn::new('price')->summarize(new Sum()));
+        $plain = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->add(TextColumn::new('name'));
+
+        $preparer->prepare($summarized, null);
+        $preparer->prepare($plain, null);
+
+        $this->assertSame([
+            'sum'   => 'tr:summary.sum',
+            'avg'   => 'tr:summary.avg',
+            'min'   => 'tr:summary.min',
+            'max'   => 'tr:summary.max',
+            'count' => 'tr:summary.count',
+        ], $summarized->getOptions()['summaryLabels']);
+        $this->assertArrayNotHasKey('summaryLabels', $plain->getOptions());
+    }
+
+    #[Test]
     public function it_translates_the_row_action_labels_of_a_custom_column_providing_actions(): void
     {
         $translator = $this->createStub(TranslatorInterface::class);

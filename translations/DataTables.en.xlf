@@ -82,6 +82,26 @@
                 <source>action.row.cancel</source>
                 <target>Cancel</target>
             </trans-unit>
+            <trans-unit id="summary.sum">
+                <source>summary.sum</source>
+                <target>Total</target>
+            </trans-unit>
+            <trans-unit id="summary.avg">
+                <source>summary.avg</source>
+                <target>Average</target>
+            </trans-unit>
+            <trans-unit id="summary.min">
+                <source>summary.min</source>
+                <target>Minimum</target>
+            </trans-unit>
+            <trans-unit id="summary.max">
+                <source>summary.max</source>
+                <target>Maximum</target>
+            </trans-unit>
+            <trans-unit id="summary.count">
+                <source>summary.count</source>
+                <target>Count</target>
+            </trans-unit>
         </body>
     </file>
 </xliff>

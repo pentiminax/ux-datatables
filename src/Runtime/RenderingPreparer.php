@@ -19,6 +19,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
+use Pentiminax\UX\DataTables\Model\Summary\SummaryType;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -95,6 +96,7 @@ final class RenderingPreparer
         $this->configureExportUrl($table);
         $this->configureBulkActions($table);
         $this->configureActionLabels($table);
+        $this->configureSummaryLabels($table);
         $this->configureForwardedQueryParameters($table);
         $this->configureEditModal($table, $asDataTable);
         $this->translateColumnTitles($table);
@@ -105,11 +107,34 @@ final class RenderingPreparer
 
     private function assertNoSummaries(DataTable $table): void
     {
-        foreach ($table->getColumns() as $column) {
-            if ($column instanceof AbstractColumn && [] !== $column->getSummarizers()) {
-                throw new \LogicException(\sprintf('The column "%s" declares a summary, but API Platform tables cannot aggregate every matching row. Remove summarize() or read the table through Doctrine.', $column->getName()));
-            }
+        foreach ($this->summarizedColumns($table) as $column) {
+            throw new \LogicException(\sprintf('The column "%s" declares a summary, but API Platform tables cannot aggregate every matching row. Remove summarize() or read the table through Doctrine.', $column->getName()));
         }
+    }
+
+    private function configureSummaryLabels(DataTable $table): void
+    {
+        if (null === $this->translator || [] === $this->summarizedColumns($table)) {
+            return;
+        }
+
+        $labels = [];
+        foreach (SummaryType::cases() as $type) {
+            $labels[$type->value] = $this->translator->trans('summary.'.$type->value, domain: FilterLabels::DOMAIN);
+        }
+
+        $table->setPreparedSummaryLabels($labels);
+    }
+
+    /**
+     * @return list<AbstractColumn>
+     */
+    private function summarizedColumns(DataTable $table): array
+    {
+        return array_values(array_filter(
+            $table->getColumns(),
+            static fn (mixed $column): bool => $column instanceof AbstractColumn && [] !== $column->getSummarizers(),
+        ));
     }
 
     private function resolveFilterEntityOptions(DataTable $table): void
