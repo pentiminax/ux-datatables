@@ -9,6 +9,8 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
+use Pentiminax\UX\DataTables\DataTableRequest\Columns;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Summary\Count;
 use Pentiminax\UX\DataTables\Model\Summary\Sum;
@@ -65,6 +67,31 @@ final class DataTableRuntimeSummaryPermissionTest extends TestCase
         $this->assertArrayNotHasKey('summaryLabels', $table->getOptions());
     }
 
+    #[Test]
+    public function a_client_side_table_leaves_its_summaries_to_the_browser(): void
+    {
+        $em = $this->createEntityManager(SummaryOrder::class, SummaryNote::class, SummaryRegion::class);
+        $em->persist(new SummaryOrder(1, 'paid', 1000));
+        $em->flush();
+
+        // A virtual column has no field to aggregate, so a server-side summary of it would throw.
+        $columns = [NumberColumn::new('margin')->summarize(new Sum())];
+
+        $runtime = (new DataTableRuntimeFactory(autoDataProviderFactory: new AutoDataProviderFactory($em)))->createRuntime(
+            table: new DataTable('orders'),
+            columns: $columns,
+            asDataTable: new AsDataTable(entityClass: SummaryOrder::class),
+            baseMapper: static fn (SummaryOrder $order): array => ['margin' => 1],
+            manualDataProviderFactory: static fn (): null => null,
+            configureQueryBuilder: static fn ($qb) => $qb,
+        );
+
+        $result = $runtime->fetchData(new DataTableRequest(draw: null, columns: new Columns([])));
+
+        $this->assertSame(1, $result->recordsTotal);
+        $this->assertNull($result->summaries);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -85,7 +112,7 @@ final class DataTableRuntimeSummaryPermissionTest extends TestCase
             autoDataProviderFactory: new AutoDataProviderFactory($em),
             permissionChecker: $permissionChecker,
         ))->createRuntime(
-            table: new DataTable('orders'),
+            table: (new DataTable('orders'))->serverSide(),
             columns: $columns,
             asDataTable: new AsDataTable(entityClass: SummaryOrder::class),
             baseMapper: static fn (): array => [],

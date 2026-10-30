@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Runtime;
 
 use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
@@ -45,6 +46,12 @@ final class DataSourceFeatureGuard
      */
     public function assertConfigurable(DataTable $table, DataSourceMode $mode): void
     {
+        if (DataSourceMode::ClientHydrated === $mode || DataSourceMode::Inline === $mode) {
+            $this->assertBrowserCanSummarize($table);
+
+            return;
+        }
+
         if (DataSourceMode::ApiPlatform !== $mode) {
             return;
         }
@@ -74,7 +81,7 @@ final class DataSourceFeatureGuard
             }
 
             if (DataSourceFeature::Summaries === $feature) {
-                if ($this->hasSummaries($columns)) {
+                if ([] !== ColumnResolver::filterSummarized($columns)) {
                     throw new \LogicException(\sprintf('Column summaries are not supported by %s. Remove summarize() or use a data provider that computes them.', $this->providerName($provider)));
                 }
 
@@ -87,6 +94,25 @@ final class DataSourceFeatureGuard
         }
     }
 
+    /**
+     * The browser aggregates the cell values it holds, which formatValueUsing() has already turned
+     * into text: "1,234.50" is not a number.
+     */
+    private function assertBrowserCanSummarize(DataTable $table): void
+    {
+        foreach (ColumnResolver::filterSummarized($table->getColumns()) as $column) {
+            if (null === $column->getValueFormatter()) {
+                continue;
+            }
+
+            foreach ($column->getSummarizers() as $summarizer) {
+                if ($summarizer->getType()->requiresNumericColumn()) {
+                    throw new \LogicException(\sprintf('The "%s" summary of column "%s" cannot be computed in the browser, because formatValueUsing() replaces the numbers it would aggregate. Make the table server-side, drop formatValueUsing(), or summarize with Count only.', $summarizer->getType()->value, $column->getName()));
+                }
+            }
+        }
+    }
+
     private function configures(DataTable $table, DataSourceFeature $feature): bool
     {
         $extensions = $table->getExtensionsCollection()->all();
@@ -95,7 +121,7 @@ final class DataSourceFeatureGuard
             DataSourceFeature::SearchBuilder     => ($extensions['searchBuilder'] ?? null) instanceof SearchBuilderExtension,
             DataSourceFeature::ColumnControl     => ($extensions['columnControl'] ?? null) instanceof ColumnControlExtension && $this->offersColumnControlSearch($extensions['columnControl'], $table->getColumns()),
             DataSourceFeature::ConfiguredFilters => [] !== ($table->getFilters()?->getFilters() ?? []),
-            DataSourceFeature::Summaries         => $this->hasSummaries($table->getColumns()),
+            DataSourceFeature::Summaries         => [] !== ColumnResolver::filterSummarized($table->getColumns()),
         };
     }
 
@@ -123,20 +149,6 @@ final class DataSourceFeatureGuard
             $value = $request->filters[$filter->getName()] ?? null;
 
             if (null !== $value && '' !== $value && [] !== $value) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param array<mixed> $columns
-     */
-    private function hasSummaries(array $columns): bool
-    {
-        foreach ($columns as $column) {
-            if ($column instanceof AbstractColumn && [] !== $column->getSummarizers()) {
                 return true;
             }
         }

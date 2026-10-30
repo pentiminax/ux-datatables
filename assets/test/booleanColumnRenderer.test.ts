@@ -20,6 +20,29 @@ describe('booleanColumnRenderer', () => {
     })
 
     describe('configure', () => {
+        it('labels the switch with the column title, escaped', () => {
+            const renderer = createRenderer()
+            const column: Record<string, any> = {
+                customOptions: { renderAsSwitch: true },
+                name: 'active',
+                title: 'Actif & visible',
+            }
+            renderer.configure(column)
+            const html = column.render(true, 'display', { id: 1 })
+            expect(html).toContain('aria-label="Actif &amp; visible"')
+            expect(html).not.toContain('aria-label="ON"')
+        })
+
+        it('falls back to the column name when the title is empty', () => {
+            const renderer = createRenderer()
+            const column: Record<string, any> = {
+                customOptions: { renderAsSwitch: true },
+                name: 'active',
+            }
+            renderer.configure(column)
+            expect(column.render(false, 'display', { id: 1 })).toContain('aria-label="active"')
+        })
+
         it('sets column type to num if not defined', () => {
             const renderer = createRenderer()
             const column: Record<string, any> = { customOptions: { renderAsSwitch: true } }

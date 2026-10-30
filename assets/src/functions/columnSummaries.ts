@@ -54,10 +54,11 @@ export function aggregate(type: SummaryType, values: unknown[]): number | null {
             return sum
         case 'avg':
             return sum / numbers.length
+        // Spreading every value as an argument overflows the call stack past ~120k rows.
         case 'min':
-            return Math.min(...numbers)
+            return numbers.reduce((a, b) => Math.min(a, b))
         default:
-            return Math.max(...numbers)
+            return numbers.reduce((a, b) => Math.max(a, b))
     }
 }
 

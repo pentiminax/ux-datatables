@@ -20,6 +20,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\ColumnControl\SearchList;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SearchBuilderExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
+use Pentiminax\UX\DataTables\Model\Summary\Count;
 use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\Runtime\DataSourceFeatureGuard;
@@ -89,6 +90,29 @@ final class DataSourceFeatureGuardTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('browserModes')]
+    public function it_refuses_a_browser_summary_of_formatted_values(DataSourceMode $mode): void
+    {
+        $table = (new DataTable('orders'))->columns([
+            NumberColumn::new('amount')->formatValueUsing(static fn (int $value): string => number_format($value, 2))->summarize(new Sum()),
+        ]);
+
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('The "sum" summary of column "amount" cannot be computed in the browser');
+
+        (new DataSourceFeatureGuard())->assertConfigurable($table, $mode);
+    }
+
+    /**
+     * @return iterable<string, array{DataSourceMode}>
+     */
+    public static function browserModes(): iterable
+    {
+        yield 'hydrated from the provider' => [DataSourceMode::ClientHydrated];
+        yield 'inline data' => [DataSourceMode::Inline];
+    }
+
+    #[Test]
     #[DataProvider('acceptedConfigurations')]
     public function it_accepts_at_render_what_the_mode_can_apply(\Closure $configure, DataSourceMode $mode): void
     {
@@ -120,6 +144,16 @@ final class DataSourceFeatureGuardTest extends TestCase
         yield 'SearchBuilder in the browser' => [
             static fn (DataTable $table): DataTable => $table->addExtension(new SearchBuilderExtension()),
             DataSourceMode::ClientHydrated,
+        ];
+
+        yield 'a count of formatted values in the browser' => [
+            static fn (DataTable $table): DataTable => $table->columns([NumberColumn::new('amount')->formatValueUsing(static fn (int $value): string => number_format($value))->summarize(new Count())]),
+            DataSourceMode::ClientHydrated,
+        ];
+
+        yield 'a sum of formatted values on the server' => [
+            static fn (DataTable $table): DataTable => $table->columns([NumberColumn::new('amount')->formatValueUsing(static fn (int $value): string => number_format($value))->summarize(new Sum())]),
+            DataSourceMode::ServerSide,
         ];
 
         // No provider is built while rendering: a server-side table is checked on its first request.

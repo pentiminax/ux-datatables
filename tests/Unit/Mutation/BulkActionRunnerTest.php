@@ -13,6 +13,7 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Exception\InvalidBulkSelectionException;
@@ -30,6 +31,7 @@ use Pentiminax\UX\DataTables\Mutation\BulkRecords;
 use Pentiminax\UX\DataTables\Mutation\BulkSelection;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
+use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
@@ -46,6 +48,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
@@ -831,6 +834,24 @@ final class BulkActionRunnerTest extends TestCase
             $this->resolved($action),
             $action,
             new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+            $this->postRequest(),
+        );
+    }
+
+    #[Test]
+    public function it_refuses_a_select_all_over_criteria_the_provider_cannot_apply(): void
+    {
+        $action   = BulkAction::new('touch')->handler(static fn () => null);
+        $provider = new ArrayDataProvider([], new DefaultRowMapper([]));
+        $query    = [...$this->dataTablesQuery(), 'searchBuilder' => ['logic' => 'AND', 'criteria' => [['condition' => '=', 'origData' => 'name', 'type' => 'string', 'value' => ['Beta']]]]];
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('SearchBuilder criteria are not supported by ArrayDataProvider.');
+
+        $this->runner()->run(
+            $this->resolved($action, provider: $provider),
+            $action,
+            new BulkSelection(allMatching: true, query: $query),
             $this->postRequest(),
         );
     }

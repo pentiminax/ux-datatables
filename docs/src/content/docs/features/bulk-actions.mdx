@@ -90,7 +90,8 @@ checkboxes the bundle added for them. A Select extension the table configured it
 `BulkRecords` yields the selected entities lazily, one chunk per query, and the runner flushes each
 chunk before loading the next, so a selection of 50,000 rows never runs as a single query or a
 single flush. Doctrine still keeps every loaded entity managed until the request ends, so memory
-grows with the selection; size `chunk()` and the selections you allow accordingly. It is
+grows with the selection whatever the chunk size: only the size of the selections you allow bounds
+it, through `selectCurrentPageOnly()` or the table's own scope. It is
 `Countable` and `IteratorAggregate`, plus `map()`, `filter()`, `first()`, `isEmpty()` and
 `toArray()`.
 

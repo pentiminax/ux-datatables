@@ -10,6 +10,7 @@ export function createBooleanColumnRenderer(toggleUrl, mutationsEnabled = true, 
             const toggleMethod = customOptions.toggleMethod ?? 'PATCH';
             const toggleIdField = customOptions.toggleIdField ?? 'id';
             const effectiveField = [customOptions.toggleField, column.field, column.data, column.name].find((field) => typeof field === 'string' && field.length > 0) ?? '';
+            const ariaLabel = escapeHtml([column.title, column.name, effectiveField].find((label) => typeof label === 'string' && label.length > 0) ?? '');
             column.type ??= 'num';
             column.render = (data, type, row) => {
                 const boolValue = parseBooleanValue(data, defaultState);
@@ -30,7 +31,7 @@ export function createBooleanColumnRenderer(toggleUrl, mutationsEnabled = true, 
                 return style.renderSwitch({
                     checked: boolValue,
                     disabled,
-                    ariaLabel: boolValue ? 'ON' : 'OFF',
+                    ariaLabel,
                     dataId: escapeHtml(String(rowId ?? '')),
                     dataUrl: escapeHtml(toggleUrl),
                     dataField: escapeHtml(effectiveField),
