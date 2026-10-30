@@ -49,10 +49,31 @@ JavaScript before the controller connects. Intervals outside 2 seconds to 24 hou
   custom `DataProviderInterface` supplies figures through the new optional `summaries` argument of
   `DataTableResult`. See [Column Summaries](https://pentiminax.github.io/ux-datatables/features/column-summaries/).
 
+### Unsupported data source features are refused in one place
+
+The bundle now checks whether a table's data source can apply SearchBuilder criteria, ColumnControl
+searches, configured filter values, and column summaries, instead of each provider checking on its
+own.
+
+What changed:
+
+- an API Platform table, read by the browser or by the server, that registers the SearchBuilder
+  extension or offers a ColumnControl search throws a `LogicException` at render time; the browser
+  used to drop those criteria and show every row
+- `ArrayDataProvider` answers HTTP 400 for a configured filter value, instead of a `LogicException`
+  (HTTP 500), and checks the table's own filters, so a value is refused even when the provider was
+  built without `$filters`
+- refusal messages name the provider class, for example "SearchBuilder criteria are not supported by
+  ArrayDataProvider."
+- a custom provider can refuse features through the new `FeatureAwareDataProviderInterface`;
+  without it, nothing changes
+
 ### Deprecated APIs
 
 Everything below keeps working and is removed in v2.0.
 
+- The fourth `$filters` argument of `ArrayDataProvider`: drop it, the bundle rejects configured
+  filter values on its own.
 - Placing `Feature::SEARCH_BUILDER` in a layout without the SearchBuilder extension: call
   `searchBuilder()` or `addExtension(new SearchBuilderExtension())`. It throws in 2.0.
 

@@ -8,15 +8,16 @@ use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Query\Intent\ColumnReadReference;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Serves a page from an in-memory collection, honoring the request through the same
@@ -28,13 +29,11 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * Search is case-insensitive and the term is trimmed. `getOrderExpression()` is DQL and is
  * ignored here.
  *
- * ColumnControl searches and configured {@see Filters} are
- * not implemented in memory: a request carrying either raises instead of silently returning
- * unfiltered rows with HTTP 200. A ColumnControl criterion comes from the query string, so it
- * raises a 400; a configured filter is a table-configuration mismatch, so it raises
- * \LogicException.
+ * SearchBuilder criteria, ColumnControl searches and configured filter values are not
+ * implemented in memory; {@see self::supports()} declares it, and the bundle answers such a
+ * request with HTTP 400 instead of returning unfiltered rows.
  */
-final class ArrayDataProvider implements DataProviderInterface, StreamingDataProviderInterface
+final class ArrayDataProvider implements DataProviderInterface, StreamingDataProviderInterface, FeatureAwareDataProviderInterface
 {
     /**
      * @param iterable<object|array> $items
@@ -42,17 +41,25 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
      *                                        {@see \Pentiminax\UX\DataTables\Model\AbstractDataTable::getResolvedColumns()}
      *                                        returns. Left empty, nothing is orderable, and a
      *                                        request carrying a search term raises.
-     * @param Filters|null           $filters the table's configured filters, so a request carrying a
-     *                                        value for one of them is rejected. Left null, filter values
-     *                                        are ignored like the Doctrine provider ignores them.
+     * @param Filters|null           $filters @deprecated since 1.3, the bundle now rejects a value
+     *                                        for any of the table's configured filters on its own.
+     *                                        Removed in 2.0.
      */
     public function __construct(
         private readonly iterable $items,
         private readonly RowMapperInterface $rowMapper,
         private readonly array $columns = [],
-        private readonly ?Filters $filters = null,
+        ?Filters $filters = null,
         private readonly DefaultDataTableQueryIntentFactory $intentFactory = new DefaultDataTableQueryIntentFactory(),
     ) {
+        if (null !== $filters) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.3', 'Passing $filters to "%s" is deprecated and removed in 2.0: the bundle rejects configured filter values on its own.', self::class);
+        }
+    }
+
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return DataSourceFeature::Summaries === $feature;
     }
 
     public function fetchData(DataTableRequest $request): DataTableResult
@@ -68,21 +75,6 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
     private function query(DataTableRequest $request, bool $summarize): DataTableResult
     {
         $intent = $this->intentFactory->create($request, $this->columns);
-
-        // A ColumnControl criterion reaches this from the query string, so an unsupported one is a
-        // bad request, not a broken server: raising \LogicException here answered crafted input
-        // with HTTP 500.
-        if ([] !== $intent->columnControls) {
-            throw new BadRequestHttpException('ColumnControl searches are not supported by ArrayDataProvider. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.');
-        }
-
-        if (null !== $intent->searchBuilder) {
-            throw new BadRequestHttpException('SearchBuilder criteria are not supported by ArrayDataProvider. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.');
-        }
-
-        if ($this->hasActiveFilters($request)) {
-            throw new \LogicException('ArrayDataProvider does not support configured Filters. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.');
-        }
 
         // Without columns nothing is searchable, so a term would silently match every row and
         // report recordsFiltered == recordsTotal. Say so instead of answering unfiltered.
@@ -135,28 +127,6 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
         }
 
         return [] === $summaries ? null : $summaries;
-    }
-
-    /**
-     * Only configured filter names count, and emptiness is tested exactly as
-     * {@see \Pentiminax\UX\DataTables\Query\Builder\QueryFilterPipeline} tests it, so the same
-     * request is "filtered" for both providers: an unknown key is ignored, not rejected.
-     */
-    private function hasActiveFilters(DataTableRequest $request): bool
-    {
-        if (null === $this->filters) {
-            return false;
-        }
-
-        foreach ($this->filters->getFilters() as $filter) {
-            $value = $request->filters[$filter->getName()] ?? null;
-
-            if (null !== $value && '' !== $value && [] !== $value) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /**

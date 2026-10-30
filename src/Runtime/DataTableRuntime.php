@@ -29,6 +29,7 @@ final class DataTableRuntime
         /** @var list<ColumnInterface> */
         private readonly array $columns = [],
         private readonly SearchListOptionsResolver $searchListOptionsResolver = new SearchListOptionsResolver(),
+        private readonly DataSourceFeatureGuard $featureGuard = new DataSourceFeatureGuard(),
     ) {
     }
 
@@ -54,6 +55,10 @@ final class DataTableRuntime
             : $this->maxPageLength;
 
         $this->request = $dataTableRequest->withBoundedLength($maxLength, $this->allowsShowAll());
+
+        if (null !== $this->dataProvider && $this->isRequestHandled()) {
+            $this->featureGuard->assertRequestSupported($this->request, $this->dataProvider, $this->table, $this->columns);
+        }
     }
 
     /**
@@ -126,6 +131,11 @@ final class DataTableRuntime
         return null !== $this->request && $this->request->draw > 0;
     }
 
+    /**
+     * Data, export and bulk requests all reach the provider through here, so once a DataTables
+     * request is handled the provider is never handed out with criteria it cannot apply. A page load
+     * (draw 0) is not checked: its query string is the page's, not a DataTables request.
+     */
     public function getDataProvider(): ?DataProviderInterface
     {
         if ($this->dataProviderResolved) {
@@ -133,6 +143,10 @@ final class DataTableRuntime
         }
 
         $dataProvider = ($this->dataProviderFactory)();
+
+        if (null !== $dataProvider && $this->isRequestHandled()) {
+            $this->featureGuard->assertRequestSupported($this->request, $dataProvider, $this->table, $this->columns);
+        }
 
         $this->dataProviderResolved = true;
         $this->dataProvider         = $dataProvider;
@@ -174,6 +188,10 @@ final class DataTableRuntime
         $provider = $this->getDataProvider();
         if (null === $provider) {
             return $this->createEmptyResult();
+        }
+
+        if ($request !== $this->request) {
+            $this->featureGuard->assertRequestSupported($request, $provider, $this->table, $this->columns);
         }
 
         $result = $provider->fetchData($request);

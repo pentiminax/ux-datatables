@@ -23,6 +23,37 @@ interface DataProviderInterface
 }
 ```
 
+### Refusing data source features
+
+A provider that cannot apply SearchBuilder criteria, ColumnControl searches, configured filter
+values, or column summaries declares it through `FeatureAwareDataProviderInterface`. The bundle then
+refuses those requests for every path that reads the provider (data, export, and bulk selection)
+instead of letting the provider answer unfiltered: criteria get HTTP 400, and a table that declares
+summaries throws a `LogicException`.
+
+```php
+use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
+use Pentiminax\UX\DataTables\Model\DataTableResult;
+
+final class WarehouseStockProvider implements DataProviderInterface, FeatureAwareDataProviderInterface
+{
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return DataSourceFeature::ConfiguredFilters === $feature;
+    }
+
+    public function fetchData(DataTableRequest $request): DataTableResult
+    {
+        // ...
+    }
+}
+```
+
+A provider that does not implement the interface is assumed to support every feature.
+
 Built-in providers:
 
 <Table
@@ -36,8 +67,7 @@ Built-in providers:
 ## ArrayDataProvider
 
 `ArrayDataProvider` serves a page from an in-memory collection. Give it the table's resolved
-columns so it can honor the request, and its configured filters so a filtered request is rejected
-instead of silently ignored:
+columns so it can honor the request:
 
 ```php
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
@@ -49,16 +79,15 @@ protected function createDataProvider(): ?DataProviderInterface
         $this->rows,
         $this->createRowMapper(),
         $this->getResolvedColumns(),
-        $this->getConfiguredDataTable()->getFilters(),
     );
 }
 ```
 
 `getResolvedColumns()` returns the configured columns after static permission filtering — the same
-list the Doctrine provider queries with. Both arguments are optional: without columns the provider
+list the Doctrine provider queries with. The argument is optional: without columns the provider
 still pages correctly but nothing is orderable, and a request carrying a search term raises rather
-than returning every row as a match; without filters, filter values in the request are ignored, as
-the Doctrine provider ignores values for unconfigured names.
+than returning every row as a match. The fourth `$filters` argument is deprecated since 1.3: the
+bundle rejects a value for any of the table's configured filters on its own.
 
 ### Supported request features
 
@@ -75,11 +104,13 @@ the Doctrine provider ignores values for unconfigured names.
       'Honored on globally searchable columns, as the Doctrine provider does. The term is trimmed and matching is case-insensitive.',
     ],
     ['Per-column search', 'Honored, cumulatively: a row must match every active column search.'],
-    ['ColumnControl searches', 'Not supported — throws a `LogicException`.'],
+    ['SearchBuilder criteria', 'Not supported — the request gets HTTP 400.'],
+    ['ColumnControl searches', 'Not supported — the request gets HTTP 400.'],
     [
       'Configured `Filters`',
-      'Not supported — a value for a configured filter throws a `LogicException`.',
+      'Not supported — a value for a configured filter gets HTTP 400.',
     ],
+    ['Column summaries', 'Honored, in memory.'],
   ]}
 />
 
@@ -90,8 +121,8 @@ semantics: a column with no matching property, such as an `ActionColumn` or a `T
 simply not searchable or orderable in memory. Non-text values (booleans, dates) are not searchable,
 exactly as they are excluded from a Doctrine `LIKE`.
 
-A table that needs ColumnControl or configured `Filters` in memory must implement
-`DataProviderInterface` itself; the exception exists so those requests fail loudly instead of
+A table that needs SearchBuilder, ColumnControl, or configured `Filters` in memory must implement
+`DataProviderInterface` itself; the refusal exists so those requests fail loudly instead of
 returning unfiltered rows with HTTP 200.
 
 ## RowMapperInterface

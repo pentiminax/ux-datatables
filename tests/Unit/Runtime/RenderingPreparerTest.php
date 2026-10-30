@@ -205,7 +205,7 @@ final class RenderingPreparerTest extends TestCase
         $table = (new DataTable('Test'))->columns([NumberColumn::new('price')->summarize(new Sum())]);
 
         $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('The column "price" declares a summary, but API Platform tables cannot aggregate');
+        $this->expectExceptionMessage('Column summaries are not supported on an API Platform collection');
 
         (new RenderingPreparer(urlResolver: $urlResolver))->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
     }

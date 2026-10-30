@@ -43,6 +43,10 @@ are ignored on columns mapped to a native identifier type (`guid`, `uuid`, `ulid
 `IS NULL` / `IS NOT NULL`. See
 [Searching UUID and ULID columns](/guide/server-side-processing/#searching-uuid-and-ulid-columns).
 
+API Platform tables cannot apply ColumnControl searches: rendering throws a `LogicException` when the
+table or one of its columns offers a search control. Order and visibility controls still work.
+`ArrayDataProvider` rejects ColumnControl searches with HTTP 400.
+
 ## Choosing Where The Controls Go
 
 Each control group targets one row: a header row index (`0`, `1`, ...) or a `tfoot` string
@@ -327,8 +331,8 @@ iterable publishes an empty list. Static options and an Ajax provider cannot be 
 descriptor because DataTables gives static options priority.
 
 Dynamic providers run for the bundle's Ajax endpoint and manual endpoints that call
-`AbstractDataTable::getResponse()`. API Platform and external Ajax endpoints must add their own
-`columnControl` response object.
+`AbstractDataTable::getResponse()`. External Ajax endpoints must add their own `columnControl`
+response object.
 
 ### Display Options
 
