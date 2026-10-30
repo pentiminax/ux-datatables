@@ -7,13 +7,11 @@ namespace Pentiminax\UX\DataTables\Runtime;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\ApiPlatform\ApiResourceCollectionUrlResolver;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\UrlColumn;
 use Pentiminax\UX\DataTables\Contracts\ActionsProvidingColumnInterface;
-use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\TemplateAwareColumnInterface;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
@@ -125,7 +123,7 @@ final class RenderingPreparer
     {
         $columns = $this->columnResolver?->filterStaticPermissions($table->getColumns(), $table->getDataTableClass()) ?? $table->getColumns();
 
-        if (null === $this->translator || [] === $this->summarizedColumns($columns)) {
+        if (null === $this->translator || [] === ColumnResolver::filterSummarized($columns)) {
             return;
         }
 
@@ -135,19 +133,6 @@ final class RenderingPreparer
         }
 
         $table->setPreparedSummaryLabels($labels);
-    }
-
-    /**
-     * @param ColumnInterface[] $columns
-     *
-     * @return list<AbstractColumn>
-     */
-    private function summarizedColumns(array $columns): array
-    {
-        return array_values(array_filter(
-            $columns,
-            static fn (mixed $column): bool => $column instanceof AbstractColumn && [] !== $column->getSummarizers(),
-        ));
     }
 
     private function resolveFilterEntityOptions(DataTable $table): void

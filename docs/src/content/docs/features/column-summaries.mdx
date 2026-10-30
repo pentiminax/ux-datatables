@@ -67,14 +67,17 @@ they are formatted differently in SQL, PHP and the browser, so only `Count` appl
   rows (`customizeQueryBuilder()` scope, search, and filters) without pagination or ordering. The
   response gains a `summaries` key only when a column declares a summary. The query matches the
   root entities first, so a to-many join or a search on a collection never inflates a total.
-- **Client-side tables** compute in the browser from the rows matching the current search.
+- **Client-side tables** compute in the browser from the rows matching the current search, so a
+  virtual column works there. The browser reads the displayed values: rendering throws a
+  `LogicException` when a column combines `formatValueUsing()` with `Sum`, `Average`, `Min`, or
+  `Max`, because `"1,234.50"` is not a number. Make the table server-side or keep `Count` only.
 - **`ArrayDataProvider`** aggregates in memory.
 - **API Platform tables** cannot aggregate: rendering throws a `LogicException` when a column
   declares a summary.
 - **Custom providers** return the figures through the `summaries` argument of `DataTableResult`,
   shaped `['columnName' => ['sum' => 120, 'count' => 4]]`.
 
-The summarized column must map a Doctrine field (or a relation path such as `region.quota`).
+On a server-side table, the summarized column must map a Doctrine field (or a relation path such as `region.quota`).
 A virtual column assembled in `mapRow()`, or a path crossing a to-many association such as
 `notes.text`, raises a `LogicException` on the first request, as does an entity with a composite
 identifier. A scope with a `HAVING` clause binds the matching identifiers as one list, so keep such

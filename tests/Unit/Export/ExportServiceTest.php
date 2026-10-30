@@ -276,6 +276,18 @@ final class ExportServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_refuses_to_export_criteria_the_provider_cannot_apply(): void
+    {
+        $request = $this->exportRequest();
+        $request->request->set('searchBuilder', ['logic' => 'AND', 'criteria' => [['condition' => '=', 'origData' => 'name', 'type' => 'string', 'value' => ['Ada']]]]);
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('SearchBuilder criteria are not supported by ArrayDataProvider.');
+
+        $this->send($this->service()->export($this->table(), $request));
+    }
+
+    #[Test]
     public function it_rejects_a_table_without_a_server_side_export_button(): void
     {
         $table = new ConfigurableDataTable(

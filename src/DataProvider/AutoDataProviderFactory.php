@@ -35,6 +35,7 @@ final class AutoDataProviderFactory
         bool $apiPlatform = false,
         array $columns = [],
         ?string $dataTableClass = null,
+        bool $summarize = true,
     ): ?DataProviderInterface {
         if (null === $asDataTable) {
             return null;
@@ -77,7 +78,7 @@ final class AutoDataProviderFactory
             exportRowMapper: $exportRowMapper,
             pageProjector: $pageProjector,
             configureBaseQueryBuilder: $configureBaseQueryBuilder,
-            columns: $columns,
+            columns: $summarize ? $columns : [],
         );
     }
 }

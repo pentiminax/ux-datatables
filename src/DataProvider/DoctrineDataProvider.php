@@ -12,7 +12,7 @@ use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\QueryBuilder;
-use Pentiminax\UX\DataTables\Column\AbstractColumn;
+use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
@@ -141,10 +141,7 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
      */
     private function summarize(QueryBuilder $qb, string $alias): ?array
     {
-        $summarized = array_values(array_filter(
-            $this->columns,
-            static fn (ColumnInterface $column): bool => $column instanceof AbstractColumn && [] !== $column->getSummarizers(),
-        ));
+        $summarized = ColumnResolver::filterSummarized($this->columns);
 
         if ([] === $summarized) {
             return null;

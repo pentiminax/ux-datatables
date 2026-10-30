@@ -143,6 +143,8 @@ final class DataTableRuntimeFactory
                 apiPlatform: true === $table->getOption('apiPlatform') || true === $asDataTable?->apiPlatform,
                 columns: array_values($columns),
                 dataTableClass: $table->getDataTableClass(),
+                // A client-side table sums its rows in the browser, and its hydration drops the result.
+                summarize: $table->isServerSide(),
             ),
             maxPageLength: $this->maxPageLength,
             columns: $columns,
@@ -163,6 +165,7 @@ final class DataTableRuntimeFactory
         bool $apiPlatform = false,
         array $columns = [],
         ?string $dataTableClass = null,
+        bool $summarize = true,
     ): ?DataProviderInterface {
         return $manualDataProviderFactory() ?? $this->getAutoDataProviderFactory()->create(
             asDataTable: $asDataTable,
@@ -174,6 +177,7 @@ final class DataTableRuntimeFactory
             apiPlatform: $apiPlatform,
             columns: array_values($this->columnResolver()->filterStaticPermissions($columns, $dataTableClass)),
             dataTableClass: $dataTableClass,
+            summarize: $summarize,
         );
     }
 

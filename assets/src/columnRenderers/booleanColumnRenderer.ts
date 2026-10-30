@@ -24,6 +24,13 @@ export function createBooleanColumnRenderer(
                     (field): field is string => typeof field === 'string' && field.length > 0
                 ) ?? ''
 
+            // Names the field the switch changes; `checked` already tells its state.
+            const ariaLabel = escapeHtml(
+                [column.title, column.name, effectiveField].find(
+                    (label): label is string => typeof label === 'string' && label.length > 0
+                ) ?? ''
+            )
+
             column.type ??= 'num'
 
             column.render = (
@@ -56,7 +63,7 @@ export function createBooleanColumnRenderer(
                 return style.renderSwitch({
                     checked: boolValue,
                     disabled,
-                    ariaLabel: boolValue ? 'ON' : 'OFF',
+                    ariaLabel,
                     dataId: escapeHtml(String(rowId ?? '')),
                     dataUrl: escapeHtml(toggleUrl),
                     dataField: escapeHtml(effectiveField),

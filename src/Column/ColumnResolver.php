@@ -175,6 +175,26 @@ final class ColumnResolver
     }
 
     /**
+     * @internal
+     *
+     * @param iterable<mixed> $columns
+     *
+     * @return list<AbstractColumn>
+     */
+    public static function filterSummarized(iterable $columns): array
+    {
+        $summarized = [];
+
+        foreach ($columns as $column) {
+            if ($column instanceof AbstractColumn && [] !== $column->getSummarizers()) {
+                $summarized[] = $column;
+            }
+        }
+
+        return $summarized;
+    }
+
+    /**
      * Row keys and read paths of the columns the current user may not see.
      *
      * @param ColumnInterface[] $columns

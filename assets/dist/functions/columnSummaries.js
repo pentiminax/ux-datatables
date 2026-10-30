@@ -28,9 +28,9 @@ export function aggregate(type, values) {
         case 'avg':
             return sum / numbers.length;
         case 'min':
-            return Math.min(...numbers);
+            return numbers.reduce((a, b) => Math.min(a, b));
         default:
-            return Math.max(...numbers);
+            return numbers.reduce((a, b) => Math.max(a, b));
     }
 }
 function format(column, type, value) {

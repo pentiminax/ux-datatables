@@ -36,6 +36,13 @@ const columns = [
 ]
 
 describe('columnSummaries', () => {
+    it('takes the min and max of more values than fit in a call stack', () => {
+        const values = Array.from({ length: 200_000 }, (_, i) => i)
+
+        expect(aggregate('min', values)).toBe(0)
+        expect(aggregate('max', values)).toBe(199_999)
+    })
+
     it('detects summaries only when a column declares one', () => {
         expect(hasSummaries({ columns })).toBe(true)
         expect(hasSummaries({ columns: [{ name: 'a' }] })).toBe(false)
