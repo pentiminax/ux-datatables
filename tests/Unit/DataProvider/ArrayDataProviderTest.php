@@ -11,22 +11,20 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
-use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
-use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
-use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Model\Summary\Max;
 use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * @internal
@@ -365,57 +363,6 @@ final class ArrayDataProviderTest extends TestCase
      * The criterion arrives in the query string, so the answer is a 400: raising \LogicException
      * turned crafted input into a 500.
      */
-    #[Test]
-    public function it_rejects_a_request_that_carries_column_control_searches(): void
-    {
-        $request = self::request(
-            start: 0,
-            length: 10,
-            requestColumns: [
-                new RequestColumn(
-                    data: 'name',
-                    name: 'name',
-                    searchable: true,
-                    orderable: true,
-                    columnControl: new ColumnControl(new ColumnControlSearch('Alice', ColumnControlLogic::Equal, 'text')),
-                ),
-            ],
-        );
-
-        $this->expectException(BadRequestHttpException::class);
-        $this->expectExceptionMessage('ColumnControl searches are not supported by ArrayDataProvider.');
-
-        (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData($request);
-    }
-
-    #[Test]
-    public function it_rejects_a_request_that_carries_search_builder_criteria(): void
-    {
-        $request = new DataTableRequest(
-            draw: 1,
-            columns: new Columns([]),
-            start: 0,
-            length: 10,
-            searchBuilder: ['logic' => 'AND', 'criteria' => [['column' => 'name', 'condition' => '=', 'type' => 'string', 'values' => ['Alice']]]],
-        );
-
-        $this->expectException(BadRequestHttpException::class);
-        $this->expectExceptionMessage('SearchBuilder criteria are not supported by ArrayDataProvider.');
-
-        (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData($request);
-    }
-
-    #[Test]
-    public function it_throws_when_the_request_carries_configured_filters(): void
-    {
-        $request = self::request(start: 0, length: 10, filters: ['status' => 'active']);
-
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('ArrayDataProvider does not support configured Filters.');
-
-        (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns(), self::filters()))->fetchData($request);
-    }
-
     /**
      * Built without columns nothing is searchable, and the term would match every row while
      * reporting recordsFiltered == recordsTotal.
@@ -463,6 +410,27 @@ final class ArrayDataProviderTest extends TestCase
         );
 
         $this->assertSame(4, $result->recordsFiltered);
+    }
+
+    #[Test]
+    public function it_supports_only_summaries_among_the_data_source_features(): void
+    {
+        $provider = new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns());
+
+        $this->assertSame(
+            [DataSourceFeature::Summaries],
+            array_values(array_filter(DataSourceFeature::cases(), $provider->supports(...))),
+        );
+    }
+
+    #[Test]
+    #[IgnoreDeprecations]
+    public function the_deprecated_filters_argument_is_still_accepted(): void
+    {
+        $result = (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns(), self::filters()))
+            ->fetchData(self::request(start: 0, length: 10));
+
+        $this->assertSame(4, $result->recordsTotal);
     }
 
     private static function filters(): Filters

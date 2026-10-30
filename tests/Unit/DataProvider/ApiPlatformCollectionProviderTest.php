@@ -21,11 +21,10 @@ use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
-use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
-use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -33,7 +32,6 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * @internal
@@ -42,6 +40,17 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 final class ApiPlatformCollectionProviderTest extends TestCase
 {
     private const string ENTITY_CLASS = 'App\Entity\Book';
+
+    #[Test]
+    public function it_supports_only_configured_filters_among_the_data_source_features(): void
+    {
+        $provider = $this->provider($this->recordingProvider($this->paginator($this->items(1), 1)));
+
+        $this->assertSame(
+            [DataSourceFeature::ConfiguredFilters],
+            array_values(array_filter(DataSourceFeature::cases(), $provider->supports(...))),
+        );
+    }
 
     #[Test]
     public function it_reads_a_whole_page_with_one_call_to_the_state_provider(): void
@@ -407,33 +416,6 @@ final class ApiPlatformCollectionProviderTest extends TestCase
         $this->assertSame('Book 37', $rows[0]['title']);
         $this->assertSame('Book 49', $rows[12]['title']);
         $this->assertCount(3, $provider->calls);
-    }
-
-    #[Test]
-    public function it_refuses_search_builder_criteria(): void
-    {
-        $provider = $this->recordingProvider($this->paginator($this->items(1), 1));
-
-        $this->expectException(BadRequestHttpException::class);
-        $this->expectExceptionMessage('SearchBuilder criteria are not supported on an API Platform collection.');
-
-        $this->provider($provider)->fetchData($this->request(searchBuilder: [
-            'logic'    => 'AND',
-            'criteria' => [['column' => 'title', 'condition' => '=', 'type' => 'string', 'values' => ['Dune']]],
-        ]));
-    }
-
-    #[Test]
-    public function it_refuses_a_column_control_criterion(): void
-    {
-        $provider = $this->recordingProvider($this->paginator($this->items(1), 1));
-
-        $this->expectException(BadRequestHttpException::class);
-        $this->expectExceptionMessage('ColumnControl searches are not supported on an API Platform collection.');
-
-        $this->provider($provider)->fetchData($this->request(columnControl: new ColumnControl(
-            search: new ColumnControlSearch(value: 'dune', logic: ColumnControlLogic::Contains, type: 'text'),
-        )));
     }
 
     #[Test]

@@ -85,6 +85,7 @@ final class RenderingPreparer
         private readonly ?SearchListOptionsResolver $searchListOptionsResolver = null,
         private readonly ?FilterEntityOptionsResolver $filterEntityOptionsResolver = null,
         private readonly ?ColumnResolver $columnResolver = null,
+        private readonly DataSourceFeatureGuard $featureGuard = new DataSourceFeatureGuard(),
     ) {
     }
 
@@ -97,9 +98,9 @@ final class RenderingPreparer
     public function prepareBeforeDataHydration(DataTable $table, ?AsDataTable $asDataTable): void
     {
         $mode = $this->resolveDataSourceMode($table, $asDataTable);
+        $this->featureGuard->assertConfigurable($table, $mode);
 
         if (DataSourceMode::ApiPlatform === $mode) {
-            $this->assertNoSummaries($table);
             $this->configureApiPlatform($table, $asDataTable);
         }
 
@@ -118,13 +119,6 @@ final class RenderingPreparer
         $this->resolveFilterEntityOptions($table);
         $this->translateFilterLabels($table);
         ($this->searchListOptionsResolver ?? new SearchListOptionsResolver($this->translator))->prepare($table);
-    }
-
-    private function assertNoSummaries(DataTable $table): void
-    {
-        foreach ($this->summarizedColumns($table->getColumns()) as $column) {
-            throw new \LogicException(\sprintf('The column "%s" declares a summary, but API Platform tables cannot aggregate every matching row. Remove summarize() or read the table through Doctrine.', $column->getName()));
-        }
     }
 
     private function configureSummaryLabels(DataTable $table): void

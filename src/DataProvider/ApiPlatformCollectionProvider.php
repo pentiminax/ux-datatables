@@ -13,15 +13,16 @@ use Pentiminax\UX\DataTables\ApiPlatform\ResolvedCollectionOperation;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Reads rows through the API Platform collection operation the table is bound to.
@@ -36,7 +37,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * Authorization therefore lives on the operation, not on the collection's URL path: `access_control`
  * rules matching that path are not evaluated here, exactly as they are not for a Doctrine table.
  */
-class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingDataProviderInterface
+class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingDataProviderInterface, FeatureAwareDataProviderInterface
 {
     /**
      * @param list<ColumnInterface> $columns configured columns in display order, before permission filtering
@@ -57,6 +58,15 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
         /** @var (\Closure(list<mixed>):(list<mixed>|null))|null */
         private readonly ?\Closure $pageProjector = null,
     ) {
+    }
+
+    /**
+     * An API Platform collection carries configured filters as its own query parameters; it has no
+     * parameter for SearchBuilder, ColumnControl or an aggregate over every matching row.
+     */
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return DataSourceFeature::ConfiguredFilters === $feature;
     }
 
     public function fetchData(DataTableRequest $request): DataTableResult
@@ -280,18 +290,6 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
             $request,
             array_values($this->columnResolver->filterStaticPermissions($this->columns, $this->dataTableClass)),
         );
-
-        // A ColumnControl criterion has no API Platform query parameter to carry it, and the
-        // browser-side adapter cannot express one either. Refusing the request is the only honest
-        // answer: translating nothing would return the whole collection with HTTP 200 and a
-        // filtered count equal to the total.
-        if ([] !== $intent->columnControls) {
-            throw new BadRequestHttpException('ColumnControl searches are not supported on an API Platform collection. Configure an API Platform filter and a DataTables filter instead.');
-        }
-
-        if (null !== $intent->searchBuilder) {
-            throw new BadRequestHttpException('SearchBuilder criteria are not supported on an API Platform collection. Configure an API Platform filter and a DataTables filter instead.');
-        }
 
         return $this->queryParameterFactory->create($intent, $request);
     }

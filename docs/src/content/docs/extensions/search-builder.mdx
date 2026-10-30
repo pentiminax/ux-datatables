@@ -72,7 +72,8 @@ filter. Incomplete criteria (a blank value) are skipped, as in the browser.
 - A criterion whose value cannot be bound to the field type (for example text for an integer
   column, or `2.5` for an integer) matches nothing instead of raising a database error.
 - Dates compare by whole day, and negated conditions keep rows where the field is `NULL`.
-- `ArrayDataProvider` and API Platform server-side tables reject SearchBuilder criteria with HTTP 400.
+- API Platform tables cannot apply SearchBuilder criteria: rendering throws a `LogicException`.
+  `ArrayDataProvider` rejects them with HTTP 400.
 - `LIKE` conditions are case-insensitive and escape `%` and `_`.
 - Select-based conditions fall back to text inputs, and custom conditions are not supported.
 
