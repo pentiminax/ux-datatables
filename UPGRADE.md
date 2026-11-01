@@ -66,6 +66,19 @@ What changed:
 - a custom provider can refuse features through the new `FeatureAwareDataProviderInterface`;
   without it, nothing changes
 
+### New: SearchBuilder
+
+Server-side tables now apply the SearchBuilder extension to every matching row.
+
+What changed:
+
+- a malformed `searchBuilder` parameter, or one with a condition the server does not know such as
+  `without`, answers HTTP 400 instead of returning the unfiltered table
+- a criterion on an unknown or `setSearchable(false)` column answers HTTP 400 instead of being
+  ignored
+- incomplete criteria, such as the blank row DataTables sends for a new condition, are still skipped
+- the builder no longer offers the `without` condition, and leaves out non-searchable columns
+
 ### Deprecated APIs
 
 Everything below keeps working and is removed in v2.0.

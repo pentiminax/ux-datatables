@@ -31,6 +31,7 @@ import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { hasLucideIcons, hasLucideIconsInActions, loadLucideIcons, } from './functions/lucideIcons.js';
 import { ensurePolling } from './functions/polling.js';
 import { installRequestParams } from './functions/requestParams.js';
+import { restrictSearchBuilder } from './functions/restrictSearchBuilder.js';
 import { runRowAction } from './functions/rowActionFeedback.js';
 import { applyTableLanguage, bindRowFeatures } from './functions/rowFeatures.js';
 import { runAjaxAction } from './functions/runAjaxAction.js';
@@ -282,6 +283,7 @@ class default_1 extends Controller {
                 ...(payload.columnDefs ?? []),
             ];
         }
+        restrictSearchBuilder(payload);
     }
     configureColumns(payload) {
         normalizeDisabledColumnControls(payload);

@@ -44,6 +44,7 @@ import {
 } from './functions/lucideIcons.js'
 import { ensurePolling } from './functions/polling.js'
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
+import { restrictSearchBuilder } from './functions/restrictSearchBuilder.js'
 import { type RowActionOutcome, runRowAction } from './functions/rowActionFeedback.js'
 import { applyTableLanguage, bindRowFeatures } from './functions/rowFeatures.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
@@ -467,6 +468,8 @@ export default class extends Controller {
                 ...(payload.columnDefs ?? []),
             ]
         }
+
+        restrictSearchBuilder(payload)
     }
 
     private configureColumns(payload: Record<string, any>): void {

@@ -9,12 +9,14 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SearchBuilderExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
+use Pentiminax\UX\DataTables\Query\Filter\SearchBuilderFilter;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -71,6 +73,10 @@ final class DataSourceFeatureGuard
      */
     public function assertRequestSupported(DataTableRequest $request, DataProviderInterface $provider, DataTable $table, array $columns): void
     {
+        if ($provider instanceof DoctrineDataProvider && null !== $request->searchBuilder) {
+            SearchBuilderFilter::assertSearchable($request->searchBuilder, array_values($columns));
+        }
+
         if (!$provider instanceof FeatureAwareDataProviderInterface) {
             return;
         }

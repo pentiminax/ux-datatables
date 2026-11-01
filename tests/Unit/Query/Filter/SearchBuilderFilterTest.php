@@ -24,6 +24,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Runs the composed predicate against sqlite so the generated DQL is proven valid.
@@ -86,8 +87,6 @@ final class SearchBuilderFilterTest extends TestCase
         yield 'nested' => [['criteria' => [$c('name', 'starts', ['al']), ['logic' => 'OR', 'criteria' => [$c('id', '=', ['1']), $c('id', '=', ['9'])]]]], ['Alice']];
         yield 'not null' => [['criteria' => [$c('name', '!null', [])]], self::ALL];
         yield 'null' => [['criteria' => [$c('name', 'null', [])]], []];
-        yield 'unknown column discards the whole tree' => [['criteria' => [$c('id', '=', ['1']), $c('secret', '=', ['x'])]], self::ALL];
-        yield 'unknown column in an or group discards the whole tree' => [['logic' => 'OR', 'criteria' => [$c('id', '=', ['1']), ['logic' => 'AND', 'criteria' => [$c('name', '=', ['Bob']), $c('secret', '=', ['x'])]]]], self::ALL];
         yield 'garbage number matches nothing' => [['criteria' => [$c('id', '=', ['abc'])]], []];
         yield 'fractional number on an integer matches nothing' => [['criteria' => [$c('id', '>', ['2.5'])]], []];
         yield 'like wildcard is literal' => [['criteria' => [$c('name', 'contains', ['%'])]], []];
@@ -102,12 +101,43 @@ final class SearchBuilderFilterTest extends TestCase
     }
 
     #[Test]
-    public function it_ignores_a_non_searchable_column(): void
+    public function it_refuses_a_non_searchable_column(): void
     {
         $columns = [NumberColumn::new('id', 'Id'), TextColumn::new('name', 'Name')->setSearchable(false)];
         $payload = ['criteria' => [['origData' => 'name', 'condition' => '=', 'value' => ['Bob']]]];
 
-        $this->assertSame(self::ALL, $this->names(CountCustomer::class, $columns, $payload, 'name'));
+        $this->expectException(BadRequestHttpException::class);
+
+        $this->names(CountCustomer::class, $columns, $payload, 'name');
+    }
+
+    #[Test]
+    #[DataProvider('unknownColumnTrees')]
+    public function it_refuses_an_unknown_column_even_next_to_valid_criteria(array $payload): void
+    {
+        $this->expectException(BadRequestHttpException::class);
+
+        $this->names(CountCustomer::class, [NumberColumn::new('id', 'Id'), TextColumn::new('name', 'Name')], $payload, 'name');
+    }
+
+    public static function unknownColumnTrees(): iterable
+    {
+        $c = static fn (string $col, string $cond, array $v): array => ['origData' => $col, 'condition' => $cond, 'type' => 'string', 'value' => $v];
+
+        yield 'top level' => [['criteria' => [$c('id', '=', ['1']), $c('secret', '=', ['x'])]]];
+        yield 'nested in an or group' => [['logic' => 'OR', 'criteria' => [$c('id', '=', ['1']), ['logic' => 'AND', 'criteria' => [$c('name', '=', ['Bob']), $c('secret', '=', ['x'])]]]]];
+    }
+
+    #[Test]
+    public function it_skips_an_incomplete_criterion_and_filters_by_the_rest(): void
+    {
+        $columns = [NumberColumn::new('id', 'Id'), TextColumn::new('name', 'Name')];
+        $payload = ['criteria' => [
+            ['origData' => 'name', 'condition' => '=', 'type' => 'string', 'value' => ['Bob']],
+            ['origData' => 'undefined', 'condition' => 'undefined', 'type' => '', 'value' => []],
+        ]];
+
+        $this->assertSame(['Bob'], $this->names(CountCustomer::class, $columns, $payload, 'name'));
     }
 
     #[Test]

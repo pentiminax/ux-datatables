@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\DataTableRequest;
 
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+
 /**
- * Strict parser for the `searchBuilder` request parameter: an invalid payload yields null, while
+ * Strict parser for the `searchBuilder` request parameter: an invalid payload is refused, while
  * incomplete criteria (blank or "undefined" fields, as DataTables sends for a new row) are skipped.
  */
 final class SearchBuilderCriteria
@@ -22,18 +24,23 @@ final class SearchBuilderCriteria
     private const int MAX_STRING = 255;
 
     /**
-     * @return array{logic: string, criteria: list<array<string, mixed>>}|null
+     * @return array{logic: string, criteria: list<array<string, mixed>>}|null null when absent or when every criterion is incomplete
+     *
+     * @throws BadRequestHttpException when a non-empty payload is invalid
      */
     public static function parse(mixed $raw): ?array
     {
-        if (!\is_array($raw) || [] === $raw) {
+        if (null === $raw || '' === $raw || [] === $raw) {
             return null;
         }
 
         $nodes = 0;
-        $group = self::group($raw, 1, $nodes);
+        $group = \is_array($raw) ? self::group($raw, 1, $nodes) : null;
+        if (null === $group) {
+            throw new BadRequestHttpException('Invalid SearchBuilder criteria.');
+        }
 
-        return null !== $group && [] !== $group['criteria'] ? $group : null;
+        return [] !== $group['criteria'] ? $group : null;
     }
 
     /**
