@@ -33,8 +33,8 @@ final class EditFormService
         private readonly MercurePublisherInterface $publisher,
         private readonly MercureTopicResolver $topicResolver,
         private readonly MutationFlusher $flusher,
+        private readonly RowScopeGuard $scopeGuard,
         ?AuthorizationChecker $permissionChecker = null,
-        private readonly ?RowScopeGuard $scopeGuard = null,
     ) {
         $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
@@ -47,7 +47,7 @@ final class EditFormService
         }
 
         try {
-            $this->scopeGuard?->assertInScope($dataTable, $id);
+            $this->scopeGuard->assertInScope($dataTable, $id);
             $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
         } catch (EntityNotFoundException) {
             return AjaxActionResult::notFound();
@@ -77,7 +77,7 @@ final class EditFormService
         }
 
         try {
-            $this->scopeGuard?->assertInScope($dataTable, $id);
+            $this->scopeGuard->assertInScope($dataTable, $id);
             $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
         } catch (EntityNotFoundException) {
             return AjaxActionResult::notFound();

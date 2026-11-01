@@ -14,6 +14,9 @@ What changed:
 
 - a toggle on a column that sets another `setEntityClass()` is still unscoped
 - providers without `ScopedIdentifierProviderInterface` keep their current behavior
+- `AjaxDeleteController`, `AjaxEditController`, `EditFormService` and `DetailRowService` take a
+  required `RowScopeGuard`, placed before their optional arguments; only code that builds these
+  services by hand needs updating
 
 ### Edit forms skip columns without a writable property
 

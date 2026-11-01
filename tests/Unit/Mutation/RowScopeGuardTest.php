@@ -119,7 +119,7 @@ final class RowScopeGuardTest extends TestCase
     #[Test]
     public function it_does_not_delete_a_row_outside_the_scope(): void
     {
-        $controller = new AjaxDeleteController($this->mutator(), $this->tokenValidator(), $this->registry, new AuthorizationChecker(new TestAuthorizationChecker()), $this->guard());
+        $controller = new AjaxDeleteController($this->mutator(), $this->tokenValidator(), $this->registry, $this->guard(), new AuthorizationChecker(new TestAuthorizationChecker()));
 
         try {
             $controller($this->request(), new AjaxEntityQueryDto(dataTable: $this->actionToken(), id: 3));
@@ -152,7 +152,7 @@ final class RowScopeGuardTest extends TestCase
     public function it_hides_the_detail_of_a_row_outside_the_scope(): void
     {
         $twig    = new Environment(new ArrayLoader(['detail.html.twig' => '{{ entity.name }}']));
-        $service = new DetailRowService($this->locator(), $twig, new AuthorizationChecker(new TestAuthorizationChecker()), $this->guard());
+        $service = new DetailRowService($this->locator(), $this->guard(), $twig, new AuthorizationChecker(new TestAuthorizationChecker()));
 
         $this->assertSame(404, $service->handleView($this->resolved(), 3)->statusCode);
         $this->assertSame('Alpha', $service->handleView($this->resolved(), 1)->html);
@@ -173,8 +173,8 @@ final class RowScopeGuardTest extends TestCase
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
-            new AuthorizationChecker(new TestAuthorizationChecker()),
             $this->guard(),
+            new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
         $this->assertSame(404, $service->handleView($this->resolved(), 3)->statusCode);
@@ -188,7 +188,7 @@ final class RowScopeGuardTest extends TestCase
         $guard = new RowScopeGuard($this->locator(), $stack);
         $token = $this->forwardingToken();
 
-        $delete = new AjaxDeleteController($this->mutator(), $this->tokenValidator(), $this->forwardingRegistry(), new AuthorizationChecker(new TestAuthorizationChecker()), $guard);
+        $delete = new AjaxDeleteController($this->mutator(), $this->tokenValidator(), $this->forwardingRegistry(), $guard, new AuthorizationChecker(new TestAuthorizationChecker()));
         $delete($stack->getCurrentRequest(), new AjaxEntityQueryDto($token, 1));
         $this->assertNull($this->em->find(CountAccount::class, 1));
 
@@ -197,7 +197,7 @@ final class RowScopeGuardTest extends TestCase
         $this->assertFalse($this->em->find(CountAccount::class, 2)->active);
 
         $twig    = new Environment(new ArrayLoader(['detail.html.twig' => '{{ entity.name }}']));
-        $service = new DetailRowService($this->locator(), $twig, new AuthorizationChecker(new TestAuthorizationChecker()), $guard);
+        $service = new DetailRowService($this->locator(), $guard, $twig, new AuthorizationChecker(new TestAuthorizationChecker()));
         $this->assertSame('Beta', $service->handleView($this->forwardingRegistry()->resolveAction($token), 2)->html);
     }
 
@@ -273,8 +273,8 @@ final class RowScopeGuardTest extends TestCase
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
-            new AuthorizationChecker(new TestAuthorizationChecker()),
             $guard,
+            new AuthorizationChecker(new TestAuthorizationChecker()),
         );
     }
 

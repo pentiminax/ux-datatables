@@ -24,8 +24,8 @@ final class AjaxDeleteController
         private readonly EntityMutator $mutator,
         private readonly MutationTokenValidator $tokenValidator,
         private readonly AjaxDataTableRegistry $registry,
+        private readonly RowScopeGuard $scopeGuard,
         ?AuthorizationChecker $permissionChecker = null,
-        private readonly ?RowScopeGuard $scopeGuard = null,
     ) {
         $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
@@ -41,7 +41,7 @@ final class AjaxDeleteController
             throw new MutationNotAllowedException();
         }
 
-        $this->scopeGuard?->assertInScope($dataTable, $payload->id);
+        $this->scopeGuard->assertInScope($dataTable, $payload->id);
 
         $this->mutator->delete($dataTable->requireEntityClass(), $payload->id, $dataTable->dataTableClass, $action);
 

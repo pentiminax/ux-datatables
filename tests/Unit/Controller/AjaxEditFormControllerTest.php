@@ -29,6 +29,7 @@ use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -44,6 +45,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[CoversClass(AjaxEditFormController::class)]
 final class AjaxEditFormControllerTest extends TestCase
 {
+    use BuildsUnscopedRowScopeGuard;
     private const string TOKEN_SECRET = 'test-secret';
 
     #[Test]
@@ -186,6 +188,7 @@ final class AjaxEditFormControllerTest extends TestCase
                 new NullMercurePublisher(),
                 new MercureTopicResolver(dataTables: $dataTables),
                 new MutationFlusher(),
+                $this->unscopedRowScopeGuard(),
                 new AuthorizationChecker($authorizationChecker),
             ),
             $this->tableRegistry(),
