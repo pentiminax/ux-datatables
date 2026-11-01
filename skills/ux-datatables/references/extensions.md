@@ -28,7 +28,7 @@ new ButtonsExtension([
 ]);
 ```
 
-`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`), `COLUMN_CONTROL_SEARCH_CLEAR` (value `'ccSearchClear'`), `COLLECTION` (value `'collection'`), `CUSTOM`. The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton(bool $serverSide = false)`, `withExcelButton(bool $serverSide = false)`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`, `withCcSearchClearButton()`, `withCollectionButton(array $buttons)`, `withCustomButton(string $action)`.
+`ButtonType` cases: `COPY`, `CSV`, `EXCEL`, `PDF`, `PRINT`, `COLUMN_VISIBILITY` (value `'colvis'`), `COLUMN_CONTROL_SEARCH_CLEAR` (value `'ccSearchClear'`), `COLLECTION` (value `'collection'`), `CUSTOM`, `COLUMN_VISIBILITY_GROUP` (`'colvisGroup'`), `COLUMN_VISIBILITY_RESTORE` (`'colvisRestore'`), `PAGE_LENGTH` (`'pageLength'`), `SPACER` (`'spacer'`). The constructor also accepts strings or `Button` objects. Fluent helpers: `withCopyButton()`, `withCsvButton(bool $serverSide = false)`, `withExcelButton(bool $serverSide = false)`, `withPdfButton()`, `withPrintButton()`, `withColVisButton()`, `withCcSearchClearButton()`, `withCollectionButton(array $buttons)`, `withCustomButton(string $action)`.
 
 Fine-grained config via `Button`:
 ```php
@@ -96,10 +96,11 @@ renders but no-ops with a console error, not a crash.
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\Extensions\SelectExtension;
 
-(new SelectExtension(style: SelectStyle::MULTI))   // SINGLE | MULTI
+(new SelectExtension(style: SelectStyle::MULTI))   // SINGLE | MULTI | OS | MULTI_SHIFT
     ->withCheckbox(true)
     ->headerCheckbox(true);
 ```
+`SelectStyle` values: `single`, `multi`, `os` (OS-like: click selects one, Ctrl/Cmd adds, Shift ranges), `multi+shift` (click toggles, Shift selects a range).
 Constructor also exposes `blurable`, `className`, `info`, `items`, `keys`, `selector`, `toggleable`.
 
 ## FixedColumns — freeze columns
@@ -139,6 +140,13 @@ $dataTable->searchBuilder(columns: '*', depthLimit: null, logic: SearchBuilderLo
 Registers `SearchBuilderExtension` and places the `searchBuilder` layout feature. Server-side
 requests are validated strictly (known conditions, depth 5, 50 nodes); an invalid payload disables
 the filter. `filterChanged` is not configurable from PHP.
+
+1.3 behavior: an unsupported or malformed criterion answers HTTP 400; an incomplete criterion
+(no value yet) is ignored; the `without` condition is not offered, and `searchable(false)` columns
+are excluded. A data source that cannot apply SearchBuilder (API Platform, or a provider whose
+`FeatureAwareDataProviderInterface::supports()` says no) throws a `LogicException` at render time
+or answers 400. Placing `Feature::SEARCH_BUILDER` in a `layout()` without the extension is deprecated
+since 1.3 (throws in 2.0): call `searchBuilder()` or `addExtension(new SearchBuilderExtension())`.
 
 ## Responsive — collapse columns on small screens
 

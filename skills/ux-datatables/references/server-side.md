@@ -85,7 +85,7 @@ protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $req
 }
 ```
 
-Values are a **snapshot** taken when the page renders (sent unchanged on every paging/search/sort reload); only params present in the request are forwarded. Works with Auto Ajax and manual `ajax()` / `ajaxRequestData()` alike. Not applied in API Platform mode.
+Values are a **snapshot** taken when the page renders (sent unchanged on every paging/search/sort reload); only params present in the request are forwarded. Works with Auto Ajax and manual `ajax()` / `ajaxRequestData()` alike. Not applied in API Platform mode. Since 1.3 the same values are replayed when delete, toggle, edit, detail and bulk actions run the `customizeQueryBuilder()` scope, so a scope reading them stays consistent with the listing.
 
 ## Computed / sorted columns
 

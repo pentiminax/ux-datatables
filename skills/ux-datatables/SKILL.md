@@ -80,14 +80,18 @@ Scaffold from an entity: `php bin/console make:datatable`.
 - `references/defining-a-datatable.md` — `AbstractDataTable`, `#[AsDataTable]`, the `configure*()` hooks, data providers, `customizeQueryBuilder()`, page projection (`projectPage()`).
 - `references/columns.md` — all 11 column types + shared `AbstractColumn` methods.
 - `references/server-side.md` — server-side wiring, route import, Stimulus events, custom Ajax, computed columns (`setOrderExpression()`).
-- `references/extensions.md` — Buttons, Select, Responsive, RowGroup, Scroller, KeyTable, ColReorder, FixedColumns, FixedHeader.
+- `references/extensions.md` — Buttons, Select, SearchBuilder, Responsive, RowGroup, Scroller, KeyTable, ColReorder, FixedColumns, FixedHeader.
 - `references/column-control.md` — ColumnControl placement, per-column overrides, search lists, enums, Ajax option providers, and custom content.
 - `references/exporters.md` — replacing the CSV/XLSX writer for server-side export (`ExporterInterface`, `AbstractExporter`).
 - `references/actions.md` — row actions, permissions, conditional display.
 - `references/security.md` — Ajax route protection, `Permission::DT_*` attributes, the row permission matrix, `DataTable::setPermission()`, per-row resolvers, CSRF.
-- `references/filters.md` — declarative filter bar (`configureFilters()`): Text, Select, Ternary, DateRange, generic Filter (server-side Doctrine).
+- `references/filters.md` — declarative filter bar (`configureFilters()`): Text, Choice, Ternary, DateRange, NumberRange, Entity, Checkbox (server-side Doctrine).
+- `references/summaries.md` — footer figures with `AbstractColumn::summarize()` (`Sum`, `Average`, `Min`, `Max`, `Count`), `DataTableResult` `$summaries` for custom providers.
+- `references/polling.md` — `DataTable::poll()` timed reloads, when to prefer Mercure.
+- `references/row-presentation.md` — `emptyState()`, `rowClass()`, `recordUrl()`.
 - `references/api-platform.md` — API Platform integration (opt-in).
 - `references/mercure.md` — Mercure real-time refresh: config, auto-resolution, hub protocol dialect (`topic=` vs `match=`/`match_urlpattern=`), publishing on mutations (opt-in).
+- `references/defining-a-datatable.md` also covers global defaults (`DataTableDefaultsConfiguratorInterface`), YAML validation, and `FeatureAwareDataProviderInterface`.
 - `references/gotchas.md` — common mistakes and fixes.
 
 ## Common mistakes (see gotchas.md)
