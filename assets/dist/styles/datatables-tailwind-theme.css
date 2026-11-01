@@ -1336,6 +1336,88 @@ html.dark div.dtsb-searchBuilder.dtsb-searchBuilder div.dtsb-logicContainer butt
     background-color: transparent !important;
 }
 
+/* ------------------------------------------------------ date picker -- */
+
+/*
+ * DataTables DateTime (SearchBuilder's date picker) reads its whole palette from
+ * `--dt-datetime*` tokens. Its own dark block is `html.dark, :root[data-theme=dark]`,
+ * so `:root:root:root` outranks it whatever the stylesheet order, and every value below
+ * already flips with the theme.
+ */
+:root:root:root {
+    --dt-datetime_background: rgb(var(--dt-tw-surface));
+    --dt-datetime_border: 0;
+    --dt-datetime_box-shadow: var(--dt-tw-shadow-panel), var(--dt-tw-ring);
+    --dt-datetime_border-radius: var(--dt-tw-radius-panel);
+    --dt-datetime_padding: 0.75rem 1rem;
+    --dt-datetime_width: 18rem;
+    --dt-datetime-table-header_font-size: 0.75rem;
+    --dt-datetime-table-header_color: rgb(var(--dt-tw-text-muted));
+    --dt-datetime-table-body_font-size: 0.875rem;
+    --dt-datetime-table-body_color: rgb(var(--dt-tw-text));
+    --dt-datetime-table-selectable_background: transparent;
+    --dt-datetime-table-selectable_disabled-color: rgb(var(--dt-tw-text-muted) / 0.6);
+    --dt-datetime-table-selectable_disabled-background: transparent;
+    --dt-datetime-table-selectable_disabled-hover-color: rgb(var(--dt-tw-text-muted) / 0.6);
+    --dt-datetime-table-selectable_disabled-hover-background: transparent;
+    --dt-datetime-table_hover-background: rgb(var(--dt-tw-primary-500) / 0.14);
+    --dt-datetime-table_hover-color: rgb(var(--dt-tw-primary-text));
+    --dt-datetime-table-now_background: transparent;
+    --dt-datetime-table-selected_background: rgb(var(--dt-tw-primary-600));
+    --dt-datetime-table-selected_color: rgb(var(--dt-tw-on-primary));
+    --dt-datetime-label_border: 0;
+    --dt-datetime-label_hover-border: 0;
+    --dt-datetime-label_hover-background: rgb(var(--dt-tw-neutral) / 0.12);
+    --dt-datetime-icon_border: 0;
+    --dt-datetime-icon_hover-border: 0;
+    --dt-datetime-icon_hover-background: rgb(var(--dt-tw-neutral) / 0.12);
+    --dt-datetime-icon-triangle_border-color: rgb(var(--dt-tw-text));
+    --dt-datetime-error_color: rgb(var(--dt-tw-danger));
+}
+
+div.dt-datetime.dt-datetime {
+    color: rgb(var(--dt-tw-text));
+    color-scheme: var(--dt-tw-color-scheme, light);
+    font-size: 0.875rem;
+}
+
+div.dt-datetime.dt-datetime div.dt-datetime-title {
+    font-weight: 600;
+}
+
+div.dt-datetime.dt-datetime div.dt-datetime-label {
+    border-radius: var(--dt-tw-radius-badge);
+}
+
+div.dt-datetime.dt-datetime :is(div.dt-datetime-iconLeft, div.dt-datetime-iconRight) {
+    border-radius: var(--dt-tw-radius-badge);
+}
+
+/* The extension rounds a day only on hover or once picked; rounding every day keeps the shape
+   from jumping, and the spacing keeps neighbouring tints apart. */
+div.dt-datetime.dt-datetime table {
+    border-spacing: 2px;
+}
+
+div.dt-datetime.dt-datetime table td.selectable button {
+    border-radius: var(--dt-tw-radius-badge);
+    transition: background-color var(--dt-tw-transition);
+}
+
+/* Today is outlined rather than filled, so it never reads as the picked day. */
+div.dt-datetime.dt-datetime table td.selectable.now button {
+    box-shadow: inset 0 0 0 1px rgb(var(--dt-tw-primary-500) / 0.45);
+}
+
+div.dt-datetime.dt-datetime table td.selectable.selected button {
+    box-shadow: none;
+}
+
+div.dt-datetime.dt-datetime table td.selectable button:focus-visible {
+    outline: 2px solid rgb(var(--dt-tw-primary-600));
+    outline-offset: 1px;
+}
+
 /* ---------------------------------------------------- browser surfaces -- */
 
 .dt-container.dt-container ::selection {
