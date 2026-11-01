@@ -74,6 +74,15 @@ Everything below keeps working and is removed in v2.0.
   filter values on its own.
 - Placing `Feature::SEARCH_BUILDER` in a layout without the SearchBuilder extension: call
   `searchBuilder()` or `addExtension(new SearchBuilderExtension())`. It throws in 2.0.
+- YAML values that the 1.3 config tree would otherwise reject now trigger a deprecation when the
+  container compiles, and v2.0 throws an `InvalidConfigurationException` for each:
+  - `data_tables.options.pageLength` that is not one of `data_tables.options.lengthMenu` (for
+    example `pageLength: 20` with `lengthMenu: [10, 25, 50]`). It keeps working: the options are
+    passed to DataTables.net unchanged. Add the value to `lengthMenu` or pick one of its entries.
+  - a `data_tables.extensions.buttons` entry that is not a `ButtonType` value, or a
+    `data_tables.extensions.select.style` that is not a `SelectStyle` value. The container still
+    compiles, but the value never worked: as in 1.2.1 it fails with a `ValueError` when a table is
+    built. Use a `ButtonType` or `SelectStyle` value.
 
 ### New: empty state, row class and clickable rows
 
@@ -84,8 +93,7 @@ render exactly as before. Run `composer update` and rebuild your assets. See
 ### New: global table defaults
 
 Implement `DataTableDefaultsConfiguratorInterface` to configure every table in one place. It is
-additive and runs between the `data_tables` YAML and `configureDataTable()`. The YAML config is now
-also validated when the container compiles. See
+additive and runs between the `data_tables` YAML and `configureDataTable()`. See
 [Global Defaults in PHP](https://pentiminax.github.io/ux-datatables/guide/configuration/#global-defaults-in-php).
 
 ## v1.1 → v1.2

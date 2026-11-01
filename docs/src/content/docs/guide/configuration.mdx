@@ -334,9 +334,11 @@ purpose validation, and no configuration key can disable those checks.
 
 ## Validation
 
-- `extensions.select.style` and `extensions.buttons` only accept the values of the `SelectStyle`
-  and `ButtonType` enums.
-- When both are set, `options.pageLength` must be one of the `options.lengthMenu` entries.
+- `extensions.select.style` and `extensions.buttons` must use the values of the `SelectStyle` and
+  `ButtonType` enums. Other values compile with a deprecation since 1.3, still fail with a
+  `ValueError` when a table is built (as in 1.2.1), and are rejected at compile time in 2.0.
+- When both are set, `options.pageLength` should be one of the `options.lengthMenu` entries. A
+  mismatch keeps working but is deprecated since 1.3 and throws in 2.0.
 - `edit_modal.default_title` defaults to the bundle's own `edit_modal.default_title` key, translated
   from the `DataTables` domain. Any other value is passed to your modal template, which translates
   it in the `messages` domain.
