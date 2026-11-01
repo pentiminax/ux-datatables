@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\DataTableRequest;
 
+use Pentiminax\UX\DataTables\Mutation\RequestQueryHydrator;
 use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -53,17 +54,6 @@ final class RequestInputBag
             return;
         }
 
-        foreach ($request->request->all() as $key => $value) {
-            $name = (string) $key;
-            if ($request->query->has($name)) {
-                continue;
-            }
-
-            if (!\is_scalar($value) && !\is_array($value) && !$value instanceof \Stringable) {
-                continue;
-            }
-
-            $request->query->set($name, $value instanceof \Stringable ? (string) $value : $value);
-        }
+        RequestQueryHydrator::hydrate($request, $request->request->all());
     }
 }

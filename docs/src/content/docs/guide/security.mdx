@@ -277,7 +277,7 @@ scope covers:
     ],
     [
       'Single-row delete, boolean toggle on the table entity, edit form, detail row, built-in Doctrine provider',
-      'Yes: an id outside the scope answers 404, like a missing row. The scope runs without the forwarded query parameters, so it must not depend on them',
+      'Yes: an id outside the scope answers 404, like a missing row. Forwarded query parameters are replayed, so a scope reading them matches the listing',
     ],
     [
       'Boolean toggle on a column of another entity (setEntityClass())',

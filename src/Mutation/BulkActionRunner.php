@@ -202,11 +202,11 @@ final class BulkActionRunner
         // DoctrineDataProvider collect a leftover `id` column while the lookup remaps to
         // the primary key, so overlapping values mutate the wrong rows.
         $ids        = $provider->collectIdentifiers($dataTableRequest->withoutPagination(), $identifier);
-        $deselected = array_map($this->normalizeId(...), $selection->deselectedIds);
+        $deselected = array_flip(array_map($this->normalizeId(...), $selection->deselectedIds));
 
         return array_values(array_filter(
             $ids,
-            fn (int|string $id): bool => !\in_array($this->normalizeId($id), $deselected, true),
+            fn (int|string $id): bool => !isset($deselected[$this->normalizeId($id)]),
         ));
     }
 
