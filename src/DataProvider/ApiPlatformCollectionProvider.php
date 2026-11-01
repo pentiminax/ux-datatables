@@ -21,6 +21,7 @@ use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
+use Pentiminax\UX\DataTables\Runtime\DataSourceFeatureGuard;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -290,6 +291,10 @@ class ApiPlatformCollectionProvider implements DataProviderInterface, StreamingD
             $request,
             array_values($this->columnResolver->filterStaticPermissions($this->columns, $this->dataTableClass)),
         );
+
+        if ([] !== $intent->columnControls && !$this->supports(DataSourceFeature::ColumnControl)) {
+            throw DataSourceFeatureGuard::unsupported(DataSourceFeature::ColumnControl, $this);
+        }
 
         return $this->queryParameterFactory->create($intent, $request);
     }

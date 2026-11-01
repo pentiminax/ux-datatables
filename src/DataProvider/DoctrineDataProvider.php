@@ -215,10 +215,22 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
         foreach ($plan as $select => [$column, $type]) {
             $value = $row[$select];
 
-            $summaries[$column->getName()][$type->value] = is_numeric($value) ? $value + 0 : $value;
+            $summaries[$column->getName()][$type->value] = $this->exactNumber($value);
         }
 
         return $summaries;
+    }
+
+    /**
+     * Only an integer string that fits an int becomes a number; a decimal string keeps its digits.
+     */
+    private function exactNumber(mixed $value): mixed
+    {
+        if (!\is_string($value) || 1 !== preg_match('/^-?\d+$/', $value)) {
+            return $value;
+        }
+
+        return (string) (int) $value === $value ? (int) $value : $value;
     }
 
     /**

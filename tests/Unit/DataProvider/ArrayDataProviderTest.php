@@ -11,10 +11,13 @@ use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Order;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
+use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
 use Pentiminax\UX\DataTables\Model\Filters;
@@ -25,6 +28,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * @internal
@@ -410,6 +414,18 @@ final class ArrayDataProviderTest extends TestCase
         );
 
         $this->assertSame(4, $result->recordsFiltered);
+    }
+
+    #[Test]
+    public function it_refuses_column_control_criteria_itself(): void
+    {
+        $control = new ColumnControl(new ColumnControlSearch('Ada', ColumnControlLogic::Contains, 'text'));
+        $request = self::request(0, 10, requestColumns: [new RequestColumn(data: 'name', name: 'name', searchable: true, orderable: true, columnControl: $control)]);
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('ColumnControl searches are not supported by ArrayDataProvider.');
+
+        (new ArrayDataProvider(self::people(), new CountingRowMapper(), self::columns()))->fetchData($request);
     }
 
     #[Test]

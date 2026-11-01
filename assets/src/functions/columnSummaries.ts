@@ -71,9 +71,12 @@ function format(column: SummaryColumn, type: SummaryType, value: number | string
         return String(column.render(value, 'display'))
     }
 
-    return typeof value === 'number'
-        ? new Intl.NumberFormat(navigator.language).format(value)
-        : value
+    if (typeof value === 'string' && !/^-?\d+(\.\d+)?$/.test(value)) {
+        return value
+    }
+
+    // Intl formats a numeric string as an exact decimal, so a large decimal(20,2) keeps its digits.
+    return new Intl.NumberFormat(navigator.language).format(value as unknown as number)
 }
 
 function fill(

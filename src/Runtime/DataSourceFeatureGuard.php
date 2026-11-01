@@ -88,16 +88,21 @@ final class DataSourceFeatureGuard
 
             if (DataSourceFeature::Summaries === $feature) {
                 if ([] !== ColumnResolver::filterSummarized($columns)) {
-                    throw new \LogicException(\sprintf('Column summaries are not supported by %s. Remove summarize() or use a data provider that computes them.', $this->providerName($provider)));
+                    throw new \LogicException(\sprintf('Column summaries are not supported by %s. Remove summarize() or use a data provider that computes them.', self::providerName($provider)));
                 }
 
                 continue;
             }
 
             if ($this->requests($request, $feature, $table, $columns)) {
-                throw new BadRequestHttpException(\sprintf('%s are not supported by %s. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.', $feature->label(), $this->providerName($provider)));
+                throw self::unsupported($feature, $provider);
             }
         }
+    }
+
+    public static function unsupported(DataSourceFeature $feature, DataProviderInterface $provider): BadRequestHttpException
+    {
+        return new BadRequestHttpException(\sprintf('%s are not supported by %s. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.', $feature->label(), self::providerName($provider)));
     }
 
     /**
@@ -214,7 +219,7 @@ final class DataSourceFeatureGuard
         return false;
     }
 
-    private function providerName(DataProviderInterface $provider): string
+    private static function providerName(DataProviderInterface $provider): string
     {
         $class = $provider::class;
         $pos   = strrpos($class, '\\');

@@ -18,6 +18,7 @@ use Pentiminax\UX\DataTables\Model\Filters;
 use Pentiminax\UX\DataTables\Query\Intent\ColumnReadReference;
 use Pentiminax\UX\DataTables\Query\Intent\DataTableQueryIntent;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
+use Pentiminax\UX\DataTables\Runtime\DataSourceFeatureGuard;
 
 /**
  * Serves a page from an in-memory collection, honoring the request through the same
@@ -75,6 +76,10 @@ final class ArrayDataProvider implements DataProviderInterface, StreamingDataPro
     private function query(DataTableRequest $request, bool $summarize): DataTableResult
     {
         $intent = $this->intentFactory->create($request, $this->columns);
+
+        if ([] !== $intent->columnControls) {
+            throw DataSourceFeatureGuard::unsupported(DataSourceFeature::ColumnControl, $this);
+        }
 
         // Without columns nothing is searchable, so a term would silently match every row and
         // report recordsFiltered == recordsTotal. Say so instead of answering unfiltered.

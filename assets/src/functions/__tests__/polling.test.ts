@@ -115,6 +115,19 @@ describe('startPolling', () => {
         expect(reload).toHaveBeenCalledTimes(1)
     })
 
+    it('pauses while a detail row is open in the table', () => {
+        const { table, reload } = createTable()
+        document.body.innerHTML = '<table><tbody><tr class="dt-hasChild"></tr></tbody></table>'
+        startPolling(table, 5, document.body)
+
+        vi.advanceTimersByTime(5000)
+        expect(reload).not.toHaveBeenCalled()
+
+        document.querySelector('tr')?.classList.remove('dt-hasChild')
+        vi.advanceTimersByTime(5000)
+        expect(reload).toHaveBeenCalledTimes(1)
+    })
+
     it('never overlaps requests', () => {
         const { table, reload, fire } = createTable()
         startPolling(table, 5, document.body)

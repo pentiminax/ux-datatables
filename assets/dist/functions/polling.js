@@ -1,4 +1,5 @@
 const MODAL_SELECTOR = '[data-ux-datatables-modal]';
+const OPEN_CHILD_ROW_SELECTOR = 'tr.dt-hasChild';
 const SEARCH_INPUT_SELECTOR = 'input[type="search"], .dt-search input';
 export function isPollingEnabled(payload) {
     return typeof payload?.pollInterval === 'number' && payload.pollInterval > 0;
@@ -18,6 +19,7 @@ export function startPolling(table, intervalSeconds, container) {
     const isPaused = () => document.visibilityState === 'hidden' ||
         inFlight ||
         document.querySelector(MODAL_SELECTOR) !== null ||
+        container?.querySelector(OPEN_CHILD_ROW_SELECTOR) != null ||
         isTypingInSearch();
     const tick = () => {
         if (isPaused()) {
