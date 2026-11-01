@@ -239,8 +239,14 @@ new DataTableResult(
     recordsTotal: 1000,
     recordsFiltered: 150,
     data: $rows,
+    summaries: ['total' => ['sum' => 1250.5, 'count' => 150]],
 );
 ```
+
+`summaries` is optional. It holds the footer figures over every matching row, keyed by column name
+then summary type (`array<string, array<string, int|float|string|null>>`), or `null` when no column
+declares a summary. Providers that cannot compute them must refuse the `DataSourceFeature::Summaries`
+feature. See [Column Summaries](/features/column-summaries/).
 
 ## When To Implement Custom Types
 

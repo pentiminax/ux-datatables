@@ -9,9 +9,18 @@ order: 80
   rows={[
     [
       '`ButtonType`',
-      '`COLLECTION`, `COLUMN_CONTROL_SEARCH_CLEAR`, `COLUMN_VISIBILITY`, `COPY`, `CSV`, `CUSTOM`, `EXCEL`, `PDF`, `PRINT`',
+      '`COLLECTION`, `COLUMN_CONTROL_SEARCH_CLEAR`, `COLUMN_VISIBILITY`, `COLUMN_VISIBILITY_GROUP`, `COLUMN_VISIBILITY_RESTORE`, `COPY`, `CSV`, `CUSTOM`, `EXCEL`, `PAGE_LENGTH`, `PDF`, `PRINT`, `SPACER`',
     ],
-    ['`SelectStyle`', '`SINGLE`, `MULTI`'],
+    ['`SelectStyle`', '`SINGLE`, `MULTI`, `OS`, `MULTI_SHIFT`'],
+    ['`SearchBuilderLogic`', '`And`, `Or`'],
+    [
+      '`DataSourceFeature`',
+      '`SearchBuilder`, `ColumnControl`, `ConfiguredFilters`, `Summaries`. Features a data provider can declare through `FeatureAwareDataProviderInterface`.',
+    ],
+    [
+      '`SummaryType` (`Model\\Summary`)',
+      '`Sum`, `Average`, `Min`, `Max`, `Count`. See [Column Summaries](/features/column-summaries/).',
+    ],
     ['`SelectItemType`', '`ROW`, `COLUMN`, `CELL`'],
     [
       '`Feature`',

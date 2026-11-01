@@ -14,7 +14,7 @@ Ajax source, UX DataTables wires the bundle Ajax endpoint automatically:
 ```php
 use Pentiminax\UX\DataTables\Model\DataTable;
 
-protected function configureDataTable(DataTable $table): DataTable
+public function configureDataTable(DataTable $table): DataTable
 {
     return $table
         ->serverSide()
