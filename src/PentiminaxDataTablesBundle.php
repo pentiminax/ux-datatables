@@ -48,7 +48,11 @@ class PentiminaxDataTablesBundle extends AbstractBundle
                     ->info('Defaults stamped onto every table; each key maps to the DataTables.net option of the same name.')
                     ->validate()
                         ->ifTrue(static fn (array $options): bool => self::pageLengthMissingFromMenu($options))
-                        ->thenInvalid('"pageLength" must be one of the "lengthMenu" entries.')
+                        ->then(static function (array $options): array {
+                            trigger_deprecation('pentiminax/ux-datatables', '1.3', 'Configuring "data_tables.options.pageLength" (%d) outside of "data_tables.options.lengthMenu" is deprecated and throws in 2.0, add it to "lengthMenu" or choose one of its entries.', $options['pageLength']);
+
+                            return $options;
+                        })
                     ->end()
                     ->children()
                         ->scalarNode('language')->info('Locale code or language file URL; unset follows the request locale.')->end()
@@ -67,7 +71,7 @@ class PentiminaxDataTablesBundle extends AbstractBundle
                             ->info('Page sizes offered to the user; use -1 for "show all".')
                             ->scalarPrototype()->end()
                         ->end()
-                        ->integerNode('pageLength')->info('Initial page size; must be one of "lengthMenu" when both are set.')->end()
+                        ->integerNode('pageLength')->info('Initial page size; should be one of "lengthMenu" when both are set (a mismatch is deprecated and throws in 2.0).')->end()
                         ->arrayNode('paging')
                             ->info('Pagination control options.')
                             ->children()
@@ -88,17 +92,23 @@ class PentiminaxDataTablesBundle extends AbstractBundle
                 ->end()
                 ->arrayNode('extensions')
                     ->info('DataTables.net extensions enabled on every table.')
+                    ->validate()
+                        ->always(static function (array $extensions): array {
+                            self::deprecateUnknownExtensionValues($extensions);
+
+                            return $extensions;
+                        })
+                    ->end()
                     ->children()
                         ->arrayNode('buttons')
-                            ->info('Buttons shown on every table.')
-                            ->enumPrototype()->values(array_column(ButtonType::cases(), 'value'))->end()
+                            ->info('Buttons shown on every table; values outside the ButtonType enum are deprecated and throw in 2.0.')
+                            ->scalarPrototype()->end()
                         ->end()
                         ->arrayNode('select')
                             ->info('Row selection; leaving it out disables the extension.')
                             ->children()
-                                ->enumNode('style')
-                                    ->info('Selection style.')
-                                    ->values(array_column(SelectStyle::cases(), 'value'))
+                                ->scalarNode('style')
+                                    ->info('Selection style; values outside the SelectStyle enum are deprecated and throw in 2.0.')
                                     ->defaultValue(SelectStyle::SINGLE->value)
                                 ->end()
                             ->end()
@@ -225,5 +235,32 @@ class PentiminaxDataTablesBundle extends AbstractBundle
         }
 
         return !\in_array($options['pageLength'], $menu, false);
+    }
+
+    /**
+     * @param array<string, mixed> $extensions
+     */
+    private static function deprecateUnknownExtensionValues(array $extensions): void
+    {
+        $buttons = array_column(ButtonType::cases(), 'value');
+        $styles  = array_column(SelectStyle::cases(), 'value');
+
+        $buttonValues = $extensions['buttons'] ?? [];
+        foreach (\is_array($buttonValues) ? $buttonValues : [] as $button) {
+            if (!self::isEnvPlaceholder($button) && !\in_array($button, $buttons, true)) {
+                trigger_deprecation('pentiminax/ux-datatables', '1.3', 'The "data_tables.extensions.buttons" value %s is not a "%s" case: this is deprecated and throws in 2.0, use one of "%s".', var_export($button, true), ButtonType::class, implode('", "', $buttons));
+            }
+        }
+
+        $select = $extensions['select'] ?? null;
+        $style  = \is_array($select) ? ($select['style'] ?? null) : null;
+        if (null !== $style && !self::isEnvPlaceholder($style) && !\in_array($style, $styles, true)) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.3', 'The "data_tables.extensions.select.style" value %s is not a "%s" case: this is deprecated and throws in 2.0, use one of "%s".', var_export($style, true), SelectStyle::class, implode('", "', $styles));
+        }
+    }
+
+    private static function isEnvPlaceholder(mixed $value): bool
+    {
+        return \is_string($value) && 1 === preg_match('/env_[0-9a-f]{16}_\w+_[0-9a-f]{32}/', $value);
     }
 }

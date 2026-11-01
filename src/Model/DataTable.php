@@ -69,6 +69,9 @@ class DataTable
     /** @var array<string, string>|null */
     private ?array $preparedSummaryLabels = null;
 
+    /** @var array<string, mixed>|null */
+    private ?array $preparedForwardedQuery = null;
+
     private ?string $bulkActionsUrl = null;
 
     private ?string $bulkRowIdField = null;
@@ -176,6 +179,10 @@ class DataTable
 
         if (null !== $this->preparedSummaryLabels) {
             $options['summaryLabels'] = $this->preparedSummaryLabels;
+        }
+
+        if (null !== $this->preparedForwardedQuery) {
+            $options['forwardedQuery'] = $this->preparedForwardedQuery;
         }
 
         unset($options['showHeaderResetButton']);
@@ -661,6 +668,7 @@ class DataTable
      * Names of current-request query parameters to capture at render time and
      * forward to the AJAX endpoint on every request. Read them server-side in
      * customizeQueryBuilder() via $this->getHttpRequest()?->query->get($name).
+     * The captured values are also replayed on single-row and bulk actions, so the scope applies to them.
      *
      * @param string[] $parameters
      */
@@ -957,6 +965,18 @@ class DataTable
     public function setPreparedActionLabels(array $labels): static
     {
         $this->preparedActionLabels = $labels;
+
+        return $this;
+    }
+
+    /**
+     * @param array<string, mixed> $query forwarded query parameter values captured at render time
+     *
+     * @internal
+     */
+    public function setPreparedForwardedQuery(array $query): static
+    {
+        $this->preparedForwardedQuery = $query;
 
         return $this;
     }

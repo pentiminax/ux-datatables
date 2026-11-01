@@ -32,6 +32,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\Count\SummaryRegion;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -87,6 +88,21 @@ final class DoctrineDataProviderSummaryTest extends TestCase
 
         $this->assertCount(2, iterator_to_array($result->data));
         $this->assertSame(['amount' => ['sum' => 4200, 'avg' => 1050.0, 'min' => 500, 'max' => 2000, 'count' => 4]], $result->summaries);
+    }
+
+    #[Test]
+    #[TestWith(['1234', 1234])]
+    #[TestWith(['-5', -5])]
+    #[TestWith(['12345678901234567.89', '12345678901234567.89'])]
+    #[TestWith(['99999999999999999999', '99999999999999999999'])]
+    #[TestWith(['1050.5', '1050.5'])]
+    #[TestWith([1050.5, 1050.5])]
+    #[TestWith([null, null])]
+    public function it_converts_a_summary_only_when_it_stays_exact(mixed $raw, mixed $expected): void
+    {
+        $provider = new DoctrineDataProvider(em: $this->em, entityClass: SummaryOrder::class, rowMapper: $this->createStub(RowMapperInterface::class));
+
+        $this->assertSame($expected, (new \ReflectionMethod($provider, 'exactNumber'))->invoke($provider, $raw));
     }
 
     #[Test]

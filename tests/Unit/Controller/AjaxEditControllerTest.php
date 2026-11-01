@@ -36,6 +36,7 @@ use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -52,6 +53,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(AjaxEditController::class)]
 final class AjaxEditControllerTest extends TestCase
 {
+    use BuildsUnscopedRowScopeGuard;
     private const string TOKEN_SECRET = 'test-secret';
 
     /**
@@ -195,6 +197,7 @@ final class AjaxEditControllerTest extends TestCase
             $mutator,
             new MutationTokenValidator($this->validCsrfTokenManager()),
             $this->contextResolver($dataTable),
+            $this->unscopedRowScopeGuard(),
         );
 
         $controller($this->validTokenRequest(), $this->payload(true));
@@ -220,6 +223,7 @@ final class AjaxEditControllerTest extends TestCase
             $mutator,
             new MutationTokenValidator($csrfTokenManager ?? $this->validCsrfTokenManager()),
             $this->contextResolver(),
+            $this->unscopedRowScopeGuard(),
         );
     }
 

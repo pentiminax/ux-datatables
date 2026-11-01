@@ -28,7 +28,7 @@ final class UsersDataTable extends AbstractDataTable
         yield TextColumn::new('email', 'Email');
     }
 
-    protected function configureDataTable(DataTable $table): DataTable
+    public function configureDataTable(DataTable $table): DataTable
     {
         return $table
             ->serverSide()

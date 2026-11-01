@@ -97,6 +97,18 @@ describe('columnSummaries', () => {
         expect(values).toEqual(['$123.45', '2'])
     })
 
+    it('formats a large decimal string without losing digits', () => {
+        const payload = { columns, serverSide: true }
+        const element = setup(payload)
+        const { table, handlers } = fakeTable(element)
+
+        installColumnSummaries(table, payload)
+        handlers.get('xhr')?.({}, {}, { summaries: { total: { sum: '12345678901234567.89', count: 2 } } })
+
+        const values = [...element.querySelectorAll('.dt-summary__value')].map((n) => n.textContent)
+        expect(values[0]?.replace(/\D/g, '')).toBe('1234567890123456789')
+    })
+
     it('escapes label and value', () => {
         const payload = {
             columns: [

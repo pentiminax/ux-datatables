@@ -30,6 +30,7 @@ use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
@@ -45,6 +46,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  */
 final class MutationExceptionHandlingTest extends TestCase
 {
+    use BuildsUnscopedRowScopeGuard;
     private const string TOKEN_SECRET = 'test-secret';
 
     #[Test]
@@ -54,6 +56,7 @@ final class MutationExceptionHandlingTest extends TestCase
             $this->mutatorReturning(null),
             new MutationTokenValidator($this->validCsrfTokenManager()),
             $this->dataTableRegistry(),
+            $this->unscopedRowScopeGuard(),
             new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
@@ -128,7 +131,7 @@ final class MutationExceptionHandlingTest extends TestCase
 
     private function editController(EntityMutator $mutator): AjaxEditController
     {
-        return new AjaxEditController($mutator, new MutationTokenValidator($this->validCsrfTokenManager()), $this->contextResolver());
+        return new AjaxEditController($mutator, new MutationTokenValidator($this->validCsrfTokenManager()), $this->contextResolver(), $this->unscopedRowScopeGuard());
     }
 
     /**

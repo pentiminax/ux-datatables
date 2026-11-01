@@ -921,6 +921,7 @@ final class RenderingPreparerTest extends TestCase
             'url'  => '/datatables/ajax/data',
             'data' => array_merge(['table' => $registry->getToken(self::TABLE_CLASS)], $expectedForwardedData),
         ], $table->getOption('ajax'));
+        $this->assertSame([] === $expectedForwardedData ? null : $expectedForwardedData, $table->getOptions()['forwardedQuery'] ?? null);
     }
 
     public static function provideForwardedQueryParameters(): iterable

@@ -37,6 +37,7 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -61,6 +62,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[CoversClass(EditFormService::class)]
 final class EditFormServiceTest extends TestCase
 {
+    use BuildsUnscopedRowScopeGuard;
     /**
      * The topics the injected topic resolver produces.
      */
@@ -106,6 +108,7 @@ final class EditFormServiceTest extends TestCase
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
+            $this->unscopedRowScopeGuard(),
             new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
@@ -143,6 +146,7 @@ final class EditFormServiceTest extends TestCase
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
+            $this->unscopedRowScopeGuard(),
             new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
@@ -329,6 +333,7 @@ final class EditFormServiceTest extends TestCase
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
+            $this->unscopedRowScopeGuard(),
             $permissionChecker ?? new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 
@@ -388,6 +393,7 @@ final class EditFormServiceTest extends TestCase
             $publisher,
             $this->topicResolverReturning(self::TOPICS),
             new MutationFlusher(),
+            $this->unscopedRowScopeGuard(),
             new AuthorizationChecker(new TestAuthorizationChecker()),
         );
 

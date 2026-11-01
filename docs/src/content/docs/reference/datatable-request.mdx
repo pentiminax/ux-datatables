@@ -25,6 +25,12 @@ Fields:
     ['`length`', '`int`', 'Requested page size'],
     ['`search`', '`?Search`', 'Global search payload'],
     ['`order`', '`Order[]`', 'Sort instructions'],
+    ['`filters`', '`array`', 'Values of the configured filters'],
+    [
+      '`searchBuilder`',
+      '`?array{logic: string, criteria: list<array<string, mixed>>}`',
+      'Validated SearchBuilder criteria tree, or `null` when the extension sent none. See [SearchBuilder](/extensions/search-builder/)',
+    ],
   ]}
 />
 

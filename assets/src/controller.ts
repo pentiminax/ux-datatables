@@ -33,6 +33,7 @@ import { ExtensionRegistry } from './functions/extensionRegistry.js'
 import { fetchDetailRow } from './functions/fetchDetailRow.js'
 import { fetchEditForm } from './functions/fetchEditForm.js'
 import { installFilterBar } from './functions/filters.js'
+import { forwardedQuery } from './functions/forwardedQuery.js'
 import { isHighlightEnabled, type UpdateHighlighter } from './functions/highlightUpdates.js'
 import { isDataTableClone } from './functions/isDataTableClone.js'
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js'
@@ -43,6 +44,7 @@ import {
 } from './functions/lucideIcons.js'
 import { ensurePolling } from './functions/polling.js'
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
+import { restrictSearchBuilder } from './functions/restrictSearchBuilder.js'
 import { type RowActionOutcome, runRowAction } from './functions/rowActionFeedback.js'
 import { applyTableLanguage, bindRowFeatures } from './functions/rowFeatures.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
@@ -466,6 +468,8 @@ export default class extends Controller {
                 ...(payload.columnDefs ?? []),
             ]
         }
+
+        restrictSearchBuilder(payload)
     }
 
     private configureColumns(payload: Record<string, any>): void {
@@ -647,7 +651,11 @@ export default class extends Controller {
                     }
 
                     await this.runRowAction(actionButton, 'DETAIL', id, payload, async () => {
-                        const result = await fetchDetailRow({ dataTable, id })
+                        const result = await fetchDetailRow({
+                            dataTable,
+                            id,
+                            query: forwardedQuery(payload),
+                        })
 
                         if (result.success) {
                             row.child(result.html).show()
@@ -670,6 +678,7 @@ export default class extends Controller {
                                 dataTable,
                                 id,
                                 csrfToken: this.getCsrfToken(payload),
+                                query: forwardedQuery(payload),
                             })
 
                             return { ok: response.ok, response }
@@ -696,7 +705,11 @@ export default class extends Controller {
                         id,
                         payload,
                         async () => {
-                            const result = await fetchEditForm({ dataTable, id })
+                            const result = await fetchEditForm({
+                                dataTable,
+                                id,
+                                query: forwardedQuery(payload),
+                            })
 
                             return { ok: result.success, ...result }
                         },
@@ -717,6 +730,7 @@ export default class extends Controller {
                                             id,
                                             formData,
                                             csrfToken: this.getCsrfToken(payload),
+                                            query: forwardedQuery(payload),
                                         })
 
                                         return { ok: result.success, ...result }
@@ -828,6 +842,7 @@ export default class extends Controller {
                     method,
                     dataTable,
                     csrfToken: this.getCsrfToken(payload),
+                    query: forwardedQuery(payload),
                 })
 
                 return { ok: response.ok, response }

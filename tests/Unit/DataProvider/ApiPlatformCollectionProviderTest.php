@@ -21,9 +21,11 @@ use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\DataProvider\ApiPlatformCollectionProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Column as RequestColumn;
 use Pentiminax\UX\DataTables\DataTableRequest\ColumnControl;
+use Pentiminax\UX\DataTables\DataTableRequest\ColumnControlSearch;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\DataTableRequest\Search;
+use Pentiminax\UX\DataTables\Enum\ColumnControlLogic;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
@@ -32,6 +34,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * @internal
@@ -50,6 +53,22 @@ final class ApiPlatformCollectionProviderTest extends TestCase
             [DataSourceFeature::ConfiguredFilters],
             array_values(array_filter(DataSourceFeature::cases(), $provider->supports(...))),
         );
+    }
+
+    #[Test]
+    public function it_refuses_column_control_criteria_itself(): void
+    {
+        $control  = new ColumnControl(new ColumnControlSearch('Dune', ColumnControlLogic::Contains, 'text'));
+        $provider = $this->recordingProvider($this->paginator($this->items(1), 1));
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('ColumnControl searches are not supported by ApiPlatformCollectionProvider.');
+
+        try {
+            $this->provider($provider)->fetchData($this->request(columnControl: $control));
+        } finally {
+            $this->assertCount(0, $provider->calls);
+        }
     }
 
     #[Test]

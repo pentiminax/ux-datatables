@@ -37,6 +37,7 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -53,6 +54,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(AjaxDeleteController::class)]
 final class AjaxDeleteControllerTest extends TestCase
 {
+    use BuildsUnscopedRowScopeGuard;
     private const string TOKEN_SECRET = 'test-secret';
 
     #[Test]
@@ -76,7 +78,7 @@ final class AjaxDeleteControllerTest extends TestCase
             ->with(new CsrfToken(MutationTokenValidator::TOKEN_ID, 'valid-token'))
             ->willReturn(true);
 
-        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry(), new AuthorizationChecker(new TestAuthorizationChecker()));
+        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry(), $this->unscopedRowScopeGuard(), new AuthorizationChecker(new TestAuthorizationChecker()));
 
         $response = $controller($this->createRequest(), new AjaxEntityQueryDto(
             dataTable: $this->dataTableToken(),
@@ -124,7 +126,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
 
-        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry($dataTable), new AuthorizationChecker(new TestAuthorizationChecker()));
+        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry($dataTable), $this->unscopedRowScopeGuard(), new AuthorizationChecker(new TestAuthorizationChecker()));
 
         $controller($this->createRequest(), new AjaxEntityQueryDto(
             dataTable: $this->dataTableToken(),
@@ -234,6 +236,7 @@ final class AjaxDeleteControllerTest extends TestCase
             ),
             new MutationTokenValidator($csrfTokenManager),
             $this->registry(new StaticDeniedDeleteActionDataTable()),
+            $this->unscopedRowScopeGuard(),
         );
 
         $response = $controller($this->createRequest(), new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 12));
@@ -342,6 +345,7 @@ final class AjaxDeleteControllerTest extends TestCase
             ),
             new MutationTokenValidator($csrfTokenManager),
             $this->registry($dataTable),
+            $this->unscopedRowScopeGuard(),
             $permissionChecker,
         );
     }

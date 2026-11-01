@@ -110,6 +110,42 @@ new DataTable(
   ]}
 />
 
+### Empty State And Row Presentation
+
+<Table
+  headers={['Method', 'Description']}
+  rows={[
+    [
+      '`emptyState(string $heading, ?string $description = null, ?Icon $icon = null, ?array $action = null)`',
+      'Replace the empty-table message with a heading, description, icon, and an optional `[\'label\' => ..., \'url\' => ...]` action. The URL must be a path starting with `/` or an http(s) URL, otherwise an `InvalidArgumentException` is thrown',
+    ],
+    [
+      '`rowClass(callable $resolver)`',
+      'CSS classes for each row, resolved from the source row (`callable(mixed): ?string`) and emitted as `DT_RowClass`',
+    ],
+    [
+      '`recordUrl(callable $resolver)`',
+      'URL each row navigates to when clicked, resolved from the source row (`callable(mixed): ?string`). Only a path starting with `/` or an http(s) URL is kept',
+    ],
+  ]}
+/>
+
+```php
+use Pentiminax\UX\DataTables\Enum\Icon;
+use Pentiminax\UX\DataTables\Model\DataTable;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+
+$table = (new DataTable('orders'))
+    ->emptyState('No orders yet', 'Orders appear here once customers check out.', Icon::Inbox, [
+        'label' => 'Create an order',
+        'url'   => '/orders/new',
+    ])
+    ->rowClass(static fn (Order $order): ?string => $order->isOverdue() ? 'table-danger' : null)
+    ->recordUrl(fn (Order $order): string => $this->urlGenerator->generate('order_show', ['id' => $order->getId()]));
+```
+
+See [Row Presentation](/features/row-presentation/) for behavior, accessibility, and security notes.
+
 ### Edit Modal
 
 <Table

@@ -233,6 +233,22 @@ Reach for `TemplateColumn` when a cell needs a Twig template (it is not exportab
 for `mapRow()` only when the whole row needs reshaping, because it replaces the default mapper for
 every column.
 
+### Summaries
+
+`summarize()` shows footer figures over every row matching the search and filters:
+
+```php
+use Pentiminax\UX\DataTables\Column\NumberColumn;
+use Pentiminax\UX\DataTables\Model\Summary\Average;
+use Pentiminax\UX\DataTables\Model\Summary\Sum;
+
+NumberColumn::new('total')->summarize(Sum::new('Revenue'), Average::new());
+```
+
+It takes any number of `Summarizer` objects, one per `SummaryType`. Only `Count` accepts a
+non-numeric column. It throws an `InvalidArgumentException` for a column that renders no data field
+or for a numeric summary on a non-numeric column. See [Column Summaries](/features/column-summaries/).
+
 ### Export
 
 ```php

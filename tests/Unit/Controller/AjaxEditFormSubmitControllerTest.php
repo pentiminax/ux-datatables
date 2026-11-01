@@ -35,6 +35,7 @@ use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\Permission;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -55,6 +56,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(AjaxEditFormSubmitController::class)]
 final class AjaxEditFormSubmitControllerTest extends TestCase
 {
+    use BuildsUnscopedRowScopeGuard;
     private const string TOKEN_SECRET = 'test-secret';
 
     #[Test]
@@ -81,6 +83,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             new NullMercurePublisher(),
             new MercureTopicResolver(dataTables: $this->registeredDataTables()),
             new MutationFlusher(),
+            $this->unscopedRowScopeGuard(),
             $this->permissionCheckerGranting(true),
         ));
 
@@ -131,6 +134,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
+            $this->unscopedRowScopeGuard(),
             new AuthorizationChecker($authorizationChecker),
         ));
 
@@ -190,6 +194,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             new MercureUpdatePublisher($hub),
             new MercureTopicResolver($resolver, $this->registeredDataTables()),
             new MutationFlusher(),
+            $this->unscopedRowScopeGuard(),
             $this->permissionCheckerGranting(true),
         ));
 
@@ -228,6 +233,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
                 new NullMercurePublisher(),
                 new MercureTopicResolver(),
                 new MutationFlusher(),
+                $this->unscopedRowScopeGuard(),
                 $this->permissionCheckerGranting(true),
             ),
             $csrfTokenManager,
@@ -261,6 +267,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             new NullMercurePublisher(),
             new MercureTopicResolver(),
             new MutationFlusher(),
+            $this->unscopedRowScopeGuard(),
             $this->permissionCheckerGranting(true),
         ));
 

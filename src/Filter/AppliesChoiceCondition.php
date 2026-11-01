@@ -10,7 +10,7 @@ use Doctrine\ORM\QueryBuilder;
  * Equality, or IN for several values, on the filter field with bound parameters.
  *
  * A using class may bind through a Doctrine type by overriding {@see self::choiceBindingType()}:
- * each value is then normalized, the ones that fail are dropped, and several values become typed
+ * each value is then normalized, the ones that fail are dropped (none left matches no row), and several become typed
  * equalities joined by OR.
  *
  * @internal
@@ -42,13 +42,13 @@ trait AppliesChoiceCondition
                 static fn (mixed $item): bool => \is_scalar($item) && '' !== (string) $item,
             ));
 
-            if (null !== $type) {
-                $this->applyTypedChoices($qb, $expr, array_map(strval(...), $values), $type);
-
+            if ([] === $values) {
                 return;
             }
 
-            if ([] === $values) {
+            if (null !== $type) {
+                $this->applyTypedChoices($qb, $expr, array_map(strval(...), $values), $type);
+
                 return;
             }
 
@@ -93,6 +93,8 @@ trait AppliesChoiceCondition
         }
 
         if ([] === $conditions) {
+            $qb->andWhere('1 = 0');
+
             return;
         }
 

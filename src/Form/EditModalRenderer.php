@@ -39,10 +39,16 @@ class EditModalRenderer
 
     private function title(): string
     {
-        if (self::DEFAULT_TITLE !== $this->defaultTitle || null === $this->translator) {
+        if (self::DEFAULT_TITLE !== $this->defaultTitle) {
             return $this->defaultTitle;
         }
 
-        return $this->translator->trans(self::DEFAULT_TITLE, [], 'DataTables');
+        if (null === $this->translator) {
+            return 'Edit';
+        }
+
+        $title = $this->translator->trans(self::DEFAULT_TITLE, [], 'DataTables');
+
+        return self::DEFAULT_TITLE === $title ? 'Edit' : $title;
     }
 }

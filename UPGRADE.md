@@ -12,10 +12,11 @@ With the built-in Doctrine provider, delete, boolean toggle, edit form, and deta
 
 What changed:
 
-- the scope query runs on the mutation request, which carries no `forwardQueryParameters()` values;
-  a scope that applies a forwarded parameter unconditionally now excludes every row
 - a toggle on a column that sets another `setEntityClass()` is still unscoped
 - providers without `ScopedIdentifierProviderInterface` keep their current behavior
+- `AjaxDeleteController`, `AjaxEditController`, `EditFormService` and `DetailRowService` take a
+  required `RowScopeGuard`, placed before their optional arguments; only code that builds these
+  services by hand needs updating
 
 ### Edit forms skip columns without a writable property
 
@@ -68,6 +69,19 @@ What changed:
 - a custom provider can refuse features through the new `FeatureAwareDataProviderInterface`;
   without it, nothing changes
 
+### New: SearchBuilder
+
+Server-side tables now apply the SearchBuilder extension to every matching row.
+
+What changed:
+
+- a malformed `searchBuilder` parameter, or one with a condition the server does not know such as
+  `without`, answers HTTP 400 instead of returning the unfiltered table
+- a criterion on an unknown or `setSearchable(false)` column answers HTTP 400 instead of being
+  ignored
+- incomplete criteria, such as the blank row DataTables sends for a new condition, are still skipped
+- the builder no longer offers the `without` condition, and leaves out non-searchable columns
+
 ### Deprecated APIs
 
 Everything below keeps working and is removed in v2.0.
@@ -76,6 +90,15 @@ Everything below keeps working and is removed in v2.0.
   filter values on its own.
 - Placing `Feature::SEARCH_BUILDER` in a layout without the SearchBuilder extension: call
   `searchBuilder()` or `addExtension(new SearchBuilderExtension())`. It throws in 2.0.
+- YAML values that the 1.3 config tree would otherwise reject now trigger a deprecation when the
+  container compiles, and v2.0 throws an `InvalidConfigurationException` for each:
+  - `data_tables.options.pageLength` that is not one of `data_tables.options.lengthMenu` (for
+    example `pageLength: 20` with `lengthMenu: [10, 25, 50]`). It keeps working: the options are
+    passed to DataTables.net unchanged. Add the value to `lengthMenu` or pick one of its entries.
+  - a `data_tables.extensions.buttons` entry that is not a `ButtonType` value, or a
+    `data_tables.extensions.select.style` that is not a `SelectStyle` value. The container still
+    compiles, but the value never worked: as in 1.2.1 it fails with a `ValueError` when a table is
+    built. Use a `ButtonType` or `SelectStyle` value.
 
 ### New: empty state, row class and clickable rows
 
@@ -86,8 +109,7 @@ render exactly as before. Run `composer update` and rebuild your assets. See
 ### New: global table defaults
 
 Implement `DataTableDefaultsConfiguratorInterface` to configure every table in one place. It is
-additive and runs between the `data_tables` YAML and `configureDataTable()`. The YAML config is now
-also validated when the container compiles. See
+additive and runs between the `data_tables` YAML and `configureDataTable()`. See
 [Global Defaults in PHP](https://pentiminax.github.io/ux-datatables/guide/configuration/#global-defaults-in-php).
 
 ## v1.1 → v1.2

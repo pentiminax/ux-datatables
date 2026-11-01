@@ -14,6 +14,7 @@ use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
+use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
 use Pentiminax\UX\DataTables\Export\ExporterRegistry;
@@ -230,6 +231,24 @@ final class ExportServiceTest extends TestCase
         $this->send((new ExportService(new ExporterRegistry([$csv])))->export($table, $this->exportRequest()));
 
         $this->assertSame([['email' => 'all']], $csv->rows);
+    }
+
+    #[Test]
+    public function it_refuses_a_search_builder_criterion_on_an_unknown_column_before_streaming(): void
+    {
+        $table = new ConfigurableDataTable(
+            [TextColumn::new('email')],
+            configureTable: static fn (DataTable $table): DataTable => $table->buttons([Button::csv(serverSide: true)]),
+            dataProvider: $this->createStub(DoctrineDataProvider::class),
+        );
+        $request = $this->exportRequest();
+        $request->request->set('searchBuilder', ['criteria' => [
+            ['origData' => 'secret', 'condition' => '=', 'type' => 'string', 'value' => ['x']],
+        ]]);
+
+        $this->expectException(BadRequestHttpException::class);
+
+        (new ExportService(new ExporterRegistry([new RecordingExporter()])))->export($table, $request);
     }
 
     /**

@@ -9,12 +9,14 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
+use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Model\Extensions\ColumnControlExtension;
 use Pentiminax\UX\DataTables\Model\Extensions\SearchBuilderExtension;
 use Pentiminax\UX\DataTables\Model\Filters;
+use Pentiminax\UX\DataTables\Query\Filter\SearchBuilderFilter;
 use Pentiminax\UX\DataTables\Query\Intent\DefaultDataTableQueryIntentFactory;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -71,6 +73,10 @@ final class DataSourceFeatureGuard
      */
     public function assertRequestSupported(DataTableRequest $request, DataProviderInterface $provider, DataTable $table, array $columns): void
     {
+        if ($provider instanceof DoctrineDataProvider && null !== $request->searchBuilder) {
+            SearchBuilderFilter::assertSearchable($request->searchBuilder, array_values($columns));
+        }
+
         if (!$provider instanceof FeatureAwareDataProviderInterface) {
             return;
         }
@@ -82,16 +88,21 @@ final class DataSourceFeatureGuard
 
             if (DataSourceFeature::Summaries === $feature) {
                 if ([] !== ColumnResolver::filterSummarized($columns)) {
-                    throw new \LogicException(\sprintf('Column summaries are not supported by %s. Remove summarize() or use a data provider that computes them.', $this->providerName($provider)));
+                    throw new \LogicException(\sprintf('Column summaries are not supported by %s. Remove summarize() or use a data provider that computes them.', self::providerName($provider)));
                 }
 
                 continue;
             }
 
             if ($this->requests($request, $feature, $table, $columns)) {
-                throw new BadRequestHttpException(\sprintf('%s are not supported by %s. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.', $feature->label(), $this->providerName($provider)));
+                throw self::unsupported($feature, $provider);
             }
         }
+    }
+
+    public static function unsupported(DataSourceFeature $feature, DataProviderInterface $provider): BadRequestHttpException
+    {
+        return new BadRequestHttpException(\sprintf('%s are not supported by %s. Use a DoctrineDataProvider or a custom DataProviderInterface for this table.', $feature->label(), self::providerName($provider)));
     }
 
     /**
@@ -208,7 +219,7 @@ final class DataSourceFeatureGuard
         return false;
     }
 
-    private function providerName(DataProviderInterface $provider): string
+    private static function providerName(DataProviderInterface $provider): string
     {
         $class = $provider::class;
         $pos   = strrpos($class, '\\');

@@ -58,6 +58,9 @@ final class RowScopeGuard
 
         $request = $this->requestStack?->getCurrentRequest() ?? new Request();
 
+        $names = $table->table->getConfiguredDataTable()->getForwardedQueryParameters();
+        RequestQueryHydrator::hydrate($request, RequestQueryHydrator::forwardedFromBody($request, $names));
+
         if ([] === self::keepInScope($table, $request, $field, [$id])) {
             throw new EntityNotFoundException();
         }

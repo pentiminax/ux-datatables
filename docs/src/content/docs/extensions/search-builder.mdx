@@ -63,12 +63,13 @@ with the other filters. Conditions supported: `=`, `!=`, `<`, `<=`, `>=`, `>`, `
 `!between`, `null`, `!null`, `starts`, `!starts`, `contains`, `!contains`, `ends` and `!ends`.
 
 The parameter is validated strictly. An unknown logic or condition, a malformed node, more than 5
-nesting levels or 50 nodes, or more than 2 values per criterion discards the whole SearchBuilder
-filter. Incomplete criteria (a blank value) are skipped, as in the browser.
+nesting levels or 50 nodes, or more than 2 values per criterion answers HTTP 400 rather than an
+unfiltered table. Incomplete criteria (a blank field or value) are skipped, as in the browser.
 
 - `columns` only limits what the browser offers. The server accepts any searchable column, so call
-  `setSearchable(false)` on a column to block it. A request naming an unknown or non-searchable
-  column is ignored as a whole.
+  `setSearchable(false)` on a column to block it: the builder leaves it out, and a request naming
+  it or an unknown column answers HTTP 400.
+- The `without` condition is hidden, because the server cannot apply it.
 - A criterion whose value cannot be bound to the field type (for example text for an integer
   column, or `2.5` for an integer) matches nothing instead of raising a database error.
 - Dates compare by whole day, and negated conditions keep rows where the field is `NULL`.
@@ -79,9 +80,9 @@ filter. Incomplete criteria (a blank value) are skipped, as in the browser.
 
 ## Frequent Pitfalls
 
-- Expecting `array` conditions (`without`) to work server-side.
+- Expecting `array` conditions (`without`) to work server-side: the builder hides them.
 - Hiding a column from the table but leaving it searchable: it still appears in the builder
-  unless you restrict `columns`.
+  unless you restrict `columns` or call `setSearchable(false)`.
 
 ## Cross Links
 

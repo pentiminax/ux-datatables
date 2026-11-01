@@ -119,7 +119,7 @@ final class EntityFilterTest extends TestCase
         yield 'unknown identifier matches nothing' => [false, '99', []];
         yield 'empty string is ignored' => [false, '', [1, 2, 3, 4, 5]];
         yield 'array on a single filter is ignored' => [false, ['1'], [1, 2, 3, 4, 5]];
-        yield 'malformed identifier is ignored' => [false, '1 OR 1=1', [1, 2, 3, 4, 5]];
+        yield 'malformed identifier matches nothing' => [false, '1 OR 1=1', []];
         yield 'empty multiple is ignored' => [true, [], [1, 2, 3, 4, 5]];
     }
 
@@ -231,12 +231,12 @@ final class EntityFilterTest extends TestCase
     }
 
     #[Test]
-    public function it_ignores_a_single_non_numeric_value_on_an_integer_identifier(): void
+    public function it_matches_nothing_for_a_single_non_numeric_value_on_an_integer_identifier(): void
     {
         $qb = $this->em->createQueryBuilder()->select('e')->from(CountTag::class, 'e');
         EntityFilter::new('customer')->entity(CountCustomer::class)->apply($qb, 'abc', 'e');
 
-        $this->assertSame([], $qb->getDQLPart('where') ?? []);
+        $this->assertSame('SELECT e FROM '.CountTag::class.' e WHERE 1 = 0', $qb->getDQL());
         $this->assertCount(0, $qb->getParameters());
     }
 

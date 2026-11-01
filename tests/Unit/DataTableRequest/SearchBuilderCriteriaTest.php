@@ -11,6 +11,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * @internal
@@ -83,26 +84,42 @@ final class SearchBuilderCriteriaTest extends TestCase
         $parsed = DataTableRequest::fromRequest($request)->searchBuilder;
 
         $this->assertCount(1, $parsed['criteria']);
-        $this->assertNull(DataTableRequest::fromRequest(Request::create('/ajax', 'GET', ['searchBuilder' => 'x']))->searchBuilder);
+        $this->assertNull(DataTableRequest::fromRequest(Request::create('/ajax', 'GET', ['searchBuilder' => '']))->searchBuilder);
         $this->assertNull(DataTableRequest::fromRequest(Request::create('/ajax'))->searchBuilder);
     }
 
     #[Test]
     #[DataProvider('invalidPayloads')]
-    public function it_rejects_the_whole_payload_when_invalid(mixed $payload): void
+    public function it_refuses_the_whole_payload_when_invalid(mixed $payload): void
     {
-        $this->assertNull(SearchBuilderCriteria::parse($payload));
+        $this->expectException(BadRequestHttpException::class);
+
+        SearchBuilderCriteria::parse($payload);
+    }
+
+    #[Test]
+    public function it_answers_400_for_a_malformed_request_parameter(): void
+    {
+        $this->expectException(BadRequestHttpException::class);
+
+        DataTableRequest::fromRequest(Request::create('/ajax', 'GET', ['searchBuilder' => 'x']));
+    }
+
+    #[Test]
+    public function it_treats_an_absent_or_empty_parameter_as_no_filter(): void
+    {
+        $this->assertNull(SearchBuilderCriteria::parse(null));
+        $this->assertNull(SearchBuilderCriteria::parse([]));
     }
 
     public static function invalidPayloads(): iterable
     {
         yield 'not an array' => ['x'];
-        yield 'empty' => [[]];
+        yield 'without condition' => [['criteria' => [['origData' => 'a', 'condition' => 'without', 'value' => ['1']]]]];
         yield 'unknown logic' => [['logic' => 'XOR', 'criteria' => [['origData' => 'a', 'condition' => '=', 'value' => ['1']]]]];
         yield 'unknown condition' => [['criteria' => [['origData' => 'a', 'condition' => 'regex', 'value' => ['1']]]]];
         yield 'non scalar value' => [['criteria' => [['origData' => 'a', 'condition' => '=', 'value' => [['1']]]]]];
         yield 'too many values' => [['criteria' => [['origData' => 'a', 'condition' => '=', 'value' => ['1', '2', '3']]]]];
-        yield 'missing column' => [['criteria' => [['condition' => '=', 'value' => ['1']]]]];
         yield 'oversized value' => [['criteria' => [['origData' => 'a', 'condition' => '=', 'value' => [str_repeat('a', 256)]]]]];
         yield 'too deep' => [self::nest(SearchBuilderCriteria::MAX_DEPTH + 1)];
         yield 'too many nodes' => [['criteria' => array_fill(0, SearchBuilderCriteria::MAX_NODES + 1, ['origData' => 'a', 'condition' => '=', 'value' => ['1']])]];

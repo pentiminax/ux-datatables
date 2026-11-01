@@ -18,7 +18,7 @@ final class AjaxEditController
         private readonly EntityMutator $mutator,
         private readonly MutationTokenValidator $tokenValidator,
         private readonly BooleanMutationContextResolver $contextResolver,
-        private readonly ?RowScopeGuard $scopeGuard = null,
+        private readonly RowScopeGuard $scopeGuard,
     ) {
     }
 
@@ -29,7 +29,7 @@ final class AjaxEditController
         $context = $this->contextResolver->resolve($payload->dataTable, $payload->field);
 
         if (null !== $context->table && $context->entityClass === $context->table->entityClass) {
-            $this->scopeGuard?->assertInScope($context->table, $payload->id);
+            $this->scopeGuard->assertInScope($context->table, $payload->id);
         }
 
         $this->mutator->setProperty(

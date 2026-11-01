@@ -100,7 +100,7 @@ data_tables:
 ### Per-Table via `configureDataTable()`
 
 ```php
-protected function configureDataTable(DataTable $table): DataTable
+public function configureDataTable(DataTable $table): DataTable
 {
     return $table
         ->editModalTemplate('datatables/product_edit_modal.html.twig');
@@ -240,7 +240,7 @@ modalAdapters.register('my-adapter', () => new MyModalAdapter())
 Activate it per-table:
 
 ```php
-protected function configureDataTable(DataTable $table): DataTable
+public function configureDataTable(DataTable $table): DataTable
 {
     return $table->editModalAdapter('my-adapter');
 }

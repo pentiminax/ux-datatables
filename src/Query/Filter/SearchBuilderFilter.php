@@ -14,12 +14,13 @@ use Pentiminax\UX\DataTables\Query\NumericSearchTerm;
 use Pentiminax\UX\DataTables\Query\QueryFilterContext;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Query\Strategy\ComparisonSearchStrategy;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
 /**
  * Applies the SearchBuilder tree as one AND-composed predicate.
  *
- * A tree naming an unknown or non-searchable column is ignored whole. A criterion whose value or
- * field cannot be queried matches nothing, and negated conditions keep NULL rows as the browser does.
+ * A tree naming an unknown or non-searchable column is refused. A criterion whose value or field
+ * cannot be queried matches nothing, and negated conditions keep NULL rows as the browser does.
  */
 final class SearchBuilderFilter implements QueryFilterInterface
 {
@@ -30,26 +31,31 @@ final class SearchBuilderFilter implements QueryFilterInterface
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {
         $tree = $context->intent->searchBuilder;
-        if (null === $tree || !$this->resolvable($tree, $context)) {
+        if (null === $tree) {
             return;
         }
 
+        self::assertSearchable($tree, array_values($context->columns));
         $qb->andWhere($this->group($qb, $context, $tree));
     }
 
     /**
-     * @param array<string, mixed> $group
+     * Also run before a response starts, so a streamed export is refused instead of truncated.
+     *
+     * @param array<string, mixed>  $group
+     * @param list<ColumnInterface> $columns
+     *
+     * @throws BadRequestHttpException
      */
-    private function resolvable(array $group, QueryFilterContext $context): bool
+    public static function assertSearchable(array $group, array $columns): void
     {
         foreach ($group['criteria'] as $node) {
-            $known = isset($node['criteria']) ? $this->resolvable($node, $context) : null !== $this->column($context, $node['column']);
-            if (!$known) {
-                return false;
+            if (isset($node['criteria'])) {
+                self::assertSearchable($node, $columns);
+            } elseif (null === self::findColumn($columns, $node['column'])) {
+                throw new BadRequestHttpException(\sprintf('SearchBuilder cannot search the column "%s".', $node['column']));
             }
         }
-
-        return true;
     }
 
     /**
@@ -70,7 +76,7 @@ final class SearchBuilderFilter implements QueryFilterInterface
      */
     private function criterion(QueryBuilder $qb, QueryFilterContext $context, array $node): string
     {
-        $column = $this->column($context, $node['column']);
+        $column = self::findColumn(array_values($context->columns), $node['column']);
         if (null === $column) {
             return self::NO_MATCH;
         }
@@ -227,17 +233,23 @@ final class SearchBuilderFilter implements QueryFilterInterface
 
     /**
      * SearchBuilder reports the column's `data` key as `origData`.
+     *
+     * @param list<ColumnInterface> $columns
      */
-    private function column(QueryFilterContext $context, string $key): ?ColumnInterface
+    private static function findColumn(array $columns, string $key): ?ColumnInterface
     {
-        foreach ($context->columns as $column) {
+        foreach ($columns as $column) {
             if ($column->isSearchable() && ($column->getData() ?? $column->getName()) === $key) {
                 return $column;
             }
         }
 
-        $byName = $context->columns[$key] ?? null;
+        foreach ($columns as $column) {
+            if ($column->isSearchable() && $column->getName() === $key) {
+                return $column;
+            }
+        }
 
-        return $byName?->isSearchable() ? $byName : null;
+        return null;
     }
 }

@@ -40,9 +40,10 @@ function format(column, type, value) {
     if (column.customOptions?.isMoney && type !== 'count' && typeof column.render === 'function') {
         return String(column.render(value, 'display'));
     }
-    return typeof value === 'number'
-        ? new Intl.NumberFormat(navigator.language).format(value)
-        : value;
+    if (typeof value === 'string' && !/^-?\d+(\.\d+)?$/.test(value)) {
+        return value;
+    }
+    return new Intl.NumberFormat(navigator.language).format(value);
 }
 function fill(cell, column, values, labels) {
     if (!cell) {

@@ -20,6 +20,7 @@ use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -34,6 +35,7 @@ use Twig\Loader\ArrayLoader;
 #[CoversClass(AjaxDetailController::class)]
 final class AjaxDetailControllerTest extends TestCase
 {
+    use BuildsUnscopedRowScopeGuard;
     private const string TOKEN_SECRET = 'test-secret';
 
     #[Test]
@@ -100,6 +102,7 @@ final class AjaxDetailControllerTest extends TestCase
 
         $service = new DetailRowService(
             new EntityLocator($registry),
+            $this->unscopedRowScopeGuard(),
             new Environment(new ArrayLoader(['detail.html.twig' => 'Email: {{ entity.email }}'])),
             new AuthorizationChecker($authorizationChecker),
         );

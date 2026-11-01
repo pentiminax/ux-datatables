@@ -90,6 +90,31 @@ final class EditModalRendererTest extends TestCase
     }
 
     #[Test]
+    #[TestWith([true])]
+    #[TestWith([false])]
+    public function it_falls_back_to_edit_when_the_default_title_cannot_be_translated(bool $withTranslator): void
+    {
+        $form = $this->createStub(FormInterface::class);
+        $form->method('createView')->willReturn(new FormView());
+
+        $translator = $this->createStub(TranslatorInterface::class);
+        $translator->method('trans')->willReturnArgument(0);
+
+        $twig = $this->createMock(Environment::class);
+        $twig->expects($this->once())
+            ->method('render')
+            ->with('modal.html.twig', $this->callback(static fn (array $context): bool => 'Edit' === $context['title']))
+            ->willReturn('');
+
+        (new EditModalRenderer($twig, EditModalRenderer::DEFAULT_TITLE, $withTranslator ? $translator : null))->render(new EditModalRenderRequest(
+            form: $form,
+            entity: new \stdClass(),
+            templatePath: 'modal.html.twig',
+            bodyTemplatePath: 'body.html.twig',
+        ));
+    }
+
+    #[Test]
     public function it_passes_the_entity_label_when_the_entity_is_stringable(): void
     {
         $formView = new FormView();

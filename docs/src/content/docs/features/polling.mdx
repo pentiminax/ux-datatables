@@ -18,7 +18,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 #[AsDataTable(Order::class)]
 final class OrdersDataTable extends AbstractDataTable
 {
-    protected function configureDataTable(DataTable $table): DataTable
+    public function configureDataTable(DataTable $table): DataTable
     {
         return $table
             ->serverSide()
@@ -46,6 +46,7 @@ A tick is skipped, not queued, while:
 - the browser tab is hidden. When it becomes visible again, the table reloads immediately if the
   interval has elapsed.
 - an edit or confirmation modal is open.
+- a detail (child) row is open in the table, so it is not collapsed under the viewer.
 - a previous request is still in flight, so requests never overlap.
 - the viewer is typing in the search field.
 

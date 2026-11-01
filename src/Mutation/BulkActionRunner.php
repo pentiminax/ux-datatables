@@ -158,7 +158,7 @@ final class BulkActionRunner
             return $ids;
         }
 
-        $this->hydrateRequest($request, $selection->query);
+        RequestQueryHydrator::hydrate($request, $selection->query);
 
         return RowScopeGuard::keepInScope($table, $request, $identifier, $ids);
     }
@@ -187,7 +187,7 @@ final class BulkActionRunner
             throw InvalidBulkSelectionException::selectAllForbidden();
         }
 
-        $this->hydrateRequest($request, $selection->query);
+        RequestQueryHydrator::hydrate($request, $selection->query);
         $table->table->handleRequest($request);
 
         $dataTableRequest = $table->table->getRequest();
@@ -202,37 +202,12 @@ final class BulkActionRunner
         // DoctrineDataProvider collect a leftover `id` column while the lookup remaps to
         // the primary key, so overlapping values mutate the wrong rows.
         $ids        = $provider->collectIdentifiers($dataTableRequest->withoutPagination(), $identifier);
-        $deselected = array_map($this->normalizeId(...), $selection->deselectedIds);
+        $deselected = array_flip(array_map($this->normalizeId(...), $selection->deselectedIds));
 
         return array_values(array_filter(
             $ids,
-            fn (int|string $id): bool => !\in_array($this->normalizeId($id), $deselected, true),
+            fn (int|string $id): bool => !isset($deselected[$this->normalizeId($id)]),
         ));
-    }
-
-    /**
-     * Put the DataTables parameters the browser captured back where the table reads them.
-     *
-     * The bulk endpoint receives JSON, so neither bag holds them. The request bag feeds
-     * handleRequest(); the query bag feeds a customizeQueryBuilder() that scopes itself on
-     * forwarded query parameters, which would otherwise read null and widen the batch to the
-     * unscoped dataset.
-     *
-     * @param array<string, mixed> $query
-     */
-    private function hydrateRequest(Request $request, array $query): void
-    {
-        foreach ($query as $key => $value) {
-            $name = (string) $key;
-
-            if (!$request->request->has($name)) {
-                $request->request->set($name, $value);
-            }
-
-            if (!$request->query->has($name)) {
-                $request->query->set($name, $value);
-            }
-        }
     }
 
     private function normalizeId(int|string $id): string

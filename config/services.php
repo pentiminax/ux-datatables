@@ -209,8 +209,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg(0, service('datatables.mutation.mutator'))
         ->arg(1, service('datatables.security.mutation_token_validator'))
         ->arg(2, service('datatables.ajax.registry'))
-        ->arg(3, service('datatables.security.authorization_checker'))
-        ->arg(4, service('datatables.mutation.row_scope_guard'))
+        ->arg(3, service('datatables.mutation.row_scope_guard'))
+        ->arg(4, service('datatables.security.authorization_checker'))
         ->tag('controller.service_arguments')
         ->public();
 
@@ -257,9 +257,9 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.ajax.detail_row_service', DetailRowService::class)
         ->arg(0, service('datatables.mutation.locator'))
-        ->arg(1, service('twig')->nullOnInvalid())
-        ->arg(2, service('datatables.security.authorization_checker'))
-        ->arg(3, service('datatables.mutation.row_scope_guard'))
+        ->arg(1, service('datatables.mutation.row_scope_guard'))
+        ->arg(2, service('twig')->nullOnInvalid())
+        ->arg(3, service('datatables.security.authorization_checker'))
         ->private();
 
     $services->set('datatables.controller.ajax_detail', AjaxDetailController::class)

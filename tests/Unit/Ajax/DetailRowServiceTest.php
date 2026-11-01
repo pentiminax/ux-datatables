@@ -20,6 +20,7 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -33,6 +34,8 @@ use Twig\Loader\ArrayLoader;
 #[CoversClass(DetailRowService::class)]
 final class DetailRowServiceTest extends TestCase
 {
+    use BuildsUnscopedRowScopeGuard;
+
     #[Test]
     public function it_renders_the_collapsible_detail_template_with_the_entity(): void
     {
@@ -185,7 +188,7 @@ final class DetailRowServiceTest extends TestCase
         ?Environment $twig,
         ?AuthorizationChecker $permissionChecker = null,
     ): DetailRowService {
-        return new DetailRowService($locator, $twig, $permissionChecker ?? new AuthorizationChecker(new TestAuthorizationChecker()));
+        return new DetailRowService($locator, $this->unscopedRowScopeGuard(), $twig, $permissionChecker ?? new AuthorizationChecker(new TestAuthorizationChecker()));
     }
 
     private function resolved(AbstractDataTable $dataTable): ResolvedDataTable

@@ -53,6 +53,10 @@ Each row attribute is checked **in addition to** `DT_EXECUTE_ACTION` — they cu
 
 There is **no fallback**: `DT_VIEW_ROW_DETAILS` is required on a collapsible detail row even when the detail action carries its own `setPermission()`. An action with no `setPermission()` triggers no `DT_EXECUTE_ACTION` vote at all — its visibility belongs to `displayIf()` or the action column's permission, not to a security decision.
 
+### Single-row scope (1.3)
+
+With the built-in Doctrine provider, delete, boolean toggle, edit form and detail row answer `404` for an id outside the `customizeQueryBuilder()` scope, as bulk actions already skipped such ids. The scope query replays `forwardQueryParameters()` values on single-row and bulk actions, so a scope depending on a forwarded parameter sees the same value as the listing. A toggle on a column that sets another `setEntityClass()` is still unscoped, and providers without `ScopedIdentifierProviderInterface` keep their old behavior.
+
 ### Writing the row voter
 
 ```php

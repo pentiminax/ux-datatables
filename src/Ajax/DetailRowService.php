@@ -18,9 +18,9 @@ final readonly class DetailRowService
 
     public function __construct(
         private EntityLocator $locator,
+        private RowScopeGuard $scopeGuard,
         private ?Environment $twig = null,
         ?AuthorizationChecker $permissionChecker = null,
-        private ?RowScopeGuard $scopeGuard = null,
     ) {
         $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
@@ -42,7 +42,7 @@ final readonly class DetailRowService
         }
 
         try {
-            $this->scopeGuard?->assertInScope($dataTable, $id);
+            $this->scopeGuard->assertInScope($dataTable, $id);
             $context = $this->locator->locate($dataTable->requireEntityClass(), $id);
         } catch (EntityNotFoundException) {
             return AjaxActionResult::notFound();

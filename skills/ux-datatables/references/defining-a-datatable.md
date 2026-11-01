@@ -66,6 +66,16 @@ protected function createDataProvider(): ?DataProviderInterface
 }
 ```
 
+### Refusing unsupported features
+
+A custom provider can implement `FeatureAwareDataProviderInterface::supports(DataSourceFeature $feature): bool`
+(cases `SearchBuilder`, `ColumnControl`, `ConfiguredFilters`, `Summaries`). The bundle then refuses
+a request using an unsupported feature instead of letting the provider answer unfiltered data:
+SearchBuilder criteria, ColumnControl searches and configured filter values get HTTP 400, and a table
+declaring summaries throws a `LogicException`. Without the interface every feature is assumed
+supported. `ArrayDataProvider` answers 400 for configured filter values; its 4th `$filters`
+argument is deprecated since 1.3 (removed in 2.0), so drop it.
+
 ## Customizing the query (server-side)
 
 Add joins / filters without touching the bundle's filtering pipeline:
@@ -108,6 +118,29 @@ Rules and routing:
   - Without a projector, both reference the same value. Twig `source` is that original object, and Twig `payload` is the array `mapRow()` returned.
 - A projected/computed column has no DB counterpart: mark it `->setOrderable(false)->setSearchable(false)`, or sort it via `->setOrderExpression(...)` backed by an `addSelect(... AS HIDDEN ...)` — see `references/server-side.md`.
 - **Server-side export calls the projector per batch, not per page.** An export streams every filtered row, so `projectPage()` runs once per batch (250 rows by default for `DoctrineDataProvider`), not once over the whole result set. Project each item from itself — map it, or batch-load data keyed by it. A projector whose output depends on which other items share the call (rank, running total, share of the batch maximum) yields different values in an export than on screen. Need a larger batch? Build the provider yourself in `createDataProvider()` with a bigger `exportChunkSize`.
+
+## Global defaults and YAML config
+
+Implement `Pentiminax\UX\DataTables\Contracts\DataTableDefaultsConfiguratorInterface` to configure
+every table in one place (autoconfigured; order with the `datatables.defaults_configurator` tag
+`priority`). Layers, each overriding the previous: `data_tables` YAML, then configurators, then the
+table's own `configureDataTable()`. A configurator only receives the `DataTable`; it cannot touch
+Ajax routes, tokens or table-purpose validation.
+
+```php
+final class AppDataTableDefaults implements DataTableDefaultsConfiguratorInterface
+{
+    public function configure(DataTable $table): void
+    {
+        $table->stateSave(true)->pageLength(25);
+    }
+}
+```
+
+The `data_tables` YAML is checked when the container compiles. In 1.3 these trigger a deprecation
+and become an exception in 2.0, so fix them now: an `extensions.select.style` outside `SelectStyle`,
+an `extensions.buttons` entry outside `ButtonType`, and an `options.pageLength` that is not in
+`options.lengthMenu`.
 
 ## Maker
 
