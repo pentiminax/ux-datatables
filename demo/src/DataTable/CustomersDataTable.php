@@ -17,6 +17,7 @@ final class CustomersDataTable extends AbstractDataTable
 {
     public function configureDataTable(DataTable $table): DataTable
     {
-        return $table->serverSide();
+        return $table
+            ->serverSide();
     }
 }

@@ -25,31 +25,51 @@ final class ProductActionsDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('name', 'Product');
-        yield TextColumn::new('sku', 'SKU')->hideWhenUpdating();
-        yield ChoiceColumn::new('category', 'Category')->setChoices(Category::class);
-        yield MoneyColumn::new('price', 'Price')->currency('EUR')->storedAsCents();
+
+        yield TextColumn::new('sku', 'SKU')
+            ->hideWhenUpdating();
+
+        yield ChoiceColumn::new('category', 'Category')
+            ->setChoices(Category::class);
+
+        yield MoneyColumn::new('price', 'Price')
+            ->currency('EUR')
+            ->storedAsCents();
+
         yield NumberColumn::new('stock', 'Stock');
+
         yield ChoiceColumn::new('status', 'Status')
             ->setChoices(ProductStatus::class)
             ->renderAsBadges(['active' => 'success', 'draft' => 'warning', 'archived' => 'secondary']);
-        yield BooleanColumn::new('featured', 'Featured')->renderAsSwitch();
+
+        yield BooleanColumn::new('featured', 'Featured')
+            ->renderAsSwitch();
     }
 
     public function configureDataTable(DataTable $table): DataTable
     {
-        return $table->serverSide()->pageLength(10);
+        return $table
+            ->serverSide()
+            ->pageLength(10);
     }
 
     public function configureActions(Actions $actions): Actions
     {
+        $detailAction = Action::detail('Details')
+            ->icon(Icon::ChevronDown)
+            ->collapsible('rows/product_detail.html.twig');
+
+        $editAction = Action::edit('Edit')
+            ->icon(Icon::Pencil);
+
+        $deleteAction = Action::delete('Delete')
+            ->icon(Icon::Trash2)
+            ->askConfirmation('Delete this product?')
+            ->displayIf('status', 'archived');
+
         return $actions
-            ->add(Action::detail('Details')->icon(Icon::ChevronDown)->collapsible('rows/product_detail.html.twig'))
-            ->add(Action::edit('Edit')->icon(Icon::Pencil))
-            ->add(
-                Action::delete('Delete')
-                    ->icon(Icon::Trash2)
-                    ->askConfirmation('Delete this product?')
-                    ->displayIf('status', 'archived')
-            );
+            ->add($detailAction)
+            ->add($editAction)
+            ->add($deleteAction);
     }
 }

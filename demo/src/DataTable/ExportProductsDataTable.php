@@ -21,23 +21,44 @@ final class ExportProductsDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('sku', 'SKU');
+
         yield TextColumn::new('name', 'Product');
-        yield ChoiceColumn::new('category', 'Category')->setChoices(Category::class);
-        yield MoneyColumn::new('price', 'Price')->currency('EUR')->storedAsCents();
+
+        yield ChoiceColumn::new('category', 'Category')
+            ->setChoices(Category::class);
+
+        yield MoneyColumn::new('price', 'Price')
+            ->currency('EUR')
+            ->storedAsCents();
+
         yield NumberColumn::new('stock', 'Stock');
-        yield TextColumn::new('supplierEmail', 'Supplier')->setExportable(false);
+
+        yield TextColumn::new('supplierEmail', 'Supplier')
+            ->setExportable(false);
     }
 
     public function configureDataTable(DataTable $table): DataTable
     {
+        $csvButton = Button::csv(serverSide: true)
+            ->filename('products');
+
+        $rawCsvButton = Button::csv(serverSide: true)
+            ->rawValues()
+            ->exportKey('raw')
+            ->text('CSV (raw)')
+            ->filename('products-raw');
+
+        $excelButton = Button::excel(serverSide: true)
+            ->filename('products');
+
         return $table
             ->serverSide()
             ->pageLength(10)
             ->buttons([
                 Button::copy(),
-                Button::csv(serverSide: true)->filename('products'),
-                Button::csv(serverSide: true)->rawValues()->exportKey('raw')->text('CSV (raw)')->filename('products-raw'),
-                Button::excel(serverSide: true)->filename('products'),
+                $csvButton,
+                $rawCsvButton,
+                $excelButton,
                 Button::pdf(),
                 Button::print(),
             ]);

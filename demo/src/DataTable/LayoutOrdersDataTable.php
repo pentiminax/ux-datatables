@@ -24,20 +24,38 @@ final class LayoutOrdersDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('reference', 'Reference');
-        yield TextColumn::new('customer', 'Customer')->setField('customer.name');
-        yield EmailColumn::new('email', 'Email')->setField('customer.email');
-        yield TextColumn::new('country', 'Country')->setField('customer.country');
+
+        yield TextColumn::new('customer', 'Customer')
+            ->setField('customer.name');
+
+        yield EmailColumn::new('email', 'Email')
+            ->setField('customer.email');
+
+        yield TextColumn::new('country', 'Country')
+            ->setField('customer.country');
+
         yield NumberColumn::new('items', 'Items');
-        yield MoneyColumn::new('total', 'Total')->currency('EUR')->storedAsCents();
-        yield ChoiceColumn::new('status', 'Status')->setChoices(OrderStatus::class);
+
+        yield MoneyColumn::new('total', 'Total')
+            ->currency('EUR')
+            ->storedAsCents();
+
+        yield ChoiceColumn::new('status', 'Status')
+            ->setChoices(OrderStatus::class);
+
         yield IconColumn::new('express', 'Express')
             ->boolean()
             ->trueIcon(Icon::Zap)
             ->falseIcon(Icon::Minus)
             ->trueColor('warning')
             ->falseColor('secondary');
-        yield DateColumn::new('placedAt', 'Placed at')->setFormat('Y-m-d H:i');
-        yield DateColumn::new('shippedAt', 'Shipped at')->setFormat('Y-m-d H:i')->setDefaultContent('—');
+
+        yield DateColumn::new('placedAt', 'Placed at')
+            ->setFormat('Y-m-d H:i');
+
+        yield DateColumn::new('shippedAt', 'Shipped at')
+            ->setFormat('Y-m-d H:i')
+            ->setDefaultContent('—');
     }
 
     public function configureDataTable(DataTable $table): DataTable
