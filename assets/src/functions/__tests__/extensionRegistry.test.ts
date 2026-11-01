@@ -99,16 +99,23 @@ describe('DataTables extension package resolution', () => {
             const loaded: string[] = []
             const { js, css } = specifiersFor(packageKey, fileBase, framework, cssSuffix)
 
-            mockSpecifier(js, loaded)
-            mockSpecifier(css, loaded)
+            const dateTime = name === 'searchBuilder' ? ['datatables.net-datetime'] : []
+
+            for (const specifier of [...dateTime, js, css]) {
+                mockSpecifier(specifier, loaded)
+            }
 
             const { ExtensionRegistry } = await import('../extensionRegistry.js')
 
             await ExtensionRegistry.load(name, framework)
 
-            expect(loaded).toEqual([js, css])
+            expect(loaded).toEqual([...dateTime, js, css])
         }
     )
+
+    it('resolves the DateTime package SearchBuilder needs for date columns', () => {
+        expect(existsSync(fileURLToPath(import.meta.resolve('datatables.net-datetime')))).toBe(true)
+    })
 
     it('rejects unknown extension names before importing a bundle', async () => {
         const { ExtensionRegistry } = await import('../extensionRegistry.js')

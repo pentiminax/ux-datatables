@@ -2,6 +2,15 @@ import type { StyleFramework } from '../types/styleFramework.js'
 
 type Loader = () => Promise<unknown>
 
+// SearchBuilder refuses to start on a table with a date column unless DataTables' DateTime is loaded.
+const withDateTime =
+    (load: Loader): Loader =>
+    async () => {
+        await import('datatables.net-datetime')
+
+        return load()
+    }
+
 export type ExtensionName =
     | 'colReorder'
     | 'columnControl'
@@ -64,10 +73,10 @@ const extensionLoaders: Record<ExtensionName, Record<StyleFramework, Loader>> = 
         bs5: () => import('datatables.net-scroller-bs5'),
     },
     searchBuilder: {
-        dt: () => import('datatables.net-searchbuilder-dt'),
-        bs: () => import('datatables.net-searchbuilder-bs'),
-        bs4: () => import('datatables.net-searchbuilder-bs4'),
-        bs5: () => import('datatables.net-searchbuilder-bs5'),
+        dt: withDateTime(() => import('datatables.net-searchbuilder-dt')),
+        bs: withDateTime(() => import('datatables.net-searchbuilder-bs')),
+        bs4: withDateTime(() => import('datatables.net-searchbuilder-bs4')),
+        bs5: withDateTime(() => import('datatables.net-searchbuilder-bs5')),
     },
     select: {
         dt: () => import('datatables.net-select-dt'),
