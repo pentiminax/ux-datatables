@@ -24,6 +24,7 @@ import { ExtensionRegistry } from './functions/extensionRegistry.js';
 import { fetchDetailRow } from './functions/fetchDetailRow.js';
 import { fetchEditForm } from './functions/fetchEditForm.js';
 import { installFilterBar } from './functions/filters.js';
+import { forwardedQuery } from './functions/forwardedQuery.js';
 import { isHighlightEnabled } from './functions/highlightUpdates.js';
 import { isDataTableClone } from './functions/isDataTableClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
@@ -415,7 +416,11 @@ class default_1 extends Controller {
                     return;
                 }
                 await this.runRowAction(actionButton, 'DETAIL', id, payload, async () => {
-                    const result = await fetchDetailRow({ dataTable, id });
+                    const result = await fetchDetailRow({
+                        dataTable,
+                        id,
+                        query: forwardedQuery(payload),
+                    });
                     if (result.success) {
                         row.child(result.html).show();
                         actionButton.classList.add('expanded');
@@ -430,6 +435,7 @@ class default_1 extends Controller {
                         dataTable,
                         id,
                         csrfToken: this.getCsrfToken(payload),
+                        query: forwardedQuery(payload),
                     });
                     return { ok: response.ok, response };
                 });
@@ -444,7 +450,11 @@ class default_1 extends Controller {
                 if (!modal)
                     return;
                 const loaded = await this.runRowAction(actionButton, 'EDIT', id, payload, async () => {
-                    const result = await fetchEditForm({ dataTable, id });
+                    const result = await fetchEditForm({
+                        dataTable,
+                        id,
+                        query: forwardedQuery(payload),
+                    });
                     return { ok: result.success, ...result };
                 }, false);
                 if (loaded?.ok) {
@@ -456,6 +466,7 @@ class default_1 extends Controller {
                                     id,
                                     formData,
                                     csrfToken: this.getCsrfToken(payload),
+                                    query: forwardedQuery(payload),
                                 });
                                 return { ok: result.success, ...result };
                             });
@@ -538,6 +549,7 @@ class default_1 extends Controller {
                     method,
                     dataTable,
                     csrfToken: this.getCsrfToken(payload),
+                    query: forwardedQuery(payload),
                 });
                 return { ok: response.ok, response };
             });

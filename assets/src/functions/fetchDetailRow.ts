@@ -3,6 +3,7 @@ import { JSON_HEADERS, postRowRequest } from './postRowRequest.js'
 type FetchDetailRowPayload = {
     dataTable: string
     id: string
+    query?: Record<string, unknown>
 }
 
 type FetchDetailRowResponse = {

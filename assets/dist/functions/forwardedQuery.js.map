@@ -1,0 +1,1 @@
+{"version":3,"file":"forwardedQuery.js","sourceRoot":"","sources":["../../src/functions/forwardedQuery.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,MAAM,gBAAgB,CAAA;AAEzC,MAAM,UAAU,cAAc,CAAC,OAA4B;IACvD,OAAO,QAAQ,CAAC,OAAO,CAAC,cAAc,CAAC,CAAC,CAAC,CAAC,OAAO,CAAC,cAAc,CAAC,CAAC,CAAC,EAAE,CAAA;AACzE,CAAC"}

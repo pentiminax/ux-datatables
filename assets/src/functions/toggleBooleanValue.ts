@@ -8,6 +8,7 @@ type ToggleBooleanPayload = {
     method?: string
     dataTable: string
     csrfToken?: string
+    query?: Record<string, unknown>
 }
 
 export async function toggleBooleanValue({
@@ -18,12 +19,14 @@ export async function toggleBooleanValue({
     method = 'PATCH',
     dataTable,
     csrfToken,
+    query,
 }: ToggleBooleanPayload): Promise<Response> {
     const body: Record<string, unknown> = {
         id,
         field,
         newValue,
         dataTable,
+        query,
     }
 
     return await fetch(url, {

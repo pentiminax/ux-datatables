@@ -45,6 +45,20 @@ final class MutationEndpointsTest extends WebTestCase
         $this->assertSame(422, $client->getResponse()->getStatusCode());
     }
 
+    #[DataProvider('endpoints')]
+    public function test_the_endpoint_accepts_the_forwarded_query_field(string $method, string $path): void
+    {
+        $client = static::createClient();
+        $client->request(
+            $method,
+            $path,
+            server: ['CONTENT_TYPE' => 'application/json'],
+            content: '{"dataTable":"t","id":1,"field":"active","newValue":true,"formData":{},"action":"a","query":{"project":"7"}}',
+        );
+
+        $this->assertNotSame(422, $client->getResponse()->getStatusCode());
+    }
+
     protected static function createKernel(array $options = []): KernelInterface
     {
         return new TestHarnessAppKernel('test', true);

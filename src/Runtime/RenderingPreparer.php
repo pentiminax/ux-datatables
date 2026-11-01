@@ -382,6 +382,7 @@ final class RenderingPreparer
         }
 
         $table->mergeAjaxData($forwarded);
+        $table->setPreparedForwardedQuery($forwarded);
     }
 
     private function configureMercure(DataTable $table, ?AsDataTable $asDataTable): void

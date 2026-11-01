@@ -12,8 +12,6 @@ With the built-in Doctrine provider, delete, boolean toggle, edit form, and deta
 
 What changed:
 
-- the scope query runs on the mutation request, which carries no `forwardQueryParameters()` values;
-  a scope that applies a forwarded parameter unconditionally now excludes every row
 - a toggle on a column that sets another `setEntityClass()` is still unscoped
 - providers without `ScopedIdentifierProviderInterface` keep their current behavior
 

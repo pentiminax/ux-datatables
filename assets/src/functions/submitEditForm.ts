@@ -6,6 +6,7 @@ type SubmitEditFormPayload = {
     id: string
     formData: Record<string, any>
     csrfToken?: string
+    query?: Record<string, unknown>
 }
 
 type SubmitEditFormResponse = {
