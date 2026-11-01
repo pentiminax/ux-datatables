@@ -16,9 +16,14 @@ final class ClientSideDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('city', 'Warehouse');
+
         yield TextColumn::new('country', 'Country');
-        yield NumberColumn::new('capacity', 'Capacity (m²)')->formatted();
+
+        yield NumberColumn::new('capacity', 'Capacity (m²)')
+            ->formatted();
+
         yield NumberColumn::new('staff', 'Staff');
+
         yield IconColumn::new('open', 'Open on Sundays')
             ->boolean()
             ->trueIcon(Icon::CircleCheck)

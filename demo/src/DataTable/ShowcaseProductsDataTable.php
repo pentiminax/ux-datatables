@@ -26,15 +26,30 @@ final class ShowcaseProductsDataTable extends AbstractDataTable
 {
     public function configureColumns(): iterable
     {
-        yield ImageColumn::new('image', 'Image')->setImageWidth(40)->setImageHeight(40)->rounded()->setOrderable(false);
+        yield ImageColumn::new('image', 'Image')
+            ->setImageWidth(40)
+            ->setImageHeight(40)
+            ->rounded()
+            ->setOrderable(false);
+
         yield TextColumn::new('name', 'Product');
-        yield ChoiceColumn::new('category', 'Category')->setChoices(Category::class)->renderAsBadges();
-        yield MoneyColumn::new('price', 'Price')->currency('EUR')->storedAsCents();
+
+        yield ChoiceColumn::new('category', 'Category')
+            ->setChoices(Category::class)
+            ->renderAsBadges();
+
+        yield MoneyColumn::new('price', 'Price')
+            ->currency('EUR')
+            ->storedAsCents();
+
         yield NumberColumn::new('stock', 'Stock');
+
         yield ChoiceColumn::new('status', 'Status')
             ->setChoices(ProductStatus::class)
             ->renderAsBadges(['active' => 'success', 'draft' => 'warning', 'archived' => 'secondary']);
-        yield BooleanColumn::new('featured', 'Featured')->renderAsSwitch();
+
+        yield BooleanColumn::new('featured', 'Featured')
+            ->renderAsSwitch();
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -49,8 +64,15 @@ final class ShowcaseProductsDataTable extends AbstractDataTable
 
     public function configureActions(Actions $actions): Actions
     {
+        $editAction = Action::edit('Edit')
+            ->icon(Icon::Pencil);
+
+        $deleteAction = Action::delete('Delete')
+            ->icon(Icon::Trash2)
+            ->askConfirmation('Delete this product?');
+
         return $actions
-            ->add(Action::edit('Edit')->icon(Icon::Pencil))
-            ->add(Action::delete('Delete')->icon(Icon::Trash2)->askConfirmation('Delete this product?'));
+            ->add($editAction)
+            ->add($deleteAction);
     }
 }

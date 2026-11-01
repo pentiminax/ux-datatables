@@ -21,12 +21,21 @@ final class ColumnToolsDataTable extends AbstractDataTable
 {
     public function configureColumns(): iterable
     {
-        yield ChoiceColumn::new('category', 'Category')->setChoices(Category::class);
+        yield ChoiceColumn::new('category', 'Category')
+            ->setChoices(Category::class);
+
         yield TextColumn::new('name', 'Product');
+
         yield TextColumn::new('sku', 'SKU');
-        yield MoneyColumn::new('price', 'Price')->currency('EUR')->storedAsCents();
+
+        yield MoneyColumn::new('price', 'Price')
+            ->currency('EUR')
+            ->storedAsCents();
+
         yield NumberColumn::new('stock', 'Stock');
-        yield ChoiceColumn::new('status', 'Status')->setChoices(ProductStatus::class);
+
+        yield ChoiceColumn::new('status', 'Status')
+            ->setChoices(ProductStatus::class);
     }
 
     public function configureDataTable(DataTable $table): DataTable

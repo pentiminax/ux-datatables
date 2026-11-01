@@ -56,6 +56,21 @@ Only options that differ from the DataTables defaults reach the browser (an empt
 `searchBuilder()` without arguments). `filterChanged` is a
 JavaScript callback and cannot be configured from PHP.
 
+## Date Columns
+
+SearchBuilder needs the DataTables DateTime extension as soon as the table has a date column. The
+bundle loads `datatables.net-datetime` with SearchBuilder, but not its stylesheet, so import it once
+to style the date picker:
+
+```js
+// assets/app.js
+import 'datatables.net-datetime/dist/dataTables.dateTime.min.css'
+```
+
+With AssetMapper, run
+`php bin/console importmap:require datatables.net-datetime datatables.net-datetime/dist/dataTables.dateTime.min.css`
+first. With Webpack Encore, import `datatables.net-datetime/css` instead.
+
 ## Server-Side Processing
 
 On server-side tables the bundle reads the `searchBuilder` request parameter and ANDs the result

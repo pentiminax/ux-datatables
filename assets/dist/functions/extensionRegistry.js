@@ -1,3 +1,7 @@
+const withDateTime = (load) => async () => {
+    await import('datatables.net-datetime');
+    return load();
+};
 const extensionLoaders = {
     colReorder: {
         dt: () => import('datatables.net-colreorder-dt'),
@@ -48,10 +52,10 @@ const extensionLoaders = {
         bs5: () => import('datatables.net-scroller-bs5'),
     },
     searchBuilder: {
-        dt: () => import('datatables.net-searchbuilder-dt'),
-        bs: () => import('datatables.net-searchbuilder-bs'),
-        bs4: () => import('datatables.net-searchbuilder-bs4'),
-        bs5: () => import('datatables.net-searchbuilder-bs5'),
+        dt: withDateTime(() => import('datatables.net-searchbuilder-dt')),
+        bs: withDateTime(() => import('datatables.net-searchbuilder-bs')),
+        bs4: withDateTime(() => import('datatables.net-searchbuilder-bs4')),
+        bs5: withDateTime(() => import('datatables.net-searchbuilder-bs5')),
     },
     select: {
         dt: () => import('datatables.net-select-dt'),

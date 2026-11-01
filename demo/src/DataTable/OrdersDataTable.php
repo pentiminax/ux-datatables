@@ -21,9 +21,16 @@ final class OrdersDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('reference', 'Reference');
-        yield TextColumn::new('customer', 'Customer')->setField('customer.name');
+
+        yield TextColumn::new('customer', 'Customer')
+            ->setField('customer.name');
+
         yield NumberColumn::new('items', 'Items');
-        yield MoneyColumn::new('total', 'Total')->currency('EUR')->storedAsCents();
+
+        yield MoneyColumn::new('total', 'Total')
+            ->currency('EUR')
+            ->storedAsCents();
+
         yield ChoiceColumn::new('status', 'Status')
             ->setChoices(OrderStatus::class)
             ->renderAsBadges([
@@ -33,7 +40,9 @@ final class OrdersDataTable extends AbstractDataTable
                 'delivered' => 'success',
                 'cancelled' => 'danger',
             ]);
-        yield DateColumn::new('placedAt', 'Placed at')->setFormat('Y-m-d H:i');
+
+        yield DateColumn::new('placedAt', 'Placed at')
+            ->setFormat('Y-m-d H:i');
     }
 
     public function configureDataTable(DataTable $table): DataTable

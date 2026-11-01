@@ -461,10 +461,12 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
 
 /* FixedColumns pins cells over the scrolling ones, so they must be opaque: each tint is layered
    over the surface instead of replacing it. */
-.dt-container.dt-container table.dataTable :is(thead, tfoot) > tr > :is(.dtfc-fixed-start, .dtfc-fixed-end) {
-    background:
-        linear-gradient(var(--dt-tw-head), var(--dt-tw-head)),
-        rgb(var(--dt-tw-surface));
+.dt-container.dt-container
+    table.dataTable
+    :is(thead, tfoot)
+    > tr
+    > :is(.dtfc-fixed-start, .dtfc-fixed-end) {
+    background: linear-gradient(var(--dt-tw-head), var(--dt-tw-head)), rgb(var(--dt-tw-surface));
 }
 
 /* Sortable headers tint on hover; a pinned one needs the tint over the surface as well. */
@@ -474,8 +476,7 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
     > tr
     > th:is(.dtfc-fixed-start, .dtfc-fixed-end):is(.dt-orderable-asc, .dt-orderable-desc):hover {
     background:
-        linear-gradient(var(--dt-tw-sunken), var(--dt-tw-sunken)),
-        rgb(var(--dt-tw-surface));
+        linear-gradient(var(--dt-tw-sunken), var(--dt-tw-sunken)), rgb(var(--dt-tw-surface));
 }
 
 .dt-container.dt-container table.dataTable tbody > tr > :is(.dtfc-fixed-start, .dtfc-fixed-end) {
@@ -489,8 +490,7 @@ div.dt-container.dt-container div.dt-layout-end > *:not(:first-child) {
         > tr:hover
         > :is(.dtfc-fixed-start, .dtfc-fixed-end) {
         background:
-            linear-gradient(var(--dt-tw-sunken), var(--dt-tw-sunken)),
-            rgb(var(--dt-tw-surface));
+            linear-gradient(var(--dt-tw-sunken), var(--dt-tw-sunken)), rgb(var(--dt-tw-surface));
     }
 }
 
@@ -1112,6 +1112,310 @@ div.dt-button-info {
 .dt-filters-toggle:focus-visible {
     outline: none;
     box-shadow: var(--dt-tw-ring-focus);
+}
+
+/* ------------------------------------------------------- search builder -- */
+
+/*
+ * SearchBuilder's own selectors run four classes deep, so these double the root class to win
+ * without !important. They are not scoped to `.dt-container`: the builder can also open from a
+ * button, in a collection appended to <body>.
+ */
+div.dtsb-searchBuilder.dtsb-searchBuilder {
+    margin: 0;
+    color: rgb(var(--dt-tw-text));
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder div.dtsb-titleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder div.dtsb-titleRow div.dtsb-title {
+    padding: 0;
+    color: rgb(var(--dt-tw-text-muted));
+    font-weight: 500;
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder div.dtsb-titleRow button.dtsb-clearAll {
+    float: none;
+    margin: 0 0 0 auto;
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder div.dtsb-group {
+    margin-bottom: 0;
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder div.dtsb-group div.dtsb-criteria {
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder button.dtsb-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border: 0;
+    border-radius: var(--dt-tw-radius-control);
+    background: rgb(var(--dt-tw-surface));
+    box-shadow: var(--dt-tw-ring-control), var(--dt-tw-shadow-sm);
+    color: rgb(var(--dt-tw-text));
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.25rem;
+    transition:
+        background-color var(--dt-tw-transition),
+        box-shadow var(--dt-tw-transition);
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder button.dtsb-button:hover {
+    background: rgb(var(--dt-tw-neutral) / 0.12);
+    box-shadow:
+        inset 0 0 0 1px rgb(var(--dt-tw-neutral) / 0.4),
+        var(--dt-tw-shadow-sm);
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder button.dtsb-button:focus-visible {
+    outline: none;
+    box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder
+    div.dtsb-group
+    div.dtsb-criteria
+    div.dtsb-buttonContainer {
+    display: inline-flex;
+    gap: 0.5rem;
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder
+    div.dtsb-criteria
+    div.dtsb-buttonContainer
+    button.dtsb-button {
+    width: 2.25rem;
+    margin: 0;
+    padding: 0;
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder button.dtsb-delete:hover {
+    background: rgb(var(--dt-tw-danger) / 0.1);
+    box-shadow:
+        inset 0 0 0 1px rgb(var(--dt-tw-danger) / 0.3),
+        var(--dt-tw-shadow-sm);
+    color: rgb(var(--dt-tw-danger));
+}
+
+/* The extension colors the column, condition and value controls red, green and blue; here they
+   share the length menu's look, and the order of the row already tells them apart. */
+div.dtsb-searchBuilder.dtsb-searchBuilder
+    div.dtsb-group
+    div.dtsb-criteria
+    :is(select.dtsb-dropDown, input.dtsb-input) {
+    appearance: none;
+    height: 2.25rem;
+    min-width: 8rem;
+    margin: 0;
+    padding: 0 0.75rem;
+    border: 0;
+    border-radius: var(--dt-tw-radius-control);
+    background: rgb(var(--dt-tw-surface));
+    box-shadow: var(--dt-tw-ring-control), var(--dt-tw-shadow-sm);
+    color: rgb(var(--dt-tw-text));
+    font-size: 0.875rem;
+    transition: box-shadow var(--dt-tw-transition);
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder div.dtsb-group div.dtsb-criteria select.dtsb-dropDown {
+    padding-inline-end: 2rem;
+    background-image: var(--dt-tw-chevron);
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.15rem;
+}
+
+[dir='rtl']
+    div.dtsb-searchBuilder.dtsb-searchBuilder
+    div.dtsb-group
+    div.dtsb-criteria
+    select.dtsb-dropDown {
+    background-position: left 0.5rem center;
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder
+    div.dtsb-group
+    div.dtsb-criteria
+    :is(select.dtsb-dropDown, input.dtsb-input):focus {
+    outline: none;
+    box-shadow: var(--dt-tw-ring-focus), var(--dt-tw-shadow-sm);
+}
+
+/* An unpicked control shows its placeholder in italics; muting it reads as "still to choose". */
+div.dtsb-searchBuilder.dtsb-searchBuilder div.dtsb-group div.dtsb-criteria select.dtsb-italic {
+    color: rgb(var(--dt-tw-text-muted));
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder
+    div.dtsb-group
+    div.dtsb-criteria
+    select.dtsb-dropDown:disabled {
+    background-color: var(--dt-tw-sunken);
+    box-shadow: var(--dt-tw-ring-control);
+    cursor: not-allowed;
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder div.dtsb-group div.dtsb-criteria div.dtsb-inputCont {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 0.5rem;
+}
+
+/* The extension sizes the value input at a third of its cell, which leaves a sliver on a phone. */
+div.dtsb-searchBuilder.dtsb-searchBuilder
+    div.dtsb-group
+    div.dtsb-criteria
+    div.dtsb-inputCont
+    input.dtsb-value {
+    flex: 1 1 8rem;
+    width: auto;
+    min-width: 5rem;
+    max-width: 20rem;
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder
+    div.dtsb-group
+    div.dtsb-criteria
+    div.dtsb-inputCont
+    span.dtsb-joiner {
+    margin: 0;
+    color: rgb(var(--dt-tw-text-muted));
+}
+
+/* The And/Or switch is drawn rotated along the group's edge; a primary tint marks it as the
+   group's operator rather than one more neutral button. */
+div.dtsb-searchBuilder.dtsb-searchBuilder div.dtsb-group div.dtsb-logicContainer {
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--dt-tw-radius-control);
+    background: rgb(var(--dt-tw-primary-500) / 0.1);
+    box-shadow: inset 0 0 0 1px rgb(var(--dt-tw-primary-500) / 0.25);
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder
+    div.dtsb-group
+    div.dtsb-logicContainer
+    button.dtsb-button {
+    height: auto;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: rgb(var(--dt-tw-primary-text));
+    font-weight: 600;
+}
+
+div.dtsb-searchBuilder.dtsb-searchBuilder
+    div.dtsb-group
+    div.dtsb-logicContainer
+    button.dtsb-button:hover {
+    background: rgb(var(--dt-tw-primary-500) / 0.14);
+}
+
+/* The extension's own dark palette keys off `html.dark` with !important backgrounds. */
+html.dark
+    div.dtsb-searchBuilder.dtsb-searchBuilder
+    :is(button.dtsb-button, select.dtsb-dropDown, input.dtsb-input) {
+    background-color: rgb(var(--dt-tw-surface)) !important;
+}
+
+html.dark div.dtsb-searchBuilder.dtsb-searchBuilder div.dtsb-logicContainer button.dtsb-button {
+    background-color: transparent !important;
+}
+
+/* ------------------------------------------------------ date picker -- */
+
+/*
+ * DataTables DateTime (SearchBuilder's date picker) reads its whole palette from
+ * `--dt-datetime*` tokens. Its own dark block is `html.dark, :root[data-theme=dark]`,
+ * so `:root:root:root` outranks it whatever the stylesheet order, and every value below
+ * already flips with the theme.
+ */
+:root:root:root {
+    --dt-datetime_background: rgb(var(--dt-tw-surface));
+    --dt-datetime_border: 0;
+    --dt-datetime_box-shadow: var(--dt-tw-shadow-panel), var(--dt-tw-ring);
+    --dt-datetime_border-radius: var(--dt-tw-radius-panel);
+    --dt-datetime_padding: 0.75rem 1rem;
+    --dt-datetime_width: 18rem;
+    --dt-datetime-table-header_font-size: 0.75rem;
+    --dt-datetime-table-header_color: rgb(var(--dt-tw-text-muted));
+    --dt-datetime-table-body_font-size: 0.875rem;
+    --dt-datetime-table-body_color: rgb(var(--dt-tw-text));
+    --dt-datetime-table-selectable_background: transparent;
+    --dt-datetime-table-selectable_disabled-color: rgb(var(--dt-tw-text-muted) / 0.6);
+    --dt-datetime-table-selectable_disabled-background: transparent;
+    --dt-datetime-table-selectable_disabled-hover-color: rgb(var(--dt-tw-text-muted) / 0.6);
+    --dt-datetime-table-selectable_disabled-hover-background: transparent;
+    --dt-datetime-table_hover-background: rgb(var(--dt-tw-primary-500) / 0.14);
+    --dt-datetime-table_hover-color: rgb(var(--dt-tw-primary-text));
+    --dt-datetime-table-now_background: transparent;
+    --dt-datetime-table-selected_background: rgb(var(--dt-tw-primary-600));
+    --dt-datetime-table-selected_color: rgb(var(--dt-tw-on-primary));
+    --dt-datetime-label_border: 0;
+    --dt-datetime-label_hover-border: 0;
+    --dt-datetime-label_hover-background: rgb(var(--dt-tw-neutral) / 0.12);
+    --dt-datetime-icon_border: 0;
+    --dt-datetime-icon_hover-border: 0;
+    --dt-datetime-icon_hover-background: rgb(var(--dt-tw-neutral) / 0.12);
+    --dt-datetime-icon-triangle_border-color: rgb(var(--dt-tw-text));
+    --dt-datetime-error_color: rgb(var(--dt-tw-danger));
+}
+
+div.dt-datetime.dt-datetime {
+    color: rgb(var(--dt-tw-text));
+    color-scheme: var(--dt-tw-color-scheme, light);
+    font-size: 0.875rem;
+}
+
+div.dt-datetime.dt-datetime div.dt-datetime-title {
+    font-weight: 600;
+}
+
+div.dt-datetime.dt-datetime div.dt-datetime-label {
+    border-radius: var(--dt-tw-radius-badge);
+}
+
+div.dt-datetime.dt-datetime :is(div.dt-datetime-iconLeft, div.dt-datetime-iconRight) {
+    border-radius: var(--dt-tw-radius-badge);
+}
+
+/* The extension rounds a day only on hover or once picked; rounding every day keeps the shape
+   from jumping, and the spacing keeps neighbouring tints apart. */
+div.dt-datetime.dt-datetime table {
+    border-spacing: 2px;
+}
+
+div.dt-datetime.dt-datetime table td.selectable button {
+    border-radius: var(--dt-tw-radius-badge);
+    transition: background-color var(--dt-tw-transition);
+}
+
+/* Today is outlined rather than filled, so it never reads as the picked day. */
+div.dt-datetime.dt-datetime table td.selectable.now button {
+    box-shadow: inset 0 0 0 1px rgb(var(--dt-tw-primary-500) / 0.45);
+}
+
+div.dt-datetime.dt-datetime table td.selectable.selected button {
+    box-shadow: none;
+}
+
+div.dt-datetime.dt-datetime table td.selectable button:focus-visible {
+    outline: 2px solid rgb(var(--dt-tw-primary-600));
+    outline-offset: 1px;
 }
 
 /* ---------------------------------------------------- browser surfaces -- */

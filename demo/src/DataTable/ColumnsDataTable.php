@@ -29,10 +29,21 @@ final class ColumnsDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield NumberColumn::new('id', 'ID');
-        yield ImageColumn::new('image', 'Image')->setImageWidth(36)->setImageHeight(36)->rounded();
+
+        yield ImageColumn::new('image', 'Image')
+            ->setImageWidth(36)
+            ->setImageHeight(36)
+            ->rounded();
+
         yield TextColumn::new('name', 'Product');
-        yield ChoiceColumn::new('category', 'Category')->setChoices(Category::class);
-        yield MoneyColumn::new('price', 'Price')->currency('EUR')->storedAsCents();
+
+        yield ChoiceColumn::new('category', 'Category')
+            ->setChoices(Category::class);
+
+        yield MoneyColumn::new('price', 'Price')
+            ->currency('EUR')
+            ->storedAsCents();
+
         yield TextColumn::new('priceBand', 'Price band')
             ->setField('price')
             ->formatValueUsing(static fn (int $cents): string => match (true) {
@@ -40,24 +51,38 @@ final class ColumnsDataTable extends AbstractDataTable
                 $cents < 10000 => '€€',
                 default        => '€€€',
             });
+
         yield IconColumn::new('stockIcon', 'In stock')
             ->setField('stock')
             ->icon(static fn (int $stock): Icon => $stock > 0 ? Icon::PackageCheck : Icon::PackageX)
             ->color(static fn (int $stock): string => $stock > 0 ? 'success' : 'danger');
+
         yield TemplateColumn::new('stockLevel', 'Stock level')
             ->setField('stock')
             ->setTemplate('columns/stock_level.html.twig');
+
         yield ChoiceColumn::new('status', 'Status')
             ->setChoices(ProductStatus::class)
             ->renderAsBadges(['active' => 'success', 'draft' => 'warning', 'archived' => 'secondary']);
-        yield BooleanColumn::new('featured', 'Featured')->renderAsSwitch();
+
+        yield BooleanColumn::new('featured', 'Featured')
+            ->renderAsSwitch();
+
         yield EmailColumn::new('supplierEmail', 'Supplier');
-        yield UrlColumn::new('url', 'Shop page')->setDisplayValue('Open')->openInNewTab()->showExternalIcon();
-        yield DateColumn::new('createdAt', 'Added')->relative();
+
+        yield UrlColumn::new('url', 'Shop page')
+            ->setDisplayValue('Open')
+            ->openInNewTab()
+            ->showExternalIcon();
+
+        yield DateColumn::new('createdAt', 'Added')
+            ->relative();
     }
 
     public function configureDataTable(DataTable $table): DataTable
     {
-        return $table->pageLength(10)->scrollX(true);
+        return $table
+            ->pageLength(10)
+            ->scrollX(true);
     }
 }

@@ -81,6 +81,9 @@ What changed:
   ignored
 - incomplete criteria, such as the blank row DataTables sends for a new condition, are still skipped
 - the builder no longer offers the `without` condition, and leaves out non-searchable columns
+- the bundle loads `datatables.net-datetime` with SearchBuilder, which refused to start on a table
+  with a date column without it. Run `composer update` and rebuild your assets; with AssetMapper,
+  run `php bin/console importmap:require datatables.net-datetime` if it is not in your importmap
 
 ### Deprecated APIs
 

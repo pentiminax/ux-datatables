@@ -29,8 +29,14 @@ final class FilteredOrdersDataTable extends AbstractDataTable
     public function configureColumns(): iterable
     {
         yield TextColumn::new('reference', 'Reference');
-        yield TextColumn::new('customer', 'Customer')->setField('customer.name');
-        yield MoneyColumn::new('total', 'Total')->currency('EUR')->storedAsCents();
+
+        yield TextColumn::new('customer', 'Customer')
+            ->setField('customer.name');
+
+        yield MoneyColumn::new('total', 'Total')
+            ->currency('EUR')
+            ->storedAsCents();
+
         yield ChoiceColumn::new('status', 'Status')
             ->setChoices(OrderStatus::class)
             ->renderAsBadges([
@@ -40,31 +46,56 @@ final class FilteredOrdersDataTable extends AbstractDataTable
                 'delivered' => 'success',
                 'cancelled' => 'danger',
             ]);
+
         yield IconColumn::new('express', 'Express')
             ->boolean()
             ->trueIcon(Icon::Zap)
             ->falseIcon(Icon::Minus)
             ->trueColor('warning')
             ->falseColor('secondary');
-        yield DateColumn::new('placedAt', 'Placed at')->setFormat('Y-m-d');
+
+        yield DateColumn::new('placedAt', 'Placed at')
+            ->setFormat('Y-m-d');
     }
 
     public function configureDataTable(DataTable $table): DataTable
     {
-        return $table->serverSide()->processing()->order([['name' => 'placedAt', 'dir' => 'desc']]);
+        return $table
+            ->serverSide()
+            ->processing()
+            ->order([['name' => 'placedAt', 'dir' => 'desc']])
+            // Reference, customer, status and placed at: the total is stored in cents, so a typed amount would mislead.
+            ->searchBuilder(columns: [0, 1, 3, 5]);
     }
 
     public function configureFilters(Filters $filters): Filters
     {
+        $customerFilter = TextFilter::new('customer')
+            ->field('customer.name')
+            ->label('Customer')
+            ->placeholder('Name contains…');
+
+        $statusFilter = ChoiceFilter::new('status')
+            ->label('Status')
+            ->options(OrderStatus::class)
+            ->multiple();
+
+        $placedAtFilter = DateRangeFilter::new('placedAt')
+            ->label('Placed between');
+
+        $expressFilter = TernaryFilter::new('express')
+            ->label('Express shipping')
+            ->values(true, false);
+
+        $largeOrdersFilter = CheckboxFilter::new('large')
+            ->label('Orders over €500')
+            ->query(static fn (QueryBuilder $qb, mixed $value, string $alias) => $qb->andWhere("$alias.total >= 50000"));
+
         return $filters
-            ->add(TextFilter::new('customer')->field('customer.name')->label('Customer')->placeholder('Name contains…'))
-            ->add(ChoiceFilter::new('status')->label('Status')->options(OrderStatus::class)->multiple())
-            ->add(DateRangeFilter::new('placedAt')->label('Placed between'))
-            ->add(TernaryFilter::new('express')->label('Express shipping')->values(true, false))
-            ->add(
-                CheckboxFilter::new('large')
-                    ->label('Orders over €500')
-                    ->query(static fn (QueryBuilder $qb, mixed $value, string $alias) => $qb->andWhere("$alias.total >= 50000"))
-            );
+            ->add($customerFilter)
+            ->add($statusFilter)
+            ->add($placedAtFilter)
+            ->add($expressFilter)
+            ->add($largeOrdersFilter);
     }
 }

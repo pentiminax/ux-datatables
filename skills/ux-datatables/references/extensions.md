@@ -138,8 +138,11 @@ $dataTable->searchBuilder(columns: '*', depthLimit: null, logic: SearchBuilderLo
 ```
 
 Registers `SearchBuilderExtension` and places the `searchBuilder` layout feature. Server-side
-requests are validated strictly (known conditions, depth 5, 50 nodes); an invalid payload disables
-the filter. `filterChanged` is not configurable from PHP.
+requests are validated strictly (known conditions, depth 5, 50 nodes); an invalid payload answers
+HTTP 400. `filterChanged` is not configurable from PHP. The bundle loads `datatables.net-datetime`
+with it (required on a table with a date column), but not its CSS: import
+`datatables.net-datetime/dist/dataTables.dateTime.min.css` (AssetMapper) or
+`datatables.net-datetime/css` (Encore) to style the date picker.
 
 1.3 behavior: an unsupported or malformed criterion answers HTTP 400; an incomplete criterion
 (no value yet) is ignored; the `without` condition is not offered, and `searchable(false)` columns
