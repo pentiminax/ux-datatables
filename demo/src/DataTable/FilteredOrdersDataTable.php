@@ -28,16 +28,16 @@ final class FilteredOrdersDataTable extends AbstractDataTable
 {
     public function configureColumns(): iterable
     {
-        $referenceColumn = TextColumn::new('reference', 'Reference');
+        yield TextColumn::new('reference', 'Reference');
 
-        $customerColumn = TextColumn::new('customer', 'Customer')
+        yield TextColumn::new('customer', 'Customer')
             ->setField('customer.name');
 
-        $totalColumn = MoneyColumn::new('total', 'Total')
+        yield MoneyColumn::new('total', 'Total')
             ->currency('EUR')
             ->storedAsCents();
 
-        $statusColumn = ChoiceColumn::new('status', 'Status')
+        yield ChoiceColumn::new('status', 'Status')
             ->setChoices(OrderStatus::class)
             ->renderAsBadges([
                 'pending'   => 'warning',
@@ -47,22 +47,15 @@ final class FilteredOrdersDataTable extends AbstractDataTable
                 'cancelled' => 'danger',
             ]);
 
-        $expressColumn = IconColumn::new('express', 'Express')
+        yield IconColumn::new('express', 'Express')
             ->boolean()
             ->trueIcon(Icon::Zap)
             ->falseIcon(Icon::Minus)
             ->trueColor('warning')
             ->falseColor('secondary');
 
-        $placedAtColumn = DateColumn::new('placedAt', 'Placed at')
+        yield DateColumn::new('placedAt', 'Placed at')
             ->setFormat('Y-m-d');
-
-        yield $referenceColumn;
-        yield $customerColumn;
-        yield $totalColumn;
-        yield $statusColumn;
-        yield $expressColumn;
-        yield $placedAtColumn;
     }
 
     public function configureDataTable(DataTable $table): DataTable
