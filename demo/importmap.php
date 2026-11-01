@@ -145,4 +145,6 @@ return [
     'highlight.js/lib/languages/php' => ['version' => '11.12.0'],
     'highlight.js/lib/languages/twig' => ['version' => '11.12.0'],
     'highlight.js/lib/languages/javascript' => ['version' => '11.12.0'],
+    'datatables.net-datetime' => ['version' => '2.1.2'],
+    'datatables.net-datetime/dist/dataTables.dateTime.min.css' => ['version' => '2.1.2', 'type' => 'css'],
 ];
