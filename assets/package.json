@@ -155,7 +155,7 @@
     "datatables.net-select-dt": "^4.1.1",
     "jszip": "^3.10.2",
     "lucide": "^1.52.0",
-    "pdfmake": "^0.3.11"
+    "pdfmake": "^0.3.13"
   },
   "scripts": {
     "build": "tsc && mkdir -p dist/styles && cp src/styles/*.css dist/styles/",
@@ -224,7 +224,7 @@
     "jsdom": "^30.1.2",
     "jszip": "^3.10.2",
     "lucide": "^1.61.0",
-    "pdfmake": "^0.3.11",
+    "pdfmake": "^0.3.13",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
   }
