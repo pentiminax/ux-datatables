@@ -28,7 +28,7 @@ use Symfony\Component\Routing\RouterInterface;
 #[CoversClass(ApiResourceMercureMetadataResolver::class)]
 final class ApiResourceMercureMetadataResolverTest extends TestCase
 {
-    private const string ENTITY_CLASS = 'App\Entity\Book';
+    private const ENTITY_CLASS = 'App\Entity\Book';
 
     /**
      * @param string[] $expectedTopics

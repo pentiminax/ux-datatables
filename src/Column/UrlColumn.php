@@ -9,16 +9,16 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 class UrlColumn extends AbstractColumn
 {
-    public const string OPTION_IS_URL                 = 'isUrl';
-    public const string OPTION_TARGET                 = 'target';
-    public const string OPTION_DISPLAY_VALUE          = 'displayValue';
-    public const string OPTION_SHOW_EXTERNAL_ICON     = 'showExternalIcon';
-    public const string OPTION_DEFAULT_PROTOCOL       = 'defaultProtocol';
-    public const string OPTION_ALLOWED_PROTOCOLS      = 'allowedProtocols';
-    public const string OPTION_RENDER_EMPTY_AS_ANCHOR = 'renderEmptyAsAnchor';
-    public const string OPTION_HAS_URL_RESOLVER       = 'hasUrlResolver';
+    public const OPTION_IS_URL                 = 'isUrl';
+    public const OPTION_TARGET                 = 'target';
+    public const OPTION_DISPLAY_VALUE          = 'displayValue';
+    public const OPTION_SHOW_EXTERNAL_ICON     = 'showExternalIcon';
+    public const OPTION_DEFAULT_PROTOCOL       = 'defaultProtocol';
+    public const OPTION_ALLOWED_PROTOCOLS      = 'allowedProtocols';
+    public const OPTION_RENDER_EMPTY_AS_ANCHOR = 'renderEmptyAsAnchor';
+    public const OPTION_HAS_URL_RESOLVER       = 'hasUrlResolver';
 
-    private const array UNSAFE_PROTOCOLS = ['javascript', 'data', 'vbscript', 'file'];
+    private const UNSAFE_PROTOCOLS = ['javascript', 'data', 'vbscript', 'file'];
 
     private ?string $url               = null;
     private ?\Closure $urlResolver     = null;

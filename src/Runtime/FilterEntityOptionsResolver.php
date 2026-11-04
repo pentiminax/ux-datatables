@@ -14,7 +14,7 @@ use Pentiminax\UX\DataTables\Model\DataTable;
 
 final readonly class FilterEntityOptionsResolver
 {
-    private const array DEFAULT_LABEL_PATHS = ['display', 'name', 'label', 'title'];
+    private const DEFAULT_LABEL_PATHS = ['display', 'name', 'label', 'title'];
 
     public function __construct(
         private ?ManagerRegistry $doctrine = null,

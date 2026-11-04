@@ -46,7 +46,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 final class AjaxEditFormControllerTest extends TestCase
 {
     use BuildsUnscopedRowScopeGuard;
-    private const string TOKEN_SECRET = 'test-secret';
+    private const TOKEN_SECRET = 'test-secret';
 
     #[Test]
     public function it_returns_rendered_html_when_the_entity_exists(): void

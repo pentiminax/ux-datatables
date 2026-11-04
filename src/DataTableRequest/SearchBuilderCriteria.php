@@ -12,16 +12,16 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  */
 final class SearchBuilderCriteria
 {
-    public const int MAX_DEPTH = 5;
+    public const MAX_DEPTH = 5;
 
-    public const int MAX_NODES = 50;
+    public const MAX_NODES = 50;
 
-    private const array CONDITIONS = [
+    private const CONDITIONS = [
         '=', '!=', '<', '<=', '>=', '>', 'between', '!between', 'null', '!null',
         'starts', '!starts', 'contains', '!contains', 'ends', '!ends',
     ];
 
-    private const int MAX_STRING = 255;
+    private const MAX_STRING = 255;
 
     /**
      * @return array{logic: string, criteria: list<array<string, mixed>>}|null null when absent or when every criterion is incomplete

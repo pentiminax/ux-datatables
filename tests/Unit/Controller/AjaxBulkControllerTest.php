@@ -49,7 +49,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(AjaxBulkController::class)]
 final class AjaxBulkControllerTest extends TestCase
 {
-    private const string TOKEN_SECRET = 'test-secret';
+    private const TOKEN_SECRET = 'test-secret';
 
     /** @var list<object> */
     private array $touched = [];

@@ -28,7 +28,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[CoversClass(BooleanMutationContextResolver::class)]
 final class BooleanMutationContextResolverTest extends TestCase
 {
-    private const string TOKEN_SECRET = 'test-secret';
+    private const TOKEN_SECRET = 'test-secret';
 
     /**
      * @return iterable<string, array{class-string<AbstractDataTable>, string, class-string}>

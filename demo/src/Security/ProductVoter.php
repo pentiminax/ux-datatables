@@ -20,7 +20,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
  */
 final class ProductVoter extends Voter
 {
-    private const array ATTRIBUTES = [
+    private const ATTRIBUTES = [
         Permission::DT_EDIT_ROW,
         Permission::DT_DELETE_ROW,
         Permission::DT_VIEW_ROW_DETAILS,

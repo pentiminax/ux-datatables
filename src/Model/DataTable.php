@@ -35,14 +35,14 @@ use Symfony\Component\ExpressionLanguage\Expression;
 
 class DataTable
 {
-    public const int MIN_POLL_INTERVAL = 2;
+    public const MIN_POLL_INTERVAL = 2;
 
-    public const int MAX_POLL_INTERVAL = 86400;
+    public const MAX_POLL_INTERVAL = 86400;
 
     /**
      * The slots DataTables 2 fills when `layout` does not mention them.
      */
-    private const array DEFAULT_LAYOUT = [
+    private const DEFAULT_LAYOUT = [
         'topStart'    => Feature::PAGE_LENGTH,
         'topEnd'      => Feature::SEARCH,
         'bottomStart' => Feature::INFO,

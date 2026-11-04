@@ -24,9 +24,9 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  */
 final class SearchBuilderFilter implements QueryFilterInterface
 {
-    private const string NO_MATCH = '1 = 0';
+    private const NO_MATCH = '1 = 0';
 
-    private const array OPERATORS = ['=' => '=', '<' => '<', '<=' => '<=', '>=' => '>=', '>' => '>'];
+    private const OPERATORS = ['=' => '=', '<' => '<', '<=' => '<=', '>=' => '>=', '>' => '>'];
 
     public function apply(QueryBuilder $qb, QueryFilterContext $context): void
     {

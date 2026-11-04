@@ -9,7 +9,7 @@ use Twig\Environment;
 
 class EditModalRenderer
 {
-    public const string DEFAULT_TITLE = 'edit_modal.default_title';
+    public const DEFAULT_TITLE = 'edit_modal.default_title';
 
     public function __construct(
         private readonly Environment $twig,

@@ -54,7 +54,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class AjaxEditControllerTest extends TestCase
 {
     use BuildsUnscopedRowScopeGuard;
-    private const string TOKEN_SECRET = 'test-secret';
+    private const TOKEN_SECRET = 'test-secret';
 
     /**
      * @return iterable<string, array{bool, int|string, string}>

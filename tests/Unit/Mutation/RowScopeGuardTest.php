@@ -69,7 +69,7 @@ final class RowScopeGuardTest extends TestCase
 {
     use BuildsEntityManager;
 
-    private const string SECRET = 'test-secret';
+    private const SECRET = 'test-secret';
 
     private EntityManagerInterface $em;
     private AjaxDataTableRegistry $registry;

@@ -55,7 +55,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class AjaxDeleteControllerTest extends TestCase
 {
     use BuildsUnscopedRowScopeGuard;
-    private const string TOKEN_SECRET = 'test-secret';
+    private const TOKEN_SECRET = 'test-secret';
 
     #[Test]
     public function it_removes_the_entity_and_returns_success(): void

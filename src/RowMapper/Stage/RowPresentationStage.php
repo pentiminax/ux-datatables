@@ -13,7 +13,7 @@ use Pentiminax\UX\DataTables\RowMapper\RowContext;
  */
 final class RowPresentationStage implements RowStageInterface
 {
-    public const string RECORD_URL_ATTRIBUTE = 'data-record-url';
+    public const RECORD_URL_ATTRIBUTE = 'data-record-url';
 
     public function __construct(
         private readonly ?\Closure $rowClass = null,

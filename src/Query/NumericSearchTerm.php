@@ -22,7 +22,7 @@ final class NumericSearchTerm
      *
      * @var array<string, array{string, string}>
      */
-    private const array INTEGER_MAGNITUDES = [
+    private const INTEGER_MAGNITUDES = [
         'bigint'   => ['9223372036854775808', '9223372036854775807'],
         'integer'  => ['2147483648', '2147483647'],
         'smallint' => ['32768', '32767'],

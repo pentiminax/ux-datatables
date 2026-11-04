@@ -11,9 +11,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 class ChoiceColumn extends AbstractColumn
 {
-    public const string OPTION_CHOICES               = 'choices';
-    public const string OPTION_RENDER_AS_BADGES      = 'renderAsBadges';
-    public const string OPTION_DEFAULT_BADGE_VARIANT = 'defaultBadgeVariant';
+    public const OPTION_CHOICES               = 'choices';
+    public const OPTION_RENDER_AS_BADGES      = 'renderAsBadges';
+    public const OPTION_DEFAULT_BADGE_VARIANT = 'defaultBadgeVariant';
 
     /**
      * Semantic badge color variants mapped by the frontend column style adapters
@@ -21,7 +21,7 @@ class ChoiceColumn extends AbstractColumn
      *
      * @var list<string>
      */
-    public const array VALID_BADGE_TYPES = ['success', 'warning', 'danger', 'info', 'primary', 'secondary', 'light', 'dark'];
+    public const VALID_BADGE_TYPES = ['success', 'warning', 'danger', 'info', 'primary', 'secondary', 'light', 'dark'];
 
     /** @var array<string, TranslatableInterface> value => translatable enum case */
     private array $translatableCases = [];

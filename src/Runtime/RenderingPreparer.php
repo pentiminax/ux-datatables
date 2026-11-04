@@ -35,7 +35,7 @@ final class RenderingPreparer
      *
      * @var array<string, string>
      */
-    private const array BULK_LABEL_KEYS = [
+    private const BULK_LABEL_KEYS = [
         'trigger'             => 'bulk.bar.trigger',
         'selected'            => 'bulk.bar.selected',
         'selectAllMatching'   => 'bulk.bar.selectAllMatching',
@@ -54,7 +54,7 @@ final class RenderingPreparer
      *
      * @var array<string, string>
      */
-    private const array ACTION_LABEL_KEYS = [
+    private const ACTION_LABEL_KEYS = [
         'failed'    => 'action.row.failed',
         'forbidden' => 'action.row.forbidden',
         'confirm'   => 'action.row.confirm',
@@ -66,7 +66,7 @@ final class RenderingPreparer
      *
      * @var array<string, string>
      */
-    private const array EMPTY_STATE_LABEL_KEYS = [
+    private const EMPTY_STATE_LABEL_KEYS = [
         'noResults'     => 'empty.noResults',
         'noResultsHint' => 'empty.noResultsHint',
         'resetFilters'  => 'empty.resetFilters',

@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(DataSourceMode::class)]
 final class DataSourceModeTest extends TestCase
 {
-    private const string NOT_INSTALLED = 'not installed';
+    private const NOT_INSTALLED = 'not installed';
 
     /**
      * @param \Closure(DataTable): DataTable $configure

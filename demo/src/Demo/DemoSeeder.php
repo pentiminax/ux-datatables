@@ -22,10 +22,10 @@ use Faker\Generator;
  */
 final readonly class DemoSeeder
 {
-    public const int CUSTOMERS = 500;
-    public const int ORDERS    = 10_000;
+    public const CUSTOMERS = 500;
+    public const ORDERS    = 10_000;
 
-    private const array PRODUCTS = [
+    private const PRODUCTS = [
         'audio'   => ['Headphones', 'Speaker', 'Turntable', 'Earbuds', 'Soundbar'],
         'home'    => ['Table Lamp', 'Wool Throw', 'Ceramic Vase', 'Wall Clock', 'Round Mirror'],
         'office'  => ['Desk Organizer', 'Notebook', 'Task Chair', 'Monitor Stand', 'Pen Set'],
@@ -34,7 +34,7 @@ final readonly class DemoSeeder
         'travel'  => ['Duffel Bag', 'Passport Holder', 'Packing Cubes', 'Neck Pillow', 'Carry-on'],
     ];
 
-    private const array LINES = ['Nordic', 'Atlas'];
+    private const LINES = ['Nordic', 'Atlas'];
 
     public function __construct(
         private EntityManagerInterface $entityManager,

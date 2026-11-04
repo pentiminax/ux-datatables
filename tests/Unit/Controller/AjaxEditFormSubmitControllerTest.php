@@ -57,7 +57,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class AjaxEditFormSubmitControllerTest extends TestCase
 {
     use BuildsUnscopedRowScopeGuard;
-    private const string TOKEN_SECRET = 'test-secret';
+    private const TOKEN_SECRET = 'test-secret';
 
     #[Test]
     #[TestWith([true, null], 'valid form flushes and reports success')]

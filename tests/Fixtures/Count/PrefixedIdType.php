@@ -13,7 +13,7 @@ use Doctrine\DBAL\Types\Type;
  */
 final class PrefixedIdType extends Type
 {
-    public const string NAME = 'dt_prefixed_id';
+    public const NAME = 'dt_prefixed_id';
 
     public function getName(): string
     {

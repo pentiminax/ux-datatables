@@ -47,7 +47,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class MutationExceptionHandlingTest extends TestCase
 {
     use BuildsUnscopedRowScopeGuard;
-    private const string TOKEN_SECRET = 'test-secret';
+    private const TOKEN_SECRET = 'test-secret';
 
     #[Test]
     public function it_maps_a_delete_not_found_exception_to_a_json_404_response(): void

@@ -42,7 +42,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 #[CoversClass(ApiPlatformCollectionProvider::class)]
 final class ApiPlatformCollectionProviderTest extends TestCase
 {
-    private const string ENTITY_CLASS = 'App\Entity\Book';
+    private const ENTITY_CLASS = 'App\Entity\Book';
 
     #[Test]
     public function it_supports_only_configured_filters_among_the_data_source_features(): void

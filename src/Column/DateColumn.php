@@ -8,9 +8,9 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class DateColumn extends AbstractColumn
 {
-    public const string DEFAULT_DATE_FORMAT = 'Y-m-d';
-    public const string OPTION_DATE_FORMAT  = 'dateFormat';
-    public const string OPTION_RELATIVE     = 'relative';
+    public const DEFAULT_DATE_FORMAT = 'Y-m-d';
+    public const OPTION_DATE_FORMAT  = 'dateFormat';
+    public const OPTION_RELATIVE     = 'relative';
 
     public static function new(string $name, string $title = ''): static
     {

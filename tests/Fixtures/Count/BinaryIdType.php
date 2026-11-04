@@ -13,7 +13,7 @@ use Doctrine\DBAL\Types\Type;
  */
 final class BinaryIdType extends Type
 {
-    public const string NAME = 'dt_binary_id';
+    public const NAME = 'dt_binary_id';
 
     public function getName(): string
     {

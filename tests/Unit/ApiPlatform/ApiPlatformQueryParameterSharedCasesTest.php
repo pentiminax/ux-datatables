@@ -29,7 +29,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ApiPlatformQueryParameterFactory::class)]
 final class ApiPlatformQueryParameterSharedCasesTest extends TestCase
 {
-    private const string FIXTURE = __DIR__.'/../../Fixtures/api-platform-query-parameters.json';
+    private const FIXTURE = __DIR__.'/../../Fixtures/api-platform-query-parameters.json';
 
     #[Test]
     #[DataProvider('provideSharedCases')]

@@ -19,7 +19,7 @@ final class TemplateColumnRenderer
      * `entity` stays reserved so a template parameter cannot collide with the `entity` variable
      * exposed by detail rows and the edit modal.
      */
-    public const array RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row', 'source', 'payload'];
+    public const RESERVED_CONTEXT_KEYS = ['entity', 'data', 'column', 'row', 'source', 'payload'];
 
     public function __construct(
         private readonly ?Environment $twig = null,
