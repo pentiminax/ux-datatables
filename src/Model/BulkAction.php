@@ -20,7 +20,7 @@ use Symfony\Component\ExpressionLanguage\Expression;
  */
 final class BulkAction implements \JsonSerializable, ExecutableActionInterface
 {
-    public const int DEFAULT_CHUNK_SIZE = 250;
+    public const DEFAULT_CHUNK_SIZE = 250;
 
     private ?string $icon                        = null;
     private ?string $lucideIcon                  = null;

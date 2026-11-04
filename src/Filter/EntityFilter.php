@@ -27,7 +27,7 @@ final class EntityFilter extends AbstractFilter
 {
     use AppliesChoiceCondition;
 
-    public const int DEFAULT_LIMIT = 200;
+    public const DEFAULT_LIMIT = 200;
 
     /** @var class-string|null */
     private ?string $entityClass = null;

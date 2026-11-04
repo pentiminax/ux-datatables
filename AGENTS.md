@@ -8,7 +8,7 @@ UX DataTables is a third-party Symfony UX bundle that integrates DataTables.net 
 applications. It supports client-side tables, Doctrine-backed server-side processing, Ajax actions,
 optional API Platform column discovery, and optional Mercure updates.
 
-**Requirements:** PHP 8.3+, Symfony 7.x/8.x, Symfony StimulusBundle 2.x/3.x
+**Requirements:** PHP 8.2+, Symfony 7.x/8.x, Symfony StimulusBundle 2.x/3.x
 
 **PHP namespace:** `Pentiminax\UX\DataTables\` maps to `src/`
 
@@ -169,7 +169,8 @@ Symfony conventions, strict types, single quotes, ordered imports, native functi
 snake_case PHPUnit method names.
 
 - Add `declare(strict_types=1);` to PHP files.
-- Use PHP 8.3+ syntax and native types. Prefer constructor property promotion where it improves
+- Use PHP 8.2+ syntax and native types. Do not use PHP 8.3+ features (for example typed class
+  constants) while v1 supports PHP 8.2. Prefer constructor property promotion where it improves
   clarity.
 - Register bundle services explicitly in PHP configuration files; do not introduce implicit
   autowiring assumptions.

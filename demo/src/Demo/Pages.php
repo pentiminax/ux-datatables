@@ -21,7 +21,7 @@ use App\DataTable\ShowcaseProductsDataTable;
  */
 final class Pages
 {
-    public const string DOCS = 'https://pentiminax.github.io/ux-datatables/';
+    public const DOCS = 'https://pentiminax.github.io/ux-datatables/';
 
     /**
      * @return list<Page>

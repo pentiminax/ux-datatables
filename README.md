@@ -13,7 +13,7 @@ library in Symfony applications.
 [1]: https://datatables.net
 
 ## Requirements
-- PHP 8.3 or higher
+- PHP 8.2 or higher
 - Symfony StimulusBundle (installed through Symfony UX)
 - Composer
 

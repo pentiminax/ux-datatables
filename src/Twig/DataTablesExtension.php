@@ -27,9 +27,9 @@ class DataTablesExtension extends AbstractExtension
      * serialized view. {@see \Pentiminax\UX\DataTables\Test\DataTableView} reads the attribute,
      * so both names are part of the bundle's public contract.
      */
-    public const string CONTROLLER_NAME = '@pentiminax/ux-datatables/datatable';
+    public const CONTROLLER_NAME = '@pentiminax/ux-datatables/datatable';
 
-    public const string VIEW_ATTRIBUTE = 'data-pentiminax--ux-datatables--datatable-view-value';
+    public const VIEW_ATTRIBUTE = 'data-pentiminax--ux-datatables--datatable-view-value';
 
     public function __construct(
         private readonly StimulusHelper $stimulus,

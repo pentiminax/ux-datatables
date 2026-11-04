@@ -28,7 +28,7 @@ final class ColumnToFormTypeMapper
      * MoneyType converts through floats, exact for integers up to 2^53: more than eight decimals
      * would round the stored integer silently.
      */
-    private const int MAX_MONEY_FORM_DECIMALS = 8;
+    private const MAX_MONEY_FORM_DECIMALS = 8;
 
     private readonly PropertyAccessorInterface $propertyAccessor;
 

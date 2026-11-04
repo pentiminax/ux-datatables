@@ -9,7 +9,7 @@ use Pentiminax\UX\DataTables\Contracts\RowStageInterface;
 
 final class IconColumnResolutionStage implements RowStageInterface
 {
-    public const string ROW_ICONS_KEY = '__ux_datatables_icons';
+    public const ROW_ICONS_KEY = '__ux_datatables_icons';
 
     public function process(array $mappedRow, mixed $originalRow, array $columns): array
     {

@@ -15,7 +15,7 @@ use Symfony\Component\TypeInfo\Type;
 
 class ColumnAutoDetector
 {
-    private const array BOOLEAN_PREFIXES = ['is', 'has'];
+    private const BOOLEAN_PREFIXES = ['is', 'has'];
 
     public function __construct(
         private readonly ResourceMetadataCollectionFactoryInterface $resourceMetadataFactory,

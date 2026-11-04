@@ -28,9 +28,9 @@ use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
 class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectingDataProviderInterface, ScopedIdentifierProviderInterface, StreamingDataProviderInterface
 {
-    private const int IN_SCOPE_CHUNK_SIZE = 500;
+    private const IN_SCOPE_CHUNK_SIZE = 500;
 
-    private const array AGGREGATABLE_TYPES = ['string', 'text', 'integer', 'smallint', 'bigint', 'float', 'decimal', 'date', 'date_immutable', 'datetime', 'datetime_immutable', 'time', 'time_immutable'];
+    private const AGGREGATABLE_TYPES = ['string', 'text', 'integer', 'smallint', 'bigint', 'float', 'decimal', 'date', 'date_immutable', 'datetime', 'datetime_immutable', 'time', 'time_immutable'];
 
     public function __construct(
         private readonly EntityManagerInterface $em,

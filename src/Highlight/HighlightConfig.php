@@ -14,14 +14,14 @@ final class HighlightConfig implements \JsonSerializable
      * Row data key holding the identifier the client diffs rows on. Also fed to the DataTables
      * `rowId` option, so each `<tr>` carries it as its DOM id.
      */
-    public const string ROW_ID_KEY = 'DT_RowId';
+    public const ROW_ID_KEY = 'DT_RowId';
 
     /**
      * Property the row identifier is read from unless the table configures another one. Emitted to
      * the client only when it differs, since API Platform rows carry no server-side row id and the
      * frontend adapter has to add one itself.
      */
-    public const string DEFAULT_ID_FIELD = 'id';
+    public const DEFAULT_ID_FIELD = 'id';
 
     /**
      * @var string[]

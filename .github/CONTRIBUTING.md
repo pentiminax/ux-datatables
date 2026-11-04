@@ -58,7 +58,7 @@ UX DataTables aims to keep its public API predictable and backward compatible, s
 
 Requirements:
 
-- PHP 8.3 or later;
+- PHP 8.2 or later;
 - Composer;
 - Node.js 22 or later for frontend development;
 - npm.
@@ -128,7 +128,7 @@ composer fix
 
 Review the resulting diff before committing.
 
-The CI currently tests supported PHP code against PHP 8.3, 8.4, and 8.5.
+The CI currently tests supported PHP code against PHP 8.2, 8.3, 8.4, and 8.5.
 
 ## Frontend Changes
 

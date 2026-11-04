@@ -9,16 +9,16 @@ use Pentiminax\UX\DataTables\Enum\ExportFormat;
 
 final class Button implements \JsonSerializable
 {
-    public const string SERVER_EXPORT_ACTION = 'ux:export';
+    public const SERVER_EXPORT_ACTION = 'ux:export';
 
-    private const string DEFAULT_EXPORT_COLUMNS = '.dt-exportable:visible';
+    private const DEFAULT_EXPORT_COLUMNS = '.dt-exportable:visible';
 
     /**
      * A server-side export button carries no `extend`, so DataTables never adds the format class
      * its own HTML5 buttons get. Writing it here keeps both kinds of export button stylable by the
      * same selector; an app-provided `className()` wins.
      */
-    private const string EXPORT_MARKER_CLASS_PREFIX = 'buttons-';
+    private const EXPORT_MARKER_CLASS_PREFIX = 'buttons-';
 
     /**
      * Button types that never export data: no default `exportOptions` is injected for these.

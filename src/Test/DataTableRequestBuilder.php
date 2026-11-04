@@ -20,7 +20,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 final class DataTableRequestBuilder
 {
-    private const string ROUTE = 'ux_datatables_ajax_data';
+    private const ROUTE = 'ux_datatables_ajax_data';
 
     private int $draw = 1;
 

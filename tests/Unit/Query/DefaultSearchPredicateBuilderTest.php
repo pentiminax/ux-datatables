@@ -26,9 +26,9 @@ final class DefaultSearchPredicateBuilderTest extends TestCase
 {
     use BuildsTypedFieldQueryBuilder;
 
-    private const string UUID = '018f2c3e-1234-7abc-9def-0123456789ab';
+    private const UUID = '018f2c3e-1234-7abc-9def-0123456789ab';
 
-    private const string ULID = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
+    private const ULID = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
 
     /**
      * Each case gives the configured column, the Doctrine type of its field, the searched

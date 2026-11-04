@@ -6,7 +6,7 @@ namespace Pentiminax\UX\DataTables\Enum;
 
 enum Language: string
 {
-    private const string DATATABLES_VERSION = '3.0.1';
+    private const DATATABLES_VERSION = '3.0.1';
 
     case AF      = 'af';
     case AM      = 'am';

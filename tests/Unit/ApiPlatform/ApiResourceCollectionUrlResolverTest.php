@@ -22,7 +22,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ApiResourceCollectionUrlResolver::class)]
 final class ApiResourceCollectionUrlResolverTest extends TestCase
 {
-    private const string ENTITY_CLASS = 'App\Entity\Book';
+    private const ENTITY_CLASS = 'App\Entity\Book';
 
     #[Test]
     #[DataProvider('provideCollectionOperations')]

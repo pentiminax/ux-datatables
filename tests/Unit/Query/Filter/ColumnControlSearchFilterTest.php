@@ -34,9 +34,9 @@ final class ColumnControlSearchFilterTest extends TestCase
     use BuildsQueryFilterContext;
     use BuildsTypedFieldQueryBuilder;
 
-    private const string UUID = '018f2c3e-1234-7abc-9def-0123456789ab';
+    private const UUID = '018f2c3e-1234-7abc-9def-0123456789ab';
 
-    private const string ULID = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
+    private const ULID = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
 
     #[Test]
     public function it_skips_a_list_column_control_when_field_requires_an_explicit_scalar_path(): void

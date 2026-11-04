@@ -8,12 +8,12 @@ use Pentiminax\UX\DataTables\Enum\ColumnType;
 
 class BooleanColumn extends AbstractColumn
 {
-    public const string OPTION_RENDER_AS_SWITCH = 'renderAsSwitch';
-    public const string OPTION_DEFAULT_STATE    = 'defaultState';
-    public const string OPTION_TOGGLE_METHOD    = 'toggleMethod';
-    public const string OPTION_TOGGLE_ID_FIELD  = 'toggleIdField';
-    public const string OPTION_ENTITY_CLASS     = 'entityClass';
-    public const string OPTION_TOGGLE_FIELD     = 'toggleField';
+    public const OPTION_RENDER_AS_SWITCH = 'renderAsSwitch';
+    public const OPTION_DEFAULT_STATE    = 'defaultState';
+    public const OPTION_TOGGLE_METHOD    = 'toggleMethod';
+    public const OPTION_TOGGLE_ID_FIELD  = 'toggleIdField';
+    public const OPTION_ENTITY_CLASS     = 'entityClass';
+    public const OPTION_TOGGLE_FIELD     = 'toggleField';
 
     public static function new(string $name, string $title = ''): static
     {

@@ -11,7 +11,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class UrlColumnDataResolver
 {
-    public const string ROW_URLS_KEY = '__ux_datatables_urls';
+    public const ROW_URLS_KEY = '__ux_datatables_urls';
 
     public function __construct(
         private readonly ?UrlGeneratorInterface $urlGenerator = null,

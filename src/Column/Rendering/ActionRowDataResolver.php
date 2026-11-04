@@ -22,8 +22,8 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 final class ActionRowDataResolver
 {
-    public const string ROW_ACTIONS_KEY    = '__ux_datatables_actions';
-    public const string DENIED_ACTIONS_KEY = '__ux_datatables_denied_actions';
+    public const ROW_ACTIONS_KEY    = '__ux_datatables_actions';
+    public const DENIED_ACTIONS_KEY = '__ux_datatables_denied_actions';
 
     private readonly AuthorizationChecker $permissionChecker;
     private readonly PropertyAccessorInterface $propertyAccessor;

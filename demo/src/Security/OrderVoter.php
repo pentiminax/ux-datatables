@@ -19,7 +19,7 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
  */
 final class OrderVoter extends Voter
 {
-    public const string CANCEL = 'ORDER_CANCEL';
+    public const CANCEL = 'ORDER_CANCEL';
 
     protected function supports(string $attribute, mixed $subject): bool
     {

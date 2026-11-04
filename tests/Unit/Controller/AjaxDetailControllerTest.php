@@ -36,7 +36,7 @@ use Twig\Loader\ArrayLoader;
 final class AjaxDetailControllerTest extends TestCase
 {
     use BuildsUnscopedRowScopeGuard;
-    private const string TOKEN_SECRET = 'test-secret';
+    private const TOKEN_SECRET = 'test-secret';
 
     #[Test]
     public function it_returns_the_rendered_detail_row(): void

@@ -37,7 +37,7 @@ final class SearchBuilderFilterTest extends TestCase
     use BuildsEntityManager;
     use BuildsQueryFilterContext;
 
-    private const array ALL = ['Alice', 'Bob', 'Alina', 'Carl'];
+    private const ALL = ['Alice', 'Bob', 'Alina', 'Carl'];
 
     private EntityManagerInterface $em;
 

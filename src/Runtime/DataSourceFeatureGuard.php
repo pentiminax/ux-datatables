@@ -29,7 +29,7 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 final class DataSourceFeatureGuard
 {
     /** Features an API Platform collection cannot carry, whether the browser or the server reads it. */
-    private const array API_PLATFORM_UNSUPPORTED = [
+    private const API_PLATFORM_UNSUPPORTED = [
         DataSourceFeature::SearchBuilder,
         DataSourceFeature::ColumnControl,
         DataSourceFeature::Summaries,

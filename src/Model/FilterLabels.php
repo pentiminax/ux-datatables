@@ -8,12 +8,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class FilterLabels implements \JsonSerializable
 {
-    public const string DOMAIN = 'DataTables';
+    public const DOMAIN = 'DataTables';
 
     /**
      * @var array<string, string>
      */
-    private const array DEFAULT_KEYS = [
+    private const DEFAULT_KEYS = [
         'title' => 'filter.bar.title',
         'reset' => 'filter.bar.reset',
         'apply' => 'filter.bar.apply',
