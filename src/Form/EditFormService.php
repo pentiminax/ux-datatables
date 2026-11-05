@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Form;
 
 use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
+use Pentiminax\UX\DataTables\Ajax\AuthorizedRow;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
@@ -39,8 +40,21 @@ final class EditFormService
         $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
 
+    /**
+     * @internal
+     */
+    public function renderForm(AuthorizedRow $row): AjaxActionResult
+    {
+        return $this->renderContext($row->table, $row->context);
+    }
+
+    /**
+     * @deprecated since 1.5, use renderForm() instead. Removed in 2.0.
+     */
     public function handleView(ResolvedDataTable $dataTable, int|string $id): AjaxActionResult
     {
+        trigger_deprecation('pentiminax/ux-datatables', '1.5', 'The "%s()" method is deprecated, use "renderForm()" instead.', __METHOD__);
+
         $action = $this->resolveEditAction($dataTable);
         if (null === $action) {
             return AjaxActionResult::forbidden();
@@ -57,11 +71,7 @@ final class EditFormService
             return AjaxActionResult::forbidden();
         }
 
-        return AjaxActionResult::success($this->renderer->render($this->createRenderRequest(
-            entity: $context->entity,
-            form: $this->buildForm($dataTable, $context),
-            dataTableClass: $dataTable->dataTableClass,
-        )));
+        return $this->renderContext($dataTable, $context);
     }
 
     /**
@@ -111,6 +121,15 @@ final class EditFormService
         ]);
 
         return AjaxActionResult::success();
+    }
+
+    private function renderContext(ResolvedDataTable $dataTable, MutationContext $context): AjaxActionResult
+    {
+        return AjaxActionResult::success($this->renderer->render($this->createRenderRequest(
+            entity: $context->entity,
+            form: $this->buildForm($dataTable, $context),
+            dataTableClass: $dataTable->dataTableClass,
+        )));
     }
 
     private function buildForm(ResolvedDataTable $dataTable, MutationContext $context): FormInterface

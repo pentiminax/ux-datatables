@@ -38,6 +38,7 @@ use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestWith;
@@ -63,10 +64,22 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 final class EditFormServiceTest extends TestCase
 {
     use BuildsUnscopedRowScopeGuard;
+    use CollectsDeprecations;
     /**
      * The topics the injected topic resolver produces.
      */
     private const TOPICS = ['/topic/42'];
+
+    #[Test]
+    public function it_deprecates_handle_view_in_favor_of_render_form(): void
+    {
+        $registry = $this->createStub(ManagerRegistry::class);
+
+        $deprecations = $this->deprecationsOf(fn () => $this->handleWithoutFormCollaborators(handler: 'view', registry: $registry));
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('renderForm()', $deprecations[0]);
+    }
 
     #[Test]
     #[TestWith(['view'])]
