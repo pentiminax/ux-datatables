@@ -29,6 +29,7 @@ use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Security\SecurityVoter;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -51,6 +52,8 @@ use Symfony\Component\Security\Core\Authorization\Strategy\AffirmativeStrategy;
 #[CoversClass(EntityMutator::class)]
 final class EntityMutatorTest extends TestCase
 {
+    use CollectsDeprecations;
+
     /**
      * The topics the injected topic resolver produces.
      */
@@ -82,6 +85,20 @@ final class EntityMutatorTest extends TestCase
 
         $this->mutator($manager, $publisher, topicResolver: $topicResolver)
             ->delete(EntityMutatorFixture::class, 5, self::DATA_TABLE_CLASS, Action::delete());
+    }
+
+    #[Test]
+    public function it_deprecates_delete_in_favor_of_delete_row(): void
+    {
+        $manager = $this->managerReturning(new EntityMutatorFixture(), 5);
+        $mutator = $this->mutator($manager, $this->createStub(MercurePublisherInterface::class));
+
+        $deprecations = $this->deprecationsOf(
+            static fn () => $mutator->delete(EntityMutatorFixture::class, 5, self::DATA_TABLE_CLASS, Action::delete())
+        );
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('deleteRow()', $deprecations[0]);
     }
 
     #[Test]

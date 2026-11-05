@@ -25,7 +25,7 @@ final class AjaxControllersSecurityGuardTest extends TestCase
 
         foreach ($files as $file) {
             self::assertMatchesRegularExpression(
-                '/(registry->(get|resolveAction)|contextResolver->resolve)\(/',
+                '/(registry->(get|resolveAction)|contextResolver->resolve|gate->authorize)\(/',
                 (string) file_get_contents($file),
                 basename($file).' must resolve its table from a signed token.'
             );

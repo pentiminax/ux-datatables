@@ -37,6 +37,7 @@ use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -54,6 +55,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(AjaxDeleteController::class)]
 final class AjaxDeleteControllerTest extends TestCase
 {
+    use BuildsRowActionGate;
     use BuildsUnscopedRowScopeGuard;
     private const TOKEN_SECRET = 'test-secret';
 
@@ -78,7 +80,7 @@ final class AjaxDeleteControllerTest extends TestCase
             ->with(new CsrfToken(MutationTokenValidator::TOKEN_ID, 'valid-token'))
             ->willReturn(true);
 
-        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry(), $this->unscopedRowScopeGuard(), new AuthorizationChecker(new TestAuthorizationChecker()));
+        $controller = new AjaxDeleteController($mutator, $this->rowActionGate($this->registry(), $registry, $csrfTokenManager, $this->unscopedRowScopeGuard()));
 
         $response = $controller($this->createRequest(), new AjaxEntityQueryDto(
             dataTable: $this->dataTableToken(),
@@ -126,7 +128,7 @@ final class AjaxDeleteControllerTest extends TestCase
         $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
 
-        $controller = new AjaxDeleteController($mutator, new MutationTokenValidator($csrfTokenManager), $this->registry($dataTable), $this->unscopedRowScopeGuard(), new AuthorizationChecker(new TestAuthorizationChecker()));
+        $controller = new AjaxDeleteController($mutator, $this->rowActionGate($this->registry($dataTable), $registry, $csrfTokenManager, $this->unscopedRowScopeGuard()));
 
         $controller($this->createRequest(), new AjaxEntityQueryDto(
             dataTable: $this->dataTableToken(),
@@ -225,18 +227,24 @@ final class AjaxDeleteControllerTest extends TestCase
         $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
         $csrfTokenManager->method('isTokenValid')->willReturn(true);
 
+        $doctrine = $this->createDoctrine(12, new DeletableEntityFixture());
+
         $controller = new AjaxDeleteController(
             new EntityMutator(
-                new EntityLocator($this->createDoctrine(12, new DeletableEntityFixture())),
+                new EntityLocator($doctrine),
                 $this->createStub(PropertyAccessorInterface::class),
                 new NullMercurePublisher(),
                 new AuthorizationChecker(),
                 new MercureTopicResolver(),
                 new MutationFlusher(),
             ),
-            new MutationTokenValidator($csrfTokenManager),
-            $this->registry(new StaticDeniedDeleteActionDataTable()),
-            $this->unscopedRowScopeGuard(),
+            $this->rowActionGate(
+                $this->registry(new StaticDeniedDeleteActionDataTable()),
+                $doctrine,
+                $csrfTokenManager,
+                $this->unscopedRowScopeGuard(),
+                new AuthorizationChecker(),
+            ),
         );
 
         $response = $controller($this->createRequest(), new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 12));
@@ -343,10 +351,7 @@ final class AjaxDeleteControllerTest extends TestCase
                 new MercureTopicResolver(),
                 new MutationFlusher(),
             ),
-            new MutationTokenValidator($csrfTokenManager),
-            $this->registry($dataTable),
-            $this->unscopedRowScopeGuard(),
-            $permissionChecker,
+            $this->rowActionGate($this->registry($dataTable), $registry, $csrfTokenManager, $this->unscopedRowScopeGuard(), $permissionChecker),
         );
     }
 

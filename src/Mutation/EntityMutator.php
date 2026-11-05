@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Mutation;
 
+use Pentiminax\UX\DataTables\Ajax\AuthorizedRow;
+use Pentiminax\UX\DataTables\Ajax\RowActionGate;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Exception\FieldNotToggleableException;
@@ -32,9 +34,13 @@ final class EntityMutator
      * @throws EntityNotFoundException
      * @throws MutationNotAllowedException
      * @throws MutationPersistenceException
+     *
+     * @deprecated since 1.5, use deleteRow() instead. Removed in 2.0.
      */
     public function delete(string $entityClass, int|string $id, string $dataTableClass, Action $action): void
     {
+        trigger_deprecation('pentiminax/ux-datatables', '1.5', 'The "%s()" method is deprecated, use "deleteRow()" instead.', __METHOD__);
+
         $context = $this->locator->locate($entityClass, $id);
 
         if (!$this->permissionChecker->canDeleteRow($context->entity)) {
@@ -45,13 +51,19 @@ final class EntityMutator
             throw new MutationNotAllowedException();
         }
 
-        $context->manager->remove($context->entity);
-        $this->flusher->flush($context->manager);
+        $this->removeAndPublish($context, $entityClass, $dataTableClass, $id);
+    }
 
-        MutationUpdatePublisher::publish($this->publisher, $this->topicResolver, $entityClass, $dataTableClass, [
-            'type' => 'delete',
-            'id'   => (string) $id,
-        ]);
+    /**
+     * Removes a row the {@see RowActionGate} has authorized.
+     *
+     * @internal
+     *
+     * @throws MutationPersistenceException
+     */
+    public function deleteRow(AuthorizedRow $row): void
+    {
+        $this->removeAndPublish($row->context, $row->table->requireEntityClass(), $row->table->dataTableClass, $row->id);
     }
 
     /**
@@ -88,6 +100,17 @@ final class EntityMutator
             'type'  => 'edit',
             'id'    => (string) $id,
             'field' => $field,
+        ]);
+    }
+
+    private function removeAndPublish(MutationContext $context, string $entityClass, string $dataTableClass, int|string $id): void
+    {
+        $context->manager->remove($context->entity);
+        $this->flusher->flush($context->manager);
+
+        MutationUpdatePublisher::publish($this->publisher, $this->topicResolver, $entityClass, $dataTableClass, [
+            'type' => 'delete',
+            'id'   => (string) $id,
         ]);
     }
 }

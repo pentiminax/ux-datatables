@@ -217,10 +217,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_delete', AjaxDeleteController::class)
         ->arg(0, service('datatables.mutation.mutator'))
-        ->arg(1, service('datatables.security.mutation_token_validator'))
-        ->arg(2, service('datatables.ajax.registry'))
-        ->arg(3, service('datatables.mutation.row_scope_guard'))
-        ->arg(4, service('datatables.security.authorization_checker'))
+        ->arg(1, service('datatables.ajax.row_action_gate'))
         ->tag('controller.service_arguments')
         ->public();
 

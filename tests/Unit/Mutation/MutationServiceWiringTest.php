@@ -107,12 +107,8 @@ final class MutationServiceWiringTest extends TestCase
     {
         $guard = $this->container->get('datatables.mutation.row_scope_guard');
 
-        foreach ([
-            'datatables.controller.ajax_delete',
-            'datatables.controller.ajax_edit',
-        ] as $id) {
-            $this->assertSame($guard, $this->readPrivateProperty($this->service($id), 'scopeGuard'), $id);
-        }
+        $this->assertSame($guard, $this->readPrivateProperty($this->service('datatables.controller.ajax_edit'), 'scopeGuard'));
+        $this->assertSame($guard, $this->readPrivateProperty($this->container->get('datatables.ajax.row_action_gate'), 'scopeGuard'));
     }
 
     private function readPrivateProperty(object $object, string $property): mixed

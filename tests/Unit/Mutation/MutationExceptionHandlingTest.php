@@ -30,6 +30,7 @@ use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -46,6 +47,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
  */
 final class MutationExceptionHandlingTest extends TestCase
 {
+    use BuildsRowActionGate;
     use BuildsUnscopedRowScopeGuard;
     private const TOKEN_SECRET = 'test-secret';
 
@@ -54,10 +56,7 @@ final class MutationExceptionHandlingTest extends TestCase
     {
         $controller = new AjaxDeleteController(
             $this->mutatorReturning(null),
-            new MutationTokenValidator($this->validCsrfTokenManager()),
-            $this->dataTableRegistry(),
-            $this->unscopedRowScopeGuard(),
-            new AuthorizationChecker(new TestAuthorizationChecker()),
+            $this->rowActionGate($this->dataTableRegistry(), $this->registryReturning(null), $this->validCsrfTokenManager(), $this->unscopedRowScopeGuard()),
         );
 
         $response = $this->handleControllerException(

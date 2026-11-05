@@ -19,6 +19,7 @@ final readonly class AuthorizedRow
         public ResolvedDataTable $table,
         public ?Action $action,
         public MutationContext $context,
+        public int|string $id,
         public ?string $field = null,
         public ?string $entityClass = null,
     ) {

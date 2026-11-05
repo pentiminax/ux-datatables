@@ -64,7 +64,7 @@ final class RowActionGate
             throw new MutationNotAllowedException();
         }
 
-        return new AuthorizedRow($table, $action, $context);
+        return new AuthorizedRow($table, $action, $context, $rowAction->id);
     }
 
     private function authorizeToggle(RowActionRequest $rowAction): AuthorizedRow
@@ -85,6 +85,7 @@ final class RowActionGate
             $toggle->table ?? $this->registry->resolveAction($rowAction->dataTable),
             null,
             $context,
+            $rowAction->id,
             $toggle->field,
             $toggle->entityClass,
         );
