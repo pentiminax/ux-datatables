@@ -75,12 +75,28 @@ final class EditFormService
     }
 
     /**
+     * @internal
+     *
      * @param array<string, mixed> $formData
      *
      * @throws MutationPersistenceException when the persistence layer rejects the flush
      */
+    public function submitForm(AuthorizedRow $row, array $formData): AjaxActionResult
+    {
+        return $this->submitContext($row->table, $row->context, $row->id, $formData);
+    }
+
+    /**
+     * @param array<string, mixed> $formData
+     *
+     * @throws MutationPersistenceException when the persistence layer rejects the flush
+     *
+     * @deprecated since 1.5, use submitForm() instead. Removed in 2.0.
+     */
     public function handleSubmit(ResolvedDataTable $dataTable, int|string $id, array $formData): AjaxActionResult
     {
+        trigger_deprecation('pentiminax/ux-datatables', '1.5', 'The "%s()" method is deprecated, use "submitForm()" instead.', __METHOD__);
+
         $action = $this->resolveEditAction($dataTable);
         if (null === $action) {
             return AjaxActionResult::forbidden();
@@ -97,20 +113,35 @@ final class EditFormService
             return AjaxActionResult::forbidden();
         }
 
+        return $this->submitContext($dataTable, $context, $id, $formData);
+    }
+
+    private function renderContext(ResolvedDataTable $dataTable, MutationContext $context): AjaxActionResult
+    {
+        return AjaxActionResult::success($this->renderer->render($this->createRenderRequest(
+            entity: $context->entity,
+            form: $this->buildForm($dataTable, $context),
+            dataTableClass: $dataTable->dataTableClass,
+        )));
+    }
+
+    /**
+     * @param array<string, mixed> $formData
+     */
+    private function submitContext(ResolvedDataTable $dataTable, MutationContext $context, int|string $id, array $formData): AjaxActionResult
+    {
         $form = $this->buildForm($dataTable, $context);
 
         $form->submit($formData);
 
         if (!$form->isValid()) {
-            $html = $this->renderer->renderBody(
+            return AjaxActionResult::invalid($this->renderer->renderBody(
                 $this->createRenderRequest(
                     entity: $context->entity,
                     form: $form,
                     dataTableClass: $dataTable->dataTableClass,
                 )
-            );
-
-            return AjaxActionResult::invalid($html);
+            ));
         }
 
         $this->flusher->flush($context->manager);
@@ -121,15 +152,6 @@ final class EditFormService
         ]);
 
         return AjaxActionResult::success();
-    }
-
-    private function renderContext(ResolvedDataTable $dataTable, MutationContext $context): AjaxActionResult
-    {
-        return AjaxActionResult::success($this->renderer->render($this->createRenderRequest(
-            entity: $context->entity,
-            form: $this->buildForm($dataTable, $context),
-            dataTableClass: $dataTable->dataTableClass,
-        )));
     }
 
     private function buildForm(ResolvedDataTable $dataTable, MutationContext $context): FormInterface

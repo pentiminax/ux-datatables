@@ -82,6 +82,17 @@ final class EditFormServiceTest extends TestCase
     }
 
     #[Test]
+    public function it_deprecates_handle_submit_in_favor_of_submit_form(): void
+    {
+        $registry = $this->createStub(ManagerRegistry::class);
+
+        $deprecations = $this->deprecationsOf(fn () => $this->handleWithoutFormCollaborators(handler: 'submit', registry: $registry));
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('submitForm()', $deprecations[0]);
+    }
+
+    #[Test]
     #[TestWith(['view'])]
     #[TestWith(['submit'])]
     public function it_returns_not_found_when_the_entity_cannot_be_resolved(string $handler): void
