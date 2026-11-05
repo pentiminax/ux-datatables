@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Controller;
 
+use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
+use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\Mutation\BooleanMutationContext;
 use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\RowScopeGuard;
@@ -28,8 +31,8 @@ final class AjaxEditController
 
         $context = $this->contextResolver->resolve($payload->dataTable, $payload->field);
 
-        if (null !== $context->table && $context->entityClass === $context->table->entityClass) {
-            $this->scopeGuard->assertInScope($context->table, $payload->id);
+        if (null !== $context->table) {
+            $this->assertInScope($context->table, $context, $payload);
         }
 
         $this->mutator->setProperty(
@@ -41,5 +44,25 @@ final class AjaxEditController
         );
 
         return new Response($payload->newValue ? '1' : '0');
+    }
+
+    private function assertInScope(ResolvedDataTable $table, BooleanMutationContext $context, AjaxEditRequestDto $payload): void
+    {
+        // A table without an entity class has no row scope to check against.
+        if (null === $table->entityClass) {
+            return;
+        }
+
+        if ($context->entityClass === $table->entityClass) {
+            $this->scopeGuard->assertInScope($table, $payload->id);
+
+            return;
+        }
+
+        if (null === $payload->rowId) {
+            throw new EntityNotFoundException();
+        }
+
+        $this->scopeGuard->assertRelatedRowOwns($table, $payload->rowId, $context->toggleIdField, $payload->id);
     }
 }

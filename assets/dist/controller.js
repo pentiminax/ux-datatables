@@ -528,6 +528,7 @@ class default_1 extends Controller {
             }
             const url = target.dataset.url;
             const id = target.dataset.id;
+            const rowId = target.dataset.rowId;
             const field = target.dataset.field;
             const method = target.dataset.method ?? 'PATCH';
             const dataTable = typeof payload.dataTable === 'string' ? payload.dataTable : '';
@@ -546,6 +547,7 @@ class default_1 extends Controller {
                 const response = await toggleBooleanValue({
                     url: url ?? this.getBooleanToggleUrl(),
                     id,
+                    rowId,
                     field,
                     newValue: target.checked,
                     method,

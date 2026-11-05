@@ -17,6 +17,7 @@ final readonly class BooleanMutationContext
         public string $dataTableClass,
         public string $field,
         public ?ResolvedDataTable $table = null,
+        public string $toggleIdField = 'id',
     ) {
     }
 }

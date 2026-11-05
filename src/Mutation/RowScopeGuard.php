@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Mutation;
 
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
+use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
 use Pentiminax\UX\DataTables\Contracts\ScopedIdentifierProviderInterface;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
+use Pentiminax\UX\DataTables\RowMapper\RowIdNormalizer;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -42,6 +44,22 @@ final class RowScopeGuard
         }
 
         return $provider->filterIdentifiersInScope($dataTableRequest->withoutPagination(), $ids, $field);
+    }
+
+    /**
+     * Ties a toggle on a related entity to the table row it was rendered in.
+     *
+     * @throws EntityNotFoundException when the row is out of scope or does not hold that related id
+     */
+    public function assertRelatedRowOwns(ResolvedDataTable $table, int|string $rowId, string $idPath, int|string $targetId): void
+    {
+        $this->assertInScope($table, $rowId);
+
+        $row = $this->locator->locate($table->requireEntityClass(), $rowId)->entity;
+
+        if ((string) $targetId !== RowIdNormalizer::normalize(PropertyReader::readPath($row, $idPath))) {
+            throw new EntityNotFoundException();
+        }
     }
 
     /**

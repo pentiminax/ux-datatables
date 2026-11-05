@@ -41,10 +41,18 @@ final readonly class BooleanMutationContextResolver
                 dataTableClass: $resolved->dataTableClass,
                 field: $field,
                 table: $resolved,
+                toggleIdField: $this->resolveToggleIdField($column),
             );
         }
 
         throw InvalidBooleanMutationContextException::fieldNotSwitchable($field, $resolved->dataTableClass);
+    }
+
+    private function resolveToggleIdField(BooleanColumn $column): string
+    {
+        $idField = $column->getCustomOption(BooleanColumn::OPTION_TOGGLE_ID_FIELD);
+
+        return \is_string($idField) && '' !== $idField ? $idField : 'id';
     }
 
     private function resolveEffectiveField(BooleanColumn $column): string

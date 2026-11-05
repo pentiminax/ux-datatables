@@ -3,6 +3,25 @@
 Each section covers one version bump. When you skip versions, apply every section between your
 current version and the target, oldest first.
 
+## v1.4 → v1.4.1
+
+### Related-entity switch toggles are tied to their table row
+
+Security fix. A `BooleanColumn` switch that sets another `setEntityClass()` than its table used to
+skip the row scope: any id of that entity could be toggled. The toggle request now carries `rowId`,
+the id of the table row the switch sits in. The server requires that row to be in scope and the
+`setToggleAjax()` id field of that row to resolve to the posted `id`. Otherwise it answers `404`.
+
+What changed:
+
+- custom clients that toggle a switch on a related entity must send `rowId`; a request without it
+  answers `404`. The bundled JavaScript already sends it, so rebuild or update your assets
+- a table whose entity has a composite identifier can no longer toggle a related-entity switch
+  (`404`), because it has no single row id to send
+- same-entity toggles are unchanged
+- `AjaxEditRequestDto` has a new optional `$rowId`, and `BooleanSwitchMetadataStage` adds
+  `__ux_datatables_switch_row_id` to rows that carry a switch
+
 ## v1.2 → v1.3
 
 ### Single-row actions respect the table scope

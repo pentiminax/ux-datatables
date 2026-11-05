@@ -38,6 +38,32 @@ final class BooleanSwitchMetadataStageTest extends TestCase
         $this->assertSame($expected, $result);
     }
 
+    #[Test]
+    public function it_exposes_the_table_row_id_next_to_a_related_entity_switch(): void
+    {
+        $result = (new BooleanSwitchMetadataStage('rowKey', 'App\\Entity\\Order'))->process(
+            ['active' => true],
+            ['rowKey' => 12, 'id' => 42],
+            [BooleanColumn::new('active')->renderAsSwitch()->setEntityClass('App\\Entity\\Customer')],
+        );
+
+        $this->assertSame('12', $result[BooleanSwitchMetadataStage::ROW_ID_KEY]);
+        $this->assertSame(['active' => '42'], $result[BooleanSwitchMetadataStage::METADATA_KEY]);
+    }
+
+    #[Test]
+    public function it_omits_the_table_row_id_when_the_switch_targets_the_table_entity(): void
+    {
+        $columns = [
+            BooleanColumn::new('active')->renderAsSwitch(),
+            BooleanColumn::new('enabled')->renderAsSwitch()->setEntityClass('App\\Entity\\Order'),
+        ];
+
+        $result = (new BooleanSwitchMetadataStage('rowKey', 'App\\Entity\\Order'))->process(['active' => true, 'enabled' => false], ['rowKey' => 12, 'id' => 42], $columns);
+
+        $this->assertArrayNotHasKey(BooleanSwitchMetadataStage::ROW_ID_KEY, $result);
+    }
+
     public static function switchMetadataProvider(): iterable
     {
         $stringableId = new class implements \Stringable {
