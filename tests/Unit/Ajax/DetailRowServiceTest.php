@@ -229,10 +229,10 @@ final class DetailRowServiceTest extends TestCase
         $table = $this->resolved(new CollapsibleDetailDataTable());
 
         return new AuthorizedRow(
-            $table,
-            $table->findAction(ActionType::Detail, collapsible: true),
-            new MutationContext($entity, $this->createStub(ObjectManager::class)),
-            7,
+            table: $table,
+            action: $table->findAction(ActionType::Detail, collapsible: true),
+            context: new MutationContext($entity, $this->createStub(ObjectManager::class)),
+            id: 7,
         );
     }
 

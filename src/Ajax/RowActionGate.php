@@ -64,7 +64,12 @@ final class RowActionGate
             throw new MutationNotAllowedException();
         }
 
-        return new AuthorizedRow($table, $action, $context, $rowAction->id);
+        return new AuthorizedRow(
+            table: $table,
+            action: $action,
+            context: $context,
+            id: $rowAction->id,
+        );
     }
 
     private function authorizeToggle(RowActionRequest $rowAction): AuthorizedRow
@@ -81,12 +86,12 @@ final class RowActionGate
         }
 
         return new AuthorizedRow(
-            $table,
-            null,
-            $context,
-            $rowAction->id,
-            $toggle->field,
-            $toggle->entityClass,
+            table: $table,
+            action: null,
+            context: $context,
+            id: $rowAction->id,
+            field: $toggle->field,
+            entityClass: $toggle->entityClass,
         );
     }
 

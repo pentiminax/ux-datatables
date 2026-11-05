@@ -20,22 +20,22 @@ final readonly class RowActionRequest
 
     public static function delete(string $dataTable, int|string $id): self
     {
-        return new self(RowActionKind::Delete, $dataTable, $id);
+        return new self(kind: RowActionKind::Delete, dataTable: $dataTable, id: $id);
     }
 
     public static function detail(string $dataTable, int|string $id): self
     {
-        return new self(RowActionKind::Detail, $dataTable, $id);
+        return new self(kind: RowActionKind::Detail, dataTable: $dataTable, id: $id);
     }
 
     public static function editFormView(string $dataTable, int|string $id): self
     {
-        return new self(RowActionKind::EditFormView, $dataTable, $id);
+        return new self(kind: RowActionKind::EditFormView, dataTable: $dataTable, id: $id);
     }
 
     public static function editFormSubmit(string $dataTable, int|string $id): self
     {
-        return new self(RowActionKind::EditFormSubmit, $dataTable, $id);
+        return new self(kind: RowActionKind::EditFormSubmit, dataTable: $dataTable, id: $id);
     }
 
     /**
@@ -44,6 +44,6 @@ final readonly class RowActionRequest
      */
     public static function toggle(string $dataTable, string $field, int|string $targetId, int|string|null $rowId = null): self
     {
-        return new self(RowActionKind::Toggle, $dataTable, $targetId, $field, $rowId);
+        return new self(kind: RowActionKind::Toggle, dataTable: $dataTable, id: $targetId, field: $field, rowId: $rowId);
     }
 }
