@@ -269,7 +269,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_detail', AjaxDetailController::class)
         ->arg(0, service('datatables.ajax.detail_row_service'))
-        ->arg(1, service('datatables.ajax.registry'))
+        ->arg(1, service('datatables.ajax.row_action_gate'))
         ->tag('controller.service_arguments')
         ->public();
 

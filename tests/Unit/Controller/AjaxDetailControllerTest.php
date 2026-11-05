@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Controller;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Ajax\DetailRowService;
@@ -15,17 +16,21 @@ use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
 use Pentiminax\UX\DataTables\Controller\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
+use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
@@ -35,6 +40,7 @@ use Twig\Loader\ArrayLoader;
 #[CoversClass(AjaxDetailController::class)]
 final class AjaxDetailControllerTest extends TestCase
 {
+    use BuildsRowActionGate;
     use BuildsUnscopedRowScopeGuard;
     private const TOKEN_SECRET = 'test-secret';
 
@@ -43,7 +49,7 @@ final class AjaxDetailControllerTest extends TestCase
     {
         $controller = $this->controller($this->registryReturning(new AjaxDetailControllerFixture('alice@example.com')), true);
 
-        $response = $controller(new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 7));
+        $response = $controller(new Request(), new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 7));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
@@ -57,9 +63,15 @@ final class AjaxDetailControllerTest extends TestCase
     {
         $controller = $this->controller($this->registryReturning(new AjaxDetailControllerFixture('alice@example.com')), false);
 
-        $response = $controller(new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 7));
+        try {
+            $controller(new Request(), new AjaxEntityQueryDto(dataTable: $this->dataTableToken(), id: 7));
+            $this->fail('A denied detail row must be refused.');
+        } catch (MutationNotAllowedException $exception) {
+            $response = $this->clientResponse($exception);
+        }
 
         $this->assertSame(403, $response->getStatusCode());
+        $this->assertSame(AjaxActionResult::forbidden()->toJsonResponse()->getContent(), $response->getContent());
     }
 
     #[Test]
@@ -71,7 +83,7 @@ final class AjaxDetailControllerTest extends TestCase
         $controller = $this->controller($registry, true);
 
         $this->expectException(InvalidDataTableTokenException::class);
-        $controller(new AjaxEntityQueryDto(dataTable: 'forged-token', id: 7));
+        $controller(new Request(), new AjaxEntityQueryDto(dataTable: 'forged-token', id: 7));
     }
 
     #[Test]
@@ -83,7 +95,7 @@ final class AjaxDetailControllerTest extends TestCase
         $controller = $this->controller($registry, true);
 
         $this->expectException(InvalidDataTableTokenException::class);
-        $controller(new AjaxEntityQueryDto(dataTable: $this->readTableToken(), id: 7));
+        $controller(new Request(), new AjaxEntityQueryDto(dataTable: $this->readTableToken(), id: 7));
     }
 
     private function readTableToken(): string
@@ -107,7 +119,9 @@ final class AjaxDetailControllerTest extends TestCase
             new AuthorizationChecker($authorizationChecker),
         );
 
-        return new AjaxDetailController($service, $this->tableRegistry());
+        $csrf = $this->createStub(CsrfTokenManagerInterface::class);
+
+        return new AjaxDetailController($service, $this->rowActionGate($this->tableRegistry(), $registry, $csrf, $this->unscopedRowScopeGuard(), new AuthorizationChecker($authorizationChecker)));
     }
 
     private function registryReturning(AjaxDetailControllerFixture $entity): ManagerRegistry
