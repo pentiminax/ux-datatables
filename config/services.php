@@ -21,6 +21,7 @@ use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Controller\AjaxExportController;
 use Pentiminax\UX\DataTables\DataProvider\AutoDataProviderFactory;
 use Pentiminax\UX\DataTables\Ajax\DetailRowService;
+use Pentiminax\UX\DataTables\Ajax\RowActionGate;
 use Pentiminax\UX\DataTables\EventListener\MutationExceptionListener;
 use Pentiminax\UX\DataTables\Export\CsvExporter;
 use Pentiminax\UX\DataTables\Export\ExporterRegistry;
@@ -163,6 +164,15 @@ return static function (ContainerConfigurator $container): void {
     $services->set('datatables.mutation.row_scope_guard', RowScopeGuard::class)
         ->arg(0, service('datatables.mutation.locator'))
         ->arg(1, service('request_stack')->nullOnInvalid())
+        ->private();
+
+    $services->set('datatables.ajax.row_action_gate', RowActionGate::class)
+        ->arg(0, service('datatables.security.mutation_token_validator'))
+        ->arg(1, service('datatables.ajax.registry'))
+        ->arg(2, service('datatables.mutation.boolean_context_resolver'))
+        ->arg(3, service('datatables.mutation.row_scope_guard'))
+        ->arg(4, service('datatables.mutation.locator'))
+        ->arg(5, service('datatables.security.authorization_checker'))
         ->private();
 
     $services->set('datatables.mutation.mutator', EntityMutator::class)
