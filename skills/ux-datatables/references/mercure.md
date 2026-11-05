@@ -63,7 +63,7 @@ The usual reason this still fails is the grant, not the bundle. On a Mercure 1.0
 
 If `symfony/mercure` is installed, the bundle aliases `Contracts\MercurePublisherInterface` to `Mercure\MercureUpdatePublisher` (otherwise to `NullMercurePublisher`, a no-op — publishing is always safe to call).
 
-**Mutations publish automatically.** The bundle's delete and inline-edit Ajax controllers call `EntityMutator::delete()` / `setProperty()`, which resolve topics server-side through `Mercure\MercureTopicResolver` (an injected service, not a static call): when the mutation's `dataTableClass` matches a registered `AbstractDataTable` for the same entity, it publishes to that table's *resolved* Mercure config — exactly what the client subscribed to — falling back to the bare entity-class topic otherwise. You never pass topics from the client.
+**Mutations publish automatically.** The bundle's delete and inline-edit Ajax controllers call `EntityMutator::deleteRow()` / `toggleRow()` (internal), which resolve topics server-side through `Mercure\MercureTopicResolver` (an injected service, not a static call): when the mutation's `dataTableClass` matches a registered `AbstractDataTable` for the same entity, it publishes to that table's *resolved* Mercure config — exactly what the client subscribed to — falling back to the bare entity-class topic otherwise. You never pass topics from the client.
 
 Publish manually with the injected `MercurePublisherInterface`:
 ```php

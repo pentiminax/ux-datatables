@@ -104,9 +104,8 @@ row exposes an action, except the boolean toggle, which is not an action:
 Concretely, the bundle calls Symfony authorization before reading private row details or mutating
 anything:
 
-- `delete()` checks `DT_DELETE_ROW` on the entity before removing it.
-- `setProperty()` (the inline boolean toggle) checks `DT_EDIT_ROW` on the entity before writing
-  the field.
+- Deleting a row checks `DT_DELETE_ROW` on the entity before removing it.
+- The inline boolean toggle checks `DT_EDIT_ROW` on the entity before writing the field.
 - Collapsible detail rows always check `DT_VIEW_ROW_DETAILS` on the entity.
 
 If a required check is denied, the Ajax endpoint responds with `403` instead of exposing private row

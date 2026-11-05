@@ -14,8 +14,6 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
-use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
-use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
@@ -217,91 +215,6 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
         $this->assertTrue($payload['success']);
-    }
-
-    /**
-     * The submit route writes and flushes, so it must be CSRF-protected exactly like
-     * the delete and toggle routes: without the header, nothing is ever looked up.
-     */
-    #[Test]
-    public function it_rejects_a_request_without_a_csrf_token_before_submitting_the_form(): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->never())->method('getManagerForClass');
-
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-        $formFactory->expects($this->never())->method('createBuilder');
-
-        $renderer = $this->createMock(EditModalRenderer::class);
-        $renderer->expects($this->never())->method('renderBody');
-
-        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
-        $csrfTokenManager->expects($this->never())->method('isTokenValid');
-
-        $controller = $this->controller(
-            new EditFormService(
-                new EntityLocator($registry),
-                new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-                $renderer,
-                $this->createStub(EditModalTemplateResolver::class),
-                new NullMercurePublisher(),
-                new MercureTopicResolver(),
-                new MutationFlusher(),
-                $this->unscopedRowScopeGuard(),
-                $this->permissionCheckerGranting(true),
-            ),
-            $csrfTokenManager,
-            $registry,
-        );
-
-        try {
-            $controller(new Request(), $this->payload());
-            $this->fail('Expected an InvalidCsrfTokenException.');
-        } catch (InvalidCsrfTokenException $exception) {
-            $this->assertSame(403, $exception->getStatusCode());
-        }
-    }
-
-    #[Test]
-    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->never())->method('getManagerForClass');
-
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-        $formFactory->expects($this->never())->method('createBuilder');
-
-        $renderer = $this->createMock(EditModalRenderer::class);
-        $renderer->expects($this->never())->method('renderBody');
-
-        $controller = $this->controller(new EditFormService(
-            new EntityLocator($registry),
-            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $renderer,
-            $this->createStub(EditModalTemplateResolver::class),
-            new NullMercurePublisher(),
-            new MercureTopicResolver(),
-            new MutationFlusher(),
-            $this->unscopedRowScopeGuard(),
-            $this->permissionCheckerGranting(true),
-        ), doctrine: $registry);
-
-        $this->expectException(InvalidDataTableTokenException::class);
-
-        $controller($this->validTokenRequest(), new AjaxEditFormRequestDto(
-            dataTable: $this->readTableToken(),
-            id: 42,
-            formData: ['name' => 'Alice'],
-        ));
-    }
-
-    private function readTableToken(): string
-    {
-        $token = $this->tableRegistry()->getToken(AjaxEditFormSubmitControllerDataTable::class);
-
-        $this->assertNotNull($token);
-
-        return $token;
     }
 
     private function controller(

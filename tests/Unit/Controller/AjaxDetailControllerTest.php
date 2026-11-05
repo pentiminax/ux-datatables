@@ -15,7 +15,6 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxDetailController;
 use Pentiminax\UX\DataTables\Controller\AjaxEntityQueryDto;
-use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
@@ -72,39 +71,6 @@ final class AjaxDetailControllerTest extends TestCase
 
         $this->assertSame(403, $response->getStatusCode());
         $this->assertSame(AjaxActionResult::forbidden()->toJsonResponse()->getContent(), $response->getContent());
-    }
-
-    #[Test]
-    public function it_rejects_an_unknown_data_table_token_before_touching_the_entity(): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->never())->method('getManagerForClass');
-
-        $controller = $this->controller($registry, true);
-
-        $this->expectException(InvalidDataTableTokenException::class);
-        $controller(new Request(), new AjaxEntityQueryDto(dataTable: 'forged-token', id: 7));
-    }
-
-    #[Test]
-    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->never())->method('getManagerForClass');
-
-        $controller = $this->controller($registry, true);
-
-        $this->expectException(InvalidDataTableTokenException::class);
-        $controller(new Request(), new AjaxEntityQueryDto(dataTable: $this->readTableToken(), id: 7));
-    }
-
-    private function readTableToken(): string
-    {
-        $token = $this->tableRegistry()->getToken(AjaxDetailControllerDataTable::class);
-
-        $this->assertNotNull($token);
-
-        return $token;
     }
 
     private function controller(ManagerRegistry $registry, bool $granted): AjaxDetailController

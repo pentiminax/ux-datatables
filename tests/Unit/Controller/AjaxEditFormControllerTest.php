@@ -14,7 +14,6 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
 use Pentiminax\UX\DataTables\Controller\AjaxEntityQueryDto;
-use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Exception\MutationException;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
@@ -129,50 +128,6 @@ final class AjaxEditFormControllerTest extends TestCase
         $this->assertSame(404, $response->getStatusCode());
         $this->assertFalse($payload['success']);
         $this->assertSame('Entity not found.', $payload['message']);
-    }
-
-    #[Test]
-    public function it_returns_not_found_when_the_manager_is_missing(): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->once())
-            ->method('getManagerForClass')
-            ->with(AjaxEditFormControllerFixture::class)
-            ->willReturn(null);
-
-        [$formFactory, $renderer, $templateResolver] = $this->createUnusedFormCollaborators();
-
-        $controller = $this->controller($registry, $formFactory, $renderer, $templateResolver);
-
-        $response = $this->respond($controller, $this->payload('42'));
-
-        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
-
-        $this->assertSame(404, $response->getStatusCode());
-        $this->assertFalse($payload['success']);
-        $this->assertSame('Entity not found.', $payload['message']);
-    }
-
-    #[Test]
-    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->never())->method('getManagerForClass');
-
-        $controller = $this->controller($registry, ...$this->createUnusedFormCollaborators());
-
-        $this->expectException(InvalidDataTableTokenException::class);
-
-        $controller(new Request(), new AjaxEntityQueryDto(dataTable: $this->readTableToken(), id: '42'));
-    }
-
-    private function readTableToken(): string
-    {
-        $token = $this->tableRegistry()->getToken(AjaxEditFormControllerDataTable::class);
-
-        $this->assertNotNull($token);
-
-        return $token;
     }
 
     private function controller(

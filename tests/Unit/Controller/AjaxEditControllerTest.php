@@ -17,9 +17,6 @@ use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
-use Pentiminax\UX\DataTables\Exception\InvalidBooleanMutationContextException;
-use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
-use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
 use Pentiminax\UX\DataTables\Exception\PropertyNotWritableException;
 use Pentiminax\UX\DataTables\Mercure\MercureConfigResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
@@ -100,35 +97,6 @@ final class AjaxEditControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_rejects_the_request_and_does_not_update_when_the_csrf_token_is_invalid(): void
-    {
-        $accessor = $this->readOnlyAccessor();
-
-        $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
-        $csrfTokenManager->method('isTokenValid')->willReturn(false);
-
-        $controller = $this->controller(null, 799, $accessor, expectFlush: false, csrfTokenManager: $csrfTokenManager);
-
-        $request = new Request();
-        $request->headers->set(MutationTokenValidator::HEADER, 'wrong-token');
-
-        $this->expectException(InvalidCsrfTokenException::class);
-        $controller($request, $this->payload(true));
-    }
-
-    #[Test]
-    public function it_rejects_the_request_and_does_not_update_when_the_token_header_is_missing(): void
-    {
-        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
-        $csrfTokenManager->expects($this->never())->method('isTokenValid');
-
-        $controller = $this->controller(new ToggleBooleanEntityFixture(), 799, $this->readOnlyAccessor(), expectFlush: false, csrfTokenManager: $csrfTokenManager);
-
-        $this->expectException(InvalidCsrfTokenException::class);
-        $controller(new Request(), $this->payload(false));
-    }
-
-    #[Test]
     public function it_lets_a_not_writable_field_bubble_as_an_exception(): void
     {
         $entity = new ToggleBooleanEntityFixture();
@@ -143,24 +111,25 @@ final class AjaxEditControllerTest extends TestCase
     }
 
     #[Test]
-    public function it_rejects_a_field_that_is_not_a_mapped_boolean(): void
-    {
-        $controller = $this->controller(new ToggleBooleanEntityFixture(), 799, $this->readOnlyAccessor(), expectFlush: false);
-
-        $this->expectException(InvalidBooleanMutationContextException::class);
-        $controller($this->validTokenRequest(), $this->payload(true, field: 'admin'));
-    }
-
-    #[Test]
-    public function it_lets_a_missing_entity_bubble_as_an_exception(): void
+    public function it_reaches_the_client_as_a_404_json_body_when_the_gate_refuses(): void
     {
         $accessor = $this->readOnlyAccessor();
         $accessor->expects($this->never())->method('isWritable');
 
         $controller = $this->controller(null, 799, $accessor, expectFlush: false);
 
-        $this->expectException(EntityNotFoundException::class);
-        $controller($this->validTokenRequest(), $this->payload(false));
+        try {
+            $controller($this->validTokenRequest(), $this->payload(false));
+            $this->fail('A missing entity must be refused.');
+        } catch (EntityNotFoundException $exception) {
+            $response = $this->clientResponse($exception);
+        }
+
+        $this->assertSame(404, $response->getStatusCode());
+        $this->assertSame(
+            ['success' => false, 'message' => 'Entity not found.'],
+            json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR),
+        );
     }
 
     #[Test]
@@ -281,37 +250,6 @@ final class AjaxEditControllerTest extends TestCase
             newValue: $newValue,
             dataTable: $this->dataTableToken(),
         );
-    }
-
-    #[Test]
-    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
-    {
-        $controller = $this->controller(
-            entity: null,
-            id: 799,
-            accessor: $this->readOnlyAccessor(),
-            expectFlush: false,
-            csrfTokenManager: $this->validCsrfTokenManager(),
-        );
-
-        $this->expectException(InvalidDataTableTokenException::class);
-
-        $controller($this->validTokenRequest(), new AjaxEditRequestDto(
-            id: 799,
-            field: 'isEmailAuthEnabled',
-            newValue: true,
-            dataTable: $this->readTableToken(),
-        ));
-    }
-
-    private function readTableToken(): string
-    {
-        $token = $this->registry(new ToggleBooleanEntityFixtureDataTable())
-            ->getToken(ToggleBooleanEntityFixtureDataTable::class);
-
-        $this->assertNotNull($token);
-
-        return $token;
     }
 
     private function registry(AbstractDataTable $dataTable): AjaxDataTableRegistry

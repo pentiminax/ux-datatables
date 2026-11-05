@@ -3,6 +3,36 @@
 Each section covers one version bump. When you skip versions, apply every section between your
 current version and the target, oldest first.
 
+## v1.4 → v1.5
+
+### Single-row Ajax actions authorize through one gate
+
+Delete, boolean toggle, detail, edit form view and edit form submit now run CSRF, action lookup,
+permissions, row scope and entity lookup in one internal gate before the verb-specific work. The
+status codes and JSON bodies clients see are unchanged.
+
+Deprecated, and removed in 2.0:
+
+| Deprecated | Replacement (`@internal`) |
+| --- | --- |
+| `EntityMutator::delete()` | `EntityMutator::deleteRow()` |
+| `EntityMutator::setProperty()` | `EntityMutator::toggleRow()` |
+| `DetailRowService::handleView()` | `DetailRowService::render()` |
+| `EditFormService::handleView()` | `EditFormService::renderForm()` |
+| `EditFormService::handleSubmit()` | `EditFormService::submitForm()` |
+
+The replacements take an internal `AuthorizedRow` that only the gate builds, so they are not an API
+to call. Application code that calls the old methods directly should stop doing so and go through
+the bundle's Ajax routes, which carry the checks. The old methods keep their own checks until they
+are removed.
+
+What changed for code that builds the bundle's controllers by hand:
+
+- `AjaxDeleteController`, `AjaxEditController`, `AjaxDetailController`,
+  `AjaxEditFormController` and `AjaxEditFormSubmitController` take a `RowActionGate` instead of
+  their token validator, registry, context resolver and row scope guard
+- `AjaxDetailController` and `AjaxEditFormController` now take the `Request`
+
 ## v1.4 → v1.4.1
 
 ### Related-entity switch toggles are tied to their table row

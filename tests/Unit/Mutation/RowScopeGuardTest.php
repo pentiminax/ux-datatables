@@ -353,14 +353,6 @@ final class RowScopeGuardTest extends TestCase
         return $this->rowActionGate($registry, $doctrine, $csrf, $guard);
     }
 
-    private function tokenValidator(): MutationTokenValidator
-    {
-        $csrf = $this->createStub(CsrfTokenManagerInterface::class);
-        $csrf->method('isTokenValid')->willReturn(true);
-
-        return new MutationTokenValidator($csrf);
-    }
-
     private function provider(): DoctrineDataProvider
     {
         $scope = static fn (QueryBuilder $qb): QueryBuilder => $qb->andWhere('e.name <> :hidden')->setParameter('hidden', 'hidden');
