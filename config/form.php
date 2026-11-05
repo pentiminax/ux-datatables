@@ -54,14 +54,13 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_edit_form', AjaxEditFormController::class)
         ->arg(0, service('datatables.form.edit_form_service'))
-        ->arg(1, service('datatables.ajax.registry'))
+        ->arg(1, service('datatables.ajax.row_action_gate'))
         ->tag('controller.service_arguments')
         ->public();
 
     $services->set('datatables.controller.ajax_edit_form_submit', AjaxEditFormSubmitController::class)
         ->arg(0, service('datatables.form.edit_form_service'))
-        ->arg(1, service('datatables.security.mutation_token_validator'))
-        ->arg(2, service('datatables.ajax.registry'))
+        ->arg(1, service('datatables.ajax.row_action_gate'))
         ->tag('controller.service_arguments')
         ->public();
 };

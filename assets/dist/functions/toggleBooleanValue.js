@@ -1,7 +1,8 @@
 import { createMutationHeaders } from './createMutationHeaders.js';
-export async function toggleBooleanValue({ id, field, newValue, url, method = 'PATCH', dataTable, csrfToken, query, }) {
+export async function toggleBooleanValue({ id, rowId, field, newValue, url, method = 'PATCH', dataTable, csrfToken, query, }) {
     const body = {
         id,
+        rowId,
         field,
         newValue,
         dataTable,

@@ -45,6 +45,8 @@ BooleanColumn::new('active', 'Status')
     ->setEntityClass(User::class);
 ```
 
+When the column targets another entity than the table's, the request also carries the table row it sits in. The server checks that this row is inside the table scope and that its `setToggleAjax()` id field resolves to the entity being toggled; otherwise it answers `404`, as it does for a request without `rowId` or on a table with a composite identifier.
+
 ## AJAX Configuration
 
 Customize the identifier field and HTTP method used for the toggle request:

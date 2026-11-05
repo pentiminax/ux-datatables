@@ -69,7 +69,7 @@ final class DataTableRuntimeFactory
             ->add(new NormalizationStage())
             ->add(new ValueFormattingStage())
             ->add(new IconColumnResolutionStage())
-            ->add(new BooleanSwitchMetadataStage());
+            ->add(new BooleanSwitchMetadataStage(RowIdField::resolve(null, 'id', fn (): ?ClassMetadata => $this->metadataFor($entityClass)), $entityClass));
 
         // Highlighting needs a row id to tell a changed row from a moved one; a selection needs
         // one to survive the redraw that server-side paging forces. Either reason is enough.

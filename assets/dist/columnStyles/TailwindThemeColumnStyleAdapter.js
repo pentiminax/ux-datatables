@@ -28,6 +28,7 @@ export class TailwindThemeColumnStyleAdapter {
             `<input class="dt-switch__input boolean-switch-action" type="checkbox" role="switch"` +
             ` aria-label="${options.ariaLabel}"` +
             ` data-id="${options.dataId}"` +
+            (options.dataRowId ? ` data-row-id="${options.dataRowId}"` : '') +
             ` data-url="${options.dataUrl}"` +
             ` data-field="${options.dataField}"` +
             ` data-method="${options.dataMethod}"` +

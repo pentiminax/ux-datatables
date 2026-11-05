@@ -14,8 +14,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormRequestDto;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormSubmitController;
-use Pentiminax\UX\DataTables\Exception\InvalidCsrfTokenException;
-use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
+use Pentiminax\UX\DataTables\Exception\MutationNotAllowedException;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
@@ -35,6 +34,7 @@ use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\Permission;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -56,6 +56,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(AjaxEditFormSubmitController::class)]
 final class AjaxEditFormSubmitControllerTest extends TestCase
 {
+    use BuildsRowActionGate;
     use BuildsUnscopedRowScopeGuard;
     private const TOKEN_SECRET = 'test-secret';
 
@@ -75,8 +76,10 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
 
         [$formFactory, $renderer, $templateResolver] = $this->createFormCollaborators($form, $invalidHtml);
 
+        $doctrine = $this->createRegistry($entityManager);
+
         $controller = $this->controller(new EditFormService(
-            new EntityLocator($this->createRegistry($entityManager)),
+            new EntityLocator($doctrine),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
@@ -85,7 +88,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             new MutationFlusher(),
             $this->unscopedRowScopeGuard(),
             $this->permissionCheckerGranting(true),
-        ));
+        ), doctrine: $doctrine);
 
         $response = $controller($this->validTokenRequest(), $this->payload());
 
@@ -126,8 +129,10 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             static fn (string $attribute, mixed $subject = null): bool => Permission::DT_EDIT_ROW !== $attribute || $subject !== $entity
         );
 
+        $doctrine = $this->createRegistry($entityManager);
+
         $controller = $this->controller(new EditFormService(
-            new EntityLocator($this->createRegistry($entityManager)),
+            new EntityLocator($doctrine),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
@@ -136,9 +141,14 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             new MutationFlusher(),
             $this->unscopedRowScopeGuard(),
             new AuthorizationChecker($authorizationChecker),
-        ));
+        ), doctrine: $doctrine, permissionChecker: new AuthorizationChecker($authorizationChecker));
 
-        $response = $controller($this->validTokenRequest(), $this->payload());
+        try {
+            $controller($this->validTokenRequest(), $this->payload());
+            $this->fail('A denied edit must be refused.');
+        } catch (MutationNotAllowedException $exception) {
+            $response = $this->clientResponse($exception);
+        }
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
@@ -186,8 +196,10 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
                 hubUrl: 'https://hub.example/.well-known/mercure',
             ));
 
+        $doctrine = $this->createRegistry($entityManager);
+
         $controller = $this->controller(new EditFormService(
-            new EntityLocator($this->createRegistry($entityManager)),
+            new EntityLocator($doctrine),
             new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
             $renderer,
             $templateResolver,
@@ -196,7 +208,7 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
             new MutationFlusher(),
             $this->unscopedRowScopeGuard(),
             $this->permissionCheckerGranting(true),
-        ));
+        ), doctrine: $doctrine);
 
         $response = $controller($this->validTokenRequest(), $this->payload());
 
@@ -205,92 +217,12 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
         $this->assertTrue($payload['success']);
     }
 
-    /**
-     * The submit route writes and flushes, so it must be CSRF-protected exactly like
-     * the delete and toggle routes: without the header, nothing is ever looked up.
-     */
-    #[Test]
-    public function it_rejects_a_request_without_a_csrf_token_before_submitting_the_form(): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->never())->method('getManagerForClass');
-
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-        $formFactory->expects($this->never())->method('createBuilder');
-
-        $renderer = $this->createMock(EditModalRenderer::class);
-        $renderer->expects($this->never())->method('renderBody');
-
-        $csrfTokenManager = $this->createMock(CsrfTokenManagerInterface::class);
-        $csrfTokenManager->expects($this->never())->method('isTokenValid');
-
-        $controller = $this->controller(
-            new EditFormService(
-                new EntityLocator($registry),
-                new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-                $renderer,
-                $this->createStub(EditModalTemplateResolver::class),
-                new NullMercurePublisher(),
-                new MercureTopicResolver(),
-                new MutationFlusher(),
-                $this->unscopedRowScopeGuard(),
-                $this->permissionCheckerGranting(true),
-            ),
-            $csrfTokenManager,
-        );
-
-        try {
-            $controller(new Request(), $this->payload());
-            $this->fail('Expected an InvalidCsrfTokenException.');
-        } catch (InvalidCsrfTokenException $exception) {
-            $this->assertSame(403, $exception->getStatusCode());
-        }
-    }
-
-    #[Test]
-    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->never())->method('getManagerForClass');
-
-        $formFactory = $this->createMock(FormFactoryInterface::class);
-        $formFactory->expects($this->never())->method('createBuilder');
-
-        $renderer = $this->createMock(EditModalRenderer::class);
-        $renderer->expects($this->never())->method('renderBody');
-
-        $controller = $this->controller(new EditFormService(
-            new EntityLocator($registry),
-            new EditFormBuilder($formFactory, new ColumnToFormTypeMapper()),
-            $renderer,
-            $this->createStub(EditModalTemplateResolver::class),
-            new NullMercurePublisher(),
-            new MercureTopicResolver(),
-            new MutationFlusher(),
-            $this->unscopedRowScopeGuard(),
-            $this->permissionCheckerGranting(true),
-        ));
-
-        $this->expectException(InvalidDataTableTokenException::class);
-
-        $controller($this->validTokenRequest(), new AjaxEditFormRequestDto(
-            dataTable: $this->readTableToken(),
-            id: 42,
-            formData: ['name' => 'Alice'],
-        ));
-    }
-
-    private function readTableToken(): string
-    {
-        $token = $this->tableRegistry()->getToken(AjaxEditFormSubmitControllerDataTable::class);
-
-        $this->assertNotNull($token);
-
-        return $token;
-    }
-
-    private function controller(EditFormService $service, ?CsrfTokenManagerInterface $csrfTokenManager = null): AjaxEditFormSubmitController
-    {
+    private function controller(
+        EditFormService $service,
+        ?CsrfTokenManagerInterface $csrfTokenManager = null,
+        ?ManagerRegistry $doctrine = null,
+        ?AuthorizationChecker $permissionChecker = null,
+    ): AjaxEditFormSubmitController {
         if (null === $csrfTokenManager) {
             $csrfTokenManager = $this->createStub(CsrfTokenManagerInterface::class);
             $csrfTokenManager->method('isTokenValid')->willReturn(true);
@@ -298,8 +230,13 @@ final class AjaxEditFormSubmitControllerTest extends TestCase
 
         return new AjaxEditFormSubmitController(
             $service,
-            new MutationTokenValidator($csrfTokenManager),
-            $this->tableRegistry(),
+            $this->rowActionGate(
+                $this->tableRegistry(),
+                $doctrine ?? $this->createStub(ManagerRegistry::class),
+                $csrfTokenManager,
+                $this->unscopedRowScopeGuard(),
+                $permissionChecker ?? $this->permissionCheckerGranting(true),
+            ),
         );
     }
 

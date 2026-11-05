@@ -7,20 +7,25 @@ namespace Pentiminax\UX\DataTables\Tests\Unit\Ajax;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\ObjectManager;
+use Pentiminax\UX\DataTables\Ajax\AuthorizedRow;
 use Pentiminax\UX\DataTables\Ajax\DetailRowService;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
+use Pentiminax\UX\DataTables\Enum\ActionType;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
+use Pentiminax\UX\DataTables\Mutation\MutationContext;
 use Pentiminax\UX\DataTables\Security\ActionPermissionContext;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\Permission;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\RowContextDenyingAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -35,6 +40,7 @@ use Twig\Loader\ArrayLoader;
 final class DetailRowServiceTest extends TestCase
 {
     use BuildsUnscopedRowScopeGuard;
+    use CollectsDeprecations;
 
     #[Test]
     public function it_renders_the_collapsible_detail_template_with_the_entity(): void
@@ -181,6 +187,53 @@ final class DetailRowServiceTest extends TestCase
         $this->assertFalse($result->success);
         $this->assertSame(400, $result->statusCode);
         $this->assertNull($result->html);
+    }
+
+    #[Test]
+    public function it_deprecates_handle_view_in_favor_of_render(): void
+    {
+        $service = $this->createService(new EntityLocator(null), null);
+
+        $deprecations = $this->deprecationsOf(fn () => $service->handleView($this->resolved(new CollapsibleDetailDataTable()), 7));
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('render()', $deprecations[0]);
+    }
+
+    #[Test]
+    public function it_renders_an_authorized_row(): void
+    {
+        $service = $this->createService(
+            new EntityLocator(null),
+            new Environment(new ArrayLoader(['detail.html.twig' => 'Email: {{ entity.email }} / {{ extra }}'])),
+        );
+
+        $result = $service->render($this->authorizedRow(new DetailRowEntity('alice@example.com')));
+
+        $this->assertTrue($result->success);
+        $this->assertSame('Email: alice@example.com / hint', $result->html);
+    }
+
+    #[Test]
+    public function it_returns_bad_request_for_an_authorized_row_when_twig_is_unavailable(): void
+    {
+        $service = $this->createService(new EntityLocator(null), null);
+
+        $result = $service->render($this->authorizedRow(new DetailRowEntity('alice@example.com')));
+
+        $this->assertSame(400, $result->statusCode);
+    }
+
+    private function authorizedRow(DetailRowEntity $entity): AuthorizedRow
+    {
+        $table = $this->resolved(new CollapsibleDetailDataTable());
+
+        return new AuthorizedRow(
+            table: $table,
+            action: $table->findAction(ActionType::Detail, collapsible: true),
+            context: new MutationContext($entity, $this->createStub(ObjectManager::class)),
+            id: 7,
+        );
     }
 
     private function createService(

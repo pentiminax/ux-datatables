@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
 use Pentiminax\UX\DataTables\Ajax\DetailRowService;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
+use Pentiminax\UX\DataTables\Ajax\RowActionGate;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -33,7 +34,6 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
@@ -45,6 +45,7 @@ use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountAccount;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -68,6 +69,7 @@ use Twig\Loader\ArrayLoader;
 final class RowScopeGuardTest extends TestCase
 {
     use BuildsEntityManager;
+    use BuildsRowActionGate;
 
     private const SECRET = 'test-secret';
 
@@ -119,7 +121,7 @@ final class RowScopeGuardTest extends TestCase
     #[Test]
     public function it_does_not_delete_a_row_outside_the_scope(): void
     {
-        $controller = new AjaxDeleteController($this->mutator(), $this->tokenValidator(), $this->registry, $this->guard(), new AuthorizationChecker(new TestAuthorizationChecker()));
+        $controller = new AjaxDeleteController($this->mutator(), $this->gate($this->registry, $this->guard()));
 
         try {
             $controller($this->request(), new AjaxEntityQueryDto(dataTable: $this->actionToken(), id: 3));
@@ -135,7 +137,7 @@ final class RowScopeGuardTest extends TestCase
     #[Test]
     public function it_does_not_toggle_a_row_outside_the_scope(): void
     {
-        $controller = new AjaxEditController($this->mutator(), $this->tokenValidator(), new BooleanMutationContextResolver($this->registry), $this->guard());
+        $controller = new AjaxEditController($this->mutator(), $this->gate($this->registry, $this->guard()));
 
         try {
             $controller($this->request(), new AjaxEditRequestDto($this->actionToken(), 3, 'active', false));
@@ -188,11 +190,11 @@ final class RowScopeGuardTest extends TestCase
         $guard = new RowScopeGuard($this->locator(), $stack);
         $token = $this->forwardingToken();
 
-        $delete = new AjaxDeleteController($this->mutator(), $this->tokenValidator(), $this->forwardingRegistry(), $guard, new AuthorizationChecker(new TestAuthorizationChecker()));
+        $delete = new AjaxDeleteController($this->mutator(), $this->gate($this->forwardingRegistry(), $guard));
         $delete($stack->getCurrentRequest(), new AjaxEntityQueryDto($token, 1));
         $this->assertNull($this->em->find(CountAccount::class, 1));
 
-        $toggle = new AjaxEditController($this->mutator(), $this->tokenValidator(), new BooleanMutationContextResolver($this->forwardingRegistry()), $guard);
+        $toggle = new AjaxEditController($this->mutator(), $this->gate($this->forwardingRegistry(), $guard));
         $toggle($stack->getCurrentRequest(), new AjaxEditRequestDto($token, 2, 'active', false));
         $this->assertFalse($this->em->find(CountAccount::class, 2)->active);
 
@@ -340,12 +342,15 @@ final class RowScopeGuardTest extends TestCase
         );
     }
 
-    private function tokenValidator(): MutationTokenValidator
+    private function gate(AjaxDataTableRegistry $registry, RowScopeGuard $guard): RowActionGate
     {
+        $doctrine = $this->createStub(ManagerRegistry::class);
+        $doctrine->method('getManagerForClass')->willReturn($this->em);
+
         $csrf = $this->createStub(CsrfTokenManagerInterface::class);
         $csrf->method('isTokenValid')->willReturn(true);
 
-        return new MutationTokenValidator($csrf);
+        return $this->rowActionGate($registry, $doctrine, $csrf, $guard);
     }
 
     private function provider(): DoctrineDataProvider

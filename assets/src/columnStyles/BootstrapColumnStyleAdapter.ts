@@ -25,6 +25,7 @@ export class BootstrapColumnStyleAdapter implements ColumnStyleAdapter {
             `<input class="form-check-input boolean-switch-action" type="checkbox" role="switch"` +
             ` aria-label="${options.ariaLabel}"` +
             ` data-id="${options.dataId}"` +
+            (options.dataRowId ? ` data-row-id="${options.dataRowId}"` : '') +
             ` data-url="${options.dataUrl}"` +
             ` data-field="${options.dataField}"` +
             ` data-method="${options.dataMethod}"` +

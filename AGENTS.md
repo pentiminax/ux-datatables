@@ -182,6 +182,9 @@ snake_case PHPUnit method names.
   through names and structure, and keep a comment only for a non-obvious constraint or decision.
   Do not use comments as section separators. Keep docblocks to a line or two, and mark internal
   methods with a bare `@internal` instead of naming their callers, which go stale.
+- Use named arguments when a call's meaning is not obvious from position: several arguments of
+  the same or nullable type in a row (ids, fields, class names), or bare `null`, boolean, and
+  numeric literals. Constructors of value objects such as `AuthorizedRow` are the typical case.
 - Keep properties before methods, then order methods public, protected, and private.
 - Use PHPDoc for useful generic, iterable, array-shape, or behavioral information; avoid repeating
   native type declarations.

@@ -57,6 +57,7 @@ export function createBooleanColumnRenderer(
                     metadataId !== null && metadataId !== undefined && metadataId !== ''
                         ? metadataId
                         : row?.[toggleIdField]
+                const tableRowId = row?.__ux_datatables_switch_row_id
                 const disabled =
                     !mutationsEnabled || rowId === null || rowId === undefined || rowId === ''
 
@@ -65,6 +66,7 @@ export function createBooleanColumnRenderer(
                     disabled,
                     ariaLabel,
                     dataId: escapeHtml(String(rowId ?? '')),
+                    dataRowId: tableRowId ? escapeHtml(String(tableRowId)) : undefined,
                     dataUrl: escapeHtml(toggleUrl),
                     dataField: escapeHtml(effectiveField),
                     dataMethod: escapeHtml(toggleMethod.toUpperCase()),

@@ -25,10 +25,29 @@ final readonly class DetailRowService
         $this->permissionChecker = $permissionChecker ?? new AuthorizationChecker();
     }
 
-    public function handleView(ResolvedDataTable $dataTable, int|string $id): AjaxActionResult
+    /**
+     * @internal
+     */
+    public function render(AuthorizedRow $row): AjaxActionResult
     {
         if (null === $this->twig) {
-            return AjaxActionResult::badRequest('Twig is required to render a detail row.');
+            return self::twigRequired();
+        }
+
+        $action = $row->action ?? throw new \LogicException('A detail row needs its action.');
+
+        return $this->renderTemplate($this->twig, $action, $row->context->entity);
+    }
+
+    /**
+     * @deprecated since 1.5, use render() instead. Removed in 2.0.
+     */
+    public function handleView(ResolvedDataTable $dataTable, int|string $id): AjaxActionResult
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.5', 'The "%s()" method is deprecated, use "render()" instead.', __METHOD__);
+
+        if (null === $this->twig) {
+            return self::twigRequired();
         }
 
         $action = $dataTable->findAction(ActionType::Detail, collapsible: true);
@@ -52,9 +71,19 @@ final readonly class DetailRowService
             return AjaxActionResult::forbidden();
         }
 
-        $parameters = array_merge(['entity' => $context->entity], $action->getCollapsibleParameters());
+        return $this->renderTemplate($this->twig, $action, $context->entity);
+    }
 
-        return AjaxActionResult::success($this->twig->render($action->getCollapsibleTemplate(), $parameters));
+    private static function twigRequired(): AjaxActionResult
+    {
+        return AjaxActionResult::badRequest('Twig is required to render a detail row.');
+    }
+
+    private function renderTemplate(Environment $twig, Action $action, object $entity): AjaxActionResult
+    {
+        $parameters = array_merge(['entity' => $entity], $action->getCollapsibleParameters());
+
+        return AjaxActionResult::success($twig->render($action->getCollapsibleTemplate(), $parameters));
     }
 
     /**

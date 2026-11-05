@@ -14,11 +14,19 @@ use Pentiminax\UX\DataTables\RowMapper\RowIdNormalizer;
 final class BooleanSwitchMetadataStage implements RowStageInterface
 {
     public const METADATA_KEY = '__ux_datatables_boolean_switches';
+    public const ROW_ID_KEY   = '__ux_datatables_switch_row_id';
+
+    public function __construct(
+        private readonly ?string $rowIdField = null,
+        private readonly ?string $tableEntityClass = null,
+    ) {
+    }
 
     public function process(array $mappedRow, mixed $originalRow, array $columns): array
     {
         $metadata = $this->extractExistingMetadata($mappedRow);
         $source   = $originalRow instanceof RowContext ? $originalRow->source : $originalRow;
+        $rowId    = null;
 
         foreach ($columns as $column) {
             if (!$column instanceof BooleanColumn || !$column->isRenderedAsSwitch()) {
@@ -36,6 +44,16 @@ final class BooleanSwitchMetadataStage implements RowStageInterface
             }
 
             $metadata[$effectiveField] = $id;
+
+            if (!$this->targetsRelatedEntity($column)) {
+                continue;
+            }
+
+            $rowId ??= $this->resolveRowId($source);
+
+            if (null !== $rowId) {
+                $mappedRow[self::ROW_ID_KEY] = $rowId;
+            }
         }
 
         if ([] === $metadata) {
@@ -69,6 +87,18 @@ final class BooleanSwitchMetadataStage implements RowStageInterface
         }
 
         return $normalized;
+    }
+
+    private function targetsRelatedEntity(BooleanColumn $column): bool
+    {
+        $entityClass = $column->getEntityClass();
+
+        return null !== $this->tableEntityClass && null !== $entityClass && $entityClass !== $this->tableEntityClass;
+    }
+
+    private function resolveRowId(mixed $source): ?string
+    {
+        return null === $this->rowIdField ? null : RowIdNormalizer::normalize(PropertyReader::readPath($source, $this->rowIdField));
     }
 
     private function resolveSwitchId(mixed $source, BooleanColumn $column): ?string

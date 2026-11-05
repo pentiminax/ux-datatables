@@ -117,4 +117,5 @@ export interface UrlRowData {
 
 export interface BooleanSwitchRowData {
     __ux_datatables_boolean_switches?: Record<string, string | null | undefined>
+    __ux_datatables_switch_row_id?: string | null
 }

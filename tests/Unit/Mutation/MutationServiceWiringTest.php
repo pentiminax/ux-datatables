@@ -93,12 +93,10 @@ final class MutationServiceWiringTest extends TestCase
     #[Test]
     public function it_wires_the_ajax_edit_controller_with_the_boolean_mutation_context_resolver(): void
     {
-        $controller = $this->service('datatables.controller.ajax_edit');
-
-        $this->assertInstanceOf(AjaxEditController::class, $controller);
+        $this->assertInstanceOf(AjaxEditController::class, $this->service('datatables.controller.ajax_edit'));
         $this->assertSame(
             $this->container->get('datatables.mutation.boolean_context_resolver'),
-            $this->readPrivateProperty($controller, 'contextResolver'),
+            $this->readPrivateProperty($this->container->get('datatables.ajax.row_action_gate'), 'toggleResolver'),
         );
     }
 
@@ -107,12 +105,7 @@ final class MutationServiceWiringTest extends TestCase
     {
         $guard = $this->container->get('datatables.mutation.row_scope_guard');
 
-        foreach ([
-            'datatables.controller.ajax_delete',
-            'datatables.controller.ajax_edit',
-        ] as $id) {
-            $this->assertSame($guard, $this->readPrivateProperty($this->service($id), 'scopeGuard'), $id);
-        }
+        $this->assertSame($guard, $this->readPrivateProperty($this->container->get('datatables.ajax.row_action_gate'), 'scopeGuard'));
     }
 
     private function readPrivateProperty(object $object, string $property): mixed

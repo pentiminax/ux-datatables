@@ -2,6 +2,7 @@ import { createMutationHeaders } from './createMutationHeaders.js'
 
 type ToggleBooleanPayload = {
     id: string
+    rowId?: string
     field: string
     newValue: boolean
     url: string
@@ -13,6 +14,7 @@ type ToggleBooleanPayload = {
 
 export async function toggleBooleanValue({
     id,
+    rowId,
     field,
     newValue,
     url,
@@ -23,6 +25,7 @@ export async function toggleBooleanValue({
 }: ToggleBooleanPayload): Promise<Response> {
     const body: Record<string, unknown> = {
         id,
+        rowId,
         field,
         newValue,
         dataTable,

@@ -13,6 +13,7 @@ export interface SwitchRenderOptions {
     disabled: boolean
     ariaLabel: string
     dataId: string
+    dataRowId?: string
     dataUrl: string
     dataField: string
     dataMethod: string

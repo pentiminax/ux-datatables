@@ -14,7 +14,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Controller\AjaxEditFormController;
 use Pentiminax\UX\DataTables\Controller\AjaxEntityQueryDto;
-use Pentiminax\UX\DataTables\Exception\InvalidDataTableTokenException;
+use Pentiminax\UX\DataTables\Exception\MutationException;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
 use Pentiminax\UX\DataTables\Form\EditFormService;
@@ -29,6 +29,7 @@ use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
@@ -37,7 +38,10 @@ use Psr\Container\ContainerInterface;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
  * @internal
@@ -45,6 +49,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 #[CoversClass(AjaxEditFormController::class)]
 final class AjaxEditFormControllerTest extends TestCase
 {
+    use BuildsRowActionGate;
     use BuildsUnscopedRowScopeGuard;
     private const TOKEN_SECRET = 'test-secret';
 
@@ -87,7 +92,7 @@ final class AjaxEditFormControllerTest extends TestCase
             $this->registeredDataTables(),
         );
 
-        $response = $controller($this->payload('42'));
+        $response = $this->respond($controller, $this->payload('42'));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
@@ -116,57 +121,13 @@ final class AjaxEditFormControllerTest extends TestCase
 
         $controller = $this->controller($this->createRegistry($entityManager), $formFactory, $renderer, $templateResolver);
 
-        $response = $controller($this->payload('missing'));
+        $response = $this->respond($controller, $this->payload('missing'));
 
         $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
         $this->assertSame(404, $response->getStatusCode());
         $this->assertFalse($payload['success']);
         $this->assertSame('Entity not found.', $payload['message']);
-    }
-
-    #[Test]
-    public function it_returns_not_found_when_the_manager_is_missing(): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->once())
-            ->method('getManagerForClass')
-            ->with(AjaxEditFormControllerFixture::class)
-            ->willReturn(null);
-
-        [$formFactory, $renderer, $templateResolver] = $this->createUnusedFormCollaborators();
-
-        $controller = $this->controller($registry, $formFactory, $renderer, $templateResolver);
-
-        $response = $controller($this->payload('42'));
-
-        $payload = json_decode((string) $response->getContent(), true, 512, \JSON_THROW_ON_ERROR);
-
-        $this->assertSame(404, $response->getStatusCode());
-        $this->assertFalse($payload['success']);
-        $this->assertSame('Entity not found.', $payload['message']);
-    }
-
-    #[Test]
-    public function it_refuses_a_read_token_replayed_on_the_action_route(): void
-    {
-        $registry = $this->createMock(ManagerRegistry::class);
-        $registry->expects($this->never())->method('getManagerForClass');
-
-        $controller = $this->controller($registry, ...$this->createUnusedFormCollaborators());
-
-        $this->expectException(InvalidDataTableTokenException::class);
-
-        $controller(new AjaxEntityQueryDto(dataTable: $this->readTableToken(), id: '42'));
-    }
-
-    private function readTableToken(): string
-    {
-        $token = $this->tableRegistry()->getToken(AjaxEditFormControllerDataTable::class);
-
-        $this->assertNotNull($token);
-
-        return $token;
     }
 
     private function controller(
@@ -191,8 +152,17 @@ final class AjaxEditFormControllerTest extends TestCase
                 $this->unscopedRowScopeGuard(),
                 new AuthorizationChecker($authorizationChecker),
             ),
-            $this->tableRegistry(),
+            $this->rowActionGate($this->tableRegistry(), $registry, $this->createStub(CsrfTokenManagerInterface::class), $this->unscopedRowScopeGuard(), new AuthorizationChecker($authorizationChecker)),
         );
+    }
+
+    private function respond(AjaxEditFormController $controller, AjaxEntityQueryDto $payload): Response
+    {
+        try {
+            return $controller(new Request(), $payload);
+        } catch (MutationException $exception) {
+            return $this->clientResponse($exception);
+        }
     }
 
     private function tableRegistry(): AjaxDataTableRegistry
