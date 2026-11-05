@@ -70,10 +70,9 @@ final class RowActionGate
     private function authorizeToggle(RowActionRequest $rowAction): AuthorizedRow
     {
         $toggle = $this->toggleResolver->resolve($rowAction->dataTable, (string) $rowAction->field);
+        $table  = $toggle->table ?? $this->registry->resolveAction($rowAction->dataTable);
 
-        if (null !== $toggle->table) {
-            $this->assertToggleInScope($toggle->table, $toggle, $rowAction);
-        }
+        $this->assertToggleInScope($table, $toggle, $rowAction);
 
         $context = $this->locator->locate($toggle->entityClass, $rowAction->id);
 
@@ -82,7 +81,7 @@ final class RowActionGate
         }
 
         return new AuthorizedRow(
-            $toggle->table ?? $this->registry->resolveAction($rowAction->dataTable),
+            $table,
             null,
             $context,
             $rowAction->id,

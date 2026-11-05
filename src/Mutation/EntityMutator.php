@@ -74,15 +74,49 @@ final class EntityMutator
      * @throws MutationNotAllowedException
      * @throws MutationPersistenceException
      * @throws PropertyNotWritableException
+     *
+     * @deprecated since 1.5, use toggleRow() instead. Removed in 2.0.
      */
     public function setProperty(string $entityClass, int|string $id, string $field, bool $value, string $dataTableClass): void
     {
+        trigger_deprecation('pentiminax/ux-datatables', '1.5', 'The "%s()" method is deprecated, use "toggleRow()" instead.', __METHOD__);
+
         $context = $this->locator->locate($entityClass, $id);
 
         if (!$this->permissionChecker->canEditRow($context->entity)) {
             throw new MutationNotAllowedException();
         }
 
+        $this->writeBoolean($context, $entityClass, $dataTableClass, $id, $field, $value);
+    }
+
+    /**
+     * Writes the switch field of a row the {@see RowActionGate} has authorized.
+     *
+     * @internal
+     *
+     * @throws FieldNotToggleableException
+     * @throws MutationPersistenceException
+     * @throws PropertyNotWritableException
+     */
+    public function toggleRow(AuthorizedRow $row, bool $value): void
+    {
+        $this->writeBoolean($row->context, (string) $row->entityClass, $row->table->dataTableClass, $row->id, (string) $row->field, $value);
+    }
+
+    private function removeAndPublish(MutationContext $context, string $entityClass, string $dataTableClass, int|string $id): void
+    {
+        $context->manager->remove($context->entity);
+        $this->flusher->flush($context->manager);
+
+        MutationUpdatePublisher::publish($this->publisher, $this->topicResolver, $entityClass, $dataTableClass, [
+            'type' => 'delete',
+            'id'   => (string) $id,
+        ]);
+    }
+
+    private function writeBoolean(MutationContext $context, string $entityClass, string $dataTableClass, int|string $id, string $field, bool $value): void
+    {
         $metadata = $context->manager->getClassMetadata($entityClass);
 
         if (!$metadata->hasField($field) || 'boolean' !== $metadata->getTypeOfField($field)) {
@@ -100,17 +134,6 @@ final class EntityMutator
             'type'  => 'edit',
             'id'    => (string) $id,
             'field' => $field,
-        ]);
-    }
-
-    private function removeAndPublish(MutationContext $context, string $entityClass, string $dataTableClass, int|string $id): void
-    {
-        $context->manager->remove($context->entity);
-        $this->flusher->flush($context->manager);
-
-        MutationUpdatePublisher::publish($this->publisher, $this->topicResolver, $entityClass, $dataTableClass, [
-            'type' => 'delete',
-            'id'   => (string) $id,
         ]);
     }
 }

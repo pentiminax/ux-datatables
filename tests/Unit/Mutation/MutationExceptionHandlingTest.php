@@ -23,7 +23,6 @@ use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
-use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
@@ -84,7 +83,7 @@ final class MutationExceptionHandlingTest extends TestCase
             new AuthorizationChecker(new TestAuthorizationChecker()),
             new MercureTopicResolver(),
             new MutationFlusher(),
-        ));
+        ), $entity);
 
         $response = $this->handleControllerException(
             fn () => $controller($this->validTokenRequest(), new AjaxEditRequestDto(
@@ -101,7 +100,7 @@ final class MutationExceptionHandlingTest extends TestCase
     #[Test]
     public function it_maps_an_invalid_boolean_mutation_context_to_a_json_400_response(): void
     {
-        $controller = $this->editController($this->mutatorReturning(new MutationExceptionHandlingFixture()));
+        $controller = $this->editController($this->mutatorReturning(new MutationExceptionHandlingFixture()), new MutationExceptionHandlingFixture());
 
         $response = $this->handleControllerException(
             fn () => $controller($this->validTokenRequest(), new AjaxEditRequestDto(
@@ -128,9 +127,9 @@ final class MutationExceptionHandlingTest extends TestCase
         );
     }
 
-    private function editController(EntityMutator $mutator): AjaxEditController
+    private function editController(EntityMutator $mutator, ?object $entity): AjaxEditController
     {
-        return new AjaxEditController($mutator, new MutationTokenValidator($this->validCsrfTokenManager()), $this->contextResolver(), $this->unscopedRowScopeGuard());
+        return new AjaxEditController($mutator, $this->rowActionGate($this->dataTableRegistry(), $this->registryReturning($entity), $this->validCsrfTokenManager(), $this->unscopedRowScopeGuard()));
     }
 
     /**
@@ -204,11 +203,6 @@ final class MutationExceptionHandlingTest extends TestCase
         $request->headers->set(MutationTokenValidator::HEADER, 'valid-token');
 
         return $request;
-    }
-
-    private function contextResolver(): BooleanMutationContextResolver
-    {
-        return new BooleanMutationContextResolver($this->dataTableRegistry());
     }
 
     private function dataTableToken(): string

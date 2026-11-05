@@ -34,7 +34,6 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
@@ -138,7 +137,7 @@ final class RowScopeGuardTest extends TestCase
     #[Test]
     public function it_does_not_toggle_a_row_outside_the_scope(): void
     {
-        $controller = new AjaxEditController($this->mutator(), $this->tokenValidator(), new BooleanMutationContextResolver($this->registry), $this->guard());
+        $controller = new AjaxEditController($this->mutator(), $this->gate($this->registry, $this->guard()));
 
         try {
             $controller($this->request(), new AjaxEditRequestDto($this->actionToken(), 3, 'active', false));
@@ -195,7 +194,7 @@ final class RowScopeGuardTest extends TestCase
         $delete($stack->getCurrentRequest(), new AjaxEntityQueryDto($token, 1));
         $this->assertNull($this->em->find(CountAccount::class, 1));
 
-        $toggle = new AjaxEditController($this->mutator(), $this->tokenValidator(), new BooleanMutationContextResolver($this->forwardingRegistry()), $guard);
+        $toggle = new AjaxEditController($this->mutator(), $this->gate($this->forwardingRegistry(), $guard));
         $toggle($stack->getCurrentRequest(), new AjaxEditRequestDto($token, 2, 'active', false));
         $this->assertFalse($this->em->find(CountAccount::class, 2)->active);
 

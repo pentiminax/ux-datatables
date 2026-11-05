@@ -9,6 +9,7 @@ use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableRegistry;
 use Pentiminax\UX\DataTables\Ajax\AjaxDataTableTokenManager;
+use Pentiminax\UX\DataTables\Ajax\RowActionGate;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
@@ -75,17 +76,11 @@ final class AjaxEditRelatedEntityTest extends TestCase
 
         $this->doctrine = $this->createStub(ManagerRegistry::class);
         $this->doctrine->method('getManagerForClass')->willReturn($this->em);
-        $locator = new EntityLocator($this->doctrine);
 
         $registry    = $this->registry(new RelatedToggleOrderDataTable($this->provider()), RelatedToggleOrderDataTable::class);
         $this->token = $registry->getActionToken(RelatedToggleOrderDataTable::class) ?? '';
 
-        $this->controller = new AjaxEditController(
-            new EntityMutator($locator, PropertyAccess::createPropertyAccessor(), new NullMercurePublisher(), new AuthorizationChecker(new TestAuthorizationChecker()), new MercureTopicResolver(), new MutationFlusher()),
-            $this->tokenValidator(),
-            new BooleanMutationContextResolver($registry),
-            new RowScopeGuard($locator),
-        );
+        $this->controller = $this->controller($registry);
     }
 
     #[Test]
@@ -124,16 +119,10 @@ final class AjaxEditRelatedEntityTest extends TestCase
     #[Test]
     public function it_toggles_a_switch_on_a_table_without_an_entity_class(): void
     {
-        $locator  = new EntityLocator($this->doctrine);
         $registry = $this->registry(new RelatedToggleManualDataTable(), RelatedToggleManualDataTable::class);
         $token    = $registry->getActionToken(RelatedToggleManualDataTable::class) ?? '';
 
-        $controller = new AjaxEditController(
-            new EntityMutator($locator, PropertyAccess::createPropertyAccessor(), new NullMercurePublisher(), new AuthorizationChecker(new TestAuthorizationChecker()), new MercureTopicResolver(), new MutationFlusher()),
-            $this->tokenValidator(),
-            new BooleanMutationContextResolver($registry),
-            new RowScopeGuard($locator),
-        );
+        $controller = $this->controller($registry);
 
         $controller($this->request(), new AjaxEditRequestDto($token, 30, 'vip', true));
 
@@ -161,6 +150,17 @@ final class AjaxEditRelatedEntityTest extends TestCase
         $request->headers->set(MutationTokenValidator::HEADER, 'valid-token');
 
         return $request;
+    }
+
+    private function controller(AjaxDataTableRegistry $registry): AjaxEditController
+    {
+        $locator     = new EntityLocator($this->doctrine);
+        $permissions = new AuthorizationChecker(new TestAuthorizationChecker());
+
+        return new AjaxEditController(
+            new EntityMutator($locator, PropertyAccess::createPropertyAccessor(), new NullMercurePublisher(), $permissions, new MercureTopicResolver(), new MutationFlusher()),
+            new RowActionGate($this->tokenValidator(), $registry, new BooleanMutationContextResolver($registry), new RowScopeGuard($locator), $locator, $permissions),
+        );
     }
 
     private function tokenValidator(): MutationTokenValidator

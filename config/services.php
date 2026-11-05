@@ -209,9 +209,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('datatables.controller.ajax_edit', AjaxEditController::class)
         ->arg(0, service('datatables.mutation.mutator'))
-        ->arg(1, service('datatables.security.mutation_token_validator'))
-        ->arg(2, service('datatables.mutation.boolean_context_resolver'))
-        ->arg(3, service('datatables.mutation.row_scope_guard'))
+        ->arg(1, service('datatables.ajax.row_action_gate'))
         ->tag('controller.service_arguments')
         ->public();
 

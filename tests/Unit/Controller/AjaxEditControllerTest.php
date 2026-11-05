@@ -27,7 +27,6 @@ use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\NullMercurePublisher;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
-use Pentiminax\UX\DataTables\Mutation\BooleanMutationContextResolver;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
@@ -36,6 +35,7 @@ use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
+use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsUnscopedRowScopeGuard;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -53,6 +53,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 #[CoversClass(AjaxEditController::class)]
 final class AjaxEditControllerTest extends TestCase
 {
+    use BuildsRowActionGate;
     use BuildsUnscopedRowScopeGuard;
     private const TOKEN_SECRET = 'test-secret';
 
@@ -184,8 +185,10 @@ final class AjaxEditControllerTest extends TestCase
         $dataTables->method('has')->with(ToggleBooleanEntityFixtureDataTable::class)->willReturn(true);
         $dataTables->method('get')->with(ToggleBooleanEntityFixtureDataTable::class)->willReturn($dataTable);
 
+        $doctrine = $this->managerRegistry($entity, 799, expectFlush: true);
+
         $mutator = new EntityMutator(
-            new EntityLocator($this->managerRegistry($entity, 799, expectFlush: true)),
+            new EntityLocator($doctrine),
             $this->writableAccessor($entity, true),
             $publisher,
             new AuthorizationChecker(new TestAuthorizationChecker()),
@@ -195,9 +198,7 @@ final class AjaxEditControllerTest extends TestCase
 
         $controller = new AjaxEditController(
             $mutator,
-            new MutationTokenValidator($this->validCsrfTokenManager()),
-            $this->contextResolver($dataTable),
-            $this->unscopedRowScopeGuard(),
+            $this->rowActionGate($this->registry($dataTable), $doctrine, $this->validCsrfTokenManager(), $this->unscopedRowScopeGuard()),
         );
 
         $controller($this->validTokenRequest(), $this->payload(true));
@@ -210,8 +211,10 @@ final class AjaxEditControllerTest extends TestCase
         bool $expectFlush,
         ?CsrfTokenManagerInterface $csrfTokenManager = null,
     ): AjaxEditController {
+        $doctrine = $this->managerRegistry($entity, $id, $expectFlush);
+
         $mutator = new EntityMutator(
-            new EntityLocator($this->managerRegistry($entity, $id, $expectFlush)),
+            new EntityLocator($doctrine),
             $accessor,
             new NullMercurePublisher(),
             new AuthorizationChecker(new TestAuthorizationChecker()),
@@ -221,9 +224,7 @@ final class AjaxEditControllerTest extends TestCase
 
         return new AjaxEditController(
             $mutator,
-            new MutationTokenValidator($csrfTokenManager ?? $this->validCsrfTokenManager()),
-            $this->contextResolver(),
-            $this->unscopedRowScopeGuard(),
+            $this->rowActionGate($this->registry(new ToggleBooleanEntityFixtureDataTable()), $doctrine, $csrfTokenManager ?? $this->validCsrfTokenManager(), $this->unscopedRowScopeGuard()),
         );
     }
 
@@ -311,11 +312,6 @@ final class AjaxEditControllerTest extends TestCase
         $this->assertNotNull($token);
 
         return $token;
-    }
-
-    private function contextResolver(?AbstractDataTable $dataTable = null): BooleanMutationContextResolver
-    {
-        return new BooleanMutationContextResolver($this->registry($dataTable ?? new ToggleBooleanEntityFixtureDataTable()));
     }
 
     private function registry(AbstractDataTable $dataTable): AjaxDataTableRegistry

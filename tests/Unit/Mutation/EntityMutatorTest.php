@@ -102,6 +102,24 @@ final class EntityMutatorTest extends TestCase
     }
 
     #[Test]
+    public function it_deprecates_set_property_in_favor_of_toggle_row(): void
+    {
+        $manager = $this->managerReturning(new EntityMutatorFixture(), 5);
+        $mutator = $this->mutator($manager, $this->createStub(MercurePublisherInterface::class), $this->createStub(PropertyAccessorInterface::class));
+
+        $deprecations = $this->deprecationsOf(static function () use ($mutator): void {
+            try {
+                $mutator->setProperty(EntityMutatorFixture::class, 5, 'enabled', true, self::DATA_TABLE_CLASS);
+            } catch (PropertyNotWritableException) {
+                // The accessor stub refuses the write; only the deprecation is under test.
+            }
+        });
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('toggleRow()', $deprecations[0]);
+    }
+
+    #[Test]
     public function it_sets_a_property_flushes_and_publishes(): void
     {
         $entity = new EntityMutatorFixture();
