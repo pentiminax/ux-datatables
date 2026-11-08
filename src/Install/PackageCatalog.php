@@ -47,6 +47,17 @@ final class PackageCatalog
         return [self::BUTTONS, ...self::EXTENSIONS];
     }
 
+    public static function optionKey(string $name): string
+    {
+        foreach (self::OPTION_KEYS as $key => $extension) {
+            if ($extension === $name) {
+                return $key;
+            }
+        }
+
+        return $name;
+    }
+
     /**
      * The selectable name an option key stands for, null when the key is not an extension.
      */

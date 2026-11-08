@@ -34,23 +34,29 @@ final class ExtensionDetector
                 }
 
                 $dataTable = $table->getConfiguredDataTable();
-                $keys      = array_keys($dataTable->getExtensionsCollection()->all());
-
-                foreach (PackageCatalog::EXTENSIONS as $name) {
-                    $key = array_search($name, PackageCatalog::OPTION_KEYS, true) ?: $name;
-
-                    if (null !== $dataTable->getOption($key)) {
-                        $keys[] = $key;
-                    }
-                }
-
-                if ($this->declaresButtons($dataTable->getOption('layout'))) {
-                    $keys[] = 'buttons';
-                }
-            } catch (\Throwable $e) {
-                $failures[$id] = $e->getMessage();
+            } catch (\Exception $e) {
+                $failures[$id] = $e::class.': '.$e->getMessage();
 
                 continue;
+            }
+
+            $keys = array_keys($dataTable->getExtensionsCollection()->all());
+
+            foreach (PackageCatalog::selectable() as $name) {
+                $key   = PackageCatalog::optionKey($name);
+                $value = $dataTable->getOption($key);
+
+                if (null !== $value && false !== $value) {
+                    $keys[] = $key;
+                }
+            }
+
+            $layout = $dataTable->getOption('layout');
+
+            foreach ([Feature::BUTTONS, Feature::SEARCH_BUILDER] as $feature) {
+                if ($dataTable->layoutDeclares($layout, $feature)) {
+                    $keys[] = $feature->value;
+                }
             }
 
             foreach ($keys as $key) {
@@ -65,28 +71,5 @@ final class ExtensionDetector
         $extensions = array_values(array_filter(PackageCatalog::selectable(), static fn (string $name): bool => isset($found[$name])));
 
         return new ExtensionDetection($extensions, $failures);
-    }
-
-    private function declaresButtons(mixed $layout): bool
-    {
-        if (Feature::BUTTONS === $layout || Feature::BUTTONS->value === $layout) {
-            return true;
-        }
-
-        if (!\is_array($layout)) {
-            return false;
-        }
-
-        if (\array_key_exists(Feature::BUTTONS->value, $layout)) {
-            return true;
-        }
-
-        foreach ($layout as $item) {
-            if ($this->declaresButtons($item)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

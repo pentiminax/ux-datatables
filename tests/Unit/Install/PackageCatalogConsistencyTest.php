@@ -91,8 +91,7 @@ final class PackageCatalogConsistencyTest extends TestCase
         }
 
         foreach (PackageCatalog::EXTENSIONS as $name) {
-            $key = array_search($name, PackageCatalog::OPTION_KEYS, true) ?: $name;
-            $this->assertSame($name, PackageCatalog::fromOptionKey($key));
+            $this->assertSame($name, PackageCatalog::fromOptionKey(PackageCatalog::optionKey($name)));
         }
 
         $this->assertNull(PackageCatalog::fromOptionKey('columns'));

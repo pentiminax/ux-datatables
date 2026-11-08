@@ -1540,7 +1540,10 @@ class DataTable
         trigger_deprecation('pentiminax/ux-datatables', '1.3', 'Placing the "searchBuilder" feature in the layout without the SearchBuilder extension is deprecated and throws in 2.0, call searchBuilder() or addExtension(new SearchBuilderExtension()).');
     }
 
-    private function layoutDeclares(mixed $value, Feature $feature): bool
+    /**
+     * @internal
+     */
+    public function layoutDeclares(mixed $value, Feature $feature): bool
     {
         if ($feature === $value || $feature->value === $value) {
             return true;
