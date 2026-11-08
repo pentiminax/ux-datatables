@@ -1,5 +1,19 @@
 import type { StyleFramework } from '../types/styleFramework.js'
-import type { ExtensionName } from './extensionRegistry.js'
+
+export const EXTENSION_NAMES = [
+    'colReorder',
+    'columnControl',
+    'fixedColumns',
+    'fixedHeader',
+    'keyTable',
+    'responsive',
+    'rowGroup',
+    'scroller',
+    'searchBuilder',
+    'select',
+] as const
+
+export type ExtensionName = (typeof EXTENSION_NAMES)[number]
 
 export type PackageName =
     | 'dataTables'

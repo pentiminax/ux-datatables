@@ -75,7 +75,7 @@ final class PackageCatalogConsistencyTest extends TestCase
     #[Test]
     public function it_lists_the_frontend_extension_names(): void
     {
-        $source = $this->read('assets/src/functions/extensionRegistry.ts');
+        $source = $this->read('assets/src/functions/packageLoaders.ts');
 
         preg_match('/EXTENSION_NAMES = \[(.*?)\]/s', $source, $block);
         preg_match_all("/'(\w+)'/", $block[1] ?? '', $names);

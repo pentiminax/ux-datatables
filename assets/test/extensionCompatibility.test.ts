@@ -1,11 +1,11 @@
 import type { Api } from 'datatables.net'
 import { afterEach, describe, expect, it } from 'vitest'
-import { ExtensionRegistry } from '../src/functions/extensionRegistry.js'
 import { loadDataTableLibrary } from '../src/functions/loadDataTableLibrary.js'
+import { type ExtensionName, packageLoaders } from '../src/functions/packageLoaders.js'
 import type { StyleFramework } from '../src/types/styleFramework.js'
 
 const frameworks: StyleFramework[] = ['dt', 'bs', 'bs4', 'bs5']
-const extensions = [
+const extensions: Array<{ name: ExtensionName; option: string; setting: string; value: unknown }> = [
     { name: 'colReorder', option: 'colReorder', setting: '_colReorder', value: true },
     { name: 'fixedHeader', option: 'fixedHeader', setting: '_fixedHeader', value: true },
     { name: 'keyTable', option: 'keys', setting: 'keytable', value: true },
@@ -57,7 +57,7 @@ describe('real DataTables extension compatibility', () => {
         'initializes $name on the active $framework table',
         async ({ framework, name, option, setting, value }) => {
             await loadDataTableLibrary(framework)
-            await ExtensionRegistry.load(name, framework)
+            await packageLoaders.load(name, framework)
 
             const api = await createTable(framework, {
                 [option]: value,
@@ -78,8 +78,8 @@ describe('real DataTables extension compatibility', () => {
         'combines grouping, reordering, fixed headers, and keys on %s',
         async (framework) => {
             await loadDataTableLibrary(framework)
-            for (const name of ['colReorder', 'fixedHeader', 'keyTable', 'rowGroup']) {
-                await ExtensionRegistry.load(name, framework)
+            for (const name of ['colReorder', 'fixedHeader', 'keyTable', 'rowGroup'] as const) {
+                await packageLoaders.load(name, framework)
             }
 
             const api = await createTable(framework, {
@@ -107,7 +107,7 @@ describe('real DataTables extension compatibility', () => {
     )
 
     it.each(frameworks)('escapes default RowGroup labels on %s', async (framework) => {
-        await ExtensionRegistry.load('rowGroup', framework)
+        await packageLoaders.load('rowGroup', framework)
         await createTable(framework, { rowGroup: { dataSrc: 'group' } })
 
         const groupRow = document.querySelector('tr.dtrg-start')
@@ -116,7 +116,7 @@ describe('real DataTables extension compatibility', () => {
     })
 
     it.each(frameworks)('preserves custom RowGroup HTML renderers on %s', async (framework) => {
-        await ExtensionRegistry.load('rowGroup', framework)
+        await packageLoaders.load('rowGroup', framework)
         await createTable(framework, {
             rowGroup: {
                 dataSrc: 'group',
