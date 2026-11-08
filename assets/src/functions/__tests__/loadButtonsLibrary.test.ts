@@ -57,6 +57,7 @@ describe('loadButtonsLibrary', () => {
             mockSpecifier(frameworkSpecifier, loaded)
             mockSpecifier(cssSpecifier, loaded)
 
+            await import('../builtinPackageLoaders.js')
             const { loadButtonsLibrary } = await import('../loadButtonsLibrary.js')
 
             await loadButtonsLibrary(

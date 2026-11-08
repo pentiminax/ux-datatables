@@ -105,6 +105,7 @@ describe('DataTables extension package resolution', () => {
                 mockSpecifier(specifier, loaded)
             }
 
+            await import('../builtinPackageLoaders.js')
             const { ExtensionRegistry } = await import('../extensionRegistry.js')
 
             await ExtensionRegistry.load(name, framework)
@@ -118,6 +119,7 @@ describe('DataTables extension package resolution', () => {
     })
 
     it('rejects unknown extension names before importing a bundle', async () => {
+        await import('../builtinPackageLoaders.js')
         const { ExtensionRegistry } = await import('../extensionRegistry.js')
 
         await expect(ExtensionRegistry.load('missing', 'dt')).rejects.toThrow(
