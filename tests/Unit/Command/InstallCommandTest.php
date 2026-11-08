@@ -155,6 +155,17 @@ final class InstallCommandTest extends TestCase
     }
 
     #[Test]
+    public function it_accepts_the_stimulus_recipe_controllers_json(): void
+    {
+        file_put_contents($this->dir.'/assets/controllers.json', '{"controllers": [], "entrypoints": []}');
+
+        $tester = $this->install([]);
+
+        $this->assertSame(0, $tester->getStatusCode());
+        $this->assertTrue($this->readJson('assets/controllers.json')['controllers']['@pentiminax/ux-datatables']['datatable_core']['enabled']);
+    }
+
+    #[Test]
     public function it_fails_without_controllers_json(): void
     {
         unlink($this->dir.'/assets/controllers.json');
@@ -244,7 +255,7 @@ final class InstallCommandTest extends TestCase
         $require = array_values(array_filter($this->calls, static fn (array $call): bool => 'importmap:require' === $call[0]));
         $paths   = array_filter($require, static fn (array $call): bool => null !== $call[2]);
 
-        $this->assertSame(['@pentiminax/ux-datatables/dist/core.js', '@pentiminax/ux-datatables/dist/styles/datatables-base-style.css', '@pentiminax/ux-datatables/dist/styles/datatables-tailwind-theme.css'], array_merge(...array_column($paths, 1)));
+        $this->assertSame(['@pentiminax/ux-datatables/dist/core.js'], array_merge(...array_column($paths, 1)));
         $this->assertSame('./vendor/pentiminax/ux-datatables/assets/dist/core.js', array_values($paths)[0][2]);
 
         $packages = array_merge(...array_column(array_filter($require, static fn (array $call): bool => null === $call[2]), 1));

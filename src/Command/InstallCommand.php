@@ -68,7 +68,8 @@ final class InstallCommand extends Command
 
         // controllers.json goes first: it is the only file that can be unreadable, so nothing is half-written.
         $this->updateControllers($controllersFile, $style);
-        $written = ['assets/controllers.json', $this->writeRegistrationFile($packages, $style)];
+        $this->write($this->projectDir.'/assets/datatables.js', PackageCatalog::render($packages, $style));
+        $written = ['assets/controllers.json', 'assets/datatables.js'];
 
         $bootstrapImport = $this->addBootstrapImport();
         if (null !== $bootstrapImport) {
@@ -160,16 +161,6 @@ final class InstallCommand extends Command
         return array_values(array_unique($selected));
     }
 
-    /**
-     * @param list<string> $packages
-     */
-    private function writeRegistrationFile(array $packages, InstallStyle $style): string
-    {
-        $this->write($this->projectDir.'/assets/datatables.js', PackageCatalog::render($packages, $style));
-
-        return 'assets/datatables.js';
-    }
-
     private function hasBootstrapImport(): bool
     {
         foreach (self::BOOTSTRAP_FILES as $file) {
@@ -213,8 +204,9 @@ final class InstallCommand extends Command
             throw new \RuntimeException('The assets/controllers.json file must contain a JSON object.');
         }
 
-        $data->controllers                            ??= new \stdClass();
-        $bundle = $data->controllers->{self::PACKAGE} ??= new \stdClass();
+        // The StimulusBundle recipe ships "controllers": [], which decodes to an array.
+        $data->controllers = (object) ($data->controllers ?? []);
+        $bundle            = $data->controllers->{self::PACKAGE} ??= new \stdClass();
 
         if (isset($bundle->datatable) && $bundle->datatable instanceof \stdClass) {
             $bundle->datatable->enabled = false;
@@ -328,16 +320,10 @@ final class InstallCommand extends Command
     {
         $mapped = array_keys($this->importmap());
         $wanted = $specifiers;
-        $paths  = [self::PACKAGE.'/dist/core.js' => 'dist/core.js'];
 
+        // StimulusBundle resolves the bundle's own autoimport stylesheets without an importmap entry.
         foreach ($style->autoimport() as $key => $enabled) {
-            if (!$enabled) {
-                continue;
-            }
-
-            if (str_starts_with($key, self::PACKAGE.'/')) {
-                $paths[$key] = substr($key, \strlen(self::PACKAGE.'/'));
-            } else {
+            if ($enabled && !str_starts_with($key, self::PACKAGE.'/')) {
                 $wanted[] = $key;
             }
         }
@@ -345,8 +331,8 @@ final class InstallCommand extends Command
         $io->section('Importmap');
         $ok = true;
 
-        foreach (array_diff(array_keys($paths), $mapped) as $key) {
-            $ok = $this->runImportmap('require', ['packages' => [$key], '--path' => './vendor/pentiminax/ux-datatables/assets/'.$paths[$key]], $output) && $ok;
+        if (!\in_array(self::PACKAGE.'/dist/core.js', $mapped, true)) {
+            $ok = $this->runImportmap('require', ['packages' => [self::PACKAGE.'/dist/core.js'], '--path' => './vendor/pentiminax/ux-datatables/assets/dist/core.js'], $output);
         }
 
         $versions = $this->versions();
@@ -465,6 +451,8 @@ final class InstallCommand extends Command
             mkdir(\dirname($path), 0o775, true);
         }
 
-        file_put_contents($path, $contents);
+        if (false === file_put_contents($path, $contents)) {
+            throw new \RuntimeException(\sprintf('Unable to write "%s".', $path));
+        }
     }
 }

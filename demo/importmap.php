@@ -112,6 +112,4 @@ return [
     'datatables.net-datetime' => ['version' => '2.1.2'],
     'datatables.net-datetime/dist/dataTables.dateTime.min.css' => ['version' => '2.1.2', 'type' => 'css'],
     '@pentiminax/ux-datatables/dist/core.js' => ['path' => '@pentiminax/ux-datatables/core.js'],
-    '@pentiminax/ux-datatables/dist/styles/datatables-base-style.css' => ['path' => '@pentiminax/ux-datatables/styles/datatables-base-style.css', 'type' => 'css'],
-    '@pentiminax/ux-datatables/dist/styles/datatables-tailwind-theme.css' => ['path' => '@pentiminax/ux-datatables/styles/datatables-tailwind-theme.css', 'type' => 'css'],
 ];

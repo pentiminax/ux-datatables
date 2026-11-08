@@ -7,6 +7,8 @@ namespace Pentiminax\UX\DataTables\Install;
 /**
  * Specifiers each package loads per style. Mirrors assets/src/functions/builtinPackageLoaders.ts,
  * which PackageCatalogConsistencyTest compares against.
+ *
+ * @internal
  */
 final class PackageCatalog
 {
@@ -23,7 +25,7 @@ final class PackageCatalog
         'select',
     ];
 
-    public const BUTTONS = 'buttons';
+    private const BUTTONS = 'buttons';
 
     private const SHARED = [
         'jszip'     => ['jszip'],
