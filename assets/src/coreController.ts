@@ -440,7 +440,7 @@ export default class extends Controller {
     ): Promise<void> {
         if (this.hasButtonsInLayout(payload)) {
             const { loadButtonsLibrary } = await import('./functions/loadButtonsLibrary.js')
-            await loadButtonsLibrary(DataTable, framework)
+            await loadButtonsLibrary(DataTable, framework, payload.layout)
         }
 
         for (const [payloadKey, extensionName] of Object.entries(EXTENSION_MAP)) {

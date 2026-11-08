@@ -45,7 +45,9 @@ describe('packageLoaders', () => {
 
         packageLoaders.register('buttons', async () => ({}))
 
-        await loadButtonsLibrary(DataTable as never, 'bs5')
+        await loadButtonsLibrary(DataTable as never, 'bs5', {
+            topStart: { buttons: ['excel', 'pdf'] },
+        })
 
         expect(DataTable.Buttons.jszip).not.toHaveBeenCalled()
         expect(DataTable.Buttons.pdfMake).not.toHaveBeenCalled()
