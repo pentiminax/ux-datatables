@@ -14,10 +14,10 @@ use App\Entity\Product;
 use App\Enum\OrderStatus;
 use App\Enum\ProductStatus;
 use Doctrine\ORM\EntityManagerInterface;
-use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Test\DataTableTestCase;
+use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 /**

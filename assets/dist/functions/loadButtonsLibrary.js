@@ -1,5 +1,5 @@
 import { defaultExport, packageLoaders } from './packageLoaders.js';
-const BUTTON_LIST_KEYS = new Set(['buttons', 'prefixButtons', 'postfixButtons']);
+const BUTTON_LIST_KEYS = new Set(['buttons', 'prefixButtons', 'postfixButtons', 'split']);
 export function requiredExportPackages(layout) {
     const required = { jszip: false, pdfmake: false };
     const markName = (name) => {

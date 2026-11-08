@@ -29,7 +29,6 @@ import {
 import { deleteEntity } from './functions/deleteEntity.js'
 import { detectStyleFramework } from './functions/detectStyleFramework.js'
 import { detectTheme } from './functions/detectTheme.js'
-import { ExtensionRegistry } from './functions/extensionRegistry.js'
 import { fetchDetailRow } from './functions/fetchDetailRow.js'
 import { fetchEditForm } from './functions/fetchEditForm.js'
 import { installFilterBar } from './functions/filters.js'
@@ -42,6 +41,7 @@ import {
     hasLucideIconsInActions,
     loadLucideIcons,
 } from './functions/lucideIcons.js'
+import { type ExtensionName, packageLoaders } from './functions/packageLoaders.js'
 import { ensurePolling } from './functions/polling.js'
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
 import { restrictSearchBuilder } from './functions/restrictSearchBuilder.js'
@@ -64,14 +64,13 @@ import { resolveModalAdapter } from './modal/resolveModalAdapter.js'
 import { isStyleFramework, type StyleFramework } from './types/styleFramework.js'
 
 /**
- * Maps DataTables payload property keys to their corresponding extension names
- * in the ExtensionRegistry.
+ * Maps DataTables payload property keys to the package loader of their extension.
  *
  * The payload key 'keys' maps to the 'keyTable' extension — this is an intentional
  * naming difference between the DataTables config API ('keys') and the extension
  * package name ('keyTable').
  */
-const EXTENSION_MAP: Record<string, string> = {
+const EXTENSION_MAP: Record<string, ExtensionName> = {
     select: 'select',
     responsive: 'responsive',
     columnControl: 'columnControl',
@@ -445,7 +444,7 @@ export default class extends Controller {
 
         for (const [payloadKey, extensionName] of Object.entries(EXTENSION_MAP)) {
             if (payload?.[payloadKey]) {
-                await ExtensionRegistry.load(extensionName, framework)
+                await packageLoaders.load(extensionName, framework)
             }
         }
 

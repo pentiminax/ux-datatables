@@ -8,6 +8,8 @@ use Pentiminax\UX\DataTables\Enum\StyleFramework;
 
 /**
  * Look offered by ux-datatables:install.
+ *
+ * @internal
  */
 enum InstallStyle: string
 {

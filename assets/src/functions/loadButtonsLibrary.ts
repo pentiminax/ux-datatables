@@ -1,7 +1,7 @@
 import type { StyleFramework } from '../types/styleFramework.js'
 import { defaultExport, packageLoaders } from './packageLoaders.js'
 
-const BUTTON_LIST_KEYS = new Set(['buttons', 'prefixButtons', 'postfixButtons'])
+const BUTTON_LIST_KEYS = new Set(['buttons', 'prefixButtons', 'postfixButtons', 'split'])
 
 export function requiredExportPackages(layout: unknown): { jszip: boolean; pdfmake: boolean } {
     const required = { jszip: false, pdfmake: false }

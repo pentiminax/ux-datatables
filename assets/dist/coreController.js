@@ -20,7 +20,6 @@ import { ensureSummaryFooter, hasSummaries, installColumnSummaries, } from './fu
 import { deleteEntity } from './functions/deleteEntity.js';
 import { detectStyleFramework } from './functions/detectStyleFramework.js';
 import { detectTheme } from './functions/detectTheme.js';
-import { ExtensionRegistry } from './functions/extensionRegistry.js';
 import { fetchDetailRow } from './functions/fetchDetailRow.js';
 import { fetchEditForm } from './functions/fetchEditForm.js';
 import { installFilterBar } from './functions/filters.js';
@@ -29,6 +28,7 @@ import { isHighlightEnabled } from './functions/highlightUpdates.js';
 import { isDataTableClone } from './functions/isDataTableClone.js';
 import { loadDataTableLibrary } from './functions/loadDataTableLibrary.js';
 import { hasLucideIcons, hasLucideIconsInActions, loadLucideIcons, } from './functions/lucideIcons.js';
+import { packageLoaders } from './functions/packageLoaders.js';
 import { ensurePolling } from './functions/polling.js';
 import { installRequestParams } from './functions/requestParams.js';
 import { restrictSearchBuilder } from './functions/restrictSearchBuilder.js';
@@ -261,7 +261,7 @@ class default_1 extends Controller {
         }
         for (const [payloadKey, extensionName] of Object.entries(EXTENSION_MAP)) {
             if (payload?.[payloadKey]) {
-                await ExtensionRegistry.load(extensionName, framework);
+                await packageLoaders.load(extensionName, framework);
             }
         }
         if (payload?.select?.withCheckbox) {

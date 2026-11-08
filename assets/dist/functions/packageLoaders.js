@@ -1,3 +1,15 @@
+export const EXTENSION_NAMES = [
+    'colReorder',
+    'columnControl',
+    'fixedColumns',
+    'fixedHeader',
+    'keyTable',
+    'responsive',
+    'rowGroup',
+    'scroller',
+    'searchBuilder',
+    'select',
+];
 export class PackageLoaderRegistry {
     constructor() {
         this.loaders = new Map();

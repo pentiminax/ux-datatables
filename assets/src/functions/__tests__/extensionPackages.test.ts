@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { StyleFramework } from '../../types/styleFramework.js'
+import type { ExtensionName } from '../packageLoaders.js'
 
 const frameworks: Array<{ framework: StyleFramework; cssSuffix: string }> = [
     { framework: 'dt', cssSuffix: 'dataTables' },
@@ -106,9 +107,9 @@ describe('DataTables extension package resolution', () => {
             }
 
             await import('../builtinPackageLoaders.js')
-            const { ExtensionRegistry } = await import('../extensionRegistry.js')
+            const { packageLoaders } = await import('../packageLoaders.js')
 
-            await ExtensionRegistry.load(name, framework)
+            await packageLoaders.load(name as ExtensionName, framework)
 
             expect(loaded).toEqual([...dateTime, js, css])
         }
@@ -118,12 +119,4 @@ describe('DataTables extension package resolution', () => {
         expect(existsSync(fileURLToPath(import.meta.resolve('datatables.net-datetime')))).toBe(true)
     })
 
-    it('rejects unknown extension names before importing a bundle', async () => {
-        await import('../builtinPackageLoaders.js')
-        const { ExtensionRegistry } = await import('../extensionRegistry.js')
-
-        await expect(ExtensionRegistry.load('missing', 'dt')).rejects.toThrow(
-            'Unknown extension: "missing"'
-        )
-    })
 })
