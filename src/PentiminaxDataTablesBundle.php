@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInter
 use Pentiminax\UX\DataTables\Contracts\DataTableDefaultsConfiguratorInterface;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\CsrfTokenManagerPass;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\DataTableRegistryPass;
+use Pentiminax\UX\DataTables\DependencyInjection\Compiler\FrontendControllerPass;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\ValidateDataTableAttributesPass;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
@@ -34,6 +35,7 @@ class PentiminaxDataTablesBundle extends AbstractBundle
         $container->addCompilerPass(new DataTableRegistryPass());
         $container->addCompilerPass(new ValidateDataTableAttributesPass());
         $container->addCompilerPass(new CsrfTokenManagerPass());
+        $container->addCompilerPass(new FrontendControllerPass());
     }
 
     public function configure(DefinitionConfigurator $definition): void
