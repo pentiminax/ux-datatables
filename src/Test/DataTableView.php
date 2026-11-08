@@ -32,10 +32,10 @@ final class DataTableView
     {
         $payloads = [];
 
-        foreach ($crawler->filter('['.DataTablesExtension::VIEW_ATTRIBUTE.']') as $node) {
+        foreach ($crawler->filter('['.DataTablesExtension::VIEW_ATTRIBUTE.'], ['.DataTablesExtension::CORE_VIEW_ATTRIBUTE.']') as $node) {
             \assert($node instanceof \DOMElement);
 
-            $raw     = $node->getAttribute(DataTablesExtension::VIEW_ATTRIBUTE);
+            $raw     = $node->getAttribute(DataTablesExtension::VIEW_ATTRIBUTE) ?: $node->getAttribute(DataTablesExtension::CORE_VIEW_ATTRIBUTE);
             $decoded = json_decode($raw, true);
 
             if (!\is_array($decoded)) {

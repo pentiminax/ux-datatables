@@ -134,6 +134,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(4, service('datatables.ajax.registry')->nullOnInvalid())
         ->arg(5, service('datatables.profiler')->nullOnInvalid())
         ->arg(6, service('datatables.security.authorization_checker'))
+        ->arg(7, param('datatables.controller_name'))
         ->tag('twig.extension')
         ->private();
 

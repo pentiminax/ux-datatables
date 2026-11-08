@@ -13,7 +13,15 @@ namespace Pentiminax\UX\DataTables\Enum;
 enum StyleFramework: string
 {
     case DataTables = 'dt';
-    case Bootstrap  = 'bs';
+    /**
+     * @deprecated since 1.5, use Bootstrap5 or DataTables instead. Removed in 2.0.
+     */
+    case Bootstrap = 'bs';
+
+    /**
+     * @deprecated since 1.5, use Bootstrap5 or DataTables instead. Removed in 2.0.
+     */
     case Bootstrap4 = 'bs4';
+
     case Bootstrap5 = 'bs5';
 }
