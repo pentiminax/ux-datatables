@@ -66,15 +66,14 @@ final class InstallCommand extends Command
 
         $packages = PackageCatalog::registered($extensions, $style);
 
-        $written = [$this->writeRegistrationFile($packages, $style)];
+        // controllers.json goes first: it is the only file that can be unreadable, so nothing is half-written.
+        $this->updateControllers($controllersFile, $style);
+        $written = ['assets/controllers.json', $this->writeRegistrationFile($packages, $style)];
 
         $bootstrapImport = $this->addBootstrapImport();
         if (null !== $bootstrapImport) {
             $written[] = $bootstrapImport;
         }
-
-        $this->updateControllers($controllersFile, $style);
-        $written[] = 'assets/controllers.json';
 
         $config = $this->writePackageLoadingConfig();
         if (null === $config) {
@@ -211,7 +210,7 @@ final class InstallCommand extends Command
         $data = json_decode((string) file_get_contents($file), false, 512, \JSON_THROW_ON_ERROR);
 
         if (!$data instanceof \stdClass) {
-            throw new \RuntimeException('assets/controllers.json must contain a JSON object.');
+            throw new \RuntimeException('The assets/controllers.json file must contain a JSON object.');
         }
 
         $data->controllers                            ??= new \stdClass();
@@ -381,7 +380,8 @@ final class InstallCommand extends Command
         foreach ($this->importmap() as $key => $entry) {
             $isCss = 'css' === ($entry['type'] ?? null) || str_ends_with($key, '.css');
 
-            if (!$isCss && 1 === preg_match('#^(?:datatables\.net(?:-|$)|jszip$|pdfmake(?:/|$)|lucide$|bootstrap$)#', $key) && !isset($keep[$key])) {
+            // bootstrap and lucide are general-purpose: the application may import them itself.
+            if (!$isCss && 1 === preg_match('#^(?:datatables\.net(?:-|$)|jszip$|pdfmake(?:/|$))#', $key) && !isset($keep[$key])) {
                 $remove[] = $key;
             }
         }

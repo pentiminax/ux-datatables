@@ -351,7 +351,6 @@ final class InstallCommandTest extends TestCase
         sort($remove);
 
         $this->assertSame([
-            'bootstrap',
             'datatables.net-bs5',
             'datatables.net-datetime',
             'datatables.net-responsive-dt',
