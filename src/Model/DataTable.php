@@ -1042,6 +1042,10 @@ class DataTable
      */
     public function styleFramework(StyleFramework $framework): static
     {
+        if (\in_array($framework, [StyleFramework::Bootstrap, StyleFramework::Bootstrap4], true)) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.5', 'Passing "%s::%s" to "styleFramework()" is deprecated and removed in 2.0, use "%1$s::Bootstrap5" or "%1$s::DataTables" instead.', StyleFramework::class, $framework->name);
+        }
+
         $this->options->set('styleFramework', $framework->value);
 
         return $this;
