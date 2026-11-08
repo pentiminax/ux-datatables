@@ -154,27 +154,24 @@ const frameworkLoaders: Partial<Record<PackageName, Record<StyleFramework, Loade
             await import('datatables.net-scroller-bs5/css/scroller.bootstrap5.min.css')
         },
     },
+    // SearchBuilder refuses date columns unless DataTables' DateTime is loaded first.
     searchBuilder: {
         dt: async () => {
-            // SearchBuilder refuses date columns unless DataTables' DateTime is loaded first.
             await import('datatables.net-datetime')
             await import('datatables.net-searchbuilder-dt')
             await import('datatables.net-searchbuilder-dt/css/searchBuilder.dataTables.min.css')
         },
         bs: async () => {
-            // SearchBuilder refuses date columns unless DataTables' DateTime is loaded first.
             await import('datatables.net-datetime')
             await import('datatables.net-searchbuilder-bs')
             await import('datatables.net-searchbuilder-bs/css/searchBuilder.bootstrap.min.css')
         },
         bs4: async () => {
-            // SearchBuilder refuses date columns unless DataTables' DateTime is loaded first.
             await import('datatables.net-datetime')
             await import('datatables.net-searchbuilder-bs4')
             await import('datatables.net-searchbuilder-bs4/css/searchBuilder.bootstrap4.min.css')
         },
         bs5: async () => {
-            // SearchBuilder refuses date columns unless DataTables' DateTime is loaded first.
             await import('datatables.net-datetime')
             await import('datatables.net-searchbuilder-bs5')
             await import('datatables.net-searchbuilder-bs5/css/searchBuilder.bootstrap5.min.css')

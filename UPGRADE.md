@@ -38,23 +38,14 @@ What changed for code that builds the bundle's controllers by hand:
 The `datatable` controller imports every DataTables package, so bundles and import maps carry all of
 them. `data_tables.package_loading: registered` renders the new `datatable_core` controller
 instead, which imports only `@hotwired/stimulus`: your application registers the packages it uses
-with `packageLoaders`. Leaving `package_loading` unset is deprecated, and its default becomes
-`registered` in 2.0.
+with `packageLoaders`.
 
-To opt in, run the command, then clear the cache:
+To opt in, run the command, then clear the cache. What it writes, the styles and the manual setup
+are in [Loading only the extensions you use](https://pentiminax.github.io/ux-datatables/guide/package-loading/).
 
 ```bash
 php bin/console ux-datatables:install --style=tailwind buttons responsive select
-php bin/console ux-datatables:install --style=tailwind --prune buttons responsive select
 ```
-
-`--style` is `tailwind` (default), `dt` or `bs5`. The command writes `assets/datatables.js`, imports it
-from `assets/stimulus_bootstrap.js` or `assets/bootstrap.js`, updates `assets/controllers.json`,
-sets `package_loading: registered`, and requires the packages through AssetMapper or prints the
-`npm install` line for Encore. `--prune` (AssetMapper) removes the `datatables.net*`, `jszip` and
-`pdfmake` JavaScript entries you did not register. See
-[Loading only the extensions you use](https://pentiminax.github.io/ux-datatables/guide/package-loading/)
-for the manual setup.
 
 Things to know in `registered` mode:
 
