@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit;
 
+use Pentiminax\UX\DataTables\Command\InstallCommand;
 use Pentiminax\UX\DataTables\Enum\ExportFormat;
 use Pentiminax\UX\DataTables\Export\CsvExporter;
 use Pentiminax\UX\DataTables\Export\ExporterRegistry;
@@ -19,7 +20,9 @@ use Pentiminax\UX\DataTables\Tests\Support\BootsTwigKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\Console\Command\LazyCommand;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
@@ -40,6 +43,14 @@ final class PentiminaxDataTablesBundleTest extends TestCase
 
         self::assertArrayHasKey('PentiminaxDataTablesBundle', $this->kernel->getBundles());
         self::assertInstanceOf(DataTableInfrastructure::class, $infrastructure);
+    }
+
+    #[Test]
+    public function it_registers_the_install_command(): void
+    {
+        $command = (new Application($this->kernel))->find('ux-datatables:install');
+
+        self::assertInstanceOf(InstallCommand::class, $command instanceof LazyCommand ? $command->getCommand() : $command);
     }
 
     /**
