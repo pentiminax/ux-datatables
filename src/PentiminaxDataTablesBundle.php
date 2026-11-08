@@ -8,7 +8,7 @@ use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInter
 use Pentiminax\UX\DataTables\Contracts\DataTableDefaultsConfiguratorInterface;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\CsrfTokenManagerPass;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\DataTableRegistryPass;
-use Pentiminax\UX\DataTables\DependencyInjection\Compiler\FrontendControllerPass;
+use Pentiminax\UX\DataTables\DependencyInjection\Compiler\PackageLoadingControllerPass;
 use Pentiminax\UX\DataTables\DependencyInjection\Compiler\ValidateDataTableAttributesPass;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
@@ -35,16 +35,16 @@ class PentiminaxDataTablesBundle extends AbstractBundle
         $container->addCompilerPass(new DataTableRegistryPass());
         $container->addCompilerPass(new ValidateDataTableAttributesPass());
         $container->addCompilerPass(new CsrfTokenManagerPass());
-        $container->addCompilerPass(new FrontendControllerPass());
+        $container->addCompilerPass(new PackageLoadingControllerPass());
     }
 
     public function configure(DefinitionConfigurator $definition): void
     {
         $definition->rootNode()
             ->children()
-                ->enumNode('frontend')
-                    ->values(['legacy', 'core'])
-                    ->info('Stimulus controller the tables render: "legacy" bundles every DataTables package, "core" loads only the packages the application registers. Unset follows "legacy", which becomes "core" in 2.0.')
+                ->enumNode('package_loading')
+                    ->values(['builtin', 'registered'])
+                    ->info('Who loads the DataTables packages: "builtin" bundles every package (1.x behavior), "registered" loads only the packages the application registers with packageLoaders. Unset follows "builtin"; the default becomes "registered" in 2.0.')
                 ->end()
                 ->integerNode('max_page_length')
                     ->min(1)
@@ -154,17 +154,17 @@ class PentiminaxDataTablesBundle extends AbstractBundle
         $formAvailable    = interface_exists(FormFactoryInterface::class);
         $mercureAvailable = interface_exists(HubInterface::class);
 
-        $frontend = $config['frontend'] ?? null;
+        $packageLoading = $config['package_loading'] ?? null;
 
-        if (null === $frontend) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.5', 'Not setting "data_tables.frontend" is deprecated: its default becomes "core" in 2.0. Set "frontend: core" (or "frontend: legacy" to keep the current behavior), or run "bin/console ux-datatables:install".');
+        if (null === $packageLoading) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.5', 'Not setting "data_tables.package_loading" is deprecated: its default becomes "registered" in 2.0. Set "package_loading: registered" (or "package_loading: builtin" to keep the current behavior), or run "bin/console ux-datatables:install".');
         } else {
             // Only an explicit choice is checked against controllers.json: 1.x apps may register the controller themselves.
-            $container->parameters()->set('datatables.frontend', $frontend);
+            $container->parameters()->set('datatables.package_loading', $packageLoading);
         }
 
         $container->parameters()
-            ->set('datatables.controller_name', 'core' === $frontend ? DataTablesExtension::CORE_CONTROLLER_NAME : DataTablesExtension::CONTROLLER_NAME)
+            ->set('datatables.controller_name', 'registered' === $packageLoading ? DataTablesExtension::CORE_CONTROLLER_NAME : DataTablesExtension::CONTROLLER_NAME)
             ->set('datatables.options', $config['options'] ?? [])
             ->set('datatables.table_attributes', $config['table_attributes'] ?? [])
             ->set('datatables.extensions', $config['extensions'] ?? [])

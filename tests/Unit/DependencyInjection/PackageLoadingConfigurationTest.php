@@ -20,40 +20,40 @@ use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
  * @internal
  */
 #[CoversClass(PentiminaxDataTablesBundle::class)]
-final class FrontendConfigurationTest extends TestCase
+final class PackageLoadingConfigurationTest extends TestCase
 {
     #[Test]
-    public function it_deprecates_an_unset_frontend_and_keeps_the_legacy_controller(): void
+    public function it_deprecates_an_unset_package_loading_and_keeps_the_builtin_loaders(): void
     {
         $deprecations = [];
         $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations);
 
         $this->assertCount(1, $deprecations);
-        $this->assertStringContainsString('becomes "core" in 2.0', $deprecations[0]);
+        $this->assertStringContainsString('becomes "registered" in 2.0', $deprecations[0]);
         $this->assertStringContainsString('ux-datatables:install', $deprecations[0]);
-        $this->assertFalse($builder->hasParameter('datatables.frontend'), 'An unset frontend must not be checked against controllers.json.');
+        $this->assertFalse($builder->hasParameter('datatables.package_loading'), 'An unset package_loading must not be checked against controllers.json.');
         $this->assertSame(DataTablesExtension::CONTROLLER_NAME, $builder->getParameter('datatables.controller_name'));
     }
 
     #[Test]
-    #[DataProvider('explicitFrontends')]
-    public function it_accepts_an_explicit_frontend_without_deprecation(string $frontend, string $controllerName): void
+    #[DataProvider('explicitPackageLoadings')]
+    public function it_accepts_an_explicit_package_loading_without_deprecation(string $packageLoading, string $controllerName): void
     {
         $deprecations = [];
-        $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations, ['frontend' => $frontend]);
+        $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations, ['package_loading' => $packageLoading]);
 
         $this->assertSame([], $deprecations);
-        $this->assertSame($frontend, $builder->getParameter('datatables.frontend'));
+        $this->assertSame($packageLoading, $builder->getParameter('datatables.package_loading'));
         $this->assertSame($controllerName, $builder->getParameter('datatables.controller_name'));
     }
 
     /**
      * @return iterable<string, array{string, string}>
      */
-    public static function explicitFrontends(): iterable
+    public static function explicitPackageLoadings(): iterable
     {
-        yield 'legacy' => ['legacy', DataTablesExtension::CONTROLLER_NAME];
-        yield 'core' => ['core', DataTablesExtension::CORE_CONTROLLER_NAME];
+        yield 'builtin' => ['builtin', DataTablesExtension::CONTROLLER_NAME];
+        yield 'registered' => ['registered', DataTablesExtension::CORE_CONTROLLER_NAME];
     }
 
     /**

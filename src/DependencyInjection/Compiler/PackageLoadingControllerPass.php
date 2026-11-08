@@ -12,13 +12,13 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 /**
  * Fails in debug when Twig would render a Stimulus controller that StimulusBundle does not register.
  */
-final class FrontendControllerPass implements CompilerPassInterface
+final class PackageLoadingControllerPass implements CompilerPassInterface
 {
     private const PACKAGE = '@pentiminax/ux-datatables';
 
     public function process(ContainerBuilder $container): void
     {
-        if (!$container->getParameter('kernel.debug') || !$container->hasParameter('datatables.frontend')) {
+        if (!$container->getParameter('kernel.debug') || !$container->hasParameter('datatables.package_loading')) {
             return;
         }
 
@@ -38,14 +38,14 @@ final class FrontendControllerPass implements CompilerPassInterface
             return;
         }
 
-        $frontend = $container->getParameter('datatables.frontend');
+        $packageLoading = $container->getParameter('datatables.package_loading');
 
-        if ('core' === $frontend && true !== ($controllers['datatable_core']['enabled'] ?? false)) {
-            throw new \LogicException('The "data_tables.frontend" option is "core" but the "datatable_core" controller is not enabled in assets/controllers.json. Enable "datatable_core" and disable "datatable" there, or set "frontend: legacy".');
+        if ('registered' === $packageLoading && true !== ($controllers['datatable_core']['enabled'] ?? false)) {
+            throw new \LogicException('The "data_tables.package_loading" option is "registered" but the "datatable_core" controller is not enabled in assets/controllers.json. Enable "datatable_core" and disable "datatable" there, or set "package_loading: builtin".');
         }
 
-        if ('legacy' === $frontend && false === ($controllers['datatable']['enabled'] ?? true)) {
-            throw new \LogicException('The "data_tables.frontend" option is "legacy" but the "datatable" controller is disabled in assets/controllers.json. Enable "datatable" there, or set "frontend: core" and enable "datatable_core".');
+        if ('builtin' === $packageLoading && false === ($controllers['datatable']['enabled'] ?? true)) {
+            throw new \LogicException('The "data_tables.package_loading" option is "builtin" but the "datatable" controller is disabled in assets/controllers.json. Enable "datatable" there, or set "package_loading: registered" and enable "datatable_core".');
         }
     }
 }
