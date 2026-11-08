@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Command;
 
+use Pentiminax\UX\DataTables\Install\ExtensionDetector;
 use Pentiminax\UX\DataTables\Install\InstallStyle;
 use Pentiminax\UX\DataTables\Install\PackageCatalog;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -15,6 +16,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Contracts\Service\ServiceProviderInterface;
 
 #[AsCommand(name: 'ux-datatables:install', description: 'Registers the DataTables packages your application loads and switches the bundle to registered package loading')]
 final class InstallCommand extends Command
@@ -24,8 +26,10 @@ final class InstallCommand extends Command
     private const IMPORT_LINE     = "import './datatables.js';";
     private const NONE_CHOICE     = 'none (core only)';
 
-    public function __construct(private readonly string $projectDir)
-    {
+    public function __construct(
+        private readonly string $projectDir,
+        private readonly ?ServiceProviderInterface $tables = null,
+    ) {
         parent::__construct();
     }
 
@@ -35,6 +39,7 @@ final class InstallCommand extends Command
             ->addArgument('extensions', InputArgument::IS_ARRAY, 'Extensions to install: '.implode(', ', PackageCatalog::selectable()))
             ->addOption('style', null, InputOption::VALUE_REQUIRED, 'Look: tailwind, dt or bs5', InstallStyle::Tailwind->value)
             ->addOption('all', null, InputOption::VALUE_NONE, 'Install every extension')
+            ->addOption('no-detect', null, InputOption::VALUE_NONE, 'Do not scan your DataTable classes for the extensions they use')
             ->addOption('prune', null, InputOption::VALUE_NONE, 'AssetMapper only: remove the DataTables JavaScript entries the application does not register')
         ;
     }
@@ -54,6 +59,15 @@ final class InstallCommand extends Command
 
         if (null === $extensions) {
             return Command::INVALID;
+        }
+
+        $skipped    = [];
+        $extensions = $this->withDetected($extensions, $input, $io, $skipped);
+
+        if (null === $extensions) {
+            $io->writeln('Nothing was written.');
+
+            return Command::SUCCESS;
         }
 
         $controllersFile = $this->projectDir.'/assets/controllers.json';
@@ -115,6 +129,15 @@ final class InstallCommand extends Command
             return Command::FAILURE;
         }
 
+        if ([] !== $skipped) {
+            $io->warning(\sprintf(
+                'The files were written without the extensions of these tables: %s. Run the command again with their extensions as arguments, for example: ux-datatables:install buttons select.',
+                implode(', ', $skipped),
+            ));
+
+            return Command::FAILURE;
+        }
+
         $io->success('DataTables is set up with registered package loading ('.$style->value.' style).');
         $io->writeln('Next steps: clear the cache and reload a page that renders a table.');
 
@@ -123,6 +146,46 @@ final class InstallCommand extends Command
         }
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @param list<string> $selected
+     * @param list<string> $skipped  receives the ids of the tables that could not be read
+     *
+     * @return list<string>|null null when the user declined the detected list and gave no extension
+     */
+    private function withDetected(array $selected, InputInterface $input, SymfonyStyle $io, array &$skipped): ?array
+    {
+        if ($input->getOption('all') || $input->getOption('no-detect') || null === $this->tables) {
+            return $selected;
+        }
+
+        $detection = (new ExtensionDetector($this->tables))->detect();
+
+        $skipped = array_keys($detection->failures);
+
+        foreach ($detection->failures as $class => $message) {
+            $io->warning(\sprintf('Could not read the extensions of "%s", skipping it: %s', $class, $message));
+        }
+
+        if ([] === $detection->extensions) {
+            return $selected;
+        }
+
+        $io->section('Detected in your DataTable classes');
+        $io->listing($detection->extensions);
+
+        if ($input->isInteractive() && !$io->confirm('Install these extensions?')) {
+            if ([] === $selected) {
+                return null;
+            }
+
+            $io->writeln('Detected extensions skipped, installing only the ones you passed.');
+
+            return $selected;
+        }
+
+        return array_values(array_unique([...$selected, ...$detection->extensions]));
     }
 
     /**

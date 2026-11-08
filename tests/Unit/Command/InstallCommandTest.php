@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Unit\Command;
 
 use Pentiminax\UX\DataTables\Command\InstallCommand;
+use Pentiminax\UX\DataTables\Enum\Feature;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Model\DataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -14,6 +17,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Filesystem\Filesystem;
 
 /**
@@ -50,6 +54,8 @@ final class InstallCommandTest extends TestCase
 
     /** @var list<array{string, list<string>, string|null}> */
     private array $calls = [];
+
+    private ?ServiceLocator $tables = null;
 
     protected function setUp(): void
     {
@@ -372,17 +378,200 @@ final class InstallCommandTest extends TestCase
         ], $remove);
     }
 
-    /**
-     * @param array<string, mixed> $parameters
-     * @param list<string>         $inputs
-     * @param array<string, mixed> $options
-     */
+    #[Test]
+    public function it_installs_the_extension_a_table_uses(): void
+    {
+        $this->declareTables(DetectResponsiveTable::class);
+
+        $tester = $this->install([], [], ['interactive' => false]);
+
+        $this->assertStringContainsString('responsive', $tester->getDisplay());
+        $this->assertStringContainsString(".register('responsive'", $this->read('assets/datatables.js'));
+        $this->assertStringNotContainsString(".register('select'", $this->read('assets/datatables.js'));
+    }
+
+    #[Test]
+    public function it_detects_buttons_from_the_buttons_method_and_from_the_layout(): void
+    {
+        $this->declareTables(DetectButtonsMethodTable::class);
+        $this->install([], [], ['interactive' => false]);
+        $this->assertStringContainsString(".register('buttons'", $this->read('assets/datatables.js'));
+
+        $this->declareTables(DetectButtonsLayoutTable::class);
+        $this->install([], [], ['interactive' => false]);
+        $this->assertStringContainsString(".register('buttons'", $this->read('assets/datatables.js'));
+    }
+
+    #[Test]
+    public function it_detects_key_table_from_the_keys_option(): void
+    {
+        $this->declareTables(DetectKeyTableTable::class);
+
+        $this->install([], [], ['interactive' => false]);
+
+        $this->assertStringContainsString(".register('keyTable'", $this->read('assets/datatables.js'));
+    }
+
+    #[Test]
+    public function it_unions_detected_extensions_with_the_arguments_without_duplicates(): void
+    {
+        $this->declareTables(DetectResponsiveTable::class, DetectKeyTableTable::class);
+
+        $tester = $this->install(['extensions' => ['responsive', 'select']], [], ['interactive' => false]);
+        $js     = $this->read('assets/datatables.js');
+
+        $this->assertSame(1, substr_count($js, ".register('responsive'"));
+        $this->assertStringContainsString(".register('select'", $js);
+        $this->assertStringContainsString(".register('keyTable'", $js);
+        $this->assertSame(0, $tester->getStatusCode());
+    }
+
+    #[Test]
+    public function it_writes_nothing_when_the_detected_list_is_declined(): void
+    {
+        $this->declareTables(DetectResponsiveTable::class);
+
+        $tester = $this->install([], ['', 'no']);
+
+        $this->assertFileDoesNotExist($this->dir.'/assets/datatables.js');
+        $this->assertStringContainsString('Nothing was written.', $tester->getDisplay());
+    }
+
+    #[Test]
+    public function it_keeps_the_explicit_extensions_when_the_detected_list_is_declined(): void
+    {
+        $this->declareTables(DetectResponsiveTable::class);
+
+        $tester = $this->install(['extensions' => ['select']], ['no']);
+        $js     = $this->read('assets/datatables.js');
+
+        $this->assertStringContainsString(".register('select'", $js);
+        $this->assertStringNotContainsString(".register('responsive'", $js);
+        $this->assertStringNotContainsString('Nothing was written.', $tester->getDisplay());
+        $this->assertSame(0, $tester->getStatusCode());
+    }
+
+    #[Test]
+    public function it_fails_after_writing_the_files_when_a_table_cannot_be_built(): void
+    {
+        $this->declareTables(DetectBrokenTable::class, DetectResponsiveTable::class);
+
+        $tester = $this->install([], [], ['interactive' => false]);
+
+        $this->assertStringContainsString(DetectBrokenTable::class, $tester->getDisplay());
+        $this->assertStringContainsString('RuntimeException: Boom.', $tester->getDisplay());
+        $this->assertStringContainsString('as arguments', $tester->getDisplay());
+        $this->assertStringContainsString(".register('responsive'", $this->read('assets/datatables.js'));
+        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
+    }
+
+    #[Test]
+    public function it_fails_when_every_table_cannot_be_built(): void
+    {
+        $this->declareTables(DetectBrokenTable::class);
+
+        $tester = $this->install([], [], ['interactive' => false]);
+
+        $this->assertFileExists($this->dir.'/assets/datatables.js');
+        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
+    }
+
+    #[Test]
+    public function it_does_not_build_the_tables_with_all(): void
+    {
+        $this->declareTables(DetectCountedTable::class);
+        DetectCountedTable::$instances = 0;
+
+        $tester = $this->install(['--all' => true], [], ['interactive' => false]);
+
+        $this->assertSame(0, DetectCountedTable::$instances);
+        $this->assertSame(0, $tester->getStatusCode());
+    }
+
+    #[Test]
+    public function it_does_not_build_the_tables_with_no_detect(): void
+    {
+        $this->declareTables(DetectCountedTable::class);
+        DetectCountedTable::$instances = 0;
+
+        $tester = $this->install(['extensions' => ['select'], '--no-detect' => true], [], ['interactive' => false]);
+        $js     = $this->read('assets/datatables.js');
+
+        $this->assertSame(0, DetectCountedTable::$instances);
+        $this->assertStringContainsString(".register('select'", $js);
+        $this->assertStringNotContainsString(".register('responsive'", $js);
+        $this->assertSame(0, $tester->getStatusCode());
+    }
+
+    #[Test]
+    public function it_ignores_options_that_are_disabled(): void
+    {
+        $this->declareTables(DetectDisabledOptionsTable::class);
+
+        $this->install([], [], ['interactive' => false]);
+        $js = $this->read('assets/datatables.js');
+
+        $this->assertStringNotContainsString(".register('responsive'", $js);
+        $this->assertStringNotContainsString(".register('buttons'", $js);
+    }
+
+    #[Test]
+    public function it_detects_a_raw_buttons_option(): void
+    {
+        $this->declareTables(DetectRawButtonsTable::class);
+
+        $this->install([], [], ['interactive' => false]);
+
+        $this->assertStringContainsString(".register('buttons'", $this->read('assets/datatables.js'));
+    }
+
+    #[Test]
+    public function it_detects_buttons_in_a_nested_layout(): void
+    {
+        $this->declareTables(DetectNestedLayoutTable::class);
+
+        $this->install([], [], ['interactive' => false]);
+
+        $this->assertStringContainsString(".register('buttons'", $this->read('assets/datatables.js'));
+    }
+
+    #[Test]
+    public function it_detects_search_builder_from_the_layout(): void
+    {
+        $this->declareTables(DetectSearchBuilderLayoutTable::class);
+
+        $this->install([], [], ['interactive' => false]);
+
+        $this->assertStringContainsString(".register('searchBuilder'", $this->read('assets/datatables.js'));
+    }
+
+    #[Test]
+    public function it_ignores_a_tagged_service_that_is_not_a_data_table(): void
+    {
+        $this->tables = new ServiceLocator(['stray' => static fn () => new \stdClass()]);
+
+        $tester = $this->install([], [], ['interactive' => false]);
+
+        $this->assertStringNotContainsString('stray', $tester->getDisplay());
+        $this->assertSame(0, $tester->getStatusCode());
+    }
+
+    private function declareTables(string ...$classes): void
+    {
+        $factories = [];
+        foreach ($classes as $class) {
+            $factories[$class] = static fn () => new $class();
+        }
+
+        $this->tables = new ServiceLocator($factories);
+    }
+
     private function install(array $parameters, array $inputs = [], array $options = []): CommandTester
     {
         $this->calls = [];
         $app         = new Application();
         $addCommand  = method_exists($app, 'addCommand') ? 'addCommand' : 'add';
-        $app->{$addCommand}(new InstallCommand($this->dir));
+        $app->{$addCommand}(new InstallCommand($this->dir, $this->tables));
 
         if (is_file($this->dir.'/importmap.php')) {
             $app->{$addCommand}($this->fakeImportmapCommand('importmap:require'));
@@ -438,5 +627,100 @@ final class InstallCommandTest extends TestCase
         }
 
         return $files;
+    }
+}
+
+abstract class DetectTable extends AbstractDataTable
+{
+    public function configureColumns(): iterable
+    {
+        return [];
+    }
+}
+
+final class DetectResponsiveTable extends DetectTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->responsive();
+    }
+}
+
+final class DetectButtonsMethodTable extends DetectTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->buttons(['csv']);
+    }
+}
+
+final class DetectButtonsLayoutTable extends DetectTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->layout(['topEnd' => [Feature::SEARCH, Feature::BUTTONS]]);
+    }
+}
+
+final class DetectKeyTableTable extends DetectTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->keyTable();
+    }
+}
+
+final class DetectBrokenTable extends DetectTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        throw new \RuntimeException('Boom.');
+    }
+}
+
+final class DetectCountedTable extends DetectTable
+{
+    public static int $instances = 0;
+
+    public function __construct()
+    {
+        ++self::$instances;
+    }
+
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->responsive();
+    }
+}
+
+final class DetectDisabledOptionsTable extends DetectTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return new DataTable('disabled', ['responsive' => false, 'buttons' => false, 'select' => null]);
+    }
+}
+
+final class DetectRawButtonsTable extends DetectTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return new DataTable('raw', ['buttons' => ['csv']]);
+    }
+}
+
+final class DetectNestedLayoutTable extends DetectTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->layout(['top' => ['start' => ['features' => [Feature::BUTTONS]]]]);
+    }
+}
+
+final class DetectSearchBuilderLayoutTable extends DetectTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->layout(['top' => Feature::SEARCH_BUILDER]);
     }
 }
