@@ -25,6 +25,11 @@ final class PackageCatalog
         'select',
     ];
 
+    /**
+     * Table option keys whose extension name differs from the key.
+     */
+    public const OPTION_KEYS = ['keys' => 'keyTable'];
+
     private const BUTTONS = 'buttons';
 
     private const SHARED = [
@@ -40,6 +45,16 @@ final class PackageCatalog
     public static function selectable(): array
     {
         return [self::BUTTONS, ...self::EXTENSIONS];
+    }
+
+    /**
+     * The selectable name an option key stands for, null when the key is not an extension.
+     */
+    public static function fromOptionKey(string $key): ?string
+    {
+        $name = self::OPTION_KEYS[$key] ?? $key;
+
+        return \in_array($name, self::selectable(), true) ? $name : null;
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Command;
 
+use Pentiminax\UX\DataTables\Install\ExtensionDetector;
 use Pentiminax\UX\DataTables\Install\InstallStyle;
 use Pentiminax\UX\DataTables\Install\PackageCatalog;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -15,6 +16,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Contracts\Service\ServiceProviderInterface;
 
 #[AsCommand(name: 'ux-datatables:install', description: 'Registers the DataTables packages your application loads and switches the bundle to registered package loading')]
 final class InstallCommand extends Command
@@ -24,8 +26,10 @@ final class InstallCommand extends Command
     private const IMPORT_LINE     = "import './datatables.js';";
     private const NONE_CHOICE     = 'none (core only)';
 
-    public function __construct(private readonly string $projectDir)
-    {
+    public function __construct(
+        private readonly string $projectDir,
+        private readonly ?ServiceProviderInterface $tables = null,
+    ) {
         parent::__construct();
     }
 
@@ -54,6 +58,14 @@ final class InstallCommand extends Command
 
         if (null === $extensions) {
             return Command::INVALID;
+        }
+
+        $extensions = $this->withDetected($extensions, $input, $io);
+
+        if (null === $extensions) {
+            $io->writeln('Nothing was written.');
+
+            return Command::SUCCESS;
         }
 
         $controllersFile = $this->projectDir.'/assets/controllers.json';
@@ -123,6 +135,37 @@ final class InstallCommand extends Command
         }
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * @param list<string> $selected
+     *
+     * @return list<string>|null null when the user declined the detected list
+     */
+    private function withDetected(array $selected, InputInterface $input, SymfonyStyle $io): ?array
+    {
+        if ($input->getOption('all') || null === $this->tables) {
+            return $selected;
+        }
+
+        $detection = (new ExtensionDetector($this->tables))->detect();
+
+        foreach ($detection->failures as $class => $message) {
+            $io->warning(\sprintf('Could not read the extensions of "%s", skipping it: %s', $class, $message));
+        }
+
+        if ([] === $detection->extensions) {
+            return $selected;
+        }
+
+        $io->section('Detected in your DataTable classes');
+        $io->listing($detection->extensions);
+
+        if ($input->isInteractive() && !$io->confirm('Install these extensions?')) {
+            return null;
+        }
+
+        return array_values(array_unique([...$selected, ...$detection->extensions]));
     }
 
     /**

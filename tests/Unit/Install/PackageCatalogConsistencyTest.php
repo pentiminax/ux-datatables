@@ -83,6 +83,21 @@ final class PackageCatalogConsistencyTest extends TestCase
         $this->assertSame($names[1], PackageCatalog::EXTENSIONS);
     }
 
+    #[Test]
+    public function it_maps_option_keys_to_known_extensions(): void
+    {
+        foreach (PackageCatalog::OPTION_KEYS as $name) {
+            $this->assertContains($name, PackageCatalog::EXTENSIONS);
+        }
+
+        foreach (PackageCatalog::EXTENSIONS as $name) {
+            $key = array_search($name, PackageCatalog::OPTION_KEYS, true) ?: $name;
+            $this->assertSame($name, PackageCatalog::fromOptionKey($key));
+        }
+
+        $this->assertNull(PackageCatalog::fromOptionKey('columns'));
+    }
+
     private function read(string $path): string
     {
         $source = file_get_contents(\dirname(__DIR__, 3).'/'.$path);
