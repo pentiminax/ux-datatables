@@ -1,7 +1,8 @@
+import { packageLoaders } from '../functions/packageLoaders.js';
 import { createModalRoot, extractFormData } from './modalUtils.js';
 async function loadBootstrapModal() {
     try {
-        const bootstrap = await import('bootstrap');
+        const bootstrap = (await packageLoaders.load('bootstrap'));
         return bootstrap.Modal ?? null;
     }
     catch {

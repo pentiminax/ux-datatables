@@ -7,5 +7,6 @@ export default {
                 inline: [/^datatables\.net/],
             },
         },
+        setupFiles: ['test/setup.ts'],
     },
 }

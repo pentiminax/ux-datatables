@@ -1,3 +1,5 @@
+import { packageLoaders } from './packageLoaders.js'
+
 type IconNode = unknown
 
 interface LucideModule {
@@ -13,7 +15,7 @@ export async function loadLucideIcons(): Promise<void> {
         return
     }
 
-    lucide = (await import('lucide')) as unknown as LucideModule
+    lucide = (await packageLoaders.load('lucide')) as LucideModule
     iconsByKebab = new Map()
 
     for (const [pascal, node] of Object.entries(lucide.icons)) {
