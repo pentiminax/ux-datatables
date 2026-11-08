@@ -257,7 +257,7 @@ class default_1 extends Controller {
     async loadExtensions(payload, framework, DataTable) {
         if (this.hasButtonsInLayout(payload)) {
             const { loadButtonsLibrary } = await import('./functions/loadButtonsLibrary.js');
-            await loadButtonsLibrary(DataTable, framework);
+            await loadButtonsLibrary(DataTable, framework, payload.layout);
         }
         for (const [payloadKey, extensionName] of Object.entries(EXTENSION_MAP)) {
             if (payload?.[payloadKey]) {
