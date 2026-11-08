@@ -49,16 +49,17 @@ const docRoutes = [
   'columns/action-column/',
   'extensions/',
   'extensions/buttons/',
-  'extensions/select/',
-  'extensions/column-control/',
-  'extensions/responsive/',
-  'extensions/keytable/',
-  'extensions/scroller/',
-  'extensions/fixed-columns/',
   'extensions/col-reorder/',
-  'extensions/row-group/',
-  'extensions/fixed-header/',
+  'extensions/column-control/',
   'extensions/combining-extensions/',
+  'extensions/fixed-columns/',
+  'extensions/fixed-header/',
+  'extensions/keytable/',
+  'extensions/responsive/',
+  'extensions/row-group/',
+  'extensions/scroller/',
+  'extensions/search-builder/',
+  'extensions/select/',
   'integrations/api-platform/',
   'integrations/mercure/',
   'reference/abstract-datatable/',
@@ -88,7 +89,7 @@ const sectionRoutes = [
 
 test('every route is built', async () => {
   assert.equal(existsSync(dist), true, 'run npm run build before npm run test:build')
-  assert.equal(docRoutes.length, 63)
+  assert.equal(docRoutes.length, 64)
 
   for (const route of [...docRoutes, ...sectionRoutes]) {
     assert.equal(existsSync(new URL(`${route}index.html`, dist)), true, `missing ${route}`)
@@ -152,12 +153,11 @@ test('every documentation page carries the reading chrome', async () => {
 test('row-group is reachable, not only built', async () => {
   // It shipped as an orphan page: present on disk, absent from the sidebar and
   // skipped by the pager. The navigation is derived from the collection now.
-  const searchBuilder = await readDistFile('extensions/search-builder/index.html')
-  const fixedHeader = await readDistFile('extensions/fixed-header/index.html')
+  const rowGroup = await readDistFile('extensions/row-group/index.html')
 
-  assert.match(searchBuilder, /pager-next"[^>]*href="[^"]*extensions\/row-group\//)
-  assert.match(fixedHeader, /pager-prev"[^>]*href="[^"]*extensions\/row-group\//)
-  assert.match(searchBuilder, /docs-nav[\s\S]*extensions\/row-group\//)
+  assert.match(rowGroup, /pager-prev"[^>]*href="[^"]*extensions\/responsive\//)
+  assert.match(rowGroup, /pager-next"[^>]*href="[^"]*extensions\/scroller\//)
+  assert.match(rowGroup, /docs-nav[\s\S]*extensions\/row-group\//)
 })
 
 test('headings are anchored', async () => {
