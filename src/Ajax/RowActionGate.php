@@ -75,7 +75,7 @@ final class RowActionGate
     private function authorizeToggle(RowActionRequest $rowAction): AuthorizedRow
     {
         $toggle = $this->toggleResolver->resolve($rowAction->dataTable, (string) $rowAction->field);
-        $table  = $toggle->table ?? $this->registry->resolveAction($rowAction->dataTable);
+        $table  = $toggle->table ?? throw new \LogicException('The boolean mutation context must carry its resolved table.');
 
         $this->assertToggleInScope($table, $toggle, $rowAction);
 

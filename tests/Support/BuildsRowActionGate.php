@@ -42,7 +42,7 @@ trait BuildsRowActionGate
         AjaxDataTableRegistry $registry,
         ManagerRegistry $doctrine,
         CsrfTokenManagerInterface $csrfTokenManager,
-        ?RowScopeGuard $scopeGuard = null,
+        RowScopeGuard $scopeGuard,
         ?AuthorizationChecker $permissionChecker = null,
     ): RowActionGate {
         $locator = new EntityLocator($doctrine);
@@ -52,7 +52,7 @@ trait BuildsRowActionGate
             new MutationTokenValidator($csrfTokenManager),
             $registry,
             new BooleanMutationContextResolver($registry, $permissionChecker),
-            $scopeGuard ?? new RowScopeGuard($locator),
+            $scopeGuard,
             $locator,
             $permissionChecker,
         );
