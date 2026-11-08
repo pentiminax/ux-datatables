@@ -17,8 +17,8 @@ async function loadBootstrapModal(): Promise<BootstrapModalConstructor | null> {
         }
 
         return bootstrap.Modal ?? null
-    } catch {
-        console.error('[ux-datatables] Bootstrap is required for the BootstrapModalAdapter.')
+    } catch (error) {
+        console.error('[ux-datatables] Bootstrap is required for the BootstrapModalAdapter.', error)
 
         return null
     }
