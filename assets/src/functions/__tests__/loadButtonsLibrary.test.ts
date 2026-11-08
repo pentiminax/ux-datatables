@@ -135,6 +135,11 @@ describe('requiredExportPackages', () => {
             },
             none,
         ],
+        [
+            'split dropdown',
+            { topStart: { buttons: [{ extend: 'csv', split: ['excel', 'pdf'] }] } },
+            { jszip: true, pdfmake: true },
+        ],
         ['bare buttons feature', { topStart: 'buttons' }, { jszip: true, pdfmake: true }],
         ['no layout', undefined, none],
     ])('%s', (_name, layout, expected) => {

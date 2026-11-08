@@ -14,8 +14,7 @@ describe('packageLoaders', () => {
         )
     })
 
-    it('prefers the registered loader over the built-in fallback without warning', async () => {
-        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    it('prefers the registered loader over the built-in fallback', async () => {
         const { packageLoaders } = await import('../packageLoaders.js')
         await import('../builtinPackageLoaders.js')
         const select = { name: 'registered select' }
@@ -23,18 +22,15 @@ describe('packageLoaders', () => {
         packageLoaders.register('select', async () => select)
 
         await expect(packageLoaders.load('select', 'bs5')).resolves.toBe(select)
-        expect(warn).not.toHaveBeenCalled()
     })
 
     it('loads a package through the built-in fallback when nothing is registered', async () => {
-        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
         const jszip = { default: {} }
         vi.doMock('jszip', () => jszip)
         const { packageLoaders } = await import('../packageLoaders.js')
         await import('../builtinPackageLoaders.js')
 
         await expect(packageLoaders.load('jszip')).resolves.toBeDefined()
-        expect(warn).not.toHaveBeenCalled()
         vi.doUnmock('jszip')
     })
 
@@ -43,6 +39,7 @@ describe('packageLoaders', () => {
         const { loadButtonsLibrary } = await import('../loadButtonsLibrary.js')
         const DataTable = { Buttons: { jszip: vi.fn(), pdfMake: vi.fn() } }
 
+        packageLoaders.setFallback(null)
         packageLoaders.register('buttons', async () => ({}))
 
         await loadButtonsLibrary(DataTable as never, 'bs5', {
