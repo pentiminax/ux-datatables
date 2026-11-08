@@ -158,11 +158,12 @@ class PentiminaxDataTablesBundle extends AbstractBundle
 
         if (null === $frontend) {
             trigger_deprecation('pentiminax/ux-datatables', '1.5', 'Not setting "data_tables.frontend" is deprecated: its default becomes "core" in 2.0. Set "frontend: core" (or "frontend: legacy" to keep the current behavior), or run "bin/console ux-datatables:install".');
-            $frontend = 'legacy';
+        } else {
+            // Only an explicit choice is checked against controllers.json: 1.x apps may register the controller themselves.
+            $container->parameters()->set('datatables.frontend', $frontend);
         }
 
         $container->parameters()
-            ->set('datatables.frontend', $frontend)
             ->set('datatables.controller_name', 'core' === $frontend ? DataTablesExtension::CORE_CONTROLLER_NAME : DataTablesExtension::CONTROLLER_NAME)
             ->set('datatables.options', $config['options'] ?? [])
             ->set('datatables.table_attributes', $config['table_attributes'] ?? [])

@@ -82,6 +82,19 @@ final class FrontendControllerPassTest extends TestCase
     }
 
     #[Test]
+    public function it_skips_an_unset_frontend_so_1x_apps_can_register_the_controller_themselves(): void
+    {
+        $this->writeControllers(['datatable' => ['enabled' => false]]);
+
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.debug', true);
+        $container->setParameter('kernel.project_dir', $this->projectDir);
+        (new FrontendControllerPass())->process($container);
+
+        $this->assertSame([], $container->getResources());
+    }
+
+    #[Test]
     public function it_skips_a_missing_file(): void
     {
         $this->process('core');

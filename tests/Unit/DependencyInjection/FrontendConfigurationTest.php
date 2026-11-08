@@ -31,7 +31,7 @@ final class FrontendConfigurationTest extends TestCase
         $this->assertCount(1, $deprecations);
         $this->assertStringContainsString('becomes "core" in 2.0', $deprecations[0]);
         $this->assertStringContainsString('ux-datatables:install', $deprecations[0]);
-        $this->assertSame('legacy', $builder->getParameter('datatables.frontend'));
+        $this->assertFalse($builder->hasParameter('datatables.frontend'), 'An unset frontend must not be checked against controllers.json.');
         $this->assertSame(DataTablesExtension::CONTROLLER_NAME, $builder->getParameter('datatables.controller_name'));
     }
 
@@ -43,6 +43,7 @@ final class FrontendConfigurationTest extends TestCase
         $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations, ['frontend' => $frontend]);
 
         $this->assertSame([], $deprecations);
+        $this->assertSame($frontend, $builder->getParameter('datatables.frontend'));
         $this->assertSame($controllerName, $builder->getParameter('datatables.controller_name'));
     }
 
