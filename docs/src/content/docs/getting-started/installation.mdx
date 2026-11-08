@@ -37,9 +37,21 @@ order: 20
       </TabItem>
     </Tabs>
 
+**Register the packages you use (recommended)**
+
+    ```bash
+    php bin/console ux-datatables:install --style=tailwind buttons responsive select
+    ```
+
+    The command registers only the DataTables packages your tables need, enables the
+    `datatable_core` controller, and sets `package_loading: registered`. See
+    [Loading only the extensions you use](/guide/package-loading/). Skip this step to keep the 1.x
+    behavior, where the `datatable` controller bundles every package.
+
 **Verify Installation**
 
-    The `@pentiminax/ux-datatables/datatable` Stimulus controller is now available in your application.
+    The `@pentiminax/ux-datatables/datatable` Stimulus controller is available in your application,
+    or `@pentiminax/ux-datatables/datatable_core` if you ran the install command.
 
 </Steps>
 
@@ -58,6 +70,7 @@ data_tables:
       bottomEnd: paging
     lengthMenu: [10, 25, 50]
     pageLength: 10
+  package_loading: registered
   table_attributes:
     class: 'table'
   extensions:
@@ -71,6 +84,7 @@ data_tables:
 <Table
   headers={['Option', 'Description']}
   rows={[
+    ['package_loading', '`registered` loads only the packages you register (see the install command). Leaving it unset is deprecated: the default becomes `registered` in 2.0'],
     ['language', 'Default language locale (e.g., en-GB, fr-FR)'],
     ['layout', 'UI component positions (topStart, topEnd, bottomStart, bottomEnd)'],
     ['lengthMenu', 'Available page length options'],
@@ -100,7 +114,7 @@ The bundle ships with the DataTables default theme enabled. Check your `assets/c
 }
 ```
 
-The bundle supports 4 CSS frameworks (Bootstrap 5, Bootstrap 4, Bootstrap 3, and the default DataTables theme). The Stimulus controller automatically detects which stylesheet is loaded and applies the matching integration.
+The bundle supports 4 CSS frameworks (Bootstrap 5, Bootstrap 4, Bootstrap 3, and the default DataTables theme). Bootstrap 3 and 4 are deprecated since 1.5 and removed in 2.0. The Stimulus controller automatically detects which stylesheet is loaded and applies the matching integration.
 
 See [Styling](/guide/styling/) for the full setup guide.
 

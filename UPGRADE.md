@@ -33,6 +33,67 @@ What changed for code that builds the bundle's controllers by hand:
   their token validator, registry, context resolver and row scope guard
 - `AjaxDetailController` and `AjaxEditFormController` now take the `Request`
 
+### New: registered package loading (opt-in)
+
+The `datatable` controller imports every DataTables package, so bundles and import maps carry all of
+them. `data_tables.package_loading: registered` renders the new `datatable_core` controller
+instead, which imports only `@hotwired/stimulus`: your application registers the packages it uses
+with `packageLoaders`. Leaving `package_loading` unset is deprecated, and its default becomes
+`registered` in 2.0.
+
+To opt in, run the command, then clear the cache:
+
+```bash
+php bin/console ux-datatables:install --style=tailwind buttons responsive select
+php bin/console ux-datatables:install --style=tailwind --prune buttons responsive select
+```
+
+`--style` is `tailwind` (default), `dt` or `bs5`. The command writes `assets/datatables.js`, imports it
+from `assets/stimulus_bootstrap.js` or `assets/bootstrap.js`, updates `assets/controllers.json`,
+sets `package_loading: registered`, and requires the packages through AssetMapper or prints the
+`npm install` line for Encore. `--prune` (AssetMapper) removes the `datatables.net*`, `jszip` and
+`pdfmake` JavaScript entries you did not register. See
+[Loading only the extensions you use](https://pentiminax.github.io/ux-datatables/guide/package-loading/)
+for the manual setup.
+
+Things to know in `registered` mode:
+
+- A package you did not register fails with `The "<name>" package is not registered.` Registering
+  an extension the bundle does not know is not supported: the package names are a closed list.
+- In debug, an explicit `package_loading` that contradicts `assets/controllers.json` fails the
+  container build.
+- The `datatable_core` look is `dt` plus the Tailwind theme. `--style=dt` and `--style=bs5` turn the
+  theme off in `controllers.json`.
+
+JSZip now loads only for `excel` buttons and pdfmake only for `pdf` buttons, in both modes.
+
+### Deprecated setup
+
+Everything below keeps working and is removed in v2.0.
+
+- Leaving `data_tables.package_loading` unset: set it to `registered` (see above) or `builtin`.
+- `StyleFramework::Bootstrap` (`bs`, Bootstrap 3) and `StyleFramework::Bootstrap4`: use
+  `StyleFramework::Bootstrap5` or `StyleFramework::DataTables`.
+
+### Preparing for v2.0
+
+v2.0 changes the frontend setup. Do the steps below on 1.5 and the upgrade needs no further change.
+
+1. Run `ux-datatables:install` and fix the deprecations your application reports.
+2. Replace `StyleFramework::Bootstrap` and `StyleFramework::Bootstrap4`.
+3. Upgrade, run the command again, and remove `package_loading` from `data_tables.yaml`.
+
+What v2.0 changes:
+
+- `datatable` becomes the core controller, with the base style, the `dt` CSS and the Tailwind theme
+  autoimported. `datatable_core` stays as a deprecated alias until 3.0.
+- `package_loading` is removed: `builtin` fails with a clear message, `registered` is accepted,
+  ignored and deprecated. The built-in loaders are deleted.
+- Bootstrap 3 and 4 are removed. The supported styles are `dt` (with or without the Tailwind theme)
+  and `bs5`. If you do not want the Tailwind theme, set its `autoimport` flag to `false`.
+- The peer dependencies shrink to `@hotwired/stimulus`; the DataTables packages become optional.
+- `--prune` also removes CSS entries.
+
 ## v1.4 → v1.4.1
 
 ### Related-entity switch toggles are tied to their table row
