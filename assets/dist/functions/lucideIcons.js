@@ -1,10 +1,11 @@
+import { packageLoaders } from './packageLoaders.js';
 let lucide = null;
 let iconsByKebab = null;
 export async function loadLucideIcons() {
     if (lucide !== null) {
         return;
     }
-    lucide = (await import('lucide'));
+    lucide = (await packageLoaders.load('lucide'));
     iconsByKebab = new Map();
     for (const [pascal, node] of Object.entries(lucide.icons)) {
         iconsByKebab.set(pascalToKebab(pascal), node);
