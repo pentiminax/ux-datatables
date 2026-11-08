@@ -29,7 +29,11 @@ class DataTablesExtension extends AbstractExtension
      */
     public const CONTROLLER_NAME = '@pentiminax/ux-datatables/datatable';
 
+    public const CORE_CONTROLLER_NAME = '@pentiminax/ux-datatables/datatable_core';
+
     public const VIEW_ATTRIBUTE = 'data-pentiminax--ux-datatables--datatable-view-value';
+
+    public const CORE_VIEW_ATTRIBUTE = 'data-pentiminax--ux-datatables--datatable-core-view-value';
 
     public function __construct(
         private readonly StimulusHelper $stimulus,
@@ -39,6 +43,7 @@ class DataTablesExtension extends AbstractExtension
         private readonly ?AjaxDataTableRegistry $ajaxRegistry = null,
         private readonly ?DataTableProfiler $profiler = null,
         private readonly ?AuthorizationChecker $permissionChecker = null,
+        private readonly string $controllerName = self::CONTROLLER_NAME,
     ) {
     }
 
@@ -103,7 +108,7 @@ class DataTablesExtension extends AbstractExtension
             $view['mutationsEnabled'] = true;
         }
 
-        $controllers[self::CONTROLLER_NAME] = [
+        $controllers[$this->controllerName] = [
             'view' => $view,
         ];
 

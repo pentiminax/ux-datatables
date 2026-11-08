@@ -12,6 +12,7 @@ use Pentiminax\UX\DataTables\DependencyInjection\Compiler\ValidateDataTableAttri
 use Pentiminax\UX\DataTables\Enum\ButtonType;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
+use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use Symfony\Bundle\MakerBundle\Maker\AbstractMaker;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -39,6 +40,10 @@ class PentiminaxDataTablesBundle extends AbstractBundle
     {
         $definition->rootNode()
             ->children()
+                ->enumNode('frontend')
+                    ->values(['legacy', 'core'])
+                    ->info('Stimulus controller the tables render: "legacy" bundles every DataTables package, "core" loads only the packages the application registers. Unset follows "legacy", which becomes "core" in 2.0.')
+                ->end()
                 ->integerNode('max_page_length')
                     ->min(1)
                     ->defaultValue(1000)
@@ -147,7 +152,16 @@ class PentiminaxDataTablesBundle extends AbstractBundle
         $formAvailable    = interface_exists(FormFactoryInterface::class);
         $mercureAvailable = interface_exists(HubInterface::class);
 
+        $frontend = $config['frontend'] ?? null;
+
+        if (null === $frontend) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.5', 'Not setting "data_tables.frontend" is deprecated: its default becomes "core" in 2.0. Set "frontend: core" (or "frontend: legacy" to keep the current behavior), or run "bin/console ux-datatables:install".');
+            $frontend = 'legacy';
+        }
+
         $container->parameters()
+            ->set('datatables.frontend', $frontend)
+            ->set('datatables.controller_name', 'core' === $frontend ? DataTablesExtension::CORE_CONTROLLER_NAME : DataTablesExtension::CONTROLLER_NAME)
             ->set('datatables.options', $config['options'] ?? [])
             ->set('datatables.table_attributes', $config['table_attributes'] ?? [])
             ->set('datatables.extensions', $config['extensions'] ?? [])
