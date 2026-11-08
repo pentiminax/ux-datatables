@@ -17,6 +17,7 @@ use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use Symfony\Bundle\MakerBundle\Maker\AbstractMaker;
 use Symfony\Component\AssetMapper\AssetMapperInterface;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\DependencyInjection\Reference;
@@ -192,6 +193,10 @@ class PentiminaxDataTablesBundle extends AbstractBundle
 
         if ($mercureAvailable) {
             $container->import('../config/mercure.php');
+        }
+
+        if (class_exists(Command::class)) {
+            $container->import('../config/console.php');
         }
 
         if (class_exists(AbstractMaker::class)) {
