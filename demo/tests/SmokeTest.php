@@ -51,7 +51,7 @@ final class SmokeTest extends DataTableTestCase
         $crawler = $client->request('GET', $url);
 
         self::assertResponseIsSuccessful();
-        self::assertCount(1, $crawler->filter('table[data-controller~="pentiminax--ux-datatables--datatable"]'));
+        self::assertCount(1, $crawler->filter('table[data-controller~="pentiminax--ux-datatables--datatable-core"]'));
         self::assertGreaterThanOrEqual(3, $crawler->filter('.code-panel [role="tab"]')->count());
     }
 

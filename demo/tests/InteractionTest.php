@@ -14,6 +14,7 @@ use App\Entity\Product;
 use App\Enum\OrderStatus;
 use App\Enum\ProductStatus;
 use Doctrine\ORM\EntityManagerInterface;
+use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Test\DataTableTestCase;
@@ -36,7 +37,7 @@ final class InteractionTest extends DataTableTestCase
         self::getContainer()->get(DemoSeeder::class)->reset();
 
         $crawler             = $this->client->request('GET', '/en/actions');
-        $view                = json_decode((string) $crawler->filter('table[data-controller]')->attr('data-pentiminax--ux-datatables--datatable-view-value'), true, flags: \JSON_THROW_ON_ERROR);
+        $view                = json_decode((string) $crawler->filter('table[data-controller]')->attr(DataTablesExtension::CORE_VIEW_ATTRIBUTE), true, flags: \JSON_THROW_ON_ERROR);
         $this->mutationToken = $view['csrfToken'];
     }
 

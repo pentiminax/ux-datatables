@@ -1,4 +1,5 @@
 data_tables:
+    package_loading: registered
     max_page_length: '%env(int:DATATABLES_MAX_PAGE_LENGTH)%'
     options:
         stateSave: '%env(bool:DATATABLES_STATE_SAVE)%'
