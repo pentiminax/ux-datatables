@@ -14,6 +14,19 @@ Deprecated APIs keep working for the whole 1.x line and are removed in 2.0.
 
 ## Upgrading to 1.5.0
 
+### Related-entity switch toggles are tied to their table row
+
+A `BooleanColumn` switch that sets another `setEntityClass()` than its table skipped the row scope:
+any id of that entity could be toggled. The toggle request now carries `rowId`, the id of the table
+row the switch sits in. The server answers `404` unless that row is in scope and the
+`setToggleAjax()` id field of that row resolves to the posted `id`.
+
+- Custom clients that toggle a switch on a related entity must send `rowId`. Rebuild or update your
+  assets if you use the bundled JavaScript, which already sends it.
+- A table whose entity has a composite identifier can no longer toggle a related-entity switch.
+- Same-entity toggles are unchanged.
+- If you build `AjaxEditRequestDto` yourself, it has a new optional `$rowId`.
+
 ### Set `package_loading` explicitly
 
 Leaving `data_tables.package_loading` unset is deprecated. Choose one of the two modes:
@@ -89,21 +102,6 @@ What 2.0 changes:
   theme) and `bs5`. To drop the Tailwind theme, set its `autoimport` flag to `false`.
 - The peer dependencies shrink to `@hotwired/stimulus`; the DataTables packages become optional.
 - `--prune` also removes CSS entries.
-
-## Upgrading to 1.4.1
-
-### Related-entity switch toggles are tied to their table row
-
-A `BooleanColumn` switch that sets another `setEntityClass()` than its table skipped the row scope:
-any id of that entity could be toggled. The toggle request now carries `rowId`, the id of the table
-row the switch sits in. The server answers `404` unless that row is in scope and the
-`setToggleAjax()` id field of that row resolves to the posted `id`.
-
-- Custom clients that toggle a switch on a related entity must send `rowId`. Rebuild or update your
-  assets if you use the bundled JavaScript, which already sends it.
-- A table whose entity has a composite identifier can no longer toggle a related-entity switch.
-- Same-entity toggles are unchanged.
-- If you build `AjaxEditRequestDto` yourself, it has a new optional `$rowId`.
 
 ## Upgrading to 1.3.0
 
