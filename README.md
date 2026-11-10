@@ -1,40 +1,39 @@
-# UX DataTables
+<h1 align="center">UX DataTables</h1>
 
-[![Latest Stable Version](https://img.shields.io/packagist/v/pentiminax/ux-datatables.svg?style=flat-square)](https://packagist.org/packages/pentiminax/ux-datatables)
-[![PHP Version](https://img.shields.io/packagist/php-v/pentiminax/ux-datatables?style=flat-square)](https://packagist.org/packages/pentiminax/ux-datatables)
-[![Downloads total](https://img.shields.io/packagist/dt/pentiminax/ux-datatables.svg?style=flat-square)](https://packagist.org/packages/pentiminax/ux-datatables/stats)
-[![Coverage](https://img.shields.io/codecov/c/github/pentiminax/ux-datatables?style=flat-square)](https://codecov.io/gh/pentiminax/ux-datatables)
+<p align="center">
+    <strong>The easiest way to build DataTables.net tables in Symfony</strong>
+</p>
 
-UX DataTables is a Symfony bundle integrating the [DataTables][1]
-library in Symfony applications.
+<p align="center">
+    <a href="https://packagist.org/packages/pentiminax/ux-datatables"><img src="https://img.shields.io/packagist/v/pentiminax/ux-datatables.svg?style=flat-square&label=stable" alt="Latest Stable Version"></a>
+    <a href="https://packagist.org/packages/pentiminax/ux-datatables"><img src="https://img.shields.io/packagist/php-v/pentiminax/ux-datatables?style=flat-square" alt="PHP Version"></a>
+    <a href="https://packagist.org/packages/pentiminax/ux-datatables/stats"><img src="https://img.shields.io/packagist/dt/pentiminax/ux-datatables.svg?style=flat-square" alt="Total Downloads"></a>
+    <a href="https://codecov.io/gh/pentiminax/ux-datatables"><img src="https://img.shields.io/codecov/c/github/pentiminax/ux-datatables?style=flat-square" alt="Coverage"></a>
+</p>
 
-[Video tutorial](https://youtu.be/qYHRXr_qdPY)
+<p align="center">
+    <a href="https://pentiminax.github.io/ux-datatables/">Documentation</a>
+     • <a href="demo/">Demo</a>
+     • <a href="https://youtu.be/qYHRXr_qdPY">Video Tutorial</a>
+</p>
 
-[1]: https://datatables.net
+UX DataTables is a [Symfony UX](https://ux.symfony.com) bundle that turns a PHP class into a
+fully featured [DataTables.net](https://datatables.net) table: typed columns, Doctrine-backed
+server-side processing, filters, actions, inline editing, and live updates.
 
-## Requirements
-- PHP 8.2 or higher
-- Symfony StimulusBundle (installed through Symfony UX)
-- Composer
+## Quick Start
 
-## Installation
-
-Install the library via Composer:
-
-```console
+```bash
 composer require pentiminax/ux-datatables
+php bin/console make:datatable
 ```
 
-## Usage
-
-### 1. Declare a DataTable
+Declare the table:
 
 ```php
 use App\Entity\User;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
-use Pentiminax\UX\DataTables\Column\MoneyColumn;
 use Pentiminax\UX\DataTables\Column\NumberColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
@@ -54,21 +53,7 @@ final class UserDataTable extends AbstractDataTable
 }
 ```
 
-Column variants are configured fluently after `new()`:
-
-```php
-TextColumn::new('name')->utf8();
-TextColumn::new('content')->html()->utf8();
-NumberColumn::new('price')->formatted();
-MoneyColumn::new('price')->currency('EUR')->storedAsCents();
-BooleanColumn::new('active')->renderAsSwitch();
-TextColumn::new('internalCode')->disableColumnControl();
-```
-
-`disableColumnControl()` removes all ColumnControl controls for the column without disabling
-DataTables search processing.
-
-### 2. Wire it in a controller
+Handle it in a controller:
 
 ```php
 #[Route('/users', name: 'app_users')]
@@ -80,60 +65,63 @@ public function index(UserDataTable $table, Request $request): Response
         return $table->getResponse();
     }
 
-    return $this->render('user/index.html.twig', [
-        'table' => $table,
-    ]);
+    return $this->render('user/index.html.twig', ['table' => $table]);
 }
 ```
 
-### 3. Render in Twig
+Render it in Twig:
 
 ```twig
 {{ render_datatable(table) }}
 ```
 
-> Tip: run `php bin/console make:datatable` to scaffold a DataTable class from any Doctrine entity.
+That's it!
 
-Beyond this, a table can declare filters, row actions, bulk actions over the selected rows, inline
-editing and exports, and stay live through Mercure or API Platform. `DataTableTestCase` tests it
-through the same Ajax routes the browser uses.
+📖 **[Read the full documentation →](https://pentiminax.github.io/ux-datatables/)**
+
+## Features
+
+| Feature | Description |
+| ------- | ----------- |
+| ⚡ **Table in Minutes** | Scaffold a table from any Doctrine entity with `make:datatable` |
+| 🗄️ **Server-side Processing** | Pagination, search, and ordering handled through Doctrine, in-memory arrays, or API Platform |
+| 🎛️ **Typed Columns** | Text, number, money, date, boolean, enum, and more, configured fluently |
+| 🔍 **Filters** | Built-in filters and column controls to narrow down your data |
+| ⚙️ **Actions** | Row actions, bulk actions over selected rows, and detail rows |
+| ✏️ **Inline Editing** | Edit rows in a modal or toggle booleans in place, with CSRF protection |
+| 📤 **Exports** | CSV and XLSX exports through the same query pipeline |
+| 🧩 **DataTables Extensions** | Buttons, Select, Responsive, FixedHeader, RowGroup, SearchBuilder, and more, lazy-loaded |
+| 📡 **Live Updates** | Optional Mercure integration to push changes to the table |
+| 🎨 **Bootstrap & Modals** | Style and modal adapters you can swap or extend |
+| 🌍 **Translatable** | English and French catalogs included |
+| ✅ **Testable** | `DataTableTestCase` exercises your table through the same Ajax routes as the browser |
+
+## Requirements
+
+- PHP 8.2 or higher
+- Symfony 7.x or 8.x
+- Symfony StimulusBundle 2.x or 3.x
 
 ## Security
 
-The bundle auto-registers a set of Ajax routes under `/datatables/ajax/*` (`ux_datatables_ajax_data`,
-`ux_datatables_ajax_delete`, `ux_datatables_ajax_edit`, `ux_datatables_ajax_edit_form`,
-`ux_datatables_ajax_edit_form_submit`, `ux_datatables_ajax_detail`, `ux_datatables_ajax_bulk`,
-`ux_datatables_ajax_export`).
-
-The table token embedded in the rendered HTML identifies **which** table is requested, not **who** is
-requesting it — it is **not** a user-authentication or per-user authorization mechanism. If a table is
-displayed behind a firewall but these routes are left unprotected, the underlying data (and the
-edit/delete actions) can be reached by anyone holding the token.
-
-Protect the routes with an `access_control` rule that matches the pages rendering your tables:
+The bundle registers Ajax routes under `/datatables/ajax/*` for data, edit, delete, detail, bulk
+actions, and exports. The table token embedded in the page identifies **which** table is requested,
+not **who** requests it. Protect these routes with your Symfony Security configuration:
 
 ```yaml
 # config/packages/security.yaml
 security:
     access_control:
-        # access_control is first-match-wins; place this before any broader rule.
         - { path: ^/datatables/ajax, roles: ROLE_ADMIN }
 ```
 
-Delete actions and inline boolean toggles additionally require an active session for CSRF
-protection. Without one, their controls are rendered disabled (`mutationsEnabled: false` in the
-table payload).
-
-See [Securing Ajax Routes](https://pentiminax.github.io/ux-datatables/getting-started/security/) for
-details.
-
-## Documentation
-- [Online documentation](https://pentiminax.github.io/ux-datatables/)
+See [Securing Ajax Routes](https://pentiminax.github.io/ux-datatables/getting-started/security/)
+for details.
 
 ## Demo
 
-A Symfony demo app lives in [`demo/`](demo/). It tours columns, filters, actions, bulk actions,
-exports, and extensions, each page next to the code running it:
+A Symfony demo app in [`demo/`](demo/) tours columns, filters, actions, exports, and extensions,
+each page next to the code running it:
 
 ```bash
 cd demo
@@ -141,3 +129,11 @@ composer install
 php bin/console app:demo:reset
 php -S 127.0.0.1:8000 -t public
 ```
+
+## Contributing
+
+Contributions are welcome. Open an issue to discuss your idea first, then send a pull request.
+
+## License
+
+This bundle is released under the [MIT License](LICENSE).
