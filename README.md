@@ -132,7 +132,8 @@ php -S 127.0.0.1:8000 -t public
 
 ## Contributing
 
-Contributions are welcome. Open an issue to discuss your idea first, then send a pull request.
+Contributions are welcome. Read the [contribution guidelines](.github/CONTRIBUTING.md), then open an
+issue to discuss your idea or send a pull request.
 
 ## License
 
