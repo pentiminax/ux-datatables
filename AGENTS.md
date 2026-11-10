@@ -224,6 +224,19 @@ Documentation lives in `docs/` and uses Astro with MDX.
 - Keep security-sensitive examples aligned with the documented Ajax route protections.
 - Let ESLint and Prettier enforce the documentation style.
 
+### UPGRADE.md
+
+`UPGRADE.md` is a migration guide, not a changelog. Release notes list what is new; the guide lists
+what a user must do.
+
+- Add an entry only for a behavior change, a breaking change, or a deprecation. Do not list
+  additive features.
+- Group entries under `## Upgrading to X.Y.Z`, newest first. Title each entry after the change and
+  say what to do, with a before and after example when the fix is code.
+- Deprecations go in one list per version, each naming its replacement. Everything deprecated is
+  removed in 2.0.
+- Do not document 0.x versions or pre-release work.
+
 ## Git and Pull Requests
 
 - Keep commits small and focused on one decision.

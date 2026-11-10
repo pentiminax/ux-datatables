@@ -1,19 +1,60 @@
 # Upgrade Guide
 
-Each section covers one version bump. When you skip versions, apply every section between your
-current version and the target, oldest first.
+This guide lists what you may have to change in your application when you upgrade. It covers
+behavior changes, breaking changes, and deprecations. New features are not listed here: see the
+[release notes](https://github.com/pentiminax/ux-datatables/releases).
 
-## v1.4 → v1.5
+Sections are ordered from newest to oldest. When you skip versions, read every section between
+your current version (excluded) and the target version (included).
 
-### Single-row Ajax actions authorize through one gate
+The guide starts at **1.1.0**, the first upgrade after the stable 1.0 release. To upgrade from a
+0.x version, read the [guide as published in 1.4.0](https://github.com/pentiminax/ux-datatables/blob/v1.4.0/UPGRADE.md).
 
-Delete, boolean toggle, detail, edit form view and edit form submit now run CSRF, action lookup,
-permissions, row scope and entity lookup in one internal gate before the verb-specific work. The
-status codes and JSON bodies clients see are unchanged.
+Deprecated APIs keep working for the whole 1.x line and are removed in 2.0.
 
-Deprecated, and removed in 2.0:
+## Upgrading to 1.5.0
 
-| Deprecated | Replacement (`@internal`) |
+### Set `package_loading` explicitly
+
+Leaving `data_tables.package_loading` unset is deprecated. Choose one of the two modes:
+
+```yaml
+# config/packages/data_tables.yaml
+data_tables:
+    package_loading: registered # or "builtin" to keep today's behavior
+```
+
+- `builtin` keeps the `datatable` controller, which imports every DataTables package.
+- `registered` renders the new `datatable_core` controller, which imports only
+  `@hotwired/stimulus`. Your application registers the packages it uses.
+
+To switch to `registered`, run the command below and clear the cache. Packages and styles are
+described in [Loading only the extensions you use](https://pentiminax.github.io/ux-datatables/guide/package-loading/).
+
+```bash
+php bin/console ux-datatables:install --style=tailwind buttons responsive select
+```
+
+In `registered` mode:
+
+- a package you did not register fails with `The "<name>" package is not registered.`
+- an explicit `package_loading` that contradicts `assets/controllers.json` fails the container
+  build in debug
+- the look is `dt` plus the Tailwind theme; `--style=dt` and `--style=bs5` turn the theme off
+
+In both modes JSZip now loads only for `excel` buttons and pdfmake only for `pdf` buttons.
+
+### Replace the Bootstrap 3 and 4 styles
+
+`StyleFramework::Bootstrap` (Bootstrap 3) and `StyleFramework::Bootstrap4` are deprecated. Use
+`StyleFramework::Bootstrap5` or `StyleFramework::DataTables`.
+
+### Stop calling the old row action methods
+
+Delete, boolean toggle, detail, edit form view, and edit form submit now authorize through one
+internal gate. Status codes and JSON bodies are unchanged. These methods are deprecated:
+
+| Deprecated | Replacement |
 | --- | --- |
 | `EntityMutator::delete()` | `EntityMutator::deleteRow()` |
 | `EntityMutator::setProperty()` | `EntityMutator::toggleRow()` |
@@ -21,103 +62,90 @@ Deprecated, and removed in 2.0:
 | `EditFormService::handleView()` | `EditFormService::renderForm()` |
 | `EditFormService::handleSubmit()` | `EditFormService::submitForm()` |
 
-The replacements take an internal `AuthorizedRow` that only the gate builds, so they are not an API
-to call. Application code that calls the old methods directly should stop doing so and go through
-the bundle's Ajax routes, which carry the checks. The old methods keep their own checks until they
-are removed.
+The replacements are `@internal` and need an `AuthorizedRow` that only the gate builds. Do not call
+either set from application code: go through the bundle's Ajax routes, which carry the checks.
 
-What changed for code that builds the bundle's controllers by hand:
+If you build the bundle's controllers by hand, `AjaxDeleteController`, `AjaxEditController`,
+`AjaxDetailController`, `AjaxEditFormController`, and `AjaxEditFormSubmitController` now take a
+`RowActionGate` instead of their token validator, registry, context resolver, and row scope guard.
+`AjaxDetailController` and `AjaxEditFormController` also take the `Request`.
 
-- `AjaxDeleteController`, `AjaxEditController`, `AjaxDetailController`,
-  `AjaxEditFormController` and `AjaxEditFormSubmitController` take a `RowActionGate` instead of
-  their token validator, registry, context resolver and row scope guard
-- `AjaxDetailController` and `AjaxEditFormController` now take the `Request`
+### Prepare for 2.0
 
-### New: registered package loading (opt-in)
-
-The `datatable` controller imports every DataTables package, so bundles and import maps carry all of
-them. `data_tables.package_loading: registered` renders the new `datatable_core` controller
-instead, which imports only `@hotwired/stimulus`: your application registers the packages it uses
-with `packageLoaders`.
-
-To opt in, run the command, then clear the cache. What it writes, the styles and the manual setup
-are in [Loading only the extensions you use](https://pentiminax.github.io/ux-datatables/guide/package-loading/).
-
-```bash
-php bin/console ux-datatables:install --style=tailwind buttons responsive select
-```
-
-Things to know in `registered` mode:
-
-- A package you did not register fails with `The "<name>" package is not registered.` Registering
-  an extension the bundle does not know is not supported: the package names are a closed list.
-- In debug, an explicit `package_loading` that contradicts `assets/controllers.json` fails the
-  container build.
-- The `datatable_core` look is `dt` plus the Tailwind theme. `--style=dt` and `--style=bs5` turn the
-  theme off in `controllers.json`.
-
-JSZip now loads only for `excel` buttons and pdfmake only for `pdf` buttons, in both modes.
-
-### Deprecated setup
-
-Everything below keeps working and is removed in v2.0.
-
-- Leaving `data_tables.package_loading` unset: set it to `registered` (see above) or `builtin`.
-- `StyleFramework::Bootstrap` (`bs`, Bootstrap 3) and `StyleFramework::Bootstrap4`: use
-  `StyleFramework::Bootstrap5` or `StyleFramework::DataTables`.
-
-### Preparing for v2.0
-
-v2.0 changes the frontend setup. Do the steps below on 1.5 and the upgrade needs no further change.
+2.0 changes the frontend setup. Do the following on 1.5 and the upgrade needs no further change:
 
 1. Run `ux-datatables:install` and fix the deprecations your application reports.
 2. Replace `StyleFramework::Bootstrap` and `StyleFramework::Bootstrap4`.
-3. Upgrade, run the command again, and remove `package_loading` from `data_tables.yaml`.
+3. Switch to `package_loading: registered`, upgrade to 2.0, run the command again, and remove
+   `package_loading` from `data_tables.yaml`.
 
-What v2.0 changes:
+What 2.0 changes:
 
-- `datatable` becomes the core controller, with the base style, the `dt` CSS and the Tailwind theme
+- `datatable` becomes the core controller, with the base style, the `dt` CSS, and the Tailwind theme
   autoimported. `datatable_core` stays as a deprecated alias until 3.0.
 - `package_loading` is removed: `builtin` fails with a clear message, `registered` is accepted,
-  ignored and deprecated. The built-in loaders are deleted.
-- Bootstrap 3 and 4 are removed. The supported styles are `dt` (with or without the Tailwind theme)
-  and `bs5`. If you do not want the Tailwind theme, set its `autoimport` flag to `false`.
+  ignored, and deprecated. The built-in loaders are deleted.
+- Bootstrap 3 and 4 are removed. The supported styles are `dt` (with or without the Tailwind
+  theme) and `bs5`. To drop the Tailwind theme, set its `autoimport` flag to `false`.
 - The peer dependencies shrink to `@hotwired/stimulus`; the DataTables packages become optional.
 - `--prune` also removes CSS entries.
 
-## v1.4 → v1.4.1
+## Upgrading to 1.4.1
 
 ### Related-entity switch toggles are tied to their table row
 
-Security fix. A `BooleanColumn` switch that sets another `setEntityClass()` than its table used to
-skip the row scope: any id of that entity could be toggled. The toggle request now carries `rowId`,
-the id of the table row the switch sits in. The server requires that row to be in scope and the
-`setToggleAjax()` id field of that row to resolve to the posted `id`. Otherwise it answers `404`.
+A `BooleanColumn` switch that sets another `setEntityClass()` than its table skipped the row scope:
+any id of that entity could be toggled. The toggle request now carries `rowId`, the id of the table
+row the switch sits in. The server answers `404` unless that row is in scope and the
+`setToggleAjax()` id field of that row resolves to the posted `id`.
 
-What changed:
+- Custom clients that toggle a switch on a related entity must send `rowId`. Rebuild or update your
+  assets if you use the bundled JavaScript, which already sends it.
+- A table whose entity has a composite identifier can no longer toggle a related-entity switch.
+- Same-entity toggles are unchanged.
+- If you build `AjaxEditRequestDto` yourself, it has a new optional `$rowId`.
 
-- custom clients that toggle a switch on a related entity must send `rowId`; a request without it
-  answers `404`. The bundled JavaScript already sends it, so rebuild or update your assets
-- a table whose entity has a composite identifier can no longer toggle a related-entity switch
-  (`404`), because it has no single row id to send
-- same-entity toggles are unchanged
-- `AjaxEditRequestDto` has a new optional `$rowId`, and `BooleanSwitchMetadataStage` adds
-  `__ux_datatables_switch_row_id` to rows that carry a switch
-
-## v1.2 → v1.3
+## Upgrading to 1.3.0
 
 ### Single-row actions respect the table scope
 
 With the built-in Doctrine provider, delete, boolean toggle, edit form, and detail row now answer
-`404` for an id that `customizeQueryBuilder()` excludes, the same as bulk actions already did.
+`404` for an id that `customizeQueryBuilder()` excludes, like bulk actions already do.
 
-What changed:
+- A toggle on a column that sets another `setEntityClass()` is still unscoped.
+- Providers without `ScopedIdentifierProviderInterface` keep their current behavior.
+- If you build `AjaxDeleteController`, `AjaxEditController`, `EditFormService`, or
+  `DetailRowService` by hand, pass the new required `RowScopeGuard` before the optional arguments.
 
-- a toggle on a column that sets another `setEntityClass()` is still unscoped
-- providers without `ScopedIdentifierProviderInterface` keep their current behavior
-- `AjaxDeleteController`, `AjaxEditController`, `EditFormService` and `DetailRowService` take a
-  required `RowScopeGuard`, placed before their optional arguments; only code that builds these
-  services by hand needs updating
+### Unsupported data source features are refused
+
+The bundle now checks whether the data source can apply SearchBuilder criteria, ColumnControl
+searches, filter values, and column summaries.
+
+- An API Platform table that registers the SearchBuilder extension or offers a ColumnControl search
+  throws a `LogicException` at render time. The browser used to drop those criteria and show every
+  row. Remove the extension, or use a Doctrine or custom provider.
+- `ArrayDataProvider` answers HTTP 400 for a configured filter value, instead of a
+  `LogicException` (HTTP 500).
+- A table that uses `summarize()` cannot be read through API Platform (`LogicException`). A custom
+  `DataProviderInterface` supplies the figures through the optional `summaries` argument of
+  `DataTableResult`.
+- A custom provider can refuse features with the new `FeatureAwareDataProviderInterface`. Without
+  it, nothing changes.
+
+### SearchBuilder is strict and applies to every row
+
+- A malformed `searchBuilder` parameter, or a condition the server does not know (such as
+  `without`), answers HTTP 400 instead of returning the unfiltered table.
+- A criterion on an unknown or `setSearchable(false)` column answers HTTP 400.
+- The builder no longer offers the `without` condition and leaves out non-searchable columns.
+- SearchBuilder now loads `datatables.net-datetime`. Run `composer update` and rebuild your assets.
+  With AssetMapper, also run `php bin/console importmap:require datatables.net-datetime`.
+
+### `#[DataTableFilter]` on `int` and `float` builds a `NumberRangeFilter`
+
+It used to fail while the container compiled. To keep another filter, name its class on the
+attribute.
 
 ### Edit forms skip columns without a writable property
 
@@ -126,454 +154,202 @@ with a 500.
 
 ### Order direction accepts only `asc` and `desc`
 
-Anything else in `order[][dir]` sorts ascending instead of reaching the query pipeline.
+Any other value in `order[][dir]` now sorts ascending.
 
-### New: `DataTable::poll()`
+### `poll()` needs an Ajax source
 
-`poll()` is additive: no existing table changes. A table that calls it needs an Ajax source
-(server-side, `ajax()`, or API Platform); a table with no `ajax` option once prepared throws a
-`LogicException` at render time. This includes an application that sets the Ajax source only from
-JavaScript before the controller connects. Intervals outside 2 seconds to 24 hours throw an
-`InvalidArgumentException`. See the polling page in the docs.
+A table that calls `DataTable::poll()` needs a server-side, `ajax()`, or API Platform source;
+otherwise rendering throws a `LogicException`. This includes a source set only from JavaScript
+before the controller connects. Intervals outside 2 seconds to 24 hours throw an
+`InvalidArgumentException`.
 
-### New filters
+### Deprecations
 
-- New `NumberRangeFilter` and `EntityFilter`. A `#[DataTableFilter]` on an `int` or `float`
-  property used to raise while the container compiled; it now builds a `NumberRangeFilter`. Name a
-  filter class on the attribute to keep a different one.
-- `FilterTypeMapper::mapType()` ignores its second argument, the filter name. It is deprecated since
-  1.3 and removed in 2.0.
-
-### New: column summaries
-
-- Column summaries are additive: a table without `summarize()` is unchanged. A table that uses
-  `summarize()` cannot be read through API Platform (rendering throws a `LogicException`), and a
-  custom `DataProviderInterface` supplies figures through the new optional `summaries` argument of
-  `DataTableResult`. See [Column Summaries](https://pentiminax.github.io/ux-datatables/features/column-summaries/).
-
-### Unsupported data source features are refused in one place
-
-The bundle now checks whether a table's data source can apply SearchBuilder criteria, ColumnControl
-searches, configured filter values, and column summaries, instead of each provider checking on its
-own.
-
-What changed:
-
-- an API Platform table, read by the browser or by the server, that registers the SearchBuilder
-  extension or offers a ColumnControl search throws a `LogicException` at render time; the browser
-  used to drop those criteria and show every row
-- `ArrayDataProvider` answers HTTP 400 for a configured filter value, instead of a `LogicException`
-  (HTTP 500), and checks the table's own filters, so a value is refused even when the provider was
-  built without `$filters`
-- refusal messages name the provider class, for example "SearchBuilder criteria are not supported by
-  ArrayDataProvider."
-- a custom provider can refuse features through the new `FeatureAwareDataProviderInterface`;
-  without it, nothing changes
-
-### New: SearchBuilder
-
-Server-side tables now apply the SearchBuilder extension to every matching row.
-
-What changed:
-
-- a malformed `searchBuilder` parameter, or one with a condition the server does not know such as
-  `without`, answers HTTP 400 instead of returning the unfiltered table
-- a criterion on an unknown or `setSearchable(false)` column answers HTTP 400 instead of being
-  ignored
-- incomplete criteria, such as the blank row DataTables sends for a new condition, are still skipped
-- the builder no longer offers the `without` condition, and leaves out non-searchable columns
-- the bundle loads `datatables.net-datetime` with SearchBuilder, which refused to start on a table
-  with a date column without it. Run `composer update` and rebuild your assets; with AssetMapper,
-  run `php bin/console importmap:require datatables.net-datetime` if it is not in your importmap
-
-### Deprecated APIs
-
-Everything below keeps working and is removed in v2.0.
-
-- The fourth `$filters` argument of `ArrayDataProvider`: drop it, the bundle rejects configured
-  filter values on its own.
-- Placing `Feature::SEARCH_BUILDER` in a layout without the SearchBuilder extension: call
+- The fourth `$filters` argument of `ArrayDataProvider`: drop it.
+- `FilterTypeMapper::mapType()`: its second argument is ignored.
+- `Feature::SEARCH_BUILDER` in a layout without the SearchBuilder extension: call
   `searchBuilder()` or `addExtension(new SearchBuilderExtension())`. It throws in 2.0.
-- YAML values that the 1.3 config tree would otherwise reject now trigger a deprecation when the
-  container compiles, and v2.0 throws an `InvalidConfigurationException` for each:
-  - `data_tables.options.pageLength` that is not one of `data_tables.options.lengthMenu` (for
-    example `pageLength: 20` with `lengthMenu: [10, 25, 50]`). It keeps working: the options are
-    passed to DataTables.net unchanged. Add the value to `lengthMenu` or pick one of its entries.
+- YAML values the 1.3 config tree would reject now trigger a deprecation when the container
+  compiles, and throw an `InvalidConfigurationException` in 2.0:
+  - `data_tables.options.pageLength` that is not in `data_tables.options.lengthMenu`: add it to the
+    menu or pick one of its entries.
   - a `data_tables.extensions.buttons` entry that is not a `ButtonType` value, or a
-    `data_tables.extensions.select.style` that is not a `SelectStyle` value. The container still
-    compiles, but the value never worked: as in 1.2.1 it fails with a `ValueError` when a table is
-    built. Use a `ButtonType` or `SelectStyle` value.
+    `data_tables.extensions.select.style` that is not a `SelectStyle` value. Such a value never
+    worked: it fails with a `ValueError` when a table is built.
 
-### New: empty state, row class and clickable rows
+## Upgrading to 1.2.0
 
-`DataTable::emptyState()`, `rowClass()` and `recordUrl()` are additive; tables that do not call them
-render exactly as before. Run `composer update` and rebuild your assets. See
-[Empty State and Row Presentation](https://pentiminax.github.io/ux-datatables/features/row-presentation/).
+### Row identifiers are sent as strings
 
-### New: global table defaults
+Identifiers above `Number.MAX_SAFE_INTEGER` (such as snowflake ids) and zero-padded keys such as
+`00123` were rounded or reshaped as JSON numbers, so a delete or a toggle could target another
+entity. Every identifier exchanged with the browser is now a string:
 
-Implement `DataTableDefaultsConfiguratorInterface` to configure every table in one place. It is
-additive and runs between the `data_tables` YAML and `configureDataTable()`. See
-[Global Defaults in PHP](https://pentiminax.github.io/ux-datatables/guide/configuration/#global-defaults-in-php).
+- the `id` of the built-in delete and boolean toggle requests: `{"id": "42"}`
+- the ids under `__ux_datatables_actions` and `__ux_datatables_boolean_switches` in row data
+- the `id` of the Mercure `delete` and `edit` updates
 
-## v1.1 → v1.2
-
-### Behavior changes
-
-Every change below can affect an application. Each links to its migration hint.
-
-- Row identifiers are sent as strings (Mercure listeners, decorated controllers):
-  [details](#row-identifiers-are-sent-as-strings).
-- The default language follows the request locale:
-  [details](#the-table-language-follows-the-request-locale).
-- `buttons()` and the bulk actions bar keep the default content of their layout slot:
-  [details](#buttons-and-bulk-actions-keep-the-default-content-of-their-slot).
-- Numeric initial `order()` indexes ignore the selection checkbox column:
-  [details](#initial-order-indexes-ignore-the-selection-column).
-- Money columns are edited in currency units, and the display scale is `10^decimals`:
-  [details](#money-columns-are-edited-in-currency-units).
-- `symfony/serializer` is required: [details](#symfonyserializer-is-required).
-- Bulk actions skip identifiers outside the table scope:
-  [details](#bulk-actions-skip-identifiers-outside-the-table-scope).
-- Multi-column ordering is applied: [details](#multi-column-ordering-is-applied).
-- Server-side pages stay complete when a to-many association is joined, at the cost of one extra
-  query per draw:
-  [details](#server-side-pages-stay-complete-when-a-to-many-association-is-joined).
-- Mercure updates of tables that subscribe with credentials are published as private:
-  [details](#mercure-updates-of-private-tables-are-published-as-private).
-- A `TernaryFilter` on a boolean field compares the value instead of checking for `NULL`:
-  [details](#ternaryfilter-compares-boolean-fields-by-value).
-- Server-side exports write what the table displays, with translated headings:
-  [details](#server-side-exports-write-what-the-table-displays).
-- Ordered server-side pages break ties on the identifier:
-  [details](#ordered-server-side-pages-break-ties-on-the-identifier).
-
-Additive changes need no migration: `ChoiceColumn` translates `TranslatableInterface` enum labels,
-`AbstractColumn::formatValueUsing()` formats a cell value on the server, built-in row actions
-(delete, detail, edit, boolean switch) dispatch `datatables:action:success` and
-`datatables:action:error` and announce failures, and `RouteLoader` no longer implements the
-`RouteLoaderInterface` that Symfony 8.2 deprecates.
-
-An action `confirm()` on a delete, detail, edit, or Ajax action now asks through the table's modal
-adapter (the one `editModal` selects, Bootstrap or `<dialog>` by default) instead of the browser's
-native dialog, as bulk actions already do. The native `window.confirm()` remains the fallback when
-no adapter resolves, and link actions keep it. Code that stubbed `window.confirm` in tests of a
-delete button must now answer through the adapter instead.
-
-### Deprecated APIs
-
-Everything below keeps working and is removed in v2.0.
-
-- `ColumnResolver::removeDeniedColumnValues()`: use `deniedColumnPaths()` and `removePaths()`.
-- The frontend modules `dist/functions/filterFeature.js`, `filterLayout.js`, `bulkActionsFeature.js`
-  and `bulkActionsLayout.js`: the controller wires both bars itself, so deep imports are no longer
-  needed. They are not part of the package entry point.
-- `confirmBulkAction()` from `dist/bulk/confirmModal.js`: use `confirmAction()`.
+Doctrine finds integer primary keys from their string form, so the bundle's endpoints need no
+change. Fix custom code that compares these ids strictly to numbers, such as a Mercure listener
+using `update.id === 42` or a decorated controller that requires an `int` id.
 
 ### The table language follows the request locale
 
-`data_tables.options.language` no longer defaults to `en-GB`. A table without a language now loads
-the bundled catalog matching the request locale (`fr`, `fr_FR` and `fr-CA` load French, `en` loads
-English), and keeps the DataTables built-in English strings for a locale with no bundled catalog.
-Set `data_tables.options.language` or call `language()` on a table to pin a language as before.
+`data_tables.options.language` no longer defaults to `en-GB`. A table without a language loads the
+bundled catalog matching the request locale (`fr`, `fr_FR`, and `fr-CA` load French), and keeps
+the DataTables English strings when no catalog matches. To pin a language as before, set
+`data_tables.options.language` or call `language()` on the table.
 
-### `ChoiceColumn` translates `TranslatableInterface` enum labels
+### `buttons()` and bulk actions keep the default content of their layout slot
 
-`setChoices()` already stored the case name or `label()` for an enum; cases of an enum implementing
-`TranslatableInterface` are now translated at render time, like `ChoiceFilter` options. Enums that
-do not implement it are unchanged.
+`buttons([...])` used to drop the page length selector, and `buttons([...], 'topEnd')` and the bulk
+actions bar used to drop the search box. They now sit next to the default content. To restore the
+old result, hide the default before calling `buttons()`, or disable the feature:
 
-### `buttons()` and bulk actions keep the default content of their slot
-
-`buttons()` and the bulk actions bar wrote their marker into an empty layout slot, which replaced
-what DataTables puts there by default: `buttons([...])` dropped the page length selector,
-`buttons([...], 'topEnd')` and the bulk actions bar dropped the search box. They now sit next to it,
-as `[Feature::PAGE_LENGTH, Feature::BUTTONS]` already did when you declared the layout yourself. To
-keep the old result, hide the default with `layout(['topStart' => null])` before calling
-`buttons()`, or disable the feature with `lengthChange(false)` or `searching(false)`.
+```php
+$table->layout(['topStart' => null]);
+$table->lengthChange(false); // or ->searching(false)
+```
 
 ### Initial `order()` indexes ignore the selection column
 
-With `select(withCheckbox: true)`, the client prepends a column, so `order([[1, 'asc']])` sorted the
-column before the one you meant. Numeric indexes (`[1, 'asc']` and `['idx' => 1, ...]`) now refer to
-the columns you declared, as `['name' => ...]` entries always did. If you compensated by adding 1,
-remove it.
+With `select(withCheckbox: true)`, `order([[1, 'asc']])` sorted the column before the one you meant.
+Numeric indexes now refer to the columns you declared, like `['name' => ...]` entries always did. If
+you compensated by adding 1, remove it.
 
 ### Money columns are edited in currency units
 
-The edit modal bound a `MoneyColumn` to a plain `NumberType`, so a value stored as cents opened as
-`2500` and saving `25` stored 25 cents. The form now uses `MoneyType`: `2500` opens as `25.00` and
-`30.5` saves `3050`. A column set to `storedAsCents(false)` is bound as entered. Update tests or
-custom edit templates that submitted raw cents for these columns.
+The edit form binds a `MoneyColumn` to `MoneyType`: a value stored as cents `2500` opens as
+`25.00`, and saving `30.5` stores `3050`. It used to open as `2500`, and saving `25` stored 25
+cents. A column with `storedAsCents(false)` is bound as entered. Update tests and custom edit
+templates that submit raw cents.
 
-A cents-backed column with `decimals()` other than 2 used to display at a `/100` scale while the
-edit form divided by `10^decimals`. The table now uses the same scale as the form: `12345` with
-`decimals(3)` displays as `12.345`, not `123.45`.
+The display scale is now `10^decimals`: `12345` with `decimals(3)` displays as `12.345`, not
+`123.45`.
 
 ### `symfony/serializer` is required
 
-The edit modal, inline edit, delete, detail rows, and bulk actions map their Ajax payload with
-`#[MapRequestPayload]`, which Symfony refuses to run without the Serializer component: these
-requests answered HTTP 500 in an application that did not already have it. The bundle now requires
-`symfony/serializer`, so `composer update` installs it and FrameworkBundle enables it on its own.
-An application that configures its own serializer needs no change.
+The edit modal, inline edit, delete, detail rows, and bulk actions map their payload with
+`#[MapRequestPayload]`. The bundle now requires `symfony/serializer`, so `composer update` installs
+it and FrameworkBundle enables it. An application with its own serializer needs no change.
 
 ### Bulk actions skip identifiers outside the table scope
 
-An explicit bulk selection loaded its entities with `findBy()`, which ignored the table's scope: a
-forged identifier belonging to another tenant reached the handler as long as the row existed, unless
-the action had a per-row permission resolver. The bundle now keeps only the identifiers the table's
-permanent scope (`customizeQueryBuilder()`, without search or filters) contains. The others are not
-loaded and are counted in `skipped`, so the handler and `BulkActionContext` see a smaller batch.
+An explicit bulk selection used to load its entities with `findBy()`, ignoring the table scope. The
+bundle now keeps only the identifiers that `customizeQueryBuilder()` (without search or filters)
+contains. The others are counted in `skipped`, so a handler and `BulkActionContext` may see a
+smaller batch. A malformed identifier, such as an invalid UUID, is also counted as skipped.
 
-Tables without `customizeQueryBuilder()` are unaffected, except that an identifier the field type
-refuses (a malformed UUID) is now counted as skipped. The browser now sends the displayed
-DataTables parameters with an explicit selection too, so a `customizeQueryBuilder()` that scopes on
-forwarded query parameters sees the same values as it does for a data request. A custom data provider can opt in by
-implementing `ScopedIdentifierProviderInterface`; without it, and for API Platform backed tables,
-the previous behavior stays and the handler must scope itself.
+- The browser now sends the displayed DataTables parameters with an explicit selection, so a
+  `customizeQueryBuilder()` that scopes on forwarded query parameters sees the same values as for a
+  data request.
+- A custom provider opts in by implementing `ScopedIdentifierProviderInterface`. Without it, and
+  for API Platform tables, the handler must scope itself.
 
 ### Multi-column ordering is applied
 
-A request carrying several `order[]` entries (a shift-click on a second header, or an initial
-`order([[1, 'asc'], [2, 'desc']])`) removed every `ORDER BY`, so rows came back in database order.
-Every criterion is now applied in request order. `DataTableQueryIntent` gains an `orders` list;
-`orderColumn` and `orderDir` mirror the first criterion instead of being `null`, so a custom
-`QueryFilterInterface` reading them keeps working but now sees a value for a multi-column sort.
+Several `order[]` entries used to remove every `ORDER BY`. Every criterion is now applied in order.
+`DataTableQueryIntent` gains an `orders` list, and `orderColumn` and `orderDir` mirror the first
+criterion instead of being `null`. A custom `QueryFilterInterface` reading them keeps working but
+now sees a value for a multi-column sort.
 
 ### Server-side pages stay complete when a to-many association is joined
 
 A query joining a collection-valued association (a searchable `tags.label` column, a filter, or a
-`leftJoin()` in `customizeQueryBuilder()`) paginated joined SQL rows, so pages came back short,
-overlapped, and hid some rows. Such a table now pages distinct root identifiers, which costs one
-extra query per draw, which lists the distinct identifiers of every matching root before taking the
-page: on a very large result set, prefer a correlated subquery over a collection join. Tables
-without a collection join are unchanged. A `GROUP BY` query and an
-entity with a composite identifier keep the previous query.
+`leftJoin()` in `customizeQueryBuilder()`) paginated joined SQL rows, so pages came back short or
+overlapping. Such a table now pages distinct root identifiers, which costs one extra query per
+draw. On a very large result set, prefer a correlated subquery over a collection join. Tables
+without a collection join, `GROUP BY` queries, and composite identifiers are unchanged.
+
+### Ordered server-side pages break ties on the identifier
+
+The row identifier is appended to the `ORDER BY`, so rows that share the sorted value keep one order
+from page to page. Only rows that tie on the sort key can appear in a different order.
 
 ### Mercure updates of private tables are published as private
 
 When a table's Mercure config has `withCredentials` (set explicitly or mapped from API Platform's
-`mercure: ['private' => true]`), mutation, edit, and bulk action updates are now published with
-`private: true`. Subscribers whose JWT does not authorize the topic stop receiving them. Give them
-a subscriber JWT with access to the topic, which `withCredentials` already requires.
+`mercure: ['private' => true]`), updates are published with `private: true`. Subscribers whose JWT
+does not authorize the topic stop receiving them: give them a subscriber JWT with access to it.
 
-`MercurePublisherInterface` is unchanged. A custom publisher keeps receiving `publish()` and logs a
-warning for private tables; implement the new `PrivateUpdatePublisherInterface::publishPrivate()`
-to publish privately.
+A custom publisher keeps receiving `publish()` and logs a warning for private tables. Implement
+`PrivateUpdatePublisherInterface::publishPrivate()` to publish privately.
 
 ### `TernaryFilter` compares boolean fields by value
 
-On a Doctrine `boolean` field, `TernaryFilter` used to check `IS NOT NULL` / `IS NULL` unless
-`values(true, false)` was called, so "Yes" matched every row and "No" none on a column that cannot
-hold `NULL`. It now compares the field with `true` and `false` by itself, as a filter guessed from a
-`bool` property already did. Other field types keep the `NULL` checks.
-
-If you relied on the `NULL` semantics of a nullable boolean ("has a value" / "has no value"), add
-`nullable()`:
+On a Doctrine `boolean` field, `TernaryFilter` checked `IS NOT NULL` and `IS NULL` unless
+`values(true, false)` was called, so "Yes" matched every row. It now compares with `true` and
+`false`. If you relied on the `NULL` semantics of a nullable boolean, add `nullable()`:
 
 ```php
 TernaryFilter::new('consent')->nullable();
 ```
 
-`values()` still wins over both. Remove the `values(true, false)` workaround if you added one; it is
-harmless but no longer needed.
+`values()` still wins over both. You can remove a `values(true, false)` workaround.
 
 ### Server-side exports write what the table displays
 
-`Button::csv(serverSide: true)` and `Button::excel(serverSide: true)` wrote the mapped row values,
-while the browser formats some columns itself. The file now matches the table:
+`Button::csv(serverSide: true)` and `Button::excel(serverSide: true)` now match the table:
 
 | Column | Before | Now |
-|---|---|---|
-| `MoneyColumn` stored as cents | `2500` | `25` as a number (so XLSX keeps a numeric cell) |
+| --- | --- | --- |
+| `MoneyColumn` stored as cents | `2500` | `25`, as a number |
 | `MoneyColumn` heading | `Price` | `Price (EUR)` |
-| `ChoiceColumn` | `draft` | `Draft` (the label, translated) |
+| `ChoiceColumn` | `draft` | `Draft`, translated |
 | `BooleanColumn` | `1` / `0` | `Yes` / `No`, translated |
 | Column title `order.total` | `order.total` | `Total`, translated with the request locale |
 
-A column configured with `formatValueUsing()` is written as its formatter returned it. To keep the
-previous output for a file a machine reads, call `rawValues()` on the button:
+A column with `formatValueUsing()` is written as its formatter returned it. For a file read by a
+machine, keep the previous output with `rawValues()`:
 
 ```php
 Button::csv(serverSide: true)->rawValues();
 ```
 
-### Ordered server-side pages break ties on the identifier
-
-When a server-side table is ordered, the row identifier is now appended to the `ORDER BY`, so rows
-that share the sorted value keep one order from page to page instead of repeating or disappearing.
-The visible order only changes among rows that tie on the sort key, which was undefined before.
-Unordered and `GROUP BY` queries are untouched.
-
 ### `render_datatable()` honors an `id` attribute
 
-`render_datatable(table, {id: 'orders-open'})` now replaces the default id instead of emitting a
-second, ignored `id` attribute. Attributes passed to one render no longer persist on the shared
-table instance and leak into later renders.
+`render_datatable(table, {id: 'orders-open'})` replaces the default id instead of emitting a second,
+ignored `id`. Attributes passed to one render no longer persist on the shared table instance.
 
-### Row identifiers are sent as strings
+### Action confirmations use the modal adapter
 
-Identifiers above `Number.MAX_SAFE_INTEGER` (such as snowflake ids) and zero-padded keys such as
-`00123` were rounded or reshaped when they traveled as JSON numbers, so a delete or a boolean toggle
-could target another entity. Every identifier the bundle exchanges with the browser is now a string,
-like `DT_RowId` already was:
+`confirm()` on a delete, detail, edit, or Ajax action now asks through the table's modal adapter
+instead of the native dialog, like bulk actions. `window.confirm()` remains the fallback when no
+adapter resolves, and link actions keep it. Tests that stub `window.confirm` for a delete button
+must answer through the adapter.
 
-- the `id` sent by the built-in delete and boolean-toggle requests: `{"id": "42"}` instead of
-  `{"id": 42}`;
-- the ids under `__ux_datatables_actions` and `__ux_datatables_boolean_switches` in row data;
-- the `id` of the Mercure `delete` and `edit` updates.
+### Deprecations
 
-Doctrine finds integer primary keys from their string form, so the bundle's own endpoints need no
-change. Update custom code that compares these ids strictly to numbers, such as a Mercure listener
-using `update.id === 42` or a decorated controller that requires an `int` id.
+- `ColumnResolver::removeDeniedColumnValues()`: use `deniedColumnPaths()` and `removePaths()`.
+- The frontend modules `dist/functions/filterFeature.js`, `filterLayout.js`, `bulkActionsFeature.js`,
+  and `bulkActionsLayout.js`: the controller wires both bars itself, so stop deep-importing them.
+- `confirmBulkAction()` from `dist/bulk/confirmModal.js`: use `confirmAction()`.
 
-## v1.1 → v1.1.1
+## Upgrading to 1.1.1
 
-### `TextColumn` HTML-escapes display
+### `TextColumn` escapes HTML
 
-DataTables inserts Ajax cell values as HTML. A `TextColumn` without `html()` used to render
-user-controlled markup (and scripts) in the cell. Display is now escaped for the `string` and
-`string-utf8` types.
+DataTables inserts Ajax cell values as HTML, so a `TextColumn` without `html()` rendered
+user-controlled markup. Display is now escaped for the `string` and `string-utf8` types. Call
+`html()` (or `html()->utf8()`) only when the cell holds trusted, already sanitized markup.
 
-Call `html()` (or `html()->utf8()`) when the cell contains trusted, already-sanitized markup.
-Sorting and searching still strip tags in that mode; display inserts the HTML as-is.
+### Update the DataTables packages together
 
-### DataTables extension dependencies
+The frontend ranges now use DataTables 3.1.2, ColReorder 3.1.2, FixedHeader 5.1.1, KeyTable 3.1.1,
+RowGroup 2.1.1, and Scroller 3.1.1. These extensions require DataTables 3.1 or newer, so update the
+core, the styling packages, and the extensions together. Update your importmap pins as well.
 
-The frontend dependency ranges now use DataTables 3.1.2, ColReorder 3.1.2, FixedHeader 5.1.1,
-KeyTable 3.1.1, RowGroup 2.1.1, and Scroller 3.1.1 across all supported themes. Update the core,
-styling packages, and extensions together: these extension releases require DataTables 3.1 or
-newer. The peer dependencies and Symfony importmap defaults include the matching minimum versions.
-Applications with existing importmap pins must update those pins as well.
+RowGroup 2.1.1 escapes group labels in its default `startRender`: a group value such as
+`<b>Engineering</b>` displays literally. To render trusted HTML in a group heading, provide a custom
+`startRender` through `datatables:pre-connect`. A custom callback must escape untrusted values
+itself.
 
-RowGroup 2.1.1 escapes group labels in its default `startRender` callback to prevent HTML injection.
-A group value such as `<b>Engineering</b>` now displays literally instead of rendering bold text.
-If you intentionally render trusted HTML in a group heading, provide a custom `startRender`
-callback through `datatables:pre-connect`. Custom callbacks retain their HTML behavior and must
-escape untrusted values themselves; prefer DOM nodes with `textContent` for user-provided data.
+## Upgrading to 1.1.0
 
-## v1.0 → v1.1
+### Replace `#[Column]` with `#[DataTableColumn]`
 
-### `#[AsDataTable]` separates `dataClass` from `entityClass` (additive)
-
-The attribute now carries two distinct classes. `dataClass` is where the `#[DataTableColumn]` and
-`#[DataTableFilter]` declarations are read. `entityClass` is what the runtime targets: Doctrine query
-building, inline edit, bulk actions, row identifiers, Mercure topics and API Platform metadata.
-
-Each one defaults to the other, so nothing changes for a table naming a single class —
-`#[AsDataTable(User::class)]` and `#[AsDataTable(entityClass: User::class)]` both keep every feature
-on `User`. What is new is passing the two together:
-
-```php
-use App\DataTables\Row\UserRow;
-use App\Entity\User;
-use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-
-#[AsDataTable(dataClass: UserRow::class, entityClass: User::class)]
-final class UserDataTable extends AbstractDataTable
-{
-    /**
-     * @param list<User> $items
-     *
-     * @return list<UserRow>
-     */
-    protected function projectPage(array $items): ?array
-    {
-        return array_map(UserRow::fromEntity(...), $items);
-    }
-}
-```
-
-The attribute describes the shape, it does not build it: rows are still hydrated as `User`, so
-`projectPage()` is what turns them into `UserRow`.
-
-Two consequences when the two classes differ:
-
-- Automatic query building checks `entityClass` for a Doctrine mapping, where it used to check the
-  single declared class. A DTO `dataClass` is now legitimate.
-- Ordering and searching still build DQL against `entityClass`, so a column or filter declared on the
-  DTO must name a field the entity carries. The container checks this while it compiles and names the
-  offender, instead of silently dropping the column from ordering and search. Dotted paths are left
-  alone: they may target a join alias added in `customizeQueryBuilder()`.
-
-  Name the DTO property after the entity field, or, when the two names must differ, redirect the query
-  alone with the `searchField` option or an `orderExpression`. The `field` option is not the tool here:
-  it redirects the displayed value as well, so a projected row reads nothing under it.
-
-### Bulk actions (additive)
-
-Tables can declare bulk actions, which the bundle runs over the rows the user selected:
-
-```php
-use Pentiminax\UX\DataTables\Model\BulkAction;
-use Pentiminax\UX\DataTables\Model\BulkActions;
-use Pentiminax\UX\DataTables\Mutation\BulkActionContext;
-use Pentiminax\UX\DataTables\Mutation\BulkRecords;
-
-public function configureBulkActions(BulkActions $actions): BulkActions
-{
-    return $actions->add(
-        BulkAction::new('approve', 'Approve')
-            ->askConfirmation('Approve {count} orders?')
-            ->setPermission('ORDER_APPROVE', static fn (Order $order): Order => $order)
-            ->handler(function (BulkRecords $records, BulkActionContext $context): void {
-                foreach ($records as $order) {
-                    $this->approver->approve($order);
-                }
-            })
-    );
-}
-```
-
-Nothing changes for a table that declares none. A table that declares one gains a checkbox
-selection, a **Bulk actions** button above the table, and a `POST /datatables/ajax/bulk` route — protect it with your own
-`security.firewalls` configuration like every other bundle Ajax route. See
-[Bulk Actions](https://pentiminax.github.io/ux-datatables/features/bulk-actions/).
-
-Two details are worth checking in an existing application:
-
-- **A voter type-hinting `Action` may now receive a `BulkAction`.**
-  `ActionPermissionContext::$action` is typed `ExecutableActionInterface`, which both `Action` and
-  `BulkAction` implement. A voter that assumed `Action` should narrow explicitly:
-
-  ```php
-  // before
-  protected function supports(string $attribute, mixed $subject): bool
-  {
-      return $subject instanceof ActionPermissionContext;
-  }
-
-  // after
-  protected function supports(string $attribute, mixed $subject): bool
-  {
-      return $subject instanceof ActionPermissionContext && $subject->action instanceof Action;
-  }
-  ```
-
-  This only matters once a table declares a bulk action.
-
-- **Rows of a table with bulk actions always carry a `DT_RowId`.** It was previously written only
-  for `highlightUpdates()`. The selection needs a key that survives the redraw server-side paging
-  forces. The bundle detects a single Doctrine identifier automatically; configure another field
-  with `BulkActions::setIdField()` when no Doctrine metadata is available.
-
-- **A bundle-wide `data_tables.extensions.select` default does not apply to a table with bulk
-  actions.** Such a table gets a multi-row selection with checkboxes instead. A Select extension the
-  table configures itself, or a default it changed in place, is kept, and a single-row one throws.
-
-A custom data provider can opt into "select every matching row" by implementing
-`IdentifierCollectingDataProviderInterface`; `DoctrineDataProvider` already does. Its
-`collectIdentifiers()` receives the field the selection speaks in — the one written as `DT_RowId` —
-so it must answer with values from that field, not from the primary key. Without the interface, a
-select-all is rejected with `400` while an explicit selection keeps working.
-
-### `#[Column]` is deprecated in favor of `#[DataTableColumn]`
-
-`#[Column]` still works for the whole 1.x line, but triggers a deprecation and is removed in 2.0.
-Each of its named parameters became an entry of the `options` array; `type`, `name` and `position`
-stay named arguments:
+`#[Column]` is deprecated. Each named parameter, except `type`, `name`, and `position`, becomes an
+entry of the `options` array:
 
 ```php
 use Pentiminax\UX\DataTables\Attribute\DataTableColumn;
@@ -588,1182 +364,42 @@ private string $email;
 private string $email;
 ```
 
-The new attribute also goes on a getter or on the table class, and filters get their own
-`#[DataTableFilter]`. See [Attributes](https://pentiminax.github.io/ux-datatables/reference/attributes/).
+### Handle the new `Feature::BULK_ACTIONS` case
 
-### `Feature` gains a `BULK_ACTIONS` case
+A `match` over `Pentiminax\UX\DataTables\Enum\Feature` without a `default` arm must handle it.
 
-`Pentiminax\UX\DataTables\Enum\Feature` has a new `BULK_ACTIONS` case, the layout marker of the
-bulk action button. A `match` over `Feature` without a `default` arm must handle it.
+### Check your setup once a table declares bulk actions
 
-### `Action::asAjaxRequest()` no longer requires a CSRF token id (additive)
+These points only apply to a table that declares a bulk action:
 
-The argument is now optional. Without one, the token is signed with the action name, or with the
-id set through the new `csrfToken()` method (alias `csrfTokenId()`). Existing calls passing an id
-behave as before. An endpoint serving an action declared without an id validates the action name:
-
-```php
-// the action
-Action::new('publish', 'Publish')
-    ->linkToRoute('book_publish', fn (Book $book): array => ['id' => $book->getId()])
-    ->asAjaxRequest();
-
-// the endpoint
-#[IsCsrfTokenValid('publish')]
-public function publish(Book $book): Response
-```
-
-### `ChoiceFilter::options()` accepts an entity class (additive)
-
-A class-string that is not a `BackedEnum` used to throw. It now loads the options from that
-Doctrine entity, like `ChoiceFilter::entity()`. See
-[Filters](https://pentiminax.github.io/ux-datatables/reference/filters/#options-from-a-doctrine-entity).
-
-## v0.90 → v1.0
-
-### The bundle class is renamed
-
-The bundle class now follows Symfony's vendor-prefixed naming convention. Update its registration
-in `config/bundles.php`:
-
-```php
-// before
-Pentiminax\UX\DataTables\DataTablesBundle::class => ['all' => true],
-
-// after
-Pentiminax\UX\DataTables\PentiminaxDataTablesBundle::class => ['all' => true],
-```
-
-The old class is removed. Keeping it would register the bundle as `DataTablesBundle`, which is the
-same logical name used by `omines/datatables-bundle` and prevents both packages from being enabled
-in one application.
-
-Update bundle resource references and Twig namespace references:
-
-| Before | After |
-| --- | --- |
-| `@DataTablesBundle/config/routes.php` | `@PentiminaxDataTablesBundle/config/routes.php` |
-| `@DataTables/...` | `@PentiminaxDataTables/...` |
-
-The YAML configuration root stays `data_tables`; no configuration key changes are required.
-
-### `AbstractDataTable::configureExtensions()` and the empty constructor removed
-
-Declare extensions from `configureDataTable()` with the fluent helpers on `DataTable`. Use
-`addExtension()` there for a custom extension that has no dedicated helper.
-
-```php
-// before
-public function configureExtensions(DataTableExtensions $extensions): DataTableExtensions
-{
-    return $extensions->addExtension(new ButtonsExtension([ButtonType::CSV]));
-}
-
-// after
-public function configureDataTable(DataTable $table): DataTable
-{
-    return $table->buttons([ButtonType::CSV]);
-}
-```
-
-The empty `AbstractDataTable::__construct()` was also removed. Delete `parent::__construct()` from
-subclass constructors; no replacement call is needed.
-
-### `EntityMutator` and `EditFormService` take a `MutationFlusher`
-
-The guarded flush that maps a rejected write to a 409 response lives in the new
-`Mutation\MutationFlusher`. `EntityMutator` no longer owns it privately, and the edit-form submit
-path now shares it, so a unique constraint violation on submit returns the same 409 JSON as delete
-and inline edit instead of a 500.
-
-| Changed | New signature |
-| --- | --- |
-| `Mutation\EntityMutator::__construct()` | a `Mutation\MutationFlusher` is appended after `$topicResolver` |
-| `Form\EditFormService::__construct()` | a `Mutation\MutationFlusher` is inserted after `$topicResolver`, before the optional `$permissionChecker` |
-
-Both services are wired by the bundle, so nothing changes for DI users. Only code that instantiates
-either class by hand — typically a test — has to pass the collaborator:
-
-```php
-// before
-$mutator = new EntityMutator($locator, $propertyAccessor, $publisher, $checker, $topicResolver);
-
-// after
-$mutator = new EntityMutator($locator, $propertyAccessor, $publisher, $checker, $topicResolver, new MutationFlusher());
-```
-
-`MutationFlusher` is stateless and has no constructor arguments.
-
-### Changed
-
-| Behavior | Before | After |
-| --- | --- | --- |
-| Permission check without a Symfony authorization checker | Silently granted | Throws a `LogicException` |
-
-Configuring `setPermission()` without the Symfony authorization checker now throws a
-`LogicException` instead of silently granting access. Enable `symfony/security-bundle` with a
-firewall, or drop the permission.
-
-The bundle's own `Permission::DT_*` attributes are unaffected: without the SecurityBundle the
-bundle's `SecurityVoter` is not registered either, so there is nothing to vote on and an
-application with no firewall keeps rendering its tables. An empty or `null` attribute — meaning
-no permission is configured — is also still granted.
-
-### Ajax pagination is bounded
-
-Affects server-side tables whose Ajax requests relied on an unbounded page size. Table
-configuration, columns, Twig templates, the Ajax routes, and every JSON payload on the wire are
-unchanged.
-
-The `length` parameter of an Ajax request is now capped at the `data_tables.max_page_length`
-parameter (1000 by default), and a negative `start` is clamped to `0`.
-
-DataTables' "show all" (`length=-1`, or a missing `length`) is honored only when the table declares
-`-1` in its `lengthMenu()`. A table that relied on an implicit unbounded page must declare it, or
-raise the bound:
-
-```php
-// before: any length was served, including "show all"
-$table->lengthMenu([10, 25, 50]);
-
-// after: declare "show all" to keep serving an unbounded page
-$table->lengthMenu([[10, 25, 50, -1], ['10', '25', '50', 'All']]);
-```
-
-```yaml
-# config/packages/data_tables.yaml
-data_tables:
-  max_page_length: 5000
-```
-
-Exports are unaffected: they drop pagination explicitly and still stream every filtered row.
-
-### Malformed column control payloads are dropped
-
-| Change | Impact |
-| --- | --- |
-| `ColumnControlSearch::fromArray()` returns `null` on malformed input | A column control search with an unknown or missing logic, a non-scalar value, or a missing type is dropped instead of raising an error. Malformed `search` and `list` payloads are dropped by `ColumnControl::fromArray()` the same way. |
-
-### Client error messages and export headings
-
-- Mutation errors no longer expose the DataTable class to the client. `InvalidBooleanMutationContextException`
-  and `InvalidDataTableTokenException` keep the fully qualified class name in `getMessage()` for the
-  logs, and the JSON error response now carries a generic message instead.
-- Server-side exports no longer write the heading of a column the current user may not see. Columns
-  denied by `setPermission()` are filtered out before the exporter runs, so the exported file no
-  longer contains an empty column named after restricted data.
-
-### API Platform frontend adapter
-
-- The API Platform frontend adapter now matches ordering and column searches by column name instead
-  of by display index, so a client-inserted column (the Select extension in `checkbox` mode) no
-  longer sorts or searches on the wrong field. Unresolvable columns are skipped.
-- A failed template rendering request no longer leaves the table spinning: rows are displayed
-  unrendered instead.
-
-### Secured API Platform properties are no longer auto-detected
-
-Properties carrying `#[ApiProperty(security: …)]` are never auto-detected; declare them explicitly
-and use `setPermission()`. API Platform evaluates that expression per request in its normalizer, and
-an auto-detected column reads the value outside that check, so a table relying on auto-detection can
-now be missing a column it used to render.
-
-```php
-use Pentiminax\UX\DataTables\Attribute\AsDataTable;
-use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-
-#[AsDataTable(Employee::class, apiPlatform: true)]
-final class EmployeesDataTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        // Keep the auto-detected columns, then add the secured property yourself and guard it.
-        yield from parent::configureColumns();
-        yield TextColumn::new('salary')->setPermission('ROLE_ADMIN');
-    }
-}
-```
-
-### Case-insensitive server-side text search
-
-Server-side text search (global search, per-column search, and the ColumnControl `contains`,
-`starts`, `ends`, and `notContains` logics) is now case-insensitive on every platform: the
-condition compares `LOWER(field)` against a lowercased term instead of using a bare `LIKE`, which
-was case-sensitive on PostgreSQL and on MySQL binary collations.
-
-Call `->setSearchNormalization(false)` on a column to restore the previous bare `LIKE` — for
-instance to keep a `starts` search sargable on a MySQL prefix index. The comparison then follows
-the column's collation, so it is case-sensitive only where the collation is:
-
-```php
-TextColumn::new('reference', 'Reference')
-    ->setSearchNormalization(false);
-```
-
-`AbstractColumn` implements the new `Contracts\NormalizedSearchColumnInterface`. A column class
-implementing `ColumnInterface` directly is normalized unless it implements that interface and
-returns `false` from `isSearchNormalized()`.
-
-### `ArrayDataProvider` honors ordering and search
-
-`ArrayDataProvider` previously ignored ordering, per-column searches, ColumnControl and configured
-`Filters`, and answered every such request with HTTP 200 and unfiltered rows. It now reads the same
-`DataTableQueryIntent` the Doctrine provider consumes.
-
-- The constructor takes three new optional arguments: the configured columns, the table's
-  `Filters`, and a `DefaultDataTableQueryIntentFactory`. Existing
-  two-argument constructions keep working, but with no columns nothing is orderable or searchable —
-  pass `$this->getResolvedColumns()` (new, on `AbstractDataTable`) to get ordering and search, and
-  the configured filters so a filtered request is rejected instead of silently ignored:
+- **A voter may receive a `BulkAction`.** `ActionPermissionContext::$action` is typed
+  `ExecutableActionInterface`, which `Action` and `BulkAction` implement. Narrow explicitly in a
+  voter that assumed `Action`:
 
   ```php
-  // Before
-  return new ArrayDataProvider($this->rows, $this->createRowMapper());
+  // before
+  return $subject instanceof ActionPermissionContext;
 
-  // After
-  return new ArrayDataProvider(
-      $this->rows,
-      $this->createRowMapper(),
-      $this->getResolvedColumns(),
-      $this->getConfiguredDataTable()->getFilters(),
-  );
+  // after
+  return $subject instanceof ActionPermissionContext && $subject->action instanceof Action;
   ```
 
-- Global search now reads the **source** value of each item (the property named by the column's
-  field path) instead of every scalar cell of the mapped row, matching the Doctrine semantics. It
-  traverses nested arrays and objects, reads a backed enum's scalar value, honors
-  `isGlobalSearchable()`, trims the term, and is case-insensitive. A
-  column with no matching source property — an `ActionColumn`, a `TemplateColumn`, or a column whose
-  value only exists after mapping — is no longer searchable in memory.
-- Ordering compares the source value: strings with `strnatcasecmp()`, backed enums by their scalar
-  value, other values with `<=>`, and rows without a value last in both directions.
-  `getOrderExpression()` is DQL and is ignored in memory.
-- A request carrying ColumnControl searches, or a value for one of the `Filters` passed to the
-  constructor, now throws a `LogicException` instead of silently returning unfiltered rows. Filter
-  values whose name is not configured are ignored, as the Doctrine provider ignores them. Implement
-  `DataProviderInterface` yourself for a table that needs either in memory.
-
-### API Platform tables with template columns are read server-side
-
-A table that combines API Platform with a `TemplateColumn`, an action column or a `UrlColumn` used
-to fetch the collection from the browser and then post the rows back to
-`POST /datatables/ajax/templates` to have them rendered, one item provider call per row. It is now
-an ordinary server-side table: the bundle reads the collection itself, through API Platform's main
-state provider, once per draw. Tables without such a column keep querying the API directly from the
-browser, unchanged.
-
-| Behavior | Before | After |
-| --- | --- | --- |
-| Requests per draw | One collection request, then one `/datatables/ajax/templates` POST | One request to `ux_datatables_ajax_data` |
-| Row loading | One API Platform `Get` item provider call per row | One collection provider call per page |
-| Column values | Normalized JSON from the API response | Read from the entity, as for a Doctrine table |
-| Exports | Doctrine query builder | The API Platform collection operation, with its provider, filters and `security` |
-| Authorization | `security` on the `Get` item operation | `security` on the collection operation |
-
-Consequences to check before upgrading:
-
-- Move the authorization of these tables onto the collection operation. The `Get` operation is no
-  longer consulted, and `access_control` rules matching the API path are not evaluated — the rows
-  are read through a service call, not an HTTP request. Protect `/datatables/ajax/*` with your own
-  `access_control` rule, as for any server-side table.
-- Custom normalizers and property-level `security` no longer shape cell values. Declare columns only
-  on properties every reader of the table may see.
-- `recordsTotal` still equals `recordsFiltered`, as before.
-- `DT_RowId` is now emitted by the server-side `RowIdStage` instead of the TypeScript adapter. The
-  output is identical.
-
-| Removed | Replacement |
-| --- | --- |
-| Route `ux_datatables_ajax_templates` (`/datatables/ajax/templates`) | none, the rows are rendered during the data request |
-| `Controller\AjaxTemplateRenderController` | none |
-| `Ajax\SourceRowResolver` | none |
-| `Ajax\RowIdentifierExtractor` | none |
-| `ApiPlatform\ApiPlatformItemResolver` | `DataProvider\ApiPlatformCollectionProvider`, which reads the collection |
-| `Model\DataTable::apiPlatformTemplateRendering()` | `Model\DataTable::apiPlatformServerSide()`, set by the bundle |
-| Services `datatables.ajax.source_row_resolver`, `datatables.controller.ajax_templates` | none |
-
-### `entity` Twig variable removed from `TemplateColumn` templates
-
-The alias was the last `@deprecated` symbol in the bundle, announced since v0.81.
-
-| Removed | Replacement |
-| --- | --- |
-| `entity` Twig variable in `TemplateColumn` templates | `row` (`entity` stays a reserved context key, and the unrelated `entity` used by detail rows and the edit modal is untouched) |
-
-### `MoneyColumn` duplicate setters removed
-
-Four redundant setters duplicated the fluent names.
-
-| Removed | Replacement |
-| --- | --- |
-| `Column\MoneyColumn::setCurrency()` | `currency()` |
-| `Column\MoneyColumn::setNumDecimals()` | `decimals()` |
-| `Column\MoneyColumn::setStoredAsCents()` | `storedAsCents()` |
-| `Column\MoneyColumn::setShowCurrencySign()` | `showCurrencySign()` |
-
-### `ExtensionInterface::enabled()`/`isEnabled()` and `AbstractExtension` removed
-
-| Removed | Replacement |
-| --- | --- |
-| `Contracts\ExtensionInterface::enabled()` and `::isEnabled()` | none, extensions are always active once declared |
-| `Model\Extensions\AbstractExtension` | `implements ExtensionInterface` directly; the class only re-declared `getKey()`, which the interface already requires |
-
-The flag behind `ExtensionInterface::enabled()` was never read: `DataTableExtensions::jsonSerialize()`
-omits only the buttons extension, so `enabled(false)` never kept anything out of the payload, and
-`isEnabled()` reported `false` for extensions that were fully active.
-
-### Fluent methods on non-final columns return `static`
-
-Fluent methods on the non-final columns (`BooleanColumn`, `ChoiceColumn`, `DateColumn`,
-`ActionColumn::fromActions()`) now return `static` instead of `self`, so a subclass keeps its own
-type through a chain; code that re-narrowed the type by hand can drop the cast.
-
-### `Filter` is renamed to `CheckboxFilter`
-
-The generic, query()-driven checkbox filter was named `Filter`, the same word as the `FilterInterface`
-contract and the `Filter\` namespace it lives in. It is renamed to match its sibling filter types
-(`TextFilter`, `ChoiceFilter`, `TernaryFilter`, `DateRangeFilter`).
-
-| Removed | Replacement |
-| --- | --- |
-| `Filter\Filter` | `Filter\CheckboxFilter` |
-
-### `template_parameters` configuration is renamed to `table_attributes`
-
-The `data_tables.template_parameters` configuration node held HTML attributes for the generated
-`<table>` element (`class`, ...); it was never related to `TemplateColumn`'s own parameters. It is
-renamed to describe what it actually configures.
-
-```yaml
-# before
-data_tables:
-  template_parameters:
-    class: 'table table-striped'
-
-# after
-data_tables:
-  table_attributes:
-    class: 'table table-striped'
-```
-
-### `DataTableExtensions::add*Extension()` helpers removed
-
-Six undocumented helpers duplicated `DataTable::buttons()`/`responsive()`/`columnControl()` and
-`addExtension(new XExtension())` for the rest.
-
-| Removed | Replacement |
-| --- | --- |
-| `Model\DataTableExtensions::addButtonsExtension()` | `DataTable::buttons()` |
-| `Model\DataTableExtensions::addResponsiveExtension()` | `DataTable::responsive()` |
-| `Model\DataTableExtensions::addColumnControlExtension()` | `DataTable::columnControl()` |
-| `Model\DataTableExtensions::addSelectExtension()` | `DataTable::select()` |
-| `Model\DataTableExtensions::addKeyTableExtension()` | `DataTable::keyTable()` |
-| `Model\DataTableExtensions::addScrollerExtension()` | `DataTable::scroller()` |
-
-`DataTable` now carries a shortcut for every bundled extension: `select()`, `keyTable()`,
-`scroller()`, `colReorder()`, `fixedColumns()`, `fixedHeader()` and `rowGroup()` join the existing
-`buttons()`, `responsive()` and `columnControl()`. Each mirrors the parameter names and defaults of
-the matching extension constructor, so extensions are configurable with named arguments straight
-from `configureDataTable()`. `responsive()` gained the `ResponsiveExtension` constructor parameters;
-calling it without arguments is unchanged, and `addExtension(new XExtension(...))` keeps working.
-
-### `BaseColumnData` (TypeScript) removed
-
-| Removed | Replacement |
-| --- | --- |
-| `BaseColumnData` (TypeScript) | none, it was exported but never used or re-exported |
-
-### `FilterInterface` declares `translateLabels()`
-
-`TranslatableFilterInterface` held a single method and a single implementation. It is gone: filters
-now declare `translateLabels(TranslatorInterface $translator, ?string $locale = null): void` on
-`FilterInterface` itself, and `RenderingPreparer` calls it on every configured filter instead of
-testing for the optional interface first. Filters extending `AbstractFilter` need no change.
-
-A custom filter implementing `FilterInterface` directly must add the method; an empty body is a
-valid implementation when the filter exposes no translatable string.
-
-| Removed | Replacement |
-| --- | --- |
-| `Contracts\TranslatableFilterInterface` | `Contracts\FilterInterface::translateLabels()` |
-
-### `DataTableInfrastructure::$queryIntentFactory` is removed
-
-The property was promoted to public API in v0.83 alongside `columnResolver`, `renderingPreparer`,
-`runtimeFactory`, `queryFilterPipeline`, and `profiler`, but unlike its siblings it was never read
-by `AbstractDataTable` or anything else -- `ArrayDataProvider` and `QueryFilterPipeline` each build
-or receive their own `DefaultDataTableQueryIntentFactory` independently. It stays unread even after
-`ArrayDataProvider` started consuming `DataTableQueryIntent` (v0.90), so it is removed.
-
-```php
-// before
-new DataTableInfrastructure($columnResolver, $renderingPreparer, $runtimeFactory, $queryIntentFactory, $queryFilterPipeline, ...);
-
-// after
-new DataTableInfrastructure($columnResolver, $renderingPreparer, $runtimeFactory, $queryFilterPipeline, ...);
-```
-
-`DataTableInfrastructure::createDefault()` keeps its `queryIntentFactory` parameter unchanged: it is
-still used to build the default `QueryFilterPipeline` when none is passed, it just stops being
-stored on the resulting object.
-
-| Removed | Replacement |
-| --- | --- |
-| `DataTableInfrastructure::$queryIntentFactory` | none -- construct your own `DefaultDataTableQueryIntentFactory` where you need one |
-
-### `ColumnInterface` narrowed to the getters the bundle consumes
-
-| Removed | Replacement |
-| --- | --- |
-| `Contracts\ColumnInterface::getWidth()`, `::getCellType()`, `::getDefaultContent()` | none on the interface; `AbstractColumn` keeps both the setters and the getters, and all three still serialize into the client payload |
-
-### Two private Ajax service ids renamed
-
-DetailRowService and SourceRowResolver both live in Ajax\, so their
-service ids are renamed to match. Both are private, so there is no BC
-guarantee, but a compiler pass or `#[AsDecorator]` referencing the old id
-by name would fail at container compile time.
-
-| Renamed service id | New id |
-| --- | --- |
-| `datatables.detail.row_service` | `datatables.ajax.detail_row_service` |
-| `datatables.rehydration.source_row_resolver` | `datatables.ajax.source_row_resolver` |
-
-### Mercure subscriptions follow the hub's protocol version
-
-The browser now selects topics with the query parameter the configured hub expects, read from
-`HubInterface::getProtocolVersion()` (`symfony/mercure` 0.8+):
-
-| Hub | Subscription parameters |
-| --- | --- |
-| 0.x | `topic=` with URI Template selectors — unchanged |
-| 1.0 | `match=` (exact) and `match_urlpattern=` (URL Pattern, `/books/{id}` becomes `/books/:p0`) |
-
-Nothing changes for a 0.x hub, down to the serialized payload: `protocolVersion` is only added to the
-frontend `mercure` object when it is not `0.x`. A hub whose protocol version cannot be read (an older
-`symfony/mercure` without the getter) keeps the legacy `topic=` parameters.
-
-Before this release a Mercure 1.0 hub could not deliver anything: it ignores `topic=`, so the SSE
-connection opened and stayed silent. If you run a 1.0 hub, this release is what makes live updates
-work — and if you run a 1.0 hub with `protocol_version_compatibility 8` while migrating other
-clients, both spellings are accepted and nothing needs doing.
-
-Two things to check on the hub side when moving to 1.0: `jwt.claims` is required by RFC 9068 (a 1.0
-hub refuses to compile without it), and the subscriber cookie becomes `__Secure-mercure_access_token`,
-so private topics need `withCredentials: true` on the table **and** an HTTPS hub URL.
-
-### Mercure auto-resolved topics are absolute
-
-An auto-resolved topic now carries the absolute URL API Platform publishes, built from the routing
-request context (scheme, host, port, front-controller base path) exactly like the URL generator the
-publisher uses:
-
-| Hub protocol | Topic before | Matched the published IRI? | Topic now |
-| --- | --- | --- | --- |
-| 1.0, hub sharing the API's host | `/api/books/{id}` | yes | `https://api.example.com/api/books/{id}` |
-| 1.0, hub on another host | `/api/books/{id}` | no | `https://api.example.com/api/books/{id}` |
-| 0.x, any host | `/api/books/{id}` | no | `https://api.example.com/api/books/{id}` |
-
-The two protocols failed for different reasons, and 0.x failed everywhere:
-
-- A **1.0** hub matches URL Patterns *with its own URL as the base URL*, so a relative pattern
-  became `https://<hub-host>/api/books/{id}` and only ever covered the published IRI while the hub
-  and the API shared a host. An absolute pattern is matched as-is, so no base applies and no host
-  has to line up. (A 1.0 hub with no public URL or `resource_identifier` configured falls back to
-  an internal `http://mercure.invalid` base, under which a relative pattern could never match an
-  absolute topic on any host.)
-- A **0.x** hub compares the `topic=` selector to the published topic exactly, then as an anchored
-  URI Template — no base resolution anywhere. A relative selector could therefore never match the
-  absolute IRI API Platform publishes, on *any* host. If you run a 0.x hub, auto-resolved API
-  Platform topics never delivered anything before this release.
-
-What else changed in the same pass:
-
-- A plain topic declared in `mercure: ['topics' => [...]]` is still reused verbatim. Declaring the
-  absolute form stays the escape hatch for a topic of your own.
-- `'@=iri(object)'` is recognised explicitly and resolves to the item topic. Every other `@=`
-  expression topic is dropped with a logged warning naming it. The resolver still falls back to the
-  item path afterwards, so a resource whose only topic is `@=iri(object.getOwner())` still
-  subscribes to the item topic — the warning is what tells you the declared topic was not honored.
-- The item topic is read off the operation API Platform itself builds the item IRI from: the first
-  non-collection operation whose HTTP method is GET, HEAD or OPTIONS, in declaration order. A
-  custom `HttpOperation(method: 'GET')` counts; a resource with no such operation has no item topic
-  at all, because API Platform has no item IRI for it either and throws rather than publishing one.
-- A topic declared on a *later* operation now wins over the item path. Before, the first
-  non-collection operation returned its route path immediately and a declared topic behind it was
-  never reached, so a resource declaring `Get('/books/{id}')` then
-  `Put(mercure: ['topics' => [...]])` serialized `/api/books/{id}`; it now serializes the declared
-  topic. Declared topics are documented as authoritative, so this aligns the code with the docs —
-  but it does change the serialized `mercure.topics` payload for that shape.
-- **Only the API Platform item topic became absolute.** The bundle's own
-  `/datatables/{plural}/{id}` fallback topic stays relative on purpose: nothing but the bundle
-  publishes to it, and it publishes through the same resolver, so a context-free topic keeps the
-  two sides matching wherever they run.
-- Without a router at all, the item topic stays relative. With a router — which a full-stack
-  application always has — the context is whatever the application configured. In a console
-  command or a Messenger consumer that is `router.request_context`, defaulting to
-  `http://localhost`, so **set `router.request_context.host` and `.scheme` if anything outside an
-  HTTP request publishes**, exactly as you already must for API Platform's own IRIs to come out
-  right there.
-
-One constructor gained optional arguments, appended last:
-
-| Changed | Appended argument |
-| --- | --- |
-| `ApiPlatform\ApiResourceMercureMetadataResolver::__construct()` | `?Mercure\MercureTopicUrlResolver`, then `?Psr\Log\LoggerInterface` |
-
-### Private API Platform resources subscribe with credentials
-
-API Platform marks an update private from resource metadata
-(`#[ApiResource(mercure: ['private' => true])]`), and a hub delivers such an update only to a
-subscriber whose token grants one of the update's topics. The bundle did not read the flag, so the
-browser opened the `EventSource` anonymously: the connection stayed up and the table silently
-stopped refreshing.
-
-`ApiPlatform\ApiResourceMercureMetadataResolver::resolvePrivate()` now reads the flag from the
-resource metadata and from every operation, and `Mercure\MercureConfigResolver` serializes
-`withCredentials: true` as soon as one of them declares `private`. Nothing to configure: a table
-whose resource is private starts sending credentials, and a resource that does not set `private`
-(or sets `private: false`) serializes the exact payload it did before.
-
-An explicit `withCredentials` still wins, on both `#[AsDataTable(..., mercure: [...])]` and
-`->mercure()`. On the attribute, an array without a `topics` key auto-resolves the topics and only
-overrides the subscription options — the previous release required spelling the topics out, and
-threw *Mercure topics cannot be empty.* without them:
-
-```php
-#[AsDataTable(Book::class, mercure: ['withCredentials' => false])]
-```
-
-`->mercure(withCredentials: false)` is manual configuration: it never reaches auto-resolution, so it
-subscribes to the bundle's internal fallback topic instead of the API Platform one unless the topics
-are passed with it.
-
-The table then stops refreshing on private updates, which is what that setting asks for.
-
-The two application-side prerequisites are unchanged and are now documented in
-`docs/src/content/docs/integrations/mercure.mdx` (*Private Topics*): the subscriber cookie is
-symfony/mercure-bundle's job, and its grant must cover the concrete published topic — under Mercure
-1.0 `match_type` defaults to `exact`, so a 0.x grant holding `/api/books/{id}` does not cover
-`/api/books/42`. On a 1.0 hub the cookie is `__Secure-mercure_access_token`, so the hub URL must be
-HTTPS.
-
-### `#[AsDataTable]` attribute finalized ahead of 1.0
-
-Nothing to do for a table that already declares its attribute with a well-formed entity class and an
-explicit `topics` list. The changes below all turn a later, less legible failure into an immediate
-one, or make two switches behave the same.
-
-| Behavior | Before | After |
-| --- | --- | --- |
-| `editModalTemplate` / `editModalAdapter` default | `''` (the "unset" sentinel) | `null` |
-| `entityClass` typo, or an interface | Failed later, inside Doctrine metadata or API Platform | `InvalidArgumentException` where the attribute is read |
-| `mercure` array without `topics` | `InvalidArgumentException: Mercure topics cannot be empty.` | Topics come from the auto-resolver, the declared options are applied on top |
-| Unknown or wrongly typed `mercure` option | The same empty-topics exception | `InvalidArgumentException` naming the option, the attribute and the entity class |
-| `$table->apiPlatform()` | Enabled the Ajax wiring and the frontend adapter, but not column auto-detection | Equivalent to `apiPlatform: true` on the attribute |
-
-The two `editModal*` arguments stay backward compatible in practice: an empty string still means
-"no override", so existing values keep working and only the declared default changes.
-
-```php
-// before: auto topics could not be combined with a custom debounce
-#[AsDataTable(Book::class, mercure: ['debounceMs' => 250])] // Mercure topics cannot be empty.
-
-// after
-#[AsDataTable(Book::class, mercure: ['debounceMs' => 250])] // auto topics + 250 ms debounce
-```
-
-`serializationGroups` is documented as requiring the API Platform opt-in, and the attribute is
-documented as not inherited: `#[AsDataTable]` on an abstract base class gives its subclasses no
-attribute at all, so every concrete table class needs its own.
-
-One collaborator was added, and two signatures grew a trailing argument. The bundle wires all three,
-so only hand-instantiated code is affected:
-
-| Changed | Appended argument |
-| --- | --- |
-| `Runtime\DataTableInfrastructure::__construct()` | `AsDataTableResolver` |
-| `Runtime\DataTableInfrastructure::createDefault()` | `?AsDataTableResolver` |
-| `Form\EditModalTemplateResolver::__construct()` | `AsDataTableResolver` |
-| `Column\ColumnResolver::resolveColumns()` / `::autoDetectColumns()` | `bool $apiPlatform = false`, the table's fluent opt-in |
-
-`Attribute\AsDataTableResolver` is the new single reflection entry point for the attribute
-(`datatables.attribute.resolver`); `AbstractDataTable` and `EditModalTemplateResolver` both resolve
-through it instead of keeping a private static cache each.
-
-## v0.84 → v0.85
-
-### Permission configuration uses `setPermission()`
-
-The fluent `permission()` method on columns and actions has been renamed to `setPermission()`.
-This is an intentional breaking rename: update every `->permission(...)` call before upgrading.
-
-```php
-// before
-TextColumn::new('salary')->permission('ROLE_ADMIN');
-
-// after
-TextColumn::new('salary')->setPermission('ROLE_ADMIN');
-```
-
-Permissions also accept `Symfony\Component\ExpressionLanguage\Expression` objects. Install the
-optional component in applications that use expressions:
-
-```bash
-composer require symfony/expression-language
-```
-
-Direct `ColumnInterface` implementations do not need to add `setPermission()`; the setter is
-provided by `AbstractColumn`. Their existing `getPermission()` implementation remains valid for
-string permissions. Return `string|Expression|null` when a custom column needs to expose an
-expression permission.
-
-### Search configuration changes
-
-No source change is required. Columns extending `AbstractColumn` — every bundled column type and
-any subclass of one — gain the new search configuration automatically, and a class implementing
-`Contracts\ColumnInterface` directly keeps working unchanged. Two runtime behaviors around
-server-side search did change; read the second section if a table searches a column whose value is
-assembled in `mapRow()`, or if `customizeQueryBuilder()` joins a relation a column also searches.
-
-### Columns can declare how they are searched
-
-Server-side search resolves a column to `<alias>.<field>`. A column whose value is assembled in
-`mapRow()` had nowhere valid to point, so Doctrine rejected the whole query with `has no field or
-association named ...` — taking the table down rather than that one column. Ordering already had
-`setOrderExpression()` for this; search had nothing.
-
-`Contracts\SearchableColumnInterface` is the new opt-in contract for it, alongside
-`TemplateAwareColumnInterface` and `ActionsProvidingColumnInterface`:
-
-| Member | Contract |
-| --- | --- |
-| `getSearchField(): ?string` | Field path to search instead of `getField()`, or `null` to search the displayed field |
-| `getSearchJoins(): array` | `list<array{join: string, alias: string, conditionType: ?string, condition: ?string}>` applied before the predicate is built |
-| `buildSearchPredicate(QueryBuilder $qb, string $alias, string $value, string $paramName): ?string` | Custom DQL condition, or `null` to fall back to the type-based predicate |
-
-`AbstractColumn` implements all three and exposes them as fluent setters, so there is nothing to do
-for a column that extends it or one of the bundled types:
-
-```php
-TextColumn::new('donorProviderName', 'Donor')
-    ->setSearchField('donorProvider.name');
-
-TextColumn::new('recipientProviderName', 'Recipient')
-    ->addSearchJoin('e.recipientProvider', 'rp')
-    ->setSearchField('rp.name');
-
-TextColumn::new('dossierId', 'Dossier')
-    ->setSearchPredicate(function (QueryBuilder $qb, string $alias, string $value, string $paramName): string {
-        $qb->setParameter($paramName, '%'.mb_strtolower($value).'%');
-
-        return \sprintf('LOWER(%s.dossierId) LIKE :%s', $alias, $paramName);
-    });
-```
-
-`ColumnInterface` is untouched. A class implementing it directly is searched exactly as before —
-`getField()`, no extra joins — and implements `SearchableColumnInterface` only if it wants the
-override.
-
-`buildSearchPredicate()` is the one column member that is not an accessor. It runs only at the
-Doctrine query boundary, once per search term. Bind parameters on the query builder — under
-`$paramName` or names derived from it — and **return** the condition instead of calling
-`andWhere()`: global search combines the returned conditions with `OR`, a per-column search with
-`AND`.
-
-Only global search and per-column search consult `buildSearchPredicate()`. ColumnControl's list,
-comparison, and empty/not-empty logics honor `getSearchField()` and `getSearchJoins()` but keep
-their own predicate shapes.
-
-### An unmapped searchable column is skipped instead of erroring
-
-`Query\RelationFieldResolver::supportsSearchFiltering()` now returns `false` for a bare field the
-root entity maps neither as a scalar nor as an association. Such a field is a virtual column
-assembled in `mapRow()`, and emitting `<alias>.<field>` for it made Doctrine reject the entire
-query.
-
-A table that previously returned a 500 on search now answers normally, with that one column left
-out of the predicate — so its search box silently matches nothing. Point it at real data with
-`setSearchField()`, `addSearchJoin()`, or `setSearchPredicate()`, or opt out with
-`setSearchable(false)` and `disableGlobalSearch()`.
-
-`Query\RelationFieldResolver::resolve()` also reuses a join already registered for the same
-expression under an alias of your choosing, instead of joining the relation a second time under the
-alias it derives itself. A `customizeQueryBuilder()` that joined `e.author` as `a` and a column
-searching `author.name` now produce one join and the predicate reads `a.name`, where before there
-were two joins and the predicate read `author.name`.
-
-Finally, the metadata lookups behind these guards no longer swallow every exception. They treat a
-root class Doctrine does not map as "no metadata" and let every other failure propagate — a mapping
-driver rejecting an attribute, or an unreachable metadata cache, now surfaces where it used to
-become a silently unsearchable column.
-
-## v0.83 → v0.84
-
-Affects applications that built tables with `DataTableBuilderInterface` in a controller, passed a
-bare `DataTable` to `render_datatable()`, or constructed `DataTableInfrastructure` themselves; code
-that implemented or type-hinted one of the removed single-implementation interfaces, custom columns
-implementing `ColumnInterface` directly, or callers of `Query\SearchPredicateFactory`; and code that
-decorates or hand-instantiates `EntityMutator` or `EditFormService`, called
-`MercureTopicResolver::resolve()` statically, decorates or hand-instantiates
-`Twig\DataTablesExtension`, or used `RowMapper\ClosureRowMapper`; and any code that imports one
-of the classes listed under [Moved classes](#moved-classes).
-Tables already declared as `AbstractDataTable` classes are unchanged, as are columns, filters, Twig
-templates, the Ajax routes, and every JSON payload on the wire.
-
-### `DataTableBuilderInterface` and `DataTableBuilder` are removed
-
-There is now exactly one way to define a table: a class extending `AbstractDataTable`. The Twig
-function `render_datatable()` accepts only an `AbstractDataTable`; passing a bare `DataTable` throws
-a `TypeError`.
-
-`DataTableInfrastructure` carries the `data_tables` bundle defaults itself. Its `builder()` method
-is gone, replaced by `createDataTable(string $id)`, and its constructor takes the defaults as three
-arrays (`$options`, `$attributes`, `$extensions`) where the builder used to sit.
-
-The table ID is the short name of the table class, so `UsersDataTable` renders as
-`<table id="UsersDataTable">`. Two tables on the same page must not share a class name.
-
-```php
-// before
-namespace App\Controller;
-
-use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Contracts\DataTableBuilderInterface;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
-
-final class UserController extends AbstractController
-{
-    #[Route('/users', name: 'app_users')]
-    public function index(DataTableBuilderInterface $builder): Response
-    {
-        $table = $builder
-            ->createDataTable('usersTable')
-            ->columns([
-                TextColumn::new('firstName', 'First name'),
-                TextColumn::new('lastName', 'Last name'),
-            ])
-            ->data([
-                ['firstName' => 'John', 'lastName' => 'Doe'],
-            ]);
-
-        return $this->render('user/index.html.twig', ['table' => $table]);
-    }
-}
-```
-
-```php
-// after
-namespace App\DataTables;
-
-use Pentiminax\UX\DataTables\Column\TextColumn;
-use Pentiminax\UX\DataTables\Model\AbstractDataTable;
-use Pentiminax\UX\DataTables\Model\DataTable;
-
-final class UsersDataTable extends AbstractDataTable
-{
-    public function configureColumns(): iterable
-    {
-        yield TextColumn::new('firstName', 'First name');
-        yield TextColumn::new('lastName', 'Last name');
-    }
-
-    public function configureDataTable(DataTable $table): DataTable
-    {
-        return $table->data([
-            ['firstName' => 'John', 'lastName' => 'Doe'],
-        ]);
-    }
-}
-```
-
-```php
-// after
-namespace App\Controller;
-
-use App\DataTables\UsersDataTable;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
-
-final class UserController extends AbstractController
-{
-    #[Route('/users', name: 'app_users')]
-    public function index(UsersDataTable $table): Response
-    {
-        return $this->render('user/index.html.twig', ['table' => $table]);
-    }
-}
-```
-
-When the rows are only known at request time, keep `configureDataTable()` for the options and call
-`$table->setData($rows)` in the controller.
-
-### Single-implementation interfaces are removed
-
-Each of these interfaces had exactly one implementation. Type-hint the concrete class instead; it is
-no longer `final`, so a test double or a subclass of your own still works.
-
-| Removed interface | Type-hint instead |
-| --- | --- |
-| `Contracts\ColumnAutoDetectorInterface` | `ApiPlatform\ColumnAutoDetector` |
-| `Contracts\EditModalTemplateResolverInterface` | `Form\EditModalTemplateResolver` |
-| `Contracts\PermissionAwareColumnInterface` | `Contracts\ColumnInterface` |
-| `Contracts\LayoutAwareExtensionInterface` | `Model\Extensions\ButtonsExtension` |
-
-`PermissionAwareColumnInterface` was a one-method contract on top of `ColumnInterface`, and every
-column already carried it. `getPermission(): ?string` now lives on `ColumnInterface` itself, so an
-`instanceof` check before reading it is no longer needed. Columns extending `AbstractColumn` are
-unaffected. A class of yours implementing `ColumnInterface` directly must add the method; return
-`null` when the column is always visible.
-
-`LayoutAwareExtensionInterface` was a marker for extensions injected into the DataTables `layout`
-configuration rather than serialized as top-level options. `ButtonsExtension` is the only
-layout-aware extension, so the marker is gone and the two call sites test for that class directly.
-The profiler's `layoutAware` flag keeps its name and meaning.
-
-The service aliases for the two resolver interfaces are gone. `ApiPlatform\ColumnAutoDetector` is
-aliased in its place, so an autowired argument keeps resolving; point a decoration or an explicit
-argument at the concrete class. `Form\EditModalTemplateResolver` has no alias: reference the
-`datatables.form.edit_modal_template_resolver` service id.
-
-### `SearchPredicateFactory` is merged into `DefaultSearchPredicateBuilder`
-
-`Query\SearchPredicateFactory` was a static one-method class that
-`Query\DefaultSearchPredicateBuilder` forwarded to unchanged. The type-dispatch logic now lives in
-the builder, and the factory is removed.
-
-```php
-// before
-$predicate = SearchPredicateFactory::build($qb, $column, $alias, $field, $value, $paramName, $forceNumeric);
-
-// after
-$predicate = (new DefaultSearchPredicateBuilder())->build($qb, $column, $alias, $field, $value, $paramName, $forceNumeric);
-```
-
-`Query\Strategy\ContainsSearchStrategy` now takes the builder as an optional constructor argument
-defaulting to `DefaultSearchPredicateBuilder`, so `new ContainsSearchStrategy()` keeps working.
-
-`SearchPredicateBuilderInterface` is untouched: it stays the supported seam for the
-`AbstractDataTable::createSearchPredicateBuilder()` hook, and a custom builder of yours keeps
-working.
-
-### `MercureTopicResolver` is a service
-
-`MercureTopicResolver` is no longer a `final` class with a static `resolve()`. It is an instantiated
-service (`datatables.mercure.topic_resolver`) that receives the optional `MercureConfigResolver` and
-the `datatables.data_table` service locator once, in its constructor.
-
-```php
-// before
-$topics = MercureTopicResolver::resolve($configResolver, $entityClass, $dataTables, $dataTableClass);
-
-// after
-$topics = $topicResolver->resolve($entityClass, $dataTableClass);
-```
-
-`EntityMutator` and `EditFormService` now take that resolver instead of the
-`?MercureConfigResolver` + `?Psr\Container\ContainerInterface` pair they used to forward to the
-static call:
-
-```php
-// before
-new EntityMutator($locator, $propertyAccessor, $publisher, $permissionChecker, $configResolver, $dataTables);
-new EditFormService($locator, $builder, $renderer, $templateResolver, $publisher, $configResolver, $dataTables, $permissionChecker);
-
-// after
-new EntityMutator($locator, $propertyAccessor, $publisher, $permissionChecker, $topicResolver);
-new EditFormService($locator, $builder, $renderer, $templateResolver, $publisher, $topicResolver, $permissionChecker);
-```
-
-The positional service arguments changed accordingly: `datatables.mutation.mutator` takes the topic
-resolver as `arg(4)` and no longer has an `arg(5)`, and `datatables.form.edit_form_service` takes it
-as `arg(5)` with the permission checker moving to `arg(6)`. `delete()`, `setProperty()`,
-`handleView()` and `handleSubmit()` are unchanged.
-
-The service is declared in `config/services.php` rather than `config/mercure.php`, so mutations
-still resolve topics (to an empty list) when Mercure is not installed.
-
-### Inline rows are rendered once, by the row pipeline
-
-`render_datatable()` no longer re-renders `TemplateColumn`s, resolves actions, or strips denied
-column values on inline rows. `AbstractDataTable` already does all of it exactly once, through the
-row pipeline, whichever way the rows arrive: `configureDataTable()->data()`, `setData()`, or
-client-side hydration. Rendering a table twice in one request no longer risks double-rendering a
-template column.
-
-The `DataTablesExtension` constructor lost its `TemplateColumnRenderer` and `ActionRowDataResolver`
-arguments; `ColumnResolver` moves from `arg(3)` to `arg(1)`, and every following argument shifts down
-by two. This matters only to code that decorates or hand-instantiates the extension. The rendered
-payload is unchanged.
-
-`RowMapper\ClosureRowMapper` is removed; it had no consumer in the bundle. Implement
-`RowMapperInterface` yourself when you need a closure-backed mapper:
-
-```php
-use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
-
-$mapper = new class($fn) implements RowMapperInterface {
-    public function __construct(private readonly \Closure $fn) {}
-
-    public function map(mixed $item): array { return ($this->fn)($item); }
-};
-```
-
-### Moved classes
-
-`src/` had several folders holding a single class, away from its only consumer. The folder tree now
-matches the bounded contexts documented in `AGENTS.md`. These are pure namespace moves: the classes,
-their methods, and their behavior are unchanged. There is no class alias and no deprecation layer,
-so update your imports.
-
-| Old FQCN | New FQCN |
-| --- | --- |
-| `DataCollector\DataTableCollector` | `Profiler\DataTableCollector` |
-| `Rendering\RenderingPreparer` | `Runtime\RenderingPreparer` |
-| `Dto\AjaxEditFormRequestDto` | `Controller\AjaxEditFormRequestDto` |
-| `Dto\AjaxEditRequestDto` | `Controller\AjaxEditRequestDto` |
-| `Dto\AjaxEntityQueryDto` | `Controller\AjaxEntityQueryDto` |
-| `Detail\DetailRowService` | `Ajax\DetailRowService` |
-| `Rehydration\RowIdentifierExtractor` | `Ajax\RowIdentifierExtractor` |
-| `Rehydration\SourceRowResolver` | `Ajax\SourceRowResolver` |
-| `Query\Intent\InvalidQueryIntentException` | `Exception\InvalidQueryIntentException` |
-| `Export\ExporterInterface` | `Contracts\ExporterInterface` |
-| `Mercure\MercurePublisherInterface` | `Contracts\MercurePublisherInterface` |
-
-Namespaces are relative to `Pentiminax\UX\DataTables\`. The emptied `DataCollector`, `Rendering`,
-`Dto`, `Detail`, and `Rehydration` namespaces no longer exist.
-
-Two of these are supported extension seams, so they matter beyond a search-and-replace:
-
-- `Contracts\MercurePublisherInterface` is still the seam for replacing how updates are published.
-  If you implement it or alias it in your container, change the import; the `publish()` signature is
-  identical.
-- `Contracts\ExporterInterface` is still the seam for custom export formats. If you implement it,
-  change the import; `format()`, `isAvailable()`, and `write()` are identical.
-
-## v0.82 → v0.83
-
-Affects custom `QueryFilterInterface` implementations, code that implemented one of the removed
-interfaces, and code that touched `DataTableInfrastructure`, the Ajax result types, or the internal
-query/row-pipeline classes listed below. Table configuration, columns, Twig templates, the Ajax
-routes, and every JSON payload on the wire are unchanged. If your project only configures tables
-through `AbstractDataTable`, there is nothing to do.
-
-### `DataTableQueryIntent` is flat
-
-The per-concern intent DTOs are gone. A custom `QueryFilterInterface` reads the same values
-directly off `$context->intent`.
-
-```php
-// before
-$offset    = $context->intent->pagination->offset;
-$limit     = $context->intent->pagination->limit;
-$search    = $context->intent->globalSearch?->value;
-$column    = $context->intent->order?->column;
-$direction = $context->intent->order?->direction->value;
-
-foreach ($context->intent->columnSearches as $columnSearch) {
-    $name  = $columnSearch->column->getName();
-    $value = $columnSearch->value;
-}
-
-// after
-$offset    = $context->intent->offset;
-$limit     = $context->intent->limit;
-$search    = $context->intent->globalSearch;
-$column    = $context->intent->orderColumn;
-$direction = $context->intent->orderDir;
-
-foreach ($context->intent->columnSearches as $columnSearch) {
-    $name  = $columnSearch['column']->getName();
-    $value = $columnSearch['value'];
-}
-```
-
-What changed:
-
-- `PaginationIntent` is inlined as `offset` (`int`) and `limit` (`?int`)
-- `GlobalSearchIntent` is inlined as `globalSearch` (`?string`); an absent search is `null`
-- `OrderIntent` is inlined as `orderColumn` (`?ColumnReadReference`) and `orderDir`
-  (`'asc'|'desc'|null`, a plain string instead of the `SortDirection` enum). `SortDirection` is
-  removed; compare against `'asc'`/`'desc'`
-- `ColumnSearchIntent` is replaced by `array{column: ColumnReadReference, value: string}`; read
-  array keys instead of properties
-- `regexRequested` is gone from both search shapes. The bundle's own filters never applied it. If a
-  filter of yours read it, resolve regex intent from `DataTableRequest` before the query pipeline
-  runs
-- `draw`, `columns`, and `columnControls` are unchanged
-
-### `DataTableQueryIntentFactoryInterface` is removed
-
-Intent creation is no longer an extension point. `DefaultDataTableQueryIntentFactory` is the
-concrete collaborator, and `QueryFilterPipeline` depends on it directly.
-
-- an autowired `DataTableQueryIntentFactoryInterface` argument no longer resolves; type-hint
-  `DefaultDataTableQueryIntentFactory`
-- a class of yours implementing the interface must be dropped. Express request-shaping in a
-  `QueryFilterInterface` implementation instead, which stays a public contract
-
-### `DataTableInfrastructure` accessors are properties
-
-The collaborator getters are gone; the promoted properties are public readonly.
-
-```php
-// before
-$infrastructure->columnResolver();
-$infrastructure->queryFilterPipeline();
-
-// after
-$infrastructure->columnResolver;
-$infrastructure->queryFilterPipeline;
-```
-
-`columnResolver`, `renderingPreparer`, `runtimeFactory`, `queryIntentFactory`,
-`queryFilterPipeline`, and `profiler` are affected. `builder()` stays a method, because it lazily
-creates the builder.
-
-### Removed internal classes
-
-These had a single consumer each and are inlined into their caller. None of them is a documented
-extension point, and none had a public service alias.
-
-| Removed | Replacement |
-| --- | --- |
-| `Query\Builder\QueryFilterChain` | `Query\Builder\QueryFilterPipeline`, which owns the filter order and the `resetParamIndexScope()` call between filters |
-| `DataProvider\DataProviderResolver` | `DataProvider\AutoDataProviderFactory`, injected straight into `DataTableRuntimeFactory` |
-| `RowMapper\Stage\UrlColumnResolutionStage` | `RowProcessingPipeline` calls `UrlColumnDataResolver` |
-| `RowMapper\Stage\TemplateRenderingStage` | `RowProcessingPipeline` calls `TemplateColumnRenderer` |
-| `RowMapper\Stage\ActionResolutionStage` | `RowProcessingPipeline` calls `ActionRowDataResolver` |
-
-`RowStageInterface` and `RowProcessingPipeline::add()` are untouched: a custom stage of yours keeps
-working. Only these three built-in stage classes disappear, and the behavior they performed still
-runs in the same order inside the pipeline.
-
-### Mercure and API Platform resolver interfaces are removed
-
-Each of these interfaces had exactly one implementation. Type-hint the concrete class instead; it is
-no longer `final`, so a test double or a subclass of your own still works.
-
-| Removed interface | Type-hint instead |
-| --- | --- |
-| `Mercure\MercureConfigResolverInterface` | `Mercure\MercureConfigResolver` |
-| `Mercure\MercureHubUrlResolverInterface` | `Mercure\MercureHubUrlResolver` |
-| `Mercure\ApiResourceMercureMetadataResolverInterface` | `ApiPlatform\ApiResourceMercureMetadataResolver` |
-| `ApiPlatform\ApiResourceCollectionUrlResolverInterface` | `ApiPlatform\ApiResourceCollectionUrlResolver` |
-
-The service aliases move with them, so an autowired argument or a service decoration targeting one
-of the interfaces no longer resolves. Point it at the concrete class.
-
-`MercurePublisherInterface` is untouched: it is the supported seam for replacing how updates are
-published, and a custom publisher of yours keeps working.
-
-### Ajax result and request DTOs are collapsed
-
-`DetailRowResult` and `EditFormResult` were the same four-property type with the same factories, and
-each Ajax controller rebuilt the JSON by hand. One result type now owns both.
-
-```php
-// before
-use Pentiminax\UX\DataTables\Detail\DetailRowResult;
-use Pentiminax\UX\DataTables\Form\EditFormResult;
-use Pentiminax\UX\DataTables\Http\JsonErrorResponse;
-
-$result = $detailRowService->handleView($dataTable, $id);          // DetailRowResult
-
-if (!$result->success) {
-    return JsonErrorResponse::create($result->message, $result->statusCode);
-}
-
-return new JsonResponse(['success' => true, 'html' => $result->html]);
-
-// after
-use Pentiminax\UX\DataTables\Ajax\AjaxActionResult;
-
-$result = $detailRowService->handleView($dataTable, $id);          // AjaxActionResult
-
-return $result->toJsonResponse();
-```
-
-What changed:
-
-- `Detail\DetailRowResult` and `Form\EditFormResult` are replaced by `Ajax\AjaxActionResult`, with
-  the same `success`, `html`, `message`, and `statusCode` properties and the same
-  `success()`/`badRequest()`/`invalid()`/`notFound()`/`forbidden()` factories
-- `DetailRowService::handleView()`, `EditFormService::handleView()`, and
-  `EditFormService::handleSubmit()` return `AjaxActionResult`
-- `Http\JsonErrorResponse` is removed. `AjaxActionResult::toJsonResponse()` builds the response,
-  error cases included
-- `Dto\AjaxDetailQueryDto` is renamed `Dto\AjaxEntityQueryDto`, and `Dto\AjaxEditFormQueryDto` and
-  `Dto\AjaxDeleteRequestDto` are removed in favor of it. The three routes always mapped the same
-  `{dataTable, id}` body. `Dto\AjaxEditRequestDto` and `Dto\AjaxEditFormRequestDto` are unchanged
-
-The Ajax JSON is byte-for-byte what it was: same routes, same keys, same status codes. Frontend
-code, including a custom fetch of your own against these routes, needs no change.
-
-## v0.80 → v0.81
-
-Only `TemplateColumn` is affected. If you do not use it, there is nothing to do.
-
-### `TemplateColumn` Twig `row` is the `mapRow()` object
-
-In a `TemplateColumn` template, `row` used to be the **array** returned by `mapRow()`. It is now
-the **object** passed to `mapRow()` — the projected DTO when `projectPage()` is active, otherwise
-the source object. The array is still available, under the new `payload` key.
-
-```twig
-{# before #}
-<span class="badge">{{ row.status }}</span>
-{{ row.fullName }}
-
-{# after #}
-<span class="badge">{{ data }}</span>   {# this cell's value #}
-{{ payload.fullName }}                  {# any other mapped key #}
-{{ row.getFullName() }}                 {# or read the object directly #}
-```
-
-`payload` is the exact value `row` used to hold, so a template that only read mapped keys migrates
-with a mechanical `row` → `payload` rename. As before, it does not contain cells rendered by other
-`TemplateColumn`s, nor the row action metadata.
-
-What changed:
-
-- `row` is the object passed to `mapRow()`; read domain properties from it
-- `payload` is the array returned by `mapRow()`; use it for a mapped key other than this cell's
-- `data` is unchanged: the resolved value of this cell
-- `source` is unchanged: the original hydrated object, same reference as `row` without a projector
-- `entity` still works as a deprecated alias of `row`, for `TemplateColumn` templates only. It will
-  be removed in a later release
-- `item` is no longer provided. It used to be a second alias of `row`; pass it yourself through
-  `setTemplate()` parameters if a template of yours needs that name
-
-Collapsible detail rows (`Action::collapsible()`) and edit modals also expose an `entity`
-variable. That one is unrelated to `TemplateColumn`, is not an alias, and is not deprecated — leave
-those templates alone.
-
-Do not branch on `payload` for authorization or visibility. On the API Platform render route the
-rows are posted by the browser, so `payload` is client-controlled input; read `row` or `source`
-instead.
-
-### Reserved `TemplateColumn` template parameters now throw
-
-Passing a reserved context key through `setTemplate()` used to be silently dropped, which made a
-collision render wrong HTML with no signal. It now fails at configuration time.
-
-```php
-use Pentiminax\UX\DataTables\Column\TemplateColumn;
-
-// throws InvalidArgumentException
-TemplateColumn::new('status_display')
-    ->setTemplate('datatable/columns/status.html.twig', ['row' => $somethingElse]);
-```
-
-What changed:
-
-- `setTemplate()` throws `InvalidArgumentException` when `$parameters` uses `row`, `source`,
-  `payload`, `data`, `column`, or `entity`
-- `payload` is newly reserved; rename such a parameter to something else
-- any other key still passes through untouched, `item` included
+- **Rows always carry a `DT_RowId`.** It used to be written only for `highlightUpdates()`. A single
+  Doctrine identifier is detected automatically; otherwise call `BulkActions::setIdField()`.
+- **The `data_tables.extensions.select` default does not apply.** The table gets a multi-row
+  selection with checkboxes. A Select extension the table configures itself is kept, and a
+  single-row one throws.
+- **Protect `POST /datatables/ajax/bulk`** with your `security.firewalls` configuration, like every
+  other bundle Ajax route.
+- **Select all needs `IdentifierCollectingDataProviderInterface`** in a custom data provider
+  (`DoctrineDataProvider` has it). Its `collectIdentifiers()` receives the field written as
+  `DT_RowId`, so answer with values from that field, not the primary key. Without the interface,
+  select all answers `400` and an explicit selection keeps working.
+
+### Query building follows `entityClass` when `dataClass` differs
+
+If you pass both to `#[AsDataTable(dataClass: ..., entityClass: ...)]`, a column or filter declared
+on the DTO must name a field the entity carries, because ordering and searching build DQL against
+`entityClass`. The container checks this while it compiles and names the offender. Dotted paths are
+left alone. To make the names differ, redirect the query alone with the `searchField` option or an
+`orderExpression`; the `field` option also redirects the displayed value.
