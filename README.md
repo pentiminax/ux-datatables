@@ -53,18 +53,12 @@ final class UserDataTable extends AbstractDataTable
 }
 ```
 
-Handle it in a controller:
+Pass it to your template:
 
 ```php
 #[Route('/users', name: 'app_users')]
-public function index(UserDataTable $table, Request $request): Response
+public function index(UserDataTable $table): Response
 {
-    $table->handleRequest($request);
-
-    if ($table->isRequestHandled()) {
-        return $table->getResponse();
-    }
-
     return $this->render('user/index.html.twig', ['table' => $table]);
 }
 ```
