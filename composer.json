@@ -50,16 +50,16 @@
   },
   "suggest": {
     "api-platform/core": "To auto-detect columns from API Platform metadata.",
-    "openspout/openspout": "To enable server-side CSV and XLSX export via Button::csv(serverSide: true) and Button::excel(serverSide: true).",
+    "openspout/openspout": "To enable server-side CSV and XLSX export.",
     "symfony/maker-bundle": "To use the make:datatable command.",
-    "symfony/form": "To enable inline edit modal with auto-generated forms.",
-    "symfony/expression-language": "To use Symfony Expression objects with setPermission().",
-    "symfony/mercure-bundle": "To enable real-time DataTable updates via Mercure SSE.",
-    "symfony/twig-bundle": "To render edit form and TwigColumn",
-    "symfony/translation": "To translate DataTable column titles and the filter bar labels (Filters/Reset/Apply/All).",
-    "symfony/browser-kit": "To test your tables with Pentiminax\\UX\\DataTables\\Test\\DataTableTestCase.",
-    "symfony/dom-crawler": "To assert on client-side tables with DataTableTestCase::dataTableView().",
-    "symfony/css-selector": "To let DataTableTestCase::dataTableView() locate a rendered table in the page."
+    "symfony/form": "To enable the inline edit modal.",
+    "symfony/expression-language": "To use expressions with setPermission().",
+    "symfony/mercure-bundle": "To enable real-time updates via Mercure.",
+    "symfony/twig-bundle": "To render the edit form and TwigColumn.",
+    "symfony/translation": "To translate column titles and filter bar labels.",
+    "symfony/browser-kit": "To test your tables with DataTableTestCase.",
+    "symfony/dom-crawler": "To assert on client-side tables in tests.",
+    "symfony/css-selector": "To locate a rendered table in tests."
   },
   "conflict": {
     "symfony/flex": "<1.13"
