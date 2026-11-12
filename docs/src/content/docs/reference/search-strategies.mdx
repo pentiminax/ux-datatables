@@ -96,10 +96,10 @@ Opting out restores a bare `LIKE`, which follows the column's collation: case-se
 PostgreSQL and on binary collations, still case-insensitive on a `_ci` MySQL collation. The flag
 trades the guaranteed behavior for index usage; it does not force case sensitivity.
 
-`AbstractColumn` implements `NormalizedSearchColumnInterface` and exposes it as
-`setSearchNormalization()`. A column class implementing `ColumnInterface` directly can implement
-that interface to make the same choice; otherwise it is normalized. `setSearchPredicate()` stays
-the escape hatch for anything neither mode expresses.
+`AbstractColumn` exposes the choice as `searchNormalization()`. Custom columns must extend a bundled
+column or `AbstractColumn`; a class that only implements `ColumnInterface` is deprecated since 1.6
+and is always normalized. `searchPredicate()` stays the escape hatch for anything neither mode
+expresses.
 
 <Aside type="note">
   `ColumnControlLogic::In` has no dedicated strategy. ColumnControl list selections (`searchList`)
@@ -234,7 +234,7 @@ Return `null` when `$value` cannot be searched against the field — an unparsea
 column's Doctrine type, or a type `LIKE` cannot be used on. That column is then simply left out of
 the `OR`.
 
-`DefaultSearchPredicateBuilder` consults a `SearchableColumnInterface` column's own
+`DefaultSearchPredicateBuilder` consults an `AbstractColumn`'s own
 [`buildSearchPredicate()`](/columns/overview/#searching-with-a-custom-predicate)
 first and returns its condition verbatim when it gives one. Otherwise it dispatches on the column
 type:
@@ -248,9 +248,9 @@ type:
 | anything else                | `LOWER(field) LIKE %term%` when the field supports text search                      |
 
 `$field` is resolved by the caller through `RelationFieldResolver::resolveSearchField()` before the
-builder is reached, so a `setSearchField()` override and any `addSearchJoin()` are already in
+builder is reached, so a `searchField()` override and any `addSearchJoin()` are already in
 effect. A column returning `null` from `buildSearchPredicate()` has no opinion, not "skip me": the
-type dispatch runs. A column implementing only `ColumnInterface` is searched on `getField()` with
+type dispatch runs. A deprecated direct `ColumnInterface` implementer is searched on `getField()` with
 no joins, exactly as before the contract existed.
 
 A mapped boolean, date, or UUID field is skipped on the numeric branch instead of falling

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Model;
 
+use Pentiminax\UX\DataTables\Column\AbstractColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\ExtensionInterface;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
@@ -329,6 +330,8 @@ class DataTable
             $this->options->set('columns', []);
         }
 
+        $this->guardColumnType($column);
+
         $this->columns[$column->getName()] = $column;
 
         return $this;
@@ -343,9 +346,14 @@ class DataTable
             $this->options->set('columns', []);
         }
 
+        $previous      = $this->columns;
         $this->columns = [];
 
         foreach ($columns as $column) {
+            if (($previous[$column->getName()] ?? null) !== $column) {
+                $this->guardColumnType($column);
+            }
+
             $this->columns[$column->getName()] = $column;
         }
 
@@ -1717,5 +1725,14 @@ class DataTable
         }
 
         return (int) $matches[1] * ['' => 1, 's' => 1, 'm' => 60, 'h' => 3600][$matches[2]];
+    }
+
+    private function guardColumnType(ColumnInterface $column): void
+    {
+        if ($column instanceof AbstractColumn) {
+            return;
+        }
+
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Passing a column that does not extend "%s" is deprecated, extend a bundled column or AbstractColumn instead (got "%s").', AbstractColumn::class, $column::class);
     }
 }

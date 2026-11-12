@@ -22,6 +22,8 @@ use Doctrine\ORM\QueryBuilder;
  * Unlike the rest of ColumnInterface, buildSearchPredicate() is not an accessor. It runs only at
  * the Doctrine query boundary, once per search term, and is the only place a column may touch a
  * QueryBuilder.
+ *
+ * @deprecated since 1.6, extend AbstractColumn instead. Removed in 2.0.
  */
 interface SearchableColumnInterface extends ColumnInterface
 {

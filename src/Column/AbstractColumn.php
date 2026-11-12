@@ -15,14 +15,14 @@ use Symfony\Component\ExpressionLanguage\Expression;
 /**
  * Base implementation shared by every bundled column type (TextColumn, DateColumn, ...).
  *
- * Not meant to be extended directly to build a custom column type — extend a concrete column
- * class instead, or implement {@see ColumnInterface} directly for something that shares nothing
- * with the bundled types. Every public method here (setField(), setColumnControl(),
- * setClassName(), setCustomOption(), setVisible(), setResponsivePriority(),
- * disableGlobalSearch(), ...) is part of the
- * bundle's documented column-configuration API and is inherited unchanged by every concrete
- * column — see the "Columns" documentation for usage. Only createWithType() below is genuinely
- * internal, restricted to how the bundled column types build themselves.
+ * The only supported base for custom columns: extend a concrete column class, or this class for
+ * something that shares nothing with the bundled types. A column that only implements
+ * {@see ColumnInterface} is deprecated since 1.6 and loses summaries, value formatting, and search
+ * features. Every public method here (field(), columnControl(), className(), customOption(),
+ * visible(), responsivePriority(), disableGlobalSearch(), ...) is part of the bundle's documented
+ * column-configuration API and is inherited unchanged by every concrete column; see the "Columns"
+ * documentation. Only createWithType() below is genuinely internal, restricted to how the bundled
+ * column types build themselves.
  */
 abstract class AbstractColumn implements SearchableColumnInterface, NormalizedSearchColumnInterface
 {
