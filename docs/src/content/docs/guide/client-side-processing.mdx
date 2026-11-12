@@ -120,6 +120,30 @@ This setup is ideal when the page already owns the dataset and no extra HTTP req
 When the rows are computed in the controller, call `$table->rows($rows)` there instead of
 hardcoding them in `configureDataTable()`.
 
+## Entity Tables Embed Every Row
+
+A table with `#[AsDataTable(Entity::class)]` that never calls `serverSide()` reads every matching
+row at render time, maps each one through the row pipeline, and embeds the result as JSON in the
+HTML. PHP time, memory and page size grow with the table. Doctrine runs a single query for it: the
+counts and summaries a hydration would discard are skipped.
+
+- Call `serverSide()` to page, search and sort on the server instead.
+- Call `serverSide(false)` to keep embedding the rows on purpose, for a small lookup table. 2.0 makes
+  server-side the default for an entity table, so an implicit choice is deprecated in 1.6.
+- Past `hydration_row_threshold` rows (default `5000`), the bundle logs a warning and the profiler
+  highlights the table. See [Configuration](/guide/configuration/#hydration_row_threshold).
+
+```php
+#[AsDataTable(Country::class)]
+final class CountriesDataTable extends AbstractDataTable
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->serverSide(false);
+    }
+}
+```
+
 ## Domain Objects With `rows()`
 
 Use `rows()` on `AbstractDataTable` when your source rows are objects and you want UX

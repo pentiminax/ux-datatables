@@ -134,6 +134,15 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
     - Code reading bundle keys (`apiPlatform`, `mercure`, `bulkActions`) through `getOption()` or
       `getOptions()`: 2.0 returns DataTables.net options only, no notice is raised for it.
 
+11. Fix every entity table that logs the "never called serverSide()" deprecation. An entity table
+    (`#[AsDataTable(entityClass: ...)]`) with no `serverSide()` call, no `ajax()` and no `data()`
+    reads and embeds all its rows at render time. For a table that can be large, add
+    `->serverSide()` to its `configureDataTable()`. For a small lookup table whose rows should stay
+    in the page, add `->serverSide(false)`: it silences the deprecation and keeps today's behavior
+    in 2.0. Do not add either call to tables that already use `ajax()`, `data()` or `apiPlatform()`.
+    A table switched to `serverSide()` is served through the bundle's Ajax data route: confirm the
+    application's security configuration protects it.
+
 ## Optional changes
 
 1. `#[DataTableColumn(...)]` attribute options need no change: they resolve to the bare methods and

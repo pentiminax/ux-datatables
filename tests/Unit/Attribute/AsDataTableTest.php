@@ -420,6 +420,7 @@ final class FluentEditModalOverrideDataTable extends AbstractDataTable
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table
+            ->serverSide(false)
             ->editModalTemplate('fluent.html.twig')
             ->editModalAdapter('dt');
     }

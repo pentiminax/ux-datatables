@@ -265,6 +265,11 @@ final class RetryPreparationTestTable extends AbstractDataTable
 #[AsDataTable(entityClass: \stdClass::class)]
 final class MissingEntityManagerHydrationTestTable extends AbstractDataTable
 {
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->serverSide(false);
+    }
+
     public function configureColumns(): iterable
     {
         yield TextColumn::new('id');

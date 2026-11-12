@@ -55,6 +55,7 @@ final class ShowcaseProductsDataTable extends AbstractDataTable
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table
+            ->serverSide(false)
             ->pageLength(5)
             ->lengthMenu([5, 10, 25])
             ->order([['name' => 'name', 'dir' => 'asc']])

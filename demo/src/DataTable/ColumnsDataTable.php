@@ -82,6 +82,7 @@ final class ColumnsDataTable extends AbstractDataTable
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table
+            ->serverSide(false)
             ->pageLength(10)
             ->scrollX(true);
     }

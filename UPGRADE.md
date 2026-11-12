@@ -122,6 +122,13 @@ it exhaustively must handle them: add the two cases or a `default` arm.
 - An API Platform opt-in (`#[AsDataTable(apiPlatform: true)]` or `apiPlatform()`) with no collection
   to read, because the entity exposes no collection operation or API Platform is not installed, logs
   a deprecation, and 2.0 throws a `LogicException`. Expose a collection operation or drop the opt-in.
+- An entity table that never calls `serverSide()` reads and embeds every row at render time, and now
+  logs a deprecation once per table class: 2.0 makes server-side the default. Call `serverSide()`
+  to adopt it now, or `serverSide(false)` to keep embedding the rows. A server-side table is served
+  through the bundle's Ajax data route, which your Symfony Security configuration must protect, and
+  its Mercure updates are then auto-resolved, which an embedded table does not get. The bundle also
+  logs a warning past `data_tables.hydration_row_threshold` embedded rows (default `5000`, `0`
+  disables it).
 - `data()` combined with `apiPlatform()` logs a deprecation, and 2.0 throws a `LogicException`. The
   table renders its embedded rows, and the API Platform flag is now withdrawn from its payload: pick
   one source. `ajax()` combined with `apiPlatform()` stays supported, for a custom Hydra collection,

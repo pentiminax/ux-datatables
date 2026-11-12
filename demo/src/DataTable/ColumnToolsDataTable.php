@@ -41,6 +41,7 @@ final class ColumnToolsDataTable extends AbstractDataTable
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table
+            ->serverSide(false)
             ->pageLength(25)
             ->order([['name' => 'category', 'dir' => 'asc']])
             ->rowGroup('category')

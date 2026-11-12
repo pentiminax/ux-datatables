@@ -82,6 +82,9 @@ abstract class AbstractDataTable
 
     private ?DataSourceMode $renderedDataSourceMode = null;
 
+    /** @var array<class-string, true> */
+    private static array $implicitClientSideReported = [];
+
     /**
      * @internal
      */
@@ -394,9 +397,22 @@ abstract class AbstractDataTable
             return;
         }
 
+        $this->deprecateImplicitClientSide();
+
         $this->fetchData($this->createClientSideDataRequest());
 
         $this->warnWhenHydrationIsLarge();
+    }
+
+    private function deprecateImplicitClientSide(): void
+    {
+        if (null === $this->asDataTable?->entityClass || null !== $this->table->getOption('serverSide') || isset(self::$implicitClientSideReported[static::class])) {
+            return;
+        }
+
+        self::$implicitClientSideReported[static::class] = true;
+
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The entity table "%s" reads and embeds every row because it never called serverSide(). In 2.0 an entity table is server-side by default: call serverSide() to adopt that now, or serverSide(false) to keep embedding its rows.', static::class);
     }
 
     private function warnWhenHydrationIsLarge(): void
