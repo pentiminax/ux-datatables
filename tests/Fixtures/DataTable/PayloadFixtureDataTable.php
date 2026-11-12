@@ -10,6 +10,7 @@ use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\DateColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Enum\ButtonType;
+use Pentiminax\UX\DataTables\Enum\Language;
 use Pentiminax\UX\DataTables\Enum\SelectStyle;
 use Pentiminax\UX\DataTables\Filter\ChoiceFilter;
 use Pentiminax\UX\DataTables\Filter\TextFilter;
@@ -36,6 +37,7 @@ final class PayloadFixtureDataTable extends AbstractDataTable
             ->buttons([ButtonType::COPY, ButtonType::CSV])
             ->select(SelectStyle::MULTI, withCheckbox: true)
             ->responsive()
+            ->language(Language::FR)
             ->mercure(['/books']);
     }
 
@@ -46,7 +48,7 @@ final class PayloadFixtureDataTable extends AbstractDataTable
         yield ChoiceColumn::new('status')->choices(['published' => 'Published', 'draft' => 'Draft']);
         yield BooleanColumn::new('active')->renderAsSwitch();
         yield DateColumn::new('releasedAt')->format('Y-m-d')->exportable(false);
-        yield ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::detail())->add(Action::edit())->add(Action::delete()));
+        yield ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::detail())->add(Action::edit())->add(Action::delete())->add(Action::new('archive', 'Archive')->linkToUrl('/books/archive')));
     }
 
     public function configureFilters(Filters $filters): Filters

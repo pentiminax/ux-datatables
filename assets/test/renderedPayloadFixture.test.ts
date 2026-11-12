@@ -3,8 +3,10 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import DatatableController from '../src/controller.js'
+import frFR from '../src/i18n/fr-FR.js'
 import { loadDataTableLibrary } from '../src/functions/loadDataTableLibrary.js'
 import { packageLoaders } from '../src/functions/packageLoaders.js'
+import { rowActionUrl } from '../src/functions/rowActionUrl.js'
 
 /**
  * Feeds the controller the payload the PHP suite pins in
@@ -84,5 +86,32 @@ describe('rendered payload fixture', () => {
             expect.arrayContaining(['filters', 'bulkActions', 'mercure', 'layout', 'responsive'])
         )
         expect(registeredFeatures.length).toBeGreaterThan(0)
+    })
+
+    it('renders the CUSTOM action, loads the bundled catalog and reads the row action URLs', async () => {
+        const table = document.createElement('table')
+        table.setAttribute('data-controller', 'datatable')
+        table.setAttribute('data-datatable-view-value', JSON.stringify(fixture))
+        document.body.appendChild(table)
+
+        await vi.waitFor(() => expect(payloads).toHaveLength(1))
+
+        const payload = payloads[0]
+        const actionsColumn = payload.columns.find((column: Record<string, any>) => column.actions)
+        const html = actionsColumn.render(null, 'display', fixture.data[0])
+
+        expect(html).toContain('data-action-type="CUSTOM"')
+        expect(html).toContain('href="/books/archive"')
+
+        expect(payload.language).toEqual(frFR)
+        expect(fixture.language.url).toMatch(/\/i18n\/fr-FR\.json$/)
+
+        const names = ['delete', 'toggle', 'detail', 'editForm', 'editFormSubmit']
+        expect(Object.keys(fixture.rowActionUrls)).toEqual(names)
+        for (const name of names) {
+            expect(rowActionUrl(payload, name as Parameters<typeof rowActionUrl>[1])).toBe(
+                fixture.rowActionUrls[name]
+            )
+        }
     })
 })
