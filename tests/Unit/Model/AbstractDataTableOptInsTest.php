@@ -44,9 +44,56 @@ final class AbstractDataTableOptInsTest extends TestCase
 
     public static function provideDeclarationSurfaces(): iterable
     {
-        yield 'custom Hydra url' => [AttributeAjaxOptInFixture::class, FluentAjaxOptInFixture::class];
-
         yield 'bundle collection url' => [AttributeOptInFixture::class, FluentOptInFixture::class];
+    }
+
+    #[Test]
+    public function it_keeps_the_1_5_payload_of_an_ajax_table_and_deprecates_the_attribute_only_opt_in(): void
+    {
+        $payload = [];
+        $notices = $this->deprecationsOf(function () use (&$payload): void {
+            $payload = $this->render(AttributeAjaxOptInFixture::class, '/api/books');
+        });
+
+        $this->assertNotTrue($payload['apiPlatform'] ?? null);
+        $this->assertCount(1, $this->matching($notices, '2.0 sends the API Platform flag'));
+        $this->assertNotEmpty($this->matching($notices, 'apiPlatform(false)'));
+    }
+
+    #[Test]
+    public function it_sends_the_flag_of_an_ajax_table_that_opts_in_fluently_without_a_notice(): void
+    {
+        $payload = [];
+        $notices = $this->deprecationsOf(function () use (&$payload): void {
+            $payload = $this->render(FluentAjaxOptInFixture::class, '/api/books');
+        });
+
+        $this->assertTrue($payload['apiPlatform']);
+        $this->assertSame([], $this->matching($notices, '2.0 sends the API Platform flag'));
+    }
+
+    #[Test]
+    public function it_keeps_an_explicit_fluent_opt_out_on_an_ajax_table_the_attribute_opts_into(): void
+    {
+        $payload = [];
+        $notices = $this->deprecationsOf(function () use (&$payload): void {
+            $payload = $this->render(AttributeAjaxFluentOptOutFixture::class, '/plain');
+        });
+
+        $this->assertFalse($payload['apiPlatform']);
+        $this->assertSame([], $this->matching($notices, '2.0 sends the API Platform flag'));
+    }
+
+    #[Test]
+    public function it_reads_the_configuration_changed_after_initialization_when_rendering(): void
+    {
+        $table = new FluentOptInFixture(null);
+        $table->getConfiguredDataTable()->editModalTemplate('custom/modal.html.twig');
+
+        $payload = $table->prepareDataTableForRendering();
+
+        $this->assertSame('custom/modal.html.twig', $payload->getEditModalTemplate());
+        $this->assertSame('custom/modal.html.twig', $table->getResolvedOptIns()->editModalTemplate);
     }
 
     #[Test]
@@ -72,7 +119,7 @@ final class AbstractDataTableOptInsTest extends TestCase
 
     #[Test]
     #[DataProvider('provideOptedInSurfaces')]
-    public function it_deprecates_an_opt_in_without_a_collection_once_per_table(string $tableClass): void
+    public function it_deprecates_an_opt_in_without_a_collection(string $tableClass): void
     {
         $notices = $this->deprecationsOf(function () use ($tableClass): void {
             $this->render($tableClass, null);
@@ -191,6 +238,15 @@ final class FluentAjaxOptInFixture extends OptInFixture
     public function configureDataTable(DataTable $table): DataTable
     {
         return $table->ajax('/hydra/books')->apiPlatform();
+    }
+}
+
+#[AsDataTable(entityClass: \stdClass::class, apiPlatform: true)]
+final class AttributeAjaxFluentOptOutFixture extends OptInFixture
+{
+    public function configureDataTable(DataTable $table): DataTable
+    {
+        return $table->ajax('/plain')->apiPlatform(false);
     }
 }
 

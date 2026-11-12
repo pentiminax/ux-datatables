@@ -115,9 +115,8 @@ final class RenderingPreparer
             $this->configureApiPlatform($table, $optIns);
         }
 
-        if (DataSourceMode::Ajax === $mode && $optIns->apiPlatform) {
-            // A custom Hydra collection: the adapter is the browser's only way to read it.
-            $table->apiPlatform();
+        if (DataSourceMode::Ajax === $mode && true === $asDataTable?->apiPlatform && null === $table->getOption('apiPlatform')) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" combines #[AsDataTable(apiPlatform: true)] with ajax() and renders plain DataTables JSON today, and 2.0 sends the API Platform flag for it (Hydra adapter). Add ->apiPlatform(false) to keep plain DataTables JSON, or ->apiPlatform() to opt in now.', $table->getDataTableClass() ?? $table->getId());
         }
 
         if (DataSourceMode::ServerSide === $mode) {

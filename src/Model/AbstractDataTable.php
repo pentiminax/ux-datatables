@@ -225,6 +225,8 @@ abstract class AbstractDataTable
             return $this->table;
         }
 
+        $this->optIns = ResolvedOptIns::resolve($this->table, $this->asDataTable);
+
         $renderingPreparer = $this->infrastructure()->renderingPreparer;
 
         $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable, $this->optIns);
@@ -311,7 +313,7 @@ abstract class AbstractDataTable
     /**
      * @internal
      */
-    final public function getResolvedOptIns(): ResolvedOptIns
+    public function getResolvedOptIns(): ResolvedOptIns
     {
         $this->initialize();
 
@@ -386,7 +388,7 @@ abstract class AbstractDataTable
      *
      * @internal
      */
-    final public function getRenderedDataSourceMode(): ?DataSourceMode
+    public function getRenderedDataSourceMode(): ?DataSourceMode
     {
         return $this->renderedDataSourceMode;
     }
