@@ -15,14 +15,17 @@ export const EXTENSION_NAMES = [
 
 export type ExtensionName = (typeof EXTENSION_NAMES)[number]
 
-export type PackageName =
-    | 'dataTables'
-    | 'buttons'
-    | 'jszip'
-    | 'pdfmake'
-    | 'bootstrap'
-    | 'lucide'
-    | ExtensionName
+const PACKAGE_NAMES = [
+    'dataTables',
+    'buttons',
+    'jszip',
+    'pdfmake',
+    'bootstrap',
+    'lucide',
+    ...EXTENSION_NAMES,
+] as const
+
+export type PackageName = (typeof PACKAGE_NAMES)[number]
 
 /** Imports a package (JS and CSS) and resolves with its module namespace. */
 export type PackageLoader = () => Promise<unknown>
@@ -41,6 +44,12 @@ export class PackageLoaderRegistry {
     private fallback: FallbackResolver | null = null
 
     register(name: PackageName, loader: PackageLoader): this {
+        if (!(PACKAGE_NAMES as readonly string[]).includes(name)) {
+            throw new Error(
+                `Cannot register an unknown package "${name}". Valid names: ${PACKAGE_NAMES.join(', ')}.`
+            )
+        }
+
         this.loaders.set(name, loader)
 
         return this

@@ -15,6 +15,14 @@ export async function loadLucideIcons(): Promise<void> {
         return
     }
 
+    if (!packageLoaders.has('lucide')) {
+        console.warn(
+            'The "lucide" package is not registered, so icons are not rendered. Install it and register it with packageLoaders.register(\'lucide\', loader).'
+        )
+
+        return
+    }
+
     lucide = (await packageLoaders.load('lucide')) as LucideModule
     iconsByKebab = new Map()
 

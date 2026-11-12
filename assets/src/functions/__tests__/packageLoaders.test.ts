@@ -14,6 +14,16 @@ describe('packageLoaders', () => {
         )
     })
 
+    it('rejects a loader registered under an unknown name and lists the valid ones', async () => {
+        const { PackageLoaderRegistry } = await import('../packageLoaders.js')
+        const registry = new PackageLoaderRegistry()
+
+        expect(() => registry.register('selct' as never, async () => ({}))).toThrow(
+            'Cannot register an unknown package "selct". Valid names: dataTables, buttons, jszip, pdfmake, bootstrap, lucide, colReorder'
+        )
+        expect(registry.has('selct' as never)).toBe(false)
+    })
+
     it('prefers the registered loader over the built-in fallback', async () => {
         const { packageLoaders } = await import('../packageLoaders.js')
         await import('../builtinPackageLoaders.js')

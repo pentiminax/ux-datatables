@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { StyleFramework } from '../../types/styleFramework.js'
 import { requiredExportPackages } from '../loadButtonsLibrary.js'
 
@@ -93,6 +93,75 @@ describe('loadButtonsLibrary', () => {
         expect(loaded).not.toContain('pdfmake')
         expect(DataTable.Buttons.jszip).toHaveBeenCalled()
         expect(DataTable.Buttons.pdfMake).not.toHaveBeenCalled()
+    })
+
+    describe('optional export packages', () => {
+        const buttonsLayout = { topStart: { buttons: ['excel', 'pdf'] } }
+        let warn: ReturnType<typeof vi.spyOn>
+
+        beforeEach(() => {
+            warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+        })
+
+        afterEach(() => {
+            warn.mockRestore()
+        })
+
+        it('warns which package is missing when the layout needs it and it is not registered', async () => {
+            const { packageLoaders } = await import('../packageLoaders.js')
+            const { loadButtonsLibrary } = await import('../loadButtonsLibrary.js')
+            const DataTable = { Buttons: { jszip: vi.fn(), pdfMake: vi.fn() } }
+
+            packageLoaders.register('buttons', async () => ({}))
+
+            await loadButtonsLibrary(DataTable as never, 'dt', buttonsLayout)
+
+            expect(warn).toHaveBeenCalledTimes(2)
+            expect(warn.mock.calls[0][0]).toContain('"jszip" package is not registered')
+            expect(warn.mock.calls[1][0]).toContain('"pdfmake" package is not registered')
+        })
+
+        it('stays quiet when the layout needs neither package', async () => {
+            const { packageLoaders } = await import('../packageLoaders.js')
+            const { loadButtonsLibrary } = await import('../loadButtonsLibrary.js')
+
+            packageLoaders.register('buttons', async () => ({}))
+
+            await loadButtonsLibrary({ Buttons: {} } as never, 'dt', {
+                topStart: { buttons: ['copy'] },
+            })
+
+            expect(warn).not.toHaveBeenCalled()
+        })
+
+        it('disables only the button whose package fails to load', async () => {
+            const { packageLoaders } = await import('../packageLoaders.js')
+            const { loadButtonsLibrary } = await import('../loadButtonsLibrary.js')
+            const DataTable = { Buttons: { jszip: vi.fn(), pdfMake: vi.fn() } }
+            const failure = new Error('chunk failed')
+
+            packageLoaders.register('buttons', async () => ({}))
+            packageLoaders.register('jszip', async () => {
+                throw failure
+            })
+            packageLoaders.register('pdfmake', async () => ({ default: {} }))
+
+            await loadButtonsLibrary(DataTable as never, 'dt', buttonsLayout)
+
+            expect(DataTable.Buttons.jszip).not.toHaveBeenCalled()
+            expect(DataTable.Buttons.pdfMake).toHaveBeenCalledTimes(1)
+            expect(warn).toHaveBeenCalledTimes(1)
+            expect(warn.mock.calls[0][0]).toContain('"jszip" package failed to load')
+            expect(warn.mock.calls[0][1]).toBe(failure)
+        })
+
+        it('still fails loudly when the Buttons package itself is missing', async () => {
+            const { loadButtonsLibrary } = await import('../loadButtonsLibrary.js')
+
+            await expect(
+                loadButtonsLibrary({ Buttons: {} } as never, 'dt', buttonsLayout)
+            ).rejects.toThrow('The "buttons" package is not registered.')
+        })
     })
 })
 

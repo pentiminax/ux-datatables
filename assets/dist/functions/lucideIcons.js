@@ -5,6 +5,10 @@ export async function loadLucideIcons() {
     if (lucide !== null) {
         return;
     }
+    if (!packageLoaders.has('lucide')) {
+        console.warn('The "lucide" package is not registered, so icons are not rendered. Install it and register it with packageLoaders.register(\'lucide\', loader).');
+        return;
+    }
     lucide = (await packageLoaders.load('lucide'));
     iconsByKebab = new Map();
     for (const [pascal, node] of Object.entries(lucide.icons)) {
