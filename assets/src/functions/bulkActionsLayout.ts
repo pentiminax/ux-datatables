@@ -14,5 +14,8 @@ export function applyBulkActionsLayout(
     instance: BulkActionBar,
     position = 'topEnd'
 ): void {
+    console.warn(
+        'applyBulkActionsLayout() is deprecated and removed in 2.0. Use installBulkActionBar() instead.'
+    )
     applyFeatureLayout(payload, 'bulkActions', { bulkActions: { instance } }, { position })
 }

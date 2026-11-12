@@ -67,7 +67,13 @@ export async function confirmAction(request: ConfirmRequest): Promise<boolean> {
 /**
  * @deprecated since 1.2, use confirmAction() instead. Removed in 2.0.
  */
-export const confirmBulkAction = confirmAction
+export function confirmBulkAction(...args: Parameters<typeof confirmAction>) {
+    console.warn(
+        'confirmBulkAction() is deprecated and removed in 2.0. Use confirmAction() instead.'
+    )
+
+    return confirmAction(...args)
+}
 
 function buildHtml(request: ConfirmRequest): string {
     const message = escapeHtml(request.message)
