@@ -88,13 +88,13 @@ npm ci
 To contribute code:
 
 1. Fork the repository.
-2. Create a branch from `main`.
+2. Create a branch from `1.x` for bug fixes, or from `2.x` for new features and breaking changes.
 3. Make your changes.
 4. Add or update tests when applicable.
 5. Update documentation when changing user-facing behavior.
 6. Run the relevant checks locally.
 7. Push your branch.
-8. Open a pull request against `main`.
+8. Open a pull request against the branch you started from.
 
 Keep pull requests focused on one concern whenever possible.
 
