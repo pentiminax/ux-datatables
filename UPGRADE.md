@@ -37,7 +37,10 @@ related entity per row. Rows, counts and the JSON payload are identical, and the
 per draw no longer grows with the page length. An application that relied on the related entity
 being a lazy proxy (an `instanceof Proxy` check, or a `postLoad` listener on the related entity
 firing later) sees it loaded earlier. A join you add in `customizeQueryBuilder()` is reused when it
-is a plain `LEFT JOIN`; a join with a condition, or an `INNER JOIN`, is left alone.
+is a plain `LEFT JOIN` or when your query already selects its alias; any other join with a
+condition, or `INNER JOIN`, is left alone. A query made DISTINCT in `customizeQueryBuilder()` gets
+no fetch join (PostgreSQL cannot compare json columns under `SELECT DISTINCT`), so its related
+entities still load lazily.
 
 ### Ajax data and export refuse an API Platform table without a collection
 

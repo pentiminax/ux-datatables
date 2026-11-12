@@ -158,6 +158,30 @@ final class DoctrineDataProviderReadPathBudgetTest extends TestCase
     }
 
     #[Test]
+    public function a_selected_inner_join_by_the_hook_is_reused_without_a_second_join(): void
+    {
+        $joined = static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->innerJoin('e.customer', 'c', 'WITH', 'c.id > 20')
+            ->addSelect('c');
+
+        $rows = iterator_to_array($this->provider($joined)->fetchData($this->request(30))->data);
+
+        $this->assertSame('Customer 21', $rows[0]['customer']);
+        $this->assertSame(1, substr_count($this->pageStatement(), 'count_customer'));
+    }
+
+    #[Test]
+    public function a_distinct_query_gets_no_fetch_join(): void
+    {
+        $distinct = static fn (QueryBuilder $qb): QueryBuilder => $qb->distinct();
+
+        $rows = iterator_to_array($this->provider($distinct)->fetchData($this->request(30))->data);
+
+        $this->assertSame(['number' => 'INV-1', 'customer' => 'Customer 1', 'region' => 'Region 1'], $rows[0]);
+        $this->assertStringNotContainsString('JOIN', $this->pageStatement());
+    }
+
+    #[Test]
     public function ordering_by_a_relation_column_issues_a_single_count(): void
     {
         $ordered = static function (QueryBuilder $qb): QueryBuilder {
@@ -354,6 +378,18 @@ final class DoctrineDataProviderReadPathBudgetTest extends TestCase
     private function statementsCount(): int
     {
         return \count($this->statements);
+    }
+
+    private function pageStatement(): string
+    {
+        $pages = array_values(array_filter(
+            $this->statements,
+            static fn (string $sql): bool => str_contains($sql, 'FROM count_invoice') && !str_contains($sql, 'COUNT('),
+        ));
+
+        $this->assertCount(1, $pages);
+
+        return $pages[0];
     }
 
     private function countStatements(bool $distinct = false): int
