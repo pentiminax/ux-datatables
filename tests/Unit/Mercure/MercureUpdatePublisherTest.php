@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Unit\Mercure;
 
+use Pentiminax\UX\DataTables\Mercure\MercureHubUrlResolver;
 use Pentiminax\UX\DataTables\Mercure\MercureUpdatePublisher;
+use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
+use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
+use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -20,6 +26,8 @@ use Symfony\Component\Mercure\Update;
 #[CoversClass(MercureUpdatePublisher::class)]
 final class MercureUpdatePublisherTest extends TestCase
 {
+    use CollectsDeprecations;
+
     /**
      * @param array<string, mixed> $data
      */
@@ -136,7 +144,7 @@ final class MercureUpdatePublisherTest extends TestCase
             ->willReturn('urn:uuid:abcd');
 
         $publisher = new MercureUpdatePublisher($hub);
-        $publisher->publishForDataTable($table, ['action' => 'updated']);
+        $this->deprecationsOf(static fn () => $publisher->publishForDataTable($table, ['action' => 'updated']));
     }
 
     #[Test]
@@ -154,7 +162,7 @@ final class MercureUpdatePublisherTest extends TestCase
             ->willReturn('urn:uuid:topics');
 
         $publisher = new MercureUpdatePublisher($hub);
-        $publisher->publishForDataTable($table, ['action' => 'updated']);
+        $this->deprecationsOf(static fn () => $publisher->publishForDataTable($table, ['action' => 'updated']));
     }
 
     #[Test]
@@ -169,6 +177,41 @@ final class MercureUpdatePublisherTest extends TestCase
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('The DataTable does not have Mercure configured.');
 
-        $publisher->publishForDataTable($table);
+        $this->deprecationsOf(static fn () => $publisher->publishForDataTable($table));
+    }
+
+    #[Test]
+    public function it_deprecates_publishing_from_a_prepared_datatable(): void
+    {
+        $publisher = new MercureUpdatePublisher($this->createStub(HubInterface::class));
+        $table     = (new DataTable('ProductDataTable'))->mercure();
+
+        $deprecations = $this->deprecationsOf(static fn () => $publisher->publishForDataTable($table));
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('pass the "'.AbstractDataTable::class.'" instead', $deprecations[0]);
+    }
+
+    #[Test]
+    public function it_publishes_for_an_abstract_datatable_without_a_deprecation(): void
+    {
+        $hub = $this->createMock(HubInterface::class);
+        $hub->expects($this->once())
+            ->method('publish')
+            ->with($this->callback(static fn (Update $update): bool => ['/api/products/{id}'] === $update->getTopics()))
+            ->willReturn('urn:uuid:abstract');
+
+        $publisher      = new MercureUpdatePublisher($hub);
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
+
+        $table = new ConfigurableDataTable([], configureTable: static fn (DataTable $table): DataTable => $table->serverSide()->mercure(topics: ['/api/products/{id}']));
+        $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            renderingPreparer: new RenderingPreparer(mercureHubUrlResolver: $hubUrlResolver),
+        ));
+
+        $deprecations = $this->deprecationsOf(static fn () => $publisher->publishForDataTable($table, ['action' => 'updated']));
+
+        $this->assertSame([], $this->withoutAuthorizationFallback($deprecations));
     }
 }

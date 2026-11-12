@@ -77,6 +77,14 @@ it exhaustively must handle them: add the two cases or a `default` arm.
 - A data provider that does not implement `FeatureAwareDataProviderInterface` is deprecated: the
   bundle assumes it supports every query feature, and 2.0 requires `supports()`. Implement
   `FeatureAwareDataProviderInterface`.
+- `AbstractDataTable::getDataTable()` and `prepareForRendering()` mutate the table while preparing it
+  for rendering. Use `getConfiguredDataTable()` to read the table and `render_datatable()` to render
+  it.
+- `MercureUpdatePublisher::publishForDataTable()` with a prepared `DataTable` is deprecated. Pass the
+  `AbstractDataTable` instead: `publishForDataTable($table)` rather than
+  `publishForDataTable($table->getDataTable())`.
+- `DataTable::apiPlatformServerSide()` is deprecated: the bundle sets the flag itself when a table
+  needs it, so remove the call.
 - Every user-facing `setX()` method of columns, actions, bulk actions, table options and the table
   model gains a bare `x()` method with the same arguments, and `setX()` is deprecated. Rename the
   calls, for example `setTitle('Name')` becomes `title('Name')`. Getters, `@internal` methods and
@@ -111,6 +119,13 @@ it exhaustively must handle them: add the two cases or a `default` arm.
 - `#[AsDataTable(apiPlatform: true)]` combined with `apiPlatform(false)` still opts in, and logs a
   deprecation: 2.0 lets the fluent value win. Remove one of the two. A blank `editModalTemplate` or
   `editModalAdapter` now counts as unset on the page as well as on the edit route.
+
+### The option bag returns only DataTables.net options in 2.0
+
+`DataTable::getOption()` and `getOptions()` also return bundle keys today (`apiPlatform`,
+`apiPlatformServerSide`, `mercure`, `bulkActions`, ...). 2.0 returns only DataTables.net options, and
+the bundle keys live on the prepared payload. No notice can be raised for a read, so check code that
+reads a bundle key from the option bag and read the table configuration instead.
 
 ### Doctrine ORM 3.3 and OpenSpout 4.13 are the tested floors
 

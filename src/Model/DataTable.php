@@ -577,8 +577,20 @@ class DataTable
      *
      * Template, action and URL columns need the source entity, which only the server has. The
      * Stimulus adapter stands down and the table behaves as an ordinary server-side table.
+     *
+     * @deprecated since 1.6, the bundle sets this flag itself when the table needs it, so stop calling it. Removed in 2.0.
      */
     public function apiPlatformServerSide(bool $enabled = true): static
+    {
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, the bundle sets this flag itself when the table needs it, so stop calling it. Removed in 2.0.', __METHOD__);
+
+        return $this->markApiPlatformServerSide($enabled);
+    }
+
+    /**
+     * @internal
+     */
+    public function markApiPlatformServerSide(bool $enabled = true): static
     {
         $this->options->set('apiPlatformServerSide', $enabled);
 

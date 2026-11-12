@@ -102,14 +102,14 @@ final class AsDataTableTest extends TestCase
 
         $table = new $tableClass(apiResourceCollectionUrlResolver: $resolver);
 
-        $table->prepareForRendering();
+        $table->prepareDataTableForRendering();
 
         $this->assertSame([
             'type' => 'GET',
             'url'  => '/api/books',
-        ], $table->getDataTable()->getOption('ajax'));
+        ], $table->prepareDataTableForRendering()->getOption('ajax'));
 
-        $this->assertTrue($table->getDataTable()->getOption('apiPlatform'));
+        $this->assertTrue($table->prepareDataTableForRendering()->getOption('apiPlatform'));
     }
 
     public static function provideApiPlatformTables(): iterable
@@ -127,14 +127,14 @@ final class AsDataTableTest extends TestCase
 
         $table = new TestDataTableWithManualAjax(apiResourceCollectionUrlResolver: $resolver);
 
-        $table->prepareForRendering();
+        $table->prepareDataTableForRendering();
 
         $this->assertSame([
             'type' => 'GET',
             'url'  => '/custom-endpoint',
-        ], $table->getDataTable()->getOption('ajax'));
+        ], $table->prepareDataTableForRendering()->getOption('ajax'));
 
-        $this->assertFalse($table->getDataTable()->getOption('apiPlatform') ?? false);
+        $this->assertFalse($table->prepareDataTableForRendering()->getOption('apiPlatform') ?? false);
     }
 
     #[Test]
@@ -145,9 +145,9 @@ final class AsDataTableTest extends TestCase
 
         $table = new TestDataTableWithData(apiResourceCollectionUrlResolver: $resolver);
 
-        $table->prepareForRendering();
+        $table->prepareDataTableForRendering();
 
-        $this->assertNull($table->getDataTable()->getOption('ajax'));
+        $this->assertNull($table->prepareDataTableForRendering()->getOption('ajax'));
     }
 
     #[Test]
@@ -158,9 +158,9 @@ final class AsDataTableTest extends TestCase
 
         $table = new TestDataTableWithoutAttribute(apiResourceCollectionUrlResolver: $resolver);
 
-        $table->prepareForRendering();
+        $table->prepareDataTableForRendering();
 
-        $this->assertNull($table->getDataTable()->getOption('ajax'));
+        $this->assertNull($table->prepareDataTableForRendering()->getOption('ajax'));
     }
 
     #[Test]
@@ -168,9 +168,9 @@ final class AsDataTableTest extends TestCase
     {
         $table = new TestDataTableWithAttribute();
 
-        $table->prepareForRendering();
+        $table->prepareDataTableForRendering();
 
-        $this->assertNull($table->getDataTable()->getOption('ajax'));
+        $this->assertNull($table->prepareDataTableForRendering()->getOption('ajax'));
     }
 
     /**
@@ -193,17 +193,17 @@ final class AsDataTableTest extends TestCase
 
         $table = new $tableClass(mercureConfigResolver: $resolver);
 
-        $table->prepareForRendering();
+        $table->prepareDataTableForRendering();
 
         $this->assertSame([
             'type' => 'GET',
             'url'  => $ajaxUrl,
-        ], $table->getDataTable()->getOption('ajax'));
+        ], $table->prepareDataTableForRendering()->getOption('ajax'));
 
         $this->assertSame([
             'hubUrl' => 'http://localhost/.well-known/mercure',
             'topics' => $topics,
-        ], $table->getDataTable()->getOptions()['mercure']);
+        ], $table->prepareDataTableForRendering()->getOptions()['mercure']);
     }
 
     public static function provideAutoConfiguredMercureTables(): iterable
@@ -235,12 +235,12 @@ final class AsDataTableTest extends TestCase
             mercureHubUrlResolver: $hubUrlResolver,
         );
 
-        $table->prepareForRendering();
+        $table->prepareDataTableForRendering();
 
         $this->assertSame([
             'hubUrl' => '/.well-known/mercure',
             'topics' => ['https://example.com/books'],
-        ], $table->getDataTable()->getOptions()['mercure']);
+        ], $table->prepareDataTableForRendering()->getOptions()['mercure']);
     }
 
     #[Test]
@@ -251,9 +251,9 @@ final class AsDataTableTest extends TestCase
 
         $table = new TestDataTableWithMercureAndData(mercureConfigResolver: $resolver);
 
-        $table->prepareForRendering();
+        $table->prepareDataTableForRendering();
 
-        $this->assertArrayNotHasKey('mercure', $table->getDataTable()->getOptions());
+        $this->assertArrayNotHasKey('mercure', $table->prepareDataTableForRendering()->getOptions());
     }
 
     #[Test]
@@ -270,12 +270,12 @@ final class AsDataTableTest extends TestCase
             mercureHubUrlResolver: $hubUrlResolver,
         );
 
-        $table->prepareForRendering();
+        $table->prepareDataTableForRendering();
 
         $this->assertSame([
             'hubUrl' => '/.well-known/mercure',
             'topics' => ['manual/topic'],
-        ], $table->getDataTable()->getOptions()['mercure']);
+        ], $table->prepareDataTableForRendering()->getOptions()['mercure']);
     }
 
     #[Test]
@@ -352,10 +352,10 @@ final class AsDataTableTest extends TestCase
     {
         $table = new TestDataTableWithEditModalAttribute();
 
-        $table->prepareForRendering();
+        $table->prepareDataTableForRendering();
 
-        $this->assertSame('bs5', $table->getDataTable()->getEditModalAdapter());
-        $this->assertSame('datatables/attribute_edit_modal.html.twig', $table->getDataTable()->getEditModalTemplate());
+        $this->assertSame('bs5', $table->prepareDataTableForRendering()->getEditModalAdapter());
+        $this->assertSame('datatables/attribute_edit_modal.html.twig', $table->prepareDataTableForRendering()->getEditModalTemplate());
     }
 
     #[Test]
@@ -363,10 +363,10 @@ final class AsDataTableTest extends TestCase
     {
         $table = new FluentEditModalOverrideDataTable();
 
-        $table->prepareForRendering();
+        $table->prepareDataTableForRendering();
 
-        $this->assertSame('dt', $table->getDataTable()->getEditModalAdapter());
-        $this->assertSame('fluent.html.twig', $table->getDataTable()->getEditModalTemplate());
+        $this->assertSame('dt', $table->prepareDataTableForRendering()->getEditModalAdapter());
+        $this->assertSame('fluent.html.twig', $table->prepareDataTableForRendering()->getEditModalTemplate());
     }
 
     #[Test]

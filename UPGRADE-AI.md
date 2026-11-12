@@ -124,6 +124,16 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
    `apiPlatform()` is supported and needs no change. `#[AsDataTable(apiPlatform: true)]` combined
    with `apiPlatform(false)`: remove one, as 2.0 lets the fluent `false` win.
 
+10. Replace the deprecated rendering entry points and flags.
+
+    - `$table->getDataTable()` or `$table->prepareForRendering()` on an `AbstractDataTable`: read
+      with `$table->getConfiguredDataTable()`, render with `render_datatable()`.
+    - `$publisher->publishForDataTable($table->getDataTable(), $data)`: pass the table itself,
+      `$publisher->publishForDataTable($table, $data)`.
+    - `->apiPlatformServerSide()` on a `DataTable`: delete the call, the bundle sets the flag.
+    - Code reading bundle keys (`apiPlatform`, `mercure`, `bulkActions`) through `getOption()` or
+      `getOptions()`: 2.0 returns DataTables.net options only, no notice is raised for it.
+
 ## Optional changes
 
 1. `#[DataTableColumn(...)]` attribute options need no change: they resolve to the bare methods and

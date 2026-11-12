@@ -36,6 +36,7 @@ use Pentiminax\UX\DataTables\Model\Summary\Sum;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Runtime\SearchListOptionsResolver;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsAjaxRegistry;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -72,6 +73,7 @@ enum RenderingPreparerSearchListStatus: string implements TranslatableInterface
 #[CoversClass(RenderingPreparer::class)]
 final class RenderingPreparerTest extends TestCase
 {
+    use CollectsDeprecations;
     use BuildsAjaxRegistry;
 
     private const TABLE_CLASS = 'App\\DataTables\\UserDataTable';
@@ -254,8 +256,9 @@ final class RenderingPreparerTest extends TestCase
             ->setDataTableClass(self::TABLE_CLASS)
             ->columns($columns);
 
-        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+        $deprecations = $this->deprecationsOf(static fn () => $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true)));
 
+        $this->assertSame([], $this->withoutAuthorizationFallback($deprecations));
         $this->assertCount($expectsServerSide ? 1 : 0, array_keys($generated, 'ux_datatables_ajax_data', true));
         $this->assertTrue($table->getOption('apiPlatform'));
 
