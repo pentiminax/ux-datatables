@@ -12,7 +12,10 @@ use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
  * The bundle refuses a request that uses a feature the provider does not support, instead of letting
  * the provider answer unfiltered: SearchBuilder criteria, ColumnControl searches and configured
  * filter values get HTTP 400, and a table that declares summaries raises a \LogicException. A
- * provider that does not implement this interface is assumed to support every feature.
+ * provider that does not implement this interface is assumed to support every query feature, which
+ * 2.0 no longer allows. Row scope and identifier collection are not query features: they follow
+ * {@see IdentifierDataProviderInterface}, whose implementer is trusted to cover both unless it
+ * declares otherwise here.
  */
 interface FeatureAwareDataProviderInterface
 {

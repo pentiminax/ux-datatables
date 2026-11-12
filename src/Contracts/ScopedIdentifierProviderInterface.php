@@ -11,6 +11,8 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
  *
  * Used by the bulk endpoint to refuse identifiers the browser sent for rows the table could never
  * have displayed, such as another tenant's rows in a table scoped through customizeQueryBuilder().
+ *
+ * @deprecated since 1.6, use IdentifierDataProviderInterface and declare DataSourceFeature::RowScope in supports() instead. Removed in 2.0.
  */
 interface ScopedIdentifierProviderInterface
 {

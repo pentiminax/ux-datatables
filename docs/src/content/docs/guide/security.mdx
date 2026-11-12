@@ -264,19 +264,23 @@ scope covers:
     ['Reading rows (paging, search, order, filters)', 'Yes'],
     [
       'Bulk "select all matching"',
-      'Built-in Doctrine provider: yes. A custom provider implementing IdentifierCollectingDataProviderInterface must enforce the scope itself; any other provider rejects select-all',
+      'Built-in Doctrine provider: yes. A custom provider implementing IdentifierDataProviderInterface and declaring DataSourceFeature::IdentifierCollection must enforce the scope itself; any other provider rejects select-all',
     ],
     [
       'Bulk explicit selection, built-in Doctrine provider',
       'Yes: identifiers outside the scope are skipped',
     ],
     [
-      'Bulk explicit selection, custom provider without ScopedIdentifierProviderInterface or API Platform table',
-      'No: the handler receives every identifier that exists',
+      'Bulk explicit selection, custom provider that does not declare DataSourceFeature::RowScope, or API Platform table',
+      'No: the handler receives every identifier that exists. Deprecated in 1.6, refused in 2.0 unless the table calls unscopedMutations()',
     ],
     [
       'Single-row delete, boolean toggle on the table entity, edit form, detail row, built-in Doctrine provider',
       'Yes: an id outside the scope answers 404, like a missing row. Forwarded query parameters are replayed, so a scope reading them matches the listing',
+    ],
+    [
+      'Single-row delete, toggle, edit form, detail row, provider that does not declare DataSourceFeature::RowScope, or API Platform table',
+      'No: deprecated in 1.6, refused in 2.0 unless the table calls unscopedMutations()',
     ],
     [
       'Boolean toggle on a column of another entity (setEntityClass())',
@@ -288,6 +292,21 @@ scope covers:
     ],
   ]}
 />
+
+A data provider that cannot check the row scope leaves every row action and bulk action on an
+unscoped table. Since 1.6 this is deprecated and 2.0 refuses it. Implement
+`IdentifierDataProviderInterface` and declare `DataSourceFeature::RowScope` in `supports()`, or, when
+the scope is enforced elsewhere (an API Platform extension, a voter), say so on the table:
+
+```php
+public function configureDataTable(DataTable $table): DataTable
+{
+    return $table->unscopedMutations();
+}
+```
+
+`unscopedMutations()` silences the deprecation and keeps the mutations working in 2.0. It does not
+add any check: the scope is yours to enforce.
 
 Bulk actions never re-authorize rows on their own: a row is re-checked **only** when the action
 declares a per-row permission (`setPermission($attribute, $subjectResolver)`). See

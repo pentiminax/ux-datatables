@@ -46,6 +46,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountAccount;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Security\TestAuthorizationChecker;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsRowActionGate;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -70,6 +71,7 @@ final class RowScopeGuardTest extends TestCase
 {
     use BuildsEntityManager;
     use BuildsRowActionGate;
+    use CollectsDeprecations;
 
     private const SECRET = 'test-secret';
 
@@ -114,8 +116,25 @@ final class RowScopeGuardTest extends TestCase
     {
         $table = new ResolvedDataTable(new ScopedAccountDataTable($this->createStub(DataProviderInterface::class)), CountAccount::class, ScopedAccountDataTable::class);
 
-        $this->guard()->assertInScope($table, 3);
-        $this->addToAssertionCount(1);
+        $deprecations = $this->scopeDeprecationsOf(fn () => $this->guard()->assertInScope($table, 3));
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('does not support the "rowScope" feature: 2.0 refuses the request', $deprecations[0]);
+        $this->assertStringContainsString('unscopedMutations()', $deprecations[0]);
+    }
+
+    #[Test]
+    public function it_stays_quiet_when_the_table_opts_out_of_the_scope_check(): void
+    {
+        $table = new ResolvedDataTable(new ScopedAccountDataTable($this->createStub(DataProviderInterface::class), unscopedMutations: true), CountAccount::class, ScopedAccountDataTable::class);
+
+        $this->assertSame([], $this->scopeDeprecationsOf(fn () => $this->guard()->assertInScope($table, 3)));
+    }
+
+    #[Test]
+    public function it_raises_nothing_for_the_doctrine_provider(): void
+    {
+        $this->assertSame([], $this->scopeDeprecationsOf(fn () => $this->guard()->assertInScope($this->resolved(), 1)));
     }
 
     #[Test]
@@ -307,6 +326,14 @@ final class RowScopeGuardTest extends TestCase
         return $request;
     }
 
+    /**
+     * @return list<string>
+     */
+    private function scopeDeprecationsOf(callable $call): array
+    {
+        return $this->withoutAuthorizationFallback($this->deprecationsOf($call));
+    }
+
     private function resolved(): ResolvedDataTable
     {
         return $this->registry->resolveAction($this->actionToken());
@@ -377,13 +404,13 @@ final class RowScopeGuardTest extends TestCase
 #[AsDataTable(entityClass: CountAccount::class)]
 final class ScopedAccountDataTable extends AbstractDataTable
 {
-    public function __construct(private readonly DataProviderInterface $dataProvider)
+    public function __construct(private readonly DataProviderInterface $dataProvider, private readonly bool $unscopedMutations = false)
     {
     }
 
     public function configureDataTable(DataTable $table): DataTable
     {
-        return $table->serverSide();
+        return $table->serverSide()->unscopedMutations($this->unscopedMutations);
     }
 
     public function configureColumns(): iterable

@@ -8,7 +8,7 @@ the application working on the next major version. Optional changes are safe to 
 
 <upgrade-prompt version="1.6">
 
-Context: ux-datatables 1.6 is backward compatible except for one API Platform behavior change (required change 6). It adds a bare fluent method for every
+Context: ux-datatables 1.6 is backward compatible except for one API Platform behavior change (required change 7). It adds a bare fluent method for every
 user-facing `setX()` on columns, actions, bulk actions, table options and the table model, and
 deprecates the `setX()` spelling. 2.0 removes the `setX()` methods. After this change, running the
 test suite and the application must log no `pentiminax/ux-datatables` deprecation.
@@ -89,10 +89,34 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
    $table->styleFramework(StyleFramework::Bootstrap5);
    ```
 
-6. For a table opted into API Platform (`#[AsDataTable(apiPlatform: true)]` or `apiPlatform()`)
+7. For a table opted into API Platform (`#[AsDataTable(apiPlatform: true)]` or `apiPlatform()`)
    whose entity exposes no collection operation, the Ajax data and export endpoints now answer 404
    and no export URL is rendered, as render already read no rows. Expose a collection operation on
    the entity, or drop `apiPlatform`.
+8. Fix every custom data provider (a class implementing `DataProviderInterface`) and every table
+   that logs a `pentiminax/ux-datatables` deprecation about the row scope, the export or feature
+   awareness. The built-in `DoctrineDataProvider` needs no change.
+
+   - Provider implements `ScopedIdentifierProviderInterface` and/or
+     `IdentifierCollectingDataProviderInterface`: implement `IdentifierDataProviderInterface`
+     instead (`collectIdentifiers()` and `filterIdentifiersInScope()`, same signatures), and return
+     `true` from `supports()` for `DataSourceFeature::RowScope` and
+     `DataSourceFeature::IdentifierCollection`.
+   - Provider does not implement `FeatureAwareDataProviderInterface`: implement it and answer
+     `supports()` for each `DataSourceFeature` case, with a `default` arm or all six cases when
+     using `match`.
+   - Provider does not implement `StreamingDataProviderInterface`: implement `iterateRows()`.
+   - Table logs "skips the row scope check" and its provider cannot check the scope (API Platform
+     table, array or custom provider on a table with row actions, toggles, edit, detail or bulk
+     actions): when the scope is enforced elsewhere, add `unscopedMutations()` to the table.
+     Otherwise give the provider the identifier interface above.
+
+   ```php
+   public function configureDataTable(DataTable $table): DataTable
+   {
+       return $table->unscopedMutations();
+   }
+   ```
 
 ## Optional changes
 

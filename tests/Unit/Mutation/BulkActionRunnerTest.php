@@ -11,11 +11,14 @@ use Doctrine\Persistence\ManagerRegistry;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Exception\InvalidBulkSelectionException;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
 use Pentiminax\UX\DataTables\Mercure\MercureConfig;
@@ -42,6 +45,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountDocument;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountLine;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountTag;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -58,6 +62,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 final class BulkActionRunnerTest extends TestCase
 {
     use BuildsEntityManager;
+    use CollectsDeprecations;
 
     private EntityManagerInterface $em;
 
@@ -350,15 +355,101 @@ final class BulkActionRunnerTest extends TestCase
             }
         });
 
-        $result = $this->runner()->run(
-            $this->resolved($action, provider: $provider),
-            $action,
-            new BulkSelection(ids: [1, 4]),
-            new Request(),
-        );
+        $result       = null;
+        $deprecations = $this->scopeDeprecationsOf(function () use (&$result, $action, $provider): void {
+            $result = $this->runner()->run(
+                $this->resolved($action, provider: $provider),
+                $action,
+                new BulkSelection(ids: [1, 4]),
+                new Request(),
+            );
+        });
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('does not support the "rowScope" feature: 2.0 refuses the request', $deprecations[0]);
 
         $this->assertSame(['Alpha', 'Delta'], $seen);
         $this->assertSame(0, $result->skipped);
+    }
+
+    #[Test]
+    public function it_keeps_the_explicit_selection_quietly_when_the_table_opts_out_of_the_scope_check(): void
+    {
+        $action = BulkAction::new('touch')->handler(static function (BulkRecords $records): void {
+            foreach ($records as $ignored) {
+            }
+        });
+
+        $result       = null;
+        $deprecations = $this->scopeDeprecationsOf(function () use (&$result, $action): void {
+            $result = $this->runner()->run(
+                $this->resolved($action, provider: new IdentifierlessProvider(), unscopedMutations: true),
+                $action,
+                new BulkSelection(ids: [1, 4]),
+                new Request(),
+            );
+        });
+
+        $this->assertSame([], $deprecations);
+        $this->assertSame(2, $result->processed);
+    }
+
+    #[Test]
+    public function it_drops_the_ids_outside_the_scope_through_the_merged_interface_without_a_deprecation(): void
+    {
+        $provider = new ScopingProvider(declared: [DataSourceFeature::RowScope, DataSourceFeature::IdentifierCollection]);
+        $seen     = [];
+        $action   = BulkAction::new('touch')->handler(function (BulkRecords $records) use (&$seen): void {
+            foreach ($records as $customer) {
+                $seen[] = $customer->name;
+            }
+        });
+
+        $deprecations = $this->scopeDeprecationsOf(fn () => $this->runner()->run(
+            $this->resolved($action, provider: $provider),
+            $action,
+            new BulkSelection(ids: [1, 2, 4]),
+            new Request(),
+        ));
+
+        $this->assertSame([], $deprecations);
+        $this->assertSame(['Alpha', 'Delta'], $seen);
+    }
+
+    #[Test]
+    public function it_collects_every_matching_id_through_the_merged_interface(): void
+    {
+        $provider = new ScopingProvider(declared: [DataSourceFeature::RowScope, DataSourceFeature::IdentifierCollection]);
+        $action   = BulkAction::new('touch')->handler(static function (BulkRecords $records): void {
+            foreach ($records as $ignored) {
+            }
+        });
+
+        $result = $this->runner()->run(
+            $this->resolved($action, provider: $provider),
+            $action,
+            new BulkSelection(allMatching: true, query: $this->dataTablesQuery()),
+            $this->postRequest(),
+        );
+
+        $this->assertSame(2, $result->processed);
+    }
+
+    #[Test]
+    public function it_does_not_use_the_merged_interface_for_a_feature_the_provider_does_not_declare(): void
+    {
+        $provider = new ScopingProvider(declared: []);
+        $action   = BulkAction::new('touch')->handler(static fn () => null);
+
+        $deprecations = $this->scopeDeprecationsOf(function () use ($action, $provider): void {
+            $this->runner()->run($this->resolved($action, provider: $provider), $action, new BulkSelection(ids: [1, 2]), new Request());
+        });
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('"rowScope" feature', $deprecations[0]);
+
+        $this->expectException(InvalidBulkSelectionException::class);
+        $this->runner()->run($this->resolved($action, provider: $provider), $action, new BulkSelection(allMatching: true, query: $this->dataTablesQuery()), $this->postRequest());
     }
 
     #[Test]
@@ -875,6 +966,14 @@ final class BulkActionRunnerTest extends TestCase
         );
     }
 
+    /**
+     * @return list<string>
+     */
+    private function scopeDeprecationsOf(callable $call): array
+    {
+        return $this->withoutAuthorizationFallback($this->deprecationsOf($call));
+    }
+
     private function resolved(
         BulkAction $action,
         bool $withProvider = false,
@@ -882,10 +981,11 @@ final class BulkActionRunnerTest extends TestCase
         ?DataProviderInterface $provider = null,
         ?string $idField = null,
         ?callable $scope = null,
+        bool $unscopedMutations = false,
     ): ResolvedDataTable {
         $table = new ConfigurableDataTable(
             columnsConfig: [TextColumn::new('id'), TextColumn::new('name')],
-            configureTable: static fn (DataTable $table): DataTable => $table->serverSide(),
+            configureTable: static fn (DataTable $table): DataTable => $table->serverSide()->unscopedMutations($unscopedMutations),
             dataProvider: $provider ?? ($withProvider || null !== $scope ? new DoctrineDataProvider(
                 em: $this->em,
                 entityClass: CountCustomer::class,
@@ -969,5 +1069,51 @@ final class BulkActionRunnerTest extends TestCase
             'order'  => [['column' => '0', 'dir' => 'asc']],
             'search' => ['value' => $search, 'regex' => 'false'],
         ];
+    }
+}
+
+/**
+ * Keeps the ids 1 and 4 in scope and names the rows 1 and 4, through the merged interface.
+ *
+ * @internal
+ */
+final class ScopingProvider implements DataProviderInterface, FeatureAwareDataProviderInterface, IdentifierDataProviderInterface
+{
+    /**
+     * @param list<DataSourceFeature> $declared
+     */
+    public function __construct(private readonly array $declared)
+    {
+    }
+
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return \in_array($feature, $this->declared, true);
+    }
+
+    public function fetchData(DataTableRequest $request): DataTableResult
+    {
+        return new DataTableResult(0, 0, []);
+    }
+
+    public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
+    {
+        return [1, 4];
+    }
+
+    public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+    {
+        return array_values(array_intersect($ids, [1, 4]));
+    }
+}
+
+/**
+ * @internal
+ */
+final class IdentifierlessProvider implements DataProviderInterface
+{
+    public function fetchData(DataTableRequest $request): DataTableResult
+    {
+        return new DataTableResult(0, 0, []);
     }
 }

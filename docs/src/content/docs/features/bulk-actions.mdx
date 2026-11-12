@@ -193,9 +193,9 @@ and ordering — not just the current page. The browser then sends the DataTable
 displaying, and the server re-runs it without pagination to resolve the identifiers, minus the rows
 unchecked afterwards.
 
-This requires a data provider implementing `IdentifierCollectingDataProviderInterface`;
-`DoctrineDataProvider` does. The provider is asked for the field the selection speaks in — the one
-written as `DT_RowId`, which `setIdField()` may point away from the primary key — so a custom
+This requires a data provider implementing `IdentifierDataProviderInterface` and declaring
+`DataSourceFeature::IdentifierCollection` in `supports()`; `DoctrineDataProvider` does. The provider
+is asked for the field the selection speaks in — the one written as `DT_RowId`, which `setIdField()` may point away from the primary key — so a custom
 implementation must answer with values from that field. A table that calls `highlightUpdates()` writes
 `DT_RowId` from its `idField` instead. Either way, that field must be a mapped, unique Doctrine field:
 the rows are loaded back by its values, so a value shared by several rows would pull in every one of
@@ -229,9 +229,10 @@ final class OrderBulkVoter extends Voter
 <Aside type="caution">
   The selection is client-side data: the browser sends row identifiers, and nothing else vouches for
   them. With the built-in Doctrine provider, the endpoint keeps only the identifiers your table's
-  own scope contains (see [Table scope](#table-scope)); a custom provider without
-  `ScopedIdentifierProviderInterface` and an API Platform table do not filter an explicit selection
-  that way. The endpoint re-authorizes the entities it loads **only** when the action declares a
+  own scope contains (see [Table scope](#table-scope)); a custom provider that does not declare
+  `DataSourceFeature::RowScope` and an API Platform table do not filter an explicit selection
+  that way, which is deprecated since 1.6 and refused in 2.0 unless the table calls
+  `unscopedMutations()`. The endpoint re-authorizes the entities it loads **only** when the action declares a
   per-row permission resolver, so declare one for every destructive bulk action. See
   [Scoping](/guide/security/#scoping). The endpoint is still an Ajax route of your application:
   protect it with your own `security.firewalls` configuration, like every other one ([Securing Ajax
@@ -264,9 +265,11 @@ client-controlled, so they are a convenience, not a boundary.
 A data provider you build yourself in `createDataProvider()` must receive the scope through its
 `configureBaseQueryBuilder` argument; without it the check covers the whole entity table.
 
-A custom data provider that does not implement `ScopedIdentifierProviderInterface`, and an API
-Platform backed table, keep the previous behavior: the handler receives every identifier that
-exists, and must scope itself.
+A custom data provider that does not declare `DataSourceFeature::RowScope`, and an API Platform
+backed table, keep the previous behavior in 1.x with a deprecation: the handler receives every
+identifier that exists, and must scope itself. 2.0 refuses the request. When the scope is enforced
+elsewhere, state it on the table with `unscopedMutations()` to silence the deprecation and keep the
+behavior in 2.0.
 
 ## Ajax Endpoints
 

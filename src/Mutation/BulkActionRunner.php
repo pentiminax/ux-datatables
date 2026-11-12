@@ -7,7 +7,6 @@ namespace Pentiminax\UX\DataTables\Mutation;
 use Doctrine\Persistence\Mapping\ClassMetadata;
 use Doctrine\Persistence\ObjectManager;
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
-use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\MercurePublisherInterface;
 use Pentiminax\UX\DataTables\Exception\InvalidBulkSelectionException;
 use Pentiminax\UX\DataTables\Highlight\HighlightConfig;
@@ -15,6 +14,7 @@ use Pentiminax\UX\DataTables\Mercure\MercureTopicResolver;
 use Pentiminax\UX\DataTables\Mercure\MutationUpdatePublisher;
 use Pentiminax\UX\DataTables\Model\BulkAction;
 use Pentiminax\UX\DataTables\RowMapper\RowIdField;
+use Pentiminax\UX\DataTables\Runtime\DataSourceCapability;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -141,7 +141,7 @@ final class BulkActionRunner
 
     /**
      * Keeps only the ids the permanent scope contains, so a forged id never reaches the handler.
-     * A provider that cannot answer keeps the ids as they are.
+     * A provider that cannot answer keeps the ids as they are, with a deprecation in 1.6.
      *
      * @param list<int|string> $ids
      *
@@ -193,7 +193,9 @@ final class BulkActionRunner
         $dataTableRequest = $table->table->getRequest();
         $provider         = $table->table->getDataProvider();
 
-        if (null === $dataTableRequest || !$provider instanceof IdentifierCollectingDataProviderInterface) {
+        $collector = DataSourceCapability::identifierCollector($provider);
+
+        if (null === $dataTableRequest || null === $collector) {
             throw InvalidBulkSelectionException::selectAllUnsupported();
         }
 
@@ -201,7 +203,7 @@ final class BulkActionRunner
         // identifier findBy() will use. Passing the raw idField() default (`id`) lets
         // DoctrineDataProvider collect a leftover `id` column while the lookup remaps to
         // the primary key, so overlapping values mutate the wrong rows.
-        $ids        = $provider->collectIdentifiers($dataTableRequest->withoutPagination(), $identifier);
+        $ids        = $collector->collectIdentifiers($dataTableRequest->withoutPagination(), $identifier);
         $deselected = array_flip(array_map($this->normalizeId(...), $selection->deselectedIds));
 
         return array_values(array_filter(
