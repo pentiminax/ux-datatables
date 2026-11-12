@@ -170,7 +170,7 @@ final class AbstractDataTableBulkActionsTest extends TestCase
     public function it_gives_every_client_side_row_an_identifier(): void
     {
         $table = $this->table();
-        $table->data([['id' => 7, 'title' => 'Heat']]);
+        $table->rows([['id' => 7, 'title' => 'Heat']]);
 
         $rows = $table->getDataTable()->getOption('data');
 

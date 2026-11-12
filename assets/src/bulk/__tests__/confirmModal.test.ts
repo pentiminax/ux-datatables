@@ -73,7 +73,14 @@ describe('confirmAction', () => {
         expect(nativeConfirm).toHaveBeenCalledWith(request.message)
     })
 
-    it('keeps the deprecated bulk alias', () => {
-        expect(confirmBulkAction).toBe(confirmAction)
+    it('keeps the deprecated bulk alias and warns about it', async () => {
+        vi.mocked(resolveModalAdapter).mockResolvedValue(null as never)
+        vi.spyOn(window, 'confirm').mockReturnValue(true)
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+        await expect(confirmBulkAction(request)).resolves.toBe(true)
+        expect(warn).toHaveBeenCalledWith(
+            expect.stringContaining('confirmBulkAction() is deprecated')
+        )
     })
 })

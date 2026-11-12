@@ -92,7 +92,7 @@ final class DataSourceFeatureGuard
         }
 
         foreach (self::QUERY_FEATURES as $feature) {
-            if ($provider->supports($feature)) {
+            if (DataSourceCapability::supports($provider, $feature)) {
                 continue;
             }
 

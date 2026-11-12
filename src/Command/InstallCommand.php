@@ -90,9 +90,12 @@ final class InstallCommand extends Command
             $written[] = $bootstrapImport;
         }
 
-        $config = $this->writePackageLoadingConfig();
+        $config = $this->writeConfig([
+            'package_loading' => 'registered',
+            'style_framework' => $style->framework()->value,
+        ]);
         if (null === $config) {
-            $io->warning('Could not edit the "data_tables" config automatically. Set "package_loading: registered" under "data_tables:" yourself.');
+            $io->warning(\sprintf('Could not edit the "data_tables" config automatically. Set "package_loading: registered" and "style_framework: %s" under "data_tables:" yourself.', $style->framework()->value));
         } else {
             $written[] = $config;
         }
@@ -290,9 +293,11 @@ final class InstallCommand extends Command
     /**
      * Line-based on purpose: symfony/yaml would drop the application's comments and formatting.
      *
+     * @param array<string, string> $values root keys to set, overwriting any existing value
+     *
      * @return string|null the file changed, null when the root key is written in a form this edit does not handle
      */
-    private function writePackageLoadingConfig(): ?string
+    private function writeConfig(array $values): ?string
     {
         $dir     = $this->projectDir.'/config/packages';
         $default = $dir.'/data_tables.yaml';
@@ -320,7 +325,7 @@ final class InstallCommand extends Command
 
         if (null === $root) {
             $prefix = '' === $source || str_ends_with($source, "\n") ? $source : $source."\n";
-            $this->write($target, $prefix."data_tables:\n    package_loading: registered\n");
+            $this->write($target, $prefix."data_tables:\n".implode('', array_map(static fn (string $key, string $value): string => "    $key: $value\n", array_keys($values), $values)));
 
             return $relative;
         }
@@ -330,7 +335,7 @@ final class InstallCommand extends Command
         }
 
         $indent = null;
-        $found  = null;
+        $found  = [];
 
         for ($i = $root + 1; $i < \count($lines); ++$i) {
             if (1 === preg_match('/^\S/', $lines[$i])) {
@@ -343,16 +348,26 @@ final class InstallCommand extends Command
 
             $indent ??= $match[1];
 
-            if (null === $found && str_starts_with($match[2], 'package_loading:') && $match[1] === $indent) {
-                $found = $i;
+            foreach ($values as $key => $value) {
+                if (!isset($found[$key]) && str_starts_with($match[2], $key.':') && $match[1] === $indent) {
+                    $found[$key] = $i;
+                }
             }
         }
 
-        if (null !== $found) {
-            $lines[$found] = preg_replace('/^(\s+package_loading:).*$/', '$1 registered', $lines[$found]);
-        } else {
+        $missing = [];
+
+        foreach ($values as $key => $value) {
+            if (isset($found[$key])) {
+                $lines[$found[$key]] = preg_replace('/^(\s+'.$key.':).*$/', '${1} '.$value, $lines[$found[$key]]);
+            } else {
+                $missing[] = ($indent ?? '    ').$key.': '.$value;
+            }
+        }
+
+        if ([] !== $missing) {
             $lines[$root] = 'data_tables:';
-            array_splice($lines, $root + 1, 0, ($indent ?? '    ').'package_loading: registered');
+            array_splice($lines, $root + 1, 0, $missing);
         }
 
         $this->write($target, implode("\n", $lines));

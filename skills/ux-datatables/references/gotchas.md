@@ -21,8 +21,8 @@ If your DB stores amounts in cents, call `->storedAsCents()`, else values are of
 ## Client-side is for small datasets (< ~5k rows)
 Client-side loads every row into the browser. For large datasets switch to `serverSide()` — otherwise initial load and memory degrade badly.
 
-## `setData()` (entity path) vs `setField()` (query path)
-`setData()` is the JSON path the front-end reads; `setField()` is the entity/query path used for server-side filtering & ordering. When displaying a joined relation, set both. Ordering/searching a column whose `field` doesn't map to a real property throws or silently no-ops.
+## Column `data()` (JSON path) vs `field()` (query path)
+`data()` is the JSON path the front-end reads; `field()` is the entity/query path used for server-side filtering & ordering. When displaying a joined relation, set both. Ordering/searching a column whose `field` doesn't map to a real property throws or silently no-ops.
 
 ## Mark non-orderable/non-searchable columns
 Computed or template columns have no DB counterpart. Set `->orderable(false)->searchable(false)` (or `->disableGlobalSearch()`) to avoid invalid query attempts.

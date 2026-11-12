@@ -35,7 +35,7 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
 - `BulkActions`: `setIdField()` → `idField()`
 - `DataTableOptions`: `setLanguage()` → `language()`, `setSearch()` → `search()`
 - `DataTable`: `setAttributes()` → `attributes()`, `setPermission()` → `permission()`, `setHighlightConfig()` → `highlightConfig()`
-- `AbstractDataTable`: `setData()` → `data()`
+- `AbstractDataTable`: `setData()` → `rows()`
 
    Before:
 
@@ -82,8 +82,8 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
    exist on `AbstractColumn`). Replace `setField()` and `setVisible()` calls with `field()` and
    `visible()`. Type hints of `ColumnInterface` in search strategies and options providers stay.
 6. Set the style framework explicitly when the page relied on stylesheet autodetection and the
-   browser console logs "The style framework was autodetected". Call `styleFramework()` on the
-   table, or install a style kit.
+   browser console logs "The style framework was autodetected". Set `data_tables.style_framework`
+   (`dt` or `bs5`) or call `styleFramework()` on the table.
 
    ```php
    $table->styleFramework(StyleFramework::Bootstrap5);

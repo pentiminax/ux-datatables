@@ -41,12 +41,51 @@ final class DataSourceCapabilityTest extends TestCase
     }
 
     #[Test]
-    public function it_falls_back_to_the_deprecated_interfaces(): void
+    public function it_falls_back_to_the_deprecated_interfaces_with_a_deprecation(): void
     {
-        $provider = new LegacyIdentifierProvider();
+        $provider     = new LegacyIdentifierProvider();
+        $deprecations = [];
 
-        $this->assertSame($provider, DataSourceCapability::rowScopeChecker($provider));
-        $this->assertSame($provider, DataSourceCapability::identifierCollector($provider));
+        set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
+            $deprecations[] = $message;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            $this->assertSame($provider, DataSourceCapability::rowScopeChecker($provider));
+            $this->assertSame($provider, DataSourceCapability::identifierCollector($provider));
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertCount(2, $deprecations);
+        $this->assertStringContainsString(ScopedIdentifierProviderInterface::class, $deprecations[0]);
+        $this->assertStringContainsString('RowScope', $deprecations[0]);
+        $this->assertStringContainsString(IdentifierCollectingDataProviderInterface::class, $deprecations[1]);
+        $this->assertStringContainsString('IdentifierCollection', $deprecations[1]);
+    }
+
+    #[Test]
+    public function it_raises_no_deprecation_for_the_doctrine_provider(): void
+    {
+        $provider     = new DoctrineDataProvider($this->createStub(EntityManagerInterface::class), \stdClass::class, $this->createStub(RowMapperInterface::class));
+        $deprecations = [];
+
+        set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
+            $deprecations[] = $message;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            DataSourceCapability::rowScopeChecker($provider);
+            DataSourceCapability::identifierCollector($provider);
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertSame([], $deprecations);
     }
 
     #[Test]

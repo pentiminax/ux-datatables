@@ -848,6 +848,9 @@ class DataTable
         return $this;
     }
 
+    /**
+     * @internal
+     */
     public function setFilters(Filters $filters): static
     {
         $this->filters              = $filters;

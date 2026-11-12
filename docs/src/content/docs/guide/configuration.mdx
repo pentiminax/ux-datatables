@@ -10,6 +10,7 @@ Configure bundle-wide defaults in `config/packages/data_tables.yaml`.
 
 ```yaml
 data_tables:
+  style_framework: dt
   max_page_length: 1000
   options:
     language: en-GB
@@ -35,6 +36,20 @@ data_tables:
     select:
       style: single
 ```
+
+## style_framework
+
+The CSS framework DataTables.net renders against: `dt` for the DataTables.net styling and the
+built-in Tailwind theme, `bs5` for Bootstrap 5. `ux-datatables:install` writes it for you. A table
+overrides it with `styleFramework()`.
+
+```yaml
+data_tables:
+  style_framework: dt
+```
+
+Left unset, the browser detects the framework from the page stylesheets and logs a console warning.
+That detection is removed in 2.0, where the default becomes `dt`.
 
 ## max_page_length
 

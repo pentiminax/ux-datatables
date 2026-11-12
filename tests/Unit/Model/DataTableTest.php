@@ -723,6 +723,14 @@ final class DataTableTest extends TestCase
     }
 
     #[Test]
+    public function a_table_style_framework_overrides_the_bundle_default(): void
+    {
+        $table = (new DataTable('users', ['styleFramework' => 'dt']))->styleFramework(StyleFramework::Bootstrap5);
+
+        $this->assertSame('bs5', $table->getOptions()['styleFramework']);
+    }
+
+    #[Test]
     public function it_has_no_style_framework_option_when_not_set(): void
     {
         $table = new DataTable('users');

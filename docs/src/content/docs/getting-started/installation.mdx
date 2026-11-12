@@ -44,7 +44,7 @@ order: 20
     ```
 
     The command registers only the DataTables packages your tables need, enables the
-    `datatable_core` controller, and sets `package_loading: registered`. See
+    `datatable_core` controller, and sets `package_loading: registered` and `style_framework`. See
     [Loading only the extensions you use](/guide/package-loading/). Skip this step to keep the 1.x
     behavior, where the `datatable` controller bundles every package.
 
@@ -71,6 +71,7 @@ data_tables:
     lengthMenu: [10, 25, 50]
     pageLength: 10
   package_loading: registered
+  style_framework: dt
   table_attributes:
     class: 'table'
   extensions:
@@ -85,6 +86,7 @@ data_tables:
   headers={['Option', 'Description']}
   rows={[
     ['package_loading', '`registered` loads only the packages you register (see the install command). Leaving it unset, or setting `builtin`, is deprecated: 2.0 removes the option and always loads the registered packages'],
+    ['style_framework', '`dt` (DataTables.net and Tailwind styles) or `bs5` (Bootstrap 5). Leaving it unset keeps stylesheet autodetection, which logs a console warning and is removed in 2.0, where the default becomes `dt`'],
     ['language', 'Default language locale (e.g., en-GB, fr-FR)'],
     ['layout', 'UI component positions (topStart, topEnd, bottomStart, bottomEnd)'],
     ['lengthMenu', 'Available page length options'],

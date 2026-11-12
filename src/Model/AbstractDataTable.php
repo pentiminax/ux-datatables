@@ -50,7 +50,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * docs/src/content/docs/reference/abstract-datatable.mdx ("Configuration Methods Must Be Pure").
  *
  * Request-dependent behavior belongs at the request-scoped boundaries instead: setPermission() on
- * columns and actions, customizeQueryBuilder() and getRequest() for the query, and setData() --
+ * columns and actions, customizeQueryBuilder() and getRequest() for the query, and rows() --
  * the sanctioned way to inject rows a controller has already resolved -- for inline data, which
  * runs them through the same row-processing pipeline a provider would use.
  */
@@ -77,6 +77,9 @@ abstract class AbstractDataTable
 
     private bool $renderingPrepared = false;
 
+    /**
+     * @internal
+     */
     final public function setDataTableInfrastructure(DataTableInfrastructure $infrastructure): void
     {
         if ($this->initialized || null !== $this->runtime) {
@@ -86,6 +89,9 @@ abstract class AbstractDataTable
         $this->infrastructure = $infrastructure;
     }
 
+    /**
+     * @internal
+     */
     final public function resetDataTableState(): void
     {
         unset($this->table, $this->columns, $this->filters);
@@ -503,7 +509,10 @@ abstract class AbstractDataTable
         );
     }
 
-    public function data(array $data): void
+    /**
+     * Maps domain objects or arrays through the row pipeline and embeds them as the table's rows.
+     */
+    public function rows(array $data): void
     {
         $this->initialize();
 
@@ -511,13 +520,13 @@ abstract class AbstractDataTable
     }
 
     /**
-     * @deprecated since 1.6, use data() instead. Removed in 2.0.
+     * @deprecated since 1.6, use rows() instead. Removed in 2.0.
      */
     public function setData(array $data): void
     {
-        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "data()" instead.', __METHOD__);
+        trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "rows()" instead.', __METHOD__);
 
-        $this->data($data);
+        $this->rows($data);
     }
 
     /**

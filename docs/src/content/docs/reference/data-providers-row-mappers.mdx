@@ -279,7 +279,7 @@ protected function createDataProvider(): ?DataProviderInterface
 ```
 
 `$this->createRowMapper()` is the important part: it preserves the same mapping, template
-rendering, and action-resolution behavior as the built-in Doctrine provider. `setData()` on
+rendering, and action-resolution behavior as the built-in Doctrine provider. `rows()` on
 `AbstractDataTable` uses that same pipeline for inline rows.
 
 ## Page Projection

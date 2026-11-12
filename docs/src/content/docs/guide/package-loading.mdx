@@ -77,7 +77,7 @@ The command is idempotent. To change the selection, run it again with the new li
     ['`assets/datatables.js`', 'Generated, one `packageLoaders.register()` call per package. Do not edit it.'],
     ['`assets/stimulus_bootstrap.js` or `assets/bootstrap.js`', 'Adds `import \'./datatables.js\'` so registration runs before the Stimulus app starts.'],
     ['`assets/controllers.json`', 'Enables `datatable_core`, disables `datatable`, and sets the `autoimport` flags of the chosen style.'],
-    ['`config/packages/data_tables.yaml`', 'Sets `package_loading: registered`.'],
+    ['`config/packages/data_tables.yaml`', 'Sets `package_loading: registered` and `style_framework` (`dt`, or `bs5` for the Bootstrap 5 style), replacing existing values.'],
     ['`importmap.php` (AssetMapper)', 'Adds the entry for `dist/core.js`, the DataTables stylesheet of the chosen style, and the packages you registered.'],
   ]}
 />
@@ -118,6 +118,7 @@ You do not need the command. Three files carry the whole setup.
     ```yaml
     data_tables:
         package_loading: registered # builtin | registered
+        style_framework: dt # dt | bs5
     ```
 
     In debug mode, an explicit value that contradicts `assets/controllers.json` fails the

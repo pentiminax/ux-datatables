@@ -23,8 +23,8 @@ command. To rename everything with an AI coding agent, give it [UPGRADE-AI.md](U
 ### Subclasses of columns and tables
 
 The bare methods are new public methods on `AbstractColumn`, the concrete columns, `AbstractDataTable`
-(`data()`), `Action`, `BulkAction` and the table options. A subclass that already declares a method
-with one of these names (`data()`, `name()`, `type()`, `title()`, `format()`, `template()`,
+(`rows()`), `Action`, `BulkAction` and the table options. A subclass that already declares a method
+with one of these names (`rows()`, `data()`, `name()`, `type()`, `title()`, `format()`, `template()`,
 `choices()`, ...) must rename it or match the new signature. A subclass that overrides a deprecated
 `setX()` must override `x()` instead: the bundle now calls `x()`, so the override is no longer
 reached.
@@ -54,9 +54,10 @@ on your own authorization:
 
 `DataSourceFeature` gains the cases `RowScope` and `IdentifierCollection`. The bundle never passes
 them to `supports()` as part of its query-feature checks, and it catches the `\UnhandledMatchError`
-of a `supports()` written as an exhaustive `match` without a default, treating the new cases as
-unsupported. Your own code that iterates `DataSourceFeature::cases()` or matches on it exhaustively
-must handle them: add the two cases or a `default` arm.
+of a `supports()` written as an exhaustive `match` without a default. An unknown case counts as
+unsupported everywhere, query features included, and that stays true in 2.0: a request using it is
+refused instead of crashing. Your own code that iterates `DataSourceFeature::cases()` or matches on
+it exhaustively must handle them: add the two cases or a `default` arm.
 
 ### Deprecations
 
@@ -66,9 +67,11 @@ must handle them: add the two cases or a `default` arm.
   in `supports()`, or call `unscopedMutations()` on the table when the scope is enforced elsewhere,
   typically an API Platform table. The built-in Doctrine provider is already scoped.
 - `ScopedIdentifierProviderInterface` is deprecated, use `IdentifierDataProviderInterface` and
-  declare `DataSourceFeature::RowScope` in `supports()`.
+  declare `DataSourceFeature::RowScope` in `supports()`. A provider still answering through it
+  logs a deprecation.
 - `IdentifierCollectingDataProviderInterface` is deprecated, use `IdentifierDataProviderInterface` and
-  declare `DataSourceFeature::IdentifierCollection` in `supports()`.
+  declare `DataSourceFeature::IdentifierCollection` in `supports()`. A provider still answering
+  through it logs a deprecation.
 - Exporting through a data provider that does not implement `StreamingDataProviderInterface` is
   deprecated, and 2.0 requires `iterateRows()`. Implement `StreamingDataProviderInterface`.
 - A data provider that does not implement `FeatureAwareDataProviderInterface` is deprecated: the
@@ -78,6 +81,10 @@ must handle them: add the two cases or a `default` arm.
   model gains a bare `x()` method with the same arguments, and `setX()` is deprecated. Rename the
   calls, for example `setTitle('Name')` becomes `title('Name')`. Getters, `@internal` methods and
   `#[DataTableColumn(...)]` attribute options are unchanged.
+- An attribute option that a custom column only accepts through its own `setFoo()` method logs a
+  deprecation, and 2.0 calls only `foo()`. Add a `foo()` method to the column.
+- The deprecated frontend modules and `confirmBulkAction()` from 1.2 now log a console warning
+  when imported or called.
 - `DataTable::setExtensions()` replaces the whole extension collection and has no replacement.
   Declare extensions with `extensions([...])`.
 - `Action::csrfTokenId()` is deprecated, use `csrfToken()`.
@@ -90,8 +97,10 @@ must handle them: add the two cases or a `default` arm.
   stays as the read-only type of search strategies and SearchList options providers.
 - A bundle service built by hand without an authorization checker falls back to a checker without Symfony Security,
   which 2.0 removes. Pass an `AuthorizationChecker`. Services from the container are not affected.
-- Stylesheet autodetection of the style framework logs a console warning once per page, and 2.0
-  removes it. Call `styleFramework()` on the table or install a style kit.
+- Stylesheet autodetection of the style framework logs a console warning once per page, in
+  registered and built-in package loading alike, and 2.0 removes it: the default becomes `dt`.
+  Set `data_tables.style_framework` to `dt` or `bs5`, call `styleFramework()` on the table, or
+  re-run `bin/console ux-datatables:install`, which now writes the key.
 
 ### Doctrine ORM 3.3 and OpenSpout 4.13 are the tested floors
 

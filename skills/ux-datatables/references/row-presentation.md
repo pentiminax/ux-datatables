@@ -25,7 +25,7 @@ public function configureDataTable(DataTable $table): DataTable
 
 ## `rowClass(callable $resolver)`
 
-Receives the source row (the entity for Doctrine) and returns CSS classes for the `<tr>` (emitted as `DT_RowClass`), or `null`. Split on whitespace and de-duplicated; a class set in `mapRow()` is kept. Works for server-side, API Platform via the bundle's Ajax endpoint, and client-side `setData()`. Does not apply when the browser reads a Hydra collection directly (no PHP row).
+Receives the source row (the entity for Doctrine) and returns CSS classes for the `<tr>` (emitted as `DT_RowClass`), or `null`. Split on whitespace and de-duplicated; a class set in `mapRow()` is kept. Works for server-side, API Platform via the bundle's Ajax endpoint, and client-side `AbstractDataTable::rows()`. Does not apply when the browser reads a Hydra collection directly (no PHP row).
 
 ## `recordUrl(callable $resolver)`
 

@@ -302,6 +302,32 @@ final class DataSourceFeatureGuardTest extends TestCase
     }
 
     #[Test]
+    public function it_treats_a_feature_the_supports_match_does_not_know_as_unsupported(): void
+    {
+        $provider = new class implements DataProviderInterface, FeatureAwareDataProviderInterface {
+            public function supports(DataSourceFeature $feature): bool
+            {
+                return match ($feature) {
+                    DataSourceFeature::SearchBuilder, DataSourceFeature::ColumnControl, DataSourceFeature::Summaries => true,
+                };
+            }
+
+            public function fetchData(DataTableRequest $request): DataTableResult
+            {
+                return new DataTableResult(recordsTotal: 0, recordsFiltered: 0, data: []);
+            }
+        };
+
+        $runtime = $this->runtime($provider);
+        $runtime->handleRequest(new Request(query: ['draw' => 1, 'filters' => ['status' => 'active']]));
+
+        $this->expectException(BadRequestHttpException::class);
+        $this->expectExceptionMessage('Configured filters are not supported by');
+
+        $runtime->getDataProvider();
+    }
+
+    #[Test]
     public function it_raises_nothing_for_a_feature_aware_provider(): void
     {
         $runtime = $this->runtime(new ArrayDataProvider([], new DefaultRowMapper([]), self::columns()));
