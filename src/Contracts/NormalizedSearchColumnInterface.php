@@ -13,8 +13,9 @@ namespace Pentiminax\UX\DataTables\Contracts;
  * or prefix index on the column stays usable.
  *
  * {@see \Pentiminax\UX\DataTables\Column\AbstractColumn} implements this and exposes it as
- * setSearchNormalization(). A column implementing ColumnInterface directly is normalized unless it
- * implements this interface too.
+ * searchNormalization().
+ *
+ * @deprecated since 1.6, extend AbstractColumn instead. Removed in 2.0.
  */
 interface NormalizedSearchColumnInterface extends ColumnInterface
 {
