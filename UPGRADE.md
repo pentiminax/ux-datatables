@@ -101,6 +101,16 @@ it exhaustively must handle them: add the two cases or a `default` arm.
   registered and built-in package loading alike, and 2.0 removes it: the default becomes `dt`.
   Set `data_tables.style_framework` to `dt` or `bs5`, call `styleFramework()` on the table, or
   re-run `bin/console ux-datatables:install`, which now writes the key.
+- An API Platform opt-in (`#[AsDataTable(apiPlatform: true)]` or `apiPlatform()`) with no collection
+  to read, because the entity exposes no collection operation or API Platform is not installed, logs
+  a deprecation, and 2.0 throws a `LogicException`. Expose a collection operation or drop the opt-in.
+- `data()` combined with `apiPlatform()` logs a deprecation, and 2.0 throws a `LogicException`. The
+  table renders its embedded rows, and the API Platform flag is now withdrawn from its payload: pick
+  one source. `ajax()` combined with `apiPlatform()` stays supported, for a custom Hydra collection,
+  and now renders the same payload whether `apiPlatform` is on the attribute or on the table.
+- `#[AsDataTable(apiPlatform: true)]` combined with `apiPlatform(false)` still opts in, and logs a
+  deprecation: 2.0 lets the fluent value win. Remove one of the two. A blank `editModalTemplate` or
+  `editModalAdapter` now counts as unset on the page as well as on the edit route.
 
 ### Doctrine ORM 3.3 and OpenSpout 4.13 are the tested floors
 
