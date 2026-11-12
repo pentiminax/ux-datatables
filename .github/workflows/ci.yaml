@@ -61,6 +61,8 @@ jobs:
     name: ${{ matrix.name }}
     env:
       SYMFONY_REQUIRE: ${{ matrix.symfony }}
+      # The bridge at its lowest version fails on self deprecations that the default one tolerates.
+      SYMFONY_DEPRECATIONS_HELPER: max[direct]=0&max[self]=99999&verbose=0&quiet[]=indirect
     steps:
       - name: Checkout
         uses: actions/checkout@v7
