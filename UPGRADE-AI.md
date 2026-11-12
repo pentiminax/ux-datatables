@@ -8,7 +8,7 @@ the application working on the next major version. Optional changes are safe to 
 
 <upgrade-prompt version="1.6">
 
-Context: ux-datatables 1.6 is backward compatible. It adds a bare fluent method for every
+Context: ux-datatables 1.6 is backward compatible except for one API Platform behavior change (required change 6). It adds a bare fluent method for every
 user-facing `setX()` on columns, actions, bulk actions, table options and the table model, and
 deprecates the `setX()` spelling. 2.0 removes the `setX()` methods. After this change, running the
 test suite and the application must log no `pentiminax/ux-datatables` deprecation.
@@ -82,6 +82,11 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
    ```php
    $table->styleFramework(StyleFramework::Bootstrap5);
    ```
+
+6. For a table opted into API Platform (`#[AsDataTable(apiPlatform: true)]` or `apiPlatform()`)
+   whose entity exposes no collection operation, the Ajax data and export endpoints now answer 404
+   and no export URL is rendered, as render already read no rows. Expose a collection operation on
+   the entity, or drop `apiPlatform`.
 
 ## Optional changes
 

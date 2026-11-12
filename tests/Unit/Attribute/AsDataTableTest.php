@@ -21,6 +21,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
+use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithAttribute;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithData;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\TestDataTableWithEditModalAttribute;
@@ -49,9 +50,13 @@ final class AsDataTableTest extends TestCase
     #[Test]
     public function it_auto_configures_and_caches_the_data_provider(): void
     {
+        $resolver = $this->createStub(ApiResourceCollectionUrlResolver::class);
+        $resolver->method('resolveCollectionUrl')->willReturn('/api/books');
+
         $table = new TestDataTableWithAttribute();
         $em    = $this->createStub(EntityManagerInterface::class);
         $table->setDataTableInfrastructure(DataTableInfrastructure::createDefault(
+            renderingPreparer: new RenderingPreparer(urlResolver: $resolver),
             runtimeFactory: new DataTableRuntimeFactory(
                 autoDataProviderFactory: new AutoDataProviderFactory($em)
             )

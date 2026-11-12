@@ -115,7 +115,10 @@ final class RenderingPreparer
             $this->configureAutoAjax($table);
         }
 
-        $this->configureExportUrl($table);
+        if (DataSourceMode::ApiPlatformUnavailable !== $mode) {
+            $this->configureExportUrl($table);
+        }
+
         $this->configureBulkActions($table);
         $this->configureRowActionUrls($table);
         $this->configureActionLabels($table);

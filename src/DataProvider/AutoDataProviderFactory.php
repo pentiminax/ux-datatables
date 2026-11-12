@@ -53,8 +53,8 @@ final class AutoDataProviderFactory
                 pageProjector: $pageProjector,
             );
 
-            // An entity with no collection operation falls through to Doctrine, the same
-            // fallback DataSourceMode::resolve() applies when it cannot resolve a collection URL.
+            // A table in ApiPlatformUnavailable mode refuses before reaching here; one with an
+            // explicit ajax() still falls through until #65 settles that combination.
             if (null !== $apiPlatformProvider) {
                 return $apiPlatformProvider;
             }
