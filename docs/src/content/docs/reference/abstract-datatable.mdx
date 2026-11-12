@@ -356,7 +356,7 @@ the table declaratively and let the request-scoped boundaries do the rest:
       '`getResponse()`',
       'Get JsonResponse for Ajax; returns an empty dataset when no provider is available',
     ],
-    ['`getDataTable()`', 'Get the configured DataTable'],
+    ['`getDataTable()`', 'Deprecated since 1.6: use `getConfiguredDataTable()` to read or `render_datatable()` to render'],
     [
       '`getConfiguredDataTable()`',
       'Read the configured DataTable without rendering preparation or data hydration',
@@ -507,7 +507,7 @@ This includes:
       'Maps DataTables requests/responses to API Platform and Hydra shapes',
     ],
     [
-      'Auto Ajax wiring during `getDataTable()` / rendering',
+      'Auto Ajax wiring during rendering',
       'Auto-populates Ajax settings when resource metadata is available',
     ],
     ['Column auto-detection', 'Builds columns from readable API Platform resource properties'],
@@ -515,8 +515,9 @@ This includes:
 />
 
 <Aside type="note">
-  `getDataTable()` is the rendering entrypoint; `prepareForRendering()` stays idempotent and does
-  not need to be called.
+  `render_datatable()` prepares the table for you. `getDataTable()` and `prepareForRendering()` are
+  deprecated since 1.6: read the table with `getConfiguredDataTable()` and render it with
+  `render_datatable()`.
 </Aside>
 
 <Aside type="tip">

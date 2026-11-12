@@ -68,8 +68,8 @@ If `symfony/mercure` is installed, the bundle aliases `Contracts\MercurePublishe
 Publish manually with the injected `MercurePublisherInterface`:
 ```php
 $publisher->publish($topics, ['type' => 'custom', 'id' => $id]);
-// or, from a DataTable's own resolved config:
-$publisher->publishForDataTable($table->getDataTable(), ['type' => 'custom']);
+// or, from a table's own resolved config (pass the AbstractDataTable, not a prepared DataTable):
+$publisher->publishForDataTable($table, ['type' => 'custom']);
 ```
 
 ## Highlighting updated cells
