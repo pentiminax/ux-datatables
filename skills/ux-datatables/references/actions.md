@@ -40,11 +40,11 @@ name throws `DuplicateActionNameException` at render or on the Ajax endpoints.
 
 ```php
 Action::detail()
-    ->setLabel('View')
+    ->label('View')
     ->className('btn btn-sm btn-primary')
-    ->setIcon('bi bi-eye')
+    ->icon('bi bi-eye')
     ->idField('uuid')                       // ID field used in URLs (default 'id')
-    ->setHtmlAttributes(['data-turbo' => 'false'])
+    ->htmlAttributes(['data-turbo' => 'false'])
     ->askConfirmation('Sure?')                 // confirmation button label
     ->displayIf('status', 'draft')             // show only when row.status === 'draft'
     ->linkToUrl(fn (User $u) => '/users/'.$u->getId())  // string | callable
@@ -58,14 +58,14 @@ Action::detail()
 
 ## Permissions: static vs per-row
 
-`setPermission(string|Expression $attribute, ?callable $subjectResolver = null)`:
+`permission(string|Expression $attribute, ?callable $subjectResolver = null)`:
 
 - **Static** (no resolver) — evaluated once before serialization. If not granted, the action is removed entirely. Use for role checks: `->permission('ROLE_ADMIN')`.
 - **Per-row** (with resolver) — evaluated per row; the resolver returns the voter subject: `->permission('EDIT_PRODUCT', fn ($row) => $row)`. **The value it receives differs by call site**: the row source at render time (an array if the provider hydrates arrays), the located entity on the `delete` / `edit-form` / `detail` endpoints.
 
 Same model applies to columns (`AbstractColumn::permission()`), but columns only support the static form.
 
-`setPermission()` alone is **not** enough to secure a mutation. The built-in endpoints also require
+`permission()` alone is **not** enough to secure a mutation. The built-in endpoints also require
 your own voter on `Permission::DT_EDIT_ROW`, `DT_DELETE_ROW`, or `DT_VIEW_ROW_DETAILS` — they
 cumulate, neither replaces the other. See `references/security.md` for the full matrix, the
 table-level `DataTable::permission()`, and the Ajax route protection these checks assume.
@@ -144,5 +144,5 @@ public function configureBulkActions(BulkActions $actions): BulkActions
 - `BulkRecords` is lazy and single-pass: `count()` is the **selected** count, `$ctx->processedCount()` / `$ctx->skippedCount()` are the real ones, read after iterating.
 - Per-row permission denials are skipped and counted; they do not abort the run. A handler declines a row on a data rule with `$ctx->skip()`, which moves the entity just handed over from processed to skipped.
 - Built-in row actions handled by the table (delete, collapsible detail, modal edit, boolean switch) dispatch `datatables:action:success` / `datatables:action:error` on the table element and announce failures. Confirmation uses the table's modal adapter for actions handled by the table; detail and edit links keep native browser confirmation.
-- `allMatching` (select every row matching the current filters) needs a provider implementing `IdentifierCollectingDataProviderInterface` — `DoctrineDataProvider` does. Otherwise the endpoint answers `400`.
+- `allMatching` (select every row matching the current filters) needs a provider implementing `IdentifierDataProviderInterface` whose `supports()` returns `true` for `DataSourceFeature::IdentifierCollection` — `DoctrineDataProvider` does. A provider still on the deprecated `IdentifierCollectingDataProviderInterface` works and logs a deprecation. Otherwise the endpoint answers `400`.
 - Endpoint: `POST /datatables/ajax/bulk`, token in the body, CSRF in the `X-CSRF-Token` header. A run is **not** one transaction: one flush per chunk.

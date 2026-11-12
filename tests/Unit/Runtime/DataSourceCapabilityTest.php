@@ -118,14 +118,56 @@ final class DataSourceCapabilityTest extends TestCase
     }
 
     #[Test]
-    public function it_treats_an_exhaustive_match_that_does_not_know_the_new_cases_as_unsupported(): void
+    public function it_keeps_the_row_scope_check_and_identifier_collection_when_supports_cannot_answer(): void
     {
         $provider = new MergedIdentifierProvider(static fn (DataSourceFeature $feature): bool => match ($feature) {
             DataSourceFeature::SearchBuilder, DataSourceFeature::ColumnControl, DataSourceFeature::ConfiguredFilters, DataSourceFeature::Summaries => true,
         });
+        $deprecations = [];
 
-        $this->assertNull(DataSourceCapability::rowScopeChecker($provider));
-        $this->assertNull(DataSourceCapability::identifierCollector($provider));
+        set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
+            $deprecations[] = $message;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            $this->assertSame($provider, DataSourceCapability::rowScopeChecker($provider));
+            $this->assertSame($provider, DataSourceCapability::identifierCollector($provider));
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertCount(2, $deprecations);
+        $this->assertStringContainsString(MergedIdentifierProvider::class, $deprecations[0]);
+        $this->assertStringContainsString('RowScope', $deprecations[0]);
+        $this->assertStringContainsString('IdentifierCollection', $deprecations[1]);
+    }
+
+    #[Test]
+    public function it_refuses_a_query_feature_supports_cannot_answer_with_a_deprecation(): void
+    {
+        $provider = new MergedIdentifierProvider(static fn (DataSourceFeature $feature): bool => match ($feature) {
+            DataSourceFeature::SearchBuilder => true,
+        });
+        $deprecations = [];
+
+        set_error_handler(static function (int $level, string $message) use (&$deprecations): bool {
+            $deprecations[] = $message;
+
+            return true;
+        }, \E_USER_DEPRECATED);
+
+        try {
+            $this->assertTrue(DataSourceCapability::supports($provider, DataSourceFeature::SearchBuilder));
+            $this->assertFalse(DataSourceCapability::supports($provider, DataSourceFeature::Summaries));
+        } finally {
+            restore_error_handler();
+        }
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString(MergedIdentifierProvider::class, $deprecations[0]);
+        $this->assertStringContainsString('Summaries', $deprecations[0]);
     }
 
     #[Test]

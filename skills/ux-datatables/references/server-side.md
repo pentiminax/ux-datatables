@@ -89,7 +89,7 @@ Values are a **snapshot** taken when the page renders (sent unchanged on every p
 
 ## Computed / sorted columns
 
-A column backed by a subquery (not a real entity property) can't be sorted by the default `<alias>.<field>` resolution. Add the value as a `HIDDEN` select alias in `customizeQueryBuilder()` and point the column's ORDER BY at that alias with `setOrderExpression()`:
+A column backed by a subquery (not a real entity property) can't be sorted by the default `<alias>.<field>` resolution. Add the value as a `HIDDEN` select alias in `customizeQueryBuilder()` and point the column's ORDER BY at that alias with `orderExpression()`:
 
 ```php
 public function configureColumns(): iterable
@@ -108,7 +108,7 @@ protected function customizeQueryBuilder(QueryBuilder $qb, DataTableRequest $req
 }
 ```
 
-`setOrderExpression()` is injected **verbatim** into `ORDER BY` (raw DQL or a SELECT alias), bypassing the default `<alias>.<field>` resolution. Unset, the column falls back to `e.<field>`.
+`orderExpression()` is injected **verbatim** into `ORDER BY` (raw DQL or a SELECT alias), bypassing the default `<alias>.<field>` resolution. Unset, the column falls back to `e.<field>`.
 
 ## Frontend hooks (Stimulus)
 

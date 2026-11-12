@@ -37,7 +37,10 @@ related entity per row. Rows, counts and the JSON payload are identical, and the
 per draw no longer grows with the page length. An application that relied on the related entity
 being a lazy proxy (an `instanceof Proxy` check, or a `postLoad` listener on the related entity
 firing later) sees it loaded earlier. A join you add in `customizeQueryBuilder()` is reused when it
-is a plain `LEFT JOIN`; a join with a condition, or an `INNER JOIN`, is left alone.
+is a plain `LEFT JOIN` or when your query already selects its alias; any other join with a
+condition, or `INNER JOIN`, is left alone. A query made DISTINCT in `customizeQueryBuilder()` gets
+no fetch join (PostgreSQL cannot compare json columns under `SELECT DISTINCT`), so its related
+entities still load lazily.
 
 ### Ajax data and export refuse an API Platform table without a collection
 
@@ -62,12 +65,24 @@ on your own authorization:
 
 ### Row scope, identifier collection and enum cases
 
-`DataSourceFeature` gains the cases `RowScope` and `IdentifierCollection`. The bundle never passes
-them to `supports()` as part of its query-feature checks, and it catches the `\UnhandledMatchError`
-of a `supports()` written as an exhaustive `match` without a default. An unknown case counts as
-unsupported everywhere, query features included, and that stays true in 2.0: a request using it is
-refused instead of crashing. Your own code that iterates `DataSourceFeature::cases()` or matches on
-it exhaustively must handle them: add the two cases or a `default` arm.
+`DataSourceFeature` gains the cases `RowScope` and `IdentifierCollection`. A `supports()` written as
+an exhaustive `match` without a default throws an `\UnhandledMatchError` for them; the bundle catches
+it and triggers a deprecation naming your provider. For a query feature (SearchBuilder, ColumnControl,
+configured filters, summaries) an unknown case counts as unsupported and a request using it is
+refused. For row scope and identifier collection, a provider implementing
+`IdentifierDataProviderInterface` keeps being used, so the scope check still runs and a forged
+out-of-scope id is filtered out. Add the two cases or a `default` arm to `supports()`, and to any of
+your own code that iterates `DataSourceFeature::cases()` or matches on it exhaustively:
+
+```php
+public function supports(DataSourceFeature $feature): bool
+{
+    return match ($feature) {
+        DataSourceFeature::RowScope, DataSourceFeature::IdentifierCollection => true,
+        default => false,
+    };
+}
+```
 
 ### The fluent API Platform flag is withdrawn from a table with embedded rows
 
@@ -116,6 +131,9 @@ $table->editModalTemplate('modal/edit.html.twig');
 - A data provider that does not implement `FeatureAwareDataProviderInterface` is deprecated: the
   bundle assumes it supports every query feature, and 2.0 requires `supports()`. Implement
   `FeatureAwareDataProviderInterface`.
+- A data provider whose `supports()` throws an `\UnhandledMatchError` for a `DataSourceFeature` case
+  logs a deprecation: the bundle keeps the row scope check and identifier collection and refuses
+  the query feature. 2.0 lets the error propagate. Add the case or a `default` arm to the `match`.
 - `AbstractDataTable::getDataTable()` and `prepareForRendering()` mutate the table while preparing it
   for rendering. Use `getConfiguredDataTable()` to read the table and `render_datatable()` to render
   it.
@@ -158,10 +176,18 @@ $table->editModalTemplate('modal/edit.html.twig');
   its Mercure updates are then auto-resolved, which an embedded table does not get. The bundle also
   logs a warning past `data_tables.hydration_row_threshold` embedded rows (default `5000`, `0`
   disables it).
-- `data()` combined with `apiPlatform()`, or with `#[AsDataTable(apiPlatform: true)]`, logs a
-  deprecation, and 2.0 throws a `LogicException`: the two read rows from different places. Keep one.
+- `data()` combined with `apiPlatform()`, or with `#[AsDataTable(apiPlatform: true)]` unless
+  `apiPlatform(false)` is also set, logs a deprecation, and 2.0 throws a `LogicException`: the two read
+  rows from different places. Keep one.
 - `#[AsDataTable(apiPlatform: true)]` combined with `apiPlatform(false)` still opts in, and logs a
-  deprecation: 2.0 lets the fluent value win. Remove one of the two. Combined with `ajax()`, the fluent `false` already wins and raises no notice.
+  deprecation: 2.0 lets the fluent value win. Remove one of the two. Combined with `data()` or `ajax()`,
+  the payload already follows the fluent `false`, but the server still follows the attribute: it
+  auto-detects the columns from the API Platform resource when `configureColumns()` declares none, and
+  reads the rows of exports, bulk actions and row actions through the API Platform provider. 2.0 lets
+  `apiPlatform(false)` win there too: auto-detected columns disappear and those reads go through
+  Doctrine. The table cannot tell whether an export or an action will ever read rows, so the
+  combination always logs one deprecation, which names the auto-detected columns when the table relies
+  on them. Declare the columns in `configureColumns()` and remove the attribute flag.
 - `#[AsDataTable(apiPlatform: true)]` combined with `ajax()` and no `apiPlatform()` call renders plain
   DataTables JSON today and logs a deprecation: 2.0 sends the API Platform flag for it, so the browser
   reads the response through the Hydra adapter. Add `->apiPlatform(false)` to keep plain DataTables

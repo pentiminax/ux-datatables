@@ -17,9 +17,10 @@ use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
  * {@see IdentifierDataProviderInterface}, whose implementer is trusted to cover both unless it
  * declares otherwise here.
  *
- * A feature supports() does not know, such as a case an exhaustive match lacks, counts as
- * unsupported: the bundle catches the \UnhandledMatchError and refuses. Answer false for features
- * you do not apply, or let the match throw; never assume an unknown feature is supported.
+ * A supports() that throws an \UnhandledMatchError, such as an exhaustive match lacking a case,
+ * triggers a deprecation naming the provider. For a query feature the bundle then refuses the
+ * request; for row scope and identifier collection it keeps using IdentifierDataProviderInterface,
+ * so the scope check still runs. Answer every case explicitly, with false for features you do not apply.
  */
 interface FeatureAwareDataProviderInterface
 {

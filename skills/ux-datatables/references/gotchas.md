@@ -33,10 +33,10 @@ Computed or template columns have no DB counterpart. Set `->orderable(false)->se
 ## API Platform / Mercure are opt-in
 Neither activates implicitly. Set `apiPlatform: true` / call `apiPlatform()`, and `mercure: true` / call `mercure()`. The attribute flag and the fluent call are equivalent — both enable the Ajax wiring and column auto-detection — except with `ajax()`, where only the fluent call sends the API Platform flag until 2.0. Define API Platform filters on the resource so searchable/orderable columns map to enabled filters.
 
-## `setPermission()` removes, never hides client-side
-Static `setPermission()` on actions/columns is evaluated server-side before serialization; ungranted items are dropped and the attribute or expression is never sent to the browser. Don't rely on it for purely visual toggling — use `displayIf()` (actions) or `setVisible()` (columns) for that.
+## `permission()` removes, never hides client-side
+Static `permission()` on actions/columns is evaluated server-side before serialization; ungranted items are dropped and the attribute or expression is never sent to the browser. Don't rely on it for purely visual toggling — use `displayIf()` (actions) or `visible()` (columns) for that.
 
-## `setPermission()` on an action does not secure the mutation
+## `permission()` on an action does not secure the mutation
 The built-in edit / delete / detail endpoints also require your own voter on `Permission::DT_EDIT_ROW`, `DT_DELETE_ROW`, or `DT_VIEW_ROW_DETAILS` — cumulative with the action permission, no fallback. With a firewall active and no such voter, every mutation returns `403`; with no security stack at all, every check returns `true`. Neither replaces `access_control` on `^/datatables/ajax`. See `references/security.md`.
 
 ## Old `EDIT` / `DELETE` / `VIEW` voters grant nothing
@@ -46,7 +46,7 @@ The bundle moved to the `Permission::DT_*` constants. A voter still supporting t
 The enum case is `COLUMN_VISIBILITY` (serialized value `'colvis'`), not `COL_VIS`.
 
 ## `projectPage()` must preserve page size and order
-A page projector that returns a different count (or reordered rows) throws `LogicException`. Map one-to-one. Remember the split: columns and TemplateColumn Twig (`row`) read the projected DTO, but actions/`UrlColumn`/`setPermission()` still receive the **source** entity — don't move identifiers needed by actions into the DTO only.
+A page projector that returns a different count (or reordered rows) throws `LogicException`. Map one-to-one. Remember the split: columns and TemplateColumn Twig (`row`) read the projected DTO, but actions/`UrlColumn`/`permission()` still receive the **source** entity — don't move identifiers needed by actions into the DTO only.
 
 ## `projectPage()` sees batches, not the whole set, during a server-side export
 An export streams every filtered row, so the projector runs once per batch (250 rows by default) instead of once per page. Per-item mapping and batch loading behave identically; a projector computing something relative to the items it received (rank, running total, percentage of the batch maximum) returns different values than on screen. Raise `exportChunkSize` by building the provider in `createDataProvider()` if a bigger batch is required.
@@ -63,5 +63,5 @@ A data source that cannot apply SearchBuilder criteria, ColumnControl searches, 
 - `FilterTypeMapper::mapType()` second argument (filter name) is ignored.
 - YAML `options.pageLength` not in `options.lengthMenu` (deprecation now, exception in 2.0).
 
-## Sorting a computed column needs `setOrderExpression()`
+## Sorting a computed column needs `orderExpression()`
 A column with no real entity property (e.g. an `addSelect(... AS HIDDEN <alias>)` subquery) can't sort via the default `<alias>.<field>` — it resolves to a nonexistent `e.<field>` and errors. Either `->orderExpression('<alias>')` (and `->searchable(false)`), or `->orderable(false)->searchable(false)`.

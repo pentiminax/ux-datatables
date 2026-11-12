@@ -1001,14 +1001,16 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
      * Adds a LEFT JOIN plus select for every to-one association the displayed columns read through
      * a dot path, so the row mapper finds them loaded instead of lazy-loading one per row.
      *
-     * A plain LEFT JOIN already on the query (from search, ordering or the application) is reused;
-     * any other join on the association, an INNER or conditioned one, may hide rows of the
-     * association, so it is left alone and a join of its own is added. To-many associations are
-     * never fetch-joined: they would break LIMIT.
+     * A plain LEFT JOIN already on the query (from search, ordering or the application) is reused,
+     * and so is any join whose alias the query already selects; another INNER or conditioned join
+     * may hide rows of the association, so it is left alone and a join of its own is added.
+     * To-many associations are never fetch-joined: they would break LIMIT. A DISTINCT query is left
+     * as is: its selected entities would all be compared, which fails on columns without equality
+     * such as PostgreSQL json.
      */
     private function fetchJoinToOneRelations(QueryBuilder $qb, string $alias): void
     {
-        if ([] !== $qb->getDQLPart('groupBy') || !$this->selectsRootEntity($qb, $alias)) {
+        if (true === $qb->getDQLPart('distinct') || [] !== $qb->getDQLPart('groupBy') || !$this->selectsRootEntity($qb, $alias)) {
             return;
         }
 
@@ -1036,7 +1038,7 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
                 }
 
                 $join = "$parent.$segment";
-                $joinAliases[$join] ??= $this->plainLeftJoinAlias($qb, $join) ?? $this->addLeftJoin($qb, $join);
+                $joinAliases[$join] ??= $this->plainLeftJoinAlias($qb, $join) ?? $this->selectedJoinAlias($qb, $join, $selected) ?? $this->addLeftJoin($qb, $join);
                 $joinAlias = $joinAliases[$join];
 
                 if (!isset($selected[$joinAlias])) {
@@ -1081,6 +1083,22 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
         foreach ($qb->getDQLPart('join') as $rootJoins) {
             foreach ($rootJoins as $candidate) {
                 if ($candidate->getJoin() === $join && Join::LEFT_JOIN === $candidate->getJoinType() && null === $candidate->getCondition() && null === $candidate->getIndexBy()) {
+                    return $candidate->getAlias();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, true> $selected
+     */
+    private function selectedJoinAlias(QueryBuilder $qb, string $join, array $selected): ?string
+    {
+        foreach ($qb->getDQLPart('join') as $rootJoins) {
+            foreach ($rootJoins as $candidate) {
+                if ($candidate->getJoin() === $join && isset($selected[$candidate->getAlias()])) {
                     return $candidate->getAlias();
                 }
             }

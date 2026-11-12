@@ -224,7 +224,7 @@ final class RenderingPreparer
             trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform but "%s" exposes no collection operation, or API Platform is not installed: it reads no rows, and 2.0 throws a LogicException. Expose a collection operation or remove the apiPlatform opt-in.', $table->getDataTableClass() ?? $table->getId(), $optIns->entityClass ?? 'no entity class');
         }
 
-        if (DataSourceMode::Inline === $mode) {
+        if (DataSourceMode::Inline === $mode && !$optIns->apiPlatformOptOutOverridden) {
             trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" combines data() with apiPlatform(), which read rows from two places: a fluent flag is withdrawn from the payload, and 2.0 throws a LogicException. Drop one of them.', $table->getDataTableClass() ?? $table->getId());
         }
 
