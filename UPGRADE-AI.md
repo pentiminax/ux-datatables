@@ -118,6 +118,12 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
    }
    ```
 
+9. Fix every table that logs a deprecation about an API Platform opt-in. Opted into API Platform
+   with no collection operation (or without API Platform installed): expose the operation or drop the
+   opt-in. `data()` combined with `apiPlatform()`: keep one of them. `ajax()` combined with
+   `apiPlatform()` is supported and needs no change. `#[AsDataTable(apiPlatform: true)]` combined
+   with `apiPlatform(false)`: remove one, as 2.0 lets the fluent `false` win.
+
 ## Optional changes
 
 1. `#[DataTableColumn(...)]` attribute options need no change: they resolve to the bare methods and

@@ -9,6 +9,7 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Model\Actions;
+use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
 
 final class ColumnResolver
@@ -34,7 +35,7 @@ final class ColumnResolver
      *
      * @return AbstractColumn[]
      */
-    public function resolveColumns(?AsDataTable $asDataTable, bool $apiPlatform = false, ?string $dataTableClass = null): array
+    public function resolveColumns(?AsDataTable $asDataTable, bool $apiPlatform = false, ?string $dataTableClass = null, ?ResolvedOptIns $optIns = null): array
     {
         $columns = $this->columnsFromClassAttributes($dataTableClass);
         if ([] !== $columns) {
@@ -46,7 +47,7 @@ final class ColumnResolver
             return $columns;
         }
 
-        return $this->autoDetectColumns($asDataTable, [], $apiPlatform);
+        return $this->autoDetectColumns($asDataTable, [], $apiPlatform, $optIns);
     }
 
     /**
@@ -90,12 +91,13 @@ final class ColumnResolver
      * Returns an empty array when auto-detection is not available (API Platform not installed,
      * no #[AsDataTable] attribute, no API Platform opt-in, or entity is not an ApiResource).
      *
-     * @param string[] $groups      Serialization groups to filter properties (defaults to AsDataTable::$serializationGroups)
-     * @param bool     $apiPlatform Whether the table opted in through the fluent `->apiPlatform()`
+     * @param string[]        $groups      Serialization groups to filter properties (defaults to AsDataTable::$serializationGroups)
+     * @param bool            $apiPlatform Whether the table opted in through the fluent `->apiPlatform()`
+     * @param ?ResolvedOptIns $optIns      The table's merged opt-ins, which replace `$apiPlatform` and the attribute's own
      *
      * @return AbstractColumn[]
      */
-    public function autoDetectColumns(?AsDataTable $asDataTable, array $groups = [], bool $apiPlatform = false): array
+    public function autoDetectColumns(?AsDataTable $asDataTable, array $groups = [], bool $apiPlatform = false, ?ResolvedOptIns $optIns = null): array
     {
         if (null === $this->columnAutoDetector) {
             return [];
@@ -105,11 +107,17 @@ final class ColumnResolver
             return [];
         }
 
-        if (!$asDataTable->apiPlatform && !$apiPlatform) {
+        $optIns ??= new ResolvedOptIns(
+            entityClass: $asDataTable->entityClass,
+            apiPlatform: $asDataTable->apiPlatform || $apiPlatform,
+            serializationGroups: $asDataTable->serializationGroups,
+        );
+
+        if (!$optIns->apiPlatform) {
             return [];
         }
 
-        $resolvedGroups = $groups ?: $asDataTable->serializationGroups;
+        $resolvedGroups = $groups ?: $optIns->serializationGroups;
 
         if (!$this->columnAutoDetector->supports($asDataTable->entityClass)) {
             return [];

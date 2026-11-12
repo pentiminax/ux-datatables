@@ -40,7 +40,7 @@ enum DataSourceMode
      */
     case ApiPlatformUnavailable;
 
-    public static function resolve(DataTable $table, ?AsDataTable $asDataTable, ?ApiResourceCollectionUrlResolver $collectionUrlResolver): self
+    public static function resolve(DataTable $table, ?AsDataTable $asDataTable, ?ApiResourceCollectionUrlResolver $collectionUrlResolver, ?ResolvedOptIns $optIns = null): self
     {
         if (null !== $table->getOption('ajax')) {
             return self::Ajax;
@@ -50,23 +50,24 @@ enum DataSourceMode
             return self::Inline;
         }
 
-        if (true === $asDataTable?->apiPlatform || true === $table->getOption('apiPlatform')) {
-            return self::resolvesCollection($asDataTable, $collectionUrlResolver) ? self::ApiPlatform : self::ApiPlatformUnavailable;
+        $optIns ??= ResolvedOptIns::resolve($table, $asDataTable);
+
+        if ($optIns->apiPlatform) {
+            return self::resolvesCollection($optIns, $collectionUrlResolver) ? self::ApiPlatform : self::ApiPlatformUnavailable;
         }
 
         return $table->isServerSide() ? self::ServerSide : self::ClientHydrated;
     }
 
     /**
-     * The `apiPlatform` option counts on its own: the fluent `apiPlatform()` sets it without the
-     * attribute. The collection URL needs the attribute's entity and API Platform installed.
+     * The collection URL needs the entity the attribute declares and API Platform installed.
      */
-    private static function resolvesCollection(?AsDataTable $asDataTable, ?ApiResourceCollectionUrlResolver $collectionUrlResolver): bool
+    private static function resolvesCollection(ResolvedOptIns $optIns, ?ApiResourceCollectionUrlResolver $collectionUrlResolver): bool
     {
-        if (null === $asDataTable || null === $collectionUrlResolver) {
+        if (null === $optIns->entityClass || null === $collectionUrlResolver) {
             return false;
         }
 
-        return null !== $collectionUrlResolver->resolveCollectionUrl($asDataTable->entityClass);
+        return null !== $collectionUrlResolver->resolveCollectionUrl($optIns->entityClass);
     }
 }

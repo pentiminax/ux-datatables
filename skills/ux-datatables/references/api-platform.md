@@ -12,7 +12,7 @@ Bridges DataTables against an API Platform Hydra collection endpoint. The Stimul
 final class BookDataTable extends AbstractDataTable {}
 ```
 
-**Imperative** (client-side adapter only):
+**Imperative** (same payload as the attribute; with `ajax()` it reads that custom Hydra URL):
 ```php
 public function configureDataTable(DataTable $table): DataTable
 {
@@ -29,6 +29,8 @@ public function configureDataTable(DataTable $table): DataTable
 - Converts paging/order params to API Platform conventions.
 - Reads the Hydra collection response (`hydra:member`, `hydra:totalItems`).
 - With the attribute form: resolves the collection URL and auto-detects columns (respecting `serializationGroups`) via `ApiPlatform\ColumnAutoDetector`.
+
+Opt-ins: either side opting in counts, and a fluent edit-modal value overrides the attribute (blank = unset). `apiPlatform: true` plus `apiPlatform(false)` stays opted in with a 1.6 deprecation (2.0: fluent wins). An opt-in with no collection operation, or `data()` + `apiPlatform()`, logs a 1.6 deprecation (2.0 throws); `ajax()` + `apiPlatform()` is supported.
 
 Define filters/sorting on the API Platform resource side (`#[ApiFilter(...)]`) so the columns you mark `searchable`/`orderable` map to enabled filters. See `docs/src/content/docs/integrations/api-platform.mdx`.
 

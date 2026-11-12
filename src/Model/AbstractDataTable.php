@@ -26,6 +26,7 @@ use Pentiminax\UX\DataTables\RowMapper\DefaultRowMapper;
 use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
+use Pentiminax\UX\DataTables\Runtime\ResolvedOptIns;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -69,6 +70,8 @@ abstract class AbstractDataTable
 
     private ?AsDataTable $asDataTable = null;
 
+    private ?ResolvedOptIns $optIns = null;
+
     private ?DataTableInfrastructure $infrastructure = null;
 
     private ?DataTableRuntime $runtime = null;
@@ -98,6 +101,7 @@ abstract class AbstractDataTable
 
         $this->defaultRowMapper  = null;
         $this->asDataTable       = null;
+        $this->optIns            = null;
         $this->runtime           = null;
         $this->initialized       = false;
         $this->renderingPrepared = false;
@@ -118,6 +122,12 @@ abstract class AbstractDataTable
         $this->table = $this->configureDataTable($table);
 
         $this->table->setDataTableClass(static::class);
+
+        $this->optIns = ResolvedOptIns::resolve($this->table, $this->asDataTable);
+
+        if ($this->optIns->apiPlatformOptOutOverridden) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the attribute wins today, the fluent value will win in 2.0. Remove one of them.', static::class);
+        }
 
         $this->columns = iterator_to_array($this->configureColumns());
 
@@ -197,10 +207,10 @@ abstract class AbstractDataTable
 
         $renderingPreparer = $this->infrastructure()->renderingPreparer;
 
-        $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable);
+        $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable, $this->optIns);
         $this->prepareExplicitInlineData();
         $this->hydrateClientSideData();
-        $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable);
+        $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable, $this->optIns);
 
         if ($this->table->hasBulkActions()) {
             $this->table->setBulkRowIdField($this->infrastructure()->runtimeFactory->resolveRowIdField(
@@ -241,7 +251,7 @@ abstract class AbstractDataTable
             return null;
         }
 
-        return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->asDataTable);
+        return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->asDataTable, $this->optIns);
     }
 
     final public function getEntityClass(): ?string
@@ -263,14 +273,23 @@ abstract class AbstractDataTable
             }
         }
 
-        // The fluent `->apiPlatform()` opt-in counts here too, now that configureDataTable() has run.
-        $apiPlatform = isset($this->table) && true === $this->table->getOption('apiPlatform');
+        $asDataTable = $this->asDataTable ?? $this->resolveAsDataTable();
 
         return $this->infrastructure()->columnResolver->resolveColumns(
-            $this->asDataTable ?? $this->resolveAsDataTable(),
-            $apiPlatform,
-            static::class,
+            $asDataTable,
+            dataTableClass: static::class,
+            optIns: $this->optIns ?? (isset($this->table) ? ResolvedOptIns::resolve($this->table, $asDataTable) : null),
         );
+    }
+
+    /**
+     * @internal
+     */
+    final public function getResolvedOptIns(): ResolvedOptIns
+    {
+        $this->initialize();
+
+        return $this->optIns;
     }
 
     public function configureDataTable(DataTable $table): DataTable
@@ -369,7 +388,7 @@ abstract class AbstractDataTable
 
     private function dataSourceMode(): DataSourceMode
     {
-        return $this->infrastructure()->renderingPreparer->resolveDataSourceMode($this->table, $this->asDataTable);
+        return $this->infrastructure()->renderingPreparer->resolveDataSourceMode($this->table, $this->asDataTable, $this->optIns);
     }
 
     private function createClientSideDataRequest(): DataTableRequest
@@ -578,6 +597,7 @@ abstract class AbstractDataTable
             columns: $this->columns,
             asDataTable: $this->asDataTable,
             baseMapper: $this->mapRow(...),
+            optIns: $this->optIns,
             manualDataProviderFactory: $this->createDataProviderUnlessUnavailable(...),
             configureQueryBuilder: $this->configureQueryBuilder(...),
             pageProjector: $this->projectPage(...),
