@@ -43,11 +43,12 @@ reached.
 - Stylesheet autodetection of the style framework logs a console warning once per page, and 2.0
   removes it. Call `styleFramework()` on the table or install a style kit.
 
-### Doctrine ORM 3.3 is the tested floor
+### Doctrine ORM 3.3 and OpenSpout 4.13 are the tested floors
 
 CI now runs the suite on the lowest dependencies. It showed that Doctrine-backed tables need
 Doctrine ORM 3.3 or later: earlier 3.x releases reject the array parameter types the bundle binds.
-ORM stays an optional package, so Composer does not enforce this. Upgrade ORM to 3.3 or later
+Server-side XLSX export needs OpenSpout 4.13 or later, which provides `setColumnWidthForRange()`.
+ORM and OpenSpout stay optional packages, so Composer does not enforce either floor. Upgrade them
 before upgrading the bundle.
 
 ## Upgrading to 1.5.1
