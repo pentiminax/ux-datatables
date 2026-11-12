@@ -50,6 +50,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg(6, service('datatables.mutation.flusher'))
         ->arg(7, service('datatables.mutation.row_scope_guard'))
         ->arg(8, service('datatables.security.authorization_checker'))
+        ->arg(9, service('datatables.column.resolver'))
         ->private();
 
     $services->set('datatables.controller.ajax_edit_form', AjaxEditFormController::class)

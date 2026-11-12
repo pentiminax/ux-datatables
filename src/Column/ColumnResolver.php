@@ -131,12 +131,37 @@ final class ColumnResolver
      */
     public function filterStaticPermissions(array $columns, ?string $dataTableClass = null): array
     {
-        $filtered = [];
+        return $this->compute($columns, $dataTableClass)->columns;
+    }
+
+    /**
+     * Decide in one pass which columns, and which actions inside action columns, the current user
+     * may see. One permission check per permissioned column and per statically permissioned action.
+     *
+     * @internal
+     *
+     * @param ColumnInterface[] $columns
+     */
+    public function visibleColumns(array $columns, ?string $dataTableClass): VisibleColumns
+    {
+        return $this->compute($columns, $dataTableClass);
+    }
+
+    /**
+     * @param ColumnInterface[] $columns
+     */
+    private function compute(array $columns, ?string $dataTableClass): VisibleColumns
+    {
+        $visible       = [];
+        $deniedColumns = [];
+        $visibleNames  = [];
 
         foreach ($columns as $column) {
             $permission = $column->getPermission();
 
             if (null !== $permission && !$this->permissionChecker->isGranted($permission)) {
+                $deniedColumns[] = $column;
+
                 continue;
             }
 
@@ -145,10 +170,33 @@ final class ColumnResolver
                 $column->getActions()?->filterStaticPermissions($this->permissionChecker, $dataTableClass);
             }
 
-            $filtered[] = $column;
+            $visible[]                        = $column;
+            $visibleNames[$column->getName()] = true;
         }
 
-        return array_values($filtered);
+        $denied = [];
+        foreach ($deniedColumns as $column) {
+            if (!isset($visibleNames[$column->getName()])) {
+                array_push($denied, ...$this->rowPaths($column));
+            }
+        }
+
+        return new VisibleColumns($visible, $denied, $dataTableClass);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function rowPaths(ColumnInterface $column): array
+    {
+        $key = ColumnKeyResolver::rowKey($column);
+        if (null === $key) {
+            return [];
+        }
+
+        $readPath = ColumnKeyResolver::readPath($column, $key);
+
+        return $readPath !== $key ? [$key, $readPath] : [$key];
     }
 
     /**
@@ -203,31 +251,7 @@ final class ColumnResolver
      */
     public function deniedColumnPaths(array $columns, ?string $dataTableClass = null): array
     {
-        $visibleNames = [];
-        foreach ($this->filterStaticPermissions($columns, $dataTableClass) as $column) {
-            $visibleNames[$column->getName()] = true;
-        }
-
-        $paths = [];
-        foreach ($columns as $column) {
-            if (isset($visibleNames[$column->getName()])) {
-                continue;
-            }
-
-            $key = ColumnKeyResolver::rowKey($column);
-            if (null === $key) {
-                continue;
-            }
-
-            $paths[] = $key;
-
-            $readPath = ColumnKeyResolver::readPath($column, $key);
-            if ($readPath !== $key) {
-                $paths[] = $readPath;
-            }
-        }
-
-        return $paths;
+        return $this->compute($columns, $dataTableClass)->deniedPaths;
     }
 
     /**

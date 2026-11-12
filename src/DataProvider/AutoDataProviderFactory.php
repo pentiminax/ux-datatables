@@ -7,6 +7,7 @@ namespace Pentiminax\UX\DataTables\DataProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Attribute\AsDataTable;
+use Pentiminax\UX\DataTables\Column\VisibleColumns;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
@@ -36,6 +37,7 @@ final class AutoDataProviderFactory
         array $columns = [],
         ?string $dataTableClass = null,
         bool $summarize = true,
+        ?VisibleColumns $visibleColumns = null,
     ): ?DataProviderInterface {
         if (null === $asDataTable) {
             return null;
@@ -51,6 +53,7 @@ final class AutoDataProviderFactory
                 exportRowMapper: $exportRowMapper,
                 dataTableClass: $dataTableClass,
                 pageProjector: $pageProjector,
+                visibleColumns: $visibleColumns,
             );
 
             // A table in ApiPlatformUnavailable mode refuses before reaching here; one with an

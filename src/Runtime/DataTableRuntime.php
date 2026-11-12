@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Runtime;
 
+use Pentiminax\UX\DataTables\Column\VisibleColumns;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
@@ -30,7 +31,17 @@ final class DataTableRuntime
         private readonly array $columns = [],
         private readonly SearchListOptionsResolver $searchListOptionsResolver = new SearchListOptionsResolver(),
         private readonly DataSourceFeatureGuard $featureGuard = new DataSourceFeatureGuard(),
+        /** @var (\Closure():VisibleColumns)|null */
+        private readonly ?\Closure $visibleColumns = null,
     ) {
+    }
+
+    /**
+     * @internal
+     */
+    public function getVisibleColumns(): ?VisibleColumns
+    {
+        return null === $this->visibleColumns ? null : ($this->visibleColumns)();
     }
 
     public function getRequest(): ?DataTableRequest
@@ -175,7 +186,7 @@ final class DataTableRuntime
             $payload['summaries'] = $data->summaries;
         }
 
-        $searchListOptions = $this->searchListOptionsResolver->resolve($this->table, $this->columns, $this->request);
+        $searchListOptions = $this->searchListOptionsResolver->resolve($this->table, $this->columns, $this->request, $this->getVisibleColumns());
         if (null !== $searchListOptions) {
             $payload['columnControl'] = $searchListOptions;
         }
