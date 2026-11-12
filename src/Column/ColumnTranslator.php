@@ -22,12 +22,25 @@ final class ColumnTranslator
         foreach ($columns as $column) {
             $title = $column->getTitle();
             if (null !== $title) {
-                $column->title($translator->trans($title));
+                self::applyTitle($column, $translator->trans($title));
             }
 
             if ($column instanceof ChoiceColumn) {
                 $column->translateLabels($translator);
             }
+        }
+    }
+
+    private static function applyTitle(ColumnInterface $column, string $title): void
+    {
+        if ($column instanceof AbstractColumn) {
+            $column->title($title);
+
+            return;
+        }
+
+        if (method_exists($column, 'setTitle')) {
+            $column->setTitle($title);
         }
     }
 }
