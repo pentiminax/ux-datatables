@@ -51,11 +51,11 @@ Each row attribute is checked **in addition to** `DT_EXECUTE_ACTION` — they cu
 | Collapsible detail row | `DT_VIEW_ROW_DETAILS` + `DT_EXECUTE_ACTION` |
 | Boolean toggle | `DT_EDIT_ROW` only — not an action; the column permission is evaluated separately by `BooleanMutationContextResolver` |
 
-There is **no fallback**: `DT_VIEW_ROW_DETAILS` is required on a collapsible detail row even when the detail action carries its own `setPermission()`. An action with no `setPermission()` triggers no `DT_EXECUTE_ACTION` vote at all — its visibility belongs to `displayIf()` or the action column's permission, not to a security decision.
+There is **no fallback**: `DT_VIEW_ROW_DETAILS` is required on a collapsible detail row even when the detail action carries its own `permission()`. An action with no `permission()` triggers no `DT_EXECUTE_ACTION` vote at all — its visibility belongs to `displayIf()` or the action column's permission, not to a security decision.
 
 ### Single-row scope (1.3)
 
-With the built-in Doctrine provider, delete, boolean toggle, edit form and detail row answer `404` for an id outside the `customizeQueryBuilder()` scope, as bulk actions already skipped such ids. The scope query replays `forwardQueryParameters()` values on single-row and bulk actions, so a scope depending on a forwarded parameter sees the same value as the listing. A toggle on a column that sets another `setEntityClass()` is still unscoped, and providers without `ScopedIdentifierProviderInterface` keep their old behavior.
+With the built-in Doctrine provider, delete, boolean toggle, edit form and detail row answer `404` for an id outside the `customizeQueryBuilder()` scope, as bulk actions already skipped such ids. The scope query replays `forwardQueryParameters()` values on single-row and bulk actions, so a scope depending on a forwarded parameter sees the same value as the listing. A toggle on a column that sets another `entityClass()` is still unscoped. A custom provider is scoped when it implements `IdentifierDataProviderInterface` and its `supports()` returns `true` for `DataSourceFeature::RowScope` (the deprecated `ScopedIdentifierProviderInterface` still works and logs a deprecation). Since 1.6, acting on rows of a table whose provider cannot check the scope logs a deprecation, and 2.0 refuses the request: when the scope is enforced elsewhere (typically an API Platform table), call `unscopedMutations()` on the table.
 
 ### Writing the row voter
 
@@ -135,6 +135,6 @@ Custom actions (`Action::new(...)->asAjaxRequest($csrfTokenId)`) post to **your*
 ## Cross links
 
 - `references/actions.md` — action configuration, collapsible detail rows.
-- `references/columns.md` — column-level `setPermission()`.
+- `references/columns.md` — column-level `permission()`.
 - `references/server-side.md` — importing the Ajax routes these rules protect.
 - `docs/src/content/docs/getting-started/security.mdx` — full reference.

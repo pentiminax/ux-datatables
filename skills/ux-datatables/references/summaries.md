@@ -19,7 +19,7 @@ yield NumberColumn::new('items', 'Items')->summarize(Min::new('Smallest'), Max::
 
 - Each takes an optional label (`Sum::new('Revenue')`); the default is a translation key (`summary.sum`, `summary.avg`, ... in the `DataTables` domain). One summarizer per type per column.
 - `summarize()` throws `InvalidArgumentException` on `TemplateColumn` / `ActionColumn`, and on `Sum`/`Average`/`Min`/`Max` for a non-numeric column (dates included; only `Count` applies).
-- Nulls are ignored. `MoneyColumn` figures are formatted like its cells. Columns hidden by `setPermission()` never get a summary.
+- Nulls are ignored. `MoneyColumn` figures are formatted like its cells. Columns hidden by `permission()` never get a summary.
 
 ## Where it is computed
 

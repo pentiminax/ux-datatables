@@ -8,9 +8,15 @@ the application working on the next major version. Optional changes are safe to 
 
 <upgrade-prompt version="1.6">
 
-Context: ux-datatables 1.6 is backward compatible except for the behavior changes of required changes 7 and 9. It adds a bare fluent method for every
-user-facing `setX()` on columns, actions, bulk actions, table options and the table model, and
-deprecates the `setX()` spelling. 2.0 removes the `setX()` methods. After this change, running the
+Context: ux-datatables 1.6 is backward compatible except for six behavior changes: a subclass
+override of a deprecated `setX()` is no longer reached (required change 12), server-side Doctrine
+tables fetch-join the to-one relations their displayed columns read (optional change 4),
+`DataSourceFeature` gains two cases (required change 13), the fluent API Platform flag is withdrawn
+from a table with `data()` and a blank edit modal template or adapter counts as unset (required
+change 9), and the Ajax data and export endpoints answer 404 for an API Platform table without a
+collection operation (required change 7). It adds a bare fluent method for every user-facing
+`setX()` on columns, actions, bulk actions, table options and the table model, and deprecates the
+`setX()` spelling. 2.0 removes the `setX()` methods. After this change, running the
 test suite and the application must log no `pentiminax/ux-datatables` deprecation.
 
 ## Required changes
@@ -147,6 +153,27 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
     in 2.0. Do not add either call to tables that already use `ajax()`, `data()` or `apiPlatform()`.
     A table switched to `serverSide()` is served through the bundle's Ajax data route: confirm the
     application's security configuration protects it.
+12. Rename every override of a deprecated `setX()` in a subclass of a bundle column, `Action`,
+    `BulkAction`, `DataTable` or `AbstractDataTable` to the bare `x()` method, with the same
+    signature: the bundle now calls `x()`, so an override of `setX()` is no longer reached. A
+    subclass that already declares a method named like a new bare method (`rows()`, `data()`,
+    `name()`, `type()`, `title()`, `format()`, `template()`, `choices()`, ...) must rename it or
+    match the new signature.
+
+    ```php
+    public function setTitle(string $title): static { ... } // before
+    public function title(string $title): static { ... }    // after
+    ```
+
+13. Handle the new `DataSourceFeature` cases `RowScope` and `IdentifierCollection` in application
+    code that iterates `DataSourceFeature::cases()` or matches on it exhaustively: add both cases or
+    a `default` arm.
+14. Add a bare `foo()` method to every custom column that accepts an attribute option only through
+    its own `setFoo()` method: such an option logs a deprecation, and 2.0 calls only `foo()`.
+15. Remove deep imports of `dist/functions/filterFeature.js`, `filterLayout.js`,
+    `bulkActionsFeature.js` and `bulkActionsLayout.js` (the controller wires both bars itself), and
+    replace `confirmBulkAction()` from `dist/bulk/confirmModal.js` with `confirmAction()`. These
+    1.2 deprecations now log a browser console warning.
 
 ## Optional changes
 
@@ -156,5 +183,9 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
 3. Methods marked `@internal`, the `setPrepared*()` mutators and `setDataTableInfrastructure()`
    stay as they are: they are removed with the per-render view object in 2.0 and are not meant to
    be called by applications.
+4. Server-side tables backed by the Doctrine provider now fetch-join the to-one associations their
+   displayed columns read through a dot path (`customer.name`). Rows, counts and the JSON payload
+   are identical. Only review code that relied on the related entity being a lazy proxy (an
+   `instanceof Proxy` check, or a `postLoad` listener on it firing later).
 
 </upgrade-prompt>

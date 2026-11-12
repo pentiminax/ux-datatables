@@ -8,14 +8,14 @@ All columns live in `src/Column/`. Every type is created with the static factory
 |------|---------|-----------------------|
 | `TextColumn` | `TextColumn::new('name', 'Name')` | `utf8()`, `html()` |
 | `NumberColumn` | `NumberColumn::new('qty')` | `formatted()`, `html()` |
-| `DateColumn` | `DateColumn::new('createdAt')` | `setFormat('d/m/Y H:i')` |
+| `DateColumn` | `DateColumn::new('createdAt')` | `format('d/m/Y H:i')` |
 | `MoneyColumn` | `MoneyColumn::new('price')` | `currency('EUR')`, `storedAsCents(bool=true)`, `decimals(int)`, `showCurrencySign(bool=true)` |
-| `BooleanColumn` | `BooleanColumn::new('active')` | `renderAsSwitch(bool $defaultState=false)`, `setToggleAjax(string $idField='id', string $method='PATCH')`, `setEntityClass(...)` |
-| `ChoiceColumn` | `ChoiceColumn::new('status')` | `setChoices(array\|string)`, `renderAsBadges(array\|bool $selector=[], string $defaultVariant='secondary')` |
-| `EmailColumn` | `EmailColumn::new('email')` | `obfuscate(bool=true)`, `mask(bool=true)`, `setDisplayValue(string)`, `renderAsText(bool=true)` |
-| `ImageColumn` | `ImageColumn::new('photo')` | `setImageWidth(int)`, `setImageHeight(int)`, `setAlt(string)`, `setPlaceholder(string)`, `rounded()`, `lazy()`, `clickable()` |
-| `UrlColumn` | `UrlColumn::new('website')` | `linkToUrl(string\|callable)`, `linkToRoute(string $route, array\|callable\|null $params=null)`, `openInNewTab()`, `showExternalIcon(bool=true)`, `setDisplayValue(string)`, `setDefaultProtocol(string)`, `allowedProtocols(array)` |
-| `TemplateColumn` | `TemplateColumn::new('preview')` | `setTemplate(string $template, array $parameters=[])` — server-side Twig. Context: `row` (mapRow object), `source`, `payload` (mapRow array), `data`, `column`. `entity` is a deprecated alias of `row` **for TemplateColumn only** — detail rows and edit modals keep their own `entity`. Passing a reserved key as a parameter throws. |
+| `BooleanColumn` | `BooleanColumn::new('active')` | `renderAsSwitch(bool $defaultState=false)`, `toggleAjax(string $idField='id', string $method='PATCH')`, `entityClass(...)` |
+| `ChoiceColumn` | `ChoiceColumn::new('status')` | `choices(array\|string)`, `renderAsBadges(array\|bool $selector=[], string $defaultVariant='secondary')` |
+| `EmailColumn` | `EmailColumn::new('email')` | `obfuscate(bool=true)`, `mask(bool=true)`, `displayValue(string)`, `renderAsText(bool=true)` |
+| `ImageColumn` | `ImageColumn::new('photo')` | `imageWidth(int)`, `imageHeight(int)`, `alt(string)`, `placeholder(string)`, `rounded()`, `lazy()`, `clickable()` |
+| `UrlColumn` | `UrlColumn::new('website')` | `linkToUrl(string\|callable)`, `linkToRoute(string $route, array\|callable\|null $params=null)`, `openInNewTab()`, `showExternalIcon(bool=true)`, `displayValue(string)`, `defaultProtocol(string)`, `allowedProtocols(array)` |
+| `TemplateColumn` | `TemplateColumn::new('preview')` | `template(string $template, array $parameters=[])` — server-side Twig. Context: `row` (mapRow object), `source`, `payload` (mapRow array), `data`, `column`. `entity` is a deprecated alias of `row` **for TemplateColumn only** — detail rows and edit modals keep their own `entity`. Passing a reserved key as a parameter throws. |
 | `ActionColumn` | *(auto-generated from `configureActions()` — do not build manually)* | see `references/actions.md` |
 
 > `UrlColumn` supports `linkToRoute()`; `Action` (row actions) does **not** — it only has `linkToUrl()`.
@@ -45,6 +45,6 @@ TextColumn::new('email', 'Email')
 
 Notes:
 - `field()` vs `data()`: `field` is the entity/query path used for server-side filtering & ordering; `data` is the JSON path the front-end reads. Set `field` when the displayed property differs from the queried one (e.g. joined relations).
-- `setPermission()` on a column is evaluated once before serialization — the attribute or expression is never exposed to the browser. Columns support the static form only (no per-row resolver); see `references/security.md`.
+- `permission()` on a column is evaluated once before serialization — the attribute or expression is never exposed to the browser. Columns support the static form only (no per-row resolver); see `references/security.md`.
 - Define custom JavaScript render callbacks with the Stimulus `datatables:pre-connect` event (see `references/server-side.md`).
-- `setOrderExpression()` is for computed columns sorted on a subquery: pair it with an `addSelect(... AS HIDDEN <alias>)` in `customizeQueryBuilder()` — see `references/server-side.md`.
+- `orderExpression()` is for computed columns sorted on a subquery: pair it with an `addSelect(... AS HIDDEN <alias>)` in `customizeQueryBuilder()` — see `references/server-side.md`.

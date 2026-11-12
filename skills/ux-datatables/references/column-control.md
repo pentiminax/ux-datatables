@@ -8,7 +8,7 @@ Read this reference when a task enables ColumnControl, changes per-column contro
 ColumnControl is configured through `AbstractDataTable`:
 
 - Put table-wide controls and target rows in `configureDataTable()`.
-- Put `setColumnControl()` and `disableColumnControl()` on columns returned by
+- Put `columnControl()` and `disableColumnControl()` on columns returned by
   `configureColumns()`.
 - Put actions-column overrides in `configureActions()`.
 
@@ -43,7 +43,7 @@ final class EmployeeDataTable extends AbstractDataTable
 ```
 
 Targets are header row indexes or `'tfoot'` / `'tfoot:1'`. ColumnControl creates missing target
-rows. Passing `content` without a target throws. `setColumnControl()` needs the table-level
+rows. Passing `content` without a target throws. `columnControl()` needs the table-level
 extension to be enabled or the frontend will not load the plugin.
 
 ## Per-column search lists
