@@ -31,7 +31,8 @@ final class ColumnTranslator
         }
     }
 
-    private static function applyTitle(ColumnInterface $column, string $title): void
+    /** @internal */
+    public static function applyTitle(ColumnInterface $column, string $title): void
     {
         if ($column instanceof AbstractColumn) {
             $column->title($title);

@@ -11,6 +11,7 @@ use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Runtime\DataSourceMode;
 use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\RenderingPreparer;
 use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
@@ -110,6 +111,28 @@ final class AbstractDataTableOptInsTest extends TestCase
         yield 'ajax(), auto-detected columns' => [AttributeAjaxFluentOptOutAutoDetectedFixture::class, [], $autoDetected];
 
         yield 'ajax(), explicit columns' => [AttributeAjaxFluentOptOutFixture::class, [], $explicit];
+    }
+
+    #[Test]
+    public function it_records_the_source_mode_before_api_platform_adds_ajax_and_clears_it_on_reset(): void
+    {
+        $resolver = new class extends ApiResourceCollectionUrlResolver {
+            public function __construct()
+            {
+            }
+
+            public function resolveCollectionUrl(string $entityClass): ?string
+            {
+                return '/api/books';
+            }
+        };
+        $table = new FluentOptInFixture($resolver);
+        $table->prepareDataTableForRendering();
+
+        $this->assertSame(DataSourceMode::ApiPlatform, $table->getRenderedDataSourceMode());
+        $this->assertNotNull($table->getConfiguredDataTable()->getOption('ajax'));
+        $table->resetDataTableState();
+        $this->assertNull($table->getRenderedDataSourceMode());
     }
 
     #[Test]

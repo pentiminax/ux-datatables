@@ -8,11 +8,19 @@ use Pentiminax\UX\DataTables\Column\ChoiceColumn;
 use Pentiminax\UX\DataTables\Column\ColumnTranslator;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
+use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
+use Pentiminax\UX\DataTables\DataProvider\ArrayDataProvider;
 use Pentiminax\UX\DataTables\Enum\ColumnType;
+use Pentiminax\UX\DataTables\Export\ExporterRegistry;
+use Pentiminax\UX\DataTables\Export\ExportService;
+use Pentiminax\UX\DataTables\Model\Extensions\Button;
+use Pentiminax\UX\DataTables\Tests\Support\ConfigurableDataTable;
+use Pentiminax\UX\DataTables\Tests\Support\RecordingExporter;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\ExpressionLanguage\Expression;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\Translation\TranslatableInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -65,6 +73,45 @@ final class ColumnTranslatorTest extends TestCase
         ColumnTranslator::translate([$column], $this->upperCaseTranslator());
 
         $this->assertSame('name', $column->getTitle());
+    }
+
+    #[Test]
+    public function it_exports_a_legacy_column_with_a_title_setter(): void
+    {
+        $column = new class('email') extends ColumnTranslatorInterfaceColumn {
+            public function isExportable(): bool
+            {
+                return true;
+            }
+
+            public function setTitle(string $title): static
+            {
+                $this->title = $title;
+
+                return $this;
+            }
+        };
+        $exporter = new RecordingExporter();
+        $table    = new ConfigurableDataTable(
+            [$column],
+            configureTable: static fn ($table) => $table->buttons([Button::csv(serverSide: true)]),
+            dataProvider: new ArrayDataProvider([['email' => 'ada@example.com']], new class implements RowMapperInterface {
+                public function map(mixed $row): array
+                {
+                    return (array) $row;
+                }
+            }),
+        );
+        $service  = new ExportService(new ExporterRegistry([$exporter]), translator: $this->upperCaseTranslator());
+        $response = $service->export($table, new Request(['draw' => 1, 'exportKey' => 'csv']));
+        ob_start();
+        try {
+            $response->sendContent();
+        } finally {
+            ob_end_clean();
+        }
+        $this->assertSame('EMAIL', $exporter->columns[0]->getTitle());
+        $this->assertSame([['email' => 'ada@example.com']], $exporter->rows);
     }
 
     private function upperCaseTranslator(): TranslatorInterface

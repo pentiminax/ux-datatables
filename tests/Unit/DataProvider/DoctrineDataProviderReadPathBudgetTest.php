@@ -171,6 +171,31 @@ final class DoctrineDataProviderReadPathBudgetTest extends TestCase
     }
 
     #[Test]
+    public function a_selected_conditioned_join_takes_precedence_over_a_plain_join(): void
+    {
+        $joined = static fn (QueryBuilder $qb): QueryBuilder => $qb
+            ->leftJoin('e.customer', 'restricted', 'WITH', 'restricted.id > 20')
+            ->addSelect('restricted')
+            ->leftJoin('e.customer', 'ordering')
+            ->orderBy('ordering.id');
+
+        $rows = iterator_to_array($this->provider($joined)->fetchData($this->request(30))->data);
+
+        $this->assertNull($rows[0]['customer']);
+        $this->assertSame('Customer 21', $rows[20]['customer']);
+    }
+
+    #[Test]
+    public function a_hidden_result_alias_does_not_collide_with_generated_join_aliases(): void
+    {
+        $query = static fn (QueryBuilder $qb): QueryBuilder => $qb->addSelect('e.id AS HIDDEN ux_fetch_1');
+
+        $rows = iterator_to_array($this->provider($query)->fetchData($this->request(30))->data);
+
+        $this->assertSame('Customer 1', $rows[0]['customer']);
+    }
+
+    #[Test]
     public function a_distinct_query_gets_no_fetch_join(): void
     {
         $distinct = static fn (QueryBuilder $qb): QueryBuilder => $qb->distinct();

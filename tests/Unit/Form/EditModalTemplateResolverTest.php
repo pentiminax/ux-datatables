@@ -67,6 +67,16 @@ final class EditModalTemplateResolverTest extends TestCase
     }
 
     #[Test]
+    public function it_reads_a_template_changed_after_initialization(): void
+    {
+        $table = new DefaultEditModalDataTable();
+        $table->getConfiguredDataTable()->editModalTemplate('custom.html.twig');
+        $resolver = $this->createResolver([DefaultEditModalDataTable::class => static fn () => $table]);
+
+        $this->assertSame('custom.html.twig', $resolver->resolveChromeTemplate(DefaultEditModalDataTable::class));
+    }
+
+    #[Test]
     public function it_returns_the_default_template_for_non_whitelisted_classes(): void
     {
         $resolver = $this->createResolver();
