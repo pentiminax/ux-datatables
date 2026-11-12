@@ -80,16 +80,21 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
     {
         $alias = 'e';
 
-        $baseQb = $this->em
-            ->createQueryBuilder()
-            ->select($alias)
-            ->from($this->entityClass, $alias);
+        $baseQb       = null;
+        $recordsTotal = 0;
 
-        if ($this->configureBaseQueryBuilder) {
-            $baseQb = ($this->configureBaseQueryBuilder)($baseQb, $request);
+        if (!$request->rowsOnly) {
+            $baseQb = $this->em
+                ->createQueryBuilder()
+                ->select($alias)
+                ->from($this->entityClass, $alias);
+
+            if ($this->configureBaseQueryBuilder) {
+                $baseQb = ($this->configureBaseQueryBuilder)($baseQb, $request);
+            }
+
+            $recordsTotal = $this->count($baseQb, $alias);
         }
-
-        $recordsTotal = $this->count($baseQb, $alias);
 
         $qb = $this->em
             ->createQueryBuilder()
@@ -102,9 +107,13 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
 
         $this->breakPageTiesByIdentifier($qb, $alias);
 
-        $filteredCount = $this->isSameCountQuery($baseQb, $qb, $alias) ? $recordsTotal : $this->count($qb, $alias);
+        $filteredCount = 0;
+        $summaries     = null;
 
-        $summaries = $this->summarize($qb, $alias);
+        if (null !== $baseQb) {
+            $filteredCount = $this->isSameCountQuery($baseQb, $qb, $alias) ? $recordsTotal : $this->count($qb, $alias);
+            $summaries     = $this->summarize($qb, $alias);
+        }
 
         $this->fetchJoinToOneRelations($qb, $alias);
 

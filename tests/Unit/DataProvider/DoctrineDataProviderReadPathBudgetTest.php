@@ -15,6 +15,7 @@ use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
 use Pentiminax\UX\DataTables\DataTableRequest\Columns;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\Summary\Count;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntimeFactory;
 use Pentiminax\UX\DataTables\Security\AuthorizationChecker;
@@ -91,6 +92,29 @@ final class DoctrineDataProviderReadPathBudgetTest extends TestCase
 
         $this->assertSame($small, $large);
         $this->assertSame(2, $large);
+    }
+
+    #[Test]
+    public function a_rows_only_read_issues_a_single_statement_and_the_same_rows(): void
+    {
+        $summarized = new DoctrineDataProvider(
+            em: $this->em,
+            entityClass: CountInvoice::class,
+            rowMapper: $this->mapper(),
+            columns: [
+                TextColumn::new('number'),
+                TextColumn::new('customer')->field('customer.name'),
+                TextColumn::new('region')->field('region.name'),
+                TextColumn::new('id')->summarize(new Count()),
+            ],
+        );
+        $request = new DataTableRequest(draw: null, columns: new Columns([]), start: 0, length: 0, rowsOnly: true);
+
+        $rows = iterator_to_array($summarized->fetchData($request)->data);
+
+        $this->assertCount(30, $rows);
+        $this->assertSame(1, $this->statementsCount(), 'Only the page is read.');
+        $this->assertSame(0, $this->countStatements());
     }
 
     #[Test]
