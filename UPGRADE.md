@@ -38,6 +38,13 @@ reached.
 - `DataTable::setExtensions()` replaces the whole extension collection and has no replacement.
   Declare extensions with `extensions([...])`.
 - `Action::csrfTokenId()` is deprecated, use `csrfToken()`.
+- Custom columns must extend a bundled column or `AbstractColumn`. Implementing `ColumnInterface`
+  directly is deprecated: adding such a column to a table, through `add()`, `columns()` or
+  `configureColumns()`, raises a deprecation, and the column already misses summaries, value
+  formatting and search features. `ColumnInterface::setField()` and `setVisible()` are deprecated,
+  use `field()` and `visible()` on the column. `SearchableColumnInterface` and
+  `NormalizedSearchColumnInterface` are deprecated, `AbstractColumn` carries both. The interface
+  stays as the read-only type of search strategies and SearchList options providers.
 - A bundle service built by hand without an authorization checker falls back to a checker without Symfony Security,
   which 2.0 removes. Pass an `AuthorizationChecker`. Services from the container are not affected.
 - Stylesheet autodetection of the style framework logs a console warning once per page, and 2.0

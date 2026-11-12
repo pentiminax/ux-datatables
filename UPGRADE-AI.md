@@ -75,7 +75,13 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
    new ColumnResolver(permissionChecker: new AuthorizationChecker($security)); // after
    ```
 
-5. Set the style framework explicitly when the page relied on stylesheet autodetection and the
+5. Make every custom column extend a bundled column or `AbstractColumn`. Search for classes that
+   `implements ColumnInterface` and do not extend `AbstractColumn`, and for classes that implement
+   `SearchableColumnInterface` or `NormalizedSearchColumnInterface`: extend `AbstractColumn`
+   instead, set the type in the constructor, and drop the search interfaces (their members already
+   exist on `AbstractColumn`). Replace `setField()` and `setVisible()` calls with `field()` and
+   `visible()`. Type hints of `ColumnInterface` in search strategies and options providers stay.
+6. Set the style framework explicitly when the page relied on stylesheet autodetection and the
    browser console logs "The style framework was autodetected". Call `styleFramework()` on the
    table, or install a style kit.
 

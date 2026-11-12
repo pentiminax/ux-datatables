@@ -83,7 +83,7 @@ $column
 #### Search normalization
 
 Server-side text search lowercases both the column and the search term, so it behaves the same on
-PostgreSQL, on MySQL, and on binary collations. `setSearchNormalization(false)` opts a single
+PostgreSQL, on MySQL, and on binary collations. `searchNormalization(false)` opts a single
 column out of that and compares the raw column with a bare `LIKE` instead, which is what keeps a
 `starts` search usable on a MySQL prefix index. The bare `LIKE` follows the column's collation, so
 it is case-sensitive only where the collation is. It applies to global search, per-column search,
@@ -94,9 +94,8 @@ TextColumn::new('reference', 'Reference')
     ->searchNormalization(false);
 ```
 
-`AbstractColumn` carries the flag. A class implementing `ColumnInterface` directly is normalized
-unless it also implements `NormalizedSearchColumnInterface` and returns `false` from
-`isSearchNormalized()`.
+`AbstractColumn` carries the flag. Custom columns must extend a bundled column or `AbstractColumn`:
+a class that only implements `ColumnInterface` is deprecated since 1.6 and is always normalized.
 
 #### Sorting on a custom expression
 
@@ -170,9 +169,9 @@ search combines the returned conditions with `OR`, a column search with `AND`. R
 skip the column for that term.
 
 Overriding `buildSearchPredicate()` in a column subclass is the class-level equivalent. All three
-settings come from `Contracts\SearchableColumnInterface`, which `AbstractColumn` implements — so
-every bundled column type has them, and a custom class implementing `ColumnInterface` directly opts
-in by implementing that interface too.
+settings live on `AbstractColumn`, so every bundled column type and every subclass has them.
+Custom columns must extend a bundled column or `AbstractColumn`; implementing `ColumnInterface`
+directly is deprecated since 1.6.
 
 :::caution
 The predicate string is used verbatim in the DQL. Build it from your own code, never by
