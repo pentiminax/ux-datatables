@@ -76,7 +76,7 @@ final class DataSourceCapability
         try {
             return $provider->supports($feature);
         } catch (\UnhandledMatchError) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Data provider "%s" throws an \UnhandledMatchError from supports() for "%s::%s". Add the case or a default arm to its match.', $provider::class, DataSourceFeature::class, $feature->name);
+            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Data provider "%s" throws an \UnhandledMatchError from supports() for "%s::%s". 2.0 lets the error propagate. Add the case or a default arm to its match.', $provider::class, DataSourceFeature::class, $feature->name);
 
             return null;
         }

@@ -128,6 +128,9 @@ $table->editModalTemplate('modal/edit.html.twig');
 - A data provider that does not implement `FeatureAwareDataProviderInterface` is deprecated: the
   bundle assumes it supports every query feature, and 2.0 requires `supports()`. Implement
   `FeatureAwareDataProviderInterface`.
+- A data provider whose `supports()` throws an `\UnhandledMatchError` for a `DataSourceFeature` case
+  logs a deprecation: the bundle keeps the row scope check and identifier collection and refuses
+  the query feature. 2.0 lets the error propagate. Add the case or a `default` arm to the `match`.
 - `AbstractDataTable::getDataTable()` and `prepareForRendering()` mutate the table while preparing it
   for rendering. Use `getConfiguredDataTable()` to read the table and `render_datatable()` to render
   it.
