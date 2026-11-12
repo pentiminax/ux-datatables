@@ -17,7 +17,7 @@ TemplateColumn::new('status_display', 'Status')
     ->template('datatable/columns/user_status.html.twig');
 ```
 
-The column name (`status_display`) is the key used in `mapRow()`. `setField()` tells the row mapper which property to read from the row object.
+The column name (`status_display`) is the key used in `mapRow()`. `field()` tells the row mapper which property to read from the row object.
 
 ## Template Context
 
@@ -55,7 +55,7 @@ Example template:
 
 ## Passing Parameters
 
-Pass static parameters to the template via `setTemplate()`:
+Pass static parameters to the template via `template()`:
 
 ```php
 TemplateColumn::new('actions', 'Actions')
@@ -76,7 +76,7 @@ Parameters are merged into the template context. The keys `row`, `source`, `payl
       'Creates a new TemplateColumn (type: `html`)',
     ],
     [
-      '`setTemplate(string $template, array $parameters = [])`',
+      '`template(string $template, array $parameters = [])`',
       'Set the Twig template path and optional static parameters. Throws on an empty path, and on a parameter using a reserved context key.',
     ],
     ['`getTemplate(): string`', 'Returns the configured template path. Throws if not set.'],

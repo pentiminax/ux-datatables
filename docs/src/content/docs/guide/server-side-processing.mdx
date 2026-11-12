@@ -236,7 +236,7 @@ order by it:
 1. In `customizeQueryBuilder()`, add the aggregate with `addSelect(... AS HIDDEN <alias>)`. The
    `HIDDEN` keyword keeps the scalar out of the hydrated result, so entity hydration (and any page
    projector) is unaffected — the alias exists only for `ORDER BY`.
-2. On the column, call `setOrderExpression('<alias>')` so `OrderFilter` uses the alias verbatim
+2. On the column, call `orderExpression('<alias>')` so `OrderFilter` uses the alias verbatim
    instead of `<alias>.<field>`.
 
 ```php
@@ -270,9 +270,9 @@ joined rows, at the cost of one extra query per draw that lists every matching r
 and never overlap; on a very large result set, a correlated subquery stays cheaper.
 
 <Aside type="note">
-  `setOrderExpression()` only affects ordering. Search resolves the column's field independently —
+  `orderExpression()` only affects ordering. Search resolves the column's field independently —
   see [Searching computed and virtual columns](#searching-computed-and-virtual-columns) below for
-  pointing it somewhere valid, or disable it with `setSearchable(false)` and
+  pointing it somewhere valid, or disable it with `searchable(false)` and
   `disableGlobalSearch()`.
 </Aside>
 

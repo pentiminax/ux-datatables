@@ -125,7 +125,7 @@ UrlColumn::new('website', 'Website')
 
 ## Protocol Options
 
-Use `setDefaultProtocol()` to prepend a protocol to values that do not already include one:
+Use `defaultProtocol()` to prepend a protocol to values that do not already include one:
 
 ```php
 UrlColumn::new('website', 'Website')
@@ -167,13 +167,13 @@ UrlColumn::new('website', 'Website')
       'Set href from a static string or a per-row callable. Clears any configured route.',
     ],
     ['`openInNewTab()`', 'Add `target="_blank"` and `rel="noopener noreferrer"`'],
-    ['`setDisplayValue(string $value)`', 'Use a fixed label instead of the cell value'],
+    ['`displayValue(string $value)`', 'Use a fixed label instead of the cell value'],
     [
       '`showExternalIcon(bool $show = true)`',
       'Append the external-link icon after the anchor text',
     ],
     [
-      '`setDefaultProtocol(string $protocol)`',
+      '`defaultProtocol(string $protocol)`',
       'Prepend a protocol to href values that do not already include one',
     ],
     ['`allowedProtocols(array $protocols)`', 'Render only URLs with the listed protocols as links'],

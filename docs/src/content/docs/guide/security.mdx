@@ -111,7 +111,7 @@ anything:
 If a required check is denied, the Ajax endpoint responds with `403` instead of exposing private row
 details or touching the database.
 
-An action with no `setPermission()` call never triggers a `DT_EXECUTE_ACTION` vote at all — its
+An action with no `permission()` call never triggers a `DT_EXECUTE_ACTION` vote at all — its
 visibility is entirely up to `Action::displayIf()` or the action column's own permission, not a
 security decision.
 
@@ -122,7 +122,7 @@ security decision.
   [Writing a voter](#writing-a-voter) below).
 </Aside>
 
-### What a per-row `setPermission()` resolver receives
+### What a per-row `permission()` resolver receives
 
 `Action::permission()` with a resolver is evaluated per row, but the value it receives depends on
 where the action is evaluated:
@@ -283,7 +283,7 @@ scope covers:
       'No: deprecated in 1.6, refused in 2.0 unless the table calls unscopedMutations()',
     ],
     [
-      'Boolean toggle on a column of another entity (setEntityClass())',
+      'Boolean toggle on a column of another entity (entityClass())',
       'No: the payload carries only the related id, so the table scope cannot apply',
     ],
     [
@@ -309,7 +309,7 @@ public function configureDataTable(DataTable $table): DataTable
 add any check: the scope is yours to enforce.
 
 Bulk actions never re-authorize rows on their own: a row is re-checked **only** when the action
-declares a per-row permission (`setPermission($attribute, $subjectResolver)`). See
+declares a per-row permission (`permission($attribute, $subjectResolver)`). See
 [Bulk actions](/features/bulk-actions/#table-scope).
 
 For a multi-tenant table, scope reads on the Security user in `customizeQueryBuilder()` and back

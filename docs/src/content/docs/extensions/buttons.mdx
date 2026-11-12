@@ -305,9 +305,9 @@ composer require openspout/openspout
 
 The export reuses the request's current search, order, and filters, and ignores pagination.
 
-**Columns** use the same `setExportable(false)` flag as client-side export (and
+**Columns** use the same `exportable(false)` flag as client-side export (and
 `#[DataTableColumn(options: ['exportable' => false])]`). Action columns, template columns, and
-hidden columns (`setVisible(false)`) are already excluded. Order in the file is `configureColumns()`
+hidden columns (`visible(false)`) are already excluded. Order in the file is `configureColumns()`
 order, and headers are column titles, translated with the request locale.
 
 **Values** match what the table displays. A `MoneyColumn` is written as a number in currency units
@@ -322,7 +322,7 @@ Button::csv(serverSide: true)->rawValues();
 ```
 
 A `TemplateColumn` renders markup for the browser, so it stays out of an export unless
-`setExportable(true)` opts it back in — its rendered HTML is then stripped to text and its
+`exportable(true)` opts it back in — its rendered HTML is then stripped to text and its
 whitespace collapsed onto one line.
 
 Because the rows an export streams are mapped from the exportable columns alone, the work the
