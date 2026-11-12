@@ -50,6 +50,7 @@ use Pentiminax\UX\DataTables\Security\MutationTokenValidator;
 use Pentiminax\UX\DataTables\Security\SecurityVoter;
 use Pentiminax\UX\DataTables\Twig\DataTablesExtension;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\Form\FormFactoryInterface;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\inline_service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
@@ -275,6 +276,7 @@ return static function (ContainerConfigurator $container): void {
         ->public();
 
     $services->set('datatables.route_loader', RouteLoader::class)
+        ->args([interface_exists(FormFactoryInterface::class)])
         ->tag('routing.route_loader')
         ->public();
 

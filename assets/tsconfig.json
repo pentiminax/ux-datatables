@@ -9,7 +9,7 @@
     "strictPropertyInitialization": false,
     "noUnusedLocals": true,
     "noEmit": false,
-    "declaration": false,
+    "declaration": true,
     "sourceMap": true,
     "removeComments": true,
     "esModuleInterop": true,

@@ -395,14 +395,26 @@ final class InstallCommand extends Command
         $ok = true;
 
         if (!\in_array(self::PACKAGE.'/dist/core.js', $mapped, true)) {
-            $ok = $this->runImportmap('require', ['packages' => [self::PACKAGE.'/dist/core.js'], '--path' => './vendor/pentiminax/ux-datatables/assets/dist/core.js'], $output);
+            $ok = $this->runImportmap('require', ['packages' => [self::PACKAGE.'/dist/core.js'], '--path' => '@pentiminax/ux-datatables/core.js'], $output);
         }
 
-        $versions = $this->versions();
-        $packages = array_map(
-            fn (string $specifier): string => $specifier.'@'.$this->versionOf($specifier, $versions),
-            array_values(array_diff(array_unique($wanted), $mapped)),
-        );
+        $importmap = $this->importmap();
+        $versions  = $this->versions();
+        $packages  = [];
+
+        foreach (array_unique($wanted) as $specifier) {
+            $declared = $this->versionOf($specifier, $versions);
+            $current  = $importmap[$this->packageName($specifier)]['version'] ?? null;
+            // A stylesheet follows the version of its package so the two never differ.
+            $version = \is_string($current) && version_compare($current, $declared, '>=') ? $current : $declared;
+            $pinned  = $importmap[$specifier]['version'] ?? null;
+
+            if (isset($importmap[$specifier]) && (!\is_string($pinned) || $pinned === $version)) {
+                continue;
+            }
+
+            $packages[] = $specifier.'@'.$version;
+        }
 
         if ([] !== $packages) {
             $ok = $this->runImportmap('require', ['packages' => $packages], $output) && $ok;

@@ -97,8 +97,9 @@ final class RowActionGate
 
     private function assertToggleInScope(ResolvedDataTable $table, BooleanMutationContext $toggle, RowActionRequest $rowAction): void
     {
-        // A table without an entity class has no row scope to check against.
         if (null === $table->entityClass) {
+            trigger_deprecation('pentiminax/ux-datatables', '1.5', 'Toggling a boolean column on table "%s", which has no entity class, skips the row scope check: 2.0 refuses the request. Give the table an entity class with #[AsDataTable(entityClass: ...)].', $table->dataTableClass);
+
             return;
         }
 

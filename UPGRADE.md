@@ -12,6 +12,68 @@ The guide starts at **1.1.0**, the first upgrade after the stable 1.0 release. T
 
 Deprecated APIs keep working for the whole 1.x line and are removed in 2.0.
 
+## Upgrading to 1.5.1
+
+Everything in this release is backward compatible. The deprecations below tell you what 2.0
+removes. An application that runs 1.5.1 with no deprecation notice and no console warning upgrades to
+2.0 without surprises.
+
+### Deprecations
+
+- `data_tables.package_loading: builtin` is deprecated, like leaving the option unset. Set
+  `registered` (run `ux-datatables:install`). 2.0 removes the option: `builtin` fails.
+- A boolean toggle on a table without an entity class skips the row scope check. It still runs in
+  1.5.1 with a deprecation. 2.0 refuses the request. Give the table an entity class with
+  `#[AsDataTable(entityClass: ...)]`. Toggles that are already scoped raise nothing.
+- Bootstrap 3 and 4 picked up by stylesheet autodetection log a console warning once per page, and
+  `StyleFramework` `'bs'` and `'bs4'` are tagged `@deprecated` in TypeScript. Load the Bootstrap 5
+  or the DataTables stylesheet instead.
+
+### Row actions follow the route prefix
+
+Delete, boolean toggle, detail, and the edit form view and submit now call the URLs the router
+generates, which the table serializes under a new `rowActionUrls` payload key. An application that
+imports the bundle routes under a prefix no longer needs to proxy `/datatables/ajax/*`. Without the
+key, for example in a page cached before the upgrade, the frontend calls the previous default
+paths. A custom JavaScript client keeps working. An explicit `data-url` on a switch still wins.
+
+### Edit form routes need `symfony/form`
+
+Without `symfony/form`, the two edit form routes are no longer registered: a request to them
+answers `404` instead of a server error.
+
+### Missing optional JavaScript packages degrade one feature
+
+- A table with an icon initializes without Lucide registered, without its icons, and logs a console
+  warning. It used to fail to initialize.
+- An `excel` or `pdf` button logs a console warning when JSZip or pdfmake is not registered, and a
+  JSZip or pdfmake that fails to load disables only its button.
+- `packageLoaders.register()` throws for a name outside the closed list of packages, so a typo
+  fails at startup.
+
+### Registered package loading: what to import and what changes
+
+- In registered mode, import `packageLoaders`, `buttonActions`, `modalAdapters` and the adapter
+  types from `@pentiminax/ux-datatables/dist/core.js`. The main entry still re-exports the 1.x
+  controller, so importing it brings the built-in loaders back into your bundle. The documentation
+  now shows the core entry.
+- Registered loading reduces the packages you install and your bundler resolves. It does not reduce
+  what the browser downloads for the packages a table uses.
+- `ux-datatables:install --prune` is not durable: Symfony Flex requires the entries the bundle
+  declares again on the next `composer install` or `composer update`. Run the command with
+  `--prune` again after a Composer run. 2.0 shrinks the declared import map.
+
+### Installer and published package
+
+- `ux-datatables:install` registers `dist/core.js` through its logical path
+  (`@pentiminax/ux-datatables/core.js`), so it works with a custom Composer vendor directory.
+- The installer pins a package and its stylesheet to the same version, which satisfies the range
+  the bundle declares. A mapped package outside that range is pinned again.
+- The import map and peer dependency ranges, and each stylesheet and its package, now declare the
+  same range, and `package.json` carries the release version.
+- The frontend build ships type declarations (`dist/**/*.d.ts`). TypeScript code that imports the
+  package is now type-checked against them.
+
 ## Upgrading to 1.5.0
 
 ### Related-entity switch toggles are tied to their table row
@@ -34,10 +96,11 @@ Leaving `data_tables.package_loading` unset is deprecated. Choose one of the two
 ```yaml
 # config/packages/data_tables.yaml
 data_tables:
-    package_loading: registered # or "builtin" to keep today's behavior
+    package_loading: registered # "builtin" keeps today's behavior but is deprecated since 1.5.1
 ```
 
-- `builtin` keeps the `datatable` controller, which imports every DataTables package.
+- `builtin` keeps the `datatable` controller, which imports every DataTables package. Setting it
+  explicitly is deprecated since 1.5.1.
 - `registered` renders the new `datatable_core` controller, which imports only
   `@hotwired/stimulus`. Your application registers the packages it uses.
 
@@ -53,6 +116,9 @@ In `registered` mode:
 - a package you did not register fails with `The "<name>" package is not registered.`
 - an explicit `package_loading` that contradicts `assets/controllers.json` fails the container
   build in debug
+- the Stimulus controller identifier changes from `pentiminax--ux-datatables--datatable` to
+  `pentiminax--ux-datatables--datatable-core`: update code that looks the controller up by
+  identifier, such as `application.getControllerForElementAndIdentifier()`
 - the look is `dt` plus the Tailwind theme; `--style=dt` and `--style=bs5` turn the theme off
 
 In both modes JSZip now loads only for `excel` buttons and pdfmake only for `pdf` buttons.

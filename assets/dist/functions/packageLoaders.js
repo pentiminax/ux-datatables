@@ -10,12 +10,24 @@ export const EXTENSION_NAMES = [
     'searchBuilder',
     'select',
 ];
+const PACKAGE_NAMES = [
+    'dataTables',
+    'buttons',
+    'jszip',
+    'pdfmake',
+    'bootstrap',
+    'lucide',
+    ...EXTENSION_NAMES,
+];
 export class PackageLoaderRegistry {
     constructor() {
         this.loaders = new Map();
         this.fallback = null;
     }
     register(name, loader) {
+        if (!PACKAGE_NAMES.includes(name)) {
+            throw new Error(`Cannot register an unknown package "${name}". Valid names: ${PACKAGE_NAMES.join(', ')}.`);
+        }
         this.loaders.set(name, loader);
         return this;
     }

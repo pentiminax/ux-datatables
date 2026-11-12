@@ -211,7 +211,7 @@ final class ProductsDataTable extends AbstractDataTable
 For advanced modal behavior (animations, third-party libraries), implement the `ModalAdapter` interface and register it via `modalAdapters`:
 
 ```ts
-import type { ModalAdapter, ModalHandlers } from '@pentiminax/ux-datatables'
+import type { ModalAdapter, ModalHandlers } from '@pentiminax/ux-datatables/dist/core.js'
 
 export class MyModalAdapter implements ModalAdapter {
   async show(html: string, handlers: ModalHandlers): Promise<void> {
@@ -232,7 +232,7 @@ export class MyModalAdapter implements ModalAdapter {
 Register it once in your app entrypoint:
 
 ```ts
-import { modalAdapters } from '@pentiminax/ux-datatables'
+import { modalAdapters } from '@pentiminax/ux-datatables/dist/core.js'
 
 modalAdapters.register('my-adapter', () => new MyModalAdapter())
 ```

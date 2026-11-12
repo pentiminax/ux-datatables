@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Functional\Test;
 
+use Pentiminax\UX\DataTables\Test\DataTableView;
 use Pentiminax\UX\DataTables\Tests\Kernel\TestHarnessAppKernel;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -57,6 +58,20 @@ final class MutationEndpointsTest extends WebTestCase
         );
 
         $this->assertNotSame(422, $client->getResponse()->getStatusCode());
+    }
+
+    public function test_the_payload_carries_the_row_action_urls(): void
+    {
+        $client = static::createClient();
+        $view   = DataTableView::fromCrawler($client->request('GET', '/actions'));
+
+        $this->assertSame([
+            'delete'         => '/datatables/ajax/delete',
+            'toggle'         => '/datatables/ajax/edit',
+            'detail'         => '/datatables/ajax/detail',
+            'editForm'       => '/datatables/ajax/edit-form/view',
+            'editFormSubmit' => '/datatables/ajax/edit-form',
+        ], $view->option('rowActionUrls'));
     }
 
     protected static function createKernel(array $options = []): KernelInterface

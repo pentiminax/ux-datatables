@@ -158,8 +158,12 @@ class PentiminaxDataTablesBundle extends AbstractBundle
         $packageLoading = $config['package_loading'] ?? null;
 
         if (null === $packageLoading) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.5', 'Not setting "data_tables.package_loading" is deprecated: its default becomes "registered" in 2.0. Set "package_loading: registered" (or "package_loading: builtin" to keep the current behavior), or run "bin/console ux-datatables:install".');
+            trigger_deprecation('pentiminax/ux-datatables', '1.5', 'Not setting "data_tables.package_loading" is deprecated: its default becomes "registered" in 2.0. Set "package_loading: registered", or run "bin/console ux-datatables:install".');
         } else {
+            if ('builtin' === $packageLoading) {
+                trigger_deprecation('pentiminax/ux-datatables', '1.5', 'Setting "data_tables.package_loading" to "builtin" is deprecated: "builtin" fails in 2.0, where the built-in loaders are removed. Set "package_loading: registered", or run "bin/console ux-datatables:install".');
+            }
+
             // Only an explicit choice is checked against controllers.json: 1.x apps may register the controller themselves.
             $container->parameters()->set('datatables.package_loading', $packageLoading);
         }

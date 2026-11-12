@@ -1,6 +1,7 @@
 import { JSON_HEADERS, postRowRequest } from './postRowRequest.js';
-export function fetchDetailRow(payload) {
-    return postRowRequest('/datatables/ajax/detail', JSON_HEADERS, payload, {
+import { DEFAULT_ROW_ACTION_URLS } from './rowActionUrl.js';
+export function fetchDetailRow({ url = DEFAULT_ROW_ACTION_URLS.detail, ...payload }) {
+    return postRowRequest(url, JSON_HEADERS, payload, {
         success: false,
         html: '',
     });

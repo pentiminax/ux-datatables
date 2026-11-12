@@ -262,7 +262,7 @@ final class InstallCommandTest extends TestCase
         $paths   = array_filter($require, static fn (array $call): bool => null !== $call[2]);
 
         $this->assertSame(['@pentiminax/ux-datatables/dist/core.js'], array_merge(...array_column($paths, 1)));
-        $this->assertSame('./vendor/pentiminax/ux-datatables/assets/dist/core.js', array_values($paths)[0][2]);
+        $this->assertSame('@pentiminax/ux-datatables/core.js', array_values($paths)[0][2]);
 
         $packages = array_merge(...array_column(array_filter($require, static fn (array $call): bool => null === $call[2]), 1));
         $this->assertContains('datatables.net-select-dt@4.1.1', $packages);
@@ -270,9 +270,35 @@ final class InstallCommandTest extends TestCase
         $this->assertContains('datatables.net-datetime@2.1.2', $packages);
         $this->assertContains('lucide@1.52.0', $packages);
         $this->assertContains('datatables.net-dt/css/dataTables.dataTables.min.css@3.1.3', $packages);
-        $this->assertNotContains('datatables.net-dt@3.1.2', $packages);
-        $this->assertNotContains('datatables.net-dt@3.1.3', $packages);
+        $this->assertContains('datatables.net-dt@3.1.3', $packages, 'A mapped package below the declared range is pinned again with its stylesheet.');
         $this->assertStringContainsString('--prune', $tester->getDisplay());
+    }
+
+    #[Test]
+    public function it_pins_the_stylesheet_to_the_mapped_version_of_its_package_when_it_satisfies_the_range(): void
+    {
+        file_put_contents($this->dir.'/importmap.php', "<?php\n\nreturn [\n    'datatables.net-dt' => ['version' => '3.1.9'],\n];\n");
+
+        $this->install(['extensions' => ['select']]);
+
+        $packages = array_merge(...array_column(array_filter($this->calls, static fn (array $call): bool => 'importmap:require' === $call[0] && null === $call[2]), 1));
+
+        $this->assertContains('datatables.net-dt/css/dataTables.dataTables.min.css@3.1.9', $packages);
+        $this->assertNotContains('datatables.net-dt@3.1.9', $packages);
+        $this->assertNotContains('datatables.net-dt@3.1.3', $packages);
+    }
+
+    #[Test]
+    public function it_never_downgrades_a_package_mapped_above_the_declared_range(): void
+    {
+        file_put_contents($this->dir.'/importmap.php', "<?php\n\nreturn [\n    'datatables.net-dt' => ['version' => '4.0.0'],\n];\n");
+
+        $this->install(['extensions' => ['select']]);
+
+        $packages = array_merge(...array_column(array_filter($this->calls, static fn (array $call): bool => 'importmap:require' === $call[0] && null === $call[2]), 1));
+
+        $this->assertContains('datatables.net-dt/css/dataTables.dataTables.min.css@4.0.0', $packages);
+        $this->assertNotContains('datatables.net-dt@3.1.3', $packages);
     }
 
     #[Test]

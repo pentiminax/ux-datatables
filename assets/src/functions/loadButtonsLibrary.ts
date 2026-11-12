@@ -49,6 +49,33 @@ export function requiredExportPackages(layout: unknown): { jszip: boolean; pdfma
     return required
 }
 
+async function loadExportPackage(name: 'jszip' | 'pdfmake', required: boolean): Promise<unknown> {
+    if (!required) {
+        return null
+    }
+
+    const buttons = name === 'jszip' ? 'Excel' : 'PDF'
+
+    if (!packageLoaders.has(name)) {
+        console.warn(
+            `The "${name}" package is not registered, so the ${buttons} buttons are unavailable. Install it and register it with packageLoaders.register('${name}', loader).`
+        )
+
+        return null
+    }
+
+    try {
+        return await packageLoaders.load(name)
+    } catch (error) {
+        console.warn(
+            `The "${name}" package failed to load, so the ${buttons} buttons are unavailable.`,
+            error
+        )
+
+        return null
+    }
+}
+
 /** JSZip and pdfmake stay optional: without them only the Excel and PDF buttons are unavailable. */
 export async function loadButtonsLibrary(
     DataTable: typeof import('datatables.net').default,
@@ -58,8 +85,8 @@ export async function loadButtonsLibrary(
     const required = requiredExportPackages(layout)
     const [, jszip, pdfMake] = await Promise.all([
         packageLoaders.load('buttons', framework),
-        required.jszip && packageLoaders.has('jszip') ? packageLoaders.load('jszip') : null,
-        required.pdfmake && packageLoaders.has('pdfmake') ? packageLoaders.load('pdfmake') : null,
+        loadExportPackage('jszip', required.jszip),
+        loadExportPackage('pdfmake', required.pdfmake),
     ])
 
     if (jszip) {

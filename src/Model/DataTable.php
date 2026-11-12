@@ -74,6 +74,9 @@ class DataTable
 
     private ?string $bulkActionsUrl = null;
 
+    /** @var array<string, string>|null */
+    private ?array $rowActionUrls = null;
+
     private ?string $bulkRowIdField = null;
 
     private bool $selectionForBulkActions = false;
@@ -163,6 +166,10 @@ class DataTable
             ];
 
             $options['rowId'] ??= HighlightConfig::ROW_ID_KEY;
+        }
+
+        if (null !== $this->rowActionUrls) {
+            $options['rowActionUrls'] = $this->rowActionUrls;
         }
 
         if (null !== $this->emptyState) {
@@ -1021,6 +1028,18 @@ class DataTable
     public function setBulkActionsUrl(string $url): static
     {
         $this->bulkActionsUrl = $url;
+
+        return $this;
+    }
+
+    /**
+     * @param array<string, string> $urls
+     *
+     * @internal set by the RenderingPreparer
+     */
+    public function setRowActionUrls(array $urls): static
+    {
+        $this->rowActionUrls = $urls;
 
         return $this;
     }

@@ -9,6 +9,10 @@ use Symfony\Component\Routing\RouteCollection;
 
 final class RouteLoader
 {
+    public function __construct(private readonly bool $formAvailable = true)
+    {
+    }
+
     public function loadRoutes(): RouteCollection
     {
         $routes = new RouteCollection();
@@ -31,17 +35,19 @@ final class RouteLoader
             methods: ['DELETE'],
         ));
 
-        $routes->add('ux_datatables_ajax_edit_form', new Route(
-            path: '/datatables/ajax/edit-form/view',
-            defaults: ['_controller' => 'datatables.controller.ajax_edit_form'],
-            methods: ['POST'],
-        ));
+        if ($this->formAvailable) {
+            $routes->add('ux_datatables_ajax_edit_form', new Route(
+                path: '/datatables/ajax/edit-form/view',
+                defaults: ['_controller' => 'datatables.controller.ajax_edit_form'],
+                methods: ['POST'],
+            ));
 
-        $routes->add('ux_datatables_ajax_edit_form_submit', new Route(
-            path: '/datatables/ajax/edit-form',
-            defaults: ['_controller' => 'datatables.controller.ajax_edit_form_submit'],
-            methods: ['POST'],
-        ));
+            $routes->add('ux_datatables_ajax_edit_form_submit', new Route(
+                path: '/datatables/ajax/edit-form',
+                defaults: ['_controller' => 'datatables.controller.ajax_edit_form_submit'],
+                methods: ['POST'],
+            ));
+        }
 
         $routes->add('ux_datatables_ajax_detail', new Route(
             path: '/datatables/ajax/detail',

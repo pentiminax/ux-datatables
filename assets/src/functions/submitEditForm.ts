@@ -1,5 +1,6 @@
 import { createMutationHeaders } from './createMutationHeaders.js'
 import { postRowRequest } from './postRowRequest.js'
+import { DEFAULT_ROW_ACTION_URLS } from './rowActionUrl.js'
 
 type SubmitEditFormPayload = {
     dataTable: string
@@ -7,6 +8,7 @@ type SubmitEditFormPayload = {
     formData: Record<string, any>
     csrfToken?: string
     query?: Record<string, unknown>
+    url?: string
 }
 
 type SubmitEditFormResponse = {
@@ -16,9 +18,9 @@ type SubmitEditFormResponse = {
 }
 
 export function submitEditForm(payload: SubmitEditFormPayload): Promise<SubmitEditFormResponse> {
-    const { csrfToken, ...body } = payload
+    const { csrfToken, url = DEFAULT_ROW_ACTION_URLS.editFormSubmit, ...body } = payload
 
-    return postRowRequest('/datatables/ajax/edit-form', createMutationHeaders(csrfToken), body, {
+    return postRowRequest(url, createMutationHeaders(csrfToken), body, {
         success: false,
     })
 }
