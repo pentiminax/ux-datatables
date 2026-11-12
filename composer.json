@@ -50,6 +50,7 @@
   },
   "suggest": {
     "api-platform/core": "To auto-detect columns from API Platform metadata.",
+    "doctrine/orm": "To serve Doctrine-backed tables and use the query contracts.",
     "openspout/openspout": "To enable server-side CSV and XLSX export.",
     "symfony/maker-bundle": "To use the make:datatable command.",
     "symfony/form": "To enable the inline edit modal.",

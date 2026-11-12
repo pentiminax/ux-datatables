@@ -97,6 +97,43 @@ final class PackageCatalogConsistencyTest extends TestCase
         $this->assertNull(PackageCatalog::fromOptionKey('columns'));
     }
 
+    #[Test]
+    public function it_declares_the_same_range_for_the_import_map_and_the_peer_dependencies(): void
+    {
+        $manifest  = $this->manifest();
+        $importmap = $manifest['symfony']['importmap'];
+
+        foreach ($manifest['peerDependencies'] as $package => $range) {
+            if (isset($importmap[$package])) {
+                $this->assertSame($range, $importmap[$package], \sprintf('The import map and peer ranges of "%s" differ.', $package));
+            }
+        }
+    }
+
+    #[Test]
+    public function it_declares_each_stylesheet_with_the_range_of_its_package(): void
+    {
+        $importmap = $this->manifest()['symfony']['importmap'];
+
+        foreach ($importmap as $specifier => $range) {
+            if (!str_contains($specifier, '/') || str_starts_with($specifier, '@')) {
+                continue;
+            }
+
+            $package = explode('/', $specifier)[0];
+            $this->assertArrayHasKey($package, $importmap, \sprintf('"%s" has no package entry.', $specifier));
+            $this->assertSame($importmap[$package], $range, \sprintf('"%s" must use the range of "%s".', $specifier, $package));
+        }
+    }
+
+    /**
+     * @return array{version: string, peerDependencies: array<string, string>, symfony: array{importmap: array<string, string>}}
+     */
+    private function manifest(): array
+    {
+        return json_decode($this->read('assets/package.json'), true, 512, \JSON_THROW_ON_ERROR);
+    }
+
     private function read(string $path): string
     {
         $source = file_get_contents(\dirname(__DIR__, 3).'/'.$path);
