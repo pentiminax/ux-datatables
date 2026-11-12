@@ -11,8 +11,12 @@ use Doctrine\DBAL\Types\Type;
 use Doctrine\ORM\AbstractQuery;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Query\Expr\Join;
 use Doctrine\ORM\QueryBuilder;
+use Pentiminax\UX\DataTables\Column\ActionColumn;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
+use Pentiminax\UX\DataTables\Column\Rendering\ColumnKeyResolver;
+use Pentiminax\UX\DataTables\Column\TemplateColumn;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
@@ -62,11 +66,13 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
         private $configureBaseQueryBuilder = null,
         private readonly int $exportChunkSize = 250,
         /**
-         * Columns whose summarizers feed {@see DataTableResult::$summaries}.
+         * The columns the table displays: their to-one relation paths are fetch-joined with the
+         * page, and their summarizers feed {@see DataTableResult::$summaries}.
          *
          * @var list<ColumnInterface>
          */
         private readonly array $columns = [],
+        private readonly bool $summarize = true,
     ) {
     }
 
@@ -96,9 +102,11 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
 
         $this->breakPageTiesByIdentifier($qb, $alias);
 
-        $filteredCount = $this->isSameCountQuery($baseQb, $qb) ? $recordsTotal : $this->count($qb, $alias);
+        $filteredCount = $this->isSameCountQuery($baseQb, $qb, $alias) ? $recordsTotal : $this->count($qb, $alias);
 
         $summaries = $this->summarize($qb, $alias);
+
+        $this->fetchJoinToOneRelations($qb, $alias);
 
         if ($request->start > 0) {
             $qb->setFirstResult($request->start);
@@ -156,7 +164,7 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
      */
     private function summarize(QueryBuilder $qb, string $alias): ?array
     {
-        $summarized = ColumnResolver::filterSummarized($this->columns);
+        $summarized = $this->summarize ? ColumnResolver::filterSummarized($this->columns) : [];
 
         if ([] === $summarized) {
             return null;
@@ -887,16 +895,203 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
 
     /**
      * Identical DQL, window and parameters count the same rows, so the second COUNT of a draw can be skipped.
+     *
+     * Ordering and to-one LEFT JOINs that no condition references are left out of the comparison:
+     * neither can change which root rows match.
      */
-    private function isSameCountQuery(QueryBuilder $base, QueryBuilder $filtered): bool
+    private function isSameCountQuery(QueryBuilder $base, QueryBuilder $filtered, string $alias): bool
     {
-        $base     = (clone $base)->resetDQLPart('orderBy');
-        $filtered = (clone $filtered)->resetDQLPart('orderBy');
+        $base     = $this->withoutCountNeutralParts($base, $alias);
+        $filtered = $this->withoutCountNeutralParts($filtered, $alias);
 
         return $base->getDQL()         === $filtered->getDQL()
             && $base->getFirstResult() === $filtered->getFirstResult()
             && $base->getMaxResults()  === $filtered->getMaxResults()
             && $this->sameParameters($base, $filtered);
+    }
+
+    private function withoutCountNeutralParts(QueryBuilder $qb, string $alias): QueryBuilder
+    {
+        $qb = (clone $qb)->resetDQLPart('orderBy');
+
+        $metadata = CollectionJoinDetector::aliasMetadata($qb, $this->em, $alias, $this->entityClass);
+        $joins    = $qb->getDQLPart('join');
+
+        do {
+            $removed = false;
+
+            foreach ($joins as $root => $rootJoins) {
+                foreach ($rootJoins as $index => $join) {
+                    if (!$this->isNeutralToOneJoin($join, $metadata) || $this->isAliasReferenced($qb, $joins, $join)) {
+                        continue;
+                    }
+
+                    unset($joins[$root][$index]);
+                    $removed = true;
+                }
+            }
+        } while ($removed);
+
+        $qb->resetDQLPart('join');
+        foreach ($joins as $root => $rootJoins) {
+            foreach ($rootJoins as $join) {
+                $qb->add('join', [$root => $join], true);
+            }
+        }
+
+        return $qb;
+    }
+
+    /**
+     * @param array<string, ClassMetadata<object>> $metadata
+     */
+    private function isNeutralToOneJoin(Join $join, array $metadata): bool
+    {
+        if (Join::LEFT_JOIN !== $join->getJoinType() || 1 !== preg_match('/^([A-Za-z_]\w*)\.([A-Za-z_]\w*)$/', $join->getJoin(), $matches)) {
+            return false;
+        }
+
+        $parent = $metadata[$matches[1]] ?? null;
+
+        return null !== $parent && $parent->hasAssociation($matches[2]) && $parent->isSingleValuedAssociation($matches[2]);
+    }
+
+    /**
+     * @param array<string, array<int, Join>> $joins
+     */
+    private function isAliasReferenced(QueryBuilder $qb, array $joins, Join $candidate): bool
+    {
+        $alias = $candidate->getAlias();
+        if (null === $alias) {
+            return true;
+        }
+
+        $pattern = '/(?<![\w.])'.preg_quote($alias, '/').'(?!\w)/';
+
+        foreach (['select', 'where', 'having', 'groupBy'] as $part) {
+            $dql = $qb->getDQLPart($part);
+            $dql = \is_array($dql) ? implode(' ', array_map(strval(...), $dql)) : (string) $dql;
+
+            if (1 === preg_match($pattern, $dql)) {
+                return true;
+            }
+        }
+
+        foreach ($joins as $rootJoins) {
+            foreach ($rootJoins as $join) {
+                if ($join !== $candidate && 1 === preg_match($pattern, $join->getJoin().' '.$join->getCondition())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Adds a LEFT JOIN plus select for every to-one association the displayed columns read through
+     * a dot path, so the row mapper finds them loaded instead of lazy-loading one per row.
+     *
+     * A plain LEFT JOIN already on the query (from search, ordering or the application) is reused;
+     * any other join on the association, an INNER or conditioned one, may hide rows of the
+     * association, so it is left alone and a join of its own is added. To-many associations are
+     * never fetch-joined: they would break LIMIT.
+     */
+    private function fetchJoinToOneRelations(QueryBuilder $qb, string $alias): void
+    {
+        if ([] !== $qb->getDQLPart('groupBy') || !$this->selectsRootEntity($qb, $alias)) {
+            return;
+        }
+
+        $selected = [];
+        foreach ($qb->getDQLPart('select') as $select) {
+            foreach ($select->getParts() as $part) {
+                foreach (explode(',', (string) $part) as $item) {
+                    $selected[trim($item)] = true;
+                }
+            }
+        }
+
+        $joinAliases = [];
+
+        foreach ($this->displayedRelationPaths() as $path) {
+            $segments = explode('.', $path);
+            $metadata = $this->em->getClassMetadata($this->entityClass);
+            $parent   = $alias;
+
+            while (\count($segments) > 1 && !$metadata->hasField(implode('.', $segments))) {
+                $segment = array_shift($segments);
+
+                if (!$metadata->hasAssociation($segment) || !$metadata->isSingleValuedAssociation($segment)) {
+                    break;
+                }
+
+                $join = "$parent.$segment";
+                $joinAliases[$join] ??= $this->plainLeftJoinAlias($qb, $join) ?? $this->addLeftJoin($qb, $join);
+                $joinAlias = $joinAliases[$join];
+
+                if (!isset($selected[$joinAlias])) {
+                    $qb->addSelect($joinAlias);
+                    $selected[$joinAlias] = true;
+                }
+
+                $parent   = $joinAlias;
+                $metadata = $this->em->getClassMetadata($metadata->getAssociationTargetClass($segment));
+            }
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function displayedRelationPaths(): array
+    {
+        $paths = [];
+
+        foreach ($this->columns as $column) {
+            if ($column instanceof TemplateColumn || $column instanceof ActionColumn) {
+                continue;
+            }
+
+            $key = ColumnKeyResolver::rowKey($column);
+            if (null === $key) {
+                continue;
+            }
+
+            $path = ColumnKeyResolver::readPath($column, $key);
+            if (str_contains($path, '.')) {
+                $paths[$path] = $path;
+            }
+        }
+
+        return array_values($paths);
+    }
+
+    private function plainLeftJoinAlias(QueryBuilder $qb, string $join): ?string
+    {
+        foreach ($qb->getDQLPart('join') as $rootJoins) {
+            foreach ($rootJoins as $candidate) {
+                if ($candidate->getJoin() === $join && Join::LEFT_JOIN === $candidate->getJoinType() && null === $candidate->getCondition() && null === $candidate->getIndexBy()) {
+                    return $candidate->getAlias();
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function addLeftJoin(QueryBuilder $qb, string $join): string
+    {
+        $taken = array_flip($qb->getAllAliases());
+        $index = 1;
+
+        while (isset($taken["ux_fetch_$index"])) {
+            ++$index;
+        }
+
+        $qb->leftJoin($join, "ux_fetch_$index");
+
+        return "ux_fetch_$index";
     }
 
     /**
@@ -940,6 +1135,17 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
     }
 
     /**
+     * Whether a root can come back more than once: a to-many join, several FROM roots or a composite
+     * identifier keep DISTINCT, as does a join the detector cannot trace.
+     */
+    private function canRepeatRoots(QueryBuilder $qb, string $alias): bool
+    {
+        return \count($qb->getDQLPart('from')) > 1
+            || $this->em->getClassMetadata($this->entityClass)->isIdentifierComposite
+            || CollectionJoinDetector::joinsCollection($qb, $this->em, $alias, $this->entityClass);
+    }
+
+    /**
      * Counts distinct roots (single-column primary key only); a permanent GROUP BY counts its own
      * result rows instead.
      */
@@ -951,8 +1157,10 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
             return \count($qb->getQuery()->getScalarResult());
         }
 
+        $distinct = $this->canRepeatRoots($qb, $alias) ? 'DISTINCT ' : '';
+
         return (int) $qb
-            ->select("COUNT(DISTINCT $alias)")
+            ->select("COUNT($distinct$alias)")
             ->getQuery()
             ->getSingleScalarResult();
     }
