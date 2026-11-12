@@ -81,7 +81,25 @@ final class AbstractDataTableOptInsTest extends TestCase
         });
 
         $this->assertFalse($payload['apiPlatform']);
-        $this->assertSame([], $this->matching($notices, '2.0 sends the API Platform flag'));
+        $this->assertSame([], $this->matching($notices, 'API Platform'));
+    }
+
+    #[Test]
+    public function it_calls_a_prepare_for_rendering_override_from_get_data_table(): void
+    {
+        $table = new class(null) extends FluentOptInFixture {
+            public int $calls = 0;
+
+            public function prepareForRendering(): void
+            {
+                ++$this->calls;
+                parent::prepareForRendering();
+            }
+        };
+
+        $this->deprecationsOf(static fn () => $table->getDataTable());
+
+        $this->assertSame(1, $table->calls);
     }
 
     #[Test]
@@ -215,7 +233,7 @@ final class AttributeOptInFixture extends OptInFixture
 }
 
 #[AsDataTable(entityClass: \stdClass::class)]
-final class FluentOptInFixture extends OptInFixture
+class FluentOptInFixture extends OptInFixture
 {
     public function configureDataTable(DataTable $table): DataTable
     {

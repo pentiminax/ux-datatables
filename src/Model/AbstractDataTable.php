@@ -130,7 +130,7 @@ abstract class AbstractDataTable
 
         $this->optIns = ResolvedOptIns::resolve($this->table, $this->asDataTable);
 
-        if ($this->optIns->apiPlatformOptOutOverridden) {
+        if ($this->optIns->apiPlatformOptOutOverridden && null === $this->table->getOption('ajax')) {
             trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" opts into API Platform on #[AsDataTable] and out through apiPlatform(false): the attribute wins today, the fluent value will win in 2.0. Remove one of them.', static::class);
         }
 
@@ -254,6 +254,12 @@ abstract class AbstractDataTable
     public function getDataTable(): DataTable
     {
         trigger_deprecation('pentiminax/ux-datatables', '1.6', 'The "%s()" method is deprecated, use "getConfiguredDataTable()" to read the table or "render_datatable()" to render it. Removed in 2.0.', __METHOD__);
+
+        if (self::class !== (new \ReflectionMethod($this, 'prepareForRendering'))->getDeclaringClass()->getName()) {
+            $this->prepareForRendering();
+
+            return $this->getConfiguredDataTable();
+        }
 
         return $this->prepareDataTableForRendering();
     }

@@ -225,7 +225,7 @@ final class RenderingPreparer
         }
 
         if (DataSourceMode::Inline === $mode) {
-            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" combines data() with apiPlatform(), which read rows from two places: the flag is now withdrawn from the payload, and 2.0 throws a LogicException. Drop one of them.', $table->getDataTableClass() ?? $table->getId());
+            trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Table "%s" combines data() with apiPlatform(), which read rows from two places: a fluent flag is withdrawn from the payload, and 2.0 throws a LogicException. Drop one of them.', $table->getDataTableClass() ?? $table->getId());
         }
 
         if (true === $table->getOption('apiPlatform') && \in_array($mode, [DataSourceMode::ApiPlatformUnavailable, DataSourceMode::Inline], true)) {
