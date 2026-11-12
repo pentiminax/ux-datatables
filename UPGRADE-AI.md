@@ -8,7 +8,7 @@ the application working on the next major version. Optional changes are safe to 
 
 <upgrade-prompt version="1.6">
 
-Context: ux-datatables 1.6 is backward compatible except for one API Platform behavior change (required change 7). It adds a bare fluent method for every
+Context: ux-datatables 1.6 is backward compatible except for the behavior changes of required changes 7 and 9. It adds a bare fluent method for every
 user-facing `setX()` on columns, actions, bulk actions, table options and the table model, and
 deprecates the `setX()` spelling. 2.0 removes the `setX()` methods. After this change, running the
 test suite and the application must log no `pentiminax/ux-datatables` deprecation.
@@ -118,11 +118,16 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
    }
    ```
 
-9. Fix every table that logs a deprecation about an API Platform opt-in. Opted into API Platform
-   with no collection operation (or without API Platform installed): expose the operation or drop the
-   opt-in. `data()` combined with `apiPlatform()`: keep one of them. `ajax()` combined with
-   `apiPlatform()` is supported and needs no change. `#[AsDataTable(apiPlatform: true)]` combined
-   with `apiPlatform(false)`: remove one, as 2.0 lets the fluent `false` win.
+9. Fix every table that logs a deprecation about an API Platform opt-in, and the two behavior
+   changes beside it. Opted into API Platform with no collection operation (or without API Platform
+   installed): expose the operation or drop the opt-in. `data()` combined with `apiPlatform()`: keep
+   one of them, as the flag is now withdrawn from the payload and 2.0 throws. `ajax()` combined with
+   the fluent `apiPlatform()` is supported and needs no change. `#[AsDataTable(apiPlatform: true)]`
+   combined with `ajax()` and no fluent call: add `->apiPlatform(false)` to keep plain DataTables
+   JSON, or `->apiPlatform()` to send the flag now, as 2.0 sends it. `#[AsDataTable(apiPlatform:
+   true)]` combined with `apiPlatform(false)`: remove one, as 2.0 lets the fluent `false` win.
+   Replace a blank `editModalTemplate('')` or `editModalAdapter('')` with a real value or remove it:
+   a blank value now counts as unset on the page, as it already did on the edit route.
 
 10. Replace the deprecated rendering entry points and flags.
 

@@ -16,7 +16,7 @@ Deprecated APIs keep working for the whole 1.x line and are removed in 2.0.
 
 ## Upgrading to 1.6.0
 
-Everything in this release is backward compatible, except the API Platform behavior change below. An application that runs 1.6.0 with no
+Everything in this release is backward compatible, except the behavior changes below. An application that runs 1.6.0 with no
 deprecation notice and no console warning upgrades to 2.0 with `composer update` and one install
 command. To rename everything with an AI coding agent, give it [UPGRADE-AI.md](UPGRADE-AI.md).
 
@@ -68,6 +68,36 @@ of a `supports()` written as an exhaustive `match` without a default. An unknown
 unsupported everywhere, query features included, and that stays true in 2.0: a request using it is
 refused instead of crashing. Your own code that iterates `DataSourceFeature::cases()` or matches on
 it exhaustively must handle them: add the two cases or a `default` arm.
+
+### The API Platform flag is withdrawn from a table with embedded rows
+
+A table that combines `data()` with `apiPlatform()` (or the attribute opt-in) used to send the API
+Platform flag with its embedded rows, and the browser adapter then failed on the missing Ajax
+option. The flag is now withdrawn from the payload and the table renders its rows. The combination
+logs a deprecation, and 2.0 throws a `LogicException`: pick one source of rows.
+
+```php
+// Before
+$table->data($rows)->apiPlatform();
+
+// After
+$table->data($rows);
+```
+
+### A blank edit modal template or adapter counts as unset
+
+`editModalTemplate('')` and `editModalAdapter('')` used to override the `#[AsDataTable]` value on the
+page while the Ajax edit route ignored them. A blank value now counts as unset in both places, so
+the attribute's value (or the default) applies. Replace a blank call with the template or adapter
+you want, or remove it:
+
+```php
+// Before
+$table->editModalTemplate('');
+
+// After
+$table->editModalTemplate('modal/edit.html.twig');
+```
 
 ### Deprecations
 
@@ -129,13 +159,13 @@ it exhaustively must handle them: add the two cases or a `default` arm.
   its Mercure updates are then auto-resolved, which an embedded table does not get. The bundle also
   logs a warning past `data_tables.hydration_row_threshold` embedded rows (default `5000`, `0`
   disables it).
-- `data()` combined with `apiPlatform()` logs a deprecation, and 2.0 throws a `LogicException`. The
-  table renders its embedded rows, and the API Platform flag is now withdrawn from its payload: pick
-  one source. `ajax()` combined with `apiPlatform()` stays supported, for a custom Hydra collection,
-  and now renders the same payload whether `apiPlatform` is on the attribute or on the table.
 - `#[AsDataTable(apiPlatform: true)]` combined with `apiPlatform(false)` still opts in, and logs a
-  deprecation: 2.0 lets the fluent value win. Remove one of the two. A blank `editModalTemplate` or
-  `editModalAdapter` now counts as unset on the page as well as on the edit route.
+  deprecation: 2.0 lets the fluent value win. Remove one of the two.
+- `#[AsDataTable(apiPlatform: true)]` combined with `ajax()` and no `apiPlatform()` call renders plain
+  DataTables JSON today and logs a deprecation: 2.0 sends the API Platform flag for it, so the browser
+  reads the response through the Hydra adapter. Add `->apiPlatform(false)` to keep plain DataTables
+  JSON, or `->apiPlatform()` to opt in now. `ajax()` combined with the fluent `apiPlatform()` is
+  unchanged.
 
 ### The option bag returns only DataTables.net options in 2.0
 
