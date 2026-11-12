@@ -38,6 +38,7 @@ use Pentiminax\UX\DataTables\Tests\Fixtures\Count\CountAccount;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\RelatedToggleCustomer;
 use Pentiminax\UX\DataTables\Tests\Fixtures\Count\RelatedToggleOrder;
 use Pentiminax\UX\DataTables\Tests\Support\BuildsEntityManager;
+use Pentiminax\UX\DataTables\Tests\Support\CollectsDeprecations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -60,6 +61,7 @@ use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 final class RowActionGateTest extends TestCase
 {
     use BuildsEntityManager;
+    use CollectsDeprecations;
 
     private const SECRET = 'test-secret';
 
@@ -178,9 +180,13 @@ final class RowActionGateTest extends TestCase
     #[Test]
     public function it_authorizes_a_toggle_on_a_table_without_an_entity_class_and_deprecates_it(): void
     {
-        $this->expectUserDeprecationMessageMatches('/has no entity class, skips the row scope check: 2\.0 refuses the request/');
+        $authorized   = null;
+        $deprecations = $this->deprecationsOf(function () use (&$authorized): void {
+            $authorized = $this->authorize(RowActionRequest::toggle($this->token(GateManualDataTable::class), 'vip', 30));
+        });
 
-        $authorized = $this->authorize(RowActionRequest::toggle($this->token(GateManualDataTable::class), 'vip', 30));
+        $this->assertCount(1, $deprecations);
+        $this->assertMatchesRegularExpression('/has no entity class, skips the row scope check: 2\.0 refuses the request/', $deprecations[0]);
 
         $this->assertNull($authorized->table->entityClass);
         $this->assertSame(30, $authorized->context->entity->id);
