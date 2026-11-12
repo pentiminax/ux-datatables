@@ -62,12 +62,24 @@ on your own authorization:
 
 ### Row scope, identifier collection and enum cases
 
-`DataSourceFeature` gains the cases `RowScope` and `IdentifierCollection`. The bundle never passes
-them to `supports()` as part of its query-feature checks, and it catches the `\UnhandledMatchError`
-of a `supports()` written as an exhaustive `match` without a default. An unknown case counts as
-unsupported everywhere, query features included, and that stays true in 2.0: a request using it is
-refused instead of crashing. Your own code that iterates `DataSourceFeature::cases()` or matches on
-it exhaustively must handle them: add the two cases or a `default` arm.
+`DataSourceFeature` gains the cases `RowScope` and `IdentifierCollection`. A `supports()` written as
+an exhaustive `match` without a default throws an `\UnhandledMatchError` for them; the bundle catches
+it and triggers a deprecation naming your provider. For a query feature (SearchBuilder, ColumnControl,
+configured filters, summaries) an unknown case counts as unsupported and a request using it is
+refused. For row scope and identifier collection, a provider implementing
+`IdentifierDataProviderInterface` keeps being used, so the scope check still runs and a forged
+out-of-scope id is filtered out. Add the two cases or a `default` arm to `supports()`, and to any of
+your own code that iterates `DataSourceFeature::cases()` or matches on it exhaustively:
+
+```php
+public function supports(DataSourceFeature $feature): bool
+{
+    return match ($feature) {
+        DataSourceFeature::RowScope, DataSourceFeature::IdentifierCollection => true,
+        default => false,
+    };
+}
+```
 
 ### The fluent API Platform flag is withdrawn from a table with embedded rows
 

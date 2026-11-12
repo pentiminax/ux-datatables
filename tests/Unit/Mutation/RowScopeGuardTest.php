@@ -16,12 +16,16 @@ use Pentiminax\UX\DataTables\Attribute\AsDataTable;
 use Pentiminax\UX\DataTables\Column\BooleanColumn;
 use Pentiminax\UX\DataTables\Column\TextColumn;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Controller\AjaxDeleteController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditController;
 use Pentiminax\UX\DataTables\Controller\AjaxEditRequestDto;
 use Pentiminax\UX\DataTables\Controller\AjaxEntityQueryDto;
 use Pentiminax\UX\DataTables\DataProvider\DoctrineDataProvider;
+use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\Form\ColumnToFormTypeMapper;
 use Pentiminax\UX\DataTables\Form\EditFormBuilder;
@@ -34,6 +38,7 @@ use Pentiminax\UX\DataTables\Model\AbstractDataTable;
 use Pentiminax\UX\DataTables\Model\Action;
 use Pentiminax\UX\DataTables\Model\Actions;
 use Pentiminax\UX\DataTables\Model\DataTable;
+use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Mutation\EntityLocator;
 use Pentiminax\UX\DataTables\Mutation\EntityMutator;
 use Pentiminax\UX\DataTables\Mutation\MutationFlusher;
@@ -121,6 +126,52 @@ final class RowScopeGuardTest extends TestCase
         $this->assertCount(1, $deprecations);
         $this->assertStringContainsString('does not support the "rowScope" feature: 2.0 refuses the request', $deprecations[0]);
         $this->assertStringContainsString('unscopedMutations()', $deprecations[0]);
+    }
+
+    #[Test]
+    public function it_still_checks_the_scope_when_supports_cannot_answer_the_row_scope_feature(): void
+    {
+        $doctrine = $this->provider();
+        $provider = new class($doctrine) implements DataProviderInterface, FeatureAwareDataProviderInterface, IdentifierDataProviderInterface {
+            public function __construct(private readonly DoctrineDataProvider $inner)
+            {
+            }
+
+            public function supports(DataSourceFeature $feature): bool
+            {
+                return match ($feature) {
+                    DataSourceFeature::SearchBuilder, DataSourceFeature::ColumnControl, DataSourceFeature::ConfiguredFilters, DataSourceFeature::Summaries => true,
+                };
+            }
+
+            public function fetchData(DataTableRequest $request): DataTableResult
+            {
+                return $this->inner->fetchData($request);
+            }
+
+            public function collectIdentifiers(DataTableRequest $request, ?string $field = null): array
+            {
+                return $this->inner->collectIdentifiers($request, $field);
+            }
+
+            public function filterIdentifiersInScope(DataTableRequest $request, array $ids, string $field): array
+            {
+                return $this->inner->filterIdentifiersInScope($request, $ids, $field);
+            }
+        };
+        $table = new ResolvedDataTable(new ScopedAccountDataTable($provider), CountAccount::class, ScopedAccountDataTable::class);
+
+        $deprecations = $this->scopeDeprecationsOf(function () use ($table): void {
+            try {
+                $this->guard()->assertInScope($table, 3);
+                $this->fail('Out-of-scope id must be rejected.');
+            } catch (EntityNotFoundException) {
+                $this->addToAssertionCount(1);
+            }
+        });
+
+        $this->assertCount(1, $deprecations);
+        $this->assertStringContainsString('UnhandledMatchError', $deprecations[0]);
     }
 
     #[Test]
