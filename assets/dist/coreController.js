@@ -33,6 +33,7 @@ import { ensurePolling } from './functions/polling.js';
 import { installRequestParams } from './functions/requestParams.js';
 import { restrictSearchBuilder } from './functions/restrictSearchBuilder.js';
 import { runRowAction } from './functions/rowActionFeedback.js';
+import { rowActionUrl } from './functions/rowActionUrl.js';
 import { applyTableLanguage, bindRowFeatures } from './functions/rowFeatures.js';
 import { runAjaxAction } from './functions/runAjaxAction.js';
 import { applyServerExportUrls } from './functions/serverExport.js';
@@ -289,7 +290,7 @@ class default_1 extends Controller {
         normalizeDisabledColumnControls(payload);
         const style = resolveColumnStyleAdapter(this.framework, detectTheme());
         const columnRenderers = [
-            createBooleanColumnRenderer(this.getBooleanToggleUrl(), this.areMutationsEnabled(payload) &&
+            createBooleanColumnRenderer(rowActionUrl(payload, 'toggle'), this.areMutationsEnabled(payload) &&
                 typeof payload.dataTable === 'string' &&
                 payload.dataTable.length > 0, style),
             createChoiceColumnRenderer(style),
@@ -419,6 +420,7 @@ class default_1 extends Controller {
                 }
                 await this.runRowAction(actionButton, 'DETAIL', id, payload, async () => {
                     const result = await fetchDetailRow({
+                        url: rowActionUrl(payload, 'detail'),
                         dataTable,
                         id,
                         query: forwardedQuery(payload),
@@ -434,6 +436,7 @@ class default_1 extends Controller {
                 e.preventDefault();
                 const deleted = await this.runRowAction(actionButton, 'DELETE', id, payload, async () => {
                     const response = await deleteEntity({
+                        url: rowActionUrl(payload, 'delete'),
                         dataTable,
                         id,
                         csrfToken: this.getCsrfToken(payload),
@@ -453,6 +456,7 @@ class default_1 extends Controller {
                     return;
                 const loaded = await this.runRowAction(actionButton, 'EDIT', id, payload, async () => {
                     const result = await fetchEditForm({
+                        url: rowActionUrl(payload, 'editForm'),
                         dataTable,
                         id,
                         query: forwardedQuery(payload),
@@ -464,6 +468,7 @@ class default_1 extends Controller {
                         onSubmit: async (formData) => {
                             const saved = await this.runRowAction(actionButton, 'EDIT', id, payload, async () => {
                                 const result = await submitEditForm({
+                                    url: rowActionUrl(payload, 'editFormSubmit'),
                                     dataTable,
                                     id,
                                     formData,
@@ -545,7 +550,7 @@ class default_1 extends Controller {
             const previousState = !target.checked;
             const toggled = await this.runRowAction(target, 'TOGGLE', id, payload, async () => {
                 const response = await toggleBooleanValue({
-                    url: url ?? this.getBooleanToggleUrl(),
+                    url: url ?? rowActionUrl(payload, 'toggle'),
                     id,
                     rowId,
                     field,
@@ -585,9 +590,6 @@ class default_1 extends Controller {
             detail: payload,
             prefix: 'datatables',
         });
-    }
-    getBooleanToggleUrl() {
-        return '/datatables/ajax/edit';
     }
     isApiPlatformEnabled(payload) {
         return isApiPlatformAdapterEnabled(payload);

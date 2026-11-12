@@ -237,12 +237,13 @@ final class RenderingPreparerTest extends TestCase
 
         $registry = $this->createAjaxRegistry(self::TABLE_SERVICE_IDS);
 
-        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $urlGenerator
-            ->expects($expectsServerSide ? $this->once() : $this->never())
-            ->method('generate')
-            ->with('ux_datatables_ajax_data')
-            ->willReturn('/datatables/ajax/data');
+        $generated    = [];
+        $urlGenerator = $this->createStub(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturnCallback(static function (string $route) use (&$generated): string {
+            $generated[] = $route;
+
+            return '/datatables/ajax/data';
+        });
 
         $preparer = new RenderingPreparer(
             urlResolver: $urlResolver,
@@ -255,6 +256,7 @@ final class RenderingPreparerTest extends TestCase
 
         $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
 
+        $this->assertCount($expectsServerSide ? 1 : 0, array_keys($generated, 'ux_datatables_ajax_data', true));
         $this->assertTrue($table->getOption('apiPlatform'));
 
         if (!$expectsServerSide) {
@@ -669,6 +671,34 @@ final class RenderingPreparerTest extends TestCase
             'cancel'    => 'tr:action.row.cancel',
         ], $withActions->getOptions()['actionLabels']);
         $this->assertArrayNotHasKey('actionLabels', $withoutActions->getOptions());
+    }
+
+    #[Test]
+    public function it_generates_the_row_action_urls_only_for_a_table_with_row_actions(): void
+    {
+        $urlGenerator = $this->createStub(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturnCallback(static fn (string $route): string => '/p/'.$route);
+
+        $preparer = new RenderingPreparer(urlGenerator: $urlGenerator);
+
+        $withActions = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->add(ActionColumn::fromActions('actions', 'Actions', (new Actions())->add(Action::delete())));
+        $withoutActions = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->add(TextColumn::new('name'));
+
+        $preparer->prepare($withActions, null);
+        $preparer->prepare($withoutActions, null);
+
+        $this->assertSame([
+            'delete'         => '/p/ux_datatables_ajax_delete',
+            'toggle'         => '/p/ux_datatables_ajax_edit',
+            'detail'         => '/p/ux_datatables_ajax_detail',
+            'editForm'       => '/p/ux_datatables_ajax_edit_form',
+            'editFormSubmit' => '/p/ux_datatables_ajax_edit_form_submit',
+        ], $withActions->getOptions()['rowActionUrls']);
+        $this->assertArrayNotHasKey('rowActionUrls', $withoutActions->getOptions());
     }
 
     #[Test]

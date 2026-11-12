@@ -27,5 +27,6 @@ final class PrefixedHarnessAppKernel extends TestHarnessAppKernel
 
         $routes->add('harness_books', '/books')->controller([HarnessController::class, 'books']);
         $routes->add('harness_two_tables', '/two-tables')->controller([HarnessController::class, 'twoTables']);
+        $routes->add('harness_actions', '/actions')->controller([HarnessController::class, 'actions']);
     }
 }

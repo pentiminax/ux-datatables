@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
 use Pentiminax\UX\DataTables\PentiminaxDataTablesBundle;
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessActionsDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessClientSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessServerSideDataTable;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
@@ -65,7 +66,7 @@ class TestHarnessAppKernel extends Kernel
             'strict_variables' => true,
         ]);
 
-        foreach ([HarnessServerSideDataTable::class, HarnessClientSideDataTable::class] as $dataTableClass) {
+        foreach ([HarnessServerSideDataTable::class, HarnessClientSideDataTable::class, HarnessActionsDataTable::class] as $dataTableClass) {
             $builder->register($dataTableClass, $dataTableClass)
                 ->setAutoconfigured(true)
                 ->setPublic(true);
@@ -76,6 +77,7 @@ class TestHarnessAppKernel extends Kernel
                 new Reference('twig'),
                 new Reference(HarnessClientSideDataTable::class),
                 new Reference(HarnessServerSideDataTable::class),
+                new Reference(HarnessActionsDataTable::class),
             ])
             ->setPublic(true);
     }
@@ -86,5 +88,6 @@ class TestHarnessAppKernel extends Kernel
 
         $routes->add('harness_books', '/books')->controller([HarnessController::class, 'books']);
         $routes->add('harness_two_tables', '/two-tables')->controller([HarnessController::class, 'twoTables']);
+        $routes->add('harness_actions', '/actions')->controller([HarnessController::class, 'actions']);
     }
 }

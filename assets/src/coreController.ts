@@ -46,6 +46,7 @@ import { ensurePolling } from './functions/polling.js'
 import { installRequestParams, type RequestParamsHandle } from './functions/requestParams.js'
 import { restrictSearchBuilder } from './functions/restrictSearchBuilder.js'
 import { type RowActionOutcome, runRowAction } from './functions/rowActionFeedback.js'
+import { rowActionUrl } from './functions/rowActionUrl.js'
 import { applyTableLanguage, bindRowFeatures } from './functions/rowFeatures.js'
 import { runAjaxAction } from './functions/runAjaxAction.js'
 import { applyServerExportUrls } from './functions/serverExport.js'
@@ -478,7 +479,7 @@ export default class extends Controller {
 
         const columnRenderers: ColumnRenderer[] = [
             createBooleanColumnRenderer(
-                this.getBooleanToggleUrl(),
+                rowActionUrl(payload, 'toggle'),
                 this.areMutationsEnabled(payload) &&
                     typeof payload.dataTable === 'string' &&
                     payload.dataTable.length > 0,
@@ -651,6 +652,7 @@ export default class extends Controller {
 
                     await this.runRowAction(actionButton, 'DETAIL', id, payload, async () => {
                         const result = await fetchDetailRow({
+                            url: rowActionUrl(payload, 'detail'),
                             dataTable,
                             id,
                             query: forwardedQuery(payload),
@@ -674,6 +676,7 @@ export default class extends Controller {
                         payload,
                         async () => {
                             const response = await deleteEntity({
+                                url: rowActionUrl(payload, 'delete'),
                                 dataTable,
                                 id,
                                 csrfToken: this.getCsrfToken(payload),
@@ -705,6 +708,7 @@ export default class extends Controller {
                         payload,
                         async () => {
                             const result = await fetchEditForm({
+                                url: rowActionUrl(payload, 'editForm'),
                                 dataTable,
                                 id,
                                 query: forwardedQuery(payload),
@@ -725,6 +729,7 @@ export default class extends Controller {
                                     payload,
                                     async () => {
                                         const result = await submitEditForm({
+                                            url: rowActionUrl(payload, 'editFormSubmit'),
                                             dataTable,
                                             id,
                                             formData,
@@ -835,7 +840,7 @@ export default class extends Controller {
 
             const toggled = await this.runRowAction(target, 'TOGGLE', id, payload, async () => {
                 const response = await toggleBooleanValue({
-                    url: url ?? this.getBooleanToggleUrl(),
+                    url: url ?? rowActionUrl(payload, 'toggle'),
                     id,
                     rowId,
                     field,
@@ -880,10 +885,6 @@ export default class extends Controller {
             detail: payload,
             prefix: 'datatables',
         })
-    }
-
-    private getBooleanToggleUrl(): string {
-        return '/datatables/ajax/edit'
     }
 
     private isApiPlatformEnabled(payload: Record<string, any>): boolean {

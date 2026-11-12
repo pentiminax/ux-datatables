@@ -21,6 +21,7 @@ use Pentiminax\UX\DataTables\Model\Extensions\ButtonsExtension;
 use Pentiminax\UX\DataTables\Model\FilterLabels;
 use Pentiminax\UX\DataTables\Model\Summary\SummaryType;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -29,6 +30,14 @@ final class RenderingPreparer
     public const AJAX_DATA_ROUTE   = 'ux_datatables_ajax_data';
     public const AJAX_EXPORT_ROUTE = 'ux_datatables_ajax_export';
     public const AJAX_BULK_ROUTE   = 'ux_datatables_ajax_bulk';
+
+    private const ROW_ACTION_ROUTES = [
+        'delete'         => 'ux_datatables_ajax_delete',
+        'toggle'         => 'ux_datatables_ajax_edit',
+        'detail'         => 'ux_datatables_ajax_detail',
+        'editForm'       => 'ux_datatables_ajax_edit_form',
+        'editFormSubmit' => 'ux_datatables_ajax_edit_form_submit',
+    ];
 
     /**
      * Chrome strings of the bulk action bar, translated server-side like the filter bar's.
@@ -108,6 +117,7 @@ final class RenderingPreparer
 
         $this->configureExportUrl($table);
         $this->configureBulkActions($table);
+        $this->configureRowActionUrls($table);
         $this->configureActionLabels($table);
         $this->configureSummaryLabels($table);
         $this->configureEmptyStateLabels($table);
@@ -316,6 +326,24 @@ final class RenderingPreparer
         }
 
         $table->setPreparedBulkActionLabels($labels);
+    }
+
+    private function configureRowActionUrls(DataTable $table): void
+    {
+        if (null === $this->urlGenerator || !$this->hasRowActions($table)) {
+            return;
+        }
+
+        $urls = [];
+        foreach (self::ROW_ACTION_ROUTES as $name => $route) {
+            try {
+                $urls[$name] = $this->urlGenerator->generate($route);
+            } catch (RouteNotFoundException) {
+                // The route is not imported (or Form is absent): the frontend falls back to its default path.
+            }
+        }
+
+        $table->setRowActionUrls($urls);
     }
 
     private function configureActionLabels(DataTable $table): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Pentiminax\UX\DataTables\Tests\Kernel;
 
+use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessActionsDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessClientSideDataTable;
 use Pentiminax\UX\DataTables\Tests\Fixtures\DataTable\HarnessServerSideDataTable;
 use Symfony\Component\HttpFoundation\Response;
@@ -15,6 +16,7 @@ final readonly class HarnessController
         private Environment $twig,
         private HarnessClientSideDataTable $clientSideTable,
         private HarnessServerSideDataTable $serverSideTable,
+        private HarnessActionsDataTable $actionsTable,
     ) {
     }
 
@@ -22,6 +24,13 @@ final readonly class HarnessController
     {
         return new Response($this->twig->render('harness/books.html.twig', [
             'datatable' => $this->clientSideTable,
+        ]));
+    }
+
+    public function actions(): Response
+    {
+        return new Response($this->twig->render('harness/books.html.twig', [
+            'datatable' => $this->actionsTable,
         ]));
     }
 

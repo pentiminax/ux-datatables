@@ -358,6 +358,90 @@ describe('built-in row actions', () => {
         })
     })
 
+    describe('row action URLs', () => {
+        const rowActionUrls = {
+            delete: '/admin/datatables/ajax/delete',
+            toggle: '/admin/datatables/ajax/edit',
+            editForm: '/admin/datatables/ajax/edit-form/view',
+            editFormSubmit: '/admin/datatables/ajax/edit-form',
+        }
+        const modal = {
+            show: vi.fn(
+                async (_html: string, given: { onSubmit: (d: object) => Promise<void> }) => {
+                    await given.onSubmit({})
+                }
+            ),
+            hide: vi.fn(async () => {}),
+            replaceBody: vi.fn(),
+            isOpen: vi.fn(() => true),
+        }
+
+        beforeEach(() => {
+            vi.mocked(resolveModalAdapter).mockResolvedValue(modal as never)
+        })
+
+        it('sends delete, toggle and the edit form to the URLs of the payload', async () => {
+            const table = await mountTable({ rowActionUrls })
+
+            actionButton(table, 'DELETE').click()
+            await settle()
+            actionButton(table, 'EDIT').click()
+            await settle()
+            toggleSwitch(table).dispatchEvent(new Event('change', { bubbles: true }))
+            await settle()
+
+            expect(deleteEntity).toHaveBeenCalledWith(
+                expect.objectContaining({ url: rowActionUrls.delete })
+            )
+            expect(fetchEditForm).toHaveBeenCalledWith(
+                expect.objectContaining({ url: rowActionUrls.editForm })
+            )
+            expect(submitEditForm).toHaveBeenCalledWith(
+                expect.objectContaining({ url: rowActionUrls.editFormSubmit })
+            )
+            expect(toggleBooleanValue).toHaveBeenCalledWith(
+                expect.objectContaining({ url: rowActionUrls.toggle })
+            )
+        })
+
+        it('falls back to the default paths when the payload carries no URLs', async () => {
+            const table = await mountTable()
+
+            actionButton(table, 'DELETE').click()
+            await settle()
+            actionButton(table, 'EDIT').click()
+            await settle()
+            toggleSwitch(table).dispatchEvent(new Event('change', { bubbles: true }))
+            await settle()
+
+            expect(deleteEntity).toHaveBeenCalledWith(
+                expect.objectContaining({ url: '/datatables/ajax/delete' })
+            )
+            expect(fetchEditForm).toHaveBeenCalledWith(
+                expect.objectContaining({ url: '/datatables/ajax/edit-form/view' })
+            )
+            expect(submitEditForm).toHaveBeenCalledWith(
+                expect.objectContaining({ url: '/datatables/ajax/edit-form' })
+            )
+            expect(toggleBooleanValue).toHaveBeenCalledWith(
+                expect.objectContaining({ url: '/datatables/ajax/edit' })
+            )
+        })
+
+        it('keeps an explicit per-switch URL ahead of the payload', async () => {
+            const table = await mountTable({ rowActionUrls })
+            const toggle = toggleSwitch(table)
+            toggle.dataset.url = '/custom/toggle'
+
+            toggle.dispatchEvent(new Event('change', { bubbles: true }))
+            await settle()
+
+            expect(toggleBooleanValue).toHaveBeenCalledWith(
+                expect.objectContaining({ url: '/custom/toggle' })
+            )
+        })
+    })
+
     it('keeps the native confirm for a link the controller does not run', async () => {
         const nativeConfirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
         const table = await mountTable()
@@ -408,6 +492,18 @@ function actionButton(
     table.appendChild(button)
 
     return button
+}
+
+function toggleSwitch(table: HTMLTableElement): HTMLInputElement {
+    const toggle = document.createElement('input')
+    toggle.type = 'checkbox'
+    toggle.className = 'boolean-switch-action'
+    toggle.dataset.id = '42'
+    toggle.dataset.field = 'active'
+    toggle.checked = true
+    table.appendChild(toggle)
+
+    return toggle
 }
 
 function collectEvents(element: Element, type: string): CustomEvent[] {

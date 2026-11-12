@@ -50,6 +50,16 @@ final class RouteLoaderTest extends TestCase
     }
 
     #[Test]
+    public function it_skips_the_edit_form_routes_without_the_form_component(): void
+    {
+        $routes = (new RouteLoader(formAvailable: false))->loadRoutes();
+
+        $this->assertNull($routes->get('ux_datatables_ajax_edit_form'));
+        $this->assertNull($routes->get('ux_datatables_ajax_edit_form_submit'));
+        $this->assertNotNull($routes->get('ux_datatables_ajax_detail'));
+    }
+
+    #[Test]
     public function it_does_not_implement_the_deprecated_route_loader_marker_interface(): void
     {
         $this->assertSame([], class_implements(RouteLoader::class));

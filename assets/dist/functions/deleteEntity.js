@@ -1,6 +1,7 @@
 import { createMutationHeaders } from './createMutationHeaders.js';
-export async function deleteEntity({ dataTable, id, csrfToken, query, }) {
-    return await fetch('/datatables/ajax/delete', {
+import { DEFAULT_ROW_ACTION_URLS } from './rowActionUrl.js';
+export async function deleteEntity({ dataTable, id, csrfToken, query, url = DEFAULT_ROW_ACTION_URLS.delete, }) {
+    return await fetch(url, {
         method: 'DELETE',
         headers: createMutationHeaders(csrfToken),
         body: JSON.stringify({ dataTable, id, query }),
