@@ -11,6 +11,8 @@ use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
  *
  * Used by the bulk endpoint to resolve a "select every matching row" selection: the browser sends
  * the request it was displaying, and the provider answers with the identifiers it covers.
+ *
+ * @deprecated since 1.6, use IdentifierDataProviderInterface and declare DataSourceFeature::IdentifierCollection in supports() instead. Removed in 2.0.
  */
 interface IdentifierCollectingDataProviderInterface
 {

@@ -9,18 +9,22 @@ namespace Pentiminax\UX\DataTables\Enum;
  */
 enum DataSourceFeature: string
 {
-    case SearchBuilder     = 'searchBuilder';
-    case ColumnControl     = 'columnControl';
-    case ConfiguredFilters = 'configuredFilters';
-    case Summaries         = 'summaries';
+    case SearchBuilder        = 'searchBuilder';
+    case ColumnControl        = 'columnControl';
+    case ConfiguredFilters    = 'configuredFilters';
+    case Summaries            = 'summaries';
+    case RowScope             = 'rowScope';
+    case IdentifierCollection = 'identifierCollection';
 
     public function label(): string
     {
         return match ($this) {
-            self::SearchBuilder     => 'SearchBuilder criteria',
-            self::ColumnControl     => 'ColumnControl searches',
-            self::ConfiguredFilters => 'Configured filters',
-            self::Summaries         => 'Column summaries',
+            self::SearchBuilder        => 'SearchBuilder criteria',
+            self::ColumnControl        => 'ColumnControl searches',
+            self::ConfiguredFilters    => 'Configured filters',
+            self::Summaries            => 'Column summaries',
+            self::RowScope             => 'Row scope checks',
+            self::IdentifierCollection => 'Identifier collection',
         };
     }
 }

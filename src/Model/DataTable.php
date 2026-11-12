@@ -99,6 +99,8 @@ class DataTable
 
     private string|Expression|null $permission = null;
 
+    private bool $unscopedMutations = false;
+
     /** @var string[] */
     private array $forwardedQueryParameters = [];
 
@@ -263,6 +265,22 @@ class DataTable
     public function getPermission(): string|Expression|null
     {
         return $this->permission;
+    }
+
+    /**
+     * Declares that row actions and bulk actions on this table run without a row scope check from
+     * its data provider, because the scope is enforced elsewhere (an API Platform extension, a voter).
+     */
+    public function unscopedMutations(bool $unscoped = true): static
+    {
+        $this->unscopedMutations = $unscoped;
+
+        return $this;
+    }
+
+    public function allowsUnscopedMutations(): bool
+    {
+        return $this->unscopedMutations;
     }
 
     public function editModalTemplate(string $template): static

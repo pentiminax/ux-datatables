@@ -6,9 +6,9 @@ namespace Pentiminax\UX\DataTables\Mutation;
 
 use Pentiminax\UX\DataTables\Ajax\ResolvedDataTable;
 use Pentiminax\UX\DataTables\Column\Rendering\PropertyReader;
-use Pentiminax\UX\DataTables\Contracts\ScopedIdentifierProviderInterface;
 use Pentiminax\UX\DataTables\Exception\EntityNotFoundException;
 use Pentiminax\UX\DataTables\RowMapper\RowIdNormalizer;
+use Pentiminax\UX\DataTables\Runtime\DataSourceCapability;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -26,7 +26,8 @@ final class RowScopeGuard
     }
 
     /**
-     * The ids the table's permanent scope contains. A provider that cannot answer keeps them all.
+     * The ids the table's permanent scope contains. A provider that cannot answer keeps them all,
+     * which 1.6 deprecates unless the table declares unscopedMutations().
      *
      * @param list<int|string> $ids
      *
@@ -39,11 +40,21 @@ final class RowScopeGuard
         $dataTableRequest = $table->table->getRequest();
         $provider         = $table->table->getDataProvider();
 
-        if (null === $dataTableRequest || !$provider instanceof ScopedIdentifierProviderInterface) {
+        $checker = DataSourceCapability::rowScopeChecker($provider);
+
+        if (null === $checker) {
+            if (!$table->table->getConfiguredDataTable()->allowsUnscopedMutations()) {
+                trigger_deprecation('pentiminax/ux-datatables', '1.6', 'Acting on rows of table "%s" skips the row scope check, because its data provider "%s" does not support the "rowScope" feature: 2.0 refuses the request. Implement IdentifierDataProviderInterface and declare DataSourceFeature::RowScope in supports(), or call unscopedMutations() on the table when its scope is enforced elsewhere.', $table->dataTableClass, get_debug_type($provider));
+            }
+
             return $ids;
         }
 
-        return $provider->filterIdentifiersInScope($dataTableRequest->withoutPagination(), $ids, $field);
+        if (null === $dataTableRequest) {
+            return $ids;
+        }
+
+        return $checker->filterIdentifiersInScope($dataTableRequest->withoutPagination(), $ids, $field);
     }
 
     /**

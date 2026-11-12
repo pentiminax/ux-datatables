@@ -15,18 +15,21 @@ use Doctrine\ORM\QueryBuilder;
 use Pentiminax\UX\DataTables\Column\ColumnResolver;
 use Pentiminax\UX\DataTables\Contracts\ColumnInterface;
 use Pentiminax\UX\DataTables\Contracts\DataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\FeatureAwareDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\IdentifierCollectingDataProviderInterface;
+use Pentiminax\UX\DataTables\Contracts\IdentifierDataProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\RowMapperInterface;
 use Pentiminax\UX\DataTables\Contracts\ScopedIdentifierProviderInterface;
 use Pentiminax\UX\DataTables\Contracts\StreamingDataProviderInterface;
 use Pentiminax\UX\DataTables\DataTableRequest\DataTableRequest;
+use Pentiminax\UX\DataTables\Enum\DataSourceFeature;
 use Pentiminax\UX\DataTables\Model\DataTableResult;
 use Pentiminax\UX\DataTables\Query\CollectionJoinDetector;
 use Pentiminax\UX\DataTables\Query\DoctrineSortDirection;
 use Pentiminax\UX\DataTables\Query\RelationFieldResolver;
 use Pentiminax\UX\DataTables\RowMapper\RowContext;
 
-class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectingDataProviderInterface, ScopedIdentifierProviderInterface, StreamingDataProviderInterface
+class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataProviderInterface, IdentifierCollectingDataProviderInterface, IdentifierDataProviderInterface, ScopedIdentifierProviderInterface, StreamingDataProviderInterface
 {
     private const IN_SCOPE_CHUNK_SIZE = 500;
 
@@ -128,6 +131,18 @@ class DoctrineDataProvider implements DataProviderInterface, IdentifierCollectin
             data: $rows,
             summaries: $summaries,
         );
+    }
+
+    public function supports(DataSourceFeature $feature): bool
+    {
+        return match ($feature) {
+            DataSourceFeature::SearchBuilder,
+            DataSourceFeature::ColumnControl,
+            DataSourceFeature::ConfiguredFilters,
+            DataSourceFeature::Summaries,
+            DataSourceFeature::RowScope,
+            DataSourceFeature::IdentifierCollection => true,
+        };
     }
 
     /**
