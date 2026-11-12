@@ -104,8 +104,8 @@ final class AutoDataProviderFactoryTest extends TestCase
     }
 
     /**
-     * The RenderingPreparer leaves a table whose entity exposes no collection operation on its
-     * Doctrine wiring, so the provider must fall back the same way instead of raising later.
+     * A direct caller still gets Doctrine when the entity exposes no collection operation. A table
+     * never gets here: it refuses such an entity before building a provider.
      */
     #[Test]
     public function it_falls_back_to_doctrine_when_the_entity_exposes_no_collection_operation(): void

@@ -28,6 +28,7 @@ use Pentiminax\UX\DataTables\Runtime\DataTableInfrastructure;
 use Pentiminax\UX\DataTables\Runtime\DataTableRuntime;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Base class for every table the bundle renders: a class declaring its columns, actions, filters,
@@ -348,6 +349,18 @@ abstract class AbstractDataTable
         $this->mapInlineRows($data);
     }
 
+    /**
+     * Render reads no rows for an API Platform table without a collection, and Ajax answers the same.
+     */
+    private function createDataProviderUnlessUnavailable(): ?DataProviderInterface
+    {
+        if (DataSourceMode::ApiPlatformUnavailable === $this->dataSourceMode()) {
+            throw new NotFoundHttpException('DataTable not found.');
+        }
+
+        return $this->createDataProvider();
+    }
+
     private function dataSourceMode(): DataSourceMode
     {
         return $this->infrastructure()->renderingPreparer->resolveDataSourceMode($this->table, $this->asDataTable);
@@ -556,7 +569,7 @@ abstract class AbstractDataTable
             columns: $this->columns,
             asDataTable: $this->asDataTable,
             baseMapper: $this->mapRow(...),
-            manualDataProviderFactory: $this->createDataProvider(...),
+            manualDataProviderFactory: $this->createDataProviderUnlessUnavailable(...),
             configureQueryBuilder: $this->configureQueryBuilder(...),
             pageProjector: $this->projectPage(...),
             configureBaseQueryBuilder: $this->customizeQueryBuilder(...),

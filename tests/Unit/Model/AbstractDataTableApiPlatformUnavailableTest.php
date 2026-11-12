@@ -16,6 +16,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * @internal
@@ -36,6 +38,39 @@ final class AbstractDataTableApiPlatformUnavailableTest extends TestCase
         $this->assertNull($dataTable->getOption('ajax'));
         $this->assertNull($dataTable->getOption('data'));
         $this->assertNotTrue($dataTable->getOption('apiPlatform'));
+    }
+
+    #[Test]
+    #[DataProvider('provideUnresolvableCollections')]
+    public function it_answers_not_found_to_an_ajax_data_request(
+        string $tableClass,
+        ?ApiResourceCollectionUrlResolver $urlResolver,
+    ): void {
+        $table = new $tableClass($urlResolver);
+        $table->handleRequest($this->dataTablesRequest());
+
+        $this->expectException(NotFoundHttpException::class);
+
+        $table->getResponse();
+    }
+
+    #[Test]
+    #[DataProvider('provideUnresolvableCollections')]
+    public function it_builds_no_provider_for_an_export(
+        string $tableClass,
+        ?ApiResourceCollectionUrlResolver $urlResolver,
+    ): void {
+        $table = new $tableClass($urlResolver);
+        $table->handleRequest($this->dataTablesRequest());
+
+        $this->expectException(NotFoundHttpException::class);
+
+        $table->getDataProvider();
+    }
+
+    private function dataTablesRequest(): Request
+    {
+        return new Request(query: ['draw' => 1, 'start' => 0, 'length' => 10]);
     }
 
     public static function provideUnresolvableCollections(): iterable

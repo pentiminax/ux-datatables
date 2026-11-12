@@ -16,7 +16,7 @@ Deprecated APIs keep working for the whole 1.x line and are removed in 2.0.
 
 ## Upgrading to 1.6.0
 
-Everything in this release is backward compatible. An application that runs 1.6.0 with no
+Everything in this release is backward compatible, except the API Platform behavior change below. An application that runs 1.6.0 with no
 deprecation notice and no console warning upgrades to 2.0 with `composer update` and one install
 command. To rename everything with an AI coding agent, give it [UPGRADE-AI.md](UPGRADE-AI.md).
 
@@ -28,6 +28,27 @@ with one of these names (`data()`, `name()`, `type()`, `title()`, `format()`, `t
 `choices()`, ...) must rename it or match the new signature. A subclass that overrides a deprecated
 `setX()` must override `x()` instead: the bundle now calls `x()`, so the override is no longer
 reached.
+
+### Ajax data and export refuse an API Platform table without a collection
+
+A table opted into API Platform (`#[AsDataTable(apiPlatform: true)]` or `apiPlatform()`) whose
+entity exposes no collection operation already rendered with no rows, because a Doctrine fallback
+would skip the authorization the operation applies. The Ajax data and export endpoints used to
+ignore that and serve Doctrine rows anyway. They now answer 404, and the page no longer renders an
+export URL for such a table. This also applies to a table that provides its own
+`createDataProvider()`. Bulk and row actions on such a table answer 404 too, and calling
+`getDataProvider()`, `fetchData()` or `getResponse()` on it throws `NotFoundHttpException`.
+
+Expose a collection operation on the entity, or drop the opt-in to read the table through Doctrine
+on your own authorization:
+
+```php
+// Before
+#[AsDataTable(entityClass: Product::class, apiPlatform: true)]
+
+// After
+#[AsDataTable(entityClass: Product::class)]
+```
 
 ### Deprecations
 

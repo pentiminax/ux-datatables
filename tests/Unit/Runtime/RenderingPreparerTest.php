@@ -789,6 +789,29 @@ final class RenderingPreparerTest extends TestCase
     }
 
     #[Test]
+    public function it_renders_no_export_url_for_an_api_platform_table_without_a_collection(): void
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->expects($this->never())->method('generate');
+
+        $resolver = $this->createStub(ApiResourceCollectionUrlResolver::class);
+        $resolver->method('resolveCollectionUrl')->willReturn(null);
+
+        $preparer = new RenderingPreparer(
+            urlResolver: $resolver,
+            urlGenerator: $urlGenerator,
+            ajaxRegistry: $this->createAjaxRegistry(self::TABLE_SERVICE_IDS),
+        );
+        $table = (new DataTable('Test'))
+            ->setDataTableClass(self::TABLE_CLASS)
+            ->addExtension(new ButtonsExtension([Button::csv(serverSide: true)]));
+
+        $preparer->prepare($table, new AsDataTable(entityClass: \stdClass::class, apiPlatform: true));
+
+        $this->assertNull($table->getOption('exportUrl'));
+    }
+
+    #[Test]
     public function it_leaves_the_export_url_alone_for_client_side_export_buttons(): void
     {
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
