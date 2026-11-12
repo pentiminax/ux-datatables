@@ -69,12 +69,11 @@ unsupported everywhere, query features included, and that stays true in 2.0: a r
 refused instead of crashing. Your own code that iterates `DataSourceFeature::cases()` or matches on
 it exhaustively must handle them: add the two cases or a `default` arm.
 
-### The API Platform flag is withdrawn from a table with embedded rows
+### The fluent API Platform flag is withdrawn from a table with embedded rows
 
-A table that combines `data()` with `apiPlatform()` (or the attribute opt-in) used to send the API
-Platform flag with its embedded rows, and the browser adapter then failed on the missing Ajax
-option. The flag is now withdrawn from the payload and the table renders its rows. The combination
-logs a deprecation, and 2.0 throws a `LogicException`: pick one source of rows.
+A table that combines `data()` with the fluent `apiPlatform()` used to send the API Platform flag
+with its embedded rows, and the browser adapter then failed on the missing Ajax option. The flag is
+now withdrawn from the payload and the table renders its rows. Drop the call:
 
 ```php
 // Before
@@ -159,8 +158,10 @@ $table->editModalTemplate('modal/edit.html.twig');
   its Mercure updates are then auto-resolved, which an embedded table does not get. The bundle also
   logs a warning past `data_tables.hydration_row_threshold` embedded rows (default `5000`, `0`
   disables it).
+- `data()` combined with `apiPlatform()`, or with `#[AsDataTable(apiPlatform: true)]`, logs a
+  deprecation, and 2.0 throws a `LogicException`: the two read rows from different places. Keep one.
 - `#[AsDataTable(apiPlatform: true)]` combined with `apiPlatform(false)` still opts in, and logs a
-  deprecation: 2.0 lets the fluent value win. Remove one of the two.
+  deprecation: 2.0 lets the fluent value win. Remove one of the two. Combined with `ajax()`, the fluent `false` already wins and raises no notice.
 - `#[AsDataTable(apiPlatform: true)]` combined with `ajax()` and no `apiPlatform()` call renders plain
   DataTables JSON today and logs a deprecation: 2.0 sends the API Platform flag for it, so the browser
   reads the response through the Hydra adapter. Add `->apiPlatform(false)` to keep plain DataTables

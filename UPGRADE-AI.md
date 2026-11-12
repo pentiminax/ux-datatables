@@ -120,12 +120,12 @@ test suite and the application must log no `pentiminax/ux-datatables` deprecatio
 
 9. Fix every table that logs a deprecation about an API Platform opt-in, and the two behavior
    changes beside it. Opted into API Platform with no collection operation (or without API Platform
-   installed): expose the operation or drop the opt-in. `data()` combined with `apiPlatform()`: keep
-   one of them, as the flag is now withdrawn from the payload and 2.0 throws. `ajax()` combined with
+   installed): expose the operation or drop the opt-in. `data()` combined with `apiPlatform()` or the
+   attribute opt-in: keep one of them, as 2.0 throws (a fluent flag is already withdrawn). `ajax()` combined with
    the fluent `apiPlatform()` is supported and needs no change. `#[AsDataTable(apiPlatform: true)]`
    combined with `ajax()` and no fluent call: add `->apiPlatform(false)` to keep plain DataTables
    JSON, or `->apiPlatform()` to send the flag now, as 2.0 sends it. `#[AsDataTable(apiPlatform:
-   true)]` combined with `apiPlatform(false)`: remove one, as 2.0 lets the fluent `false` win.
+   true)]` combined with `apiPlatform(false)` and no `ajax()`: remove one, as 2.0 lets the fluent `false` win.
    Replace a blank `editModalTemplate('')` or `editModalAdapter('')` with a real value or remove it:
    a blank value now counts as unset on the page, as it already did on the edit route.
 
