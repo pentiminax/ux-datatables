@@ -50,6 +50,17 @@ final class AbstractDataTableMercureTest extends TestCase
         $this->assertNotNull($config);
         $this->assertSame(['/server-side/topic'], $config->topics);
     }
+
+    #[Test]
+    public function it_resolves_mercure_changes_made_after_initialization(): void
+    {
+        $hubUrlResolver = $this->createStub(MercureHubUrlResolver::class);
+        $hubUrlResolver->method('resolveHubUrl')->willReturn('https://hub.example/.well-known/mercure');
+        $table = new AbstractDataTableMercureServerSideFixture($hubUrlResolver);
+        $table->getConfiguredDataTable()->mercure(topics: ['/tenants/42']);
+
+        $this->assertSame(['/tenants/42'], $table->resolveMercureConfigWithoutHydration()?->topics);
+    }
 }
 
 /**

@@ -366,8 +366,9 @@ compiles.
 
 ### Options
 
-Option keys resolve against the filter that carries them: the applier tries `setOption()`, then
-`option()`, then a short alias table. Every fluent method of a filter class is therefore reachable,
+Option keys resolve against the filter that carries them: the applier checks the alias table first,
+then tries `option()` and the deprecated `setOption()` fallback. Every fluent method of a filter
+class is therefore reachable,
 including on a filter you wrote yourself. An option no method answers raises an exception naming the
 option and the filter class.
 

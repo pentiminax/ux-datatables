@@ -235,9 +235,10 @@ Arguments:
 
 ### Options
 
-An option key is resolved against the column that ends up carrying it: the applier tries
-`setOption()`, then `option()`, then a short alias table. Every setter of your column class is
-therefore reachable, including on a column type you wrote yourself.
+An option key is resolved against the column that ends up carrying it: the applier checks
+the alias table first, then tries `option()` and the deprecated `setOption()`
+fallback. Fluent methods of your column class are reachable, including on a column type you wrote
+yourself.
 
 ```php
 #[DataTableColumn(DateColumn::class, ['format' => 'd/m/Y', 'responsivePriority' => 1])]

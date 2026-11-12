@@ -1038,7 +1038,7 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
                 }
 
                 $join = "$parent.$segment";
-                $joinAliases[$join] ??= $this->plainLeftJoinAlias($qb, $join) ?? $this->selectedJoinAlias($qb, $join, $selected) ?? $this->addLeftJoin($qb, $join);
+                $joinAliases[$join] ??= $this->selectedJoinAlias($qb, $join, $selected) ?? $this->plainLeftJoinAlias($qb, $join) ?? $this->addLeftJoin($qb, $join);
                 $joinAlias = $joinAliases[$join];
 
                 if (!isset($selected[$joinAlias])) {
@@ -1110,6 +1110,15 @@ class DoctrineDataProvider implements DataProviderInterface, FeatureAwareDataPro
     private function addLeftJoin(QueryBuilder $qb, string $join): string
     {
         $taken = array_flip($qb->getAllAliases());
+        foreach ($qb->getDQLPart('select') as $select) {
+            foreach ($select->getParts() as $part) {
+                if (preg_match_all('/\b(ux_fetch_\d+)\b/i', (string) $part, $matches)) {
+                    foreach ($matches[1] as $resultAlias) {
+                        $taken[strtolower($resultAlias)] = true;
+                    }
+                }
+            }
+        }
         $index = 1;
 
         while (isset($taken["ux_fetch_$index"])) {

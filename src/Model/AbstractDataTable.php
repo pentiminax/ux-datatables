@@ -106,13 +106,14 @@ abstract class AbstractDataTable
     {
         unset($this->table, $this->columns, $this->filters);
 
-        $this->defaultRowMapper    = null;
-        $this->asDataTable         = null;
-        $this->optIns              = null;
-        $this->runtime             = null;
-        $this->initialized         = false;
-        $this->renderingPrepared   = false;
-        $this->columnsAutoDetected = false;
+        $this->defaultRowMapper       = null;
+        $this->asDataTable            = null;
+        $this->optIns                 = null;
+        $this->runtime                = null;
+        $this->initialized            = false;
+        $this->renderingPrepared      = false;
+        $this->renderedDataSourceMode = null;
+        $this->columnsAutoDetected    = false;
     }
 
     /**
@@ -255,8 +256,8 @@ abstract class AbstractDataTable
 
         $renderingPreparer = $this->infrastructure()->renderingPreparer;
 
-        $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable, $this->optIns);
         $this->renderedDataSourceMode = $this->dataSourceMode();
+        $renderingPreparer->prepareBeforeDataHydration($this->table, $this->asDataTable, $this->optIns);
         $this->prepareExplicitInlineData();
         $this->hydrateClientSideData();
         $renderingPreparer->prepareAfterDataHydration($this->table, $this->asDataTable, $this->optIns);
@@ -311,7 +312,7 @@ abstract class AbstractDataTable
             return null;
         }
 
-        return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->asDataTable, $this->optIns);
+        return $this->infrastructure()->renderingPreparer->resolveMercureConfig($this->table, $this->asDataTable, $this->getResolvedOptIns());
     }
 
     final public function getEntityClass(): ?string
@@ -356,7 +357,7 @@ abstract class AbstractDataTable
     {
         $this->initialize();
 
-        return $this->optIns;
+        return ResolvedOptIns::resolve($this->table, $this->asDataTable);
     }
 
     public function configureDataTable(DataTable $table): DataTable
