@@ -4,7 +4,15 @@ description: Use Bootstrap or the default DataTables theme
 order: 40
 ---
 
-The bundle supports 4 DataTables CSS frameworks out of the box. The Stimulus controller **automatically detects** which stylesheet you have loaded and picks the matching JavaScript integration — no PHP configuration required.
+The bundle styles DataTables for the DataTables.net theme (`dt`, which the Tailwind theme builds on) and for Bootstrap 5 (`bs5`). Declare which one you use in the bundle config. `bin/console ux-datatables:install` writes it for you.
+
+```yaml
+# config/packages/data_tables.yaml
+data_tables:
+    style_framework: dt # dt | bs5
+```
+
+A single table overrides it with `styleFramework()`. See [styleFramework](/guide/options/#styleframework).
 
 <Aside type="caution" title="Bootstrap 3 and 4 are deprecated">
   `StyleFramework::Bootstrap` (`bs`) and `StyleFramework::Bootstrap4` (`bs4`) are deprecated since
@@ -14,13 +22,13 @@ The bundle supports 4 DataTables CSS frameworks out of the box. The Stimulus con
 
 ## How It Works
 
-On page load, the controller scans the loaded stylesheets and matches the CSS file's URL against known patterns. The first match wins, so more specific patterns (e.g. `bootstrap5`) are checked before less specific ones (e.g. `bootstrap`). If nothing matches, the bundle falls back to the DataTables default theme.
+The controller uses the framework your config or the table declares. When none is declared, it falls back to autodetection: it scans the loaded stylesheets and matches the CSS file's URL against known patterns, and the first match wins. Autodetection logs a console warning once per page and is removed in 2.0, where the default becomes `dt`.
 
 ## Switching Frameworks
 
 ### With AssetMapper
 
-Edit `assets/controllers.json` to enable the CSS file for your target framework and disable the others:
+Set `data_tables.style_framework`, then edit `assets/controllers.json` to enable the CSS file for your target framework and disable the others:
 
 <Tabs>
   <TabItem label="Default (DataTables)">
@@ -80,8 +88,7 @@ Edit `assets/controllers.json` to enable the CSS file for your target framework 
 </Tabs>
 
 <Aside type="note">
-  Only one CSS entry should be `true` at a time. The bundle detects the active framework from the
-  loaded stylesheet.
+  Only one CSS entry should be `true` at a time, and it must match `data_tables.style_framework`.
 </Aside>
 
 ### With Webpack Encore
@@ -148,7 +155,7 @@ The naming pattern is always `datatables.net-{extension}-{key}`.
 
 <Aside type="tip">
   You only need to install the extensions you actually use. The bundle never loads a package for a
-  framework that isn't detected in the page stylesheets.
+  framework other than the declared one.
 </Aside>
 
 ## Customising the Table Element
@@ -295,7 +302,7 @@ The adapter registry is extensible: `columnStyleAdapters.register('dt', () => ne
 
 ### "No DataTables stylesheet detected"
 
-If you see this warning in the browser console, it means no recognised DataTables CSS file was found in the page's loaded stylesheets. The bundle falls back to the `dt` theme.
+If you see this warning, no framework was declared and autodetection found no recognised DataTables CSS file in the page's loaded stylesheets. The bundle falls back to the `dt` theme. Declare the framework with `data_tables.style_framework` to silence it.
 
 Common causes:
 

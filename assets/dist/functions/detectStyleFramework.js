@@ -1,11 +1,8 @@
-import { packageLoaders } from './packageLoaders.js';
 import { STYLE_FRAMEWORKS } from '../types/styleFramework.js';
 let warnedDeprecatedFramework = false;
 let warnedAutodetection = false;
 export function detectStyleFramework() {
-    if (!packageLoaders.isRegistered('dataTables')) {
-        warnOnceAboutAutodetection();
-    }
+    warnOnceAboutAutodetection();
     const sheets = [...document.styleSheets];
     for (const { key, cssPattern } of STYLE_FRAMEWORKS) {
         const matched = sheets.some((sheet) => sheet.href !== null && sheet.href.includes(cssPattern));
@@ -22,7 +19,7 @@ function warnOnceAboutAutodetection() {
         return;
     }
     warnedAutodetection = true;
-    console.warn('The style framework was autodetected from the page stylesheets, which is removed in 2.0. Call styleFramework() on the table or install a style kit.');
+    console.warn('The style framework was autodetected from the page stylesheets, which is removed in 2.0. Set "style_framework" under "data_tables" in the bundle config, or call styleFramework() on the table.');
 }
 function warnOnceAboutDeprecatedFramework(key) {
     if ((key !== 'bs' && key !== 'bs4') || warnedDeprecatedFramework) {

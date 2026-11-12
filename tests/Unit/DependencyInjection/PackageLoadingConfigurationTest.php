@@ -58,6 +58,36 @@ final class PackageLoadingConfigurationTest extends TestCase
         $this->assertSame(DataTablesExtension::CORE_CONTROLLER_NAME, $builder->getParameter('datatables.controller_name'));
     }
 
+    #[Test]
+    public function it_stamps_a_declared_style_framework_into_the_default_options(): void
+    {
+        $deprecations = [];
+        $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations, ['style_framework' => 'bs5', 'options' => ['stateSave' => true]]);
+
+        $options = $builder->getParameter('datatables.options');
+
+        $this->assertSame('bs5', $options['styleFramework']);
+        $this->assertTrue($options['stateSave']);
+    }
+
+    #[Test]
+    public function it_leaves_the_style_framework_unset_by_default(): void
+    {
+        $deprecations = [];
+        $builder      = $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations);
+
+        $this->assertArrayNotHasKey('styleFramework', $builder->getParameter('datatables.options'));
+    }
+
+    #[Test]
+    public function it_rejects_a_deprecated_style_framework(): void
+    {
+        $deprecations = [];
+        $this->expectException(\Symfony\Component\Config\Definition\Exception\InvalidConfigurationException::class);
+
+        $this->collect(static fn (): ContainerBuilder => new ContainerBuilder(), $deprecations, ['style_framework' => 'bs4']);
+    }
+
     /**
      * @param list<string>         $deprecations
      * @param array<string, mixed> $config

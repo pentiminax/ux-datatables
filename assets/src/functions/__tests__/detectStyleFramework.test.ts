@@ -66,10 +66,11 @@ describe('detectStyleFramework', () => {
 
         const autodetection = warn.mock.calls.filter(([m]) => String(m).includes('autodetected'))
         expect(autodetection).toHaveLength(1)
+        expect(autodetection[0][0]).toContain('style_framework')
         expect(autodetection[0][0]).toContain('styleFramework()')
     })
 
-    it('stays quiet about autodetection when a style kit registered the dataTables package', async () => {
+    it('warns about autodetection in registered mode too', async () => {
         const { packageLoaders } = await import('../packageLoaders.js')
         const { detectStyleFramework } = await import('../detectStyleFramework.js')
         packageLoaders.register('dataTables', async () => ({}))
@@ -77,6 +78,6 @@ describe('detectStyleFramework', () => {
 
         detectStyleFramework()
 
-        expect(warn.mock.calls.some(([m]) => String(m).includes('autodetected'))).toBe(false)
+        expect(warn.mock.calls.some(([m]) => String(m).includes('autodetected'))).toBe(true)
     })
 })

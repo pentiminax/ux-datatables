@@ -1,4 +1,3 @@
-import { packageLoaders } from './packageLoaders.js'
 import { STYLE_FRAMEWORKS, type StyleFramework } from '../types/styleFramework.js'
 
 let warnedDeprecatedFramework = false
@@ -11,9 +10,7 @@ let warnedAutodetection = false
  * Falls back to 'dt' if no recognised stylesheet is found.
  */
 export function detectStyleFramework(): StyleFramework {
-    if (!packageLoaders.isRegistered('dataTables')) {
-        warnOnceAboutAutodetection()
-    }
+    warnOnceAboutAutodetection()
 
     const sheets = [...document.styleSheets]
 
@@ -37,7 +34,7 @@ export function detectStyleFramework(): StyleFramework {
 }
 
 /**
- * @deprecated since 1.6, set the style framework with styleFramework() or install a style kit. Removed in 2.0.
+ * @deprecated since 1.6, set data_tables.style_framework or call styleFramework() on the table instead. Removed in 2.0.
  */
 function warnOnceAboutAutodetection(): void {
     if (warnedAutodetection) {
@@ -46,7 +43,7 @@ function warnOnceAboutAutodetection(): void {
 
     warnedAutodetection = true
     console.warn(
-        'The style framework was autodetected from the page stylesheets, which is removed in 2.0. Call styleFramework() on the table or install a style kit.'
+        'The style framework was autodetected from the page stylesheets, which is removed in 2.0. Set "style_framework" under "data_tables" in the bundle config, or call styleFramework() on the table.'
     )
 }
 

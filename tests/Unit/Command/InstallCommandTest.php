@@ -217,17 +217,25 @@ final class InstallCommandTest extends TestCase
     {
         $this->install([]);
 
-        $this->assertSame("data_tables:\n    package_loading: registered\n", $this->read('config/packages/data_tables.yaml'));
+        $this->assertSame("data_tables:\n    package_loading: registered\n    style_framework: dt\n", $this->read('config/packages/data_tables.yaml'));
+    }
+
+    #[Test]
+    public function it_declares_the_bootstrap_style_framework(): void
+    {
+        $this->install(['--style' => 'bs5']);
+
+        $this->assertSame("data_tables:\n    package_loading: registered\n    style_framework: bs5\n", $this->read('config/packages/data_tables.yaml'));
     }
 
     #[Test]
     public function it_replaces_an_existing_package_loading_value(): void
     {
-        $this->writeConfig('data_tables.yaml', "# keep\ndata_tables:\n  max_page_length: 50\n  package_loading: builtin # old\n  options:\n    stateSave: true\n\nwhen@test:\n    data_tables:\n        max_page_length: 5\n");
+        $this->writeConfig('data_tables.yaml', "# keep\ndata_tables:\n  max_page_length: 50\n  package_loading: builtin # old\n  style_framework: bs5\n  options:\n    stateSave: true\n\nwhen@test:\n    data_tables:\n        max_page_length: 5\n");
 
         $this->install([]);
 
-        $this->assertSame("# keep\ndata_tables:\n  max_page_length: 50\n  package_loading: registered\n  options:\n    stateSave: true\n\nwhen@test:\n    data_tables:\n        max_page_length: 5\n", $this->read('config/packages/data_tables.yaml'));
+        $this->assertSame("# keep\ndata_tables:\n  max_page_length: 50\n  package_loading: registered\n  style_framework: dt\n  options:\n    stateSave: true\n\nwhen@test:\n    data_tables:\n        max_page_length: 5\n", $this->read('config/packages/data_tables.yaml'));
     }
 
     #[Test]
@@ -237,7 +245,7 @@ final class InstallCommandTest extends TestCase
 
         $this->install([]);
 
-        $this->assertSame("data_tables:\n    package_loading: registered\n    options:\n        stateSave: true\n", $this->read('config/packages/app.yaml'));
+        $this->assertSame("data_tables:\n    package_loading: registered\n    style_framework: dt\n    options:\n        stateSave: true\n", $this->read('config/packages/app.yaml'));
         $this->assertFileDoesNotExist($this->dir.'/config/packages/data_tables.yaml');
     }
 
@@ -248,7 +256,7 @@ final class InstallCommandTest extends TestCase
 
         $this->install([]);
 
-        $this->assertSame("data_tables:\n    package_loading: registered\n", $this->read('config/packages/data_tables.yaml'));
+        $this->assertSame("data_tables:\n    package_loading: registered\n    style_framework: dt\n", $this->read('config/packages/data_tables.yaml'));
     }
 
     #[Test]
